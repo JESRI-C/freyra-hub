@@ -77,76 +77,26 @@ export function ESGMetricCard({
 }
 
 export function VerificationStatusBadge({ status }: { status: VerificationLevel }) {
-  const m: Record<VerificationLevel, { bg: string; icon: ReactNode }> = {
-    Verificeret: { bg: "bg-success/15 text-success", icon: <ShieldCheck className="h-3 w-3" /> },
-    "Under verifikation": {
-      bg: "bg-warning/20 text-warning-foreground",
-      icon: <Loader2 className="h-3 w-3" />,
-    },
-    "Ikke verificeret": {
-      bg: "bg-destructive/15 text-destructive",
-      icon: <ShieldAlert className="h-3 w-3" />,
-    },
-  };
-  const t = m[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${t.bg}`}
-    >
-      {t.icon} {status}
-    </span>
-  );
+  return <StatusBadge status={VERIFICATION_MAP[status]} />;
 }
 
 export function ReportingStatusPill({ status }: { status: ReportingStatus }) {
-  const m: Record<ReportingStatus, string> = {
-    Rapportklar: "bg-success/15 text-success",
-    "Delvist klar": "bg-warning/20 text-warning-foreground",
-    "Mangler data": "bg-destructive/15 text-destructive",
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${m[status]}`}>{status}</span>
-  );
+  return <StatusBadge status={REPORTING_MAP[status]} />;
 }
 
 export function ReadinessScore({
   label,
   value,
-  size = "md",
 }: {
   label: string;
   value: number;
   size?: "sm" | "md";
 }) {
-  const tone =
-    value >= 85 ? "bg-success" : value >= 70 ? "bg-leaf" : value >= 55 ? "bg-warning" : "bg-destructive";
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium tabular-nums">{value}%</span>
-      </div>
-      <div className={`${size === "sm" ? "h-1" : "h-1.5"} rounded-full bg-muted overflow-hidden`}>
-        <div className={`h-full ${tone}`} style={{ width: `${Math.min(value, 100)}%` }} />
-      </div>
-    </div>
-  );
+  return <PlatformReadinessScore value={value} label={label} />;
 }
 
 export function ApprovalStatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    Draft: "bg-muted text-muted-foreground",
-    "Intern review": "bg-warning/20 text-warning-foreground",
-    "Klar til godkendelse": "bg-accent text-accent-foreground",
-    Godkendt: "bg-success/15 text-success",
-    "Sendt til rapport": "bg-leaf/20 text-primary",
-    Arkiveret: "bg-muted text-muted-foreground",
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${map[status] ?? "bg-muted"}`}>
-      {status}
-    </span>
-  );
+  return <StatusBadge status={APPROVAL_MAP[status] ?? "Kladde"} />;
 }
 
 export function MiniSpark({ values, color = "var(--leaf)" }: { values: number[]; color?: string }) {
