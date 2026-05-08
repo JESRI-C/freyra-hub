@@ -2,47 +2,32 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { CheckCircle2, X, AlertTriangle } from "lucide-react";
 import { Card, Pill } from "@/components/ui-bits";
+import {
+  StatusBadge,
+  ReadinessScore as PlatformReadinessScore,
+} from "@/components/platform/Primitives";
+import type { PlatformStatus } from "@/lib/platform-data";
+
+const REPORT_STATUS_MAP: Record<string, PlatformStatus> = {
+  "Kladde": "Kladde",
+  "Klar til review": "Klar til review",
+  "Kræver data": "Kræver handling",
+  "Godkendt": "Godkendt",
+  "Eksporteret": "Eksporteret",
+  "Arkiveret": "Kladde",
+};
 
 export function ReportStatusBadge({ status }: { status: string }) {
-  const map: Record<string, any> = {
-    "Kladde": { tone: "default", label: "Kladde" },
-    "Klar til review": { tone: "info", label: "Klar til review" },
-    "Kræver data": { tone: "danger", label: "Kræver data" },
-    "Godkendt": { tone: "success", label: "Godkendt" },
-    "Eksporteret": { tone: "success", label: "Eksporteret" },
-    "Arkiveret": { tone: "default", label: "Arkiveret" },
-  };
-  const m = map[status] ?? map["Kladde"];
-  return <Pill tone={m.tone}>{m.label}</Pill>;
+  const mapped = REPORT_STATUS_MAP[status] ?? "Kladde";
+  return <StatusBadge status={mapped} />;
 }
 
-export function ReadinessScore({ value, size = "md" }: { value: number; size?: "sm" | "md" | "lg" }) {
-  const tone = value >= 90 ? "text-success" : value >= 75 ? "text-warning-foreground" : "text-destructive";
-  const stroke = value >= 90 ? "hsl(var(--success))" : value >= 75 ? "hsl(var(--warning))" : "hsl(var(--destructive))";
-  const r = size === "lg" ? 52 : size === "md" ? 30 : 22;
-  const sw = size === "lg" ? 8 : size === "md" ? 5 : 4;
-  const C = 2 * Math.PI * r;
-  const offset = C - (value / 100) * C;
-  const wh = (r + sw) * 2;
-  return (
-    <div className="inline-flex items-center gap-2">
-      <svg width={wh} height={wh} className="-rotate-90">
-        <circle cx={wh / 2} cy={wh / 2} r={r} stroke="hsl(var(--muted))" strokeWidth={sw} fill="none" />
-        <circle cx={wh / 2} cy={wh / 2} r={r} stroke={stroke} strokeWidth={sw} fill="none" strokeDasharray={C} strokeDashoffset={offset} strokeLinecap="round" />
-      </svg>
-      <div className={`${size === "lg" ? "text-3xl" : "text-base"} font-semibold tabular-nums ${tone}`}>{value}%</div>
-    </div>
-  );
+export function ReadinessScore({ value }: { value: number; size?: "sm" | "md" | "lg" }) {
+  return <PlatformReadinessScore value={value} />;
 }
 
 export function ReadinessBar({ value, label }: { value: number; label?: string }) {
-  const color = value >= 90 ? "bg-success" : value >= 75 ? "bg-warning" : "bg-destructive";
-  return (
-    <div>
-      {label && <div className="flex justify-between text-xs mb-1"><span className="text-muted-foreground">{label}</span><span className="font-medium tabular-nums">{value}%</span></div>}
-      <div className="h-2 rounded-full bg-muted overflow-hidden"><div className={`h-full ${color} rounded-full`} style={{ width: `${value}%` }} /></div>
-    </div>
-  );
+  return <PlatformReadinessScore value={value} label={label ?? "Rapportklarhed"} />;
 }
 
 export function Drawer({ open, onClose, title, subtitle, children, footer, width = "max-w-xl" }: {

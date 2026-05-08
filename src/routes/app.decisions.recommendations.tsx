@@ -5,6 +5,7 @@ import { RecommendationCard } from "@/components/decisions/RecommendationCard";
 import { RecommendationDetail } from "@/components/decisions/RecommendationDetail";
 import { RECOMMENDATIONS, CATEGORIES, type Recommendation, type Priority, type Status } from "@/lib/decisions-data";
 import { ListChecks, AlertTriangle, FileCheck2, Database, Filter } from "lucide-react";
+import { EmptyStateCard, actionToast } from "@/components/platform/Primitives";
 
 export const Route = createFileRoute("/app/decisions/recommendations")({
   head: () => ({ meta: [{ title: "Anbefalinger — DecisionsIQ" }] }),
@@ -36,7 +37,7 @@ function Page() {
       <PageHeader
         title="Anbefalinger"
         description="AI-genererede anbefalinger med forventet effekt, datagrundlag og ejer."
-        actions={<button className="text-sm rounded-lg border bg-card px-3 py-2">Eksportér liste</button>}
+        actions={<button onClick={() => actionToast("Anbefalingsliste eksporteret", "Filen er klar i Eksporter-historik")} className="text-sm rounded-lg border bg-card px-3 py-2">Eksportér liste</button>}
       />
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -66,9 +67,12 @@ function Page() {
           <RecommendationCard key={r.id} r={r} onClick={() => setSelected(r)} />
         ))}
         {filtered.length === 0 && (
-          <Card className="p-10 text-center text-sm text-muted-foreground col-span-full">
-            Ingen anbefalinger matcher filtrene.
-          </Card>
+          <div className="col-span-full">
+            <EmptyStateCard
+              title="Ingen anbefalinger matcher filteret"
+              description="Der er ingen anbefalinger med det valgte filter. Prøv at nulstille prioritet, kategori eller status."
+            />
+          </div>
         )}
       </div>
 

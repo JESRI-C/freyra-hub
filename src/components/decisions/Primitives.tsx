@@ -1,6 +1,20 @@
 import type { ReactNode } from "react";
-import { ArrowDownRight, ArrowUpRight, ShieldAlert, ShieldCheck, AlertTriangle, Info } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { RiskLevel, Priority } from "@/lib/decisions-data";
+import { StatusBadge } from "@/components/platform/Primitives";
+import type { PlatformStatus } from "@/lib/platform-data";
+
+const RISK_TO_STATUS: Record<RiskLevel, PlatformStatus> = {
+  Lav: "Lav risiko",
+  Medium: "Medium risiko",
+  Høj: "Høj risiko",
+  Kritisk: "Høj risiko",
+};
+const PRIORITY_TO_STATUS: Record<Priority, PlatformStatus> = {
+  Høj: "Høj risiko",
+  Medium: "Medium risiko",
+  Lav: "Lav risiko",
+};
 
 export function ConfidenceScore({ value, size = "md" }: { value: number; size?: "sm" | "md" }) {
   const pct = Math.round(value * 100);
@@ -14,27 +28,11 @@ export function ConfidenceScore({ value, size = "md" }: { value: number; size?: 
 }
 
 export function RiskBadge({ level }: { level: RiskLevel }) {
-  const map: Record<RiskLevel, { bg: string; icon: ReactNode }> = {
-    Lav: { bg: "bg-success/15 text-success", icon: <ShieldCheck className="h-3 w-3" /> },
-    Medium: { bg: "bg-warning/20 text-warning-foreground", icon: <Info className="h-3 w-3" /> },
-    Høj: { bg: "bg-destructive/15 text-destructive", icon: <AlertTriangle className="h-3 w-3" /> },
-    Kritisk: { bg: "bg-destructive text-destructive-foreground", icon: <ShieldAlert className="h-3 w-3" /> },
-  };
-  const t = map[level];
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${t.bg}`}>
-      {t.icon} {level}
-    </span>
-  );
+  return <StatusBadge status={RISK_TO_STATUS[level]} />;
 }
 
 export function PriorityBadge({ p }: { p: Priority }) {
-  const map: Record<Priority, string> = {
-    Høj: "bg-destructive/15 text-destructive",
-    Medium: "bg-warning/20 text-warning-foreground",
-    Lav: "bg-muted text-muted-foreground",
-  };
-  return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${map[p]}`}>{p} prioritet</span>;
+  return <StatusBadge status={PRIORITY_TO_STATUS[p]} />;
 }
 
 export function DataQualityBar({ value, label }: { value: number; label?: string }) {

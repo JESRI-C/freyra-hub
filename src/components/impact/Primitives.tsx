@@ -35,47 +35,35 @@ export const CATEGORY_ICON: Record<Category, typeof Leaf> = {
   Energiomstilling: Wind,
 };
 
+import { StatusBadge as PlatformStatusBadge } from "@/components/platform/Primitives";
+import type { PlatformStatus } from "@/lib/platform-data";
+
+const VERIFICATION_MAP: Record<VerificationStatus, PlatformStatus> = {
+  Verificeret: "Verificeret",
+  "Under verifikation": "Under verifikation",
+  Planlagt: "Kladde",
+};
+const RISK_MAP: Record<RiskLevel, PlatformStatus> = {
+  Lav: "Lav risiko",
+  Medium: "Medium risiko",
+  Høj: "Høj risiko",
+};
+const REPORTING_MAP: Record<ReportingStatus, PlatformStatus> = {
+  Rapportklar: "Rapportklar",
+  "Delvist klar": "Under verifikation",
+  "Ikke klar": "Ikke rapportklar",
+};
+
 export function VerificationBadge({ status }: { status: VerificationStatus }) {
-  const m: Record<VerificationStatus, { bg: string; icon: ReactNode }> = {
-    Verificeret: { bg: "bg-success/15 text-success", icon: <ShieldCheck className="h-3 w-3" /> },
-    "Under verifikation": {
-      bg: "bg-warning/20 text-warning-foreground",
-      icon: <Loader2 className="h-3 w-3" />,
-    },
-    Planlagt: { bg: "bg-muted text-muted-foreground", icon: <ShieldAlert className="h-3 w-3" /> },
-  };
-  const t = m[status];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${t.bg}`}
-    >
-      {t.icon} {status}
-    </span>
-  );
+  return <PlatformStatusBadge status={VERIFICATION_MAP[status]} />;
 }
 
 export function RiskBadge({ level }: { level: RiskLevel }) {
-  const m: Record<RiskLevel, string> = {
-    Lav: "bg-success/15 text-success",
-    Medium: "bg-warning/20 text-warning-foreground",
-    Høj: "bg-destructive/15 text-destructive",
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${m[level]}`}>
-      Risiko: {level}
-    </span>
-  );
+  return <PlatformStatusBadge status={RISK_MAP[level]} />;
 }
 
 export function ReportingPill({ status }: { status: ReportingStatus }) {
-  const m: Record<ReportingStatus, string> = {
-    Rapportklar: "bg-success/15 text-success",
-    "Delvist klar": "bg-warning/20 text-warning-foreground",
-    "Ikke klar": "bg-muted text-muted-foreground",
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${m[status]}`}>{status}</span>
-  );
+  return <PlatformStatusBadge status={REPORTING_MAP[status]} />;
 }
 
 export function CategoryBadge({ category }: { category: Category }) {

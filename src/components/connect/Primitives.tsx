@@ -120,14 +120,15 @@ export function Section({ title, subtitle, action, children }: { title: string; 
   );
 }
 
-// ---------- Severity badge ----------
+// ---------- Severity badge (delegates to shared StatusBadge) ----------
+import { StatusBadge as PlatformStatusBadge } from "@/components/platform/Primitives";
 export function SeverityBadge({ severity }: { severity: "critical" | "medium" | "low" }) {
   const map = {
-    critical: { tone: "danger" as const, label: "Kritisk" },
-    medium: { tone: "warning" as const, label: "Medium" },
-    low: { tone: "info" as const, label: "Lav" },
+    critical: "Høj risiko" as const,
+    medium: "Medium risiko" as const,
+    low: "Lav risiko" as const,
   };
-  return <Pill tone={map[severity].tone}>{map[severity].label}</Pill>;
+  return <PlatformStatusBadge status={map[severity]} />;
 }
 
 // ---------- Progress bar ----------
