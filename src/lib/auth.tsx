@@ -45,7 +45,7 @@ export const ORGANIZATIONS: Organization[] = [
     name: "Skallebæk Biodiversity Pilot",
     description: "Pilotprojekt for biodiversitet i ådal",
     projects: [
-      { id: "sk-aadal", name: "Skallebæk Ådal", location: "Sydjylland", status: "Aktiv" },
+      { id: "sk-aadal", name: "Skallebæk Ådal", location: "Haderslev, Danmark", status: "Aktiv" },
     ],
   },
   {
@@ -55,6 +55,30 @@ export const ORGANIZATIONS: Organization[] = [
     projects: [
       { id: "uw-cph", name: "København Havn", location: "København", status: "Aktiv" },
       { id: "uw-aarhus", name: "Aarhus Å", location: "Aarhus", status: "Aktiv" },
+    ],
+  },
+  {
+    id: "danish-wetland",
+    name: "Danish Wetland Restoration",
+    description: "Genetablering af vådområder i Jylland",
+    projects: [
+      { id: "dw-vejle", name: "Vejle Ådal Vådområde", location: "Vejle", status: "Aktiv" },
+    ],
+  },
+  {
+    id: "urban-bio-cph",
+    name: "Urban Biodiversity Corridor Copenhagen",
+    description: "Sammenhængende biodiversitetskorridor i København",
+    projects: [
+      { id: "ub-amager", name: "Amager Fælled Korridor", location: "København", status: "Under verifikation" },
+    ],
+  },
+  {
+    id: "mangrove-id",
+    name: "Mangrove Restoration Indonesia",
+    description: "Restaurering af mangroveskove i Sydøstasien",
+    projects: [
+      { id: "mg-sulawesi", name: "Sulawesi Mangrove", location: "Indonesien", status: "Aktiv" },
     ],
   },
 ];

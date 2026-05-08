@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/AppSidebar";
+import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/app")({
@@ -15,6 +16,7 @@ function AppLayout() {
     <div className="min-h-screen flex bg-background">
       <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
+        <GlobalContextBar />
         <Outlet />
       </div>
     </div>

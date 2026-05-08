@@ -10,19 +10,46 @@ import {
   Settings,
   Leaf,
   ChevronsUpDown,
+  Map,
+  Upload,
+  Users,
 } from "lucide-react";
 import { useAuth, getCurrentOrg, getCurrentProject } from "@/lib/auth";
 
-const NAV = [
-  { to: "/app/overview", label: "Oversigt", icon: LayoutDashboard },
-  { to: "/app/decisions", label: "DecisionsIQ", icon: Brain },
-  { to: "/app/impact", label: "Impact Exchange", icon: Repeat2 },
-  { to: "/app/ledger", label: "ESG Ledger", icon: BookCheck },
-  { to: "/app/connect", label: "Smart Connect", icon: Cable },
-  { to: "/app/reports", label: "Rapporter", icon: FileText },
-  { to: "/app/data", label: "Datakilder", icon: Database },
-  { to: "/app/settings", label: "Indstillinger", icon: Settings },
-] as const;
+const GROUPS: { label: string; items: { to: string; label: string; icon: any }[] }[] = [
+  {
+    label: "Hovedmenu",
+    items: [{ to: "/app/overview", label: "Oversigt", icon: LayoutDashboard }],
+  },
+  {
+    label: "Data & Intelligence",
+    items: [
+      { to: "/app/connect", label: "Smart Connect", icon: Cable },
+      { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
+      { to: "/app/connect/upload", label: "Upload Center", icon: Upload },
+      { to: "/app/decisions", label: "DecisionsIQ", icon: Brain },
+    ],
+  },
+  {
+    label: "Impact & Dokumentation",
+    items: [
+      { to: "/app/impact", label: "Impact Exchange", icon: Repeat2 },
+      { to: "/app/ledger", label: "ESG Ledger", icon: BookCheck },
+    ],
+  },
+  {
+    label: "Output",
+    items: [{ to: "/app/reports", label: "Rapporter", icon: FileText }],
+  },
+  {
+    label: "Administration",
+    items: [
+      { to: "/app/settings", label: "Organisation", icon: Settings },
+      { to: "/app/settings/users", label: "Brugere & roller", icon: Users },
+      { to: "/app/data", label: "Datakilder", icon: Database },
+    ],
+  },
+];
 
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -56,25 +83,37 @@ export function AppSidebar() {
         <ChevronsUpDown className="h-4 w-4 text-sidebar-muted" />
       </Link>
 
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {NAV.map((item) => {
-          const active = path === item.to || path.startsWith(item.to + "/");
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
-                active
-                  ? "bg-leaf text-leaf-foreground font-medium shadow-soft"
-                  : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 p-3 overflow-y-auto">
+        {GROUPS.map((group) => (
+          <div key={group.label} className="mb-3">
+            <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
+              {group.label}
+            </div>
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const active =
+                  path === item.to ||
+                  (item.to !== "/app/settings" && path.startsWith(item.to + "/")) ||
+                  (item.to === "/app/settings" && path === "/app/settings");
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${
+                      active
+                        ? "bg-leaf text-leaf-foreground font-medium shadow-soft"
+                        : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="p-4 border-t border-sidebar-border">
