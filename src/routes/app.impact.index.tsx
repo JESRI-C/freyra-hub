@@ -10,6 +10,9 @@ import {
   Filter,
   Waves,
   Building2,
+  FileBarChart,
+  Brain,
+  FileText,
 } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui-bits";
 import {
@@ -22,9 +25,11 @@ import {
 } from "@/components/impact/Primitives";
 import { PROJECTS, CATEGORIES } from "@/lib/impact-data";
 import { usePortfolio, useCompare } from "@/lib/impact-state";
+import { ModuleHeader, ActivityFeed, CriticalActionsPanel, CrossModuleLink, ReportReadinessBadge, actionToast } from "@/components/platform/Primitives";
+import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
 
 export const Route = createFileRoute("/app/impact/")({
-  head: () => ({ meta: [{ title: "Overblik — Impact Exchange" }] }),
+  head: () => ({ meta: [{ title: "Impact Exchange — GoFreyra" }] }),
   component: OverviewPage,
 });
 
@@ -43,46 +48,24 @@ function OverviewPage() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
-      {/* Hero */}
-      <Card className="overflow-hidden">
-        <div
-          className="p-6 sm:p-8 grid lg:grid-cols-[1fr_auto] gap-6 items-start"
-          style={{ background: "linear-gradient(135deg, oklch(0.95 0.04 150 / 0.55), oklch(0.97 0.02 150 / 0.3))" }}
-        >
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-leaf/20 text-primary">
-              <Globe2 className="h-3.5 w-3.5" /> Marketplace · 28 verificerede projekter
-            </div>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">Impact Exchange</h2>
-            <p className="mt-1 text-sm text-foreground/80 max-w-2xl">
-              Find, vurdér og dokumentér verificerede natur- og klimaprojekter — fra danske vådområder til
-              regnskovsbeskyttelse i Amazonas.
-            </p>
-            <div className="mt-5 flex flex-col sm:flex-row gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-card border rounded-xl px-3 py-2.5 shadow-soft">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Søg projekter, type eller område"
-                  className="flex-1 bg-transparent outline-none text-sm"
-                />
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <FilterPill label="Projekttype" />
-                <FilterPill label="Region" />
-                <FilterPill label="Standard" />
-                <FilterPill label="Verifikation" />
-              </div>
-            </div>
-          </div>
-          <Link
-            to="/app/impact/projects"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:opacity-95 whitespace-nowrap"
-          >
-            Udforsk alle projekter <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </Card>
+      <ModuleHeader
+        eyebrow="Impact Exchange"
+        title="Impact Exchange"
+        subtitle="Find, vurder og dokumentér verificerede natur- og klimaprojekter."
+        projectName={PROJECT_FACTS.name}
+        freshness="1 time"
+        status="Verificeret"
+        readiness={PROJECT_FACTS.reportReadiness}
+        primaryCta={{ label: "Find projekter", to: "/app/impact/projects", icon: <Search className="h-4 w-4" /> }}
+        secondaryCta={{ label: "Se portefølje", to: "/app/impact/portfolio", icon: <Globe2 className="h-4 w-4" /> }}
+      />
+
+      <div className="flex flex-wrap gap-2">
+        <FilterPill label="Projekttype" />
+        <FilterPill label="Region" />
+        <FilterPill label="Standard" />
+        <FilterPill label="Verifikation" />
+      </div>
 
       {/* Map */}
       <Card>
