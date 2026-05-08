@@ -52,6 +52,7 @@ import { Route as AppConnectLiveRouteImport } from './routes/app.connect.live'
 import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect.integrations'
 import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
 import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
+import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
 
 const SelectRoute = SelectRouteImport.update({
   id: '/select',
@@ -269,6 +270,11 @@ const AppConnectAlertsRoute = AppConnectAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AppConnectRoute,
 } as any)
+const AppConnectAddRoute = AppConnectAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppConnectRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -283,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
   '/app/connect/integrations': typeof AppConnectIntegrationsRoute
@@ -324,6 +331,7 @@ export interface FileRoutesByTo {
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
   '/app/connect/integrations': typeof AppConnectIntegrationsRoute
@@ -370,6 +378,7 @@ export interface FileRoutesById {
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
   '/app/connect/integrations': typeof AppConnectIntegrationsRoute
@@ -417,6 +426,7 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
     | '/app/connect/integrations'
@@ -458,6 +468,7 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
     | '/app/connect/integrations'
@@ -503,6 +514,7 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
     | '/app/connect/integrations'
@@ -846,10 +858,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectAlertsRouteImport
       parentRoute: typeof AppConnectRoute
     }
+    '/app/connect/add': {
+      id: '/app/connect/add'
+      path: '/add'
+      fullPath: '/app/connect/add'
+      preLoaderRoute: typeof AppConnectAddRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
   }
 }
 
 interface AppConnectRouteChildren {
+  AppConnectAddRoute: typeof AppConnectAddRoute
   AppConnectAlertsRoute: typeof AppConnectAlertsRoute
   AppConnectDevicesRoute: typeof AppConnectDevicesRoute
   AppConnectIntegrationsRoute: typeof AppConnectIntegrationsRoute
@@ -861,6 +881,7 @@ interface AppConnectRouteChildren {
 }
 
 const AppConnectRouteChildren: AppConnectRouteChildren = {
+  AppConnectAddRoute: AppConnectAddRoute,
   AppConnectAlertsRoute: AppConnectAlertsRoute,
   AppConnectDevicesRoute: AppConnectDevicesRoute,
   AppConnectIntegrationsRoute: AppConnectIntegrationsRoute,
