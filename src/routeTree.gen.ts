@@ -45,6 +45,7 @@ import { Route as AppDecisionsRecommendationsRouteImport } from './routes/app.de
 import { Route as AppDecisionsNotesRouteImport } from './routes/app.decisions.notes'
 import { Route as AppDecisionsDataQualityRouteImport } from './routes/app.decisions.data-quality'
 import { Route as AppDecisionsAssistantRouteImport } from './routes/app.decisions.assistant'
+import { Route as AppConnectSourcesRouteImport } from './routes/app.connect.sources'
 import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
 
 const SelectRoute = SelectRouteImport.update({
@@ -228,6 +229,11 @@ const AppDecisionsAssistantRoute = AppDecisionsAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => AppDecisionsRoute,
 } as any)
+const AppConnectSourcesRoute = AppConnectSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => AppConnectRoute,
+} as any)
 const AppConnectDevicesRoute = AppConnectDevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
+  '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -283,6 +290,7 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
+  '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -323,6 +331,7 @@ export interface FileRoutesById {
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
+  '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -364,6 +373,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/app/connect/devices'
+    | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -399,6 +409,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/app/connect/devices'
+    | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -438,6 +449,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/app/connect/devices'
+    | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -725,6 +737,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDecisionsAssistantRouteImport
       parentRoute: typeof AppDecisionsRoute
     }
+    '/app/connect/sources': {
+      id: '/app/connect/sources'
+      path: '/sources'
+      fullPath: '/app/connect/sources'
+      preLoaderRoute: typeof AppConnectSourcesRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
     '/app/connect/devices': {
       id: '/app/connect/devices'
       path: '/devices'
@@ -737,11 +756,13 @@ declare module '@tanstack/react-router' {
 
 interface AppConnectRouteChildren {
   AppConnectDevicesRoute: typeof AppConnectDevicesRoute
+  AppConnectSourcesRoute: typeof AppConnectSourcesRoute
   AppConnectIndexRoute: typeof AppConnectIndexRoute
 }
 
 const AppConnectRouteChildren: AppConnectRouteChildren = {
   AppConnectDevicesRoute: AppConnectDevicesRoute,
+  AppConnectSourcesRoute: AppConnectSourcesRoute,
   AppConnectIndexRoute: AppConnectIndexRoute,
 }
 
