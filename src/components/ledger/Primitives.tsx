@@ -1,6 +1,30 @@
 import type { ReactNode } from "react";
-import { ShieldCheck, Loader2, ShieldAlert, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { ReportingStatus, VerificationLevel } from "@/lib/ledger-data";
+import {
+  StatusBadge,
+  ReadinessScore as PlatformReadinessScore,
+} from "@/components/platform/Primitives";
+import type { PlatformStatus } from "@/lib/platform-data";
+
+const VERIFICATION_MAP: Record<VerificationLevel, PlatformStatus> = {
+  Verificeret: "Verificeret",
+  "Under verifikation": "Under verifikation",
+  "Ikke verificeret": "Kræver handling",
+};
+const REPORTING_MAP: Record<ReportingStatus, PlatformStatus> = {
+  Rapportklar: "Rapportklar",
+  "Delvist klar": "Under verifikation",
+  "Mangler data": "Kræver handling",
+};
+const APPROVAL_MAP: Record<string, PlatformStatus> = {
+  Draft: "Kladde",
+  "Intern review": "Klar til review",
+  "Klar til godkendelse": "Klar til review",
+  Godkendt: "Godkendt",
+  "Sendt til rapport": "Eksporteret",
+  Arkiveret: "Kladde",
+};
 
 export function ESGMetricCard({
   label,
