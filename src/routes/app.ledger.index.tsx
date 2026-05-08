@@ -180,6 +180,34 @@ function OverviewPage() {
           </div>
         </Card>
       </div>
+
+      {/* Cross-module actions */}
+      <Card className="p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Ledger-handlinger</div>
+          <CrossModuleLink to="/app/connect/sources" label="Se datakilde" />
+          <CrossModuleLink to="/app/ledger/audit" label="Åbn audit trail" />
+          <button onClick={() => actionToast("Datapunkt sendt til rapport")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <FileText className="h-3.5 w-3.5" /> Send til rapport
+          </button>
+          <button onClick={() => actionToast("Mangelliste sendt til DecisionsIQ")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Brain className="h-3.5 w-3.5" /> Opret mangelliste i DecisionsIQ
+          </button>
+          <CrossModuleLink to="/app/connect" label="Tilbage til Smart Connect" />
+          <span className="ml-auto"><ReportReadinessBadge value={PROJECT_FACTS.reportReadiness} /></span>
+        </div>
+      </Card>
+
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Card>
+          <CardHeader title="Seneste aktivitet" subtitle="ESG Ledger-relaterede hændelser" />
+          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "ESG Ledger" || a.module === "Impact Exchange")} />
+        </Card>
+        <Card>
+          <CardHeader title="Kritiske handlinger" subtitle="Skal lukkes før rapportering" />
+          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "ESG Ledger")} />
+        </Card>
+      </div>
     </main>
   );
 }
