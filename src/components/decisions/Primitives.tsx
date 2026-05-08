@@ -1,6 +1,20 @@
 import type { ReactNode } from "react";
-import { ArrowDownRight, ArrowUpRight, ShieldAlert, ShieldCheck, AlertTriangle, Info } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { RiskLevel, Priority } from "@/lib/decisions-data";
+import { StatusBadge } from "@/components/platform/Primitives";
+import type { PlatformStatus } from "@/lib/platform-data";
+
+const RISK_TO_STATUS: Record<RiskLevel, PlatformStatus> = {
+  Lav: "Lav risiko",
+  Medium: "Medium risiko",
+  Høj: "Høj risiko",
+  Kritisk: "Høj risiko",
+};
+const PRIORITY_TO_STATUS: Record<Priority, PlatformStatus> = {
+  Høj: "Høj risiko",
+  Medium: "Medium risiko",
+  Lav: "Lav risiko",
+};
 
 export function ConfidenceScore({ value, size = "md" }: { value: number; size?: "sm" | "md" }) {
   const pct = Math.round(value * 100);
