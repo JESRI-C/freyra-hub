@@ -30,7 +30,9 @@ import { Route as AppReportsTemplatesRouteImport } from './routes/app.reports.te
 import { Route as AppReportsReadinessRouteImport } from './routes/app.reports.readiness'
 import { Route as AppReportsPreviewRouteImport } from './routes/app.reports.preview'
 import { Route as AppReportsNewRouteImport } from './routes/app.reports.new'
+import { Route as AppReportsLibraryRouteImport } from './routes/app.reports.library'
 import { Route as AppReportsBuilderRouteImport } from './routes/app.reports.builder'
+import { Route as AppReportsApprovalRouteImport } from './routes/app.reports.approval'
 import { Route as AppLedgerSourcesRouteImport } from './routes/app.ledger.sources'
 import { Route as AppLedgerReportingRouteImport } from './routes/app.ledger.reporting'
 import { Route as AppLedgerMetricsRouteImport } from './routes/app.ledger.metrics'
@@ -165,9 +167,19 @@ const AppReportsNewRoute = AppReportsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AppReportsRoute,
 } as any)
+const AppReportsLibraryRoute = AppReportsLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => AppReportsRoute,
+} as any)
 const AppReportsBuilderRoute = AppReportsBuilderRouteImport.update({
   id: '/builder',
   path: '/builder',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsApprovalRoute = AppReportsApprovalRouteImport.update({
+  id: '/approval',
+  path: '/approval',
   getParentRoute: () => AppReportsRoute,
 } as any)
 const AppLedgerSourcesRoute = AppLedgerSourcesRouteImport.update({
@@ -353,7 +365,9 @@ export interface FileRoutesByFullPath {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/reports/approval': typeof AppReportsApprovalRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
+  '/app/reports/library': typeof AppReportsLibraryRoute
   '/app/reports/new': typeof AppReportsNewRoute
   '/app/reports/preview': typeof AppReportsPreviewRoute
   '/app/reports/readiness': typeof AppReportsReadinessRoute
@@ -400,7 +414,9 @@ export interface FileRoutesByTo {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/reports/approval': typeof AppReportsApprovalRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
+  '/app/reports/library': typeof AppReportsLibraryRoute
   '/app/reports/new': typeof AppReportsNewRoute
   '/app/reports/preview': typeof AppReportsPreviewRoute
   '/app/reports/readiness': typeof AppReportsReadinessRoute
@@ -453,7 +469,9 @@ export interface FileRoutesById {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/reports/approval': typeof AppReportsApprovalRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
+  '/app/reports/library': typeof AppReportsLibraryRoute
   '/app/reports/new': typeof AppReportsNewRoute
   '/app/reports/preview': typeof AppReportsPreviewRoute
   '/app/reports/readiness': typeof AppReportsReadinessRoute
@@ -507,7 +525,9 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/reports/approval'
     | '/app/reports/builder'
+    | '/app/reports/library'
     | '/app/reports/new'
     | '/app/reports/preview'
     | '/app/reports/readiness'
@@ -554,7 +574,9 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/reports/approval'
     | '/app/reports/builder'
+    | '/app/reports/library'
     | '/app/reports/new'
     | '/app/reports/preview'
     | '/app/reports/readiness'
@@ -606,7 +628,9 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/reports/approval'
     | '/app/reports/builder'
+    | '/app/reports/library'
     | '/app/reports/new'
     | '/app/reports/preview'
     | '/app/reports/readiness'
@@ -774,11 +798,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsNewRouteImport
       parentRoute: typeof AppReportsRoute
     }
+    '/app/reports/library': {
+      id: '/app/reports/library'
+      path: '/library'
+      fullPath: '/app/reports/library'
+      preLoaderRoute: typeof AppReportsLibraryRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
     '/app/reports/builder': {
       id: '/app/reports/builder'
       path: '/builder'
       fullPath: '/app/reports/builder'
       preLoaderRoute: typeof AppReportsBuilderRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/approval': {
+      id: '/app/reports/approval'
+      path: '/approval'
+      fullPath: '/app/reports/approval'
+      preLoaderRoute: typeof AppReportsApprovalRouteImport
       parentRoute: typeof AppReportsRoute
     }
     '/app/ledger/sources': {
@@ -1085,7 +1123,9 @@ const AppLedgerRouteWithChildren = AppLedgerRoute._addFileChildren(
 )
 
 interface AppReportsRouteChildren {
+  AppReportsApprovalRoute: typeof AppReportsApprovalRoute
   AppReportsBuilderRoute: typeof AppReportsBuilderRoute
+  AppReportsLibraryRoute: typeof AppReportsLibraryRoute
   AppReportsNewRoute: typeof AppReportsNewRoute
   AppReportsPreviewRoute: typeof AppReportsPreviewRoute
   AppReportsReadinessRoute: typeof AppReportsReadinessRoute
@@ -1094,7 +1134,9 @@ interface AppReportsRouteChildren {
 }
 
 const AppReportsRouteChildren: AppReportsRouteChildren = {
+  AppReportsApprovalRoute: AppReportsApprovalRoute,
   AppReportsBuilderRoute: AppReportsBuilderRoute,
+  AppReportsLibraryRoute: AppReportsLibraryRoute,
   AppReportsNewRoute: AppReportsNewRoute,
   AppReportsPreviewRoute: AppReportsPreviewRoute,
   AppReportsReadinessRoute: AppReportsReadinessRoute,
@@ -1139,3 +1181,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
