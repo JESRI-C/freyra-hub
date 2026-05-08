@@ -26,6 +26,7 @@ import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
 import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
 import { Route as AppConnectIndexRouteImport } from './routes/app.connect.index'
+import { Route as AppReportsPreviewRouteImport } from './routes/app.reports.preview'
 import { Route as AppReportsNewRouteImport } from './routes/app.reports.new'
 import { Route as AppReportsBuilderRouteImport } from './routes/app.reports.builder'
 import { Route as AppLedgerSourcesRouteImport } from './routes/app.ledger.sources'
@@ -141,6 +142,11 @@ const AppConnectIndexRoute = AppConnectIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppConnectRoute,
+} as any)
+const AppReportsPreviewRoute = AppReportsPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => AppReportsRoute,
 } as any)
 const AppReportsNewRoute = AppReportsNewRouteImport.update({
   id: '/new',
@@ -337,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/new': typeof AppReportsNewRoute
+  '/app/reports/preview': typeof AppReportsPreviewRoute
   '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
@@ -381,6 +388,7 @@ export interface FileRoutesByTo {
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/new': typeof AppReportsNewRoute
+  '/app/reports/preview': typeof AppReportsPreviewRoute
   '/app/connect': typeof AppConnectIndexRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
   '/app/impact': typeof AppImpactIndexRoute
@@ -431,6 +439,7 @@ export interface FileRoutesById {
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/new': typeof AppReportsNewRoute
+  '/app/reports/preview': typeof AppReportsPreviewRoute
   '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
@@ -482,6 +491,7 @@ export interface FileRouteTypes {
     | '/app/ledger/sources'
     | '/app/reports/builder'
     | '/app/reports/new'
+    | '/app/reports/preview'
     | '/app/connect/'
     | '/app/decisions/'
     | '/app/impact/'
@@ -526,6 +536,7 @@ export interface FileRouteTypes {
     | '/app/ledger/sources'
     | '/app/reports/builder'
     | '/app/reports/new'
+    | '/app/reports/preview'
     | '/app/connect'
     | '/app/decisions'
     | '/app/impact'
@@ -575,6 +586,7 @@ export interface FileRouteTypes {
     | '/app/ledger/sources'
     | '/app/reports/builder'
     | '/app/reports/new'
+    | '/app/reports/preview'
     | '/app/connect/'
     | '/app/decisions/'
     | '/app/impact/'
@@ -709,6 +721,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/connect/'
       preLoaderRoute: typeof AppConnectIndexRouteImport
       parentRoute: typeof AppConnectRoute
+    }
+    '/app/reports/preview': {
+      id: '/app/reports/preview'
+      path: '/preview'
+      fullPath: '/app/reports/preview'
+      preLoaderRoute: typeof AppReportsPreviewRouteImport
+      parentRoute: typeof AppReportsRoute
     }
     '/app/reports/new': {
       id: '/app/reports/new'
@@ -1030,12 +1049,14 @@ const AppLedgerRouteWithChildren = AppLedgerRoute._addFileChildren(
 interface AppReportsRouteChildren {
   AppReportsBuilderRoute: typeof AppReportsBuilderRoute
   AppReportsNewRoute: typeof AppReportsNewRoute
+  AppReportsPreviewRoute: typeof AppReportsPreviewRoute
   AppReportsIndexRoute: typeof AppReportsIndexRoute
 }
 
 const AppReportsRouteChildren: AppReportsRouteChildren = {
   AppReportsBuilderRoute: AppReportsBuilderRoute,
   AppReportsNewRoute: AppReportsNewRoute,
+  AppReportsPreviewRoute: AppReportsPreviewRoute,
   AppReportsIndexRoute: AppReportsIndexRoute,
 }
 
