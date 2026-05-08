@@ -5,6 +5,7 @@ import { RecommendationCard } from "@/components/decisions/RecommendationCard";
 import { RecommendationDetail } from "@/components/decisions/RecommendationDetail";
 import { RECOMMENDATIONS, CATEGORIES, type Recommendation, type Priority, type Status } from "@/lib/decisions-data";
 import { ListChecks, AlertTriangle, FileCheck2, Database, Filter } from "lucide-react";
+import { EmptyStateCard, actionToast } from "@/components/platform/Primitives";
 
 export const Route = createFileRoute("/app/decisions/recommendations")({
   head: () => ({ meta: [{ title: "Anbefalinger — DecisionsIQ" }] }),
