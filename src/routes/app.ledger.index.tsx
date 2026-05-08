@@ -103,7 +103,7 @@ function OverviewPage() {
                   <div className="h-8 w-8 rounded-lg bg-leaf/15 text-primary grid place-items-center shrink-0">
                     <I className="h-4 w-4" />
                   </div>
-                  <div className="flex-1"><ReadinessScore label={l as string} value={v as number} /></div>
+                  <div className="flex-1"><LedgerReadinessScore label={l as string} value={v as number} /></div>
                 </div>
               );
             })}
