@@ -21,10 +21,16 @@ import { Route as AppImpactRouteImport } from './routes/app.impact'
 import { Route as AppDecisionsRouteImport } from './routes/app.decisions'
 import { Route as AppDataRouteImport } from './routes/app.data'
 import { Route as AppConnectRouteImport } from './routes/app.connect'
+import { Route as AppReportsIndexRouteImport } from './routes/app.reports.index'
 import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
 import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
 import { Route as AppConnectIndexRouteImport } from './routes/app.connect.index'
+import { Route as AppReportsTemplatesRouteImport } from './routes/app.reports.templates'
+import { Route as AppReportsReadinessRouteImport } from './routes/app.reports.readiness'
+import { Route as AppReportsPreviewRouteImport } from './routes/app.reports.preview'
+import { Route as AppReportsNewRouteImport } from './routes/app.reports.new'
+import { Route as AppReportsBuilderRouteImport } from './routes/app.reports.builder'
 import { Route as AppLedgerSourcesRouteImport } from './routes/app.ledger.sources'
 import { Route as AppLedgerReportingRouteImport } from './routes/app.ledger.reporting'
 import { Route as AppLedgerMetricsRouteImport } from './routes/app.ledger.metrics'
@@ -114,6 +120,11 @@ const AppConnectRoute = AppConnectRouteImport.update({
   path: '/connect',
   getParentRoute: () => AppRoute,
 } as any)
+const AppReportsIndexRoute = AppReportsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppReportsRoute,
+} as any)
 const AppLedgerIndexRoute = AppLedgerIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -133,6 +144,31 @@ const AppConnectIndexRoute = AppConnectIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppConnectRoute,
+} as any)
+const AppReportsTemplatesRoute = AppReportsTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsReadinessRoute = AppReportsReadinessRouteImport.update({
+  id: '/readiness',
+  path: '/readiness',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsPreviewRoute = AppReportsPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsNewRoute = AppReportsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppReportsRoute,
+} as any)
+const AppReportsBuilderRoute = AppReportsBuilderRouteImport.update({
+  id: '/builder',
+  path: '/builder',
+  getParentRoute: () => AppReportsRoute,
 } as any)
 const AppLedgerSourcesRoute = AppLedgerSourcesRouteImport.update({
   id: '/sources',
@@ -287,7 +323,7 @@ export interface FileRoutesByFullPath {
   '/app/impact': typeof AppImpactRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
-  '/app/reports': typeof AppReportsRoute
+  '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -317,10 +353,16 @@ export interface FileRoutesByFullPath {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/reports/builder': typeof AppReportsBuilderRoute
+  '/app/reports/new': typeof AppReportsNewRoute
+  '/app/reports/preview': typeof AppReportsPreviewRoute
+  '/app/reports/readiness': typeof AppReportsReadinessRoute
+  '/app/reports/templates': typeof AppReportsTemplatesRoute
   '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
+  '/app/reports/': typeof AppReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -329,7 +371,6 @@ export interface FileRoutesByTo {
   '/select': typeof SelectRoute
   '/app/data': typeof AppDataRoute
   '/app/overview': typeof AppOverviewRoute
-  '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -359,10 +400,16 @@ export interface FileRoutesByTo {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/reports/builder': typeof AppReportsBuilderRoute
+  '/app/reports/new': typeof AppReportsNewRoute
+  '/app/reports/preview': typeof AppReportsPreviewRoute
+  '/app/reports/readiness': typeof AppReportsReadinessRoute
+  '/app/reports/templates': typeof AppReportsTemplatesRoute
   '/app/connect': typeof AppConnectIndexRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
   '/app/impact': typeof AppImpactIndexRoute
   '/app/ledger': typeof AppLedgerIndexRoute
+  '/app/reports': typeof AppReportsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -376,7 +423,7 @@ export interface FileRoutesById {
   '/app/impact': typeof AppImpactRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
-  '/app/reports': typeof AppReportsRoute
+  '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -406,10 +453,16 @@ export interface FileRoutesById {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/reports/builder': typeof AppReportsBuilderRoute
+  '/app/reports/new': typeof AppReportsNewRoute
+  '/app/reports/preview': typeof AppReportsPreviewRoute
+  '/app/reports/readiness': typeof AppReportsReadinessRoute
+  '/app/reports/templates': typeof AppReportsTemplatesRoute
   '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
+  '/app/reports/': typeof AppReportsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -454,10 +507,16 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/reports/builder'
+    | '/app/reports/new'
+    | '/app/reports/preview'
+    | '/app/reports/readiness'
+    | '/app/reports/templates'
     | '/app/connect/'
     | '/app/decisions/'
     | '/app/impact/'
     | '/app/ledger/'
+    | '/app/reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -466,7 +525,6 @@ export interface FileRouteTypes {
     | '/select'
     | '/app/data'
     | '/app/overview'
-    | '/app/reports'
     | '/app/settings'
     | '/app/connect/add'
     | '/app/connect/alerts'
@@ -496,10 +554,16 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/reports/builder'
+    | '/app/reports/new'
+    | '/app/reports/preview'
+    | '/app/reports/readiness'
+    | '/app/reports/templates'
     | '/app/connect'
     | '/app/decisions'
     | '/app/impact'
     | '/app/ledger'
+    | '/app/reports'
   id:
     | '__root__'
     | '/'
@@ -542,10 +606,16 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/reports/builder'
+    | '/app/reports/new'
+    | '/app/reports/preview'
+    | '/app/reports/readiness'
+    | '/app/reports/templates'
     | '/app/connect/'
     | '/app/decisions/'
     | '/app/impact/'
     | '/app/ledger/'
+    | '/app/reports/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -641,6 +711,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/reports/': {
+      id: '/app/reports/'
+      path: '/'
+      fullPath: '/app/reports/'
+      preLoaderRoute: typeof AppReportsIndexRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
     '/app/ledger/': {
       id: '/app/ledger/'
       path: '/'
@@ -668,6 +745,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/connect/'
       preLoaderRoute: typeof AppConnectIndexRouteImport
       parentRoute: typeof AppConnectRoute
+    }
+    '/app/reports/templates': {
+      id: '/app/reports/templates'
+      path: '/templates'
+      fullPath: '/app/reports/templates'
+      preLoaderRoute: typeof AppReportsTemplatesRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/readiness': {
+      id: '/app/reports/readiness'
+      path: '/readiness'
+      fullPath: '/app/reports/readiness'
+      preLoaderRoute: typeof AppReportsReadinessRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/preview': {
+      id: '/app/reports/preview'
+      path: '/preview'
+      fullPath: '/app/reports/preview'
+      preLoaderRoute: typeof AppReportsPreviewRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/new': {
+      id: '/app/reports/new'
+      path: '/new'
+      fullPath: '/app/reports/new'
+      preLoaderRoute: typeof AppReportsNewRouteImport
+      parentRoute: typeof AppReportsRoute
+    }
+    '/app/reports/builder': {
+      id: '/app/reports/builder'
+      path: '/builder'
+      fullPath: '/app/reports/builder'
+      preLoaderRoute: typeof AppReportsBuilderRouteImport
+      parentRoute: typeof AppReportsRoute
     }
     '/app/ledger/sources': {
       id: '/app/ledger/sources'
@@ -972,6 +1084,28 @@ const AppLedgerRouteWithChildren = AppLedgerRoute._addFileChildren(
   AppLedgerRouteChildren,
 )
 
+interface AppReportsRouteChildren {
+  AppReportsBuilderRoute: typeof AppReportsBuilderRoute
+  AppReportsNewRoute: typeof AppReportsNewRoute
+  AppReportsPreviewRoute: typeof AppReportsPreviewRoute
+  AppReportsReadinessRoute: typeof AppReportsReadinessRoute
+  AppReportsTemplatesRoute: typeof AppReportsTemplatesRoute
+  AppReportsIndexRoute: typeof AppReportsIndexRoute
+}
+
+const AppReportsRouteChildren: AppReportsRouteChildren = {
+  AppReportsBuilderRoute: AppReportsBuilderRoute,
+  AppReportsNewRoute: AppReportsNewRoute,
+  AppReportsPreviewRoute: AppReportsPreviewRoute,
+  AppReportsReadinessRoute: AppReportsReadinessRoute,
+  AppReportsTemplatesRoute: AppReportsTemplatesRoute,
+  AppReportsIndexRoute: AppReportsIndexRoute,
+}
+
+const AppReportsRouteWithChildren = AppReportsRoute._addFileChildren(
+  AppReportsRouteChildren,
+)
+
 interface AppRouteChildren {
   AppConnectRoute: typeof AppConnectRouteWithChildren
   AppDataRoute: typeof AppDataRoute
@@ -979,7 +1113,7 @@ interface AppRouteChildren {
   AppImpactRoute: typeof AppImpactRouteWithChildren
   AppLedgerRoute: typeof AppLedgerRouteWithChildren
   AppOverviewRoute: typeof AppOverviewRoute
-  AppReportsRoute: typeof AppReportsRoute
+  AppReportsRoute: typeof AppReportsRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
 }
 
@@ -990,7 +1124,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppImpactRoute: AppImpactRouteWithChildren,
   AppLedgerRoute: AppLedgerRouteWithChildren,
   AppOverviewRoute: AppOverviewRoute,
-  AppReportsRoute: AppReportsRoute,
+  AppReportsRoute: AppReportsRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
 }
 
