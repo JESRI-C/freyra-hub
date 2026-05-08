@@ -121,6 +121,40 @@ function Page() {
           </table>
         </div>
       </Card>
+
+      {/* Cross-module actions */}
+      <Card className="p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Saml rapport</div>
+          <button onClick={() => actionToast("Data hentet fra Smart Connect", `${PROJECT_FACTS.activeDataSources} datakilder tilføjet`)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Cable className="h-3.5 w-3.5" /> Hent data fra Smart Connect
+          </button>
+          <button onClick={() => actionToast("Anbefalinger fra DecisionsIQ tilføjet", `${PROJECT_FACTS.openRecommendations} anbefalinger`)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Brain className="h-3.5 w-3.5" /> Medtag anbefalinger
+          </button>
+          <button onClick={() => actionToast("Impact-bilag fra Impact Exchange tilføjet")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Repeat2 className="h-3.5 w-3.5" /> Medtag impact
+          </button>
+          <button onClick={() => actionToast("Audit trail fra ESG Ledger vedhæftet")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <BookCheck className="h-3.5 w-3.5" /> Medtag audit trail
+          </button>
+          <button onClick={() => actionToast("Mangler sendt tilbage til relevant modul")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Send className="h-3.5 w-3.5" /> Send mangler tilbage
+          </button>
+          <span className="ml-auto"><ReportReadinessBadge value={PROJECT_FACTS.reportReadiness} /></span>
+        </div>
+      </Card>
+
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Card>
+          <CardHeader title="Seneste aktivitet" subtitle="Rapport-relaterede hændelser" />
+          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "Rapporter")} />
+        </Card>
+        <Card>
+          <CardHeader title="Kritiske handlinger" subtitle="Skal lukkes før eksternt brug" />
+          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "Rapporter")} />
+        </Card>
+      </div>
     </main>
   );
 }
