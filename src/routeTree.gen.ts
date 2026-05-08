@@ -62,6 +62,7 @@ import { Route as AppDecisionsRecommendationsRouteImport } from './routes/app.de
 import { Route as AppDecisionsNotesRouteImport } from './routes/app.decisions.notes'
 import { Route as AppDecisionsDataQualityRouteImport } from './routes/app.decisions.data-quality'
 import { Route as AppDecisionsAssistantRouteImport } from './routes/app.decisions.assistant'
+import { Route as AppConnectUploadRouteImport } from './routes/app.connect.upload'
 import { Route as AppConnectSourcesRouteImport } from './routes/app.connect.sources'
 import { Route as AppConnectQualityRouteImport } from './routes/app.connect.quality'
 import { Route as AppConnectMapRouteImport } from './routes/app.connect.map'
@@ -338,6 +339,11 @@ const AppDecisionsAssistantRoute = AppDecisionsAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => AppDecisionsRoute,
 } as any)
+const AppConnectUploadRoute = AppConnectUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => AppConnectRoute,
+} as any)
 const AppConnectSourcesRoute = AppConnectSourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
@@ -400,6 +406,7 @@ export interface FileRoutesByFullPath {
   '/app/connect/map': typeof AppConnectMapRoute
   '/app/connect/quality': typeof AppConnectQualityRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
+  '/app/connect/upload': typeof AppConnectUploadRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -457,6 +464,7 @@ export interface FileRoutesByTo {
   '/app/connect/map': typeof AppConnectMapRoute
   '/app/connect/quality': typeof AppConnectQualityRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
+  '/app/connect/upload': typeof AppConnectUploadRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -521,6 +529,7 @@ export interface FileRoutesById {
   '/app/connect/map': typeof AppConnectMapRoute
   '/app/connect/quality': typeof AppConnectQualityRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
+  '/app/connect/upload': typeof AppConnectUploadRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -586,6 +595,7 @@ export interface FileRouteTypes {
     | '/app/connect/map'
     | '/app/connect/quality'
     | '/app/connect/sources'
+    | '/app/connect/upload'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -643,6 +653,7 @@ export interface FileRouteTypes {
     | '/app/connect/map'
     | '/app/connect/quality'
     | '/app/connect/sources'
+    | '/app/connect/upload'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -706,6 +717,7 @@ export interface FileRouteTypes {
     | '/app/connect/map'
     | '/app/connect/quality'
     | '/app/connect/sources'
+    | '/app/connect/upload'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -1129,6 +1141,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDecisionsAssistantRouteImport
       parentRoute: typeof AppDecisionsRoute
     }
+    '/app/connect/upload': {
+      id: '/app/connect/upload'
+      path: '/upload'
+      fullPath: '/app/connect/upload'
+      preLoaderRoute: typeof AppConnectUploadRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
     '/app/connect/sources': {
       id: '/app/connect/sources'
       path: '/sources'
@@ -1197,6 +1216,7 @@ interface AppConnectRouteChildren {
   AppConnectMapRoute: typeof AppConnectMapRoute
   AppConnectQualityRoute: typeof AppConnectQualityRoute
   AppConnectSourcesRoute: typeof AppConnectSourcesRoute
+  AppConnectUploadRoute: typeof AppConnectUploadRoute
   AppConnectIndexRoute: typeof AppConnectIndexRoute
 }
 
@@ -1209,6 +1229,7 @@ const AppConnectRouteChildren: AppConnectRouteChildren = {
   AppConnectMapRoute: AppConnectMapRoute,
   AppConnectQualityRoute: AppConnectQualityRoute,
   AppConnectSourcesRoute: AppConnectSourcesRoute,
+  AppConnectUploadRoute: AppConnectUploadRoute,
   AppConnectIndexRoute: AppConnectIndexRoute,
 }
 
