@@ -24,6 +24,7 @@ import { Route as AppConnectRouteImport } from './routes/app.connect'
 import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
 import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
+import { Route as AppConnectIndexRouteImport } from './routes/app.connect.index'
 import { Route as AppLedgerSourcesRouteImport } from './routes/app.ledger.sources'
 import { Route as AppLedgerReportingRouteImport } from './routes/app.ledger.reporting'
 import { Route as AppLedgerMetricsRouteImport } from './routes/app.ledger.metrics'
@@ -44,6 +45,14 @@ import { Route as AppDecisionsRecommendationsRouteImport } from './routes/app.de
 import { Route as AppDecisionsNotesRouteImport } from './routes/app.decisions.notes'
 import { Route as AppDecisionsDataQualityRouteImport } from './routes/app.decisions.data-quality'
 import { Route as AppDecisionsAssistantRouteImport } from './routes/app.decisions.assistant'
+import { Route as AppConnectSourcesRouteImport } from './routes/app.connect.sources'
+import { Route as AppConnectQualityRouteImport } from './routes/app.connect.quality'
+import { Route as AppConnectMapRouteImport } from './routes/app.connect.map'
+import { Route as AppConnectLiveRouteImport } from './routes/app.connect.live'
+import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect.integrations'
+import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
+import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
+import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
 
 const SelectRoute = SelectRouteImport.update({
   id: '/select',
@@ -119,6 +128,11 @@ const AppDecisionsIndexRoute = AppDecisionsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppConnectIndexRoute = AppConnectIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppConnectRoute,
 } as any)
 const AppLedgerSourcesRoute = AppLedgerSourcesRouteImport.update({
   id: '/sources',
@@ -221,13 +235,53 @@ const AppDecisionsAssistantRoute = AppDecisionsAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => AppDecisionsRoute,
 } as any)
+const AppConnectSourcesRoute = AppConnectSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectQualityRoute = AppConnectQualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectMapRoute = AppConnectMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectLiveRoute = AppConnectLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectIntegrationsRoute = AppConnectIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectDevicesRoute = AppConnectDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectAlertsRoute = AppConnectAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => AppConnectRoute,
+} as any)
+const AppConnectAddRoute = AppConnectAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => AppConnectRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/select': typeof SelectRoute
-  '/app/connect': typeof AppConnectRoute
+  '/app/connect': typeof AppConnectRouteWithChildren
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
   '/app/impact': typeof AppImpactRouteWithChildren
@@ -235,6 +289,14 @@ export interface FileRoutesByFullPath {
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/connect/add': typeof AppConnectAddRoute
+  '/app/connect/alerts': typeof AppConnectAlertsRoute
+  '/app/connect/devices': typeof AppConnectDevicesRoute
+  '/app/connect/integrations': typeof AppConnectIntegrationsRoute
+  '/app/connect/live': typeof AppConnectLiveRoute
+  '/app/connect/map': typeof AppConnectMapRoute
+  '/app/connect/quality': typeof AppConnectQualityRoute
+  '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -255,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
@@ -264,11 +327,18 @@ export interface FileRoutesByTo {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/select': typeof SelectRoute
-  '/app/connect': typeof AppConnectRoute
   '/app/data': typeof AppDataRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/connect/add': typeof AppConnectAddRoute
+  '/app/connect/alerts': typeof AppConnectAlertsRoute
+  '/app/connect/devices': typeof AppConnectDevicesRoute
+  '/app/connect/integrations': typeof AppConnectIntegrationsRoute
+  '/app/connect/live': typeof AppConnectLiveRoute
+  '/app/connect/map': typeof AppConnectMapRoute
+  '/app/connect/quality': typeof AppConnectQualityRoute
+  '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -289,6 +359,7 @@ export interface FileRoutesByTo {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/connect': typeof AppConnectIndexRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
   '/app/impact': typeof AppImpactIndexRoute
   '/app/ledger': typeof AppLedgerIndexRoute
@@ -299,7 +370,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/select': typeof SelectRoute
-  '/app/connect': typeof AppConnectRoute
+  '/app/connect': typeof AppConnectRouteWithChildren
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
   '/app/impact': typeof AppImpactRouteWithChildren
@@ -307,6 +378,14 @@ export interface FileRoutesById {
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/connect/add': typeof AppConnectAddRoute
+  '/app/connect/alerts': typeof AppConnectAlertsRoute
+  '/app/connect/devices': typeof AppConnectDevicesRoute
+  '/app/connect/integrations': typeof AppConnectIntegrationsRoute
+  '/app/connect/live': typeof AppConnectLiveRoute
+  '/app/connect/map': typeof AppConnectMapRoute
+  '/app/connect/quality': typeof AppConnectQualityRoute
+  '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
   '/app/decisions/notes': typeof AppDecisionsNotesRoute
@@ -327,6 +406,7 @@ export interface FileRoutesById {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
@@ -346,6 +426,14 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/connect/add'
+    | '/app/connect/alerts'
+    | '/app/connect/devices'
+    | '/app/connect/integrations'
+    | '/app/connect/live'
+    | '/app/connect/map'
+    | '/app/connect/quality'
+    | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -366,6 +454,7 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/connect/'
     | '/app/decisions/'
     | '/app/impact/'
     | '/app/ledger/'
@@ -375,11 +464,18 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/select'
-    | '/app/connect'
     | '/app/data'
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/connect/add'
+    | '/app/connect/alerts'
+    | '/app/connect/devices'
+    | '/app/connect/integrations'
+    | '/app/connect/live'
+    | '/app/connect/map'
+    | '/app/connect/quality'
+    | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -400,6 +496,7 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/connect'
     | '/app/decisions'
     | '/app/impact'
     | '/app/ledger'
@@ -417,6 +514,14 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/connect/add'
+    | '/app/connect/alerts'
+    | '/app/connect/devices'
+    | '/app/connect/integrations'
+    | '/app/connect/live'
+    | '/app/connect/map'
+    | '/app/connect/quality'
+    | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
     | '/app/decisions/notes'
@@ -437,6 +542,7 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/connect/'
     | '/app/decisions/'
     | '/app/impact/'
     | '/app/ledger/'
@@ -555,6 +661,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/decisions/'
       preLoaderRoute: typeof AppDecisionsIndexRouteImport
       parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/connect/': {
+      id: '/app/connect/'
+      path: '/'
+      fullPath: '/app/connect/'
+      preLoaderRoute: typeof AppConnectIndexRouteImport
+      parentRoute: typeof AppConnectRoute
     }
     '/app/ledger/sources': {
       id: '/app/ledger/sources'
@@ -696,8 +809,92 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDecisionsAssistantRouteImport
       parentRoute: typeof AppDecisionsRoute
     }
+    '/app/connect/sources': {
+      id: '/app/connect/sources'
+      path: '/sources'
+      fullPath: '/app/connect/sources'
+      preLoaderRoute: typeof AppConnectSourcesRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/quality': {
+      id: '/app/connect/quality'
+      path: '/quality'
+      fullPath: '/app/connect/quality'
+      preLoaderRoute: typeof AppConnectQualityRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/map': {
+      id: '/app/connect/map'
+      path: '/map'
+      fullPath: '/app/connect/map'
+      preLoaderRoute: typeof AppConnectMapRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/live': {
+      id: '/app/connect/live'
+      path: '/live'
+      fullPath: '/app/connect/live'
+      preLoaderRoute: typeof AppConnectLiveRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/integrations': {
+      id: '/app/connect/integrations'
+      path: '/integrations'
+      fullPath: '/app/connect/integrations'
+      preLoaderRoute: typeof AppConnectIntegrationsRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/devices': {
+      id: '/app/connect/devices'
+      path: '/devices'
+      fullPath: '/app/connect/devices'
+      preLoaderRoute: typeof AppConnectDevicesRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/alerts': {
+      id: '/app/connect/alerts'
+      path: '/alerts'
+      fullPath: '/app/connect/alerts'
+      preLoaderRoute: typeof AppConnectAlertsRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
+    '/app/connect/add': {
+      id: '/app/connect/add'
+      path: '/add'
+      fullPath: '/app/connect/add'
+      preLoaderRoute: typeof AppConnectAddRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
   }
 }
+
+interface AppConnectRouteChildren {
+  AppConnectAddRoute: typeof AppConnectAddRoute
+  AppConnectAlertsRoute: typeof AppConnectAlertsRoute
+  AppConnectDevicesRoute: typeof AppConnectDevicesRoute
+  AppConnectIntegrationsRoute: typeof AppConnectIntegrationsRoute
+  AppConnectLiveRoute: typeof AppConnectLiveRoute
+  AppConnectMapRoute: typeof AppConnectMapRoute
+  AppConnectQualityRoute: typeof AppConnectQualityRoute
+  AppConnectSourcesRoute: typeof AppConnectSourcesRoute
+  AppConnectIndexRoute: typeof AppConnectIndexRoute
+}
+
+const AppConnectRouteChildren: AppConnectRouteChildren = {
+  AppConnectAddRoute: AppConnectAddRoute,
+  AppConnectAlertsRoute: AppConnectAlertsRoute,
+  AppConnectDevicesRoute: AppConnectDevicesRoute,
+  AppConnectIntegrationsRoute: AppConnectIntegrationsRoute,
+  AppConnectLiveRoute: AppConnectLiveRoute,
+  AppConnectMapRoute: AppConnectMapRoute,
+  AppConnectQualityRoute: AppConnectQualityRoute,
+  AppConnectSourcesRoute: AppConnectSourcesRoute,
+  AppConnectIndexRoute: AppConnectIndexRoute,
+}
+
+const AppConnectRouteWithChildren = AppConnectRoute._addFileChildren(
+  AppConnectRouteChildren,
+)
 
 interface AppDecisionsRouteChildren {
   AppDecisionsAssistantRoute: typeof AppDecisionsAssistantRoute
@@ -776,7 +973,7 @@ const AppLedgerRouteWithChildren = AppLedgerRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
-  AppConnectRoute: typeof AppConnectRoute
+  AppConnectRoute: typeof AppConnectRouteWithChildren
   AppDataRoute: typeof AppDataRoute
   AppDecisionsRoute: typeof AppDecisionsRouteWithChildren
   AppImpactRoute: typeof AppImpactRouteWithChildren
@@ -787,7 +984,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppConnectRoute: AppConnectRoute,
+  AppConnectRoute: AppConnectRouteWithChildren,
   AppDataRoute: AppDataRoute,
   AppDecisionsRoute: AppDecisionsRouteWithChildren,
   AppImpactRoute: AppImpactRouteWithChildren,
