@@ -201,23 +201,25 @@ function OverviewPage() {
       </Card>
 
       {/* CTA */}
-      <Card className="p-6 grid md:grid-cols-[1fr_auto] gap-4 items-center"
-            style={{ background: "linear-gradient(135deg, oklch(0.94 0.06 150), oklch(0.97 0.02 150))" }}>
-        <div className="flex items-start gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
-            <Building2 className="h-5 w-5" />
+      <Card className="overflow-hidden">
+        <div className="p-6 grid md:grid-cols-[1fr_auto] gap-4 items-center"
+             style={{ background: "linear-gradient(135deg, oklch(0.94 0.06 150), oklch(0.97 0.02 150))" }}>
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-semibold">Skab reel impact</div>
+              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                Sæt verificerede natur- og klimaprojekter ind i din ESG-dokumentation. Bliv partner og få adgang til
+                vores marketplace, ledger og verifikationspartnere.
+              </p>
+            </div>
           </div>
-          <div>
-            <div className="font-semibold">Skab reel impact</div>
-            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-              Sæt verificerede natur- og klimaprojekter ind i din ESG-dokumentation. Bliv partner og få adgang til
-              vores marketplace, ledger og verifikationspartnere.
-            </p>
-          </div>
+          <button className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:opacity-95">
+            Bliv partner <ArrowRight className="h-4 w-4" />
+          </button>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:opacity-95">
-          Bliv partner <ArrowRight className="h-4 w-4" />
-        </button>
       </Card>
     </main>
   );
