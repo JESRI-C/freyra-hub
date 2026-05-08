@@ -117,6 +117,29 @@ function Page() {
         </Section>
       </div>
 
+      <Section title="Geospatiale kvalitetstjek" subtitle="Specielle krav for kortlag, drone, satellit og feltdata">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {[
+            { label: "Koordinatvaliditet", score: 96, note: "Lat/lon inden for projektets bounding box" },
+            { label: "Projektion genkendt", score: 92, note: "EPSG-kode læst fra fil eller bekræftet" },
+            { label: "Coverage overlap", score: 78, note: "Lag dækker mindst 80% af projektarealet" },
+            { label: "Metadata komplet", score: 71, note: "Kilde, dato, metode, sensor og opløsning" },
+            { label: "Spatial nøjagtighed", score: 88, note: "RMSE under 1,0 m for drone-uploads" },
+            { label: "Temporal friskhed", score: 84, note: "Lag opdateret inden for forventet kadence" },
+            { label: "Zone-tilknytning", score: 90, note: "Hver kilde knyttet til mindst én zone" },
+            { label: "Klar til kortvisning", score: 86, note: "Lag kan tegnes uden manuelle rettelser" },
+          ].map((c) => (
+            <div key={c.label} className="rounded-xl border bg-card p-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">{c.label}</div>
+                <DataQualityScore score={c.score} />
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1.5">{c.note}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       <Section title="Modul-parathed" subtitle="Hvilke moduler kan bruge data lige nu?">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
