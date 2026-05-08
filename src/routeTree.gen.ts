@@ -28,7 +28,12 @@ import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
 import { Route as AppConnectIndexRouteImport } from './routes/app.connect.index'
 import { Route as AppSettingsUsersRouteImport } from './routes/app.settings.users'
+import { Route as AppSettingsSecurityRouteImport } from './routes/app.settings.security'
 import { Route as AppSettingsProjectsRouteImport } from './routes/app.settings.projects'
+import { Route as AppSettingsNotificationsRouteImport } from './routes/app.settings.notifications'
+import { Route as AppSettingsModulesRouteImport } from './routes/app.settings.modules'
+import { Route as AppSettingsFrameworksRouteImport } from './routes/app.settings.frameworks'
+import { Route as AppSettingsBillingRouteImport } from './routes/app.settings.billing'
 import { Route as AppSettingsAccessRouteImport } from './routes/app.settings.access'
 import { Route as AppReportsTemplatesRouteImport } from './routes/app.reports.templates'
 import { Route as AppReportsReadinessRouteImport } from './routes/app.reports.readiness'
@@ -161,9 +166,35 @@ const AppSettingsUsersRoute = AppSettingsUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const AppSettingsProjectsRoute = AppSettingsProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AppSettingsRoute,
+  } as any)
+const AppSettingsModulesRoute = AppSettingsModulesRouteImport.update({
+  id: '/modules',
+  path: '/modules',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsFrameworksRoute = AppSettingsFrameworksRouteImport.update({
+  id: '/frameworks',
+  path: '/frameworks',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsBillingRoute = AppSettingsBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => AppSettingsRoute,
 } as any)
 const AppSettingsAccessRoute = AppSettingsAccessRouteImport.update({
@@ -397,7 +428,12 @@ export interface FileRoutesByFullPath {
   '/app/reports/readiness': typeof AppReportsReadinessRoute
   '/app/reports/templates': typeof AppReportsTemplatesRoute
   '/app/settings/access': typeof AppSettingsAccessRoute
+  '/app/settings/billing': typeof AppSettingsBillingRoute
+  '/app/settings/frameworks': typeof AppSettingsFrameworksRoute
+  '/app/settings/modules': typeof AppSettingsModulesRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/projects': typeof AppSettingsProjectsRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
   '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
@@ -449,7 +485,12 @@ export interface FileRoutesByTo {
   '/app/reports/readiness': typeof AppReportsReadinessRoute
   '/app/reports/templates': typeof AppReportsTemplatesRoute
   '/app/settings/access': typeof AppSettingsAccessRoute
+  '/app/settings/billing': typeof AppSettingsBillingRoute
+  '/app/settings/frameworks': typeof AppSettingsFrameworksRoute
+  '/app/settings/modules': typeof AppSettingsModulesRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/projects': typeof AppSettingsProjectsRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
   '/app/connect': typeof AppConnectIndexRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
@@ -508,7 +549,12 @@ export interface FileRoutesById {
   '/app/reports/readiness': typeof AppReportsReadinessRoute
   '/app/reports/templates': typeof AppReportsTemplatesRoute
   '/app/settings/access': typeof AppSettingsAccessRoute
+  '/app/settings/billing': typeof AppSettingsBillingRoute
+  '/app/settings/frameworks': typeof AppSettingsFrameworksRoute
+  '/app/settings/modules': typeof AppSettingsModulesRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/projects': typeof AppSettingsProjectsRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
   '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
@@ -568,7 +614,12 @@ export interface FileRouteTypes {
     | '/app/reports/readiness'
     | '/app/reports/templates'
     | '/app/settings/access'
+    | '/app/settings/billing'
+    | '/app/settings/frameworks'
+    | '/app/settings/modules'
+    | '/app/settings/notifications'
     | '/app/settings/projects'
+    | '/app/settings/security'
     | '/app/settings/users'
     | '/app/connect/'
     | '/app/decisions/'
@@ -620,7 +671,12 @@ export interface FileRouteTypes {
     | '/app/reports/readiness'
     | '/app/reports/templates'
     | '/app/settings/access'
+    | '/app/settings/billing'
+    | '/app/settings/frameworks'
+    | '/app/settings/modules'
+    | '/app/settings/notifications'
     | '/app/settings/projects'
+    | '/app/settings/security'
     | '/app/settings/users'
     | '/app/connect'
     | '/app/decisions'
@@ -678,7 +734,12 @@ export interface FileRouteTypes {
     | '/app/reports/readiness'
     | '/app/reports/templates'
     | '/app/settings/access'
+    | '/app/settings/billing'
+    | '/app/settings/frameworks'
+    | '/app/settings/modules'
+    | '/app/settings/notifications'
     | '/app/settings/projects'
+    | '/app/settings/security'
     | '/app/settings/users'
     | '/app/connect/'
     | '/app/decisions/'
@@ -830,11 +891,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsUsersRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    '/app/settings/security': {
+      id: '/app/settings/security'
+      path: '/security'
+      fullPath: '/app/settings/security'
+      preLoaderRoute: typeof AppSettingsSecurityRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     '/app/settings/projects': {
       id: '/app/settings/projects'
       path: '/projects'
       fullPath: '/app/settings/projects'
       preLoaderRoute: typeof AppSettingsProjectsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/notifications': {
+      id: '/app/settings/notifications'
+      path: '/notifications'
+      fullPath: '/app/settings/notifications'
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/modules': {
+      id: '/app/settings/modules'
+      path: '/modules'
+      fullPath: '/app/settings/modules'
+      preLoaderRoute: typeof AppSettingsModulesRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/frameworks': {
+      id: '/app/settings/frameworks'
+      path: '/frameworks'
+      fullPath: '/app/settings/frameworks'
+      preLoaderRoute: typeof AppSettingsFrameworksRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/app/settings/billing': {
+      id: '/app/settings/billing'
+      path: '/billing'
+      fullPath: '/app/settings/billing'
+      preLoaderRoute: typeof AppSettingsBillingRouteImport
       parentRoute: typeof AppSettingsRoute
     }
     '/app/settings/access': {
@@ -1224,14 +1320,24 @@ const AppReportsRouteWithChildren = AppReportsRoute._addFileChildren(
 
 interface AppSettingsRouteChildren {
   AppSettingsAccessRoute: typeof AppSettingsAccessRoute
+  AppSettingsBillingRoute: typeof AppSettingsBillingRoute
+  AppSettingsFrameworksRoute: typeof AppSettingsFrameworksRoute
+  AppSettingsModulesRoute: typeof AppSettingsModulesRoute
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
   AppSettingsProjectsRoute: typeof AppSettingsProjectsRoute
+  AppSettingsSecurityRoute: typeof AppSettingsSecurityRoute
   AppSettingsUsersRoute: typeof AppSettingsUsersRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
 const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsAccessRoute: AppSettingsAccessRoute,
+  AppSettingsBillingRoute: AppSettingsBillingRoute,
+  AppSettingsFrameworksRoute: AppSettingsFrameworksRoute,
+  AppSettingsModulesRoute: AppSettingsModulesRoute,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
   AppSettingsProjectsRoute: AppSettingsProjectsRoute,
+  AppSettingsSecurityRoute: AppSettingsSecurityRoute,
   AppSettingsUsersRoute: AppSettingsUsersRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
