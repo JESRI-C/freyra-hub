@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Plug, CheckCircle2, AlertTriangle, WifiOff, ShieldCheck, Clock, Activity,
-  Database, BarChart3, FileBarChart, Brain, Layers, ArrowRight, Sparkles,
+  Database, BarChart3, FileBarChart, Brain, Layers, ArrowRight, Sparkles, Map,
 } from "lucide-react";
 import { Card, CardHeader, PageHeader, Bars, Pill } from "@/components/ui-bits";
 import { ConnectionHealthCard, ProgressBar, Section, SeverityBadge } from "@/components/connect/Primitives";
 import { ALERTS } from "@/lib/connect-data";
+import { ModuleHeader, ActivityFeed, CriticalActionsPanel, CrossModuleLink, ReportReadinessBadge, actionToast } from "@/components/platform/Primitives";
+import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
 
 export const Route = createFileRoute("/app/connect/")({
   component: Page,
@@ -14,29 +16,17 @@ export const Route = createFileRoute("/app/connect/")({
 function Page() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-      {/* Hero */}
-      <Card className="p-6 bg-gradient-to-br from-leaf/30 via-card to-card">
-        <div className="flex items-start justify-between gap-6 flex-wrap">
-          <div className="max-w-2xl">
-            <div className="text-xs uppercase tracking-wider text-primary mb-2 font-semibold">Smart Connect</div>
-            <h1 className="text-2xl font-semibold tracking-tight">Forbind, overvåg og valider datakilder på tværs af projekter</h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              Her styres datarygraden i GoFreyra: sensorer, satellitdata, droner, API'er, feltdata og manuelle uploads — verificeret før det rammer DecisionsIQ, ESG Ledger og Impact Exchange.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/app/connect/add" className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm shadow-soft">
-              <Plug className="h-4 w-4" /> Tilføj datakilde
-            </Link>
-            <Link to="/app/connect/quality" className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm">
-              <ShieldCheck className="h-4 w-4" /> Se datakvalitet
-            </Link>
-            <Link to="/app/connect/live" className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm">
-              <Activity className="h-4 w-4" /> Åbn live data
-            </Link>
-          </div>
-        </div>
-      </Card>
+      <ModuleHeader
+        eyebrow="Smart Connect"
+        title="Smart Connect"
+        subtitle="Forbind, overvåg og valider datakilder på tværs af projektet."
+        projectName={PROJECT_FACTS.name}
+        freshness="3 min"
+        status={PROJECT_FACTS.status}
+        readiness={PROJECT_FACTS.reportReadiness}
+        primaryCta={{ label: "Tilføj datakilde", to: "/app/connect/add", icon: <Plug className="h-4 w-4" /> }}
+        secondaryCta={{ label: "Åbn kort", to: "/app/connect/map", icon: <Map className="h-4 w-4" /> }}
+      />
 
       <PageHeader title="Forbindelses-KPI'er" description="Realtidsoverblik på datarygradens sundhed." />
 
@@ -45,8 +35,8 @@ function Page() {
         <ConnectionHealthCard label="Online" value="36" tone="success" sub="86% af alle kilder" icon={<CheckCircle2 className="h-5 w-5" />} />
         <ConnectionHealthCard label="Kræver handling" value="4" tone="warning" sub="Validering nødvendig" icon={<AlertTriangle className="h-5 w-5" />} />
         <ConnectionHealthCard label="Offline" value="2" tone="danger" icon={<WifiOff className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Ø datakvalitet" value="91%" tone="success" icon={<ShieldCheck className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Seneste sync" value="4 min" sub="MQTT broker" icon={<Clock className="h-5 w-5" />} />
+        <ConnectionHealthCard label="Ø datakvalitet" value={`${PROJECT_FACTS.dataQuality}%`} tone="success" icon={<ShieldCheck className="h-5 w-5" />} />
+        <ConnectionHealthCard label="Seneste sync" value="3 min" sub="MQTT broker" icon={<Clock className="h-5 w-5" />} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
