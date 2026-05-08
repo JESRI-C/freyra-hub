@@ -7,7 +7,7 @@ export const Route = createFileRoute("/app/decisions")({
   component: DecisionsLayout,
 });
 
-const TABS = [
+const TABS: { to: string; label: string; icon: typeof Brain; exact?: boolean }[] = [
   { to: "/app/decisions", label: "AI-overblik", icon: Brain, exact: true },
   { to: "/app/decisions/recommendations", label: "Anbefalinger", icon: ListChecks },
   { to: "/app/decisions/risk", label: "Risikoanalyse", icon: ShieldAlert },
@@ -15,7 +15,7 @@ const TABS = [
   { to: "/app/decisions/data-quality", label: "Datakvalitet", icon: Database },
   { to: "/app/decisions/notes", label: "Beslutningsnotater", icon: FileText },
   { to: "/app/decisions/assistant", label: "AI-assistent", icon: MessageSquare },
-] as const;
+];
 
 function DecisionsLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
