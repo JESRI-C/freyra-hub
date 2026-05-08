@@ -83,21 +83,23 @@ function OrganizationsPage() {
       </Card>
 
       {/* Partner CTA */}
-      <Card className="p-6 grid md:grid-cols-[1fr_auto] gap-4 items-center"
-            style={{ background: "linear-gradient(135deg, oklch(0.94 0.06 150), oklch(0.97 0.02 150))" }}>
-        <div className="flex items-start gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center"><Briefcase className="h-5 w-5" /></div>
-          <div>
-            <div className="font-semibold">Har du et projekt, der bør være på Impact Exchange?</div>
-            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-              Bliv projektpartner og få adgang til verifikation, dokumentation og distribution på tværs af køberne i
-              Freyra-økosystemet.
-            </p>
+      <Card className="overflow-hidden">
+        <div className="p-6 grid md:grid-cols-[1fr_auto] gap-4 items-center"
+             style={{ background: "linear-gradient(135deg, oklch(0.94 0.06 150), oklch(0.97 0.02 150))" }}>
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center"><Briefcase className="h-5 w-5" /></div>
+            <div>
+              <div className="font-semibold">Har du et projekt, der bør være på Impact Exchange?</div>
+              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                Bliv projektpartner og få adgang til verifikation, dokumentation og distribution på tværs af køberne i
+                Freyra-økosystemet.
+              </p>
+            </div>
           </div>
+          <button className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:opacity-95">
+            Ansøg som projektpartner <ArrowRight className="h-4 w-4" />
+          </button>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:opacity-95">
-          Ansøg som projektpartner <ArrowRight className="h-4 w-4" />
-        </button>
       </Card>
 
       {/* Side panel */}
