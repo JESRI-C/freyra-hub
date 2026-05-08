@@ -51,21 +51,8 @@ function Page() {
     }
   };
 
-  const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!drawing) return;
-    const svg = e.currentTarget;
-    const rect = svg.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 600;
-    const y = ((e.clientY - rect.top) / rect.height) * 400;
-    const next = [...drawnPoints, { x, y }];
-    setDrawnPoints(next);
-    setDrawArea(mockArea(next));
-  };
-
   const finishDraw = () => {
-    if (drawnPoints.length >= 3) {
-      setShowZoneModal(true);
-    }
+    if (drawnPoints.length >= 3) setShowZoneModal(true);
     setDrawing(false);
   };
 
