@@ -136,18 +136,27 @@ export type MapSelection =
   | { kind: "gap"; data: { label: string } };
 
 export function MapCanvas({
-  layers, project, drawing, onPick, drawnPoints,
+  layers, project, drawing, onPick, drawnPoints, onCanvasClick, onDoubleClick,
 }: {
   layers: Record<LayerKey, boolean>;
   project: string;
   drawing: boolean;
   onPick: (s: MapSelection) => void;
   drawnPoints: { x: number; y: number }[];
+  onCanvasClick?: (x: number, y: number) => void;
+  onDoubleClick?: () => void;
 }) {
   const proj = MAP_PROJECTS.find((p) => p.name === project) ?? MAP_PROJECTS[0];
+  const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!drawing || !onCanvasClick) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 600;
+    const y = ((e.clientY - rect.top) / rect.height) * 400;
+    onCanvasClick(x, y);
+  };
   return (
     <div className="relative h-[560px] bg-gradient-to-br from-leaf/30 via-card to-leaf/10 overflow-hidden">
-      <svg viewBox="0 0 600 400" className={`w-full h-full ${drawing ? "cursor-crosshair" : ""}`}>
+      <svg viewBox="0 0 600 400" className={`w-full h-full ${drawing ? "cursor-crosshair" : ""}`} onClick={handleClick} onDoubleClick={onDoubleClick}>
         <defs>
           <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeOpacity="0.06" />
