@@ -37,7 +37,7 @@ function Page() {
       <PageHeader
         title="Anbefalinger"
         description="AI-genererede anbefalinger med forventet effekt, datagrundlag og ejer."
-        actions={<button className="text-sm rounded-lg border bg-card px-3 py-2">Eksportér liste</button>}
+        actions={<button onClick={() => actionToast("Anbefalingsliste eksporteret", "Filen er klar i Eksporter-historik")} className="text-sm rounded-lg border bg-card px-3 py-2">Eksportér liste</button>}
       />
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
