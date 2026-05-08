@@ -99,19 +99,20 @@ function Page() {
         <div className="space-y-3">
           <MapSearchBox onPick={(s) => setToast(`Centreret på ${s}`)} />
           <MapToolbar active={tool} onTool={handleTool} areaText={drawArea > 0 ? `${drawArea.toFixed(1)} ha` : undefined} />
-          <div className="rounded-xl border bg-card overflow-hidden" onDoubleClick={finishDraw}>
-            <div onClick={(e) => {
-              const svg = (e.target as HTMLElement).closest("svg");
-              if (svg) handleCanvasClick({ ...e, currentTarget: svg } as any);
-            }}>
-              <MapCanvas
-                layers={active}
-                project={project}
-                drawing={drawing}
-                onPick={(s) => !drawing && setSelection(s)}
-                drawnPoints={drawnPoints}
-              />
-            </div>
+          <div className="rounded-xl border bg-card overflow-hidden">
+            <MapCanvas
+              layers={active}
+              project={project}
+              drawing={drawing}
+              onPick={(s) => !drawing && setSelection(s)}
+              drawnPoints={drawnPoints}
+              onCanvasClick={(x, y) => {
+                const next = [...drawnPoints, { x, y }];
+                setDrawnPoints(next);
+                setDrawArea(mockArea(next));
+              }}
+              onDoubleClick={finishDraw}
+            />
           </div>
           {drawArea > 0 && <AreaMeasurementBadge ha={drawArea} />}
         </div>
