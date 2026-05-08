@@ -21,6 +21,7 @@ import { Route as AppImpactRouteImport } from './routes/app.impact'
 import { Route as AppDecisionsRouteImport } from './routes/app.decisions'
 import { Route as AppDataRouteImport } from './routes/app.data'
 import { Route as AppConnectRouteImport } from './routes/app.connect'
+import { Route as AppReportsIndexRouteImport } from './routes/app.reports.index'
 import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
 import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
@@ -113,6 +114,11 @@ const AppConnectRoute = AppConnectRouteImport.update({
   id: '/connect',
   path: '/connect',
   getParentRoute: () => AppRoute,
+} as any)
+const AppReportsIndexRoute = AppReportsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppReportsRoute,
 } as any)
 const AppLedgerIndexRoute = AppLedgerIndexRouteImport.update({
   id: '/',
@@ -287,7 +293,7 @@ export interface FileRoutesByFullPath {
   '/app/impact': typeof AppImpactRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
-  '/app/reports': typeof AppReportsRoute
+  '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
+  '/app/reports/': typeof AppReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -329,7 +336,6 @@ export interface FileRoutesByTo {
   '/select': typeof SelectRoute
   '/app/data': typeof AppDataRoute
   '/app/overview': typeof AppOverviewRoute
-  '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -363,6 +369,7 @@ export interface FileRoutesByTo {
   '/app/decisions': typeof AppDecisionsIndexRoute
   '/app/impact': typeof AppImpactIndexRoute
   '/app/ledger': typeof AppLedgerIndexRoute
+  '/app/reports': typeof AppReportsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -376,7 +383,7 @@ export interface FileRoutesById {
   '/app/impact': typeof AppImpactRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
-  '/app/reports': typeof AppReportsRoute
+  '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -410,6 +417,7 @@ export interface FileRoutesById {
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
+  '/app/reports/': typeof AppReportsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -458,6 +466,7 @@ export interface FileRouteTypes {
     | '/app/decisions/'
     | '/app/impact/'
     | '/app/ledger/'
+    | '/app/reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -466,7 +475,6 @@ export interface FileRouteTypes {
     | '/select'
     | '/app/data'
     | '/app/overview'
-    | '/app/reports'
     | '/app/settings'
     | '/app/connect/add'
     | '/app/connect/alerts'
@@ -500,6 +508,7 @@ export interface FileRouteTypes {
     | '/app/decisions'
     | '/app/impact'
     | '/app/ledger'
+    | '/app/reports'
   id:
     | '__root__'
     | '/'
@@ -546,6 +555,7 @@ export interface FileRouteTypes {
     | '/app/decisions/'
     | '/app/impact/'
     | '/app/ledger/'
+    | '/app/reports/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -640,6 +650,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/connect'
       preLoaderRoute: typeof AppConnectRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/app/reports/': {
+      id: '/app/reports/'
+      path: '/'
+      fullPath: '/app/reports/'
+      preLoaderRoute: typeof AppReportsIndexRouteImport
+      parentRoute: typeof AppReportsRoute
     }
     '/app/ledger/': {
       id: '/app/ledger/'
@@ -972,6 +989,18 @@ const AppLedgerRouteWithChildren = AppLedgerRoute._addFileChildren(
   AppLedgerRouteChildren,
 )
 
+interface AppReportsRouteChildren {
+  AppReportsIndexRoute: typeof AppReportsIndexRoute
+}
+
+const AppReportsRouteChildren: AppReportsRouteChildren = {
+  AppReportsIndexRoute: AppReportsIndexRoute,
+}
+
+const AppReportsRouteWithChildren = AppReportsRoute._addFileChildren(
+  AppReportsRouteChildren,
+)
+
 interface AppRouteChildren {
   AppConnectRoute: typeof AppConnectRouteWithChildren
   AppDataRoute: typeof AppDataRoute
@@ -979,7 +1008,7 @@ interface AppRouteChildren {
   AppImpactRoute: typeof AppImpactRouteWithChildren
   AppLedgerRoute: typeof AppLedgerRouteWithChildren
   AppOverviewRoute: typeof AppOverviewRoute
-  AppReportsRoute: typeof AppReportsRoute
+  AppReportsRoute: typeof AppReportsRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRoute
 }
 
@@ -990,7 +1019,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppImpactRoute: AppImpactRouteWithChildren,
   AppLedgerRoute: AppLedgerRouteWithChildren,
   AppOverviewRoute: AppOverviewRoute,
-  AppReportsRoute: AppReportsRoute,
+  AppReportsRoute: AppReportsRouteWithChildren,
   AppSettingsRoute: AppSettingsRoute,
 }
 
@@ -1005,3 +1034,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
