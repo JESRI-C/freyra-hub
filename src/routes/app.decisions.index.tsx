@@ -130,6 +130,34 @@ function OverviewPage() {
         </ul>
       </Card>
 
+      {/* Cross-module actions */}
+      <Card className="p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Send anbefaling</div>
+          <button onClick={() => actionToast("Opgave oprettet", "Tildelt projektgruppen")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <ListTodo className="h-3.5 w-3.5" /> Opret opgave
+          </button>
+          <button onClick={() => actionToast("Anbefalingen er tilføjet til rapportudkastet")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <FileText className="h-3.5 w-3.5" /> Send til rapport
+          </button>
+          <CrossModuleLink to="/app/connect/sources" label="Se datakilde i Smart Connect" />
+          <CrossModuleLink to="/app/ledger" label="Dokumentér i ESG Ledger" />
+          <CrossModuleLink to="/app/impact/projects" label="Find projekt i Impact Exchange" />
+        </div>
+      </Card>
+
+      {/* Activity + critical actions filtered to DecisionsIQ */}
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Card>
+          <CardHeader title="Seneste aktivitet" subtitle="DecisionsIQ-relaterede hændelser" />
+          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "DecisionsIQ").concat(ACTIVITY_FEED.filter((a) => a.module !== "DecisionsIQ").slice(0, 2))} />
+        </Card>
+        <Card>
+          <CardHeader title="Kritiske handlinger" subtitle="Prioriterede opgaver" />
+          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "DecisionsIQ")} />
+        </Card>
+      </div>
+
       {/* AI explanation */}
       <Card className="p-5">
         <div className="flex gap-3">
