@@ -16,7 +16,7 @@ export const Route = createFileRoute("/app/impact")({
   component: ImpactLayout,
 });
 
-const TABS = [
+const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
   { to: "/app/impact", label: "Overblik", icon: LayoutDashboard, exact: true },
   { to: "/app/impact/projects", label: "Projekter", icon: Layers },
   { to: "/app/impact/project", label: "Projektprofil", icon: FileBadge },
