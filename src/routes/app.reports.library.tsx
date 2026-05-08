@@ -74,7 +74,7 @@ function LibraryPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard label="Rapporter" value="24" icon={<FileText className="h-5 w-5" />} />
         <StatCard label="Godkendte" value="8" icon={<CheckCircle2 className="h-5 w-5" />} accent="bg-success/15 text-success" />
-        <StatCard label="Afventer review" value="5" icon={<Clock className="h-5 w-5" />} accent="bg-info/15 text-info" />
+        <StatCard label="Afventer review" value="5" icon={<Clock className="h-5 w-5" />} accent="bg-leaf/30 text-primary" />
         <StatCard label="Kladder" value="6" icon={<FileEdit className="h-5 w-5" />} accent="bg-warning/15 text-warning-foreground" />
         <StatCard label="Arkiverede" value="5" icon={<Archive className="h-5 w-5" />} accent="bg-muted text-muted-foreground" />
         <StatCard label="Eksports denne måned" value="12" icon={<Download className="h-5 w-5" />} />
@@ -180,7 +180,7 @@ function LibraryPage() {
               <ol className="space-y-2">
                 {ACTIVITY.map((a, i) => {
                   const Icon = a.icon;
-                  const tones: Record<string, string> = { default: "bg-muted text-foreground", info: "bg-info/15 text-info", success: "bg-success/15 text-success" };
+                  const tones: Record<string, string> = { default: "bg-muted text-foreground", info: "bg-leaf/30 text-primary", success: "bg-success/15 text-success" };
                   return (
                     <li key={i} className="flex gap-3 items-start">
                       <div className={`h-7 w-7 rounded-lg grid place-items-center flex-shrink-0 ${tones[a.tone]}`}><Icon className="h-3.5 w-3.5" /></div>
