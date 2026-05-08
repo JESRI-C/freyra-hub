@@ -67,9 +67,12 @@ function Page() {
           <RecommendationCard key={r.id} r={r} onClick={() => setSelected(r)} />
         ))}
         {filtered.length === 0 && (
-          <Card className="p-10 text-center text-sm text-muted-foreground col-span-full">
-            Ingen anbefalinger matcher filtrene.
-          </Card>
+          <div className="col-span-full">
+            <EmptyStateCard
+              title="Ingen anbefalinger matcher filteret"
+              description="Der er ingen anbefalinger med det valgte filter. Prøv at nulstille prioritet, kategori eller status."
+            />
+          </div>
         )}
       </div>
 
