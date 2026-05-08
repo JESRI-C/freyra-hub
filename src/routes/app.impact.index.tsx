@@ -204,6 +204,35 @@ function OverviewPage() {
           </button>
         </div>
       </Card>
+
+      {/* Cross-module actions */}
+      <Card className="p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Projekt-handlinger</div>
+          <button onClick={() => actionToast("Projektet er føjet til porteføljen")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Globe2 className="h-3.5 w-3.5" /> Føj til portefølje
+          </button>
+          <button onClick={() => actionToast("Dokumentation sendt til ESG Ledger")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <FileBarChart className="h-3.5 w-3.5" /> Send til ESG Ledger
+          </button>
+          <button onClick={() => actionToast("Projektet bruges i rapportudkast")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <FileText className="h-3.5 w-3.5" /> Brug i rapport
+          </button>
+          <CrossModuleLink to="/app/decisions" label="Analysér med DecisionsIQ" />
+          <span className="ml-auto"><ReportReadinessBadge value={86} /></span>
+        </div>
+      </Card>
+
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Card>
+          <CardHeader title="Seneste aktivitet" subtitle="Impact Exchange-relaterede hændelser" />
+          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "Impact Exchange")} />
+        </Card>
+        <Card>
+          <CardHeader title="Kritiske handlinger" subtitle="På tværs af porteføljen" />
+          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "Impact Exchange" || c.module === "ESG Ledger").slice(0, 3)} />
+        </Card>
+      </div>
     </main>
   );
 }
