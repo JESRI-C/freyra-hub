@@ -26,6 +26,7 @@ import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
 import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
 import { Route as AppConnectIndexRouteImport } from './routes/app.connect.index'
+import { Route as AppReportsReadinessRouteImport } from './routes/app.reports.readiness'
 import { Route as AppReportsPreviewRouteImport } from './routes/app.reports.preview'
 import { Route as AppReportsNewRouteImport } from './routes/app.reports.new'
 import { Route as AppReportsBuilderRouteImport } from './routes/app.reports.builder'
@@ -142,6 +143,11 @@ const AppConnectIndexRoute = AppConnectIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppConnectRoute,
+} as any)
+const AppReportsReadinessRoute = AppReportsReadinessRouteImport.update({
+  id: '/readiness',
+  path: '/readiness',
+  getParentRoute: () => AppReportsRoute,
 } as any)
 const AppReportsPreviewRoute = AppReportsPreviewRouteImport.update({
   id: '/preview',
@@ -344,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/new': typeof AppReportsNewRoute
   '/app/reports/preview': typeof AppReportsPreviewRoute
+  '/app/reports/readiness': typeof AppReportsReadinessRoute
   '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
@@ -389,6 +396,7 @@ export interface FileRoutesByTo {
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/new': typeof AppReportsNewRoute
   '/app/reports/preview': typeof AppReportsPreviewRoute
+  '/app/reports/readiness': typeof AppReportsReadinessRoute
   '/app/connect': typeof AppConnectIndexRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
   '/app/impact': typeof AppImpactIndexRoute
@@ -440,6 +448,7 @@ export interface FileRoutesById {
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/new': typeof AppReportsNewRoute
   '/app/reports/preview': typeof AppReportsPreviewRoute
+  '/app/reports/readiness': typeof AppReportsReadinessRoute
   '/app/connect/': typeof AppConnectIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
@@ -492,6 +501,7 @@ export interface FileRouteTypes {
     | '/app/reports/builder'
     | '/app/reports/new'
     | '/app/reports/preview'
+    | '/app/reports/readiness'
     | '/app/connect/'
     | '/app/decisions/'
     | '/app/impact/'
@@ -537,6 +547,7 @@ export interface FileRouteTypes {
     | '/app/reports/builder'
     | '/app/reports/new'
     | '/app/reports/preview'
+    | '/app/reports/readiness'
     | '/app/connect'
     | '/app/decisions'
     | '/app/impact'
@@ -587,6 +598,7 @@ export interface FileRouteTypes {
     | '/app/reports/builder'
     | '/app/reports/new'
     | '/app/reports/preview'
+    | '/app/reports/readiness'
     | '/app/connect/'
     | '/app/decisions/'
     | '/app/impact/'
@@ -721,6 +733,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/connect/'
       preLoaderRoute: typeof AppConnectIndexRouteImport
       parentRoute: typeof AppConnectRoute
+    }
+    '/app/reports/readiness': {
+      id: '/app/reports/readiness'
+      path: '/readiness'
+      fullPath: '/app/reports/readiness'
+      preLoaderRoute: typeof AppReportsReadinessRouteImport
+      parentRoute: typeof AppReportsRoute
     }
     '/app/reports/preview': {
       id: '/app/reports/preview'
@@ -1050,6 +1069,7 @@ interface AppReportsRouteChildren {
   AppReportsBuilderRoute: typeof AppReportsBuilderRoute
   AppReportsNewRoute: typeof AppReportsNewRoute
   AppReportsPreviewRoute: typeof AppReportsPreviewRoute
+  AppReportsReadinessRoute: typeof AppReportsReadinessRoute
   AppReportsIndexRoute: typeof AppReportsIndexRoute
 }
 
@@ -1057,6 +1077,7 @@ const AppReportsRouteChildren: AppReportsRouteChildren = {
   AppReportsBuilderRoute: AppReportsBuilderRoute,
   AppReportsNewRoute: AppReportsNewRoute,
   AppReportsPreviewRoute: AppReportsPreviewRoute,
+  AppReportsReadinessRoute: AppReportsReadinessRoute,
   AppReportsIndexRoute: AppReportsIndexRoute,
 }
 
