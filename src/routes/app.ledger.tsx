@@ -1,62 +1,64 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import {
+  LayoutDashboard,
+  BarChart3,
+  ClipboardList,
+  Cloud,
+  Plug,
+  ScrollText,
+  FileText,
+  FileBarChart,
+} from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
-import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
-import { ShieldCheck, FileCheck2, Hash } from "lucide-react";
 
 export const Route = createFileRoute("/app/ledger")({
   head: () => ({ meta: [{ title: "ESG Ledger — GoFreyra" }] }),
-  component: Page,
+  component: LedgerLayout,
 });
 
-function Page() {
+const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
+  { to: "/app/ledger", label: "Overblik", icon: LayoutDashboard, exact: true },
+  { to: "/app/ledger/metrics", label: "ESG-metrics", icon: BarChart3 },
+  { to: "/app/ledger/csrd", label: "CSRD/ESRS", icon: ClipboardList },
+  { to: "/app/ledger/co2", label: "CO₂-regnskab", icon: Cloud },
+  { to: "/app/ledger/sources", label: "Datakilder", icon: Plug },
+  { to: "/app/ledger/audit", label: "Audit trail", icon: ScrollText },
+  { to: "/app/ledger/documents", label: "Dokumenter", icon: FileText },
+  { to: "/app/ledger/reporting", label: "Rapportering", icon: FileBarChart },
+];
+
+function LedgerLayout() {
+  const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <>
-      <AppTopbar title="ESG Ledger" subtitle="Uforanderlig log over alle verificerede hændelser" />
-      <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-        <PageHeader
-          title="Verificeret hændelseslog"
-          description="Hver post er kryptografisk forseglet og kan revideres af tredjepart."
-          actions={<button className="rounded-xl border bg-card text-sm px-3 py-2">Eksportér CSV</button>}
-        />
-
-        <div className="grid lg:grid-cols-3 gap-4">
-          <Card className="p-5">
-            <div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-success" /><div className="text-sm font-medium">Integritet</div></div>
-            <div className="text-2xl font-semibold mt-2">100%</div>
-            <div className="text-xs text-muted-foreground">Ingen brud i kæden</div>
-          </Card>
-          <Card className="p-5">
-            <div className="flex items-center gap-3"><FileCheck2 className="h-5 w-5 text-primary" /><div className="text-sm font-medium">Poster i kvartal</div></div>
-            <div className="text-2xl font-semibold mt-2">2.418</div>
-            <div className="text-xs text-muted-foreground">+14% vs. forrige</div>
-          </Card>
-          <Card className="p-5">
-            <div className="flex items-center gap-3"><Hash className="h-5 w-5 text-leaf" /><div className="text-sm font-medium">Seneste hash</div></div>
-            <div className="text-sm font-mono mt-2 truncate">0x9f4a…c12e</div>
-            <div className="text-xs text-muted-foreground">For 3 minutter siden</div>
-          </Card>
+      <AppTopbar
+        title="ESG Ledger"
+        subtitle="Dokumentation, audit trail og rapporteringsklar ESG-data"
+      />
+      <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
+        <div className="max-w-[1400px] mx-auto px-6">
+          <nav className="flex gap-1 overflow-x-auto -mb-px">
+            {TABS.map((t) => {
+              const active = t.exact ? path === t.to : path.startsWith(t.to);
+              const Icon = t.icon;
+              return (
+                <Link
+                  key={t.to}
+                  to={t.to as any}
+                  className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${
+                    active
+                      ? "border-primary text-foreground font-medium"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" /> {t.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-
-        <Card>
-          <CardHeader title="Seneste poster" />
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-muted-foreground border-y bg-muted/40">
-              <tr><th className="px-5 py-2">Tid</th><th className="py-2">Type</th><th className="py-2">Beskrivelse</th><th className="py-2">Bruger</th><th className="py-2">Hash</th></tr>
-            </thead>
-            <tbody className="divide-y font-mono text-xs">
-              {[
-                ["10:24", "VERIFY", "Tang Nord-Q2 datasæt verificeret", "Emma Larsen", "0x9f4a…c12e"],
-                ["09:51", "MINT", "240 t CO₂e udstedt til Limfjorden", "System", "0xa12b…77da"],
-                ["08:33", "INGEST", "Sentinel-2 batch importeret", "Mikkel Holm", "0x7c11…b09f"],
-                ["07:48", "AUDIT", "Verra revisor login fra IP 92.43.…", "Audit", "0x33ea…1100"],
-                ["06:02", "ALERT", "Sensor LF-12 ude af synk", "System", "0x5d22…aa01"],
-              ].map((r, i) => (
-                <tr key={i}><td className="px-5 py-3">{r[0]}</td><td><Pill tone="info">{r[1]}</Pill></td><td className="font-sans">{r[2]}</td><td className="font-sans">{r[3]}</td><td className="text-muted-foreground">{r[4]}</td></tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      </main>
+      </div>
+      <Outlet />
     </>
   );
 }

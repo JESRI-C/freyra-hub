@@ -21,8 +21,11 @@ import { Route as AppImpactRouteImport } from './routes/app.impact'
 import { Route as AppDecisionsRouteImport } from './routes/app.decisions'
 import { Route as AppDataRouteImport } from './routes/app.data'
 import { Route as AppConnectRouteImport } from './routes/app.connect'
+import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
 import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
+import { Route as AppLedgerMetricsRouteImport } from './routes/app.ledger.metrics'
+import { Route as AppLedgerCsrdRouteImport } from './routes/app.ledger.csrd'
 import { Route as AppImpactVerificationRouteImport } from './routes/app.impact.verification'
 import { Route as AppImpactReportsRouteImport } from './routes/app.impact.reports'
 import { Route as AppImpactProjectsRouteImport } from './routes/app.impact.projects'
@@ -97,6 +100,11 @@ const AppConnectRoute = AppConnectRouteImport.update({
   path: '/connect',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLedgerIndexRoute = AppLedgerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
 const AppImpactIndexRoute = AppImpactIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -106,6 +114,16 @@ const AppDecisionsIndexRoute = AppDecisionsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppLedgerMetricsRoute = AppLedgerMetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
+  getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLedgerCsrdRoute = AppLedgerCsrdRouteImport.update({
+  id: '/csrd',
+  path: '/csrd',
+  getParentRoute: () => AppLedgerRoute,
 } as any)
 const AppImpactVerificationRoute = AppImpactVerificationRouteImport.update({
   id: '/verification',
@@ -183,7 +201,7 @@ export interface FileRoutesByFullPath {
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
   '/app/impact': typeof AppImpactRouteWithChildren
-  '/app/ledger': typeof AppLedgerRoute
+  '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
@@ -200,8 +218,11 @@ export interface FileRoutesByFullPath {
   '/app/impact/projects': typeof AppImpactProjectsRoute
   '/app/impact/reports': typeof AppImpactReportsRoute
   '/app/impact/verification': typeof AppImpactVerificationRoute
+  '/app/ledger/csrd': typeof AppLedgerCsrdRoute
+  '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
+  '/app/ledger/': typeof AppLedgerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -210,7 +231,6 @@ export interface FileRoutesByTo {
   '/select': typeof SelectRoute
   '/app/connect': typeof AppConnectRoute
   '/app/data': typeof AppDataRoute
-  '/app/ledger': typeof AppLedgerRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
@@ -227,8 +247,11 @@ export interface FileRoutesByTo {
   '/app/impact/projects': typeof AppImpactProjectsRoute
   '/app/impact/reports': typeof AppImpactReportsRoute
   '/app/impact/verification': typeof AppImpactVerificationRoute
+  '/app/ledger/csrd': typeof AppLedgerCsrdRoute
+  '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
   '/app/impact': typeof AppImpactIndexRoute
+  '/app/ledger': typeof AppLedgerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -240,7 +263,7 @@ export interface FileRoutesById {
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
   '/app/impact': typeof AppImpactRouteWithChildren
-  '/app/ledger': typeof AppLedgerRoute
+  '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
@@ -257,8 +280,11 @@ export interface FileRoutesById {
   '/app/impact/projects': typeof AppImpactProjectsRoute
   '/app/impact/reports': typeof AppImpactReportsRoute
   '/app/impact/verification': typeof AppImpactVerificationRoute
+  '/app/ledger/csrd': typeof AppLedgerCsrdRoute
+  '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
+  '/app/ledger/': typeof AppLedgerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -288,8 +314,11 @@ export interface FileRouteTypes {
     | '/app/impact/projects'
     | '/app/impact/reports'
     | '/app/impact/verification'
+    | '/app/ledger/csrd'
+    | '/app/ledger/metrics'
     | '/app/decisions/'
     | '/app/impact/'
+    | '/app/ledger/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -298,7 +327,6 @@ export interface FileRouteTypes {
     | '/select'
     | '/app/connect'
     | '/app/data'
-    | '/app/ledger'
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
@@ -315,8 +343,11 @@ export interface FileRouteTypes {
     | '/app/impact/projects'
     | '/app/impact/reports'
     | '/app/impact/verification'
+    | '/app/ledger/csrd'
+    | '/app/ledger/metrics'
     | '/app/decisions'
     | '/app/impact'
+    | '/app/ledger'
   id:
     | '__root__'
     | '/'
@@ -344,8 +375,11 @@ export interface FileRouteTypes {
     | '/app/impact/projects'
     | '/app/impact/reports'
     | '/app/impact/verification'
+    | '/app/ledger/csrd'
+    | '/app/ledger/metrics'
     | '/app/decisions/'
     | '/app/impact/'
+    | '/app/ledger/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -441,6 +475,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/ledger/': {
+      id: '/app/ledger/'
+      path: '/'
+      fullPath: '/app/ledger/'
+      preLoaderRoute: typeof AppLedgerIndexRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
     '/app/impact/': {
       id: '/app/impact/'
       path: '/'
@@ -454,6 +495,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/decisions/'
       preLoaderRoute: typeof AppDecisionsIndexRouteImport
       parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/ledger/metrics': {
+      id: '/app/ledger/metrics'
+      path: '/metrics'
+      fullPath: '/app/ledger/metrics'
+      preLoaderRoute: typeof AppLedgerMetricsRouteImport
+      parentRoute: typeof AppLedgerRoute
+    }
+    '/app/ledger/csrd': {
+      id: '/app/ledger/csrd'
+      path: '/csrd'
+      fullPath: '/app/ledger/csrd'
+      preLoaderRoute: typeof AppLedgerCsrdRouteImport
+      parentRoute: typeof AppLedgerRoute
     }
     '/app/impact/verification': {
       id: '/app/impact/verification'
@@ -599,12 +654,28 @@ const AppImpactRouteWithChildren = AppImpactRoute._addFileChildren(
   AppImpactRouteChildren,
 )
 
+interface AppLedgerRouteChildren {
+  AppLedgerCsrdRoute: typeof AppLedgerCsrdRoute
+  AppLedgerMetricsRoute: typeof AppLedgerMetricsRoute
+  AppLedgerIndexRoute: typeof AppLedgerIndexRoute
+}
+
+const AppLedgerRouteChildren: AppLedgerRouteChildren = {
+  AppLedgerCsrdRoute: AppLedgerCsrdRoute,
+  AppLedgerMetricsRoute: AppLedgerMetricsRoute,
+  AppLedgerIndexRoute: AppLedgerIndexRoute,
+}
+
+const AppLedgerRouteWithChildren = AppLedgerRoute._addFileChildren(
+  AppLedgerRouteChildren,
+)
+
 interface AppRouteChildren {
   AppConnectRoute: typeof AppConnectRoute
   AppDataRoute: typeof AppDataRoute
   AppDecisionsRoute: typeof AppDecisionsRouteWithChildren
   AppImpactRoute: typeof AppImpactRouteWithChildren
-  AppLedgerRoute: typeof AppLedgerRoute
+  AppLedgerRoute: typeof AppLedgerRouteWithChildren
   AppOverviewRoute: typeof AppOverviewRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -615,7 +686,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDataRoute: AppDataRoute,
   AppDecisionsRoute: AppDecisionsRouteWithChildren,
   AppImpactRoute: AppImpactRouteWithChildren,
-  AppLedgerRoute: AppLedgerRoute,
+  AppLedgerRoute: AppLedgerRouteWithChildren,
   AppOverviewRoute: AppOverviewRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
@@ -632,3 +703,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
