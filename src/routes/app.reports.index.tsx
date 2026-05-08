@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   FilePlus, FileCheck, AlertTriangle, LayoutTemplate, ShieldCheck, Clock,
-  Sparkles, Building, Leaf, BarChart3, Send, FileText, Briefcase,
+  Sparkles, Building, Leaf, BarChart3, Send, FileText, Briefcase, Cable, Brain, Repeat2, BookCheck,
 } from "lucide-react";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui-bits";
-import { ReadinessBar, ReportStatusBadge, ReadinessScore, Section } from "@/components/reports/Primitives";
+import { ReadinessBar, ReportStatusBadge, ReadinessScore as ReportsReadinessScore, Section } from "@/components/reports/Primitives";
 import { RECENT_REPORTS } from "@/lib/reports-data";
+import { ModuleHeader, ActivityFeed, CriticalActionsPanel, CrossModuleLink, ReportReadinessBadge, actionToast } from "@/components/platform/Primitives";
+import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
 
 export const Route = createFileRoute("/app/reports/")({
   component: Page,
@@ -14,22 +16,17 @@ export const Route = createFileRoute("/app/reports/")({
 function Page() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-      <Card className="p-6 bg-gradient-to-br from-leaf/30 via-card to-card">
-        <div className="flex items-start justify-between gap-6 flex-wrap">
-          <div className="max-w-2xl">
-            <div className="text-xs uppercase tracking-wider text-primary mb-2 font-semibold">Rapporter</div>
-            <h1 className="text-2xl font-semibold tracking-tight">Byg, kvalitetstjek og eksportér professionelle ESG- og impact-rapporter</h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              Saml data, indsigter, dokumentation og anbefalinger i rapporter, der kan bruges af ledelse, kunder, investorer og revisorer.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/app/reports/new" className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm shadow-soft"><FilePlus className="h-4 w-4" /> Opret ny rapport</Link>
-            <Link to="/app/reports/library" className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm"><FileText className="h-4 w-4" /> Rapportbibliotek</Link>
-            <Link to="/app/reports/templates" className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm"><LayoutTemplate className="h-4 w-4" /> Skabeloner</Link>
-          </div>
-        </div>
-      </Card>
+      <ModuleHeader
+        eyebrow="Rapporter"
+        title="Rapporter"
+        subtitle="Byg, kvalitetstjek og eksportér professionelle ESG- og impact-rapporter."
+        projectName={PROJECT_FACTS.name}
+        freshness="2 timer"
+        status="Klar til review"
+        readiness={PROJECT_FACTS.reportReadiness}
+        primaryCta={{ label: "Opret rapport", to: "/app/reports/new", icon: <FilePlus className="h-4 w-4" /> }}
+        secondaryCta={{ label: "Åbn rapportbygger", to: "/app/reports/builder", icon: <FileText className="h-4 w-4" /> }}
+      />
 
       <PageHeader title="Rapportcenter" description="Realtidsoverblik over rapportering, klarhed og aktivitet." />
 
@@ -114,7 +111,7 @@ function Page() {
                   <td className="px-4 py-3 text-xs">{r.scope}</td>
                   <td className="px-4 py-3 text-xs">{r.audience}</td>
                   <td className="px-4 py-3"><ReportStatusBadge status={r.status} /></td>
-                  <td className="px-4 py-3"><ReadinessScore value={r.readiness} size="sm" /></td>
+                  <td className="px-4 py-3"><ReportsReadinessScore value={r.readiness} size="sm" /></td>
                   <td className="px-4 py-3 text-xs">{r.updated}</td>
                   <td className="px-4 py-3 text-xs">{r.owner}</td>
                   <td className="px-4 py-3 text-xs"><Link to="/app/reports/preview" className="text-primary">Åbn</Link></td>
@@ -124,6 +121,40 @@ function Page() {
           </table>
         </div>
       </Card>
+
+      {/* Cross-module actions */}
+      <Card className="p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Saml rapport</div>
+          <button onClick={() => actionToast("Data hentet fra Smart Connect", `${PROJECT_FACTS.activeDataSources} datakilder tilføjet`)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Cable className="h-3.5 w-3.5" /> Hent data fra Smart Connect
+          </button>
+          <button onClick={() => actionToast("Anbefalinger fra DecisionsIQ tilføjet", `${PROJECT_FACTS.openRecommendations} anbefalinger`)} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Brain className="h-3.5 w-3.5" /> Medtag anbefalinger
+          </button>
+          <button onClick={() => actionToast("Impact-bilag fra Impact Exchange tilføjet")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Repeat2 className="h-3.5 w-3.5" /> Medtag impact
+          </button>
+          <button onClick={() => actionToast("Audit trail fra ESG Ledger vedhæftet")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <BookCheck className="h-3.5 w-3.5" /> Medtag audit trail
+          </button>
+          <button onClick={() => actionToast("Mangler sendt tilbage til relevant modul")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Send className="h-3.5 w-3.5" /> Send mangler tilbage
+          </button>
+          <span className="ml-auto"><ReportReadinessBadge value={PROJECT_FACTS.reportReadiness} /></span>
+        </div>
+      </Card>
+
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Card>
+          <CardHeader title="Seneste aktivitet" subtitle="Rapport-relaterede hændelser" />
+          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "Rapporter")} />
+        </Card>
+        <Card>
+          <CardHeader title="Kritiske handlinger" subtitle="Skal lukkes før eksternt brug" />
+          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "Rapporter")} />
+        </Card>
+      </div>
     </main>
   );
 }
