@@ -21,6 +21,13 @@ import { Route as AppImpactRouteImport } from './routes/app.impact'
 import { Route as AppDecisionsRouteImport } from './routes/app.decisions'
 import { Route as AppDataRouteImport } from './routes/app.data'
 import { Route as AppConnectRouteImport } from './routes/app.connect'
+import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
+import { Route as AppDecisionsScenariosRouteImport } from './routes/app.decisions.scenarios'
+import { Route as AppDecisionsRiskRouteImport } from './routes/app.decisions.risk'
+import { Route as AppDecisionsRecommendationsRouteImport } from './routes/app.decisions.recommendations'
+import { Route as AppDecisionsNotesRouteImport } from './routes/app.decisions.notes'
+import { Route as AppDecisionsDataQualityRouteImport } from './routes/app.decisions.data-quality'
+import { Route as AppDecisionsAssistantRouteImport } from './routes/app.decisions.assistant'
 
 const SelectRoute = SelectRouteImport.update({
   id: '/select',
@@ -82,6 +89,42 @@ const AppConnectRoute = AppConnectRouteImport.update({
   path: '/connect',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDecisionsIndexRoute = AppDecisionsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsScenariosRoute = AppDecisionsScenariosRouteImport.update({
+  id: '/scenarios',
+  path: '/scenarios',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsRiskRoute = AppDecisionsRiskRouteImport.update({
+  id: '/risk',
+  path: '/risk',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsRecommendationsRoute =
+  AppDecisionsRecommendationsRouteImport.update({
+    id: '/recommendations',
+    path: '/recommendations',
+    getParentRoute: () => AppDecisionsRoute,
+  } as any)
+const AppDecisionsNotesRoute = AppDecisionsNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsDataQualityRoute = AppDecisionsDataQualityRouteImport.update({
+  id: '/data-quality',
+  path: '/data-quality',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppDecisionsAssistantRoute = AppDecisionsAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => AppDecisionsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,12 +133,19 @@ export interface FileRoutesByFullPath {
   '/select': typeof SelectRoute
   '/app/connect': typeof AppConnectRoute
   '/app/data': typeof AppDataRoute
-  '/app/decisions': typeof AppDecisionsRoute
+  '/app/decisions': typeof AppDecisionsRouteWithChildren
   '/app/impact': typeof AppImpactRoute
   '/app/ledger': typeof AppLedgerRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
+  '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
+  '/app/decisions/notes': typeof AppDecisionsNotesRoute
+  '/app/decisions/recommendations': typeof AppDecisionsRecommendationsRoute
+  '/app/decisions/risk': typeof AppDecisionsRiskRoute
+  '/app/decisions/scenarios': typeof AppDecisionsScenariosRoute
+  '/app/decisions/': typeof AppDecisionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -104,12 +154,18 @@ export interface FileRoutesByTo {
   '/select': typeof SelectRoute
   '/app/connect': typeof AppConnectRoute
   '/app/data': typeof AppDataRoute
-  '/app/decisions': typeof AppDecisionsRoute
   '/app/impact': typeof AppImpactRoute
   '/app/ledger': typeof AppLedgerRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
+  '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
+  '/app/decisions/notes': typeof AppDecisionsNotesRoute
+  '/app/decisions/recommendations': typeof AppDecisionsRecommendationsRoute
+  '/app/decisions/risk': typeof AppDecisionsRiskRoute
+  '/app/decisions/scenarios': typeof AppDecisionsScenariosRoute
+  '/app/decisions': typeof AppDecisionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -119,12 +175,19 @@ export interface FileRoutesById {
   '/select': typeof SelectRoute
   '/app/connect': typeof AppConnectRoute
   '/app/data': typeof AppDataRoute
-  '/app/decisions': typeof AppDecisionsRoute
+  '/app/decisions': typeof AppDecisionsRouteWithChildren
   '/app/impact': typeof AppImpactRoute
   '/app/ledger': typeof AppLedgerRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
   '/app/settings': typeof AppSettingsRoute
+  '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
+  '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
+  '/app/decisions/notes': typeof AppDecisionsNotesRoute
+  '/app/decisions/recommendations': typeof AppDecisionsRecommendationsRoute
+  '/app/decisions/risk': typeof AppDecisionsRiskRoute
+  '/app/decisions/scenarios': typeof AppDecisionsScenariosRoute
+  '/app/decisions/': typeof AppDecisionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +204,13 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/decisions/assistant'
+    | '/app/decisions/data-quality'
+    | '/app/decisions/notes'
+    | '/app/decisions/recommendations'
+    | '/app/decisions/risk'
+    | '/app/decisions/scenarios'
+    | '/app/decisions/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -149,12 +219,18 @@ export interface FileRouteTypes {
     | '/select'
     | '/app/connect'
     | '/app/data'
-    | '/app/decisions'
     | '/app/impact'
     | '/app/ledger'
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/decisions/assistant'
+    | '/app/decisions/data-quality'
+    | '/app/decisions/notes'
+    | '/app/decisions/recommendations'
+    | '/app/decisions/risk'
+    | '/app/decisions/scenarios'
+    | '/app/decisions'
   id:
     | '__root__'
     | '/'
@@ -169,6 +245,13 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/decisions/assistant'
+    | '/app/decisions/data-quality'
+    | '/app/decisions/notes'
+    | '/app/decisions/recommendations'
+    | '/app/decisions/risk'
+    | '/app/decisions/scenarios'
+    | '/app/decisions/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -264,13 +347,86 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/decisions/': {
+      id: '/app/decisions/'
+      path: '/'
+      fullPath: '/app/decisions/'
+      preLoaderRoute: typeof AppDecisionsIndexRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/scenarios': {
+      id: '/app/decisions/scenarios'
+      path: '/scenarios'
+      fullPath: '/app/decisions/scenarios'
+      preLoaderRoute: typeof AppDecisionsScenariosRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/risk': {
+      id: '/app/decisions/risk'
+      path: '/risk'
+      fullPath: '/app/decisions/risk'
+      preLoaderRoute: typeof AppDecisionsRiskRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/recommendations': {
+      id: '/app/decisions/recommendations'
+      path: '/recommendations'
+      fullPath: '/app/decisions/recommendations'
+      preLoaderRoute: typeof AppDecisionsRecommendationsRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/notes': {
+      id: '/app/decisions/notes'
+      path: '/notes'
+      fullPath: '/app/decisions/notes'
+      preLoaderRoute: typeof AppDecisionsNotesRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/data-quality': {
+      id: '/app/decisions/data-quality'
+      path: '/data-quality'
+      fullPath: '/app/decisions/data-quality'
+      preLoaderRoute: typeof AppDecisionsDataQualityRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/decisions/assistant': {
+      id: '/app/decisions/assistant'
+      path: '/assistant'
+      fullPath: '/app/decisions/assistant'
+      preLoaderRoute: typeof AppDecisionsAssistantRouteImport
+      parentRoute: typeof AppDecisionsRoute
+    }
   }
 }
+
+interface AppDecisionsRouteChildren {
+  AppDecisionsAssistantRoute: typeof AppDecisionsAssistantRoute
+  AppDecisionsDataQualityRoute: typeof AppDecisionsDataQualityRoute
+  AppDecisionsNotesRoute: typeof AppDecisionsNotesRoute
+  AppDecisionsRecommendationsRoute: typeof AppDecisionsRecommendationsRoute
+  AppDecisionsRiskRoute: typeof AppDecisionsRiskRoute
+  AppDecisionsScenariosRoute: typeof AppDecisionsScenariosRoute
+  AppDecisionsIndexRoute: typeof AppDecisionsIndexRoute
+}
+
+const AppDecisionsRouteChildren: AppDecisionsRouteChildren = {
+  AppDecisionsAssistantRoute: AppDecisionsAssistantRoute,
+  AppDecisionsDataQualityRoute: AppDecisionsDataQualityRoute,
+  AppDecisionsNotesRoute: AppDecisionsNotesRoute,
+  AppDecisionsRecommendationsRoute: AppDecisionsRecommendationsRoute,
+  AppDecisionsRiskRoute: AppDecisionsRiskRoute,
+  AppDecisionsScenariosRoute: AppDecisionsScenariosRoute,
+  AppDecisionsIndexRoute: AppDecisionsIndexRoute,
+}
+
+const AppDecisionsRouteWithChildren = AppDecisionsRoute._addFileChildren(
+  AppDecisionsRouteChildren,
+)
 
 interface AppRouteChildren {
   AppConnectRoute: typeof AppConnectRoute
   AppDataRoute: typeof AppDataRoute
-  AppDecisionsRoute: typeof AppDecisionsRoute
+  AppDecisionsRoute: typeof AppDecisionsRouteWithChildren
   AppImpactRoute: typeof AppImpactRoute
   AppLedgerRoute: typeof AppLedgerRoute
   AppOverviewRoute: typeof AppOverviewRoute
@@ -281,7 +437,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppConnectRoute: AppConnectRoute,
   AppDataRoute: AppDataRoute,
-  AppDecisionsRoute: AppDecisionsRoute,
+  AppDecisionsRoute: AppDecisionsRouteWithChildren,
   AppImpactRoute: AppImpactRoute,
   AppLedgerRoute: AppLedgerRoute,
   AppOverviewRoute: AppOverviewRoute,
