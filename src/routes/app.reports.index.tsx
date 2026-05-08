@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   FilePlus, FileCheck, AlertTriangle, LayoutTemplate, ShieldCheck, Clock,
-  Sparkles, Building, Leaf, BarChart3, Send, FileText, Briefcase,
+  Sparkles, Building, Leaf, BarChart3, Send, FileText, Briefcase, Cable, Brain, Repeat2, BookCheck,
 } from "lucide-react";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui-bits";
-import { ReadinessBar, ReportStatusBadge, ReadinessScore, Section } from "@/components/reports/Primitives";
+import { ReadinessBar, ReportStatusBadge, ReadinessScore as ReportsReadinessScore, Section } from "@/components/reports/Primitives";
 import { RECENT_REPORTS } from "@/lib/reports-data";
+import { ModuleHeader, ActivityFeed, CriticalActionsPanel, CrossModuleLink, ReportReadinessBadge, actionToast } from "@/components/platform/Primitives";
+import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
 
 export const Route = createFileRoute("/app/reports/")({
   component: Page,
@@ -14,22 +16,17 @@ export const Route = createFileRoute("/app/reports/")({
 function Page() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-      <Card className="p-6 bg-gradient-to-br from-leaf/30 via-card to-card">
-        <div className="flex items-start justify-between gap-6 flex-wrap">
-          <div className="max-w-2xl">
-            <div className="text-xs uppercase tracking-wider text-primary mb-2 font-semibold">Rapporter</div>
-            <h1 className="text-2xl font-semibold tracking-tight">Byg, kvalitetstjek og eksportér professionelle ESG- og impact-rapporter</h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              Saml data, indsigter, dokumentation og anbefalinger i rapporter, der kan bruges af ledelse, kunder, investorer og revisorer.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/app/reports/new" className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm shadow-soft"><FilePlus className="h-4 w-4" /> Opret ny rapport</Link>
-            <Link to="/app/reports/library" className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm"><FileText className="h-4 w-4" /> Rapportbibliotek</Link>
-            <Link to="/app/reports/templates" className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm"><LayoutTemplate className="h-4 w-4" /> Skabeloner</Link>
-          </div>
-        </div>
-      </Card>
+      <ModuleHeader
+        eyebrow="Rapporter"
+        title="Rapporter"
+        subtitle="Byg, kvalitetstjek og eksportér professionelle ESG- og impact-rapporter."
+        projectName={PROJECT_FACTS.name}
+        freshness="2 timer"
+        status="Klar til review"
+        readiness={PROJECT_FACTS.reportReadiness}
+        primaryCta={{ label: "Opret rapport", to: "/app/reports/new", icon: <FilePlus className="h-4 w-4" /> }}
+        secondaryCta={{ label: "Åbn rapportbygger", to: "/app/reports/builder", icon: <FileText className="h-4 w-4" /> }}
+      />
 
       <PageHeader title="Rapportcenter" description="Realtidsoverblik over rapportering, klarhed og aktivitet." />
 
