@@ -14,13 +14,17 @@ import {
   Sprout,
   ShieldAlert,
   ArrowRight,
+  Cable,
+  Brain,
 } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
-import { ESGMetricCard, ReadinessScore } from "@/components/ledger/Primitives";
+import { ESGMetricCard, ReadinessScore as LedgerReadinessScore } from "@/components/ledger/Primitives";
 import { LEDGER_EVENTS } from "@/lib/ledger-data";
+import { ModuleHeader, ActivityFeed, CriticalActionsPanel, CrossModuleLink, ReportReadinessBadge, actionToast } from "@/components/platform/Primitives";
+import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
 
 export const Route = createFileRoute("/app/ledger/")({
-  head: () => ({ meta: [{ title: "Overblik — ESG Ledger" }] }),
+  head: () => ({ meta: [{ title: "ESG Ledger — GoFreyra" }] }),
   component: OverviewPage,
 });
 
