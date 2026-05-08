@@ -58,7 +58,7 @@ export function AppSidebar() {
 
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {NAV.map((item) => {
-          const active = path === item.to;
+          const active = path === item.to || path.startsWith(item.to + "/");
           const Icon = item.icon;
           return (
             <Link
