@@ -25,7 +25,7 @@ const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: b
   { to: "/app/impact/verification", label: "Verifikation", icon: ShieldCheck },
   { to: "/app/impact/organizations", label: "Organisationer", icon: Building2 },
   { to: "/app/impact/reports", label: "Impact-rapporter", icon: FileBarChart },
-] as const;
+];
 
 function ImpactLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
