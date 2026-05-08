@@ -39,38 +39,17 @@ const GAPS = [
 function OverviewPage() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
-      {/* Hero */}
-      <Card className="overflow-hidden">
-        <div
-          className="p-6 sm:p-8 grid lg:grid-cols-[1fr_auto] gap-6 items-start"
-          style={{ background: "linear-gradient(135deg, oklch(0.95 0.04 150 / 0.55), oklch(0.97 0.02 150 / 0.3))" }}
-        >
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-leaf/20 text-primary">
-              <ScrollText className="h-3.5 w-3.5" /> Ledger · 1.284 hændelser registreret
-            </div>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">ESG Ledger</h2>
-            <p className="mt-1 text-sm text-foreground/80 max-w-2xl">
-              Her samles projektets ESG-data, datakilder, ændringshistorik og rapporteringsstatus — sporbart, dokumenteret
-              og klar til revision.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              to="/app/ledger/audit"
-              className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2.5 text-sm font-medium hover:bg-muted whitespace-nowrap"
-            >
-              <ScrollText className="h-4 w-4" /> Se audit trail
-            </Link>
-            <Link
-              to="/app/ledger/reporting"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:opacity-95 whitespace-nowrap"
-            >
-              <FileText className="h-4 w-4" /> Generér ESG-rapport
-            </Link>
-          </div>
-        </div>
-      </Card>
+      <ModuleHeader
+        eyebrow="ESG Ledger"
+        title="ESG Ledger"
+        subtitle="Dokumentation, audit trail og rapporteringsklar ESG-data."
+        projectName={PROJECT_FACTS.name}
+        freshness="27 min"
+        status={PROJECT_FACTS.status}
+        readiness={PROJECT_FACTS.reportReadiness}
+        primaryCta={{ label: "Generér ESG-rapport", to: "/app/ledger/reporting", icon: <FileText className="h-4 w-4" /> }}
+        secondaryCta={{ label: "Se audit trail", to: "/app/ledger/audit", icon: <ScrollText className="h-4 w-4" /> }}
+      />
 
       {/* KPIs */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
