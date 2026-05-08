@@ -46,6 +46,7 @@ import { Route as AppDecisionsNotesRouteImport } from './routes/app.decisions.no
 import { Route as AppDecisionsDataQualityRouteImport } from './routes/app.decisions.data-quality'
 import { Route as AppDecisionsAssistantRouteImport } from './routes/app.decisions.assistant'
 import { Route as AppConnectSourcesRouteImport } from './routes/app.connect.sources'
+import { Route as AppConnectQualityRouteImport } from './routes/app.connect.quality'
 import { Route as AppConnectMapRouteImport } from './routes/app.connect.map'
 import { Route as AppConnectLiveRouteImport } from './routes/app.connect.live'
 import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect.integrations'
@@ -237,6 +238,11 @@ const AppConnectSourcesRoute = AppConnectSourcesRouteImport.update({
   path: '/sources',
   getParentRoute: () => AppConnectRoute,
 } as any)
+const AppConnectQualityRoute = AppConnectQualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => AppConnectRoute,
+} as any)
 const AppConnectMapRoute = AppConnectMapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -275,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/app/connect/integrations': typeof AppConnectIntegrationsRoute
   '/app/connect/live': typeof AppConnectLiveRoute
   '/app/connect/map': typeof AppConnectMapRoute
+  '/app/connect/quality': typeof AppConnectQualityRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
@@ -314,6 +321,7 @@ export interface FileRoutesByTo {
   '/app/connect/integrations': typeof AppConnectIntegrationsRoute
   '/app/connect/live': typeof AppConnectLiveRoute
   '/app/connect/map': typeof AppConnectMapRoute
+  '/app/connect/quality': typeof AppConnectQualityRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/app/connect/integrations': typeof AppConnectIntegrationsRoute
   '/app/connect/live': typeof AppConnectLiveRoute
   '/app/connect/map': typeof AppConnectMapRoute
+  '/app/connect/quality': typeof AppConnectQualityRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
   '/app/decisions/data-quality': typeof AppDecisionsDataQualityRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/app/connect/integrations'
     | '/app/connect/live'
     | '/app/connect/map'
+    | '/app/connect/quality'
     | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
     | '/app/connect/integrations'
     | '/app/connect/live'
     | '/app/connect/map'
+    | '/app/connect/quality'
     | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
@@ -485,6 +496,7 @@ export interface FileRouteTypes {
     | '/app/connect/integrations'
     | '/app/connect/live'
     | '/app/connect/map'
+    | '/app/connect/quality'
     | '/app/connect/sources'
     | '/app/decisions/assistant'
     | '/app/decisions/data-quality'
@@ -780,6 +792,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectSourcesRouteImport
       parentRoute: typeof AppConnectRoute
     }
+    '/app/connect/quality': {
+      id: '/app/connect/quality'
+      path: '/quality'
+      fullPath: '/app/connect/quality'
+      preLoaderRoute: typeof AppConnectQualityRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
     '/app/connect/map': {
       id: '/app/connect/map'
       path: '/map'
@@ -816,6 +835,7 @@ interface AppConnectRouteChildren {
   AppConnectIntegrationsRoute: typeof AppConnectIntegrationsRoute
   AppConnectLiveRoute: typeof AppConnectLiveRoute
   AppConnectMapRoute: typeof AppConnectMapRoute
+  AppConnectQualityRoute: typeof AppConnectQualityRoute
   AppConnectSourcesRoute: typeof AppConnectSourcesRoute
   AppConnectIndexRoute: typeof AppConnectIndexRoute
 }
@@ -825,6 +845,7 @@ const AppConnectRouteChildren: AppConnectRouteChildren = {
   AppConnectIntegrationsRoute: AppConnectIntegrationsRoute,
   AppConnectLiveRoute: AppConnectLiveRoute,
   AppConnectMapRoute: AppConnectMapRoute,
+  AppConnectQualityRoute: AppConnectQualityRoute,
   AppConnectSourcesRoute: AppConnectSourcesRoute,
   AppConnectIndexRoute: AppConnectIndexRoute,
 }
