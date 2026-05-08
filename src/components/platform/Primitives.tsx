@@ -277,3 +277,74 @@ export function CrossModuleLink({ to, label }: { to: string; label: string }) {
     </Link>
   );
 }
+
+/* ---------- Module header: shared pattern across all module index pages ---------- */
+
+import { toast } from "sonner";
+
+export function ModuleHeader({
+  eyebrow, title, subtitle, projectName, freshness, status, readiness,
+  primaryCta, secondaryCta,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle: string;
+  projectName?: string;
+  freshness?: string;
+  status?: PlatformStatus;
+  readiness?: number;
+  primaryCta?: { label: string; to: string; icon?: ReactNode };
+  secondaryCta?: { label: string; to: string; icon?: ReactNode };
+}) {
+  return (
+    <div className="rounded-2xl bg-card border shadow-soft overflow-hidden">
+      <div
+        className="p-6 grid lg:grid-cols-[1fr_auto] gap-6 items-start"
+        style={{ background: "linear-gradient(135deg, oklch(0.95 0.04 150 / 0.5), oklch(0.97 0.02 150 / 0.25))" }}
+      >
+        <div className="min-w-0">
+          {eyebrow && (
+            <div className="text-[11px] uppercase tracking-wider text-primary mb-1.5 font-semibold">{eyebrow}</div>
+          )}
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <p className="mt-1.5 text-sm text-foreground/80 max-w-2xl">{subtitle}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {projectName && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-background border px-2.5 py-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" /> {projectName}
+              </span>
+            )}
+            {status && <StatusBadge status={status} />}
+            {freshness && <span>Datafriskhed <span className="text-foreground font-medium">{freshness}</span></span>}
+            {typeof readiness === "number" && (
+              <span>Rapportklarhed <span className="text-foreground font-medium">{readiness}%</span></span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {secondaryCta && (
+            <Link
+              to={secondaryCta.to}
+              className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2.5 text-sm font-medium hover:bg-muted whitespace-nowrap"
+            >
+              {secondaryCta.icon} {secondaryCta.label}
+            </Link>
+          )}
+          {primaryCta && (
+            <Link
+              to={primaryCta.to}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:opacity-95 whitespace-nowrap"
+            >
+              {primaryCta.icon} {primaryCta.label}
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Cross-module mock action helper — gives users instant feedback */
+export function actionToast(message: string, description?: string) {
+  toast.success(message, { description });
+}
