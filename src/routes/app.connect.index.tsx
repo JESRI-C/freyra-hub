@@ -147,6 +147,36 @@ function Page() {
           </div>
         </Card>
       </div>
+
+      {/* Cross-module actions */}
+      <Card className="p-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Send datakilde</div>
+          <button onClick={() => actionToast("Sendt til DecisionsIQ", "Klar til ny analyse")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <Brain className="h-3.5 w-3.5" /> Send til DecisionsIQ
+          </button>
+          <button onClick={() => actionToast("Datakilden er sendt til ESG Ledger")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <FileBarChart className="h-3.5 w-3.5" /> Send til ESG Ledger
+          </button>
+          <button onClick={() => actionToast("Tilføjet til rapportudkast")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+            <BarChart3 className="h-3.5 w-3.5" /> Brug i rapport
+          </button>
+          <CrossModuleLink to="/app/connect/map" label="Vis på kort" />
+          <span className="ml-auto"><ReportReadinessBadge value={82} /></span>
+        </div>
+      </Card>
+
+      {/* Activity + critical actions */}
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Card>
+          <CardHeader title="Seneste aktivitet" subtitle="Smart Connect-relaterede hændelser" />
+          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "Smart Connect")} />
+        </Card>
+        <Card>
+          <CardHeader title="Kritiske handlinger" subtitle="Skal håndteres for at hæve datakvaliteten" />
+          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "Smart Connect")} />
+        </Card>
+      </div>
     </main>
   );
 }
