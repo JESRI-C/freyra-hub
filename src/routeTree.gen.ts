@@ -21,7 +21,15 @@ import { Route as AppImpactRouteImport } from './routes/app.impact'
 import { Route as AppDecisionsRouteImport } from './routes/app.decisions'
 import { Route as AppDataRouteImport } from './routes/app.data'
 import { Route as AppConnectRouteImport } from './routes/app.connect'
+import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
+import { Route as AppImpactVerificationRouteImport } from './routes/app.impact.verification'
+import { Route as AppImpactReportsRouteImport } from './routes/app.impact.reports'
+import { Route as AppImpactProjectsRouteImport } from './routes/app.impact.projects'
+import { Route as AppImpactProjectRouteImport } from './routes/app.impact.project'
+import { Route as AppImpactPortfolioRouteImport } from './routes/app.impact.portfolio'
+import { Route as AppImpactOrganizationsRouteImport } from './routes/app.impact.organizations'
+import { Route as AppImpactCreditsRouteImport } from './routes/app.impact.credits'
 import { Route as AppDecisionsScenariosRouteImport } from './routes/app.decisions.scenarios'
 import { Route as AppDecisionsRiskRouteImport } from './routes/app.decisions.risk'
 import { Route as AppDecisionsRecommendationsRouteImport } from './routes/app.decisions.recommendations'
@@ -89,10 +97,50 @@ const AppConnectRoute = AppConnectRouteImport.update({
   path: '/connect',
   getParentRoute: () => AppRoute,
 } as any)
+const AppImpactIndexRoute = AppImpactIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppImpactRoute,
+} as any)
 const AppDecisionsIndexRoute = AppDecisionsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppImpactVerificationRoute = AppImpactVerificationRouteImport.update({
+  id: '/verification',
+  path: '/verification',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactReportsRoute = AppImpactReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactProjectsRoute = AppImpactProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactProjectRoute = AppImpactProjectRouteImport.update({
+  id: '/project',
+  path: '/project',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactPortfolioRoute = AppImpactPortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactOrganizationsRoute = AppImpactOrganizationsRouteImport.update({
+  id: '/organizations',
+  path: '/organizations',
+  getParentRoute: () => AppImpactRoute,
+} as any)
+const AppImpactCreditsRoute = AppImpactCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
+  getParentRoute: () => AppImpactRoute,
 } as any)
 const AppDecisionsScenariosRoute = AppDecisionsScenariosRouteImport.update({
   id: '/scenarios',
@@ -134,7 +182,7 @@ export interface FileRoutesByFullPath {
   '/app/connect': typeof AppConnectRoute
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
-  '/app/impact': typeof AppImpactRoute
+  '/app/impact': typeof AppImpactRouteWithChildren
   '/app/ledger': typeof AppLedgerRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
@@ -145,7 +193,15 @@ export interface FileRoutesByFullPath {
   '/app/decisions/recommendations': typeof AppDecisionsRecommendationsRoute
   '/app/decisions/risk': typeof AppDecisionsRiskRoute
   '/app/decisions/scenarios': typeof AppDecisionsScenariosRoute
+  '/app/impact/credits': typeof AppImpactCreditsRoute
+  '/app/impact/organizations': typeof AppImpactOrganizationsRoute
+  '/app/impact/portfolio': typeof AppImpactPortfolioRoute
+  '/app/impact/project': typeof AppImpactProjectRoute
+  '/app/impact/projects': typeof AppImpactProjectsRoute
+  '/app/impact/reports': typeof AppImpactReportsRoute
+  '/app/impact/verification': typeof AppImpactVerificationRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
+  '/app/impact/': typeof AppImpactIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -154,7 +210,6 @@ export interface FileRoutesByTo {
   '/select': typeof SelectRoute
   '/app/connect': typeof AppConnectRoute
   '/app/data': typeof AppDataRoute
-  '/app/impact': typeof AppImpactRoute
   '/app/ledger': typeof AppLedgerRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
@@ -165,7 +220,15 @@ export interface FileRoutesByTo {
   '/app/decisions/recommendations': typeof AppDecisionsRecommendationsRoute
   '/app/decisions/risk': typeof AppDecisionsRiskRoute
   '/app/decisions/scenarios': typeof AppDecisionsScenariosRoute
+  '/app/impact/credits': typeof AppImpactCreditsRoute
+  '/app/impact/organizations': typeof AppImpactOrganizationsRoute
+  '/app/impact/portfolio': typeof AppImpactPortfolioRoute
+  '/app/impact/project': typeof AppImpactProjectRoute
+  '/app/impact/projects': typeof AppImpactProjectsRoute
+  '/app/impact/reports': typeof AppImpactReportsRoute
+  '/app/impact/verification': typeof AppImpactVerificationRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
+  '/app/impact': typeof AppImpactIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -176,7 +239,7 @@ export interface FileRoutesById {
   '/app/connect': typeof AppConnectRoute
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
-  '/app/impact': typeof AppImpactRoute
+  '/app/impact': typeof AppImpactRouteWithChildren
   '/app/ledger': typeof AppLedgerRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRoute
@@ -187,7 +250,15 @@ export interface FileRoutesById {
   '/app/decisions/recommendations': typeof AppDecisionsRecommendationsRoute
   '/app/decisions/risk': typeof AppDecisionsRiskRoute
   '/app/decisions/scenarios': typeof AppDecisionsScenariosRoute
+  '/app/impact/credits': typeof AppImpactCreditsRoute
+  '/app/impact/organizations': typeof AppImpactOrganizationsRoute
+  '/app/impact/portfolio': typeof AppImpactPortfolioRoute
+  '/app/impact/project': typeof AppImpactProjectRoute
+  '/app/impact/projects': typeof AppImpactProjectsRoute
+  '/app/impact/reports': typeof AppImpactReportsRoute
+  '/app/impact/verification': typeof AppImpactVerificationRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
+  '/app/impact/': typeof AppImpactIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -210,7 +281,15 @@ export interface FileRouteTypes {
     | '/app/decisions/recommendations'
     | '/app/decisions/risk'
     | '/app/decisions/scenarios'
+    | '/app/impact/credits'
+    | '/app/impact/organizations'
+    | '/app/impact/portfolio'
+    | '/app/impact/project'
+    | '/app/impact/projects'
+    | '/app/impact/reports'
+    | '/app/impact/verification'
     | '/app/decisions/'
+    | '/app/impact/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,7 +298,6 @@ export interface FileRouteTypes {
     | '/select'
     | '/app/connect'
     | '/app/data'
-    | '/app/impact'
     | '/app/ledger'
     | '/app/overview'
     | '/app/reports'
@@ -230,7 +308,15 @@ export interface FileRouteTypes {
     | '/app/decisions/recommendations'
     | '/app/decisions/risk'
     | '/app/decisions/scenarios'
+    | '/app/impact/credits'
+    | '/app/impact/organizations'
+    | '/app/impact/portfolio'
+    | '/app/impact/project'
+    | '/app/impact/projects'
+    | '/app/impact/reports'
+    | '/app/impact/verification'
     | '/app/decisions'
+    | '/app/impact'
   id:
     | '__root__'
     | '/'
@@ -251,7 +337,15 @@ export interface FileRouteTypes {
     | '/app/decisions/recommendations'
     | '/app/decisions/risk'
     | '/app/decisions/scenarios'
+    | '/app/impact/credits'
+    | '/app/impact/organizations'
+    | '/app/impact/portfolio'
+    | '/app/impact/project'
+    | '/app/impact/projects'
+    | '/app/impact/reports'
+    | '/app/impact/verification'
     | '/app/decisions/'
+    | '/app/impact/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -347,12 +441,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/impact/': {
+      id: '/app/impact/'
+      path: '/'
+      fullPath: '/app/impact/'
+      preLoaderRoute: typeof AppImpactIndexRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
     '/app/decisions/': {
       id: '/app/decisions/'
       path: '/'
       fullPath: '/app/decisions/'
       preLoaderRoute: typeof AppDecisionsIndexRouteImport
       parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/impact/verification': {
+      id: '/app/impact/verification'
+      path: '/verification'
+      fullPath: '/app/impact/verification'
+      preLoaderRoute: typeof AppImpactVerificationRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/reports': {
+      id: '/app/impact/reports'
+      path: '/reports'
+      fullPath: '/app/impact/reports'
+      preLoaderRoute: typeof AppImpactReportsRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/projects': {
+      id: '/app/impact/projects'
+      path: '/projects'
+      fullPath: '/app/impact/projects'
+      preLoaderRoute: typeof AppImpactProjectsRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/project': {
+      id: '/app/impact/project'
+      path: '/project'
+      fullPath: '/app/impact/project'
+      preLoaderRoute: typeof AppImpactProjectRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/portfolio': {
+      id: '/app/impact/portfolio'
+      path: '/portfolio'
+      fullPath: '/app/impact/portfolio'
+      preLoaderRoute: typeof AppImpactPortfolioRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/organizations': {
+      id: '/app/impact/organizations'
+      path: '/organizations'
+      fullPath: '/app/impact/organizations'
+      preLoaderRoute: typeof AppImpactOrganizationsRouteImport
+      parentRoute: typeof AppImpactRoute
+    }
+    '/app/impact/credits': {
+      id: '/app/impact/credits'
+      path: '/credits'
+      fullPath: '/app/impact/credits'
+      preLoaderRoute: typeof AppImpactCreditsRouteImport
+      parentRoute: typeof AppImpactRoute
     }
     '/app/decisions/scenarios': {
       id: '/app/decisions/scenarios'
@@ -423,11 +573,37 @@ const AppDecisionsRouteWithChildren = AppDecisionsRoute._addFileChildren(
   AppDecisionsRouteChildren,
 )
 
+interface AppImpactRouteChildren {
+  AppImpactCreditsRoute: typeof AppImpactCreditsRoute
+  AppImpactOrganizationsRoute: typeof AppImpactOrganizationsRoute
+  AppImpactPortfolioRoute: typeof AppImpactPortfolioRoute
+  AppImpactProjectRoute: typeof AppImpactProjectRoute
+  AppImpactProjectsRoute: typeof AppImpactProjectsRoute
+  AppImpactReportsRoute: typeof AppImpactReportsRoute
+  AppImpactVerificationRoute: typeof AppImpactVerificationRoute
+  AppImpactIndexRoute: typeof AppImpactIndexRoute
+}
+
+const AppImpactRouteChildren: AppImpactRouteChildren = {
+  AppImpactCreditsRoute: AppImpactCreditsRoute,
+  AppImpactOrganizationsRoute: AppImpactOrganizationsRoute,
+  AppImpactPortfolioRoute: AppImpactPortfolioRoute,
+  AppImpactProjectRoute: AppImpactProjectRoute,
+  AppImpactProjectsRoute: AppImpactProjectsRoute,
+  AppImpactReportsRoute: AppImpactReportsRoute,
+  AppImpactVerificationRoute: AppImpactVerificationRoute,
+  AppImpactIndexRoute: AppImpactIndexRoute,
+}
+
+const AppImpactRouteWithChildren = AppImpactRoute._addFileChildren(
+  AppImpactRouteChildren,
+)
+
 interface AppRouteChildren {
   AppConnectRoute: typeof AppConnectRoute
   AppDataRoute: typeof AppDataRoute
   AppDecisionsRoute: typeof AppDecisionsRouteWithChildren
-  AppImpactRoute: typeof AppImpactRoute
+  AppImpactRoute: typeof AppImpactRouteWithChildren
   AppLedgerRoute: typeof AppLedgerRoute
   AppOverviewRoute: typeof AppOverviewRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -438,7 +614,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConnectRoute: AppConnectRoute,
   AppDataRoute: AppDataRoute,
   AppDecisionsRoute: AppDecisionsRouteWithChildren,
-  AppImpactRoute: AppImpactRoute,
+  AppImpactRoute: AppImpactRouteWithChildren,
   AppLedgerRoute: AppLedgerRoute,
   AppOverviewRoute: AppOverviewRoute,
   AppReportsRoute: AppReportsRoute,
