@@ -65,34 +65,46 @@ function Page() {
                 <th className="px-4 py-3">Kilde</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Projekt</th>
-                <th className="px-4 py-3">Kategori</th>
-                <th className="px-4 py-3">Metrics</th>
+                <th className="px-4 py-3">Geospatial</th>
+                <th className="px-4 py-3">Map layer</th>
+                <th className="px-4 py-3">Tilknyttet zone</th>
+                <th className="px-4 py-3">Filkilde</th>
                 <th className="px-4 py-3">Sidste sync</th>
-                <th className="px-4 py-3">Frekvens</th>
                 <th className="px-4 py-3">Kvalitet</th>
                 <th className="px-4 py-3">Verifikation</th>
                 <th className="px-4 py-3">Brugt af</th>
+                <th className="px-4 py-3">Preview</th>
+                <th className="px-4 py-3">I rapporter</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Owner</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {DATA_SOURCES.map((s) => (
-                <tr key={s.id} className="hover:bg-muted/40 cursor-pointer" onClick={() => setSelected(s)}>
-                  <td className="px-4 py-3 font-medium">{s.name}</td>
-                  <td className="px-4 py-3 text-xs">{s.type}</td>
-                  <td className="px-4 py-3 text-xs">{s.project}</td>
-                  <td className="px-4 py-3 text-xs">{s.category}</td>
-                  <td className="px-4 py-3 text-xs"><div className="flex flex-wrap gap-1">{s.metrics.map((m) => <Chip key={m}>{m}</Chip>)}</div></td>
-                  <td className="px-4 py-3 text-xs">{s.lastSync}</td>
-                  <td className="px-4 py-3 text-xs">{s.freq}</td>
-                  <td className="px-4 py-3"><DataQualityScore score={s.quality} /></td>
-                  <td className="px-4 py-3">{s.verified ? <Chip tone="primary">Verificeret</Chip> : <Chip>Ikke verificeret</Chip>}</td>
-                  <td className="px-4 py-3 text-xs"><div className="flex flex-wrap gap-1">{s.usedBy.map((u) => <Chip key={u} tone="muted">{u}</Chip>)}</div></td>
-                  <td className="px-4 py-3"><DeviceStatusBadge status={s.status} /></td>
-                  <td className="px-4 py-3 text-xs">{s.owner}</td>
-                </tr>
-              ))}
+              {DATA_SOURCES.map((s, i) => {
+                const geoTypes = ["IoT sensor", "Satellitlag", "Drone upload", "Feltobservation", "Jordsensor", "Vandprøve", "Akustisk monitor", "Camera trap"];
+                const isGeo = geoTypes.includes(s.type);
+                const mapLayer = isGeo;
+                const zone = ["Zone A — Vandløb", "Zone B — Eng og vådområde", "Zone C — Skovkant", "Zone D — Bufferområde", "—"][i % 5];
+                const fileSource = s.type === "Drone upload" ? "drone_orthomosaic.tif" : s.type === "CSV upload" ? "scope3_q2.csv" : s.type === "Satellitlag" ? "sentinel-2 tile" : "Live feed";
+                const inReports = s.usedBy.includes("Reports") || s.usedBy.includes("ESG Ledger");
+                return (
+                  <tr key={s.id} className="hover:bg-muted/40 cursor-pointer" onClick={() => setSelected(s)}>
+                    <td className="px-4 py-3 font-medium">{s.name}</td>
+                    <td className="px-4 py-3 text-xs">{s.type}</td>
+                    <td className="px-4 py-3 text-xs">{s.project}</td>
+                    <td className="px-4 py-3">{isGeo ? <Chip tone="primary">Ja</Chip> : <Chip>Nej</Chip>}</td>
+                    <td className="px-4 py-3">{mapLayer ? <Chip tone="primary">Aktiv</Chip> : <Chip tone="muted">Ingen</Chip>}</td>
+                    <td className="px-4 py-3 text-xs">{zone}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{fileSource}</td>
+                    <td className="px-4 py-3 text-xs">{s.lastSync}</td>
+                    <td className="px-4 py-3"><DataQualityScore score={s.quality} /></td>
+                    <td className="px-4 py-3">{s.verified ? <Chip tone="primary">Verificeret</Chip> : <Chip>Ikke verificeret</Chip>}</td>
+                    <td className="px-4 py-3 text-xs"><div className="flex flex-wrap gap-1">{s.usedBy.map((u) => <Chip key={u} tone="muted">{u}</Chip>)}</div></td>
+                    <td className="px-4 py-3">{mapLayer ? <button onClick={(e) => { e.stopPropagation(); }} className="text-xs text-primary underline">Vis</button> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                    <td className="px-4 py-3">{inReports ? <Chip tone="primary">Ja</Chip> : <Chip tone="muted">Nej</Chip>}</td>
+                    <td className="px-4 py-3"><DeviceStatusBadge status={s.status} /></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

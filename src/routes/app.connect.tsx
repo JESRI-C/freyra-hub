@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Cpu, Database, Plug, Activity, Map, ShieldCheck, Bell, Plus,
+  LayoutDashboard, Cpu, Database, Plug, Activity, Map, ShieldCheck, Bell, Plus, UploadCloud,
 } from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
 
@@ -16,6 +16,7 @@ const TABS = [
   { to: "/app/connect/integrations", label: "Integrationer", icon: Plug },
   { to: "/app/connect/live", label: "Live data", icon: Activity },
   { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
+  { to: "/app/connect/upload", label: "Upload center", icon: UploadCloud },
   { to: "/app/connect/quality", label: "Datakvalitet", icon: ShieldCheck },
   { to: "/app/connect/alerts", label: "Alerts", icon: Bell },
   { to: "/app/connect/add", label: "Tilføj datakilde", icon: Plus },
