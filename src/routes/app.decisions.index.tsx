@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Sparkles, Leaf, Droplets, Trees, Database, AlertTriangle, FileText, ChevronRight, Info, TrendingUp, TrendingDown } from "lucide-react";
-import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
+import { Sparkles, Leaf, Droplets, Trees, Database, AlertTriangle, FileText, ChevronRight, Info, TrendingUp, TrendingDown, ListTodo, BookCheck, Cable, Repeat2 } from "lucide-react";
+import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { InsightCard, ConfidenceScore, RiskBadge } from "@/components/decisions/Primitives";
 import { KEY_INSIGHTS, TIMELINE_CHANGES, RECOMMENDATIONS, RISK_SNAPSHOT } from "@/lib/decisions-data";
-import { getCurrentProject, useAuth } from "@/lib/auth";
+import { ModuleHeader, ActivityFeed, CriticalActionsPanel, ReportReadinessBadge, CrossModuleLink, actionToast } from "@/components/platform/Primitives";
+import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
 
 export const Route = createFileRoute("/app/decisions/")({
-  head: () => ({ meta: [{ title: "AI-overblik — DecisionsIQ" }] }),
+  head: () => ({ meta: [{ title: "DecisionsIQ — GoFreyra" }] }),
   component: OverviewPage,
 });
 
@@ -19,48 +20,25 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 function OverviewPage() {
-  const { orgId, projectId } = useAuth();
-  const project = getCurrentProject(orgId, projectId);
-
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
-      {/* Hero summary */}
-      <Card className="overflow-hidden">
-        <div className="p-6 sm:p-8 grid lg:grid-cols-[1fr_auto] gap-6 items-start"
-             style={{ background: "linear-gradient(135deg, oklch(0.95 0.04 150 / 0.5), oklch(0.97 0.02 150 / 0.3))" }}>
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-leaf/20 text-primary">
-                <Sparkles className="h-3.5 w-3.5" /> AI-overblik
-              </span>
-              <span className="text-xs text-muted-foreground">Opdateret 14 min siden</span>
-            </div>
-            <h2 className="text-2xl font-semibold tracking-tight">Beslutningsgrundlag baseret på projektets nyeste data</h2>
-            <p className="mt-3 text-sm text-foreground/80 max-w-3xl leading-relaxed">
-              {project?.name ?? "Projektet"} viser samlet positiv udvikling med målbar fremgang i biodiversitet og en moderat
-              CO₂-reduktion. AI'en har identificeret 5 anbefalinger med høj forventet effekt og 3 risici, hvoraf
-              vandkvalitet i zone 3 vurderes som kritisk. Datagrundlaget er solidt, men felt-dækning og forældede
-              emissionsfaktorer kræver opmærksomhed inden Q2-rapport.
-            </p>
-            <div className="mt-5 flex flex-wrap items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <ConfidenceScore value={0.82} />
-              </div>
-              <div className="h-4 w-px bg-border" />
-              <div className="text-xs text-muted-foreground">
-                Datafriskhed: <span className="text-foreground font-medium">3 min</span>
-              </div>
-              <div className="h-4 w-px bg-border" />
-              <div className="text-xs text-muted-foreground">
-                14 datasæt · 6 kilder
-              </div>
-            </div>
-          </div>
-          <button className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:opacity-95 whitespace-nowrap">
-            <FileText className="h-4 w-4" /> Generér beslutningsnotat
-          </button>
-        </div>
-      </Card>
+      <ModuleHeader
+        eyebrow="DecisionsIQ"
+        title="DecisionsIQ"
+        subtitle="AI-drevet beslutningsgrundlag baseret på projektets nyeste data."
+        projectName={PROJECT_FACTS.name}
+        freshness="14 min"
+        status={PROJECT_FACTS.status}
+        readiness={PROJECT_FACTS.reportReadiness}
+        primaryCta={{ label: "Generér beslutningsnotat", to: "/app/decisions/notes", icon: <FileText className="h-4 w-4" /> }}
+        secondaryCta={{ label: "Se anbefalinger", to: "/app/decisions/recommendations", icon: <Sparkles className="h-4 w-4" /> }}
+      />
+
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        <ConfidenceScore value={0.82} />
+        <span className="text-muted-foreground">{PROJECT_FACTS.activeDataSources} datakilder · {PROJECT_FACTS.openRecommendations} åbne anbefalinger</span>
+        <ReportReadinessBadge value={PROJECT_FACTS.reportReadiness} />
+      </div>
 
       {/* Key insights */}
       <div>
