@@ -111,7 +111,7 @@ function Page() {
                   <td className="px-4 py-3 text-xs">{r.scope}</td>
                   <td className="px-4 py-3 text-xs">{r.audience}</td>
                   <td className="px-4 py-3"><ReportStatusBadge status={r.status} /></td>
-                  <td className="px-4 py-3"><ReadinessScore value={r.readiness} size="sm" /></td>
+                  <td className="px-4 py-3"><ReportsReadinessScore value={r.readiness} size="sm" /></td>
                   <td className="px-4 py-3 text-xs">{r.updated}</td>
                   <td className="px-4 py-3 text-xs">{r.owner}</td>
                   <td className="px-4 py-3 text-xs"><Link to="/app/reports/preview" className="text-primary">Åbn</Link></td>
