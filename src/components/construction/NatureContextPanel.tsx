@@ -6,7 +6,13 @@ interface Props {
   ctx: NatureContext | null;
 }
 
-function Row({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
+function Row({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number | boolean | null | undefined;
+}) {
   const display =
     value === null || value === undefined
       ? "—"
@@ -48,7 +54,11 @@ export function NatureContextPanel({ ctx }: Props) {
               <Row label="Vandløbsnavn" value={ctx.watercourse_name} />
               <Row
                 label="Afstand til vandløb"
-                value={ctx.distance_to_watercourse_m != null ? `${ctx.distance_to_watercourse_m} m` : null}
+                value={
+                  ctx.distance_to_watercourse_m != null
+                    ? `${ctx.distance_to_watercourse_m} m`
+                    : null
+                }
               />
             </>
           )}
@@ -60,12 +70,12 @@ export function NatureContextPanel({ ctx }: Props) {
           {ctx.natura2000_nearby && (
             <Row
               label="Afstand til Natura 2000"
-              value={ctx.distance_to_natura2000_m != null ? `${ctx.distance_to_natura2000_m} m` : null}
+              value={
+                ctx.distance_to_natura2000_m != null ? `${ctx.distance_to_natura2000_m} m` : null
+              }
             />
           )}
-          {ctx.buffer_zone_m != null && (
-            <Row label="Bufferkrav" value={`${ctx.buffer_zone_m} m`} />
-          )}
+          {ctx.buffer_zone_m != null && <Row label="Bufferkrav" value={`${ctx.buffer_zone_m} m`} />}
           <Row label="Terræn og hældning" value={ctx.terrain_slope_description} />
           <Row label="Følsomme receptorer" value={ctx.sensitive_receptors} />
         </div>

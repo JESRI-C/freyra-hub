@@ -10,8 +10,20 @@ export type DemoUser = {
 
 export const DEMO_USERS: DemoUser[] = [
   { id: "jesper", name: "Jesper Riel", role: "Admin", email: "jesper@freyra.io", initials: "JR" },
-  { id: "emma", name: "Emma Larsen", role: "Sustainability Lead", email: "emma@freyra.io", initials: "EL" },
-  { id: "mikkel", name: "Mikkel Holm", role: "Data Manager", email: "mikkel@freyra.io", initials: "MH" },
+  {
+    id: "emma",
+    name: "Emma Larsen",
+    role: "Sustainability Lead",
+    email: "emma@freyra.io",
+    initials: "EL",
+  },
+  {
+    id: "mikkel",
+    name: "Mikkel Holm",
+    role: "Data Manager",
+    email: "mikkel@freyra.io",
+    initials: "MH",
+  },
 ];
 
 export type Organization = {
@@ -70,7 +82,12 @@ export const ORGANIZATIONS: Organization[] = [
     name: "Urban Biodiversity Corridor Copenhagen",
     description: "Sammenhængende biodiversitetskorridor i København",
     projects: [
-      { id: "ub-amager", name: "Amager Fælled Korridor", location: "København", status: "Under verifikation" },
+      {
+        id: "ub-amager",
+        name: "Amager Fælled Korridor",
+        location: "København",
+        status: "Under verifikation",
+      },
     ],
   },
   {

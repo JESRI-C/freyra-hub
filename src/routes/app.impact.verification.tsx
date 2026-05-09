@@ -37,10 +37,23 @@ function VerificationPage() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        <ImpactMetricCard label="Verificerede projekter" value="20" icon={<ShieldCheck className="h-4 w-4" />} />
-        <ImpactMetricCard label="Under verifikation" value="6" icon={<Loader2 className="h-4 w-4" />} />
+        <ImpactMetricCard
+          label="Verificerede projekter"
+          value="20"
+          icon={<ShieldCheck className="h-4 w-4" />}
+        />
+        <ImpactMetricCard
+          label="Under verifikation"
+          value="6"
+          icon={<Loader2 className="h-4 w-4" />}
+        />
         <ImpactMetricCard label="Planlagt" value="2" icon={<CalendarClock className="h-4 w-4" />} />
-        <ImpactMetricCard label="Gennemsnitlig datakvalitet" value="92" unit="%" icon={<Database className="h-4 w-4" />} />
+        <ImpactMetricCard
+          label="Gennemsnitlig datakvalitet"
+          value="92"
+          unit="%"
+          icon={<Database className="h-4 w-4" />}
+        />
       </div>
 
       {/* Stepper */}
@@ -55,7 +68,9 @@ function VerificationPage() {
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Trin {i + 1}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Trin {i + 1}
+                  </div>
                   <div className="text-sm font-medium leading-tight">{s.label}</div>
                 </div>
               </li>
@@ -66,7 +81,10 @@ function VerificationPage() {
 
       {/* Verification table */}
       <Card className="overflow-hidden">
-        <CardHeader title="Verifikationsstatus pr. projekt" subtitle="Reviews, frister og dokumentation" />
+        <CardHeader
+          title="Verifikationsstatus pr. projekt"
+          subtitle="Reviews, frister og dokumentation"
+        />
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-muted-foreground border-y bg-muted/40">
             <tr>
@@ -85,13 +103,19 @@ function VerificationPage() {
             {PROJECTS.map((p) => (
               <tr key={p.id}>
                 <td className="px-5 py-3 font-medium">{p.title}</td>
-                <td><VerificationBadge status={p.verification} /></td>
+                <td>
+                  <VerificationBadge status={p.verification} />
+                </td>
                 <td className="text-xs">{p.verifier}</td>
-                <td className="pr-3"><DataQualityScore value={p.dataQuality} label="" /></td>
+                <td className="pr-3">
+                  <DataQualityScore value={p.dataQuality} label="" />
+                </td>
                 <td className="text-xs text-muted-foreground">{p.lastReview}</td>
                 <td className="text-xs text-muted-foreground">{p.nextReview}</td>
                 <td className="text-xs">{p.standard}</td>
-                <td><Pill>3 doc</Pill></td>
+                <td>
+                  <Pill>3 doc</Pill>
+                </td>
                 <td className="text-xs text-muted-foreground">{p.ledgerId}</td>
               </tr>
             ))}
@@ -106,11 +130,15 @@ function VerificationPage() {
           <ul className="px-5 pb-5 divide-y text-sm">
             {AUDIT_EVENTS.map((e, i) => (
               <li key={i} className="py-2.5 flex items-start gap-3">
-                <div className="text-xs text-muted-foreground w-24 pt-0.5 tabular-nums">{e.date}</div>
+                <div className="text-xs text-muted-foreground w-24 pt-0.5 tabular-nums">
+                  {e.date}
+                </div>
                 <ScrollText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <div className="font-medium">{e.what}</div>
-                  <div className="text-xs text-muted-foreground">{e.project} · {e.who}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {e.project} · {e.who}
+                  </div>
                 </div>
               </li>
             ))}
@@ -129,7 +157,10 @@ function VerificationPage() {
               ["Tredjepartsreview", "DNV · BV · Verra"],
               ["Ledger-baseret audit trail", "Aktiv"],
             ].map(([k, v]) => (
-              <li key={k} className="rounded-lg border p-2.5 flex justify-between"><span>{k}</span><span className="text-muted-foreground text-xs">{v}</span></li>
+              <li key={k} className="rounded-lg border p-2.5 flex justify-between">
+                <span>{k}</span>
+                <span className="text-muted-foreground text-xs">{v}</span>
+              </li>
             ))}
           </ul>
         </Card>
@@ -144,9 +175,9 @@ function VerificationPage() {
           <div className="flex-1">
             <div className="font-semibold">Risiko og tillid</div>
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-              Freyra skelner tydeligt mellem verificerede, estimerede og endnu ikke gennemgåede datapunkter.
-              Konfidensniveauet på porteføljen er aktuelt 87%, baseret på datadækning, kildebredde og overensstemmelse
-              mellem signaler.
+              Freyra skelner tydeligt mellem verificerede, estimerede og endnu ikke gennemgåede
+              datapunkter. Konfidensniveauet på porteføljen er aktuelt 87%, baseret på datadækning,
+              kildebredde og overensstemmelse mellem signaler.
             </p>
             <div className="grid sm:grid-cols-4 gap-3 mt-4 text-xs">
               <Cell label="Verificeret" value="74%" tone="success" />
@@ -161,7 +192,15 @@ function VerificationPage() {
   );
 }
 
-function Cell({ label, value, tone }: { label: string; value: string; tone: "success" | "warning" | "danger" | "info" }) {
+function Cell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "success" | "warning" | "danger" | "info";
+}) {
   const m = {
     success: "bg-success/15 text-success",
     warning: "bg-warning/20 text-warning-foreground",

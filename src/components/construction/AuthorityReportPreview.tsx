@@ -18,8 +18,16 @@ export function AuthorityReportPreview({ report }: Props) {
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold">{report.title}</h2>
             <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-              <span>Myndighedsstatus: <span className="font-medium text-foreground">{report.authoritySubmissionStatus}</span></span>
-              <span>Klarhed: <span className="font-medium text-foreground">{report.readinessScore}%</span></span>
+              <span>
+                Myndighedsstatus:{" "}
+                <span className="font-medium text-foreground">
+                  {report.authoritySubmissionStatus}
+                </span>
+              </span>
+              <span>
+                Klarhed:{" "}
+                <span className="font-medium text-foreground">{report.readinessScore}%</span>
+              </span>
             </div>
             {/* Progress bar */}
             <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -42,7 +50,9 @@ export function AuthorityReportPreview({ report }: Props) {
       <Card>
         <CardHeader title="Projektbeskrivelse" />
         <div className="px-5 pb-4">
-          <p className="text-sm text-muted-foreground whitespace-pre-line">{report.projectDescription}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-line">
+            {report.projectDescription}
+          </p>
         </div>
       </Card>
 
@@ -50,7 +60,9 @@ export function AuthorityReportPreview({ report }: Props) {
       <Card>
         <CardHeader title="Lokation og naturkontekst" />
         <div className="px-5 pb-4">
-          <p className="text-sm text-muted-foreground whitespace-pre-line">{report.siteAndNatureContext}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-line">
+            {report.siteAndNatureContext}
+          </p>
         </div>
       </Card>
 
@@ -58,7 +70,9 @@ export function AuthorityReportPreview({ report }: Props) {
       <Card>
         <CardHeader title="Afstrømning og regnvandshåndtering" />
         <div className="px-5 pb-4">
-          <p className="text-sm text-muted-foreground whitespace-pre-line">{report.runoffSummary}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-line">
+            {report.runoffSummary}
+          </p>
         </div>
       </Card>
 
@@ -79,7 +93,10 @@ export function AuthorityReportPreview({ report }: Props) {
       {/* Mitigations */}
       {report.mitigationSummary.length > 0 && (
         <Card>
-          <CardHeader title="Afværgetiltag" subtitle={`${report.mitigationSummary.length} tiltag`} />
+          <CardHeader
+            title="Afværgetiltag"
+            subtitle={`${report.mitigationSummary.length} tiltag`}
+          />
           <div className="px-5 pb-4 divide-y">
             {report.mitigationSummary.map((m, i) => (
               <div key={i} className="py-2 text-sm text-muted-foreground">

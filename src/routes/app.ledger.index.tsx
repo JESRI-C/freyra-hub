@@ -18,9 +18,19 @@ import {
   Brain,
 } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
-import { ESGMetricCard, ReadinessScore as LedgerReadinessScore } from "@/components/ledger/Primitives";
+import {
+  ESGMetricCard,
+  ReadinessScore as LedgerReadinessScore,
+} from "@/components/ledger/Primitives";
 import { LEDGER_EVENTS } from "@/lib/ledger-data";
-import { ModuleHeader, ActivityFeed, CriticalActionsPanel, CrossModuleLink, ReportReadinessBadge, actionToast } from "@/components/platform/Primitives";
+import {
+  ModuleHeader,
+  ActivityFeed,
+  CriticalActionsPanel,
+  CrossModuleLink,
+  ReportReadinessBadge,
+  actionToast,
+} from "@/components/platform/Primitives";
 import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
 
 export const Route = createFileRoute("/app/ledger/")({
@@ -47,18 +57,70 @@ function OverviewPage() {
         freshness="27 min"
         status={PROJECT_FACTS.status}
         readiness={PROJECT_FACTS.reportReadiness}
-        primaryCta={{ label: "Generér ESG-rapport", to: "/app/ledger/reporting", icon: <FileText className="h-4 w-4" /> }}
-        secondaryCta={{ label: "Se audit trail", to: "/app/ledger/audit", icon: <ScrollText className="h-4 w-4" /> }}
+        primaryCta={{
+          label: "Generér ESG-rapport",
+          to: "/app/ledger/reporting",
+          icon: <FileText className="h-4 w-4" />,
+        }}
+        secondaryCta={{
+          label: "Se audit trail",
+          to: "/app/ledger/audit",
+          icon: <ScrollText className="h-4 w-4" />,
+        }}
       />
 
       {/* KPIs */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        <ESGMetricCard label="ESG-score" value="82" unit="/100" trend={4} icon={<ShieldCheck className="h-4 w-4" />} hint="+4 point siden Q4" />
-        <ESGMetricCard label="CSRD/ESRS readiness" value="68" unit="%" trend={6} icon={<ClipboardList className="h-4 w-4" />} hint="142 af 210 datapunkter dækket" />
-        <ESGMetricCard label="Datakvalitet" value="91" unit="%" trend={3} icon={<Database className="h-4 w-4" />} hint="+3% efter sensor-rebalancering" />
-        <ESGMetricCard label="Rapportklarhed" value="74" unit="%" trend={5} icon={<FileText className="h-4 w-4" />} hint="6 områder klar til intern review" tone="info" />
-        <ESGMetricCard label="Verificerede datakilder" value="18" unit="/24" trend={2} icon={<Plug className="h-4 w-4" />} hint="4 kræver handling, 2 offline" tone="success" />
-        <ESGMetricCard label="Åbne datamangler" value="7" trend={-2} icon={<AlertTriangle className="h-4 w-4" />} hint="2 lukket sidste 30 dage" tone="warning" />
+        <ESGMetricCard
+          label="ESG-score"
+          value="82"
+          unit="/100"
+          trend={4}
+          icon={<ShieldCheck className="h-4 w-4" />}
+          hint="+4 point siden Q4"
+        />
+        <ESGMetricCard
+          label="CSRD/ESRS readiness"
+          value="68"
+          unit="%"
+          trend={6}
+          icon={<ClipboardList className="h-4 w-4" />}
+          hint="142 af 210 datapunkter dækket"
+        />
+        <ESGMetricCard
+          label="Datakvalitet"
+          value="91"
+          unit="%"
+          trend={3}
+          icon={<Database className="h-4 w-4" />}
+          hint="+3% efter sensor-rebalancering"
+        />
+        <ESGMetricCard
+          label="Rapportklarhed"
+          value="74"
+          unit="%"
+          trend={5}
+          icon={<FileText className="h-4 w-4" />}
+          hint="6 områder klar til intern review"
+          tone="info"
+        />
+        <ESGMetricCard
+          label="Verificerede datakilder"
+          value="18"
+          unit="/24"
+          trend={2}
+          icon={<Plug className="h-4 w-4" />}
+          hint="4 kræver handling, 2 offline"
+          tone="success"
+        />
+        <ESGMetricCard
+          label="Åbne datamangler"
+          value="7"
+          trend={-2}
+          icon={<AlertTriangle className="h-4 w-4" />}
+          hint="2 lukket sidste 30 dage"
+          tone="warning"
+        />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
@@ -82,7 +144,9 @@ function OverviewPage() {
                   <div className="h-8 w-8 rounded-lg bg-leaf/15 text-primary grid place-items-center shrink-0">
                     <I className="h-4 w-4" />
                   </div>
-                  <div className="flex-1"><LedgerReadinessScore label={l as string} value={v as number} /></div>
+                  <div className="flex-1">
+                    <LedgerReadinessScore label={l as string} value={v as number} />
+                  </div>
                 </div>
               );
             })}
@@ -105,7 +169,9 @@ function OverviewPage() {
                 <div className="flex-1">{g.t}</div>
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full ${
-                    g.level === "Høj" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground"
+                    g.level === "Høj"
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-warning/20 text-warning-foreground"
                   }`}
                 >
                   {g.level}
@@ -113,7 +179,10 @@ function OverviewPage() {
               </li>
             ))}
             <li className="pt-2">
-              <Link to="/app/ledger/csrd" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+              <Link
+                to="/app/ledger/csrd"
+                className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+              >
                 Se alle gaps i CSRD/ESRS <ArrowRight className="h-3 w-3" />
               </Link>
             </li>
@@ -136,7 +205,9 @@ function OverviewPage() {
           <ul className="divide-y">
             {LEDGER_EVENTS.slice(0, 6).map((e) => (
               <li key={e.id} className="px-5 py-3 flex items-start gap-3">
-                <div className="text-xs text-muted-foreground w-32 pt-0.5 tabular-nums shrink-0">{e.timestamp}</div>
+                <div className="text-xs text-muted-foreground w-32 pt-0.5 tabular-nums shrink-0">
+                  {e.timestamp}
+                </div>
                 <ScrollText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{e.description}</div>
@@ -144,7 +215,11 @@ function OverviewPage() {
                     {e.type} · {e.related} · {e.user}
                   </div>
                 </div>
-                <Pill tone={e.status === "OK" ? "success" : e.status === "Advarsel" ? "warning" : "danger"}>
+                <Pill
+                  tone={
+                    e.status === "OK" ? "success" : e.status === "Advarsel" ? "warning" : "danger"
+                  }
+                >
                   {e.status}
                 </Pill>
               </li>
@@ -162,9 +237,10 @@ function OverviewPage() {
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div className="text-sm leading-relaxed">
-                  <span className="font-medium">Datagrundlaget er stærkt på energi og CO₂</span>, men biodiversitetsdelen
-                  kræver feltverifikation før endelig rapportering. Anbefalet næste skridt: opdatér emissionsfaktor for
-                  fjernvarme, genstart Sensor LF-12 og afslut tredjepartsreview af Skallebæk.
+                  <span className="font-medium">Datagrundlaget er stærkt på energi og CO₂</span>,
+                  men biodiversitetsdelen kræver feltverifikation før endelig rapportering.
+                  Anbefalet næste skridt: opdatér emissionsfaktor for fjernvarme, genstart Sensor
+                  LF-12 og afslut tredjepartsreview af Skallebæk.
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -174,8 +250,8 @@ function OverviewPage() {
             </div>
             <div className="mt-4 rounded-xl border p-3 flex items-start gap-3 text-xs text-muted-foreground">
               <ShieldAlert className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              ESG Ledger registrerer alle ændringer, datakilder og rapportudtræk, så dokumentationen kan spores over
-              tid.
+              ESG Ledger registrerer alle ændringer, datakilder og rapportudtræk, så dokumentationen
+              kan spores over tid.
             </div>
           </div>
         </Card>
@@ -184,24 +260,38 @@ function OverviewPage() {
       {/* Cross-module actions */}
       <Card className="p-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Ledger-handlinger</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">
+            Ledger-handlinger
+          </div>
           <CrossModuleLink to="/app/connect/sources" label="Se datakilde" />
           <CrossModuleLink to="/app/ledger/audit" label="Åbn audit trail" />
-          <button onClick={() => actionToast("Datapunkt sendt til rapport")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+          <button
+            onClick={() => actionToast("Datapunkt sendt til rapport")}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted"
+          >
             <FileText className="h-3.5 w-3.5" /> Send til rapport
           </button>
-          <button onClick={() => actionToast("Mangelliste sendt til DecisionsIQ")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+          <button
+            onClick={() => actionToast("Mangelliste sendt til DecisionsIQ")}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted"
+          >
             <Brain className="h-3.5 w-3.5" /> Opret mangelliste i DecisionsIQ
           </button>
           <CrossModuleLink to="/app/connect" label="Tilbage til Smart Connect" />
-          <span className="ml-auto"><ReportReadinessBadge value={PROJECT_FACTS.reportReadiness} /></span>
+          <span className="ml-auto">
+            <ReportReadinessBadge value={PROJECT_FACTS.reportReadiness} />
+          </span>
         </div>
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-5">
         <Card>
           <CardHeader title="Seneste aktivitet" subtitle="ESG Ledger-relaterede hændelser" />
-          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "ESG Ledger" || a.module === "Impact Exchange")} />
+          <ActivityFeed
+            items={ACTIVITY_FEED.filter(
+              (a) => a.module === "ESG Ledger" || a.module === "Impact Exchange",
+            )}
+          />
         </Card>
         <Card>
           <CardHeader title="Kritiske handlinger" subtitle="Skal lukkes før rapportering" />

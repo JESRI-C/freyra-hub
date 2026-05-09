@@ -20,6 +20,7 @@ Setting `VITE_ENABLE_LIVE_DATA=false` (the default) always uses preview data reg
 ## How to Get Each Key
 
 ### DMI Open Data (`VITE_DMI_API_KEY`)
+
 1. Go to https://open.dmi.dk
 2. Create a free user account
 3. Navigate to "API-nøgler" in your profile
@@ -29,6 +30,7 @@ Setting `VITE_ENABLE_LIVE_DATA=false` (the default) always uses preview data reg
 No cost for basic observation data. Rate limit: 100 requests/minute.
 
 ### Datafordeler (`VITE_DATAFORDELER_KEY`)
+
 1. Go to https://datafordeler.dk
 2. Click "Opret bruger" and register with a Danish NemID/MitID or organisation
 3. Under "Tjenester", request access to **STEDNAVNE / Stednavne**
@@ -38,6 +40,7 @@ No cost for basic observation data. Rate limit: 100 requests/minute.
 Note: Datafordeler uses a username/password pattern rather than a single API key. Only the password is needed here.
 
 ### Copernicus Data Space (`VITE_COPERNICUS_TOKEN`)
+
 1. Go to https://dataspace.copernicus.eu
 2. Register for a free account
 3. The STAC catalogue (`/stac/collections/SENTINEL-2/items`) is accessible with a Bearer token
@@ -49,6 +52,7 @@ Note: The STAC search API is open for discovery. Actual scene download (Processi
 ## Preview Mode (Default)
 
 Without any keys or with `VITE_ENABLE_LIVE_DATA=false`:
+
 - DMI: returns sample weather data (12.4°C, 5.1 m/s wind, 78% humidity)
 - Miljøportal: returns 3 sample protected species registrations
 - Datafordeler: returns 2 sample place names near Haderslev
@@ -69,6 +73,7 @@ Only connectors with a valid key will fetch live. Connectors without a key autom
 ## Diagnostics
 
 Navigate to `/app/system-test` to see:
+
 - Which keys are configured
 - Which connectors are in live vs preview vs missing-key state
 - Current mode

@@ -13,7 +13,8 @@ interface ComplianceArea {
 }
 
 export function ComplianceMappingCard({ summary }: Props) {
-  const { constructionExt, natureContext, runoffProfile, mitigations, evidenceFiles, submissions } = summary;
+  const { constructionExt, natureContext, runoffProfile, mitigations, evidenceFiles, submissions } =
+    summary;
 
   const areas: ComplianceArea[] = [
     {
@@ -30,9 +31,7 @@ export function ComplianceMappingCard({ summary }: Props) {
       label: "Afværgetiltag",
       complete: mitigations.length > 0,
       note:
-        mitigations.length > 0
-          ? `${mitigations.length} tiltag registreret`
-          : "Ingen afværgetiltag",
+        mitigations.length > 0 ? `${mitigations.length} tiltag registreret` : "Ingen afværgetiltag",
     },
     {
       label: "Evidensdokumentation",
@@ -45,9 +44,10 @@ export function ComplianceMappingCard({ summary }: Props) {
     {
       label: "Myndighedspakke",
       complete: submissions.some((s) => s.status === "Klar" || s.status === "Indsendt"),
-      note: submissions.length > 0
-        ? `Seneste: ${submissions[0]?.status}`
-        : "Ingen myndighedspakke registreret",
+      note:
+        submissions.length > 0
+          ? `Seneste: ${submissions[0]?.status}`
+          : "Ingen myndighedspakke registreret",
     },
   ];
 
@@ -69,9 +69,7 @@ export function ComplianceMappingCard({ summary }: Props) {
             )}
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium">{area.label}</span>
-              {area.note && (
-                <p className="text-xs text-muted-foreground">{area.note}</p>
-              )}
+              {area.note && <p className="text-xs text-muted-foreground">{area.note}</p>}
             </div>
           </div>
         ))}

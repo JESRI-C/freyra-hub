@@ -7,6 +7,7 @@ Status after sprint 3 (feature/gofreyra-data-foundation-dk-eu): Data Foundation 
 ## Completed in sprint 3
 
 ### Data Foundation — Connector Registry & Environmental Context
+
 - `src/lib/supabase/types.ts` — Added `ConnectorStatus`, `ConnectorCategory`, `DataConnector`, `EnvironmentalContextResult`, `ProjectEnvironmentalContext` types
 - `src/data/connectors-registry.ts` — Static registry of 11 connectors (Sentinel-2, Copernicus CLMS, Miljøportal, Naturdatabasen, Datafordeler Matrikel, Datafordeler DHM, DMI Open Data, GEUS Jupiter, Natura 2000, EU-Hydro, ESDAC)
 - `src/services/connector-service.ts` — Fetch functions per connector with fallback/preview data; `buildProjectEnvironmentalContext()` aggregate builder
@@ -30,6 +31,7 @@ Status after sprint 2 (feature/gofreyra-project-monitor-report-engine): Project 
 ## Completed in this sprint
 
 ### Project Monitor & Report Engine
+
 - `src/routes/app.projects.index.tsx` — `/app/projects` overview with stat bar, search, filter pills, project cards
 - `src/routes/app.projects.$slug.tsx` — `/app/projects/:slug` detail with 8-tab layout
 - `src/lib/report-engine.ts` — `generateProjectReportPreview()` + `getRecommendedNextAction()`
@@ -47,6 +49,7 @@ Status after sprint 2 (feature/gofreyra-project-monitor-report-engine): Project 
 ## Immediate (next sprint)
 
 ### Auth setup
+
 - Enable Supabase Auth (Magic Link recommended for the pilot)
 
 ---
@@ -54,18 +57,21 @@ Status after sprint 2 (feature/gofreyra-project-monitor-report-engine): Project 
 ## Immediate (next sprint)
 
 ### Auth setup
+
 - Enable Supabase Auth (Magic Link recommended for the pilot)
 - Create `profiles` table linked to `auth.users`
 - Replace `src/lib/auth.tsx` demo context with real Supabase session
 - Add per-org RLS policies on all tables
 
 ### Wire remaining modules to data layer
+
 - `Smart Connect` → `data_sources` + `sensors` + `observations`
 - `DecisionsIQ` → `actions` + `indicators`
 - `ESG Ledger` → `audit_events` + `evidence_files` + `reports`
 - `Reports` → `reports` + `evidence_files`
 
 ### Observations ingest
+
 - Implement `POST /api/observations` edge function (Supabase Edge Function or Cloudflare Worker)
 - Accept MQTT payloads, validate with Zod, write to `observations`
 - Aggregate observations → `indicators` on upsert trigger
@@ -75,19 +81,23 @@ Status after sprint 2 (feature/gofreyra-project-monitor-report-engine): Project 
 ## Near-term (1–2 months)
 
 ### Real-time
+
 - Enable Supabase Realtime on `observations` and `alerts`
 - Replace mock live-feed in Smart Connect with `supabase.channel(...).on('postgres_changes', ...)` subscription
 
 ### File storage
+
 - Use Supabase Storage for `evidence_files.file_url`
 - Build upload flow in Smart Connect (drone uploads, CSV, field photos)
 
 ### Indicator calculation engine
+
 - PostgreSQL function or Edge Function that recalculates `indicators` from `observations`
 - Trigger on new observation insert
 - Start with: `biodiversity_index`, `data_quality`, `co2e_reduced`
 
 ### Multi-project selector
+
 - Wire `GlobalContextBar.tsx` project switcher to real `projects` table
 - Store selected `org_id` + `project_id` in Supabase session or localStorage
 
@@ -96,21 +106,25 @@ Status after sprint 2 (feature/gofreyra-project-monitor-report-engine): Project 
 ## Medium-term (2–4 months)
 
 ### ESG Ledger hardening
+
 - Sign `audit_events.hash` with a deterministic hash of all fields (SHA-256)
 - Store hash on write, verify on read — tamper-evident chain
 - Export audit trail as PDF with Supabase Edge Function
 
 ### Report generation
+
 - Edge Function: collect indicators + evidence files → generate structured JSON
 - Client-side PDF render (react-pdf) or server-side (Puppeteer on Cloudflare)
 - ESRS E4 template as first report type
 
 ### Impact Units
+
 - Issuance flow: verified project → issue `impact_units` records
 - Status machine: `draft → pending_verification → issued → retired`
 - Prepare for Impact Exchange marketplace (Phase 2)
 
 ### Notifications & alerts
+
 - `alerts` table (derived from `observations` anomalies)
 - Push via Supabase Edge Function → email / Slack
 - Surface in Smart Connect `alerts` tab
@@ -119,14 +133,14 @@ Status after sprint 2 (feature/gofreyra-project-monitor-report-engine): Project 
 
 ## Infrastructure
 
-| Item | Current | Target |
-|---|---|---|
-| Hosting | Cloudflare Workers (wrangler) | Same |
-| Database | Seed data (TypeScript) | Supabase PostgreSQL |
-| Auth | Demo localStorage | Supabase Auth (Magic Link) |
-| File storage | None | Supabase Storage |
-| Real-time | Mock | Supabase Realtime |
-| Edge functions | None | Supabase Edge Functions |
+| Item           | Current                       | Target                     |
+| -------------- | ----------------------------- | -------------------------- |
+| Hosting        | Cloudflare Workers (wrangler) | Same                       |
+| Database       | Seed data (TypeScript)        | Supabase PostgreSQL        |
+| Auth           | Demo localStorage             | Supabase Auth (Magic Link) |
+| File storage   | None                          | Supabase Storage           |
+| Real-time      | Mock                          | Supabase Realtime          |
+| Edge functions | None                          | Supabase Edge Functions    |
 
 ---
 

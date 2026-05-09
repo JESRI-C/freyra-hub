@@ -1,7 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck, TrendingUp, TrendingDown, Sparkles, ArrowRight } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
-import { ConnectionHealthCard, DataQualityScore, ProgressBar, Section, Chip } from "@/components/connect/Primitives";
+import {
+  ConnectionHealthCard,
+  DataQualityScore,
+  ProgressBar,
+  Section,
+  Chip,
+} from "@/components/connect/Primitives";
 import { QUALITY_DIMENSIONS, VALIDATION_RULES, DATA_SOURCES } from "@/lib/connect-data";
 
 export const Route = createFileRoute("/app/connect/quality")({
@@ -9,40 +15,107 @@ export const Route = createFileRoute("/app/connect/quality")({
 });
 
 const READINESS = [
-  { module: "DecisionsIQ", required: "Sensor + satellit + felt", quality: 92, missing: "—", status: "Klar" },
-  { module: "ESG Ledger", required: "ERP + Scope 3 + verifikation", quality: 78, missing: "Scope 3 CSV", status: "Næsten klar" },
-  { module: "Impact Exchange", required: "Felt + drone + satellit + verifikation", quality: 74, missing: "Drone EXIF GPS", status: "Kræver handling" },
-  { module: "Reports", required: "Alle valideret", quality: 81, missing: "Manuelle uploads", status: "Næsten klar" },
+  {
+    module: "DecisionsIQ",
+    required: "Sensor + satellit + felt",
+    quality: 92,
+    missing: "—",
+    status: "Klar",
+  },
+  {
+    module: "ESG Ledger",
+    required: "ERP + Scope 3 + verifikation",
+    quality: 78,
+    missing: "Scope 3 CSV",
+    status: "Næsten klar",
+  },
+  {
+    module: "Impact Exchange",
+    required: "Felt + drone + satellit + verifikation",
+    quality: 74,
+    missing: "Drone EXIF GPS",
+    status: "Kræver handling",
+  },
+  {
+    module: "Reports",
+    required: "Alle valideret",
+    quality: 81,
+    missing: "Manuelle uploads",
+    status: "Næsten klar",
+  },
 ];
 
 function Page() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-      <PageHeader title="Datakvalitet" description="Er data pålideligt nok til analyse, dokumentation og rapportering?" />
+      <PageHeader
+        title="Datakvalitet"
+        description="Er data pålideligt nok til analyse, dokumentation og rapportering?"
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <ConnectionHealthCard label="Samlet" value="91%" tone="success" icon={<ShieldCheck className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Completeness" value="87%" icon={<ShieldCheck className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Freshness" value="94%" tone="success" icon={<ShieldCheck className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Consistency" value="89%" icon={<ShieldCheck className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Traceability" value="96%" tone="success" icon={<ShieldCheck className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Verification" value="82%" tone="warning" icon={<ShieldCheck className="h-5 w-5" />} />
+        <ConnectionHealthCard
+          label="Samlet"
+          value="91%"
+          tone="success"
+          icon={<ShieldCheck className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Completeness"
+          value="87%"
+          icon={<ShieldCheck className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Freshness"
+          value="94%"
+          tone="success"
+          icon={<ShieldCheck className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Consistency"
+          value="89%"
+          icon={<ShieldCheck className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Traceability"
+          value="96%"
+          tone="success"
+          icon={<ShieldCheck className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Verification"
+          value="82%"
+          tone="warning"
+          icon={<ShieldCheck className="h-5 w-5" />}
+        />
       </div>
 
-      <Section title="Kvalitetsdimensioner" subtitle="Score, tendens, forklaring og anbefalet handling">
+      <Section
+        title="Kvalitetsdimensioner"
+        subtitle="Score, tendens, forklaring og anbefalet handling"
+      >
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {QUALITY_DIMENSIONS.map((d) => (
             <Card key={d.name} className="p-4">
               <div className="flex items-start justify-between">
                 <div className="text-sm font-semibold">{d.name}</div>
                 <Chip tone={d.trend > 0 ? "primary" : "muted"}>
-                  {d.trend > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  {d.trend > 0 ? "+" : ""}{d.trend}
+                  {d.trend > 0 ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
+                  {d.trend > 0 ? "+" : ""}
+                  {d.trend}
                 </Chip>
               </div>
-              <div className="mt-2"><DataQualityScore score={d.score} size="md" /></div>
+              <div className="mt-2">
+                <DataQualityScore score={d.score} size="md" />
+              </div>
               <div className="text-xs text-muted-foreground mt-2">{d.why}</div>
-              <div className="text-xs mt-2 text-foreground/90"><strong>Handling:</strong> {d.action}</div>
+              <div className="text-xs mt-2 text-foreground/90">
+                <strong>Handling:</strong> {d.action}
+              </div>
             </Card>
           ))}
         </div>
@@ -66,20 +139,35 @@ function Page() {
             </thead>
             <tbody className="divide-y">
               {DATA_SOURCES.map((s, i) => {
-                const variation = (n: number) => Math.max(0, Math.min(100, s.quality + ((i % 3) - 1) * 4 + n));
+                const variation = (n: number) =>
+                  Math.max(0, Math.min(100, s.quality + ((i % 3) - 1) * 4 + n));
                 const overall = s.quality;
                 return (
                   <tr key={s.id}>
                     <td className="px-4 py-3 font-medium">{s.name}</td>
                     <td className="px-4 py-3 text-xs">{s.project}</td>
-                    <td className="px-4 py-3"><DataQualityScore score={variation(-2)} /></td>
-                    <td className="px-4 py-3"><DataQualityScore score={variation(3)} /></td>
-                    <td className="px-4 py-3"><DataQualityScore score={variation(0)} /></td>
-                    <td className="px-4 py-3"><DataQualityScore score={variation(5)} /></td>
-                    <td className="px-4 py-3"><DataQualityScore score={s.verified ? variation(2) : 40} /></td>
-                    <td className="px-4 py-3"><DataQualityScore score={overall} size="md" /></td>
                     <td className="px-4 py-3">
-                      <Chip tone={overall >= 85 ? "primary" : "muted"}>{overall >= 85 ? "Klar" : "Kræver handling"}</Chip>
+                      <DataQualityScore score={variation(-2)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <DataQualityScore score={variation(3)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <DataQualityScore score={variation(0)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <DataQualityScore score={variation(5)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <DataQualityScore score={s.verified ? variation(2) : 40} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <DataQualityScore score={overall} size="md" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Chip tone={overall >= 85 ? "primary" : "muted"}>
+                        {overall >= 85 ? "Klar" : "Kræver handling"}
+                      </Chip>
                     </td>
                   </tr>
                 );
@@ -94,7 +182,8 @@ function Page() {
           <ul className="grid grid-cols-2 gap-2 text-sm">
             {VALIDATION_RULES.map((r) => (
               <li key={r} className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />{r}
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                {r}
               </li>
             ))}
           </ul>
@@ -117,17 +206,44 @@ function Page() {
         </Section>
       </div>
 
-      <Section title="Geospatiale kvalitetstjek" subtitle="Specielle krav for kortlag, drone, satellit og feltdata">
+      <Section
+        title="Geospatiale kvalitetstjek"
+        subtitle="Specielle krav for kortlag, drone, satellit og feltdata"
+      >
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           {[
-            { label: "Koordinatvaliditet", score: 96, note: "Lat/lon inden for projektets bounding box" },
-            { label: "Projektion genkendt", score: 92, note: "EPSG-kode læst fra fil eller bekræftet" },
-            { label: "Coverage overlap", score: 78, note: "Lag dækker mindst 80% af projektarealet" },
-            { label: "Metadata komplet", score: 71, note: "Kilde, dato, metode, sensor og opløsning" },
+            {
+              label: "Koordinatvaliditet",
+              score: 96,
+              note: "Lat/lon inden for projektets bounding box",
+            },
+            {
+              label: "Projektion genkendt",
+              score: 92,
+              note: "EPSG-kode læst fra fil eller bekræftet",
+            },
+            {
+              label: "Coverage overlap",
+              score: 78,
+              note: "Lag dækker mindst 80% af projektarealet",
+            },
+            {
+              label: "Metadata komplet",
+              score: 71,
+              note: "Kilde, dato, metode, sensor og opløsning",
+            },
             { label: "Spatial nøjagtighed", score: 88, note: "RMSE under 1,0 m for drone-uploads" },
-            { label: "Temporal friskhed", score: 84, note: "Lag opdateret inden for forventet kadence" },
+            {
+              label: "Temporal friskhed",
+              score: 84,
+              note: "Lag opdateret inden for forventet kadence",
+            },
             { label: "Zone-tilknytning", score: 90, note: "Hver kilde knyttet til mindst én zone" },
-            { label: "Klar til kortvisning", score: 86, note: "Lag kan tegnes uden manuelle rettelser" },
+            {
+              label: "Klar til kortvisning",
+              score: 86,
+              note: "Lag kan tegnes uden manuelle rettelser",
+            },
           ].map((c) => (
             <div key={c.label} className="rounded-xl border bg-card p-3">
               <div className="flex items-center justify-between">
@@ -158,10 +274,18 @@ function Page() {
                 <tr key={r.module}>
                   <td className="px-4 py-3 font-medium">{r.module}</td>
                   <td className="px-4 py-3 text-xs">{r.required}</td>
-                  <td className="px-4 py-3 w-48"><ProgressBar value={r.quality} /></td>
+                  <td className="px-4 py-3 w-48">
+                    <ProgressBar value={r.quality} />
+                  </td>
                   <td className="px-4 py-3 text-xs">{r.missing}</td>
-                  <td className="px-4 py-3"><Chip tone={r.status === "Klar" ? "primary" : "muted"}>{r.status}</Chip></td>
-                  <td className="px-4 py-3 text-xs"><a className="text-primary inline-flex items-center gap-1">Åbn <ArrowRight className="h-3 w-3" /></a></td>
+                  <td className="px-4 py-3">
+                    <Chip tone={r.status === "Klar" ? "primary" : "muted"}>{r.status}</Chip>
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    <a className="text-primary inline-flex items-center gap-1">
+                      Åbn <ArrowRight className="h-3 w-3" />
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -171,11 +295,16 @@ function Page() {
 
       <Card className="p-5 bg-gradient-to-br from-card to-leaf/15">
         <div className="flex items-start gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center"><Sparkles className="h-5 w-5" /></div>
+          <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
+            <Sparkles className="h-5 w-5" />
+          </div>
           <div>
             <div className="text-sm font-semibold">AI kvalitetsanbefaling</div>
             <p className="text-sm mt-2 text-foreground/90">
-              Feltdata og droneuploads bør prioriteres, fordi de direkte påvirker rapportklarhed for biodiversitet og verifikation i Impact Exchange. Anbefaling: tving geotag i Field-app, kør tredjepartsverifikation på Q2 droneoverflight, og luk Scope 3 CSV-importfejl inden månedsskifte.
+              Feltdata og droneuploads bør prioriteres, fordi de direkte påvirker rapportklarhed for
+              biodiversitet og verifikation i Impact Exchange. Anbefaling: tving geotag i Field-app,
+              kør tredjepartsverifikation på Q2 droneoverflight, og luk Scope 3 CSV-importfejl inden
+              månedsskifte.
             </p>
           </div>
         </div>

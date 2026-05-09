@@ -7,7 +7,13 @@ interface Props {
   runoffRiskScore: "low" | "medium" | "high" | "critical";
 }
 
-function Row({ label, value }: { label: string; value: string | number | boolean | null | undefined }) {
+function Row({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number | boolean | null | undefined;
+}) {
   const display =
     value === null || value === undefined
       ? "—"
@@ -75,7 +81,11 @@ export function RunoffProfilePanel({ profile, runoffRiskScore }: Props) {
             <Row label="Sedimentkontrol" value={profile.sediment_control_present} />
             <Row
               label="Estimeret volumen"
-              value={profile.estimated_runoff_volume_m3 != null ? `${profile.estimated_runoff_volume_m3} m³` : null}
+              value={
+                profile.estimated_runoff_volume_m3 != null
+                  ? `${profile.estimated_runoff_volume_m3} m³`
+                  : null
+              }
             />
             <Row label="Dimensioneringshændelse" value={profile.design_rain_event} />
             <Row label="Udledningspunkt" value={profile.discharge_point_description} />
@@ -87,7 +97,9 @@ export function RunoffProfilePanel({ profile, runoffRiskScore }: Props) {
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <AlertTriangle className="h-6 w-6" />
             <p className="text-sm">Ingen afstrømningsprofil registreret</p>
-            <p className="text-xs">Udfyld afstrømningsprofil for at dokumentere regnvandshåndtering</p>
+            <p className="text-xs">
+              Udfyld afstrømningsprofil for at dokumentere regnvandshåndtering
+            </p>
           </div>
         </Card>
       )}

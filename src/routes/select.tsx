@@ -36,7 +36,10 @@ function SelectPage() {
               <div className="text-xs text-muted-foreground">{user.role}</div>
             </div>
             <button
-              onClick={() => { logout(); navigate({ to: "/login" }); }}
+              onClick={() => {
+                logout();
+                navigate({ to: "/login" });
+              }}
               className="p-2 rounded-lg hover:bg-muted text-muted-foreground"
               title="Log ud"
             >
@@ -48,13 +51,19 @@ function SelectPage() {
 
       <main className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Velkommen, {user.name.split(" ")[0]}</h1>
-          <p className="text-muted-foreground mt-1">Vælg din organisation og det projekt du vil arbejde i.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Velkommen, {user.name.split(" ")[0]}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Vælg din organisation og det projekt du vil arbejde i.
+          </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Organisationer</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Organisationer
+            </h2>
             <div className="space-y-2">
               {ORGANIZATIONS.map((o) => {
                 const active = pickedOrg === o.id;
@@ -63,16 +72,22 @@ function SelectPage() {
                     key={o.id}
                     onClick={() => setPickedOrg(o.id)}
                     className={`w-full text-left rounded-2xl border p-4 transition flex items-start gap-3 ${
-                      active ? "border-primary bg-card shadow-card" : "border-border bg-card hover:shadow-soft"
+                      active
+                        ? "border-primary bg-card shadow-card"
+                        : "border-border bg-card hover:shadow-soft"
                     }`}
                   >
-                    <div className={`h-10 w-10 rounded-xl grid place-items-center ${active ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground"}`}>
+                    <div
+                      className={`h-10 w-10 rounded-xl grid place-items-center ${active ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground"}`}
+                    >
                       <Building2 className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
                       <div className="font-medium">{o.name}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">{o.description}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{o.projects.length} projekter</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {o.projects.length} projekter
+                      </div>
                     </div>
                     {active && <CheckCircle2 className="h-5 w-5 text-primary" />}
                   </button>
@@ -82,7 +97,9 @@ function SelectPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Projekter</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Projekter
+            </h2>
             {!org ? (
               <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">
                 Vælg en organisation for at se tilgængelige projekter.
@@ -106,7 +123,9 @@ function SelectPage() {
                       <div className="font-medium">{p.name}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">{p.location}</div>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${p.status === "Aktiv" ? "bg-success/15 text-success" : "bg-warning/20 text-warning-foreground"}`}>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${p.status === "Aktiv" ? "bg-success/15 text-success" : "bg-warning/20 text-warning-foreground"}`}
+                    >
                       {p.status}
                     </span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition" />

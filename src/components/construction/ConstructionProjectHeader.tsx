@@ -46,7 +46,14 @@ interface Props {
 }
 
 export function ConstructionProjectHeader({ summary }: Props) {
-  const { project, constructionExt, submissions, readinessScore, runoffRiskScore, natureSensitivityScore } = summary;
+  const {
+    project,
+    constructionExt,
+    submissions,
+    readinessScore,
+    runoffRiskScore,
+    natureSensitivityScore,
+  } = summary;
 
   const latestSubmission = [...submissions].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -62,7 +69,9 @@ export function ConstructionProjectHeader({ summary }: Props) {
           <div>
             <h1 className="text-xl font-semibold tracking-tight">{project.name}</h1>
             <div className="flex items-center gap-2 mt-0.5 text-sm text-muted-foreground flex-wrap">
-              {constructionExt?.construction_type && <span>{constructionExt.construction_type}</span>}
+              {constructionExt?.construction_type && (
+                <span>{constructionExt.construction_type}</span>
+              )}
               {constructionExt?.construction_phase && (
                 <>
                   <span>·</span>
@@ -131,10 +140,14 @@ export function ConstructionProjectHeader({ summary }: Props) {
             {readinessScore}%
           </span>
         </div>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreTone(natureSensitivityScore)}`}>
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreTone(natureSensitivityScore)}`}
+        >
           Natur: {scoreLabel(natureSensitivityScore)}
         </span>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreTone(runoffRiskScore)}`}>
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreTone(runoffRiskScore)}`}
+        >
           Afstrømning: {scoreLabel(runoffRiskScore)}
         </span>
         {latestSubmission && (

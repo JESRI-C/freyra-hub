@@ -22,14 +22,21 @@ function Page() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
-      <PageHeader title="Datakvalitet" description="Hvor pålidelig er dit data — og hvor stærkt er beslutningsgrundlaget?" />
+      <PageHeader
+        title="Datakvalitet"
+        description="Hvor pålidelig er dit data — og hvor stærkt er beslutningsgrundlaget?"
+      />
 
       <div className="grid lg:grid-cols-3 gap-5">
         <Card className="p-6 text-center">
           <div className="text-sm font-medium text-muted-foreground">Samlet kvalitetsscore</div>
           <div className="text-5xl font-semibold mt-3 tabular-nums">{score}</div>
           <div className="text-xs text-muted-foreground">af 100</div>
-          <div className="mt-3"><Pill tone={score >= 80 ? "success" : "warning"}>{score >= 80 ? "Stærk" : "Acceptabel"}</Pill></div>
+          <div className="mt-3">
+            <Pill tone={score >= 80 ? "success" : "warning"}>
+              {score >= 80 ? "Stærk" : "Acceptabel"}
+            </Pill>
+          </div>
         </Card>
 
         <Card className="lg:col-span-2 p-5">
@@ -44,9 +51,13 @@ function Page() {
 
       {/* Sources */}
       <div>
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Datakilder</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Datakilder
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {DATA_SOURCES.map((s) => <DataSourceStatus key={s.name} source={s} />)}
+          {DATA_SOURCES.map((s) => (
+            <DataSourceStatus key={s.name} source={s} />
+          ))}
         </div>
       </div>
 
@@ -71,9 +82,10 @@ function Page() {
             <div>
               <div className="font-medium">AI-konfidens i analysen</div>
               <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                Med nuværende dækning og friskhed vurderes konfidensen til <ConfidenceScore value={0.82} />. De største
-                bidragsydere til usikkerhed er felt-dækning i område B og forsinket Sentinel-2-synk. Lukkes disse to gaps,
-                kan konfidensen stige til ca. 0,91.
+                Med nuværende dækning og friskhed vurderes konfidensen til{" "}
+                <ConfidenceScore value={0.82} />. De største bidragsydere til usikkerhed er
+                felt-dækning i område B og forsinket Sentinel-2-synk. Lukkes disse to gaps, kan
+                konfidensen stige til ca. 0,91.
               </p>
             </div>
           </div>
@@ -91,7 +103,9 @@ function Page() {
             "Tilføj tredjepartsverifikation for biodiversitetsdata",
           ].map((s, i) => (
             <li key={i} className="px-5 py-3 flex items-center gap-3 text-sm">
-              <span className="h-6 w-6 rounded-full bg-leaf/20 text-primary grid place-items-center text-xs font-semibold">{i + 1}</span>
+              <span className="h-6 w-6 rounded-full bg-leaf/20 text-primary grid place-items-center text-xs font-semibold">
+                {i + 1}
+              </span>
               <span className="flex-1">{s}</span>
               <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
             </li>

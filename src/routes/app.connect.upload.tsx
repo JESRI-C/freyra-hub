@@ -4,8 +4,13 @@ import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Sparkles } from "lu
 import { Card, PageHeader, Pill } from "@/components/ui-bits";
 import { Section, Chip } from "@/components/connect/Primitives";
 import {
-  UploadDropzone, UploadQueueTable, FileMetadataPanel, GeospatialValidationPanel,
-  LayerPreviewCard, RoutingDestinationSelector, Toast,
+  UploadDropzone,
+  UploadQueueTable,
+  FileMetadataPanel,
+  GeospatialValidationPanel,
+  LayerPreviewCard,
+  RoutingDestinationSelector,
+  Toast,
 } from "@/components/connect/MapPrimitives";
 import { UPLOAD_TYPES, UPLOAD_QUEUE, VALIDATION_WARNINGS } from "@/lib/connect-map-data";
 
@@ -19,26 +24,41 @@ function Page() {
   const [routing, setRouting] = useState<string[]>(["map", "ledger"]);
   const [toast, setToast] = useState<string | null>(null);
 
-  const selected = useMemo(() => queue.find((q) => q.id === selectedId) ?? null, [queue, selectedId]);
+  const selected = useMemo(
+    () => queue.find((q) => q.id === selectedId) ?? null,
+    [queue, selectedId],
+  );
 
   return (
     <main className="p-6 max-w-[1500px] w-full mx-auto space-y-4">
-      <PageHeader title="Upload center" description="Upload dronefiler, kortlag, feltdata og dokumentation til projektets datagrundlag." />
+      <PageHeader
+        title="Upload center"
+        description="Upload dronefiler, kortlag, feltdata og dokumentation til projektets datagrundlag."
+      />
 
       {/* Hero */}
       <Card className="p-5 bg-gradient-to-br from-card to-leaf/15">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center"><UploadCloud className="h-5 w-5" /></div>
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
+              <UploadCloud className="h-5 w-5" />
+            </div>
             <div>
-              <div className="text-base font-semibold">Upload kortlag, drone, felt og dokumentation</div>
-              <div className="text-sm text-muted-foreground mt-0.5">Filer aktiveres automatisk i Smart Connect map, og kan rutes til DecisionsIQ, ESG Ledger, Impact Exchange og Reports efter validering.</div>
+              <div className="text-base font-semibold">
+                Upload kortlag, drone, felt og dokumentation
+              </div>
+              <div className="text-sm text-muted-foreground mt-0.5">
+                Filer aktiveres automatisk i Smart Connect map, og kan rutes til DecisionsIQ, ESG
+                Ledger, Impact Exchange og Reports efter validering.
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Chip tone="primary">{queue.length} filer i kø</Chip>
             <Chip>{queue.filter((q) => q.status === "Klar").length} klar</Chip>
-            <Chip tone="muted">{queue.filter((q) => q.status === "Validering").length} under validering</Chip>
+            <Chip tone="muted">
+              {queue.filter((q) => q.status === "Validering").length} under validering
+            </Chip>
           </div>
         </div>
       </Card>
@@ -48,7 +68,9 @@ function Page() {
         onAdd={(files) => {
           const newRows = files.map((f, i) => ({
             id: `nu-${Date.now()}-${i}`,
-            name: f.name, type: f.type, size: f.size,
+            name: f.name,
+            type: f.type,
+            size: f.size,
             project: "Skallebæk Biodiversity Pilot",
             zone: "—",
             status: "Validering" as const,
@@ -62,7 +84,10 @@ function Page() {
       />
 
       {/* Supported types */}
-      <Section title="Understøttede filtyper" subtitle="Hvad kan uploades og hvordan bliver det brugt">
+      <Section
+        title="Understøttede filtyper"
+        subtitle="Hvad kan uploades og hvordan bliver det brugt"
+      >
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
           {UPLOAD_TYPES.map((t) => (
             <div key={t.name} className="rounded-xl border bg-card p-3">
@@ -100,8 +125,14 @@ function Page() {
             checks={[
               { label: "Filformat valid", pass: true },
               { label: "Koordinater detekteret", pass: selected.geo },
-              { label: "Projektion genkendt (EPSG:25832)", pass: selected.type !== "GeoTIFF" || selected.status !== "Fejl" },
-              { label: "Bounds matcher projektområde", pass: !selected.validationNote.toLowerCase().includes("overlap") },
+              {
+                label: "Projektion genkendt (EPSG:25832)",
+                pass: selected.type !== "GeoTIFF" || selected.status !== "Fejl",
+              },
+              {
+                label: "Bounds matcher projektområde",
+                pass: !selected.validationNote.toLowerCase().includes("overlap"),
+              },
               { label: "Påkrævet metadata komplet", pass: selected.metaOk },
               { label: "Lag kan previewes", pass: selected.geo },
               { label: "Klar til kortvisning", pass: selected.geo && selected.status === "Klar" },
@@ -120,20 +151,37 @@ function Page() {
           <div className="rounded-xl border bg-card p-4 space-y-3">
             <div>
               <div className="text-sm font-semibold">Routing — hvor skal filen bruges?</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Vælg hvilke moduler filen automatisk skal aktiveres i, når validering er gennemført.</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Vælg hvilke moduler filen automatisk skal aktiveres i, når validering er gennemført.
+              </div>
             </div>
             <RoutingDestinationSelector
               selected={routing}
-              onToggle={(k) => setRouting(routing.includes(k) ? routing.filter((x) => x !== k) : [...routing, k])}
+              onToggle={(k) =>
+                setRouting(routing.includes(k) ? routing.filter((x) => x !== k) : [...routing, k])
+              }
             />
             <div className="pt-2 border-t flex flex-wrap items-center justify-between gap-2">
-              <div className="text-xs text-muted-foreground">{routing.length} destination(er) valgt</div>
+              <div className="text-xs text-muted-foreground">
+                {routing.length} destination(er) valgt
+              </div>
               <div className="flex gap-2">
-                <button onClick={() => setToast("Filen er sat på pause")} className="text-xs rounded-lg border bg-card px-3 py-1.5">Pause</button>
+                <button
+                  onClick={() => setToast("Filen er sat på pause")}
+                  className="text-xs rounded-lg border bg-card px-3 py-1.5"
+                >
+                  Pause
+                </button>
                 <button
                   onClick={() => {
-                    setQueue(queue.map((q) => q.id === selected.id ? { ...q, status: "Klar", metaOk: true } : q));
-                    setToast("Filen er tilføjet til Smart Connect og kan nu bruges som kortlag, datakilde og rapportbilag.");
+                    setQueue(
+                      queue.map((q) =>
+                        q.id === selected.id ? { ...q, status: "Klar", metaOk: true } : q,
+                      ),
+                    );
+                    setToast(
+                      "Filen er tilføjet til Smart Connect og kan nu bruges som kortlag, datakilde og rapportbilag.",
+                    );
                   }}
                   className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"
                 >
@@ -159,12 +207,16 @@ function Page() {
         </Section>
         <Card className="p-5 bg-gradient-to-br from-card to-leaf/15">
           <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center"><Sparkles className="h-5 w-5" /></div>
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
+              <Sparkles className="h-5 w-5" />
+            </div>
             <div>
               <div className="text-sm font-semibold">AI upload-anbefaling</div>
               <p className="text-sm mt-2 text-foreground/90">
-                Drone-orthomosaic for Skallebæk dækker 92% af projektarealet — restende dækning kan suppleres med en ny overflyvning over Zone C.
-                NDVI GeoTIFF-importen mangler EPSG-projektion: bekræft EPSG:25832 og kør re-validering før den frigives til ESG Ledger og Reports.
+                Drone-orthomosaic for Skallebæk dækker 92% af projektarealet — restende dækning kan
+                suppleres med en ny overflyvning over Zone C. NDVI GeoTIFF-importen mangler
+                EPSG-projektion: bekræft EPSG:25832 og kør re-validering før den frigives til ESG
+                Ledger og Reports.
               </p>
             </div>
           </div>

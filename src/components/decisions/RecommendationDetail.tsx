@@ -2,7 +2,13 @@ import { X, ListTodo, FileText, PlayCircle } from "lucide-react";
 import { ConfidenceScore, PriorityBadge, RiskBadge } from "./Primitives";
 import type { Recommendation } from "@/lib/decisions-data";
 
-export function RecommendationDetail({ r, onClose }: { r: Recommendation | null; onClose: () => void }) {
+export function RecommendationDetail({
+  r,
+  onClose,
+}: {
+  r: Recommendation | null;
+  onClose: () => void;
+}) {
   if (!r) return null;
   return (
     <>
@@ -17,7 +23,9 @@ export function RecommendationDetail({ r, onClose }: { r: Recommendation | null;
             </div>
             <h3 className="font-semibold leading-snug">{r.title}</h3>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="p-5 space-y-5 text-sm">
@@ -45,7 +53,9 @@ export function RecommendationDetail({ r, onClose }: { r: Recommendation | null;
             <ol className="space-y-2">
               {r.nextSteps.map((s, i) => (
                 <li key={s} className="flex gap-3">
-                  <span className="h-6 w-6 shrink-0 rounded-full bg-leaf/20 text-primary grid place-items-center text-xs font-semibold">{i + 1}</span>
+                  <span className="h-6 w-6 shrink-0 rounded-full bg-leaf/20 text-primary grid place-items-center text-xs font-semibold">
+                    {i + 1}
+                  </span>
                   <span>{s}</span>
                 </li>
               ))}
@@ -74,7 +84,9 @@ export function RecommendationDetail({ r, onClose }: { r: Recommendation | null;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5">{children}</div>;
+  return (
+    <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5">{children}</div>
+  );
 }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

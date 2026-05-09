@@ -19,7 +19,13 @@ export const Route = createFileRoute("/app/impact/reports")({
   component: ReportsPage,
 });
 
-const TYPES = ["Projektfakta", "Porteføljerapport", "ESG-bilag", "Verifikationsrapport", "Ledelsesnotat"];
+const TYPES = [
+  "Projektfakta",
+  "Porteføljerapport",
+  "ESG-bilag",
+  "Verifikationsrapport",
+  "Ledelsesnotat",
+];
 const AUDIENCES = ["Intern ledelse", "Kunde", "Investor", "Kommune", "ESG-team"];
 const FOCUS = ["CO₂", "Biodiversitet", "Naturimpact", "Verifikation", "Samlet impact"];
 
@@ -35,27 +41,40 @@ function ReportsPage() {
       <div className="grid lg:grid-cols-[1fr_1.4fr] gap-5">
         {/* Generator */}
         <Card>
-          <CardHeader title="Rapportgenerator" subtitle="Sæt rammen — preview opdateres til højre" />
+          <CardHeader
+            title="Rapportgenerator"
+            subtitle="Sæt rammen — preview opdateres til højre"
+          />
           <div className="px-5 pb-5 space-y-4">
             <Group label="Rapporttype">
               <div className="flex flex-wrap gap-1.5">
                 {TYPES.map((t) => (
-                  <Chip key={t} active={t === type} onClick={() => setType(t)}>{t}</Chip>
+                  <Chip key={t} active={t === type} onClick={() => setType(t)}>
+                    {t}
+                  </Chip>
                 ))}
               </div>
             </Group>
 
             <Group label="Projekt / portefølje">
-              <select value={scope} onChange={(e) => setScope(e.target.value)} className="w-full rounded-lg border bg-card px-3 py-2 text-sm">
+              <select
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+              >
                 <option>Portefølje</option>
-                {PROJECTS.map((p) => <option key={p.id}>{p.title}</option>)}
+                {PROJECTS.map((p) => (
+                  <option key={p.id}>{p.title}</option>
+                ))}
               </select>
             </Group>
 
             <Group label="Periode">
               <div className="grid grid-cols-4 gap-1.5">
                 {["Q1 2026", "Q4 2025", "H2 2025", "År 2025"].map((p) => (
-                  <Chip key={p} active={p === period} onClick={() => setPeriod(p)}>{p}</Chip>
+                  <Chip key={p} active={p === period} onClick={() => setPeriod(p)}>
+                    {p}
+                  </Chip>
                 ))}
               </div>
             </Group>
@@ -63,7 +82,9 @@ function ReportsPage() {
             <Group label="Målgruppe">
               <div className="flex flex-wrap gap-1.5">
                 {AUDIENCES.map((a) => (
-                  <Chip key={a} active={a === audience} onClick={() => setAudience(a)}>{a}</Chip>
+                  <Chip key={a} active={a === audience} onClick={() => setAudience(a)}>
+                    {a}
+                  </Chip>
                 ))}
               </div>
             </Group>
@@ -71,7 +92,9 @@ function ReportsPage() {
             <Group label="Fokus">
               <div className="flex flex-wrap gap-1.5">
                 {FOCUS.map((f) => (
-                  <Chip key={f} active={f === focus} onClick={() => setFocus(f)}>{f}</Chip>
+                  <Chip key={f} active={f === focus} onClick={() => setFocus(f)}>
+                    {f}
+                  </Chip>
                 ))}
               </div>
             </Group>
@@ -91,13 +114,18 @@ function ReportsPage() {
           />
           <div className="p-6 bg-background border-t">
             <div className="text-xs text-muted-foreground">FREYRA · {audience}</div>
-            <h2 className="text-xl font-semibold mt-1">{type} — {scope}</h2>
-            <div className="text-xs text-muted-foreground">Periode: {period} · Fokus: {focus}</div>
+            <h2 className="text-xl font-semibold mt-1">
+              {type} — {scope}
+            </h2>
+            <div className="text-xs text-muted-foreground">
+              Periode: {period} · Fokus: {focus}
+            </div>
 
             <Section title="Resumé">
-              Porteføljen leverer i {period} dokumenteret impact på tværs af 6 verificerede natur- og klimaprojekter
-              med samlet potentiale på 245.000 ton CO₂e og 12.850 ha beskyttet/restaureret areal. Biodiversitetsindekset
-              ligger på 81/100, og rapportklarheden er 74%.
+              Porteføljen leverer i {period} dokumenteret impact på tværs af 6 verificerede natur-
+              og klimaprojekter med samlet potentiale på 245.000 ton CO₂e og 12.850 ha
+              beskyttet/restaureret areal. Biodiversitetsindekset ligger på 81/100, og
+              rapportklarheden er 74%.
             </Section>
             <Section title="Centrale impact-metrikker">
               <ul className="grid grid-cols-2 gap-2 text-xs">
@@ -110,16 +138,17 @@ function ReportsPage() {
               </ul>
             </Section>
             <Section title="Verifikationsstatus">
-              4 projekter er fuldt verificerede af DNV, Verra og Plan Vivo. 2 projekter er under tredjepartsverifikation
-              hos Bureau Veritas, planlagt afsluttet i Q3.
+              4 projekter er fuldt verificerede af DNV, Verra og Plan Vivo. 2 projekter er under
+              tredjepartsverifikation hos Bureau Veritas, planlagt afsluttet i Q3.
             </Section>
             <Section title="Datakilder">
-              Sensorer · Sentinel-2 · Drone · Feltregistrering · Akkrediterede laboratorier · Tredjepartsverifikation.
-              Alle målinger registreret i ESG Ledger med tidsstempel og kildeangivelse.
+              Sensorer · Sentinel-2 · Drone · Feltregistrering · Akkrediterede laboratorier ·
+              Tredjepartsverifikation. Alle målinger registreret i ESG Ledger med tidsstempel og
+              kildeangivelse.
             </Section>
             <Section title="Risici og usikkerheder">
-              Geografisk koncentration i Nordeuropa (4/6). Måleusikkerhed på CO₂-flux ±18% for to projekter.
-              Verifikationsafhængighed af 2 partnere — anbefales udvidet.
+              Geografisk koncentration i Nordeuropa (4/6). Måleusikkerhed på CO₂-flux ±18% for to
+              projekter. Verifikationsafhængighed af 2 partnere — anbefales udvidet.
             </Section>
             <Section title="Anbefalede næste skridt">
               <ul className="text-xs space-y-1 list-disc pl-4">
@@ -129,7 +158,9 @@ function ReportsPage() {
               </ul>
             </Section>
             <Section title="Bilag">
-              <div className="text-xs text-muted-foreground">A. Metodikoversigt · B. Projektfaktaark · C. Ledger-uddrag · D. Verifikationsnoter</div>
+              <div className="text-xs text-muted-foreground">
+                A. Metodikoversigt · B. Projektfaktaark · C. Ledger-uddrag · D. Verifikationsnoter
+              </div>
             </Section>
           </div>
         </Card>
@@ -153,14 +184,32 @@ function ReportsPage() {
           <tbody className="divide-y">
             {REPORTS.map((r) => (
               <tr key={r.id}>
-                <td className="px-5 py-3 font-medium inline-flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> {r.name}</td>
+                <td className="px-5 py-3 font-medium inline-flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> {r.name}
+                </td>
                 <td className="text-xs">{r.type}</td>
                 <td className="text-xs">{r.scope}</td>
                 <td className="text-xs text-muted-foreground">{r.created}</td>
-                <td><Pill tone={r.status === "Eksporteret" ? "success" : r.status === "Klar" ? "info" : "warning"}>{r.status}</Pill></td>
-                <td>{r.sentToLedger ? <Pill tone="success">Sendt</Pill> : <Pill>Ikke sendt</Pill>}</td>
+                <td>
+                  <Pill
+                    tone={
+                      r.status === "Eksporteret"
+                        ? "success"
+                        : r.status === "Klar"
+                          ? "info"
+                          : "warning"
+                    }
+                  >
+                    {r.status}
+                  </Pill>
+                </td>
+                <td>
+                  {r.sentToLedger ? <Pill tone="success">Sendt</Pill> : <Pill>Ikke sendt</Pill>}
+                </td>
                 <td className="pr-5 text-right">
-                  <button className="text-xs text-primary hover:underline inline-flex items-center gap-1"><Download className="h-3 w-3" /> Eksportér</button>
+                  <button className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+                    <Download className="h-3 w-3" /> Eksportér
+                  </button>
                 </td>
               </tr>
             ))}
@@ -210,9 +259,20 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-function Chip({ active, onClick, children }: { active?: boolean; onClick?: () => void; children: React.ReactNode }) {
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <button onClick={onClick} className={`text-xs px-2.5 py-1.5 rounded-full border ${active ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
+    <button
+      onClick={onClick}
+      className={`text-xs px-2.5 py-1.5 rounded-full border ${active ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
+    >
       {children}
     </button>
   );
@@ -225,9 +285,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
-function ExportBtn({ icon, label, primary }: { icon: React.ReactNode; label: string; primary?: boolean }) {
+function ExportBtn({
+  icon,
+  label,
+  primary,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  primary?: boolean;
+}) {
   return (
-    <button className={`text-sm rounded-lg px-3 py-2.5 inline-flex items-center justify-center gap-1.5 border ${primary ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
+    <button
+      className={`text-sm rounded-lg px-3 py-2.5 inline-flex items-center justify-center gap-1.5 border ${primary ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
+    >
       {icon} {label}
     </button>
   );

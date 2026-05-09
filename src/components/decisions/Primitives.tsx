@@ -18,7 +18,8 @@ const PRIORITY_TO_STATUS: Record<Priority, PlatformStatus> = {
 
 export function ConfidenceScore({ value, size = "md" }: { value: number; size?: "sm" | "md" }) {
   const pct = Math.round(value * 100);
-  const tone = value >= 0.85 ? "text-success" : value >= 0.7 ? "text-primary" : "text-warning-foreground";
+  const tone =
+    value >= 0.85 ? "text-success" : value >= 0.7 ? "text-primary" : "text-warning-foreground";
   return (
     <div className={`inline-flex items-center gap-1.5 ${size === "sm" ? "text-xs" : "text-sm"}`}>
       <span className={`font-semibold tabular-nums ${tone}`}>{pct}%</span>
@@ -36,7 +37,14 @@ export function PriorityBadge({ p }: { p: Priority }) {
 }
 
 export function DataQualityBar({ value, label }: { value: number; label?: string }) {
-  const tone = value >= 85 ? "bg-success" : value >= 70 ? "bg-leaf" : value >= 55 ? "bg-warning" : "bg-destructive";
+  const tone =
+    value >= 85
+      ? "bg-success"
+      : value >= 70
+        ? "bg-leaf"
+        : value >= 55
+          ? "bg-warning"
+          : "bg-destructive";
   return (
     <div className="space-y-1">
       {label && (
@@ -53,9 +61,19 @@ export function DataQualityBar({ value, label }: { value: number; label?: string
 }
 
 export function InsightCard({
-  label, value, delta, tone, description, icon,
+  label,
+  value,
+  delta,
+  tone,
+  description,
+  icon,
 }: {
-  label: string; value: string; delta?: string; tone: "success" | "warning" | "danger" | "info"; description: string; icon: ReactNode;
+  label: string;
+  value: string;
+  delta?: string;
+  tone: "success" | "warning" | "danger" | "info";
+  description: string;
+  icon: ReactNode;
 }) {
   const accents: Record<string, string> = {
     success: "bg-success/15 text-success",
@@ -69,7 +87,9 @@ export function InsightCard({
       <div className="flex items-start justify-between">
         <div className={`h-9 w-9 rounded-xl grid place-items-center ${accents[tone]}`}>{icon}</div>
         {delta && (
-          <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full ${tone === "danger" || tone === "warning" ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"}`}>
+          <span
+            className={`inline-flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full ${tone === "danger" || tone === "warning" ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"}`}
+          >
             {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
             {delta}
           </span>

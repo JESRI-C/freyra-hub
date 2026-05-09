@@ -9,12 +9,12 @@ import {
 import type { PlatformStatus } from "@/lib/platform-data";
 
 const REPORT_STATUS_MAP: Record<string, PlatformStatus> = {
-  "Kladde": "Kladde",
+  Kladde: "Kladde",
   "Klar til review": "Klar til review",
   "Kræver data": "Kræver handling",
-  "Godkendt": "Godkendt",
-  "Eksporteret": "Eksporteret",
-  "Arkiveret": "Kladde",
+  Godkendt: "Godkendt",
+  Eksporteret: "Eksporteret",
+  Arkiveret: "Kladde",
 };
 
 export function ReportStatusBadge({ status }: { status: string }) {
@@ -30,29 +30,61 @@ export function ReadinessBar({ value, label }: { value: number; label?: string }
   return <PlatformReadinessScore value={value} label={label ?? "Rapportklarhed"} />;
 }
 
-export function Drawer({ open, onClose, title, subtitle, children, footer, width = "max-w-xl" }: {
-  open: boolean; onClose: () => void; title: string; subtitle?: string; children: ReactNode; footer?: ReactNode; width?: string;
+export function Drawer({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  footer,
+  width = "max-w-xl",
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  width?: string;
 }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex">
-      <button aria-label="Luk" onClick={onClose} className="flex-1 bg-foreground/30 backdrop-blur-sm" />
+      <button
+        aria-label="Luk"
+        onClick={onClose}
+        className="flex-1 bg-foreground/30 backdrop-blur-sm"
+      />
       <aside className={`w-full ${width} bg-card border-l shadow-2xl flex flex-col`}>
         <header className="flex items-start justify-between p-5 border-b">
           <div>
             <div className="text-base font-semibold">{title}</div>
             {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
         </header>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">{children}</div>
-        {footer && <footer className="p-4 border-t bg-muted/30 flex flex-wrap gap-2">{footer}</footer>}
+        {footer && (
+          <footer className="p-4 border-t bg-muted/30 flex flex-wrap gap-2">{footer}</footer>
+        )}
       </aside>
     </div>
   );
 }
 
-export function Section({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: ReactNode; children: ReactNode }) {
+export function Section({
+  title,
+  subtitle,
+  action,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between mb-4">
@@ -67,7 +99,13 @@ export function Section({ title, subtitle, action, children }: { title: string; 
   );
 }
 
-export function Chip({ children, tone = "default" }: { children: ReactNode; tone?: "default" | "primary" | "muted" | "warning" | "success" }) {
+export function Chip({
+  children,
+  tone = "default",
+}: {
+  children: ReactNode;
+  tone?: "default" | "primary" | "muted" | "warning" | "success";
+}) {
   const tones = {
     default: "bg-muted text-foreground border",
     primary: "bg-leaf/20 text-foreground border border-primary/20",
@@ -75,10 +113,24 @@ export function Chip({ children, tone = "default" }: { children: ReactNode; tone
     warning: "bg-warning/20 text-warning-foreground border border-warning/30",
     success: "bg-success/15 text-success border border-success/20",
   };
-  return <span className={`inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-md ${tones[tone]}`}>{children}</span>;
+  return (
+    <span
+      className={`inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-md ${tones[tone]}`}
+    >
+      {children}
+    </span>
+  );
 }
 
-export function WizardSteps({ steps, current, onSelect }: { steps: string[]; current: number; onSelect: (i: number) => void }) {
+export function WizardSteps({
+  steps,
+  current,
+  onSelect,
+}: {
+  steps: string[];
+  current: number;
+  onSelect: (i: number) => void;
+}) {
   return (
     <ol className="flex flex-col gap-1">
       {steps.map((s, i) => {
@@ -86,9 +138,13 @@ export function WizardSteps({ steps, current, onSelect }: { steps: string[]; cur
         const active = i === current;
         return (
           <li key={s}>
-            <button onClick={() => onSelect(i)}
-              className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${active ? "bg-leaf/20 text-foreground font-medium" : done ? "text-foreground hover:bg-muted" : "text-muted-foreground hover:bg-muted"}`}>
-              <span className={`h-6 w-6 rounded-full grid place-items-center text-xs ${done ? "bg-success text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+            <button
+              onClick={() => onSelect(i)}
+              className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${active ? "bg-leaf/20 text-foreground font-medium" : done ? "text-foreground hover:bg-muted" : "text-muted-foreground hover:bg-muted"}`}
+            >
+              <span
+                className={`h-6 w-6 rounded-full grid place-items-center text-xs ${done ? "bg-success text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+              >
                 {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
               </span>
               <span className="flex-1 truncate">{s}</span>
@@ -108,8 +164,12 @@ export function ApprovalStepper({ current, steps }: { current: number; steps: st
         const active = i === current;
         return (
           <li key={s} className="flex items-center gap-2 flex-shrink-0">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${done ? "bg-success/15 text-success" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-              <span className={`h-5 w-5 rounded-full grid place-items-center text-[10px] ${done ? "bg-success text-white" : active ? "bg-white/20" : "bg-card"}`}>
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${done ? "bg-success/15 text-success" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            >
+              <span
+                className={`h-5 w-5 rounded-full grid place-items-center text-[10px] ${done ? "bg-success text-white" : active ? "bg-white/20" : "bg-card"}`}
+              >
                 {done ? <CheckCircle2 className="h-3 w-3" /> : i + 1}
               </span>
               {s}
@@ -122,7 +182,19 @@ export function ApprovalStepper({ current, steps }: { current: number; steps: st
   );
 }
 
-export function MissingDataItem({ issue, why, fix, target, onAction }: { issue: string; why: string; fix: string; target: string; onAction?: () => void }) {
+export function MissingDataItem({
+  issue,
+  why,
+  fix,
+  target,
+  onAction,
+}: {
+  issue: string;
+  why: string;
+  fix: string;
+  target: string;
+  onAction?: () => void;
+}) {
   return (
     <div className="flex gap-3 p-3 rounded-lg border bg-warning/5">
       <AlertTriangle className="h-4 w-4 text-warning-foreground mt-0.5 flex-shrink-0" />
@@ -134,14 +206,22 @@ export function MissingDataItem({ issue, why, fix, target, onAction }: { issue: 
           <span className="text-xs text-foreground/80">{fix}</span>
         </div>
       </div>
-      {onAction && <button onClick={onAction} className="text-xs rounded-lg border bg-card px-2.5 py-1 self-start">Send</button>}
+      {onAction && (
+        <button
+          onClick={onAction}
+          className="text-xs rounded-lg border bg-card px-2.5 py-1 self-start"
+        >
+          Send
+        </button>
+      )}
     </div>
   );
 }
 
 export function useToggle<T extends string>(initial: T[]) {
   const [v, setV] = useState<T[]>(initial);
-  const toggle = (x: T) => setV((prev) => prev.includes(x) ? prev.filter((y) => y !== x) : [...prev, x]);
+  const toggle = (x: T) =>
+    setV((prev) => (prev.includes(x) ? prev.filter((y) => y !== x) : [...prev, x]));
   return [v, toggle, setV] as const;
 }
 

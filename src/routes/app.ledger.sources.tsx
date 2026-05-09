@@ -61,10 +61,30 @@ function SourcesPage() {
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
       <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
         <ESGMetricCard label="Datakilder" value="24" icon={<Plug className="h-4 w-4" />} />
-        <ESGMetricCard label="Verificerede" value="18" icon={<ShieldCheck className="h-4 w-4" />} tone="success" />
-        <ESGMetricCard label="Kræver handling" value="4" icon={<AlertTriangle className="h-4 w-4" />} tone="warning" />
-        <ESGMetricCard label="Offline" value="2" icon={<WifiOff className="h-4 w-4" />} tone="danger" />
-        <ESGMetricCard label="Gns. datakvalitet" value="91" unit="%" icon={<Database className="h-4 w-4" />} />
+        <ESGMetricCard
+          label="Verificerede"
+          value="18"
+          icon={<ShieldCheck className="h-4 w-4" />}
+          tone="success"
+        />
+        <ESGMetricCard
+          label="Kræver handling"
+          value="4"
+          icon={<AlertTriangle className="h-4 w-4" />}
+          tone="warning"
+        />
+        <ESGMetricCard
+          label="Offline"
+          value="2"
+          icon={<WifiOff className="h-4 w-4" />}
+          tone="danger"
+        />
+        <ESGMetricCard
+          label="Gns. datakvalitet"
+          value="91"
+          unit="%"
+          icon={<Database className="h-4 w-4" />}
+        />
       </div>
 
       {/* Quality checks */}
@@ -79,7 +99,9 @@ function SourcesPage() {
           <Card key={l as string} className="p-4">
             <div className="text-xs text-muted-foreground">{l}</div>
             <div className="text-xl font-semibold tabular-nums mt-1">{v}%</div>
-            <div className="mt-2"><ReadinessScore label="" value={v as number} size="sm" /></div>
+            <div className="mt-2">
+              <ReadinessScore label="" value={v as number} size="sm" />
+            </div>
           </Card>
         ))}
       </div>
@@ -118,21 +140,39 @@ function SourcesPage() {
             {filtered.map((s) => {
               const Icon = TYPE_ICON[s.type] ?? Plug;
               return (
-                <tr key={s.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setOpenId(s.id)}>
+                <tr
+                  key={s.id}
+                  className="hover:bg-muted/30 cursor-pointer"
+                  onClick={() => setOpenId(s.id)}
+                >
                   <td className="px-5 py-3 font-medium inline-flex items-center gap-2">
                     <Icon className="h-4 w-4 text-primary" /> {s.name}
                   </td>
                   <td className="text-xs">{s.type}</td>
-                  <td className="text-xs"><Pill>{s.category}</Pill></td>
+                  <td className="text-xs">
+                    <Pill>{s.category}</Pill>
+                  </td>
                   <td className="text-xs">{s.project}</td>
                   <td className="text-xs text-muted-foreground">{s.lastSync}</td>
                   <td>
-                    <Pill tone={s.status === "Aktiv" ? "success" : s.status === "Kræver handling" ? "warning" : "danger"}>
+                    <Pill
+                      tone={
+                        s.status === "Aktiv"
+                          ? "success"
+                          : s.status === "Kræver handling"
+                            ? "warning"
+                            : "danger"
+                      }
+                    >
                       {s.status}
                     </Pill>
                   </td>
-                  <td className="pr-3"><ReadinessScore label="" value={s.quality} size="sm" /></td>
-                  <td><VerificationStatusBadge status={s.verification} /></td>
+                  <td className="pr-3">
+                    <ReadinessScore label="" value={s.quality} size="sm" />
+                  </td>
+                  <td>
+                    <VerificationStatusBadge status={s.verification} />
+                  </td>
                   <td className="text-xs">{s.owner}</td>
                   <td className="text-xs text-muted-foreground">{s.metric}</td>
                 </tr>
@@ -150,9 +190,15 @@ function SourcesPage() {
         <div>
           <div className="font-semibold">Anbefalede nye datakilder</div>
           <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-            For at hæve datadækningen til over 95% anbefales: tilføj <span className="text-foreground font-medium">leverandør-EPD-feed</span> (Scope 3),
-            integrér <span className="text-foreground font-medium">spildevandstællere</span> i Vand-kategorien og aktivér
-            <span className="text-foreground font-medium"> Smart Connect for affaldstransportør</span> for at erstatte CSV-uploads.
+            For at hæve datadækningen til over 95% anbefales: tilføj{" "}
+            <span className="text-foreground font-medium">leverandør-EPD-feed</span> (Scope 3),
+            integrér <span className="text-foreground font-medium">spildevandstællere</span> i
+            Vand-kategorien og aktivér
+            <span className="text-foreground font-medium">
+              {" "}
+              Smart Connect for affaldstransportør
+            </span>{" "}
+            for at erstatte CSV-uploads.
           </p>
         </div>
       </Card>
@@ -165,10 +211,18 @@ function SourcesPage() {
         subtitle={open ? `${open.type} · ${open.project}` : ""}
         footer={
           <div className="flex gap-2 flex-wrap justify-end">
-            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">Test forbindelse</button>
-            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">Validér datakilde</button>
-            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">Se audit trail</button>
-            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted text-destructive">Deaktiver</button>
+            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">
+              Test forbindelse
+            </button>
+            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">
+              Validér datakilde
+            </button>
+            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">
+              Se audit trail
+            </button>
+            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted text-destructive">
+              Deaktiver
+            </button>
           </div>
         }
       >
@@ -186,18 +240,45 @@ function SourcesPage() {
             <div>
               <div className="text-xs text-muted-foreground mb-1">Kvalitetstjek</div>
               <ul className="rounded-xl border divide-y text-xs">
-                <li className="px-3 py-2 flex justify-between"><span>Completeness</span><span className="text-success">OK</span></li>
-                <li className="px-3 py-2 flex justify-between"><span>Freshness</span><span className={open.lastSync.includes("dage") ? "text-warning-foreground" : "text-success"}>{open.lastSync.includes("dage") ? "Forsinket" : "OK"}</span></li>
-                <li className="px-3 py-2 flex justify-between"><span>Consistency</span><span className="text-success">OK</span></li>
-                <li className="px-3 py-2 flex justify-between"><span>Traceability</span><span className="text-success">OK</span></li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>Completeness</span>
+                  <span className="text-success">OK</span>
+                </li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>Freshness</span>
+                  <span
+                    className={
+                      open.lastSync.includes("dage") ? "text-warning-foreground" : "text-success"
+                    }
+                  >
+                    {open.lastSync.includes("dage") ? "Forsinket" : "OK"}
+                  </span>
+                </li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>Consistency</span>
+                  <span className="text-success">OK</span>
+                </li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>Traceability</span>
+                  <span className="text-success">OK</span>
+                </li>
               </ul>
             </div>
             <div>
               <div className="text-xs text-muted-foreground mb-1">Audit-historik</div>
               <ul className="rounded-xl border divide-y text-xs">
-                <li className="px-3 py-2 flex justify-between"><span>2026-05-06 · Synkroniseret</span><span className="text-muted-foreground">System</span></li>
-                <li className="px-3 py-2 flex justify-between"><span>2026-04-12 · Validering</span><span className="text-muted-foreground">{open.owner}</span></li>
-                <li className="px-3 py-2 flex justify-between"><span>2026-03-08 · Tilføjet</span><span className="text-muted-foreground">Jesper Riel</span></li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>2026-05-06 · Synkroniseret</span>
+                  <span className="text-muted-foreground">System</span>
+                </li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>2026-04-12 · Validering</span>
+                  <span className="text-muted-foreground">{open.owner}</span>
+                </li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>2026-03-08 · Tilføjet</span>
+                  <span className="text-muted-foreground">Jesper Riel</span>
+                </li>
               </ul>
             </div>
           </div>

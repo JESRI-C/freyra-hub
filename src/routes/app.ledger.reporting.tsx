@@ -20,7 +20,15 @@ export const Route = createFileRoute("/app/ledger/reporting")({
   component: ReportingPage,
 });
 
-const TYPES = ["ESG-overblik", "CSRD/ESRS readiness", "CO₂-bilag", "Naturimpact-bilag", "Revisionspakke", "Ledelsesnotat", "Kunde-/investorrapport"];
+const TYPES = [
+  "ESG-overblik",
+  "CSRD/ESRS readiness",
+  "CO₂-bilag",
+  "Naturimpact-bilag",
+  "Revisionspakke",
+  "Ledelsesnotat",
+  "Kunde-/investorrapport",
+];
 const AUDIENCES = ["Intern ledelse", "Revisor", "Kunde", "Investor", "Kommune", "ESG-team"];
 const FOCUS = ["Klima", "Natur", "Biodiversitet", "CO₂", "Compliance", "Samlet status"];
 const DETAIL = ["Kort", "Standard", "Teknisk"];
@@ -43,13 +51,19 @@ function ReportingPage() {
             <Group label="Rapporttype">
               <div className="flex flex-wrap gap-1.5">
                 {TYPES.map((t) => (
-                  <Chip key={t} active={t === type} onClick={() => setType(t)}>{t}</Chip>
+                  <Chip key={t} active={t === type} onClick={() => setType(t)}>
+                    {t}
+                  </Chip>
                 ))}
               </div>
             </Group>
 
             <Group label="Organisation / projekt">
-              <select value={project} onChange={(e) => setProject(e.target.value)} className="w-full rounded-lg border bg-card px-3 py-2 text-sm">
+              <select
+                value={project}
+                onChange={(e) => setProject(e.target.value)}
+                className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
+              >
                 <option>Portefølje</option>
                 <option>Freyra Demo</option>
                 <option>Nordic Coastal Restoration</option>
@@ -64,7 +78,9 @@ function ReportingPage() {
             <Group label="Periode">
               <div className="grid grid-cols-4 gap-1.5">
                 {["Q1 2026", "Q4 2025", "H2 2025", "År 2025"].map((p) => (
-                  <Chip key={p} active={p === period} onClick={() => setPeriod(p)}>{p}</Chip>
+                  <Chip key={p} active={p === period} onClick={() => setPeriod(p)}>
+                    {p}
+                  </Chip>
                 ))}
               </div>
             </Group>
@@ -72,7 +88,9 @@ function ReportingPage() {
             <Group label="Målgruppe">
               <div className="flex flex-wrap gap-1.5">
                 {AUDIENCES.map((a) => (
-                  <Chip key={a} active={a === audience} onClick={() => setAudience(a)}>{a}</Chip>
+                  <Chip key={a} active={a === audience} onClick={() => setAudience(a)}>
+                    {a}
+                  </Chip>
                 ))}
               </div>
             </Group>
@@ -80,7 +98,9 @@ function ReportingPage() {
             <Group label="Fokus">
               <div className="flex flex-wrap gap-1.5">
                 {FOCUS.map((f) => (
-                  <Chip key={f} active={f === focus} onClick={() => setFocus(f)}>{f}</Chip>
+                  <Chip key={f} active={f === focus} onClick={() => setFocus(f)}>
+                    {f}
+                  </Chip>
                 ))}
               </div>
             </Group>
@@ -88,7 +108,9 @@ function ReportingPage() {
             <Group label="Detaljeniveau">
               <div className="grid grid-cols-3 gap-1.5">
                 {DETAIL.map((d) => (
-                  <Chip key={d} active={d === detail} onClick={() => setDetail(d)}>{d}</Chip>
+                  <Chip key={d} active={d === detail} onClick={() => setDetail(d)}>
+                    {d}
+                  </Chip>
                 ))}
               </div>
             </Group>
@@ -120,7 +142,11 @@ function ReportingPage() {
                     <AlertTriangle className="h-4 w-4 text-warning-foreground shrink-0" />
                   )}
                   <div className="flex-1 text-sm">{l}</div>
-                  <div className="text-sm font-medium tabular-nums">{(v as number) >= 0 ? `${v}${typeof v === "number" && (v as number) > 7 ? "%" : ""}` : v}</div>
+                  <div className="text-sm font-medium tabular-nums">
+                    {(v as number) >= 0
+                      ? `${v}${typeof v === "number" && (v as number) > 7 ? "%" : ""}`
+                      : v}
+                  </div>
                 </div>
               ))}
             </div>
@@ -134,14 +160,21 @@ function ReportingPage() {
               action={<Pill tone="info">Udkast</Pill>}
             />
             <div className="p-6 bg-background border-t">
-              <div className="text-xs text-muted-foreground">FREYRA · {audience} · detaljeniveau: {detail}</div>
-              <h2 className="text-xl font-semibold mt-1">{type} — {project}</h2>
-              <div className="text-xs text-muted-foreground">Periode: {period} · Fokus: {focus}</div>
+              <div className="text-xs text-muted-foreground">
+                FREYRA · {audience} · detaljeniveau: {detail}
+              </div>
+              <h2 className="text-xl font-semibold mt-1">
+                {type} — {project}
+              </h2>
+              <div className="text-xs text-muted-foreground">
+                Periode: {period} · Fokus: {focus}
+              </div>
 
               <Section title="Executive summary">
-                I {period} viser {project} en samlet ESG-score på 82/100 med stærk fremgang på CO₂ (-8%) og energi (-7%).
-                Biodiversitetsindekset er steget til 78/100, og porteføljens dokumenterede naturimpact udgør 245.000 ton
-                CO₂e potentiale fordelt på 6 verificerede projekter.
+                I {period} viser {project} en samlet ESG-score på 82/100 med stærk fremgang på CO₂
+                (-8%) og energi (-7%). Biodiversitetsindekset er steget til 78/100, og porteføljens
+                dokumenterede naturimpact udgør 245.000 ton CO₂e potentiale fordelt på 6
+                verificerede projekter.
               </Section>
               <Section title="Centrale ESG-metrikker">
                 <ul className="grid grid-cols-2 gap-2 text-xs">
@@ -154,20 +187,24 @@ function ReportingPage() {
                 </ul>
               </Section>
               <Section title="CO₂-overblik">
-                Scope 1 leverer 6,8 kt, Scope 2 leverer 8,4 kt og Scope 3 leverer 25,9 kt. Samlede dokumenterede
-                reduktioner via Impact Exchange udgør 41,2 kt. Datakonfidensen for CO₂-regnskabet er 84%.
+                Scope 1 leverer 6,8 kt, Scope 2 leverer 8,4 kt og Scope 3 leverer 25,9 kt. Samlede
+                dokumenterede reduktioner via Impact Exchange udgør 41,2 kt. Datakonfidensen for
+                CO₂-regnskabet er 84%.
               </Section>
               <Section title="Natur og biodiversitetsimpact">
-                Porteføljen omfatter 12.850 ha beskyttet eller restaureret areal med vægtet biodiversitetsindeks 81/100.
-                Skallebæk-pilotens vandløb og vådområde bidrager med højest fremgang i indikatorarter.
+                Porteføljen omfatter 12.850 ha beskyttet eller restaureret areal med vægtet
+                biodiversitetsindeks 81/100. Skallebæk-pilotens vandløb og vådområde bidrager med
+                højest fremgang i indikatorarter.
               </Section>
               <Section title="Datakvalitet & verifikation">
-                18 ud af 24 datakilder er verificerede. 4 kilder kræver handling (sensor LF-12 offline, transport-API,
-                affald CSV og DEFRA-faktor). Tredjepartsreview af Skallebæk er igangværende hos Bureau Veritas.
+                18 ud af 24 datakilder er verificerede. 4 kilder kræver handling (sensor LF-12
+                offline, transport-API, affald CSV og DEFRA-faktor). Tredjepartsreview af Skallebæk
+                er igangværende hos Bureau Veritas.
               </Section>
               <Section title="Risici og gaps">
-                Scope 3 transportdata for Q2 mangler. Vandzone 3 sensor offline. Biodiversitetsmåling kræver
-                feltverifikation før rapport. Emissionsfaktor for varme skal opdateres.
+                Scope 3 transportdata for Q2 mangler. Vandzone 3 sensor offline.
+                Biodiversitetsmåling kræver feltverifikation før rapport. Emissionsfaktor for varme
+                skal opdateres.
               </Section>
               <Section title="Anbefalede næste skridt">
                 <ul className="text-xs space-y-1 list-disc pl-4">
@@ -177,7 +214,9 @@ function ReportingPage() {
                 </ul>
               </Section>
               <Section title="Bilag">
-                <div className="text-xs text-muted-foreground">A. Metodikoversigt · B. CO₂-bilag · C. Audit trail extract · D. Verifikationsnoter</div>
+                <div className="text-xs text-muted-foreground">
+                  A. Metodikoversigt · B. CO₂-bilag · C. Audit trail extract · D. Verifikationsnoter
+                </div>
               </Section>
             </div>
           </Card>
@@ -203,13 +242,23 @@ function ReportingPage() {
           <tbody className="divide-y">
             {SAVED_REPORTS.map((r) => (
               <tr key={r.id}>
-                <td className="px-5 py-3 font-medium inline-flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> {r.name}</td>
+                <td className="px-5 py-3 font-medium inline-flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> {r.name}
+                </td>
                 <td className="text-xs">{r.type}</td>
                 <td className="text-xs">{r.project}</td>
                 <td className="text-xs">{r.period}</td>
                 <td className="text-xs text-muted-foreground">{r.created}</td>
                 <td>
-                  <Pill tone={r.status === "Eksporteret" ? "success" : r.status === "Klar" ? "info" : "warning"}>
+                  <Pill
+                    tone={
+                      r.status === "Eksporteret"
+                        ? "success"
+                        : r.status === "Klar"
+                          ? "info"
+                          : "warning"
+                    }
+                  >
                     {r.status}
                   </Pill>
                 </td>
@@ -249,7 +298,15 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-function Chip({ active, onClick, children }: { active?: boolean; onClick?: () => void; children: React.ReactNode }) {
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
@@ -267,7 +324,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
-function ExportBtn({ icon, label, primary }: { icon: React.ReactNode; label: string; primary?: boolean }) {
+function ExportBtn({
+  icon,
+  label,
+  primary,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  primary?: boolean;
+}) {
   return (
     <button
       className={`text-sm rounded-lg px-3 py-2.5 inline-flex items-center justify-center gap-1.5 border ${
