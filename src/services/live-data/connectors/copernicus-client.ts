@@ -3,7 +3,6 @@ import {
   fetchWithTimeout,
   fetchConnector,
   previewResponse,
-  missingKeyResponse,
 } from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
@@ -19,6 +18,7 @@ export interface SentinelScene {
 export interface CopernicusData {
   scenes: SentinelScene[];
   latestNdviEstimate?: number;
+  ndviIsSimulated: boolean;
   areaKm2?: number;
   fetchedAt: string;
 }
@@ -41,6 +41,7 @@ const PREVIEW_DATA: CopernicusData = {
     },
   ],
   latestNdviEstimate: 0.68,
+  ndviIsSimulated: true,
   fetchedAt: new Date().toISOString(),
 };
 
@@ -56,7 +57,7 @@ export async function fetchByGeometry(
 ): Promise<ConnectorResponse<CopernicusData>> {
   const config = getLiveDataConfig();
   if (!config.isLiveDataEnabled) return previewResponse(PREVIEW_DATA);
-  if (!config.credentials.copernicus.present) return missingKeyResponse<CopernicusData>();
+  if (!config.credentials.copernicus.present) return previewResponse(PREVIEW_DATA);
 
   const lat = geometry.centroid?.lat;
   const lng = geometry.centroid?.lng;
@@ -97,7 +98,7 @@ export async function fetchByGeometry(
       downloadUrl: f.assets?.["visual"]?.href,
     }));
 
-    return { scenes, fetchedAt: new Date().toISOString() };
+    return { scenes, ndviIsSimulated: false, fetchedAt: new Date().toISOString() };
   });
 }
 

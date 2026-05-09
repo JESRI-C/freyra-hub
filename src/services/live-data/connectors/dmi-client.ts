@@ -22,7 +22,7 @@ export interface DmiWeatherData {
 
 const DMI_OBS_PATH = "/v2/metObs/collections/observation/items";
 
-const PREVIEW_DATA: DmiWeatherData = {
+export const PREVIEW_DATA: DmiWeatherData = {
   temperature: {
     parameterId: "temp_dry",
     value: 12.4,
@@ -70,7 +70,7 @@ export async function fetchByGeometry(
   const lng = geometry.centroid?.lng;
   const base = config.dmiBaseUrl;
 
-  return fetchConnector(async () => {
+  const result = await fetchConnector(async () => {
     const params = new URLSearchParams({
       parameterId: "temp_dry,precip_past10min,wind_speed,humidity",
       limit: "4",
@@ -107,6 +107,12 @@ export async function fetchByGeometry(
     }
     return obs;
   });
+
+  // If live call failed or returned no usable data, fall back to preview (not error)
+  if (result.status !== "ok" || !result.data?.temperature) {
+    return { ...previewResponse(PREVIEW_DATA), latencyMs: result.latencyMs };
+  }
+  return result;
 }
 
 export async function fetchPreview(): Promise<ConnectorResponse<DmiWeatherData>> {
