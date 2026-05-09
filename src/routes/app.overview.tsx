@@ -1,23 +1,181 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { AppTopbar } from "@/components/AppTopbar";
 import { Card, CardHeader, PageHeader } from "@/components/ui-bits";
 import {
-  ModuleStatusCard, DataFlowDiagram, ActivityFeed, CriticalActionsPanel,
-  OnboardingChecklist, ReadinessScore, StatusBadge,
+  ModuleStatusCard,
+  DataFlowDiagram,
+  ActivityFeed,
+  CriticalActionsPanel,
+  OnboardingChecklist,
+  ReadinessScore,
+  StatusBadge,
 } from "@/components/platform/Primitives";
 import {
-  PLATFORM_MODULES, ACTIVITY_FEED, CRITICAL_ACTIONS, ONBOARDING_STEPS,
-  PROJECT_FACTS, AI_SUMMARY, NEXT_RECOMMENDED_ACTIONS,
+  PLATFORM_MODULES,
+  ACTIVITY_FEED,
+  CRITICAL_ACTIONS,
+  ONBOARDING_STEPS,
+  PROJECT_FACTS,
+  AI_SUMMARY,
+  NEXT_RECOMMENDED_ACTIONS,
 } from "@/lib/platform-data";
-import { Sparkles, ArrowRight, MapPin, FileText } from "lucide-react";
+import {
+  Sparkles,
+  ArrowRight,
+  MapPin,
+  FileText,
+  TrendingUp,
+  Database,
+  ClipboardList,
+  Radio,
+} from "lucide-react";
+import { getLiveDataConfig } from "@/config/live-data-config";
 import { getCurrentOrg, getCurrentProject, useAuth } from "@/lib/auth";
+import { getAllNatureProjectSummaries } from "@/services/projects-service";
+import { getAllOpenActions } from "@/services/actions-service";
+import { DEFAULT_ORG_ID } from "@/data/platform-seed";
+import type { NatureProjectSummary } from "@/lib/supabase/types";
+
+// ─── Queries ──────────────────────────────────────────────────────────────────
+
+const projectSummariesQuery = {
+  queryKey: ["nature-project-summaries", DEFAULT_ORG_ID],
+  queryFn: () => getAllNatureProjectSummaries(DEFAULT_ORG_ID),
+};
+
+const openActionsQuery = {
+  queryKey: ["all-open-actions"],
+  queryFn: () => getAllOpenActions(),
+};
 
 export const Route = createFileRoute("/app/overview")({
   head: () => ({ meta: [{ title: "Oversigt — GoFreyra" }] }),
+  loader: ({ context: { queryClient } }) =>
+    Promise.all([
+      queryClient.ensureQueryData(projectSummariesQuery),
+      queryClient.ensureQueryData(openActionsQuery),
+    ]),
   component: OverviewPage,
 });
 
+function LiveKpiStrip({
+  summaries,
+  openActionCount,
+}: {
+  summaries: NatureProjectSummary[];
+  openActionCount: number;
+}) {
+  const avgBiodiversity =
+    summaries.reduce((sum, s) => {
+      const bi = s.indicators.find((i) => i.key === "biodiversity_index");
+      return sum + (bi?.value ?? 0);
+    }, 0) / (summaries.length || 1);
+
+  const avgDataQuality =
+    summaries.reduce((sum, s) => {
+      const dq = s.indicators.find((i) => i.key === "data_quality");
+      return sum + (dq?.value ?? 0);
+    }, 0) / (summaries.length || 1);
+
+  const totalActiveSources = summaries.reduce((sum, s) => sum + s.activeDataSources, 0);
+
+  const kpis = [
+    {
+      label: "Aktive projekter",
+      value: String(summaries.length),
+      icon: <TrendingUp className="h-4 w-4" />,
+      color: "text-emerald-600",
+    },
+    {
+      label: "Ø biodiversitetsindeks",
+      value: `${avgBiodiversity.toFixed(0)}/100`,
+      icon: <TrendingUp className="h-4 w-4" />,
+      color: "text-emerald-600",
+    },
+    {
+      label: "Ø datakvalitet",
+      value: `${avgDataQuality.toFixed(0)}%`,
+      icon: <Database className="h-4 w-4" />,
+      color: "text-emerald-600",
+    },
+    {
+      label: "Aktive datakilder",
+      value: String(totalActiveSources),
+      icon: <Database className="h-4 w-4" />,
+      color: "text-blue-600",
+    },
+    {
+      label: "Åbne handlinger",
+      value: String(openActionCount),
+      icon: <ClipboardList className="h-4 w-4" />,
+      color: openActionCount > 0 ? "text-amber-600" : "text-emerald-600",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {kpis.map((k) => (
+        <div key={k.label} className="rounded-xl border bg-card p-4 space-y-1">
+          <div className={`${k.color}`}>{k.icon}</div>
+          <div className="text-2xl font-semibold">{k.value}</div>
+          <div className="text-xs text-muted-foreground">{k.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LiveDataWidget() {
+  const config = getLiveDataConfig();
+  return (
+    <div
+      className={`rounded-xl border p-4 flex items-center gap-4 ${
+        config.mode === "live" ? "bg-emerald-50 border-emerald-200" : "bg-muted/30 border-dashed"
+      }`}
+    >
+      <div
+        className={`h-9 w-9 rounded-lg grid place-items-center shrink-0 ${
+          config.mode === "live"
+            ? "bg-emerald-100 text-emerald-700"
+            : "bg-muted text-muted-foreground"
+        }`}
+      >
+        <Radio className="h-4 w-4" />
+      </div>
+      <div className="flex-1">
+        <div className="text-sm font-medium flex items-center gap-2">
+          Live Data
+          <span
+            className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+              config.mode === "live"
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {config.mode === "live" ? "Live" : "Preview"}
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground mt-0.5">
+          {config.mode === "preview"
+            ? `Preview mode aktiv — ${
+                config.missingKeys.length > 0
+                  ? config.missingKeys.join(", ") + " mangler"
+                  : "sæt VITE_ENABLE_LIVE_DATA=true for at aktivere"
+              }`
+            : `${4 - config.missingKeys.length} af 4 connectorer aktive`}
+        </div>
+      </div>
+      <Link to="/app/system-test" className="text-xs text-primary hover:underline shrink-0">
+        Detaljer →
+      </Link>
+    </div>
+  );
+}
+
 function OverviewPage() {
+  const { data: summaries } = useSuspenseQuery(projectSummariesQuery);
+  const { data: openActions } = useSuspenseQuery(openActionsQuery);
   const { user, orgId, projectId } = useAuth();
   const org = getCurrentOrg(orgId);
   const project = getCurrentProject(orgId, projectId);
@@ -40,10 +198,21 @@ function OverviewPage() {
           }
         />
 
+        {/* Live KPIs from data layer */}
+        <LiveKpiStrip summaries={summaries} openActionCount={openActions.length} />
+
+        {/* Live Data widget */}
+        <LiveDataWidget />
+
         {/* Executive summary */}
         <Card className="overflow-hidden">
-          <div className="p-6 grid lg:grid-cols-[1.6fr_1fr] gap-6"
-               style={{ background: "linear-gradient(135deg, oklch(0.95 0.04 150 / 0.5), oklch(0.97 0.02 150 / 0.3))" }}>
+          <div
+            className="p-6 grid lg:grid-cols-[1.6fr_1fr] gap-6"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.95 0.04 150 / 0.5), oklch(0.97 0.02 150 / 0.3))",
+            }}
+          >
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-leaf/30 text-primary">
@@ -56,7 +225,9 @@ function OverviewPage() {
               <div className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-1.5">
                 <MapPin className="h-3 w-3" /> {PROJECT_FACTS.location} · {PROJECT_FACTS.area}
               </div>
-              <p className="mt-4 text-sm text-foreground/85 leading-relaxed max-w-2xl">{AI_SUMMARY}</p>
+              <p className="mt-4 text-sm text-foreground/85 leading-relaxed max-w-2xl">
+                {AI_SUMMARY}
+              </p>
               <div className="mt-5 grid grid-cols-3 gap-3 max-w-md">
                 <div>
                   <div className="text-xs text-muted-foreground">Datakvalitet</div>
@@ -64,11 +235,15 @@ function OverviewPage() {
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Biodiversitet</div>
-                  <div className="text-lg font-semibold mt-0.5">{PROJECT_FACTS.biodiversityIndex}/100</div>
+                  <div className="text-lg font-semibold mt-0.5">
+                    {PROJECT_FACTS.biodiversityIndex}/100
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Datakilder</div>
-                  <div className="text-lg font-semibold mt-0.5">{PROJECT_FACTS.activeDataSources}</div>
+                  <div className="text-lg font-semibold mt-0.5">
+                    {PROJECT_FACTS.activeDataSources}
+                  </div>
                 </div>
               </div>
             </div>
@@ -79,7 +254,9 @@ function OverviewPage() {
                 Klar til intern brug. Eksterne ESG-bilag kræver feltverifikation og dronemetadata.
               </div>
               <div className="space-y-1.5 pt-2 border-t">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kritiske mangler</div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Kritiske mangler
+                </div>
                 {PROJECT_FACTS.criticalGaps.map((g) => (
                   <div key={g} className="text-xs flex items-start gap-2">
                     <span className="mt-1 h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
@@ -87,7 +264,10 @@ function OverviewPage() {
                   </div>
                 ))}
               </div>
-              <Link to="/app/reports/readiness" className="text-sm text-primary inline-flex items-center gap-1 hover:underline">
+              <Link
+                to="/app/reports/readiness"
+                className="text-sm text-primary inline-flex items-center gap-1 hover:underline"
+              >
                 Se rapportklarhed <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -99,9 +279,13 @@ function OverviewPage() {
 
         {/* Module status cards */}
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Platform-status</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Platform-status
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            {PLATFORM_MODULES.map((m) => <ModuleStatusCard key={m.id} {...m} />)}
+            {PLATFORM_MODULES.map((m) => (
+              <ModuleStatusCard key={m.id} {...m} />
+            ))}
           </div>
         </div>
 
@@ -111,7 +295,14 @@ function OverviewPage() {
             <CardHeader
               title="Kritiske handlinger"
               subtitle="Prioriterede opgaver på tværs af modulerne"
-              action={<Link to="/app/decisions/recommendations" className="text-sm text-primary hover:underline">Se alle</Link>}
+              action={
+                <Link
+                  to="/app/decisions/recommendations"
+                  className="text-sm text-primary hover:underline"
+                >
+                  Se alle
+                </Link>
+              }
             />
             <CriticalActionsPanel items={CRITICAL_ACTIONS} />
           </Card>
@@ -156,10 +347,14 @@ function OverviewPage() {
           <div className="flex-1 min-w-[240px]">
             <div className="font-semibold text-sm">Klar til at samle Q2-rapporten?</div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              Træk data fra Smart Connect, anbefalinger fra DecisionsIQ, dokumentation fra ESG Ledger og portefølje fra Impact Exchange — i ét flow.
+              Træk data fra Smart Connect, anbefalinger fra DecisionsIQ, dokumentation fra ESG
+              Ledger og portefølje fra Impact Exchange — i ét flow.
             </div>
           </div>
-          <Link to="/app/reports/builder" className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium shadow-soft hover:opacity-95">
+          <Link
+            to="/app/reports/builder"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium shadow-soft hover:opacity-95"
+          >
             Åbn rapportbygger <ArrowRight className="h-4 w-4" />
           </Link>
         </Card>

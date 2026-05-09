@@ -13,6 +13,7 @@ import { Route as SelectRouteImport } from './routes/select'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppSystemTestRouteImport } from './routes/app.system-test'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppOverviewRouteImport } from './routes/app.overview'
@@ -23,9 +24,11 @@ import { Route as AppDataRouteImport } from './routes/app.data'
 import { Route as AppConnectRouteImport } from './routes/app.connect'
 import { Route as AppSettingsIndexRouteImport } from './routes/app.settings.index'
 import { Route as AppReportsIndexRouteImport } from './routes/app.reports.index'
+import { Route as AppProjectsIndexRouteImport } from './routes/app.projects.index'
 import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
 import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
+import { Route as AppConstructionIndexRouteImport } from './routes/app.construction.index'
 import { Route as AppConnectIndexRouteImport } from './routes/app.connect.index'
 import { Route as AppSettingsUsersRouteImport } from './routes/app.settings.users'
 import { Route as AppSettingsSecurityRouteImport } from './routes/app.settings.security'
@@ -42,6 +45,7 @@ import { Route as AppReportsNewRouteImport } from './routes/app.reports.new'
 import { Route as AppReportsLibraryRouteImport } from './routes/app.reports.library'
 import { Route as AppReportsBuilderRouteImport } from './routes/app.reports.builder'
 import { Route as AppReportsApprovalRouteImport } from './routes/app.reports.approval'
+import { Route as AppProjectsSlugRouteImport } from './routes/app.projects.$slug'
 import { Route as AppLedgerSourcesRouteImport } from './routes/app.ledger.sources'
 import { Route as AppLedgerReportingRouteImport } from './routes/app.ledger.reporting'
 import { Route as AppLedgerMetricsRouteImport } from './routes/app.ledger.metrics'
@@ -64,6 +68,7 @@ import { Route as AppDecisionsDataQualityRouteImport } from './routes/app.decisi
 import { Route as AppDecisionsAssistantRouteImport } from './routes/app.decisions.assistant'
 import { Route as AppConnectUploadRouteImport } from './routes/app.connect.upload'
 import { Route as AppConnectSourcesRouteImport } from './routes/app.connect.sources'
+import { Route as AppConnectRegistryRouteImport } from './routes/app.connect.registry'
 import { Route as AppConnectQualityRouteImport } from './routes/app.connect.quality'
 import { Route as AppConnectMapRouteImport } from './routes/app.connect.map'
 import { Route as AppConnectLiveRouteImport } from './routes/app.connect.live'
@@ -71,6 +76,7 @@ import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect
 import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
 import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
 import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
+import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
 
 const SelectRoute = SelectRouteImport.update({
   id: '/select',
@@ -91,6 +97,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppSystemTestRoute = AppSystemTestRouteImport.update({
+  id: '/system-test',
+  path: '/system-test',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
@@ -142,6 +153,11 @@ const AppReportsIndexRoute = AppReportsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppReportsRoute,
 } as any)
+const AppProjectsIndexRoute = AppProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLedgerIndexRoute = AppLedgerIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -156,6 +172,11 @@ const AppDecisionsIndexRoute = AppDecisionsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppDecisionsRoute,
+} as any)
+const AppConstructionIndexRoute = AppConstructionIndexRouteImport.update({
+  id: '/construction/',
+  path: '/construction/',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppConnectIndexRoute = AppConnectIndexRouteImport.update({
   id: '/',
@@ -237,6 +258,11 @@ const AppReportsApprovalRoute = AppReportsApprovalRouteImport.update({
   id: '/approval',
   path: '/approval',
   getParentRoute: () => AppReportsRoute,
+} as any)
+const AppProjectsSlugRoute = AppProjectsSlugRouteImport.update({
+  id: '/projects/$slug',
+  path: '/projects/$slug',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppLedgerSourcesRoute = AppLedgerSourcesRouteImport.update({
   id: '/sources',
@@ -349,6 +375,11 @@ const AppConnectSourcesRoute = AppConnectSourcesRouteImport.update({
   path: '/sources',
   getParentRoute: () => AppConnectRoute,
 } as any)
+const AppConnectRegistryRoute = AppConnectRegistryRouteImport.update({
+  id: '/registry',
+  path: '/registry',
+  getParentRoute: () => AppConnectRoute,
+} as any)
 const AppConnectQualityRoute = AppConnectQualityRouteImport.update({
   id: '/quality',
   path: '/quality',
@@ -384,6 +415,12 @@ const AppConnectAddRoute = AppConnectAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppConnectRoute,
 } as any)
+const AppConstructionProjectsSlugRoute =
+  AppConstructionProjectsSlugRouteImport.update({
+    id: '/construction/projects/$slug',
+    path: '/construction/projects/$slug',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -398,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/system-test': typeof AppSystemTestRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
@@ -405,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/app/connect/live': typeof AppConnectLiveRoute
   '/app/connect/map': typeof AppConnectMapRoute
   '/app/connect/quality': typeof AppConnectQualityRoute
+  '/app/connect/registry': typeof AppConnectRegistryRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/connect/upload': typeof AppConnectUploadRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
@@ -427,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/projects/$slug': typeof AppProjectsSlugRoute
   '/app/reports/approval': typeof AppReportsApprovalRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/library': typeof AppReportsLibraryRoute
@@ -443,11 +483,14 @@ export interface FileRoutesByFullPath {
   '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
   '/app/connect/': typeof AppConnectIndexRoute
+  '/app/construction/': typeof AppConstructionIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
+  '/app/projects/': typeof AppProjectsIndexRoute
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
+  '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -456,6 +499,7 @@ export interface FileRoutesByTo {
   '/select': typeof SelectRoute
   '/app/data': typeof AppDataRoute
   '/app/overview': typeof AppOverviewRoute
+  '/app/system-test': typeof AppSystemTestRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
@@ -463,6 +507,7 @@ export interface FileRoutesByTo {
   '/app/connect/live': typeof AppConnectLiveRoute
   '/app/connect/map': typeof AppConnectMapRoute
   '/app/connect/quality': typeof AppConnectQualityRoute
+  '/app/connect/registry': typeof AppConnectRegistryRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/connect/upload': typeof AppConnectUploadRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
@@ -485,6 +530,7 @@ export interface FileRoutesByTo {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/projects/$slug': typeof AppProjectsSlugRoute
   '/app/reports/approval': typeof AppReportsApprovalRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/library': typeof AppReportsLibraryRoute
@@ -501,11 +547,14 @@ export interface FileRoutesByTo {
   '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
   '/app/connect': typeof AppConnectIndexRoute
+  '/app/construction': typeof AppConstructionIndexRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
   '/app/impact': typeof AppImpactIndexRoute
   '/app/ledger': typeof AppLedgerIndexRoute
+  '/app/projects': typeof AppProjectsIndexRoute
   '/app/reports': typeof AppReportsIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
+  '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -521,6 +570,7 @@ export interface FileRoutesById {
   '/app/overview': typeof AppOverviewRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/system-test': typeof AppSystemTestRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
@@ -528,6 +578,7 @@ export interface FileRoutesById {
   '/app/connect/live': typeof AppConnectLiveRoute
   '/app/connect/map': typeof AppConnectMapRoute
   '/app/connect/quality': typeof AppConnectQualityRoute
+  '/app/connect/registry': typeof AppConnectRegistryRoute
   '/app/connect/sources': typeof AppConnectSourcesRoute
   '/app/connect/upload': typeof AppConnectUploadRoute
   '/app/decisions/assistant': typeof AppDecisionsAssistantRoute
@@ -550,6 +601,7 @@ export interface FileRoutesById {
   '/app/ledger/metrics': typeof AppLedgerMetricsRoute
   '/app/ledger/reporting': typeof AppLedgerReportingRoute
   '/app/ledger/sources': typeof AppLedgerSourcesRoute
+  '/app/projects/$slug': typeof AppProjectsSlugRoute
   '/app/reports/approval': typeof AppReportsApprovalRoute
   '/app/reports/builder': typeof AppReportsBuilderRoute
   '/app/reports/library': typeof AppReportsLibraryRoute
@@ -566,11 +618,14 @@ export interface FileRoutesById {
   '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
   '/app/connect/': typeof AppConnectIndexRoute
+  '/app/construction/': typeof AppConstructionIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
+  '/app/projects/': typeof AppProjectsIndexRoute
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
+  '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -587,6 +642,7 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/system-test'
     | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
@@ -594,6 +650,7 @@ export interface FileRouteTypes {
     | '/app/connect/live'
     | '/app/connect/map'
     | '/app/connect/quality'
+    | '/app/connect/registry'
     | '/app/connect/sources'
     | '/app/connect/upload'
     | '/app/decisions/assistant'
@@ -616,6 +673,7 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/projects/$slug'
     | '/app/reports/approval'
     | '/app/reports/builder'
     | '/app/reports/library'
@@ -632,11 +690,14 @@ export interface FileRouteTypes {
     | '/app/settings/security'
     | '/app/settings/users'
     | '/app/connect/'
+    | '/app/construction/'
     | '/app/decisions/'
     | '/app/impact/'
     | '/app/ledger/'
+    | '/app/projects/'
     | '/app/reports/'
     | '/app/settings/'
+    | '/app/construction/projects/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -645,6 +706,7 @@ export interface FileRouteTypes {
     | '/select'
     | '/app/data'
     | '/app/overview'
+    | '/app/system-test'
     | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
@@ -652,6 +714,7 @@ export interface FileRouteTypes {
     | '/app/connect/live'
     | '/app/connect/map'
     | '/app/connect/quality'
+    | '/app/connect/registry'
     | '/app/connect/sources'
     | '/app/connect/upload'
     | '/app/decisions/assistant'
@@ -674,6 +737,7 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/projects/$slug'
     | '/app/reports/approval'
     | '/app/reports/builder'
     | '/app/reports/library'
@@ -690,11 +754,14 @@ export interface FileRouteTypes {
     | '/app/settings/security'
     | '/app/settings/users'
     | '/app/connect'
+    | '/app/construction'
     | '/app/decisions'
     | '/app/impact'
     | '/app/ledger'
+    | '/app/projects'
     | '/app/reports'
     | '/app/settings'
+    | '/app/construction/projects/$slug'
   id:
     | '__root__'
     | '/'
@@ -709,6 +776,7 @@ export interface FileRouteTypes {
     | '/app/overview'
     | '/app/reports'
     | '/app/settings'
+    | '/app/system-test'
     | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
@@ -716,6 +784,7 @@ export interface FileRouteTypes {
     | '/app/connect/live'
     | '/app/connect/map'
     | '/app/connect/quality'
+    | '/app/connect/registry'
     | '/app/connect/sources'
     | '/app/connect/upload'
     | '/app/decisions/assistant'
@@ -738,6 +807,7 @@ export interface FileRouteTypes {
     | '/app/ledger/metrics'
     | '/app/ledger/reporting'
     | '/app/ledger/sources'
+    | '/app/projects/$slug'
     | '/app/reports/approval'
     | '/app/reports/builder'
     | '/app/reports/library'
@@ -754,11 +824,14 @@ export interface FileRouteTypes {
     | '/app/settings/security'
     | '/app/settings/users'
     | '/app/connect/'
+    | '/app/construction/'
     | '/app/decisions/'
     | '/app/impact/'
     | '/app/ledger/'
+    | '/app/projects/'
     | '/app/reports/'
     | '/app/settings/'
+    | '/app/construction/projects/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -797,6 +870,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/app/system-test': {
+      id: '/app/system-test'
+      path: '/system-test'
+      fullPath: '/app/system-test'
+      preLoaderRoute: typeof AppSystemTestRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/settings': {
       id: '/app/settings'
@@ -868,6 +948,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsIndexRouteImport
       parentRoute: typeof AppReportsRoute
     }
+    '/app/projects/': {
+      id: '/app/projects/'
+      path: '/projects'
+      fullPath: '/app/projects/'
+      preLoaderRoute: typeof AppProjectsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/ledger/': {
       id: '/app/ledger/'
       path: '/'
@@ -888,6 +975,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/decisions/'
       preLoaderRoute: typeof AppDecisionsIndexRouteImport
       parentRoute: typeof AppDecisionsRoute
+    }
+    '/app/construction/': {
+      id: '/app/construction/'
+      path: '/construction'
+      fullPath: '/app/construction/'
+      preLoaderRoute: typeof AppConstructionIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/connect/': {
       id: '/app/connect/'
@@ -1000,6 +1094,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/reports/approval'
       preLoaderRoute: typeof AppReportsApprovalRouteImport
       parentRoute: typeof AppReportsRoute
+    }
+    '/app/projects/$slug': {
+      id: '/app/projects/$slug'
+      path: '/projects/$slug'
+      fullPath: '/app/projects/$slug'
+      preLoaderRoute: typeof AppProjectsSlugRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/ledger/sources': {
       id: '/app/ledger/sources'
@@ -1155,6 +1256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectSourcesRouteImport
       parentRoute: typeof AppConnectRoute
     }
+    '/app/connect/registry': {
+      id: '/app/connect/registry'
+      path: '/registry'
+      fullPath: '/app/connect/registry'
+      preLoaderRoute: typeof AppConnectRegistryRouteImport
+      parentRoute: typeof AppConnectRoute
+    }
     '/app/connect/quality': {
       id: '/app/connect/quality'
       path: '/quality'
@@ -1204,6 +1312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectAddRouteImport
       parentRoute: typeof AppConnectRoute
     }
+    '/app/construction/projects/$slug': {
+      id: '/app/construction/projects/$slug'
+      path: '/construction/projects/$slug'
+      fullPath: '/app/construction/projects/$slug'
+      preLoaderRoute: typeof AppConstructionProjectsSlugRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -1215,6 +1330,7 @@ interface AppConnectRouteChildren {
   AppConnectLiveRoute: typeof AppConnectLiveRoute
   AppConnectMapRoute: typeof AppConnectMapRoute
   AppConnectQualityRoute: typeof AppConnectQualityRoute
+  AppConnectRegistryRoute: typeof AppConnectRegistryRoute
   AppConnectSourcesRoute: typeof AppConnectSourcesRoute
   AppConnectUploadRoute: typeof AppConnectUploadRoute
   AppConnectIndexRoute: typeof AppConnectIndexRoute
@@ -1228,6 +1344,7 @@ const AppConnectRouteChildren: AppConnectRouteChildren = {
   AppConnectLiveRoute: AppConnectLiveRoute,
   AppConnectMapRoute: AppConnectMapRoute,
   AppConnectQualityRoute: AppConnectQualityRoute,
+  AppConnectRegistryRoute: AppConnectRegistryRoute,
   AppConnectSourcesRoute: AppConnectSourcesRoute,
   AppConnectUploadRoute: AppConnectUploadRoute,
   AppConnectIndexRoute: AppConnectIndexRoute,
@@ -1376,6 +1493,11 @@ interface AppRouteChildren {
   AppOverviewRoute: typeof AppOverviewRoute
   AppReportsRoute: typeof AppReportsRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppSystemTestRoute: typeof AppSystemTestRoute
+  AppProjectsSlugRoute: typeof AppProjectsSlugRoute
+  AppConstructionIndexRoute: typeof AppConstructionIndexRoute
+  AppProjectsIndexRoute: typeof AppProjectsIndexRoute
+  AppConstructionProjectsSlugRoute: typeof AppConstructionProjectsSlugRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1387,6 +1509,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppOverviewRoute: AppOverviewRoute,
   AppReportsRoute: AppReportsRouteWithChildren,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppSystemTestRoute: AppSystemTestRoute,
+  AppProjectsSlugRoute: AppProjectsSlugRoute,
+  AppConstructionIndexRoute: AppConstructionIndexRoute,
+  AppProjectsIndexRoute: AppProjectsIndexRoute,
+  AppConstructionProjectsSlugRoute: AppConstructionProjectsSlugRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -1400,3 +1527,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

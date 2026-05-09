@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import React from "react";
 import {
   LayoutDashboard,
   Brain,
@@ -13,10 +14,17 @@ import {
   Map,
   Upload,
   Users,
+  FolderOpen,
+  Globe,
+  FlaskConical,
+  Radio,
 } from "lucide-react";
 import { useAuth, getCurrentOrg, getCurrentProject } from "@/lib/auth";
 
-const GROUPS: { label: string; items: { to: string; label: string; icon: any }[] }[] = [
+type SidebarItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
+type SidebarGroup = { label: string; items: SidebarItem[] };
+
+const GROUPS: SidebarGroup[] = [
   {
     label: "Hovedmenu",
     items: [{ to: "/app/overview", label: "Oversigt", icon: LayoutDashboard }],
@@ -27,12 +35,15 @@ const GROUPS: { label: string; items: { to: string; label: string; icon: any }[]
       { to: "/app/connect", label: "Smart Connect", icon: Cable },
       { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
       { to: "/app/connect/upload", label: "Upload Center", icon: Upload },
+      { to: "/app/connect/registry", label: "Connector Registry", icon: Globe },
       { to: "/app/decisions", label: "DecisionsIQ", icon: Brain },
+      { to: "/app/system-test", label: "Live Data", icon: Radio },
     ],
   },
   {
     label: "Impact & Dokumentation",
     items: [
+      { to: "/app/projects", label: "Projekter", icon: FolderOpen },
       { to: "/app/impact", label: "Impact Exchange", icon: Repeat2 },
       { to: "/app/ledger", label: "ESG Ledger", icon: BookCheck },
     ],
@@ -47,6 +58,13 @@ const GROUPS: { label: string; items: { to: string; label: string; icon: any }[]
       { to: "/app/settings", label: "Organisation", icon: Settings },
       { to: "/app/settings/users", label: "Brugere & roller", icon: Users },
       { to: "/app/data", label: "Datakilder", icon: Database },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { to: "/app/system-test", label: "System Test", icon: FlaskConical },
+      { to: "/app/connect/registry", label: "Live Data Status", icon: Radio },
     ],
   },
 ];
@@ -77,7 +95,9 @@ export function AppSidebar() {
           {org?.name.slice(0, 2).toUpperCase() ?? "—"}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-sidebar-muted truncate">{org?.name ?? "Vælg organisation"}</div>
+          <div className="text-xs text-sidebar-muted truncate">
+            {org?.name ?? "Vælg organisation"}
+          </div>
           <div className="text-sm font-medium truncate">{project?.name ?? "Intet projekt"}</div>
         </div>
         <ChevronsUpDown className="h-4 w-4 text-sidebar-muted" />

@@ -1,21 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Search, Filter, LayoutGrid, Table as TableIcon, Sparkles, X, ArrowRightLeft, ShieldCheck } from "lucide-react";
+import {
+  Search,
+  Filter,
+  LayoutGrid,
+  Table as TableIcon,
+  Sparkles,
+  X,
+  ArrowRightLeft,
+  ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+} from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import {
   ProjectCard,
   CategoryBadge,
   VerificationBadge,
   RiskBadge,
-  ReportingPill,
   DataQualityScore,
   fmt,
 } from "@/components/impact/Primitives";
 import { PROJECTS, CATEGORIES } from "@/lib/impact-data";
 import { usePortfolio, useCompare } from "@/lib/impact-state";
+import { getAllNatureProjectSummaries } from "@/services/projects-service";
+import { DEFAULT_ORG_ID } from "@/data/platform-seed";
+import type { NatureProjectSummary } from "@/lib/supabase/types";
+
+// ─── Query ────────────────────────────────────────────────────────────────────
+
+const projectSummariesQuery = {
+  queryKey: ["nature-project-summaries", DEFAULT_ORG_ID],
+  queryFn: () => getAllNatureProjectSummaries(DEFAULT_ORG_ID),
+};
 
 export const Route = createFileRoute("/app/impact/projects")({
   head: () => ({ meta: [{ title: "Projekter — Impact Exchange" }] }),
+  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(projectSummariesQuery),
   component: ProjectsPage,
 });
 
@@ -33,6 +56,76 @@ const FILTERS = [
   "Rapportklar",
 ];
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function NatureMonitorCard({ summary }: { summary: NatureProjectSummary }) {
+  const bioIndicator = summary.indicators.find((i) => i.key === "biodiversity_index");
+  const qualityIndicator = summary.indicators.find((i) => i.key === "data_quality");
+  const readinessIndicator = summary.indicators.find((i) => i.key === "report_readiness");
+
+  const TrendIcon = ({ trend }: { trend: string | null }) => {
+    if (trend === "up") return <TrendingUp className="h-3 w-3 text-emerald-500" />;
+    if (trend === "down") return <TrendingDown className="h-3 w-3 text-red-500" />;
+    return <Minus className="h-3 w-3 text-muted-foreground" />;
+  };
+
+  const statusColor = (s: string | null) =>
+    s === "Verificeret"
+      ? "text-emerald-600"
+      : s === "Under verifikation"
+        ? "text-amber-600"
+        : "text-muted-foreground";
+
+  return (
+    <div className="rounded-xl border bg-card p-4 flex flex-col gap-3 hover:shadow-sm transition-shadow">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="font-semibold text-sm leading-snug">{summary.project.name}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {summary.project.location_name} · {summary.project.project_type}
+          </div>
+        </div>
+        <span
+          className={`text-xs font-medium whitespace-nowrap ${statusColor(summary.project.status)}`}
+        >
+          {summary.project.status}
+        </span>
+      </div>
+
+      {/* Indicator pills */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: "Biodiversitet", ind: bioIndicator },
+          { label: "Datakvalitet", ind: qualityIndicator },
+          { label: "Rapportklarhed", ind: readinessIndicator },
+        ].map(({ label, ind }) => (
+          <div key={label} className="rounded-lg bg-muted/50 px-2.5 py-2">
+            <div className="text-[10px] text-muted-foreground">{label}</div>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-sm font-semibold tabular-nums">
+                {ind ? `${ind.value}${ind.unit ?? ""}` : "—"}
+              </span>
+              {ind && <TrendIcon trend={ind.trend} />}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2 mt-1">
+        <span>{summary.activeDataSources} aktive datakilder</span>
+        {summary.latestAuditEvent && (
+          <span className="truncate max-w-[160px]" title={summary.latestAuditEvent.title}>
+            {summary.latestAuditEvent.actor}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 function ProjectsPage() {
   const [view, setView] = useState<"grid" | "table">("grid");
   const [q, setQ] = useState("");
@@ -40,10 +133,19 @@ function ProjectsPage() {
   const portfolio = usePortfolio();
   const compare = useCompare();
 
+  // Live data from service layer (falls back to seed transparently)
+  const { data: summaries } = useSuspenseQuery(projectSummariesQuery);
+
   const filtered = useMemo(() => {
     return PROJECTS.filter((p) => {
       if (cat !== "Alle" && p.category !== cat) return false;
-      if (q && !`${p.title} ${p.country} ${p.location} ${p.category}`.toLowerCase().includes(q.toLowerCase())) return false;
+      if (
+        q &&
+        !`${p.title} ${p.country} ${p.location} ${p.category}`
+          .toLowerCase()
+          .includes(q.toLowerCase())
+      )
+        return false;
       return true;
     });
   }, [q, cat]);
@@ -52,6 +154,22 @@ function ProjectsPage() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5 pb-32">
+      {/* Nature Project Monitor — live from service layer */}
+      {summaries.length > 0 && (
+        <Card>
+          <CardHeader
+            title="Nature Project Monitor"
+            subtitle="Aktuelle projekter · indikatorer hentet fra datalaget"
+            action={<Pill tone="info">{summaries.length} projekter</Pill>}
+          />
+          <div className="px-5 pb-5 grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {summaries.map((s) => (
+              <NatureMonitorCard key={s.project.id} summary={s} />
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Search & filter */}
       <Card className="p-4">
         <div className="flex flex-col lg:flex-row gap-3">
@@ -100,7 +218,10 @@ function ProjectsPage() {
         </div>
         <div className="flex flex-wrap gap-1.5 mt-2">
           {FILTERS.map((f) => (
-            <button key={f} className="text-xs px-2.5 py-1 rounded-full bg-muted/50 hover:bg-muted inline-flex items-center gap-1">
+            <button
+              key={f}
+              className="text-xs px-2.5 py-1 rounded-full bg-muted/50 hover:bg-muted inline-flex items-center gap-1"
+            >
               <Filter className="h-3 w-3" /> {f}
             </button>
           ))}
@@ -132,7 +253,10 @@ function ProjectsPage() {
                   <Sparkles className="h-3 w-3 text-primary" /> {r.tag}
                 </div>
                 <div className="font-medium text-sm">{p.title}</div>
-                <div className="flex flex-wrap gap-1.5"><CategoryBadge category={p.category} /><VerificationBadge status={p.verification} /></div>
+                <div className="flex flex-wrap gap-1.5">
+                  <CategoryBadge category={p.category} />
+                  <VerificationBadge status={p.verification} />
+                </div>
               </Link>
             );
           })}
@@ -180,19 +304,37 @@ function ProjectsPage() {
                 <tr key={p.id} className="hover:bg-muted/30">
                   <td className="px-5 py-3 font-medium">{p.title}</td>
                   <td>{p.country}</td>
-                  <td><CategoryBadge category={p.category} /></td>
+                  <td>
+                    <CategoryBadge category={p.category} />
+                  </td>
                   <td className="text-right tabular-nums">{fmt(p.co2ePotential)} t</td>
                   <td className="text-right tabular-nums">{p.biodiversityIndex}</td>
                   <td className="text-right tabular-nums">{fmt(p.hectares)} ha</td>
-                  <td><VerificationBadge status={p.verification} /></td>
-                  <td className="pr-3"><DataQualityScore value={p.dataQuality} label="" /></td>
-                  <td><RiskBadge level={p.risk} /></td>
+                  <td>
+                    <VerificationBadge status={p.verification} />
+                  </td>
+                  <td className="pr-3">
+                    <DataQualityScore value={p.dataQuality} label="" />
+                  </td>
+                  <td>
+                    <RiskBadge level={p.risk} />
+                  </td>
                   <td className="text-right tabular-nums">{p.pricePerUnit} kr</td>
                   <td className="pr-5">
                     <div className="flex gap-1">
-                      <Link to="/app/impact/project" className="text-xs text-primary hover:underline">Se</Link>
+                      <Link
+                        to="/app/impact/project"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Se
+                      </Link>
                       <span className="text-muted-foreground">·</span>
-                      <button onClick={() => compare.toggle(p.id)} className="text-xs hover:underline">Sammenlign</button>
+                      <button
+                        onClick={() => compare.toggle(p.id)}
+                        className="text-xs hover:underline"
+                      >
+                        Sammenlign
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -212,7 +354,10 @@ function ProjectsPage() {
                 Sammenligning ({compareProjects.length}/4)
               </div>
               <div className="flex gap-2">
-                <button onClick={compare.clear} className="text-xs inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={compare.clear}
+                  className="text-xs inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                >
                   <X className="h-3 w-3" /> Ryd
                 </button>
               </div>
@@ -232,19 +377,24 @@ function ProjectsPage() {
                 </thead>
                 <tbody className="divide-y">
                   {[
-                    ["CO₂e potentiale", (p: any) => `${fmt(p.co2ePotential)} t`],
-                    ["Biodiversitetsindeks", (p: any) => `${p.biodiversityIndex}/100`],
-                    ["Areal", (p: any) => `${fmt(p.hectares)} ha`],
-                    ["Datakvalitet", (p: any) => `${p.dataQuality}%`],
-                    ["Verifikation", (p: any) => p.verification],
-                    ["Risiko", (p: any) => p.risk],
-                    ["Rapportering", (p: any) => p.reporting],
-                    ["Pris pr. enhed", (p: any) => `${p.pricePerUnit} kr`],
+                    ["CO₂e potentiale", (p: (typeof PROJECTS)[0]) => `${fmt(p.co2ePotential)} t`],
+                    [
+                      "Biodiversitetsindeks",
+                      (p: (typeof PROJECTS)[0]) => `${p.biodiversityIndex}/100`,
+                    ],
+                    ["Areal", (p: (typeof PROJECTS)[0]) => `${fmt(p.hectares)} ha`],
+                    ["Datakvalitet", (p: (typeof PROJECTS)[0]) => `${p.dataQuality}%`],
+                    ["Verifikation", (p: (typeof PROJECTS)[0]) => p.verification],
+                    ["Risiko", (p: (typeof PROJECTS)[0]) => p.risk],
+                    ["Rapportering", (p: (typeof PROJECTS)[0]) => p.reporting],
+                    ["Pris pr. enhed", (p: (typeof PROJECTS)[0]) => `${p.pricePerUnit} kr`],
                   ].map(([label, fn]) => (
                     <tr key={label as string}>
                       <td className="py-2 pr-3 text-muted-foreground">{label as string}</td>
                       {compareProjects.map((p) => (
-                        <td key={p.id} className="py-2 pr-3 tabular-nums">{(fn as any)(p)}</td>
+                        <td key={p.id} className="py-2 pr-3 tabular-nums">
+                          {(fn as (p: (typeof PROJECTS)[0]) => string)(p)}
+                        </td>
                       ))}
                     </tr>
                   ))}
@@ -252,7 +402,10 @@ function ProjectsPage() {
               </table>
             </div>
             <div className="flex justify-end gap-2 mt-3">
-              <Link to="/app/impact/portfolio" className="text-xs rounded-lg border px-3 py-1.5 hover:bg-muted">
+              <Link
+                to="/app/impact/portfolio"
+                className="text-xs rounded-lg border px-3 py-1.5 hover:bg-muted"
+              >
                 Føj alle til portefølje
               </Link>
               <button className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1">

@@ -95,6 +95,12 @@
   --sidebar-border: oklch(0.3 0.04 155);
 }
 
+/* Leaflet z-index fixes — prevent Leaflet panes from overlapping Radix/shadcn modals and dropdowns */
+.leaflet-pane { z-index: 40 !important; }
+.leaflet-top, .leaflet-bottom { z-index: 45 !important; }
+.leaflet-popup-pane { z-index: 46 !important; }
+.leaflet-tooltip-pane { z-index: 47 !important; }
+
 @layer base {
   * {
     border-color: var(--color-border);
