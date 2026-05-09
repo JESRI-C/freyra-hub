@@ -36,7 +36,8 @@ export function useCompare() {
     sessionStorage.setItem(COMPARE_KEY, JSON.stringify(ids));
   }, [ids]);
   const toggle = useCallback(
-    (id: string) => setIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length >= 4 ? s : [...s, id])),
+    (id: string) =>
+      setIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length >= 4 ? s : [...s, id])),
     [],
   );
   const clear = useCallback(() => setIds([]), []);

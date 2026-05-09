@@ -24,11 +24,31 @@ type EvidenceLabel = {
 };
 
 const EVIDENCE_TYPES: EvidenceLabel[] = [
-  { key: "site_plan", label: "Situationsplan", types: ["situationsplan", "site_plan", "kortlægning"] },
-  { key: "runoff_calculation", label: "Hydrauliske beregninger", types: ["hydraulisk", "beregning", "runoff_calculation"] },
-  { key: "drainage_plan", label: "Drænplan / LAR-plan", types: ["drænplan", "lar", "drainage_plan", "afstrømning"] },
-  { key: "baseline_photo", label: "Basislinje fotodokumentation", types: ["foto", "basislinje", "baselinestudie", "baseline_photo"] },
-  { key: "water_sampling", label: "Vandprøveanalyse", types: ["vandprøve", "water_sampling", "vandkvalitet"] },
+  {
+    key: "site_plan",
+    label: "Situationsplan",
+    types: ["situationsplan", "site_plan", "kortlægning"],
+  },
+  {
+    key: "runoff_calculation",
+    label: "Hydrauliske beregninger",
+    types: ["hydraulisk", "beregning", "runoff_calculation"],
+  },
+  {
+    key: "drainage_plan",
+    label: "Drænplan / LAR-plan",
+    types: ["drænplan", "lar", "drainage_plan", "afstrømning"],
+  },
+  {
+    key: "baseline_photo",
+    label: "Basislinje fotodokumentation",
+    types: ["foto", "basislinje", "baselinestudie", "baseline_photo"],
+  },
+  {
+    key: "water_sampling",
+    label: "Vandprøveanalyse",
+    types: ["vandprøve", "water_sampling", "vandkvalitet"],
+  },
 ];
 
 function matchEvidenceType(file: EvidenceFile, types: string[]): boolean {
@@ -45,7 +65,11 @@ function buildEvidenceChecklist(
   });
 }
 
-function formatBooleanDa(val: boolean | null | undefined, trueStr: string, falseStr: string): string {
+function formatBooleanDa(
+  val: boolean | null | undefined,
+  trueStr: string,
+  falseStr: string,
+): string {
   if (val === null || val === undefined) return "ikke oplyst";
   return val ? trueStr : falseStr;
 }
@@ -53,7 +77,16 @@ function formatBooleanDa(val: boolean | null | undefined, trueStr: string, false
 export function generateConstructionAuthorityReport(
   summary: ConstructionProjectSummary,
 ): ConstructionAuthorityReport {
-  const { project, constructionExt, natureContext, runoffProfile, risks, mitigations, submissions, evidenceFiles } = summary;
+  const {
+    project,
+    constructionExt,
+    natureContext,
+    runoffProfile,
+    risks,
+    mitigations,
+    submissions,
+    evidenceFiles,
+  } = summary;
 
   // Title
   const title = `Myndighedsrapport — ${project.name}`;
@@ -63,12 +96,17 @@ export function generateConstructionAuthorityReport(
   if (project.description) descParts.push(project.description);
   if (constructionExt) {
     const parts: string[] = [];
-    if (constructionExt.construction_type) parts.push(`Bygningstype: ${constructionExt.construction_type}`);
-    if (constructionExt.construction_phase) parts.push(`Fase: ${constructionExt.construction_phase}`);
+    if (constructionExt.construction_type)
+      parts.push(`Bygningstype: ${constructionExt.construction_type}`);
+    if (constructionExt.construction_phase)
+      parts.push(`Fase: ${constructionExt.construction_phase}`);
     if (constructionExt.developer_name) parts.push(`Bygherre: ${constructionExt.developer_name}`);
-    if (constructionExt.contractor_name) parts.push(`Totalentreprenør: ${constructionExt.contractor_name}`);
-    if (constructionExt.building_area_m2) parts.push(`Bebygget areal: ${constructionExt.building_area_m2.toLocaleString("da-DK")} m²`);
-    if (constructionExt.paved_area_m2) parts.push(`Befæstet areal: ${constructionExt.paved_area_m2.toLocaleString("da-DK")} m²`);
+    if (constructionExt.contractor_name)
+      parts.push(`Totalentreprenør: ${constructionExt.contractor_name}`);
+    if (constructionExt.building_area_m2)
+      parts.push(`Bebygget areal: ${constructionExt.building_area_m2.toLocaleString("da-DK")} m²`);
+    if (constructionExt.paved_area_m2)
+      parts.push(`Befæstet areal: ${constructionExt.paved_area_m2.toLocaleString("da-DK")} m²`);
     if (parts.length > 0) descParts.push(parts.join(" · "));
   }
   const projectDescription = descParts.join("\n\n") || "Ingen projektbeskrivelse registreret.";
@@ -117,18 +155,29 @@ export function generateConstructionAuthorityReport(
   let runoffSummary = "Ingen afstrømningsprofil registreret.";
   if (runoffProfile) {
     const lines: string[] = [];
-    if (runoffProfile.runoff_destination) lines.push(`Afstrømningsdestination: ${runoffProfile.runoff_destination}`);
-    if (runoffProfile.drainage_principle) lines.push(`Princip: ${runoffProfile.drainage_principle}`);
-    if (runoffProfile.retention_solution) lines.push(`Forsinkelse/tilbageholdelse: ${runoffProfile.retention_solution}`);
-    if (runoffProfile.treatment_solution) lines.push(`Rensning: ${runoffProfile.treatment_solution}`);
-    lines.push(`Olieudskiller: ${formatBooleanDa(runoffProfile.oil_separator_present, "Ja", "Nej")}`);
-    lines.push(`Sedimentkontrol: ${formatBooleanDa(runoffProfile.sediment_control_present, "Ja", "Nej")}`);
+    if (runoffProfile.runoff_destination)
+      lines.push(`Afstrømningsdestination: ${runoffProfile.runoff_destination}`);
+    if (runoffProfile.drainage_principle)
+      lines.push(`Princip: ${runoffProfile.drainage_principle}`);
+    if (runoffProfile.retention_solution)
+      lines.push(`Forsinkelse/tilbageholdelse: ${runoffProfile.retention_solution}`);
+    if (runoffProfile.treatment_solution)
+      lines.push(`Rensning: ${runoffProfile.treatment_solution}`);
+    lines.push(
+      `Olieudskiller: ${formatBooleanDa(runoffProfile.oil_separator_present, "Ja", "Nej")}`,
+    );
+    lines.push(
+      `Sedimentkontrol: ${formatBooleanDa(runoffProfile.sediment_control_present, "Ja", "Nej")}`,
+    );
     if (runoffProfile.estimated_runoff_volume_m3 != null) {
       lines.push(`Estimeret volumen: ${runoffProfile.estimated_runoff_volume_m3} m³`);
     }
-    if (runoffProfile.design_rain_event) lines.push(`Dimensioneringshændelse: ${runoffProfile.design_rain_event}`);
-    if (runoffProfile.discharge_point_description) lines.push(`Udledningspunkt: ${runoffProfile.discharge_point_description}`);
-    if (runoffProfile.maintenance_responsibility) lines.push(`Driftsansvar: ${runoffProfile.maintenance_responsibility}`);
+    if (runoffProfile.design_rain_event)
+      lines.push(`Dimensioneringshændelse: ${runoffProfile.design_rain_event}`);
+    if (runoffProfile.discharge_point_description)
+      lines.push(`Udledningspunkt: ${runoffProfile.discharge_point_description}`);
+    if (runoffProfile.maintenance_responsibility)
+      lines.push(`Driftsansvar: ${runoffProfile.maintenance_responsibility}`);
     runoffSummary = lines.join("\n");
   }
 

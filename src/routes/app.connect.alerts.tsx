@@ -1,8 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle2, Clock, Sparkles, Send, ExternalLink } from "lucide-react";
+import {
+  Bell,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  Send,
+  ExternalLink,
+} from "lucide-react";
 import { Card, PageHeader, Bars } from "@/components/ui-bits";
-import { ConnectionHealthCard, SeverityBadge, Drawer, Section, Chip } from "@/components/connect/Primitives";
+import {
+  ConnectionHealthCard,
+  SeverityBadge,
+  Drawer,
+  Section,
+  Chip,
+} from "@/components/connect/Primitives";
 import { ALERTS } from "@/lib/connect-data";
 
 export const Route = createFileRoute("/app/connect/alerts")({
@@ -11,27 +27,60 @@ export const Route = createFileRoute("/app/connect/alerts")({
 
 function Page() {
   const [filter, setFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<typeof ALERTS[0] | null>(null);
+  const [selected, setSelected] = useState<(typeof ALERTS)[0] | null>(null);
   const filtered = filter === "all" ? ALERTS : ALERTS.filter((a) => a.severity === filter);
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-      <PageHeader title="Alerts" description="Aktive alerts, hændelser og data-operations issues." />
+      <PageHeader
+        title="Alerts"
+        description="Aktive alerts, hændelser og data-operations issues."
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <ConnectionHealthCard label="Aktive alerts" value="17" icon={<Bell className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Kritiske" value="3" tone="danger" icon={<AlertTriangle className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Medium" value="6" tone="warning" icon={<AlertCircle className="h-5 w-5" />} />
+        <ConnectionHealthCard
+          label="Aktive alerts"
+          value="17"
+          icon={<Bell className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Kritiske"
+          value="3"
+          tone="danger"
+          icon={<AlertTriangle className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Medium"
+          value="6"
+          tone="warning"
+          icon={<AlertCircle className="h-5 w-5" />}
+        />
         <ConnectionHealthCard label="Lav" value="8" icon={<Info className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Løst denne uge" value="12" tone="success" icon={<CheckCircle2 className="h-5 w-5" />} />
+        <ConnectionHealthCard
+          label="Løst denne uge"
+          value="12"
+          tone="success"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+        />
         <ConnectionHealthCard label="Ø svartid" value="2 t" icon={<Clock className="h-5 w-5" />} />
       </div>
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground mr-2">Severity:</span>
-          {[["all", "Alle"], ["critical", "Kritisk"], ["medium", "Medium"], ["low", "Lav"]].map(([k, l]) => (
-            <button key={k} onClick={() => setFilter(k)} className={`text-xs px-3 py-1.5 rounded-lg border ${filter === k ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}>{l}</button>
+          {[
+            ["all", "Alle"],
+            ["critical", "Kritisk"],
+            ["medium", "Medium"],
+            ["low", "Lav"],
+          ].map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => setFilter(k)}
+              className={`text-xs px-3 py-1.5 rounded-lg border ${filter === k ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"}`}
+            >
+              {l}
+            </button>
           ))}
         </div>
       </Card>
@@ -54,18 +103,28 @@ function Page() {
             </thead>
             <tbody className="divide-y">
               {filtered.map((a) => (
-                <tr key={a.id} className="hover:bg-muted/40 cursor-pointer" onClick={() => setSelected(a)}>
+                <tr
+                  key={a.id}
+                  className="hover:bg-muted/40 cursor-pointer"
+                  onClick={() => setSelected(a)}
+                >
                   <td className="px-4 py-3">
                     <div className="font-medium">{a.title}</div>
                     <div className="text-[11px] text-muted-foreground">{a.id}</div>
                   </td>
-                  <td className="px-4 py-3"><SeverityBadge severity={a.severity} /></td>
+                  <td className="px-4 py-3">
+                    <SeverityBadge severity={a.severity} />
+                  </td>
                   <td className="px-4 py-3 text-xs">{a.project}</td>
                   <td className="px-4 py-3 text-xs">{a.source}</td>
-                  <td className="px-4 py-3 text-xs"><Chip>{a.type}</Chip></td>
+                  <td className="px-4 py-3 text-xs">
+                    <Chip>{a.type}</Chip>
+                  </td>
                   <td className="px-4 py-3 text-xs">{a.first}</td>
                   <td className="px-4 py-3 text-xs">{a.last}</td>
-                  <td className="px-4 py-3 text-xs"><Chip tone={a.status === "Åben" ? "muted" : "primary"}>{a.status}</Chip></td>
+                  <td className="px-4 py-3 text-xs">
+                    <Chip tone={a.status === "Åben" ? "muted" : "primary"}>{a.status}</Chip>
+                  </td>
                   <td className="px-4 py-3 text-xs">{a.owner}</td>
                 </tr>
               ))}
@@ -76,22 +135,37 @@ function Page() {
 
       <div className="grid lg:grid-cols-2 gap-4">
         <Section title="Alerts over tid" subtitle="Sidste 7 dage by severity">
-          <Bars data={[
-            { label: "Man", value: 4 }, { label: "Tir", value: 6 },
-            { label: "Ons", value: 3 }, { label: "Tor", value: 8 },
-            { label: "Fre", value: 5 }, { label: "Lør", value: 2 }, { label: "Søn", value: 7 },
-          ]} />
+          <Bars
+            data={[
+              { label: "Man", value: 4 },
+              { label: "Tir", value: 6 },
+              { label: "Ons", value: 3 },
+              { label: "Tor", value: 8 },
+              { label: "Fre", value: 5 },
+              { label: "Lør", value: 2 },
+              { label: "Søn", value: 7 },
+            ]}
+          />
         </Section>
 
         <Card className="p-5 bg-gradient-to-br from-card to-leaf/15">
           <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center"><Sparkles className="h-5 w-5" /></div>
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
+              <Sparkles className="h-5 w-5" />
+            </div>
             <div>
               <div className="text-sm font-semibold">Operationelle anbefalinger</div>
               <ul className="text-sm mt-2 space-y-1.5 text-foreground/90 list-disc pl-5">
-                <li>Indfør automatisk batteri-alert ved 25% for kameratraps for at reducere "Low battery" alerts.</li>
-                <li>Aktivér token rotation på Airtable for at undgå tilbagevendende "Expiring token".</li>
-                <li>Tilføj duplikat-detektion på Scope 3 CSV-import for at undgå manuelle re-uploads.</li>
+                <li>
+                  Indfør automatisk batteri-alert ved 25% for kameratraps for at reducere "Low
+                  battery" alerts.
+                </li>
+                <li>
+                  Aktivér token rotation på Airtable for at undgå tilbagevendende "Expiring token".
+                </li>
+                <li>
+                  Tilføj duplikat-detektion på Scope 3 CSV-import for at undgå manuelle re-uploads.
+                </li>
               </ul>
             </div>
           </div>
@@ -103,12 +177,20 @@ function Page() {
         onClose={() => setSelected(null)}
         title={selected?.title ?? ""}
         subtitle={selected?.id}
-        footer={<>
-          <button className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5">Marker som løst</button>
-          <button className="text-xs rounded-lg border bg-card px-3 py-1.5">Opret opgave</button>
-          <button className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5"><Send className="h-3.5 w-3.5" /> Send til DecisionsIQ</button>
-          <button className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5"><ExternalLink className="h-3.5 w-3.5" /> Se datakilde</button>
-        </>}
+        footer={
+          <>
+            <button className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5">
+              Marker som løst
+            </button>
+            <button className="text-xs rounded-lg border bg-card px-3 py-1.5">Opret opgave</button>
+            <button className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5">
+              <Send className="h-3.5 w-3.5" /> Send til DecisionsIQ
+            </button>
+            <button className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5">
+              <ExternalLink className="h-3.5 w-3.5" /> Se datakilde
+            </button>
+          </>
+        }
       >
         {selected && (
           <>

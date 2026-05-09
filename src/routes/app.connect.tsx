@@ -1,6 +1,15 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Cpu, Database, Plug, Activity, Map, ShieldCheck, Bell, Plus, UploadCloud,
+  LayoutDashboard,
+  Cpu,
+  Database,
+  Plug,
+  Activity,
+  Map,
+  ShieldCheck,
+  Bell,
+  Plus,
+  UploadCloud,
 } from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
 

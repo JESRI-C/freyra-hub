@@ -25,7 +25,14 @@ import {
 } from "@/components/impact/Primitives";
 import { PROJECTS, CATEGORIES } from "@/lib/impact-data";
 import { usePortfolio, useCompare } from "@/lib/impact-state";
-import { ModuleHeader, ActivityFeed, CriticalActionsPanel, CrossModuleLink, ReportReadinessBadge, actionToast } from "@/components/platform/Primitives";
+import {
+  ModuleHeader,
+  ActivityFeed,
+  CriticalActionsPanel,
+  CrossModuleLink,
+  ReportReadinessBadge,
+  actionToast,
+} from "@/components/platform/Primitives";
 import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
 
 export const Route = createFileRoute("/app/impact/")({
@@ -33,7 +40,14 @@ export const Route = createFileRoute("/app/impact/")({
   component: OverviewPage,
 });
 
-const FILTER_CHIPS = ["Alle", "Skov & natur", "Klimaprojekter", "Biodiversitet", "Jord & landbrug", "Vand & hav"];
+const FILTER_CHIPS = [
+  "Alle",
+  "Skov & natur",
+  "Klimaprojekter",
+  "Biodiversitet",
+  "Jord & landbrug",
+  "Vand & hav",
+];
 
 function OverviewPage() {
   const portfolio = usePortfolio();
@@ -41,9 +55,21 @@ function OverviewPage() {
   const featured = PROJECTS.slice(0, 4);
 
   const verifSegments = [
-    { label: "Verificeret", value: PROJECTS.filter((p) => p.verification === "Verificeret").length, color: "oklch(0.65 0.15 150)" },
-    { label: "Under verifikation", value: PROJECTS.filter((p) => p.verification === "Under verifikation").length, color: "oklch(0.78 0.14 75)" },
-    { label: "Planlagt", value: PROJECTS.filter((p) => p.verification === "Planlagt").length, color: "oklch(0.7 0.02 160)" },
+    {
+      label: "Verificeret",
+      value: PROJECTS.filter((p) => p.verification === "Verificeret").length,
+      color: "oklch(0.65 0.15 150)",
+    },
+    {
+      label: "Under verifikation",
+      value: PROJECTS.filter((p) => p.verification === "Under verifikation").length,
+      color: "oklch(0.78 0.14 75)",
+    },
+    {
+      label: "Planlagt",
+      value: PROJECTS.filter((p) => p.verification === "Planlagt").length,
+      color: "oklch(0.7 0.02 160)",
+    },
   ];
 
   return (
@@ -56,8 +82,16 @@ function OverviewPage() {
         freshness="1 time"
         status="Verificeret"
         readiness={PROJECT_FACTS.reportReadiness}
-        primaryCta={{ label: "Find projekter", to: "/app/impact/projects", icon: <Search className="h-4 w-4" /> }}
-        secondaryCta={{ label: "Se portefølje", to: "/app/impact/portfolio", icon: <Globe2 className="h-4 w-4" /> }}
+        primaryCta={{
+          label: "Find projekter",
+          to: "/app/impact/projects",
+          icon: <Search className="h-4 w-4" />,
+        }}
+        secondaryCta={{
+          label: "Se portefølje",
+          to: "/app/impact/portfolio",
+          icon: <Globe2 className="h-4 w-4" />,
+        }}
       />
 
       <div className="flex flex-wrap gap-2">
@@ -78,7 +112,9 @@ function OverviewPage() {
                 <button
                   key={c}
                   className={`text-xs px-2.5 py-1 rounded-full border ${
-                    c === "Alle" ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"
+                    c === "Alle"
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "hover:bg-muted"
                   }`}
                 >
                   {c}
@@ -94,10 +130,33 @@ function OverviewPage() {
 
       {/* Impact summary */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <ImpactMetricCard label="Aktive projekter" value="28" icon={<Leaf className="h-4 w-4" />} hint="+3 denne måned" />
-        <ImpactMetricCard label="CO₂e potentiale" value="1,24" unit="M ton" icon={<Trees className="h-4 w-4" />} hint="Akkumuleret over 10 år" />
-        <ImpactMetricCard label="Areal beskyttet" value="56.320" unit="ha" icon={<Sprout className="h-4 w-4" />} hint="Beskyttet + restaureret" />
-        <ImpactMetricCard label="Biodiversitetsindeks" value="78" unit="/100" icon={<Waves className="h-4 w-4" />} hint="Vægtet gennemsnit" />
+        <ImpactMetricCard
+          label="Aktive projekter"
+          value="28"
+          icon={<Leaf className="h-4 w-4" />}
+          hint="+3 denne måned"
+        />
+        <ImpactMetricCard
+          label="CO₂e potentiale"
+          value="1,24"
+          unit="M ton"
+          icon={<Trees className="h-4 w-4" />}
+          hint="Akkumuleret over 10 år"
+        />
+        <ImpactMetricCard
+          label="Areal beskyttet"
+          value="56.320"
+          unit="ha"
+          icon={<Sprout className="h-4 w-4" />}
+          hint="Beskyttet + restaureret"
+        />
+        <ImpactMetricCard
+          label="Biodiversitetsindeks"
+          value="78"
+          unit="/100"
+          icon={<Waves className="h-4 w-4" />}
+          hint="Vægtet gennemsnit"
+        />
       </div>
 
       {/* Verification trust */}
@@ -107,9 +166,12 @@ function OverviewPage() {
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-semibold">Alle projekter er verificerede eller under tredjepartsverifikation</div>
+            <div className="font-semibold">
+              Alle projekter er verificerede eller under tredjepartsverifikation
+            </div>
             <p className="text-sm text-muted-foreground mt-0.5 max-w-2xl">
-              Hvert projekt er knyttet til en akkrediteret partner, en metodik og en sporbar audit-trail i ESG Ledger.
+              Hvert projekt er knyttet til en akkrediteret partner, en metodik og en sporbar
+              audit-trail i ESG Ledger.
             </p>
           </div>
         </div>
@@ -124,7 +186,9 @@ function OverviewPage() {
       {/* Featured grid */}
       <div>
         <div className="flex items-baseline justify-between mb-3">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Udvalgte projekter</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Udvalgte projekter
+          </h3>
           <Link to="/app/impact/projects" className="text-sm text-primary hover:underline">
             Se alle 28 →
           </Link>
@@ -145,25 +209,56 @@ function OverviewPage() {
 
       <div className="grid lg:grid-cols-3 gap-5">
         <Card className="lg:col-span-2">
-          <CardHeader title="Impact over tid" subtitle="CO₂e reduceret · areal beskyttet · biodiversitetsudvikling" />
+          <CardHeader
+            title="Impact over tid"
+            subtitle="CO₂e reduceret · areal beskyttet · biodiversitetsudvikling"
+          />
           <div className="px-5 pb-5">
             <ImpactChart
               series={[
-                { label: "CO₂e", values: [120, 138, 154, 172, 189, 206], color: "oklch(0.5 0.13 155)" },
+                {
+                  label: "CO₂e",
+                  values: [120, 138, 154, 172, 189, 206],
+                  color: "oklch(0.5 0.13 155)",
+                },
                 { label: "Areal", values: [40, 52, 58, 64, 71, 78], color: "oklch(0.78 0.14 75)" },
-                { label: "Biodiversitet", values: [62, 64, 67, 70, 73, 78], color: "oklch(0.65 0.15 150)" },
+                {
+                  label: "Biodiversitet",
+                  values: [62, 64, 67, 70, 73, 78],
+                  color: "oklch(0.65 0.15 150)",
+                },
               ]}
             />
             <div className="flex gap-4 text-xs text-muted-foreground mt-2">
-              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: "oklch(0.5 0.13 155)" }} />CO₂e (kt)</span>
-              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: "oklch(0.78 0.14 75)" }} />Areal (kha)</span>
-              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: "oklch(0.65 0.15 150)" }} />Biodiversitetsindeks</span>
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-sm"
+                  style={{ background: "oklch(0.5 0.13 155)" }}
+                />
+                CO₂e (kt)
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-sm"
+                  style={{ background: "oklch(0.78 0.14 75)" }}
+                />
+                Areal (kha)
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-sm"
+                  style={{ background: "oklch(0.65 0.15 150)" }}
+                />
+                Biodiversitetsindeks
+              </span>
             </div>
           </div>
         </Card>
         <Card>
           <CardHeader title="Verifikationsstatus" subtitle="Fordeling af projekter" />
-          <div className="px-5 pb-5"><Donut segments={verifSegments} /></div>
+          <div className="px-5 pb-5">
+            <Donut segments={verifSegments} />
+          </div>
         </Card>
       </div>
 
@@ -172,21 +267,32 @@ function OverviewPage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="font-semibold">Projektkategorier</div>
-            <div className="text-xs text-muted-foreground">Otte tematiske kategorier af verificeret impact</div>
+            <div className="text-xs text-muted-foreground">
+              Otte tematiske kategorier af verificeret impact
+            </div>
           </div>
-          <Link to="/app/impact/projects" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+          <Link
+            to="/app/impact/projects"
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+          >
             Filtrér <Filter className="h-3 w-3" />
           </Link>
         </div>
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((c) => <CategoryBadge key={c} category={c} />)}
+          {CATEGORIES.map((c) => (
+            <CategoryBadge key={c} category={c} />
+          ))}
         </div>
       </Card>
 
       {/* CTA */}
       <Card className="overflow-hidden">
-        <div className="p-6 grid md:grid-cols-[1fr_auto] gap-4 items-center"
-             style={{ background: "linear-gradient(135deg, oklch(0.94 0.06 150), oklch(0.97 0.02 150))" }}>
+        <div
+          className="p-6 grid md:grid-cols-[1fr_auto] gap-4 items-center"
+          style={{
+            background: "linear-gradient(135deg, oklch(0.94 0.06 150), oklch(0.97 0.02 150))",
+          }}
+        >
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
               <Building2 className="h-5 w-5" />
@@ -194,8 +300,8 @@ function OverviewPage() {
             <div>
               <div className="font-semibold">Skab reel impact</div>
               <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                Sæt verificerede natur- og klimaprojekter ind i din ESG-dokumentation. Bliv partner og få adgang til
-                vores marketplace, ledger og verifikationspartnere.
+                Sæt verificerede natur- og klimaprojekter ind i din ESG-dokumentation. Bliv partner
+                og få adgang til vores marketplace, ledger og verifikationspartnere.
               </p>
             </div>
           </div>
@@ -208,18 +314,31 @@ function OverviewPage() {
       {/* Cross-module actions */}
       <Card className="p-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">Projekt-handlinger</div>
-          <button onClick={() => actionToast("Projektet er føjet til porteføljen")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mr-1">
+            Projekt-handlinger
+          </div>
+          <button
+            onClick={() => actionToast("Projektet er føjet til porteføljen")}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted"
+          >
             <Globe2 className="h-3.5 w-3.5" /> Føj til portefølje
           </button>
-          <button onClick={() => actionToast("Dokumentation sendt til ESG Ledger")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+          <button
+            onClick={() => actionToast("Dokumentation sendt til ESG Ledger")}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted"
+          >
             <FileBarChart className="h-3.5 w-3.5" /> Send til ESG Ledger
           </button>
-          <button onClick={() => actionToast("Projektet bruges i rapportudkast")} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted">
+          <button
+            onClick={() => actionToast("Projektet bruges i rapportudkast")}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border bg-background hover:bg-muted"
+          >
             <FileText className="h-3.5 w-3.5" /> Brug i rapport
           </button>
           <CrossModuleLink to="/app/decisions" label="Analysér med DecisionsIQ" />
-          <span className="ml-auto"><ReportReadinessBadge value={86} /></span>
+          <span className="ml-auto">
+            <ReportReadinessBadge value={86} />
+          </span>
         </div>
       </Card>
 
@@ -230,7 +349,11 @@ function OverviewPage() {
         </Card>
         <Card>
           <CardHeader title="Kritiske handlinger" subtitle="På tværs af porteføljen" />
-          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "Impact Exchange" || c.module === "ESG Ledger").slice(0, 3)} />
+          <CriticalActionsPanel
+            items={CRITICAL_ACTIONS.filter(
+              (c) => c.module === "Impact Exchange" || c.module === "ESG Ledger",
+            ).slice(0, 3)}
+          />
         </Card>
       </div>
     </main>

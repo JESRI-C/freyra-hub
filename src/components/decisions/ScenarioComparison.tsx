@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 
 export function ScenarioComparison({
-  scenarios, selectedIds,
+  scenarios,
+  selectedIds,
 }: {
   scenarios: { id: string; name: string; metrics: Record<string, number> }[];
   selectedIds: string[];
@@ -14,15 +15,27 @@ export function ScenarioComparison({
     { key: "data", label: "Datadækning", max: 100 },
     { key: "risk", label: "Risikoniveau", max: 100, invert: true },
   ];
-  const visible = useMemo(() => scenarios.filter((s) => selectedIds.includes(s.id)), [scenarios, selectedIds]);
-  const palette = ["var(--primary)", "var(--leaf)", "var(--warning)", "var(--destructive)", "var(--muted-foreground)"];
+  const visible = useMemo(
+    () => scenarios.filter((s) => selectedIds.includes(s.id)),
+    [scenarios, selectedIds],
+  );
+  const palette = [
+    "var(--primary)",
+    "var(--leaf)",
+    "var(--warning)",
+    "var(--destructive)",
+    "var(--muted-foreground)",
+  ];
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3 text-xs">
         {visible.map((s, i) => (
           <div key={s.id} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: palette[i % palette.length] }} />
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ background: palette[i % palette.length] }}
+            />
             {s.name}
           </div>
         ))}
@@ -33,7 +46,9 @@ export function ScenarioComparison({
           <div key={l.key}>
             <div className="flex justify-between text-xs mb-1.5">
               <span className="text-muted-foreground">{l.label}</span>
-              <span className="text-muted-foreground">{l.invert ? "lavere = bedre" : "højere = bedre"}</span>
+              <span className="text-muted-foreground">
+                {l.invert ? "lavere = bedre" : "højere = bedre"}
+              </span>
             </div>
             <div className="space-y-1.5">
               {visible.map((s, i) => {
@@ -43,7 +58,10 @@ export function ScenarioComparison({
                   <div key={s.id} className="flex items-center gap-3">
                     <div className="text-xs w-44 truncate text-muted-foreground">{s.name}</div>
                     <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: palette[i % palette.length] }} />
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${pct}%`, background: palette[i % palette.length] }}
+                      />
                     </div>
                     <div className="text-xs w-16 text-right tabular-nums font-medium">
                       {l.key === "bio" ? v.toFixed(2) : v}

@@ -113,7 +113,14 @@ export function MiniSpark({ values, color = "var(--leaf)" }: { values: number[];
   });
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-20 h-7">
-      <path d={`M ${pts.join(" L ")}`} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={`M ${pts.join(" L ")}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -232,7 +239,14 @@ export function Donut({
     <div className="flex items-center gap-5">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="oklch(0.94 0.01 150)" strokeWidth="14" />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="oklch(0.94 0.01 150)"
+            strokeWidth="14"
+          />
           {segments.map((s, i) => {
             const len = (s.value / total) * c;
             const dasharray = `${len} ${c - len}`;
@@ -256,7 +270,9 @@ export function Donut({
         {centerLabel && (
           <div className="absolute inset-0 grid place-items-center text-center">
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{centerLabel}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {centerLabel}
+              </div>
               <div className="text-xl font-semibold tabular-nums">{centerValue}</div>
             </div>
           </div>
@@ -304,7 +320,10 @@ export function Drawer({
             <div className="font-semibold truncate">{title}</div>
             {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
           </div>
-          <button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-muted text-xl leading-none">
+          <button
+            onClick={onClose}
+            className="h-8 w-8 grid place-items-center rounded-lg hover:bg-muted text-xl leading-none"
+          >
             ×
           </button>
         </div>

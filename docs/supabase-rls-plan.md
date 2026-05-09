@@ -156,17 +156,17 @@ create policy "admins+ can manage memberships"
 
 ## Summary
 
-| Table | Read | Insert | Update | Delete |
-|---|---|---|---|---|
-| organizations | member | — | owner | — |
-| projects | member | editor+ | editor+ | admin+ |
-| sites | member | editor+ | editor+ | admin+ |
-| data_sources | member | editor+ | editor+ | admin+ |
-| sensors | member | editor+ | editor+ | admin+ |
-| observations | member | editor+ | — | — |
-| indicators | member | editor+ | editor+ | — |
-| reports | member | editor+ | editor+ | — |
-| evidence_files | member | editor+ | — | — |
-| audit_events | member | editor+ | — (immutable) | — (immutable) |
-| actions | member | editor+ | editor+ | admin+ |
-| impact_units | member | admin+ | admin+ | — |
+| Table          | Read   | Insert  | Update        | Delete        |
+| -------------- | ------ | ------- | ------------- | ------------- |
+| organizations  | member | —       | owner         | —             |
+| projects       | member | editor+ | editor+       | admin+        |
+| sites          | member | editor+ | editor+       | admin+        |
+| data_sources   | member | editor+ | editor+       | admin+        |
+| sensors        | member | editor+ | editor+       | admin+        |
+| observations   | member | editor+ | —             | —             |
+| indicators     | member | editor+ | editor+       | —             |
+| reports        | member | editor+ | editor+       | —             |
+| evidence_files | member | editor+ | —             | —             |
+| audit_events   | member | editor+ | — (immutable) | — (immutable) |
+| actions        | member | editor+ | editor+       | admin+        |
+| impact_units   | member | admin+  | admin+        | —             |

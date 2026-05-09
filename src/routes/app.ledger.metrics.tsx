@@ -27,14 +27,64 @@ function MetricsPage() {
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
       {/* Dashboard cards */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <ESGMetricCard label="Total CO₂e" value="41.200" unit="t" trend={-8} icon={<Cloud className="h-4 w-4" />} />
-        <ESGMetricCard label="Energiforbrug" value="14.820" unit="MWh" trend={-7} icon={<Plug className="h-4 w-4" />} />
-        <ESGMetricCard label="Vandforbrug" value="38.400" unit="m³" trend={2} icon={<Droplets className="h-4 w-4" />} tone="warning" />
-        <ESGMetricCard label="Affald" value="412" unit="t" trend={-11} icon={<Trash2 className="h-4 w-4" />} />
-        <ESGMetricCard label="Biodiversitetsindeks" value="78" unit="/100" trend={6} icon={<Sprout className="h-4 w-4" />} tone="success" />
-        <ESGMetricCard label="Naturimpact score" value="71" unit="/100" trend={4} icon={<Sprout className="h-4 w-4" />} />
-        <ESGMetricCard label="Datadækning" value="91" unit="%" trend={3} icon={<Database className="h-4 w-4" />} />
-        <ESGMetricCard label="Verifikationsniveau" value="74" unit="%" trend={5} icon={<FileText className="h-4 w-4" />} />
+        <ESGMetricCard
+          label="Total CO₂e"
+          value="41.200"
+          unit="t"
+          trend={-8}
+          icon={<Cloud className="h-4 w-4" />}
+        />
+        <ESGMetricCard
+          label="Energiforbrug"
+          value="14.820"
+          unit="MWh"
+          trend={-7}
+          icon={<Plug className="h-4 w-4" />}
+        />
+        <ESGMetricCard
+          label="Vandforbrug"
+          value="38.400"
+          unit="m³"
+          trend={2}
+          icon={<Droplets className="h-4 w-4" />}
+          tone="warning"
+        />
+        <ESGMetricCard
+          label="Affald"
+          value="412"
+          unit="t"
+          trend={-11}
+          icon={<Trash2 className="h-4 w-4" />}
+        />
+        <ESGMetricCard
+          label="Biodiversitetsindeks"
+          value="78"
+          unit="/100"
+          trend={6}
+          icon={<Sprout className="h-4 w-4" />}
+          tone="success"
+        />
+        <ESGMetricCard
+          label="Naturimpact score"
+          value="71"
+          unit="/100"
+          trend={4}
+          icon={<Sprout className="h-4 w-4" />}
+        />
+        <ESGMetricCard
+          label="Datadækning"
+          value="91"
+          unit="%"
+          trend={3}
+          icon={<Database className="h-4 w-4" />}
+        />
+        <ESGMetricCard
+          label="Verifikationsniveau"
+          value="74"
+          unit="%"
+          trend={5}
+          icon={<FileText className="h-4 w-4" />}
+        />
       </div>
 
       {/* Charts */}
@@ -45,9 +95,21 @@ function MetricsPage() {
             <LineChart
               series={[
                 { label: "CO₂e", values: [48, 47, 46, 44, 43, 41], color: "oklch(0.5 0.13 155)" },
-                { label: "Energi", values: [16.2, 15.9, 15.4, 15.1, 14.9, 14.82], color: "oklch(0.78 0.14 75)" },
-                { label: "Vand", values: [36, 36.5, 37, 37.4, 37.9, 38.4], color: "oklch(0.5 0.13 220)" },
-                { label: "Biodiversitet", values: [70, 72, 73, 75, 76, 78], color: "oklch(0.65 0.15 150)" },
+                {
+                  label: "Energi",
+                  values: [16.2, 15.9, 15.4, 15.1, 14.9, 14.82],
+                  color: "oklch(0.78 0.14 75)",
+                },
+                {
+                  label: "Vand",
+                  values: [36, 36.5, 37, 37.4, 37.9, 38.4],
+                  color: "oklch(0.5 0.13 220)",
+                },
+                {
+                  label: "Biodiversitet",
+                  values: [70, 72, 73, 75, 76, 78],
+                  color: "oklch(0.65 0.15 150)",
+                },
               ]}
             />
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-2">
@@ -78,7 +140,10 @@ function MetricsPage() {
 
       {/* Metrics table */}
       <Card className="overflow-hidden">
-        <CardHeader title="Alle ESG-metrikker" subtitle="Klik på en metrik for detaljer og audit-events" />
+        <CardHeader
+          title="Alle ESG-metrikker"
+          subtitle="Klik på en metrik for detaljer og audit-events"
+        />
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-muted-foreground border-y bg-muted/40">
             <tr>
@@ -96,21 +161,41 @@ function MetricsPage() {
           </thead>
           <tbody className="divide-y">
             {METRICS.map((m) => (
-              <tr key={m.id} className="hover:bg-muted/30 cursor-pointer" onClick={() => setOpenId(m.id)}>
+              <tr
+                key={m.id}
+                className="hover:bg-muted/30 cursor-pointer"
+                onClick={() => setOpenId(m.id)}
+              >
                 <td className="px-5 py-3 font-medium">{m.name}</td>
-                <td><Pill>{m.category}</Pill></td>
+                <td>
+                  <Pill>{m.category}</Pill>
+                </td>
                 <td className="text-right tabular-nums">{m.value.toLocaleString("da-DK")}</td>
                 <td className="text-xs">{m.unit}</td>
                 <td>
                   <div className="flex items-center gap-2">
-                    <MiniSpark values={m.trendValues} color={m.trendPct >= 0 ? "var(--leaf)" : "oklch(0.5 0.13 155)"} />
-                    <span className={`text-xs tabular-nums ${m.trendPct >= 0 ? "text-success" : "text-success"}`}>{m.trendPct > 0 ? "+" : ""}{m.trendPct}%</span>
+                    <MiniSpark
+                      values={m.trendValues}
+                      color={m.trendPct >= 0 ? "var(--leaf)" : "oklch(0.5 0.13 155)"}
+                    />
+                    <span
+                      className={`text-xs tabular-nums ${m.trendPct >= 0 ? "text-success" : "text-success"}`}
+                    >
+                      {m.trendPct > 0 ? "+" : ""}
+                      {m.trendPct}%
+                    </span>
                   </div>
                 </td>
                 <td className="text-xs text-muted-foreground">{m.source}</td>
-                <td className="pr-3"><ReadinessScore label="" value={m.confidence} size="sm" /></td>
-                <td><VerificationStatusBadge status={m.verification} /></td>
-                <td><ReportingStatusPill status={m.reporting} /></td>
+                <td className="pr-3">
+                  <ReadinessScore label="" value={m.confidence} size="sm" />
+                </td>
+                <td>
+                  <VerificationStatusBadge status={m.verification} />
+                </td>
+                <td>
+                  <ReportingStatusPill status={m.reporting} />
+                </td>
                 <td className="text-xs">{m.owner}</td>
               </tr>
             ))}
@@ -133,10 +218,15 @@ function MetricsPage() {
             <div key={l as string}>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">{l}</span>
-                <span className="font-medium tabular-nums">{v} / {max}</span>
+                <span className="font-medium tabular-nums">
+                  {v} / {max}
+                </span>
               </div>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1">
-                <div className="h-full bg-leaf" style={{ width: `${((v as number) / (max as number)) * 100}%` }} />
+                <div
+                  className="h-full bg-leaf"
+                  style={{ width: `${((v as number) / (max as number)) * 100}%` }}
+                />
               </div>
             </div>
           ))}
@@ -151,8 +241,12 @@ function MetricsPage() {
         subtitle={open ? `${open.category} · opdateret ${open.lastUpdated}` : ""}
         footer={
           <div className="flex gap-2 justify-end">
-            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">Se i audit trail</button>
-            <button className="text-sm rounded-lg bg-primary text-primary-foreground px-3 py-2">Anvend i rapport</button>
+            <button className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">
+              Se i audit trail
+            </button>
+            <button className="text-sm rounded-lg bg-primary text-primary-foreground px-3 py-2">
+              Anvend i rapport
+            </button>
           </div>
         }
       >
@@ -169,16 +263,27 @@ function MetricsPage() {
             <div>
               <div className="text-xs text-muted-foreground mb-1">Audit-events</div>
               <ul className="rounded-xl border divide-y text-xs">
-                <li className="px-3 py-2 flex justify-between"><span>Senest opdateret</span><span className="text-muted-foreground">{open.lastUpdated}</span></li>
-                <li className="px-3 py-2 flex justify-between"><span>Sidst valideret</span><span className="text-muted-foreground">2026-05-04</span></li>
-                <li className="px-3 py-2 flex justify-between"><span>Anvendt i rapport</span><span className="text-muted-foreground">ESG-bilag Q1 2026</span></li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>Senest opdateret</span>
+                  <span className="text-muted-foreground">{open.lastUpdated}</span>
+                </li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>Sidst valideret</span>
+                  <span className="text-muted-foreground">2026-05-04</span>
+                </li>
+                <li className="px-3 py-2 flex justify-between">
+                  <span>Anvendt i rapport</span>
+                  <span className="text-muted-foreground">ESG-bilag Q1 2026</span>
+                </li>
               </ul>
             </div>
             <div className="rounded-xl border p-3 flex items-start gap-2.5 bg-leaf/10">
               <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div className="text-xs">
                 <div className="font-medium">Anbefalet forbedring</div>
-                <div className="text-muted-foreground mt-0.5">Tilføj manuel feltvalidering for at hæve konfidens over 90%.</div>
+                <div className="text-muted-foreground mt-0.5">
+                  Tilføj manuel feltvalidering for at hæve konfidens over 90%.
+                </div>
               </div>
             </div>
           </div>

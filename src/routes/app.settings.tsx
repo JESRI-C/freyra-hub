@@ -1,5 +1,15 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Building2, FolderKanban, Users, ShieldCheck, Boxes, BookOpen, Bell, KeyRound, CreditCard } from "lucide-react";
+import {
+  Building2,
+  FolderKanban,
+  Users,
+  ShieldCheck,
+  Boxes,
+  BookOpen,
+  Bell,
+  KeyRound,
+  CreditCard,
+} from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/settings")({
@@ -23,7 +33,10 @@ function SettingsLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <>
-      <AppTopbar title="Indstillinger" subtitle="Kontrolcenter for organisation, projekter, brugere og platform" />
+      <AppTopbar
+        title="Indstillinger"
+        subtitle="Kontrolcenter for organisation, projekter, brugere og platform"
+      />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
@@ -31,8 +44,11 @@ function SettingsLayout() {
               const active = t.exact ? path === t.to : path.startsWith(t.to);
               const Icon = t.icon;
               return (
-                <Link key={t.to} to={t.to as any}
-                  className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${active ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                <Link
+                  key={t.to}
+                  to={t.to as any}
+                  className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${active ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                >
                   <Icon className="h-4 w-4" /> {t.label}
                 </Link>
               );

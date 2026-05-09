@@ -62,20 +62,20 @@ The app will now read from Supabase instead of the TypeScript seed data.
 
 ## Schema overview
 
-| Table | Description |
-|---|---|
-| `organizations` | Tenant / organization owning projects |
-| `projects` | Nature/impact projects |
-| `sites` | Geographic zones within a project |
-| `data_sources` | IoT sensors, APIs, CSV uploads, satellite feeds |
-| `sensors` | Individual physical sensor devices |
-| `observations` | Raw time-series data points |
-| `indicators` | Aggregated KPIs per project (biodiversity index, CO₂e, etc.) |
-| `reports` | Generated ESG/nature reports |
-| `evidence_files` | Files attached to reports |
-| `audit_events` | Immutable audit trail |
-| `actions` | Open tasks and recommended actions |
-| `impact_units` | Issued impact credits / nature units |
+| Table            | Description                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| `organizations`  | Tenant / organization owning projects                        |
+| `projects`       | Nature/impact projects                                       |
+| `sites`          | Geographic zones within a project                            |
+| `data_sources`   | IoT sensors, APIs, CSV uploads, satellite feeds              |
+| `sensors`        | Individual physical sensor devices                           |
+| `observations`   | Raw time-series data points                                  |
+| `indicators`     | Aggregated KPIs per project (biodiversity index, CO₂e, etc.) |
+| `reports`        | Generated ESG/nature reports                                 |
+| `evidence_files` | Files attached to reports                                    |
+| `audit_events`   | Immutable audit trail                                        |
+| `actions`        | Open tasks and recommended actions                           |
+| `impact_units`   | Issued impact credits / nature units                         |
 
 ## Row Level Security
 

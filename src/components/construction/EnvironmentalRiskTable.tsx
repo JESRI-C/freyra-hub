@@ -49,9 +49,7 @@ export function EnvironmentalRiskTable({ risks }: Props) {
         subtitle={`${localRisks.length} risici registreret`}
         action={
           <div className="flex gap-1.5">
-            {criticalCount > 0 && (
-              <Pill tone="danger">{criticalCount} kritiske/høje åbne</Pill>
-            )}
+            {criticalCount > 0 && <Pill tone="danger">{criticalCount} kritiske/høje åbne</Pill>}
             <Pill tone={openCount > 0 ? "warning" : "success"}>{openCount} åbne</Pill>
           </div>
         }

@@ -173,21 +173,31 @@ async function getAuditForProject(projectId: string): Promise<AuditEvent[]> {
 
 // ─── Summary assembly ─────────────────────────────────────────────────────────
 
-async function assembleConstructionSummary(projectId: string): Promise<ConstructionProjectSummary | null> {
+async function assembleConstructionSummary(
+  projectId: string,
+): Promise<ConstructionProjectSummary | null> {
   const project = SEED_PROJECTS.find((p) => p.id === projectId) ?? null;
   if (!project) return null;
 
-  const [constructionExt, natureContext, runoffProfile, risks, mitigations, submissions, evidenceFiles, auditEvents] =
-    await Promise.all([
-      getConstructionExtension(projectId),
-      getNatureContext(projectId),
-      getRunoffProfile(projectId),
-      getEnvironmentalRisks(projectId),
-      getMitigationMeasures(projectId),
-      getAuthoritySubmissions(projectId),
-      getEvidenceForProject(projectId),
-      getAuditForProject(projectId),
-    ]);
+  const [
+    constructionExt,
+    natureContext,
+    runoffProfile,
+    risks,
+    mitigations,
+    submissions,
+    evidenceFiles,
+    auditEvents,
+  ] = await Promise.all([
+    getConstructionExtension(projectId),
+    getNatureContext(projectId),
+    getRunoffProfile(projectId),
+    getEnvironmentalRisks(projectId),
+    getMitigationMeasures(projectId),
+    getAuthoritySubmissions(projectId),
+    getEvidenceForProject(projectId),
+    getAuditForProject(projectId),
+  ]);
 
   const partialSummary = {
     project,
