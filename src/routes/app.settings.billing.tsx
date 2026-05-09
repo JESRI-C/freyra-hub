@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Card, StatCard } from "@/components/ui-bits";
 import { Section, StatusPill } from "@/components/settings/Primitives";
 import { PLAN, USAGE, PLANS, INVOICES } from "@/lib/settings-data";
-import { CreditCard, Zap, ArrowUpRight, Mail, FileText, Info, CheckCircle2 } from "lucide-react";
+import { CreditCard, Zap, ArrowUpRight, Mail, FileText, Info, CheckCircle2, X } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/billing")({
   head: () => ({ meta: [{ title: "Abonnement — GoFreyra" }] }),
@@ -14,6 +15,8 @@ function fmt(n: number) {
 }
 
 function BillingPage() {
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   return (
     <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -34,7 +37,7 @@ function BillingPage() {
               <div className="mt-1 text-2xl font-semibold">{PLAN.current}</div>
               <div className="text-sm text-muted-foreground mt-1">{PLAN.price} · Fornys {PLAN.renewal}</div>
             </div>
-            <button className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm inline-flex items-center gap-2"><ArrowUpRight className="h-4 w-4" /> Opgradér</button>
+            <button onClick={() => setShowUpgradeModal(true)} className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm inline-flex items-center gap-2"><ArrowUpRight className="h-4 w-4" /> Opgradér</button>
           </div>
           <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
             <Mini label="Brugere" v="8 / 25" />
@@ -131,6 +134,42 @@ function BillingPage() {
           </ul>
         </Section>
       </div>
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="relative w-full max-w-md rounded-2xl bg-card border shadow-lg p-6 mx-4">
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-4 right-4 rounded-lg p-1 hover:bg-muted transition-colors"
+              aria-label="Luk"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl grid place-items-center bg-leaf/30 text-primary">
+                <ArrowUpRight className="h-5 w-5" />
+              </div>
+              <h2 className="text-lg font-semibold">Opgradér din plan</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              Kontakt os for at opgradere til Enterprise eller tilpasse din plan.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="rounded-xl border bg-card px-4 py-2 text-sm"
+              >
+                Annuller
+              </button>
+              <a
+                href="mailto:sales@gofreyra.com"
+                className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm inline-flex items-center gap-2"
+              >
+                <Mail className="h-4 w-4" /> Kontakt salg
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

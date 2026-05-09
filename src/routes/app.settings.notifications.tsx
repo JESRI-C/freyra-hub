@@ -1,19 +1,60 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, StatCard } from "@/components/ui-bits";
 import { Section, Toggle, StatusPill, Drawer, Field, Select } from "@/components/settings/Primitives";
 import { ALERT_RULES, type AlertRule } from "@/lib/settings-data";
-import { Bell, Mail, MonitorSmartphone, Settings as SettingsIcon, Users } from "lucide-react";
+import { Bell, Mail, MonitorSmartphone, Settings as SettingsIcon, Users, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/notifications")({
   head: () => ({ meta: [{ title: "Notifikationer — GoFreyra" }] }),
   component: NotificationsPage,
 });
 
+const LS_KEY = "freyra:settings:notifications";
+
+type GlobalSettings = {
+  email: boolean;
+  inApp: boolean;
+  push: boolean;
+  digest: boolean;
+  quietHours: boolean;
+};
+
+const DEFAULT_GLOBALS: GlobalSettings = {
+  email: true,
+  inApp: true,
+  push: false,
+  digest: true,
+  quietHours: true,
+};
+
 function NotificationsPage() {
   const [rules, setRules] = useState(ALERT_RULES);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [globals, setGlobals] = useState<GlobalSettings>(DEFAULT_GLOBALS);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { globals?: GlobalSettings; rules?: typeof ALERT_RULES };
+        if (parsed.globals) setGlobals(parsed.globals);
+        if (parsed.rules) setRules(parsed.rules);
+      } catch {
+        // ignore malformed data
+      }
+    }
+  }, []);
+
   const setRule = (i: number, patch: Partial<AlertRule>) => setRules((rs) => rs.map((r, j) => j === i ? { ...r, ...patch } : r));
+  const setGlobal = (key: keyof GlobalSettings, v: boolean) => setGlobals((g) => ({ ...g, [key]: v }));
+
+  const handleSave = () => {
+    localStorage.setItem(LS_KEY, JSON.stringify({ globals, rules }));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   const open = openIdx !== null ? rules[openIdx] : null;
 
@@ -34,11 +75,11 @@ function NotificationsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Section title="Globale indstillinger" subtitle="Gælder for alle nye regler">
           <div className="space-y-3">
-            <div className="flex items-center justify-between"><div className="text-sm">E-mail notifikationer</div><Toggle checked={true} /></div>
-            <div className="flex items-center justify-between"><div className="text-sm">In-app notifikationer</div><Toggle checked={true} /></div>
-            <div className="flex items-center justify-between"><div className="text-sm">Push på mobil</div><Toggle checked={false} /></div>
-            <div className="flex items-center justify-between"><div className="text-sm">Daglig sammenfatning</div><Toggle checked={true} /></div>
-            <div className="flex items-center justify-between"><div className="text-sm">Stille timer (22–07)</div><Toggle checked={true} /></div>
+            <div className="flex items-center justify-between"><div className="text-sm">E-mail notifikationer</div><Toggle checked={globals.email} onChange={(v) => setGlobal("email", v)} /></div>
+            <div className="flex items-center justify-between"><div className="text-sm">In-app notifikationer</div><Toggle checked={globals.inApp} onChange={(v) => setGlobal("inApp", v)} /></div>
+            <div className="flex items-center justify-between"><div className="text-sm">Push på mobil</div><Toggle checked={globals.push} onChange={(v) => setGlobal("push", v)} /></div>
+            <div className="flex items-center justify-between"><div className="text-sm">Daglig sammenfatning</div><Toggle checked={globals.digest} onChange={(v) => setGlobal("digest", v)} /></div>
+            <div className="flex items-center justify-between"><div className="text-sm">Stille timer (22–07)</div><Toggle checked={globals.quietHours} onChange={(v) => setGlobal("quietHours", v)} /></div>
           </div>
         </Section>
 
@@ -84,6 +125,15 @@ function NotificationsPage() {
           </table>
         </div>
       </Card>
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          className="rounded-xl bg-primary text-primary-foreground px-5 py-2 text-sm inline-flex items-center gap-2"
+        >
+          {saved ? <><CheckCircle2 className="h-4 w-4" /> Gemt ✓</> : "Gem indstillinger"}
+        </button>
+      </div>
 
       <Drawer open={openIdx !== null} onClose={() => setOpenIdx(null)} title={open?.label ?? ""} subtitle={open ? `Modul: ${open.module}` : ""}
         footer={<><button onClick={() => setOpenIdx(null)} className="rounded-lg border bg-card px-3 py-1.5 text-sm">Annullér</button><button onClick={() => setOpenIdx(null)} className="ml-auto rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-sm">Gem regel</button></>}>

@@ -1,23 +1,54 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { Card, StatCard } from "@/components/ui-bits";
 import { Section, StatusPill } from "@/components/settings/Primitives";
 import { MODULES } from "@/lib/settings-data";
-import { Boxes, Settings as SettingsIcon, Users, Database, ArrowUpRight, Zap, Brain, Repeat2, BookCheck, Cable, FileText, KeyRound, ShieldCheck, Briefcase } from "lucide-react";
+import { Boxes, Settings as SettingsIcon, Users, Database, ArrowUpRight, Zap, Brain, Repeat2, BookCheck, Cable, FileText, KeyRound, ShieldCheck, Briefcase, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/modules")({
   head: () => ({ meta: [{ title: "Moduler — GoFreyra" }] }),
   component: ModulesPage,
 });
 
-const ICONS: Record<string, any> = {
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   decisions: Brain, impact: Repeat2, ledger: BookCheck, connect: Cable,
   reports: FileText, api: KeyRound, verify: ShieldCheck, portfolio: Briefcase,
 };
 
+const LS_KEY = "freyra:settings:modules";
+
 function ModulesPage() {
-  const active = MODULES.filter((m) => m.status === "Aktiv").length;
+  const [enabledModules, setEnabledModules] = useState<string[]>(
+    MODULES.filter((m) => m.status === "Aktiv" || m.status === "Begrænset").map((m) => m.key)
+  );
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as string[];
+        setEnabledModules(parsed);
+      } catch {
+        // ignore malformed data
+      }
+    }
+  }, []);
+
+  const toggleModule = (key: string) =>
+    setEnabledModules((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+
+  const handleSave = () => {
+    localStorage.setItem(LS_KEY, JSON.stringify(enabledModules));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const active = enabledModules.length;
   const limited = MODULES.filter((m) => m.status === "Begrænset").length;
-  const inactive = MODULES.filter((m) => m.status === "Ikke aktiv").length;
+  const inactive = MODULES.length - enabledModules.length;
 
   return (
     <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
@@ -36,12 +67,26 @@ function ModulesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {MODULES.map((m) => {
           const Icon = ICONS[m.key] ?? Boxes;
-          const offline = m.status === "Ikke aktiv";
+          const isEnabled = enabledModules.includes(m.key);
+          const canUpgrade = m.status === "Ikke aktiv";
           return (
-            <Card key={m.key} className={`p-5 ${offline ? "opacity-80" : ""}`}>
+            <Card key={m.key} className={`p-5 ${!isEnabled ? "opacity-80" : ""}`}>
               <div className="flex items-start justify-between">
-                <div className={`h-11 w-11 rounded-2xl grid place-items-center ${offline ? "bg-muted text-muted-foreground" : "bg-leaf/30 text-primary"}`}><Icon className="h-5 w-5" /></div>
-                <StatusPill status={m.status} />
+                <div className={`h-11 w-11 rounded-2xl grid place-items-center ${!isEnabled ? "bg-muted text-muted-foreground" : "bg-leaf/30 text-primary"}`}><Icon className="h-5 w-5" /></div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${isEnabled ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                    {isEnabled ? "Aktiv" : "Deaktiveret"}
+                  </span>
+                  {!canUpgrade && (
+                    <button
+                      onClick={() => toggleModule(m.key)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isEnabled ? "bg-primary" : "bg-muted"}`}
+                      aria-label={isEnabled ? "Deaktivér modul" : "Aktivér modul"}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${isEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="mt-3 text-base font-semibold">{m.name}</div>
               <p className="text-xs text-muted-foreground mt-1 min-h-[32px]">{m.desc}</p>
@@ -59,7 +104,7 @@ function ModulesPage() {
               )}
 
               <div className="mt-4 flex gap-2">
-                {offline ? (
+                {canUpgrade ? (
                   <button className="flex-1 rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs inline-flex items-center justify-center gap-1.5"><ArrowUpRight className="h-3.5 w-3.5" /> Opgradér</button>
                 ) : (
                   <>
@@ -71,6 +116,15 @@ function ModulesPage() {
             </Card>
           );
         })}
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          className="rounded-xl bg-primary text-primary-foreground px-5 py-2 text-sm inline-flex items-center gap-2"
+        >
+          {saved ? <><CheckCircle2 className="h-4 w-4" /> Gemt ✓</> : "Gem ændringer"}
+        </button>
       </div>
 
       <Card className="p-5 bg-leaf/5 border-leaf/20">

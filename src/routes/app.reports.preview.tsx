@@ -4,6 +4,7 @@ import { FileText, Download, Send, RefreshCw, AlertTriangle, MessageSquare } fro
 import { Card, PageHeader, Bars } from "@/components/ui-bits";
 import { ReadinessScore, Section, Chip, MissingDataItem } from "@/components/reports/Primitives";
 import { MISSING_DATA } from "@/lib/reports-data";
+import { actionToast } from "@/components/platform/Primitives";
 
 export const Route = createFileRoute("/app/reports/preview")({
   component: Page,
@@ -16,6 +17,40 @@ const PAGES = [
 
 function Page() {
   const [page, setPage] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  function handleRefresh() {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1500);
+  }
+
+  function handleSendToReview() {
+    actionToast("Rapport sendt til review");
+  }
+
+  function handleExportPdf() {
+    // Inject a print-only style that hides the sidebar and topbar
+    const styleId = "freyra-print-style";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        @media print {
+          [data-sidebar], nav, header, aside, [class*="sidebar"], [class*="topbar"], [class*="nav-"] {
+            display: none !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    setExporting(true);
+    // Give React a tick to render the loading state before print dialog blocks
+    setTimeout(() => {
+      window.print();
+      setExporting(false);
+    }, 100);
+  }
 
   return (
     <main className="p-6 max-w-[1500px] w-full mx-auto space-y-4">
@@ -23,9 +58,15 @@ function Page() {
         description="Skallebæk Biodiversity Pilot — Naturimpact og ESG-status · Q2 2026"
         actions={
           <div className="flex gap-2">
-            <button className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5"><RefreshCw className="h-3.5 w-3.5" /> Opdater preview</button>
-            <button className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5"><Send className="h-3.5 w-3.5" /> Send til review</button>
-            <button className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> Eksportér PDF</button>
+            <button onClick={handleRefresh} disabled={refreshing} className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-60">
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Opdaterer…" : "Opdater preview"}
+            </button>
+            <button onClick={handleSendToReview} className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5"><Send className="h-3.5 w-3.5" /> Send til review</button>
+            <button onClick={handleExportPdf} disabled={exporting} className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-60">
+              <Download className="h-3.5 w-3.5" />
+              {exporting ? "Genererer PDF…" : "Eksportér PDF"}
+            </button>
           </div>
         }
       />
@@ -109,7 +150,7 @@ function PreviewPage({ idx }: { idx: number }) {
       <div className="grid grid-cols-2 gap-4 max-w-md text-sm">
         <KV label="Periode" v="Q2 2026" />
         <KV label="Målgruppe" v="Kunde" />
-        <KV label="Genereret" v="8. maj 2026" />
+        <KV label="Genereret" v={new Date().toLocaleDateString("da-DK", { day: "numeric", month: "long", year: "numeric" })} />
         <KV label="Version" v="v1.4" />
         <KV label="Sprog" v="Dansk" />
         <KV label="Sider" v="22" />

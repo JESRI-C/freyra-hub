@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowRight, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { createReport } from "@/services/reports-service";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { WizardSteps, Section, Chip, ReadinessBar } from "@/components/reports/Primitives";
 import { REPORT_TYPES, ORGANIZATIONS, MODULE_DATA, AUDIENCES, TONES, LANGUAGES, DETAIL_LEVELS, EXPORT_FORMATS } from "@/lib/reports-data";
@@ -13,7 +14,9 @@ const STEPS = ["Rapporttype", "Scope", "Datamoduler", "Målgruppe & tone", "Outp
 const PERIODS = ["Q1 2026", "Q2 2026", "H1 2026", "År 2026 (YTD)", "Sidste 12 mdr.", "Brugerdefineret"];
 
 function Page() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [generating, setGenerating] = useState(false);
   const [type, setType] = useState(REPORT_TYPES[4].key);
   const [org, setOrg] = useState(ORGANIZATIONS[1]);
   const [period, setPeriod] = useState(PERIODS[1]);
@@ -28,6 +31,14 @@ function Page() {
 
   const t = REPORT_TYPES.find((x) => x.key === type)!;
   const toggle = (arr: string[], v: string, set: (a: string[]) => void) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+
+  async function handleGenerate() {
+    setGenerating(true);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await createReport({ type, organization: org, period, modules, audience, tone, language: lang, detailLevel: detail, formats });
+    setGenerating(false);
+    void navigate({ to: "/app/reports/preview" });
+  }
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
@@ -144,7 +155,10 @@ function Page() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <button className="rounded-lg border bg-card px-4 py-2 text-sm">Gem som kladde</button>
                 <Link to="/app/reports/builder" className="rounded-lg border bg-card px-4 py-2 text-sm inline-flex items-center gap-1.5">Fortsæt til bygger <ArrowRight className="h-3.5 w-3.5" /></Link>
-                <Link to="/app/reports/preview" className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Generér første udkast</Link>
+                <button onClick={handleGenerate} disabled={generating} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm inline-flex items-center gap-1.5 disabled:opacity-60">
+                  {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  {generating ? "Genererer rapport…" : "Generér første udkast"}
+                </button>
               </div>
             </Section>
           )}

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Sparkles, Loader2 } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { WizardSteps, Section, Chip } from "@/components/connect/Primitives";
 import { PROJECTS, ZONES, SOURCE_TYPES, VALIDATION_RULES } from "@/lib/connect-data";
@@ -25,6 +25,7 @@ function Page() {
   const [method, setMethod] = useState("MQTT");
   const [rules, setRules] = useState<string[]>(["Required timestamp", "Required location", "Unit validation"]);
   const [routing, setRouting] = useState<string[]>(["DecisionsIQ", "ESG Ledger"]);
+  const [testing, setTesting] = useState(false);
   const [tested, setTested] = useState(false);
   const [activated, setActivated] = useState(false);
 
@@ -109,16 +110,34 @@ function Page() {
               {!tested ? (
                 <div className="text-sm">
                   <p className="text-muted-foreground mb-3">Tryk for at sende et testkald og validere mapping.</p>
-                  <button onClick={() => setTested(true)} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm">Kør test</button>
+                  <button
+                    onClick={() => {
+                      setTesting(true);
+                      setTimeout(() => {
+                        setTesting(false);
+                        setTested(true);
+                      }, 1500);
+                    }}
+                    disabled={testing}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-60"
+                  >
+                    {testing && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {testing ? "Tester…" : "Kør test"}
+                  </button>
                 </div>
               ) : (
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-success/10"><CheckCircle2 className="h-4 w-4 text-success" /> Forbindelse oprettet</li>
-                  <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-success/10"><CheckCircle2 className="h-4 w-4 text-success" /> Sample data modtaget (3 records)</li>
-                  <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-success/10"><CheckCircle2 className="h-4 w-4 text-success" /> Mapping komplet</li>
-                  <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-warning/10"><AlertTriangle className="h-4 w-4 text-warning-foreground" /> 2 advarsler: manglende enhed på 1 felt, ingen verifikationssignatur</li>
-                  <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-leaf/15"><Sparkles className="h-4 w-4 text-primary" /> Klar til aktivering</li>
-                </ul>
+                <div className="space-y-3 text-sm">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-success bg-success/10 px-3 py-1.5 text-success font-medium text-sm">
+                    <CheckCircle2 className="h-4 w-4" /> Forbindelse OK ✓
+                  </div>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-success/10"><CheckCircle2 className="h-4 w-4 text-success" /> Forbindelse oprettet</li>
+                    <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-success/10"><CheckCircle2 className="h-4 w-4 text-success" /> Sample data modtaget (3 records)</li>
+                    <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-success/10"><CheckCircle2 className="h-4 w-4 text-success" /> Mapping komplet</li>
+                    <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-warning/10"><AlertTriangle className="h-4 w-4 text-warning-foreground" /> 2 advarsler: manglende enhed på 1 felt, ingen verifikationssignatur</li>
+                    <li className="flex items-center gap-2 p-2.5 rounded-lg border bg-leaf/15"><Sparkles className="h-4 w-4 text-primary" /> Klar til aktivering</li>
+                  </ul>
+                </div>
               )}
             </Section>
           )}
@@ -156,13 +175,29 @@ function Page() {
                   </div>
                 </>
               ) : (
-                <div className="rounded-xl border bg-success/10 p-6 text-center">
-                  <CheckCircle2 className="h-10 w-10 text-success mx-auto" />
-                  <div className="text-lg font-semibold mt-3">Datakilde aktiveret</div>
-                  <p className="text-sm text-muted-foreground mt-1">Data routes nu til {routing.join(", ")} og er synlig i Live data.</p>
-                  <div className="mt-4 flex justify-center gap-2">
-                    <Link to="/app/connect/live" className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm">Åbn Live data</Link>
-                    <Link to="/app/connect/sources" className="rounded-lg border bg-card px-4 py-2 text-sm">Se alle kilder</Link>
+                <div className="rounded-xl border bg-success/10 p-8 text-center">
+                  <CheckCircle2 className="h-12 w-12 text-success mx-auto" />
+                  <div className="text-xl font-semibold mt-4">Datakilde aktiveret!</div>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+                    Forbindelsen er nu aktiv og sender data til de valgte moduler.
+                  </p>
+                  <div className="mt-6 flex justify-center gap-2 flex-wrap">
+                    <Link
+                      to="/app/connect/sources"
+                      className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm"
+                    >
+                      Gå til Datakilder
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setStep(0);
+                        setActivated(false);
+                        setTested(false);
+                      }}
+                      className="rounded-lg border bg-card px-4 py-2 text-sm"
+                    >
+                      Tilføj endnu en kilde
+                    </button>
                   </div>
                 </div>
               )}
