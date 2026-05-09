@@ -454,7 +454,7 @@ function SystemTestPage() {
             { lat: 55.676, lng: 12.568 },
             6,
           );
-          const online  = exampleSensors.filter((s) => s.status === "online").length;
+          const online = exampleSensors.filter((s) => s.status === "online").length;
           const warning = exampleSensors.filter((s) => s.status === "warning").length;
           const offline = exampleSensors.filter((s) => s.status === "offline").length;
           return (

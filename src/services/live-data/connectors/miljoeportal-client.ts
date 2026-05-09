@@ -123,7 +123,9 @@ export async function fetchByGeometry(
         };
         const count = wfsJson.totalFeatures ?? wfsJson.features?.length ?? 0;
         if (count > 0) {
-          protectedHabitats.push(`§3-beskyttede naturarealer (${count} område${count === 1 ? "" : "r"})`);
+          protectedHabitats.push(
+            `§3-beskyttede naturarealer (${count} område${count === 1 ? "" : "r"})`,
+          );
         }
       }
     } catch {

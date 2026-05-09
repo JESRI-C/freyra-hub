@@ -186,9 +186,7 @@ function ProjectDetailPage() {
   };
 
   // IoT sensors — generated deterministically from project id + centroid
-  const sensors = geometry.centroid
-    ? getProjectSensors(projectId, geometry.centroid)
-    : [];
+  const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
 
   // Report preview
   const reportPreview = generateProjectReportPreview({

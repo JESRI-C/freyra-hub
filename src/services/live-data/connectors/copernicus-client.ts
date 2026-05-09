@@ -1,9 +1,5 @@
 import { getLiveDataConfig } from "@/config/live-data-config";
-import {
-  fetchWithTimeout,
-  fetchConnector,
-  previewResponse,
-} from "../live-data-client";
+import { fetchWithTimeout, fetchConnector, previewResponse } from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
 

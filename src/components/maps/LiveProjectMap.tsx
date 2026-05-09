@@ -48,13 +48,13 @@ export interface LiveProjectMapProps {
 type ActiveBuffer = "none" | "100m" | "500m" | "1000m";
 
 const BUFFER_STYLES: Record<Exclude<ActiveBuffer, "none">, PathOptions> = {
-  "100m":   { color: "#2BC48A", weight: 1.5, fillOpacity: 0.08, dashArray: "4 4" },
-  "500m":   { color: "#3B82F6", weight: 1.5, fillOpacity: 0.06, dashArray: "4 4" },
-  "1000m":  { color: "#8B5CF6", weight: 1.5, fillOpacity: 0.04, dashArray: "4 4" },
+  "100m": { color: "#2BC48A", weight: 1.5, fillOpacity: 0.08, dashArray: "4 4" },
+  "500m": { color: "#3B82F6", weight: 1.5, fillOpacity: 0.06, dashArray: "4 4" },
+  "1000m": { color: "#8B5CF6", weight: 1.5, fillOpacity: 0.04, dashArray: "4 4" },
 };
 
 const STATUS_COLORS: Record<IoTSensor["status"], string> = {
-  online:  "#2BC48A",
+  online: "#2BC48A",
   warning: "#F59E0B",
   offline: "#EF4444",
 };
@@ -68,7 +68,10 @@ function sensorDivIconHtml(status: IoTSensor["status"]): string {
 
 function formatLastSeen(iso: string): string {
   return new Date(iso).toLocaleString("da-DK", {
-    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -82,9 +85,7 @@ function DmiOverlay({ data }: { data: DmiData }) {
         <span className="text-xs font-semibold text-gray-700">DMI vejr</span>
         <span
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-            isLive
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-amber-100 text-amber-700"
+            isLive ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
           }`}
         >
           {isLive ? "LIVE" : "PREVIEW"}
@@ -111,7 +112,10 @@ function DmiOverlay({ data }: { data: DmiData }) {
         )}
         {data.observedAt && (
           <div className="text-[10px] text-gray-400 mt-0.5">
-            {new Date(data.observedAt).toLocaleString("da-DK", { hour: "2-digit", minute: "2-digit" })}
+            {new Date(data.observedAt).toLocaleString("da-DK", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </div>
         )}
       </div>
@@ -157,19 +161,19 @@ export function LiveProjectMap({
   miljoeportalData: _miljoeportalData,
   copernicusData,
 }: LiveProjectMapProps) {
-  const mapRef       = useRef<HTMLDivElement>(null);
-  const mapInstance  = useRef<LeafletMap | null>(null);
-  const bufferDataRef   = useRef<BufferZonesGeoJSON | null>(null);
-  const bufferLayerRef  = useRef<LeafletGeoJSON | null>(null);
-  const mediaLayerRef   = useRef<LeafletGeoJSON | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<LeafletMap | null>(null);
+  const bufferDataRef = useRef<BufferZonesGeoJSON | null>(null);
+  const bufferLayerRef = useRef<LeafletGeoJSON | null>(null);
+  const mediaLayerRef = useRef<LeafletGeoJSON | null>(null);
   // Sensor markers are stored as individual marker refs — we just store the
   // marker layer group instance here.
-  const sensorGroupRef  = useRef<import("leaflet").LayerGroup | null>(null);
+  const sensorGroupRef = useRef<import("leaflet").LayerGroup | null>(null);
 
   const [activeBuffer, setActiveBuffer] = useState<ActiveBuffer>("none");
-  const [showMedia,   setShowMedia]     = useState(true);
-  const [showSensors, setShowSensors]   = useState(true);
-  const [showDmi,     setShowDmi]       = useState(true);
+  const [showMedia, setShowMedia] = useState(true);
+  const [showSensors, setShowSensors] = useState(true);
+  const [showDmi, setShowDmi] = useState(true);
 
   // ── Initial map setup ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -187,8 +191,8 @@ export function LiveProjectMap({
       delete iconProto["_getIconUrl"];
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
       const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -201,8 +205,11 @@ export function LiveProjectMap({
         const ring = geometry.polygon.coordinates[0] ?? [];
         const latLngs = ring.map((c) => [c[1] ?? 0, c[0] ?? 0] as [number, number]);
         const poly = L.polygon(latLngs, {
-          color: "#2BC48A", weight: 2.5, opacity: 0.9,
-          fillColor: "#2BC48A", fillOpacity: 0.15,
+          color: "#2BC48A",
+          weight: 2.5,
+          opacity: 0.9,
+          fillColor: "#2BC48A",
+          fillOpacity: 0.15,
         }).addTo(map);
 
         if (geometry.centroid) {
@@ -236,7 +243,9 @@ export function LiveProjectMap({
           if (!item.coordinates) continue;
           const icon = L.divIcon({
             html: `<div style="width:16px;height:16px;border-radius:50%;background:#F59E0B;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:8px;">📷</div>`,
-            className: "", iconSize: [16, 16], iconAnchor: [8, 8],
+            className: "",
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
           });
           L.marker([item.coordinates.lat, item.coordinates.lng], { icon })
             .addTo(group)
@@ -253,15 +262,17 @@ export function LiveProjectMap({
         for (const sensor of sensors) {
           const icon = L.divIcon({
             html: sensorDivIconHtml(sensor.status),
-            className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+            className: "",
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
           });
           L.marker([sensor.coordinates.lat, sensor.coordinates.lng], { icon })
             .addTo(group)
             .bindPopup(
               `<strong>${sensor.label}</strong><br/>` +
-              `${SENSOR_TYPE_LABELS[sensor.type]}: ${sensor.latestValue} ${sensor.unit}<br/>` +
-              `🔋 ${sensor.batteryPercent}%<br/>` +
-              `📡 Sidst set: ${formatLastSeen(sensor.lastSeen)}`,
+                `${SENSOR_TYPE_LABELS[sensor.type]}: ${sensor.latestValue} ${sensor.unit}<br/>` +
+                `🔋 ${sensor.batteryPercent}%<br/>` +
+                `📡 Sidst set: ${formatLastSeen(sensor.lastSeen)}`,
             );
         }
       }
@@ -280,7 +291,7 @@ export function LiveProjectMap({
         mapInstance.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geometry, projectName, projectId]);
 
   // ── Buffer zone toggle ────────────────────────────────────────────────────
@@ -294,17 +305,21 @@ export function LiveProjectMap({
     }
     if (activeBuffer === "none" || !bufferDataRef.current) return;
 
-    const key = activeBuffer === "100m" ? "buffer100m"
-              : activeBuffer === "500m" ? "buffer500m"
-              : "buffer1000m";
+    const key =
+      activeBuffer === "100m"
+        ? "buffer100m"
+        : activeBuffer === "500m"
+          ? "buffer500m"
+          : "buffer1000m";
     const feature = bufferDataRef.current[key];
     if (!feature) return;
 
     (async () => {
       const L = await import("leaflet");
       if (!mapInstance.current) return;
-      const layer = L.geoJSON(feature, { style: BUFFER_STYLES[activeBuffer] })
-        .addTo(mapInstance.current);
+      const layer = L.geoJSON(feature, { style: BUFFER_STYLES[activeBuffer] }).addTo(
+        mapInstance.current,
+      );
       bufferLayerRef.current = layer;
     })();
   }, [activeBuffer]);
@@ -314,15 +329,22 @@ export function LiveProjectMap({
     if (!mapInstance.current || !mediaLayerRef.current) return;
     const map = mapInstance.current;
     const layer = mediaLayerRef.current as unknown as import("leaflet").LayerGroup;
-    if (showMedia) { map.addLayer(layer); } else { map.removeLayer(layer); }
+    if (showMedia) {
+      map.addLayer(layer);
+    } else {
+      map.removeLayer(layer);
+    }
   }, [showMedia]);
 
   // ── Show/hide sensor layer ────────────────────────────────────────────────
   useEffect(() => {
     if (!mapInstance.current || !sensorGroupRef.current) return;
     const map = mapInstance.current;
-    if (showSensors) { map.addLayer(sensorGroupRef.current); }
-    else             { map.removeLayer(sensorGroupRef.current); }
+    if (showSensors) {
+      map.addLayer(sensorGroupRef.current);
+    } else {
+      map.removeLayer(sensorGroupRef.current);
+    }
   }, [showSensors]);
 
   // ─── No geometry fallback ─────────────────────────────────────────────────
@@ -339,7 +361,7 @@ export function LiveProjectMap({
     );
   }
 
-  const hasMedia   = (mediaItems ?? []).filter((m) => !!m.coordinates).length > 0;
+  const hasMedia = (mediaItems ?? []).filter((m) => !!m.coordinates).length > 0;
   const hasSensors = (sensors ?? []).length > 0;
 
   return (

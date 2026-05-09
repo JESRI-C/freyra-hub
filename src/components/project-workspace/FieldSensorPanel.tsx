@@ -10,13 +10,13 @@ interface FieldSensorPanelProps {
 }
 
 const STATUS_STYLE = {
-  online:  { dot: "bg-emerald-500", label: "Online",  badge: "bg-emerald-100 text-emerald-700" },
-  warning: { dot: "bg-amber-400",   label: "Advarsel", badge: "bg-amber-100 text-amber-700" },
-  offline: { dot: "bg-red-400",     label: "Offline",  badge: "bg-red-100 text-red-700" },
+  online: { dot: "bg-emerald-500", label: "Online", badge: "bg-emerald-100 text-emerald-700" },
+  warning: { dot: "bg-amber-400", label: "Advarsel", badge: "bg-amber-100 text-amber-700" },
+  offline: { dot: "bg-red-400", label: "Offline", badge: "bg-red-100 text-red-700" },
 } as const;
 
 function TrendIcon({ trend }: { trend: IoTSensor["trend"] }) {
-  if (trend === "up")   return <TrendingUp   className="h-3.5 w-3.5 text-emerald-500" />;
+  if (trend === "up") return <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />;
   if (trend === "down") return <TrendingDown className="h-3.5 w-3.5 text-red-400" />;
   return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
 }
@@ -37,7 +37,7 @@ function BatteryBar({ pct }: { pct: number }) {
 function formatLastSeen(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60_000);
-  if (mins < 2)  return "Lige nu";
+  if (mins < 2) return "Lige nu";
   if (mins < 60) return `${mins} min siden`;
   const hrs = Math.floor(mins / 60);
   return `${hrs} t siden`;
@@ -54,7 +54,7 @@ export function FieldSensorPanel({ sensors, className }: FieldSensorPanelProps) 
     setReadings(updated);
   }
 
-  const online  = sensors.filter((s) => s.status === "online").length;
+  const online = sensors.filter((s) => s.status === "online").length;
   const warning = sensors.filter((s) => s.status === "warning").length;
   const offline = sensors.filter((s) => s.status === "offline").length;
 
@@ -92,7 +92,7 @@ export function FieldSensorPanel({ sensors, className }: FieldSensorPanelProps) 
             {offline} offline
           </span>
         )}
-        <span className="ml-auto text-muted-foreground italic">Simuleret data</span>
+        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">SIMULERET</span>
       </div>
 
       <div className="divide-y border-t">
@@ -100,7 +100,10 @@ export function FieldSensorPanel({ sensors, className }: FieldSensorPanelProps) 
           const liveValue = readings[sensor.id] ?? sensor.latestValue;
           const st = STATUS_STYLE[sensor.status];
           return (
-            <div key={sensor.id} className="px-5 py-3 flex items-start gap-3 hover:bg-muted/20 transition-colors">
+            <div
+              key={sensor.id}
+              className="px-5 py-3 flex items-start gap-3 hover:bg-muted/20 transition-colors"
+            >
               {/* Status dot */}
               <span className={`mt-1 h-2 w-2 rounded-full shrink-0 ${st.dot}`} />
 
@@ -108,7 +111,9 @@ export function FieldSensorPanel({ sensors, className }: FieldSensorPanelProps) 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium truncate">{sensor.label}</span>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${st.badge}`}>
+                  <span
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${st.badge}`}
+                  >
                     {st.label}
                   </span>
                 </div>
@@ -139,7 +144,11 @@ export function FieldSensorPanel({ sensors, className }: FieldSensorPanelProps) 
                 <div className="flex items-center justify-end gap-0.5 mt-0.5">
                   <TrendIcon trend={sensor.trend} />
                   <span className="text-[10px] text-muted-foreground">
-                    {sensor.trend === "up" ? "Stigende" : sensor.trend === "down" ? "Faldende" : "Stabil"}
+                    {sensor.trend === "up"
+                      ? "Stigende"
+                      : sensor.trend === "down"
+                        ? "Faldende"
+                        : "Stabil"}
                   </span>
                 </div>
               </div>

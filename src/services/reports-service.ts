@@ -7,8 +7,12 @@ interface UntypedQueryBuilder {
   select(columns?: string): UntypedQueryBuilder;
   single(): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
 }
-interface UntypedDb { from(table: string): UntypedQueryBuilder; }
-function getDb(): UntypedDb | null { return supabase as unknown as UntypedDb | null; }
+interface UntypedDb {
+  from(table: string): UntypedQueryBuilder;
+}
+function getDb(): UntypedDb | null {
+  return supabase as unknown as UntypedDb | null;
+}
 import { fetchReportsByProject, fetchAllReports } from "@/lib/supabase/queries";
 import { SEED_REPORTS } from "@/data/platform-seed";
 import type { Report } from "@/lib/supabase/types";

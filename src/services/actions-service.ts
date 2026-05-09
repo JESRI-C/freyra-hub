@@ -59,8 +59,8 @@ export interface SuggestedSensorAction {
 export function suggestSensorActions(sensors: IoTSensor[]): SuggestedSensorAction[] {
   const actions: SuggestedSensorAction[] = [];
 
-  const offline  = sensors.filter((s) => s.status === "offline");
-  const lowBat   = sensors.filter((s) => s.batteryPercent < 20 && s.status !== "offline");
+  const offline = sensors.filter((s) => s.status === "offline");
+  const lowBat = sensors.filter((s) => s.batteryPercent < 20 && s.status !== "offline");
   const warnings = sensors.filter((s) => s.status === "warning");
 
   if (offline.length > 0) {

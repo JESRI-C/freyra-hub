@@ -65,15 +65,15 @@ interface ValueRange {
 }
 
 const VALUE_RANGES: Record<SensorType, ValueRange> = {
-  soil_moisture:           { min: 20,  max: 80,  decimals: 1 },
-  soil_temperature:        { min: 8,   max: 22,  decimals: 1 },
-  air_temperature:         { min: 10,  max: 25,  decimals: 1 },
-  humidity:                { min: 40,  max: 90,  decimals: 1 },
-  water_level:             { min: 0.1, max: 1.5, decimals: 2 },
-  biodiversity_audio_index:{ min: 0.3, max: 0.9, decimals: 2 },
-  co2_estimate:            { min: 380, max: 450, decimals: 0 },
-  battery_level:           { min: 20,  max: 100, decimals: 0 },
-  signal_strength:         { min: 30,  max: 100, decimals: 0 },
+  soil_moisture: { min: 20, max: 80, decimals: 1 },
+  soil_temperature: { min: 8, max: 22, decimals: 1 },
+  air_temperature: { min: 10, max: 25, decimals: 1 },
+  humidity: { min: 40, max: 90, decimals: 1 },
+  water_level: { min: 0.1, max: 1.5, decimals: 2 },
+  biodiversity_audio_index: { min: 0.3, max: 0.9, decimals: 2 },
+  co2_estimate: { min: 380, max: 450, decimals: 0 },
+  battery_level: { min: 20, max: 100, decimals: 0 },
+  signal_strength: { min: 30, max: 100, decimals: 0 },
 };
 
 // Cycle of sensor types used when generating a set of project sensors
@@ -162,7 +162,12 @@ export function generateProjectSensors(
     const lng = centroid.lng + dist * Math.cos(angle);
 
     // Sensor value
-    const { seed: s3, value: latestValue } = seededFloat(seed, range.min, range.max, range.decimals);
+    const { seed: s3, value: latestValue } = seededFloat(
+      seed,
+      range.min,
+      range.max,
+      range.decimals,
+    );
     seed = s3;
 
     // Battery (15–100)
