@@ -99,3 +99,15 @@ Storage bucket policy: authenticated users can read; only uploaders can write.
 4. Replace `getProjectMedia()` static seed with TanStack Query hook backed by `project_media` table
 5. Add thumbnail generation (Canvas API) before upload
 6. Add `useProjectMedia(projectId)` hook in `src/services/media-service.ts`
+
+## Implementeret
+
+Følgende er implementeret på branch `feature/supabase-project-media-upload`:
+
+- **`supabase/migrations/006_project_media.sql`** — opretter `project_media`-tabellen med RLS-politikker og check constraints for kategori, kilde og status. Dokumenterer det påkrævede storage bucket "project-media".
+- **`src/services/project-media-service.ts`** — service med `listProjectMedia`, `uploadProjectMedia`, `updateProjectMedia`, `deleteProjectMedia` og `getMediaPublicUrl`. Falder tilbage på seed-data når Supabase ikke er konfigureret.
+- **exifr integration** — `exifr` installeret via npm; GPS-koordinater (latitude/longitude) udtrækkes automatisk ved filvalg i upload-panelet og forudfylder koordinatfelterne.
+- **Opdateret upload-panel** (`src/components/project-workspace/ProjectMediaUploadPanel.tsx`) — rigtig `<input type="file">` med dropzone, filforhåndsvisning, filnavn + størrelse, EXIF GPS-autofyld, loading-spinner under upload, success/fejl-beskeder, og amber-banner i preview mode.
+- **Opdateret galleri** (`src/components/project-workspace/ProjectMediaGallery.tsx`) — tilføjet `isLoading?: boolean` prop der viser 3 skeleton-kort under indlæsning.
+- **Opdateret projektsideʼs medier-fane** (`src/routes/app.projects.$slug.tsx`) — bruger nu `listProjectMedia` (async) med `useState`/`useEffect`, sender `isLoading` til galleriet og `onUploadComplete` til upload-panelet (tilføjer nyt element til toppen af listen).
+- **System test** (`src/routes/app.system-test.tsx`) — nyt "Supabase Medier"-kort med status for `project_media`-tabellen og `project-media` storage bucket, plus `isSupabaseConfigured`-badge.
