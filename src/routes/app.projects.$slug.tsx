@@ -25,6 +25,9 @@ import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/re
 import { listProjectMedia } from "@/services/project-media-service";
 import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
+import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
+import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
+import { getProjectSensors } from "@/services/iot-simulation-service";
 import { ProjectGeometryMap } from "@/components/data-foundation/ProjectGeometryMap";
 import {
   dataSourceStatusTone,
@@ -82,6 +85,7 @@ const TABS = [
   { id: "medier", label: "Medier" },
   { id: "rapporter", label: "Rapporter" },
   { id: "miljodata", label: "Miljødata" },
+  { id: "livekort", label: "Livekort" },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -181,6 +185,11 @@ function ProjectDetailPage() {
     );
   };
 
+  // IoT sensors — generated deterministically from project id + centroid
+  const sensors = geometry.centroid
+    ? getProjectSensors(projectId, geometry.centroid)
+    : [];
+
   // Report preview
   const reportPreview = generateProjectReportPreview({
     project,
@@ -192,6 +201,7 @@ function ProjectDetailPage() {
     auditEvents,
     evidenceFiles,
     mediaItems,
+    sensors,
   });
 
   const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems);
@@ -568,6 +578,41 @@ function ProjectDetailPage() {
                     )}
                   </div>
                 </Card>
+              </div>
+            )}
+
+            {/* ── Livekort ────────────────────────────────────────────────── */}
+            {active === "livekort" && (
+              <div className="space-y-4">
+                <LiveProjectMap
+                  geometry={geometry}
+                  projectName={project.name}
+                  projectId={projectId}
+                  height={500}
+                  mediaItems={mediaItems}
+                  sensors={sensors}
+                  dmiData={
+                    environmentalCtx?.liveData?.weather
+                      ? {
+                          temperature: environmentalCtx.liveData.weather.temperature,
+                          windSpeed: environmentalCtx.liveData.weather.windSpeed,
+                          precipitation: environmentalCtx.liveData.weather.precipitation,
+                          observedAt: environmentalCtx.liveData.weather.fetchedAt,
+                          mode: environmentalCtx.liveData.weather.mode,
+                        }
+                      : undefined
+                  }
+                />
+                {sensors.length > 0 ? (
+                  <FieldSensorPanel sensors={sensors} />
+                ) : (
+                  <Card className="py-10 text-center">
+                    <CardHeader
+                      title="Ingen sensorer"
+                      subtitle="Tilknyt en projektgeometri for at aktivere IoT-sensorlaget"
+                    />
+                  </Card>
+                )}
               </div>
             )}
           </>

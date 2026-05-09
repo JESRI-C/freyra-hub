@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppTopbar } from "@/components/AppTopbar";
 import { Card, CardHeader } from "@/components/ui-bits";
 import { getLiveDataConfig } from "@/config/live-data-config";
+import { generateProjectSensors } from "@/services/iot-simulation-service";
 import {
   dmiClient,
   miljoeportalClient,
@@ -446,7 +447,94 @@ function SystemTestPage() {
           </div>
         </Card>
 
-        {/* ── Section 5: Sider med live data ──────────────────────────────── */}
+        {/* ── Section 5: IoT Simulation ────────────────────────────────── */}
+        {(() => {
+          const exampleSensors = generateProjectSensors(
+            "system-test-project",
+            { lat: 55.676, lng: 12.568 },
+            6,
+          );
+          const online  = exampleSensors.filter((s) => s.status === "online").length;
+          const warning = exampleSensors.filter((s) => s.status === "warning").length;
+          const offline = exampleSensors.filter((s) => s.status === "offline").length;
+          return (
+            <Card>
+              <CardHeader
+                title="IoT Simulation"
+                subtitle="Deterministisk feltdata-simulation — genereres fra projekt-ID + centroid"
+                action={
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">
+                    Simuleret
+                  </span>
+                }
+              />
+              <div className="px-5 pb-5 space-y-3">
+                <div className="flex gap-4 text-sm">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
+                    <span className="text-emerald-700 font-medium">{online} online</span>
+                  </span>
+                  {warning > 0 && (
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-amber-400 inline-block" />
+                      <span className="text-amber-700 font-medium">{warning} advarsel</span>
+                    </span>
+                  )}
+                  {offline > 0 && (
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-red-400 inline-block" />
+                      <span className="text-red-700 font-medium">{offline} offline</span>
+                    </span>
+                  )}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-left text-xs text-muted-foreground border-y bg-muted/30">
+                      <tr>
+                        <th className="px-3 py-2">Sensor</th>
+                        <th className="py-2">Type</th>
+                        <th className="py-2">Værdi</th>
+                        <th className="py-2">Batteri</th>
+                        <th className="py-2 pr-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {exampleSensors.map((s) => (
+                        <tr key={s.id} className="hover:bg-muted/20">
+                          <td className="px-3 py-2 font-medium text-xs">{s.label}</td>
+                          <td className="py-2 text-xs text-muted-foreground">{s.type}</td>
+                          <td className="py-2 tabular-nums text-xs">
+                            {s.latestValue} {s.unit}
+                          </td>
+                          <td className="py-2 text-xs">{s.batteryPercent}%</td>
+                          <td className="py-2 pr-3">
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                s.status === "online"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : s.status === "warning"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {s.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Samme projekt-ID giver altid samme sensor-layout. Aktivér Livekort-fanen på et
+                  projekt for at se sensorerne på kortet.
+                </p>
+              </div>
+            </Card>
+          );
+        })()}
+
+        {/* ── Section 6: Sider med live data ──────────────────────────────── */}
         <Card>
           <CardHeader
             title="Sider med live data"

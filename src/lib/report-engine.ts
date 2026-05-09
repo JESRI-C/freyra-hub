@@ -12,6 +12,7 @@ import type {
   EvidenceFile,
 } from "@/lib/supabase/types";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
+import type { IoTSensor } from "@/services/iot-simulation-service";
 
 export interface IndicatorSummaryRow {
   label: string;
@@ -45,6 +46,9 @@ interface GenerateInput {
   auditEvents: AuditEvent[];
   evidenceFiles: EvidenceFile[];
   mediaItems?: ProjectMediaItem[];
+  sensors?: IoTSensor[];
+  hasConnectorData?: boolean;
+  hasValidPolygon?: boolean;
 }
 
 function formatDanishDate(iso: string): string {
@@ -71,6 +75,7 @@ export function generateProjectReportPreview({
   auditEvents,
   evidenceFiles,
   mediaItems,
+  sensors,
 }: GenerateInput): ProjectReportPreview {
   // ── Readiness score ─────────────────────────────────────────────────────────
   const readinessIndicator = indicators.find((i) => i.key === "report_readiness");
@@ -96,6 +101,13 @@ export function generateProjectReportPreview({
     if (mediaItems.some((m) => m.category === "field_photo" || m.category === "before_after")) {
       readinessScore = Math.min(100, readinessScore + 5);
     }
+  }
+
+  // ── IoT sensor bonus scoring ────────────────────────────────────────────────
+  if (sensors && sensors.length > 0) {
+    const onlineSensors = sensors.filter((s) => s.status === "online");
+    if (onlineSensors.length > 0) readinessScore = Math.min(100, readinessScore + 5);
+    if (onlineSensors.length >= 3) readinessScore = Math.min(100, readinessScore + 5);
   }
 
   // ── Key findings from indicators ────────────────────────────────────────────
