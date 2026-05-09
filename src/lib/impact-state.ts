@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { PORTFOLIO_SEED } from "@/lib/impact-data";
 
-const KEY = "freyra-impact-portfolio-v1";
+const KEY = "freyra:impact:portfolio";
 const COMPARE_KEY = "freyra-impact-compare-v1";
 
 export function usePortfolio() {

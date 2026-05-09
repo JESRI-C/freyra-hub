@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, StatCard } from "@/components/ui-bits";
 import { Section, StatusPill } from "@/components/settings/Primitives";
 import { FRAMEWORKS } from "@/lib/settings-data";
@@ -10,9 +10,31 @@ export const Route = createFileRoute("/app/settings/frameworks")({
   component: FrameworksPage,
 });
 
+const LS_KEY = "freyra:settings:frameworks";
+
 function FrameworksPage() {
   const [selected, setSelected] = useState<string[]>(FRAMEWORKS.filter((f) => f.status === "Aktiv").map((f) => f.key));
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as string[];
+        setSelected(parsed);
+      } catch {
+        // ignore malformed data
+      }
+    }
+  }, []);
+
   const toggle = (k: string) => setSelected((s) => s.includes(k) ? s.filter((x) => x !== k) : [...s, k]);
+
+  const handleSave = () => {
+    localStorage.setItem(LS_KEY, JSON.stringify(selected));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   return (
     <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
@@ -56,6 +78,15 @@ function FrameworksPage() {
           })}
         </div>
       </Section>
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          className="rounded-xl bg-primary text-primary-foreground px-5 py-2 text-sm inline-flex items-center gap-2"
+        >
+          {saved ? <><CheckCircle2 className="h-4 w-4" /> Gemt ✓</> : "Gem indstillinger"}
+        </button>
+      </div>
 
       <Section title="Projekt-mapping" subtitle="Hvilke frameworks er aktiveret pr. projekt">
         <div className="overflow-x-auto">
