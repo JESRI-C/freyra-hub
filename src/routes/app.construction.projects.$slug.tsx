@@ -119,12 +119,15 @@ function ConstructionProjectDetailPage() {
                     <div className="text-xs text-muted-foreground">Afværgetiltag</div>
                     <div className="text-2xl font-semibold mt-1">{summary.mitigations.length}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {summary.mitigations.filter((m) => m.status === "Verificeret").length} verificeret
+                      {summary.mitigations.filter((m) => m.status === "Verificeret").length}{" "}
+                      verificeret
                     </div>
                   </div>
                   <div className="rounded-xl border bg-card p-4">
                     <div className="text-xs text-muted-foreground">Dokumenter</div>
-                    <div className="text-2xl font-semibold mt-1">{summary.evidenceFiles.length}</div>
+                    <div className="text-2xl font-semibold mt-1">
+                      {summary.evidenceFiles.length}
+                    </div>
                     <div className="text-xs text-muted-foreground mt-0.5">uploadet</div>
                   </div>
                   <div className="rounded-xl border bg-card p-4">
@@ -160,7 +163,9 @@ function ConstructionProjectDetailPage() {
                             </span>
                           </div>
                           {sub.authority_name && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{sub.authority_name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {sub.authority_name}
+                            </p>
                           )}
                           {sub.summary && (
                             <p className="text-xs text-muted-foreground mt-1">{sub.summary}</p>

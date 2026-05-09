@@ -1,8 +1,19 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
-  Wifi, WifiOff, Battery, BatteryLow, BatteryFull, Signal, X, CheckCircle2,
-  AlertTriangle, AlertCircle, Circle, Info, ArrowRight,
+  Wifi,
+  WifiOff,
+  Battery,
+  BatteryLow,
+  BatteryFull,
+  Signal,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  Circle,
+  Info,
+  ArrowRight,
 } from "lucide-react";
 import { Card, Pill } from "@/components/ui-bits";
 
@@ -41,7 +52,8 @@ export function SignalStrengthIndicator({ level }: { level: number }) {
 
 // ---------- Battery ----------
 export function BatteryIndicator({ level }: { level: number }) {
-  const tone = level >= 50 ? "text-success" : level >= 20 ? "text-warning-foreground" : "text-destructive";
+  const tone =
+    level >= 50 ? "text-success" : level >= 20 ? "text-warning-foreground" : "text-destructive";
   const Icon = level >= 50 ? BatteryFull : level >= 20 ? Battery : BatteryLow;
   return (
     <span className={`inline-flex items-center gap-1 text-xs ${tone}`}>
@@ -52,15 +64,36 @@ export function BatteryIndicator({ level }: { level: number }) {
 
 // ---------- Quality ----------
 export function DataQualityScore({ score, size = "sm" }: { score: number; size?: "sm" | "md" }) {
-  const tone = score >= 90 ? "bg-success/15 text-success" : score >= 70 ? "bg-warning/20 text-warning-foreground" : "bg-destructive/15 text-destructive";
+  const tone =
+    score >= 90
+      ? "bg-success/15 text-success"
+      : score >= 70
+        ? "bg-warning/20 text-warning-foreground"
+        : "bg-destructive/15 text-destructive";
   const cls = size === "md" ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-xs";
-  return <span className={`inline-flex items-center rounded-full font-medium tabular-nums ${tone} ${cls}`}>{score}%</span>;
+  return (
+    <span
+      className={`inline-flex items-center rounded-full font-medium tabular-nums ${tone} ${cls}`}
+    >
+      {score}%
+    </span>
+  );
 }
 
 // ---------- Connection health card ----------
 export function ConnectionHealthCard({
-  label, value, sub, icon, tone = "default",
-}: { label: string; value: string; sub?: string; icon: ReactNode; tone?: "default" | "success" | "warning" | "danger" }) {
+  label,
+  value,
+  sub,
+  icon,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  icon: ReactNode;
+  tone?: "default" | "success" | "warning" | "danger";
+}) {
   const accents: Record<string, string> = {
     default: "bg-leaf/20 text-primary",
     success: "bg-success/15 text-success",
@@ -83,29 +116,59 @@ export function ConnectionHealthCard({
 
 // ---------- Drawer ----------
 export function Drawer({
-  open, onClose, title, subtitle, children, footer,
-}: { open: boolean; onClose: () => void; title: string; subtitle?: string; children: ReactNode; footer?: ReactNode }) {
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  footer,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex">
-      <button aria-label="Luk" onClick={onClose} className="flex-1 bg-foreground/30 backdrop-blur-sm" />
+      <button
+        aria-label="Luk"
+        onClick={onClose}
+        className="flex-1 bg-foreground/30 backdrop-blur-sm"
+      />
       <aside className="w-full max-w-xl bg-card border-l shadow-2xl flex flex-col animate-in slide-in-from-right">
         <header className="flex items-start justify-between p-5 border-b">
           <div>
             <div className="text-base font-semibold">{title}</div>
             {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted">
+            <X className="h-4 w-4" />
+          </button>
         </header>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">{children}</div>
-        {footer && <footer className="p-4 border-t bg-muted/30 flex flex-wrap gap-2">{footer}</footer>}
+        {footer && (
+          <footer className="p-4 border-t bg-muted/30 flex flex-wrap gap-2">{footer}</footer>
+        )}
       </aside>
     </div>
   );
 }
 
 // ---------- Section ----------
-export function Section({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: ReactNode; children: ReactNode }) {
+export function Section({
+  title,
+  subtitle,
+  action,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between mb-4">
@@ -132,7 +195,15 @@ export function SeverityBadge({ severity }: { severity: "critical" | "medium" | 
 }
 
 // ---------- Progress bar ----------
-export function ProgressBar({ value, label, hint }: { value: number; label?: string; hint?: string }) {
+export function ProgressBar({
+  value,
+  label,
+  hint,
+}: {
+  value: number;
+  label?: string;
+  hint?: string;
+}) {
   return (
     <div>
       {label && (
@@ -150,7 +221,15 @@ export function ProgressBar({ value, label, hint }: { value: number; label?: str
 }
 
 // ---------- Wizard step indicator ----------
-export function WizardSteps({ steps, current, onSelect }: { steps: string[]; current: number; onSelect: (i: number) => void }) {
+export function WizardSteps({
+  steps,
+  current,
+  onSelect,
+}: {
+  steps: string[];
+  current: number;
+  onSelect: (i: number) => void;
+}) {
   return (
     <ol className="flex flex-col gap-1">
       {steps.map((s, i) => {
@@ -161,10 +240,16 @@ export function WizardSteps({ steps, current, onSelect }: { steps: string[]; cur
             <button
               onClick={() => onSelect(i)}
               className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
-                active ? "bg-leaf/20 text-foreground font-medium" : done ? "text-foreground hover:bg-muted" : "text-muted-foreground hover:bg-muted"
+                active
+                  ? "bg-leaf/20 text-foreground font-medium"
+                  : done
+                    ? "text-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-muted"
               }`}
             >
-              <span className={`h-6 w-6 rounded-full grid place-items-center text-xs ${done ? "bg-success text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+              <span
+                className={`h-6 w-6 rounded-full grid place-items-center text-xs ${done ? "bg-success text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+              >
                 {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
               </span>
               <span className="flex-1 truncate">{s}</span>
@@ -183,19 +268,40 @@ export function useDrawer<T>() {
 }
 
 // ---------- Inline chip ----------
-export function Chip({ children, tone = "default" }: { children: ReactNode; tone?: "default" | "primary" | "muted" }) {
+export function Chip({
+  children,
+  tone = "default",
+}: {
+  children: ReactNode;
+  tone?: "default" | "primary" | "muted";
+}) {
   const tones = {
     default: "bg-muted text-foreground border",
     primary: "bg-leaf/20 text-foreground border border-primary/20",
     muted: "bg-muted/60 text-muted-foreground border",
   };
-  return <span className={`inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-md ${tones[tone]}`}>{children}</span>;
+  return (
+    <span
+      className={`inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-md ${tones[tone]}`}
+    >
+      {children}
+    </span>
+  );
 }
 
 // ---------- Mini chart (line) ----------
-export function MiniLine({ values, color = "var(--primary)" }: { values: number[]; color?: string }) {
-  const w = 280, h = 80, pad = 6;
-  const min = Math.min(...values), max = Math.max(...values);
+export function MiniLine({
+  values,
+  color = "var(--primary)",
+}: {
+  values: number[];
+  color?: string;
+}) {
+  const w = 280,
+    h = 80,
+    pad = 6;
+  const min = Math.min(...values),
+    max = Math.max(...values);
   const span = max - min || 1;
   const pts = values.map((v, i) => {
     const x = pad + (i * (w - pad * 2)) / (values.length - 1);
@@ -204,7 +310,14 @@ export function MiniLine({ values, color = "var(--primary)" }: { values: number[
   });
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-20">
-      <polyline points={pts.join(" ")} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline
+        points={pts.join(" ")}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

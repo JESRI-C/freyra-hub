@@ -39,7 +39,13 @@ export function MitigationMeasuresPanel({ measures }: Props) {
         title="Afværgetiltag"
         subtitle={`${localMeasures.length} tiltag registreret`}
         action={
-          <Pill tone={verifiedCount === localMeasures.length && localMeasures.length > 0 ? "success" : "info"}>
+          <Pill
+            tone={
+              verifiedCount === localMeasures.length && localMeasures.length > 0
+                ? "success"
+                : "info"
+            }
+          >
             {verifiedCount}/{localMeasures.length} verificeret
           </Pill>
         }
@@ -62,7 +68,9 @@ export function MitigationMeasuresPanel({ measures }: Props) {
       )}
 
       {localMeasures.length === 0 ? (
-        <div className="px-5 pb-5 text-sm text-muted-foreground">Ingen afværgetiltag registreret</div>
+        <div className="px-5 pb-5 text-sm text-muted-foreground">
+          Ingen afværgetiltag registreret
+        </div>
       ) : (
         <div className="px-5 pb-4 divide-y">
           {localMeasures.map((m) => (
@@ -91,11 +99,11 @@ export function MitigationMeasuresPanel({ measures }: Props) {
                   )}
                 </div>
               </div>
-              {m.description && (
-                <p className="text-xs text-muted-foreground">{m.description}</p>
-              )}
+              {m.description && <p className="text-xs text-muted-foreground">{m.description}</p>}
               <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-                {m.due_date && <span>Frist: {new Date(m.due_date).toLocaleDateString("da-DK")}</span>}
+                {m.due_date && (
+                  <span>Frist: {new Date(m.due_date).toLocaleDateString("da-DK")}</span>
+                )}
                 {m.responsible_party && <span>Ansvarlig: {m.responsible_party}</span>}
                 {m.verification_method && <span>Verifikation: {m.verification_method}</span>}
               </div>

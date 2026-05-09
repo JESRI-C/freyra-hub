@@ -75,9 +75,21 @@ export function CategoryBadge({ category }: { category: Category }) {
   );
 }
 
-export function DataQualityScore({ value, label = "Datakvalitet" }: { value: number; label?: string }) {
+export function DataQualityScore({
+  value,
+  label = "Datakvalitet",
+}: {
+  value: number;
+  label?: string;
+}) {
   const tone =
-    value >= 90 ? "bg-success" : value >= 75 ? "bg-leaf" : value >= 60 ? "bg-warning" : "bg-destructive";
+    value >= 90
+      ? "bg-success"
+      : value >= 75
+        ? "bg-leaf"
+        : value >= 60
+          ? "bg-warning"
+          : "bg-destructive";
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
@@ -107,7 +119,9 @@ export function ImpactMetricCard({
   return (
     <div className="rounded-2xl bg-card border shadow-soft p-5">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-        <span className="h-7 w-7 rounded-lg bg-leaf/20 text-primary grid place-items-center">{icon}</span>
+        <span className="h-7 w-7 rounded-lg bg-leaf/20 text-primary grid place-items-center">
+          {icon}
+        </span>
         {label}
       </div>
       <div className="mt-3 text-2xl font-semibold tracking-tight">
@@ -150,7 +164,9 @@ export function ProjectCard({
         </div>
       </div>
       <div className="p-4 flex-1 flex flex-col gap-3">
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{project.description}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+          {project.description}
+        </p>
         <div className="grid grid-cols-3 gap-2 text-xs">
           <Metric label="CO₂e pot." value={fmt(project.co2ePotential)} unit="t" />
           <Metric label="Bio.indeks" value={`${project.biodiversityIndex}`} unit="/100" />
@@ -160,7 +176,9 @@ export function ProjectCard({
         <div className="flex items-center justify-between text-xs">
           <RiskBadge level={project.risk} />
           <span className="text-muted-foreground">
-            ~<span className="font-medium text-foreground tabular-nums">{project.pricePerUnit}</span> DKK / enhed
+            ~
+            <span className="font-medium text-foreground tabular-nums">{project.pricePerUnit}</span>{" "}
+            DKK / enhed
           </span>
         </div>
         <div className="mt-auto pt-2 grid grid-cols-3 gap-1.5">
@@ -206,7 +224,9 @@ function Metric({ label, value, unit }: { label: string; value: string; unit?: s
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="font-semibold tabular-nums text-sm leading-tight">
         {value}
-        {unit && <span className="text-[10px] font-normal text-muted-foreground ml-0.5">{unit}</span>}
+        {unit && (
+          <span className="text-[10px] font-normal text-muted-foreground ml-0.5">{unit}</span>
+        )}
       </div>
     </div>
   );
@@ -237,7 +257,11 @@ export function ProjectMap({
       }}
     >
       {/* fake continent shapes */}
-      <svg viewBox="0 0 100 60" className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+      <svg
+        viewBox="0 0 100 60"
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="none"
+      >
         <g fill="oklch(0.9 0.04 150 / 0.7)" stroke="oklch(0.7 0.05 150 / 0.4)" strokeWidth="0.2">
           <path d="M10,20 Q22,12 35,18 Q44,28 38,38 Q24,42 14,34 Z" />
           <path d="M48,18 Q60,12 72,16 Q80,28 70,40 Q58,42 50,34 Z" />
@@ -278,15 +302,30 @@ export function ProjectMap({
 // Local site map for project profile
 export function LocalSiteMap() {
   return (
-    <div className="relative h-72 rounded-xl border overflow-hidden"
+    <div
+      className="relative h-72 rounded-xl border overflow-hidden"
       style={{
         background:
           "radial-gradient(ellipse at 60% 40%, oklch(0.92 0.07 150 / 0.7), transparent 70%), oklch(0.96 0.03 150)",
       }}
     >
-      <svg viewBox="0 0 100 60" className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-        <path d="M5,30 Q25,10 50,28 T95,32" stroke="oklch(0.6 0.1 220)" strokeWidth="1.5" fill="none" />
-        <path d="M5,30 Q25,10 50,28 T95,32" stroke="oklch(0.7 0.05 220)" strokeWidth="0.4" fill="none" />
+      <svg
+        viewBox="0 0 100 60"
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="none"
+      >
+        <path
+          d="M5,30 Q25,10 50,28 T95,32"
+          stroke="oklch(0.6 0.1 220)"
+          strokeWidth="1.5"
+          fill="none"
+        />
+        <path
+          d="M5,30 Q25,10 50,28 T95,32"
+          stroke="oklch(0.7 0.05 220)"
+          strokeWidth="0.4"
+          fill="none"
+        />
         <ellipse cx="35" cy="38" rx="18" ry="8" fill="oklch(0.85 0.08 150 / 0.7)" />
         <ellipse cx="70" cy="22" rx="14" ry="6" fill="oklch(0.78 0.12 150 / 0.6)" />
       </svg>
@@ -304,22 +343,40 @@ export function LocalSiteMap() {
   );
 }
 
-function Pin({ x, y, label, tone }: { x: string; y: string; label: string; tone: "info" | "leaf" | "success" }) {
+function Pin({
+  x,
+  y,
+  label,
+  tone,
+}: {
+  x: string;
+  y: string;
+  label: string;
+  tone: "info" | "leaf" | "success";
+}) {
   const map = {
     info: "bg-accent text-accent-foreground",
     leaf: "bg-leaf/30 text-primary",
     success: "bg-success/20 text-success",
   } as const;
   return (
-    <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: `${x}%`, top: `${y}%` }}>
-      <div className={`text-[10px] font-medium px-2 py-1 rounded-md shadow-soft ${map[tone]}`}>{label}</div>
+    <div
+      className="absolute -translate-x-1/2 -translate-y-full"
+      style={{ left: `${x}%`, top: `${y}%` }}
+    >
+      <div className={`text-[10px] font-medium px-2 py-1 rounded-md shadow-soft ${map[tone]}`}>
+        {label}
+      </div>
       <div className="h-2 w-2 rounded-full bg-foreground mx-auto mt-0.5" />
     </div>
   );
 }
 function SensorDot({ x, y }: { x: string; y: string }) {
   return (
-    <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
+    <div
+      className="absolute -translate-x-1/2 -translate-y-1/2"
+      style={{ left: `${x}%`, top: `${y}%` }}
+    >
       <div className="h-2 w-2 rounded-full bg-primary ring-2 ring-primary/30" />
     </div>
   );
@@ -368,8 +425,15 @@ export function ImpactChart({
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-44">
       {[0, 1, 2, 3].map((i) => (
-        <line key={i} x1={pad} x2={w - pad} y1={pad + (i * (h - pad * 2)) / 3} y2={pad + (i * (h - pad * 2)) / 3}
-              stroke="oklch(0.92 0.01 150)" strokeWidth="1" />
+        <line
+          key={i}
+          x1={pad}
+          x2={w - pad}
+          y1={pad + (i * (h - pad * 2)) / 3}
+          y2={pad + (i * (h - pad * 2)) / 3}
+          stroke="oklch(0.92 0.01 150)"
+          strokeWidth="1"
+        />
       ))}
       {series.map((s, si) => {
         const pts = s.values.map((v, i) => {
@@ -379,14 +443,28 @@ export function ImpactChart({
         });
         return (
           <g key={si}>
-            <path d={`M ${pts.join(" L ")}`} fill="none" stroke={s.color} strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d={`M ${pts.join(" L ")}`}
+              fill="none"
+              stroke={s.color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </g>
         );
       })}
       {["Jan", "Feb", "Mar", "Apr", "Maj", "Jun"].map((m, i) => (
-        <text key={m} x={pad + (i * (w - pad * 2)) / 5} y={h - 6} fontSize="10"
-              textAnchor="middle" fill="oklch(0.5 0.02 160)">{m}</text>
+        <text
+          key={m}
+          x={pad + (i * (w - pad * 2)) / 5}
+          y={h - 6}
+          fontSize="10"
+          textAnchor="middle"
+          fill="oklch(0.5 0.02 160)"
+        >
+          {m}
+        </text>
       ))}
     </svg>
   );
@@ -406,15 +484,32 @@ export function Donut({
   return (
     <div className="flex items-center gap-5">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="oklch(0.94 0.01 150)" strokeWidth="14" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="oklch(0.94 0.01 150)"
+          strokeWidth="14"
+        />
         {segments.map((s, i) => {
           const len = (s.value / total) * c;
           const dasharray = `${len} ${c - len}`;
           const dashoffset = -acc;
           acc += len;
           return (
-            <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth="14"
-                    strokeDasharray={dasharray} strokeDashoffset={dashoffset} strokeLinecap="butt" />
+            <circle
+              key={i}
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke={s.color}
+              strokeWidth="14"
+              strokeDasharray={dasharray}
+              strokeDashoffset={dashoffset}
+              strokeLinecap="butt"
+            />
           );
         })}
       </svg>

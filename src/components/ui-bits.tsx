@@ -2,12 +2,18 @@ import type { ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-2xl bg-card border shadow-soft ${className}`}>{children}</div>
-  );
+  return <div className={`rounded-2xl bg-card border shadow-soft ${className}`}>{children}</div>;
 }
 
-export function CardHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+export function CardHeader({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex items-start justify-between p-5 pb-3">
       <div>
@@ -20,9 +26,17 @@ export function CardHeader({ title, subtitle, action }: { title: string; subtitl
 }
 
 export function StatCard({
-  label, value, delta, icon, accent = "bg-leaf/20 text-primary",
+  label,
+  value,
+  delta,
+  icon,
+  accent = "bg-leaf/20 text-primary",
 }: {
-  label: string; value: string; delta?: number; icon: ReactNode; accent?: string;
+  label: string;
+  value: string;
+  delta?: number;
+  icon: ReactNode;
+  accent?: string;
 }) {
   const up = (delta ?? 0) >= 0;
   return (
@@ -32,9 +46,12 @@ export function StatCard({
           <div className="text-xs text-muted-foreground">{label}</div>
           <div className="text-2xl font-semibold mt-2 tracking-tight">{value}</div>
           {delta !== undefined && (
-            <div className={`mt-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${up ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
+            <div
+              className={`mt-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${up ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}
+            >
               {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {up ? "+" : ""}{delta}% vs. forrige periode
+              {up ? "+" : ""}
+              {delta}% vs. forrige periode
             </div>
           )}
         </div>
@@ -45,8 +62,11 @@ export function StatCard({
 }
 
 export function Sparkline({ values, color = "var(--leaf)" }: { values: number[]; color?: string }) {
-  const w = 240, h = 60, pad = 4;
-  const min = Math.min(...values), max = Math.max(...values);
+  const w = 240,
+    h = 60,
+    pad = 4;
+  const min = Math.min(...values),
+    max = Math.max(...values);
   const span = max - min || 1;
   const pts = values.map((v, i) => {
     const x = pad + (i * (w - pad * 2)) / (values.length - 1);
@@ -64,12 +84,25 @@ export function Sparkline({ values, color = "var(--leaf)" }: { values: number[];
         </linearGradient>
       </defs>
       <path d={area} fill="url(#spark)" />
-      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={d}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-export function Bars({ data, color = "var(--primary)" }: { data: { label: string; value: number }[]; color?: string }) {
+export function Bars({
+  data,
+  color = "var(--primary)",
+}: {
+  data: { label: string; value: number }[];
+  color?: string;
+}) {
   const max = Math.max(...data.map((d) => d.value));
   return (
     <div className="space-y-2.5">
@@ -77,7 +110,10 @@ export function Bars({ data, color = "var(--primary)" }: { data: { label: string
         <div key={d.label} className="flex items-center gap-3">
           <div className="text-xs text-muted-foreground w-28 truncate">{d.label}</div>
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${(d.value / max) * 100}%`, background: color }} />
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${(d.value / max) * 100}%`, background: color }}
+            />
           </div>
           <div className="text-xs font-medium w-12 text-right tabular-nums">{d.value}</div>
         </div>
@@ -86,7 +122,13 @@ export function Bars({ data, color = "var(--primary)" }: { data: { label: string
   );
 }
 
-export function Pill({ children, tone = "default" }: { children: ReactNode; tone?: "default" | "success" | "warning" | "danger" | "info" }) {
+export function Pill({
+  children,
+  tone = "default",
+}: {
+  children: ReactNode;
+  tone?: "default" | "success" | "warning" | "danger" | "info";
+}) {
   const tones: Record<string, string> = {
     default: "bg-muted text-foreground",
     success: "bg-success/15 text-success",
@@ -94,10 +136,24 @@ export function Pill({ children, tone = "default" }: { children: ReactNode; tone
     danger: "bg-destructive/15 text-destructive",
     info: "bg-accent text-accent-foreground",
   };
-  return <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${tones[tone]}`}>{children}</span>;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${tones[tone]}`}
+    >
+      {children}
+    </span>
+  );
 }
 
-export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  description,
+  actions,
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 mb-6">
       <div>

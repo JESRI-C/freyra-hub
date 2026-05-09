@@ -75,17 +75,34 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "GoFreyra Platform" },
-      { name: "description", content: "Verificeret natur- og klimadata for ansvarlige organisationer." },
+      {
+        name: "description",
+        content: "Verificeret natur- og klimadata for ansvarlige organisationer.",
+      },
       { name: "author", content: "Freyra" },
       { property: "og:title", content: "GoFreyra Platform" },
-      { property: "og:description", content: "Verificeret natur- og klimadata for ansvarlige organisationer." },
+      {
+        property: "og:description",
+        content: "Verificeret natur- og klimadata for ansvarlige organisationer.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "GoFreyra Platform" },
-      { name: "twitter:description", content: "Verificeret natur- og klimadata for ansvarlige organisationer." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ff3aa25f-a816-4998-9836-df5a9093fe16/id-preview-0d0458ed--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app-1778271929770.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ff3aa25f-a816-4998-9836-df5a9093fe16/id-preview-0d0458ed--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app-1778271929770.png" },
+      {
+        name: "twitter:description",
+        content: "Verificeret natur- og klimadata for ansvarlige organisationer.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ff3aa25f-a816-4998-9836-df5a9093fe16/id-preview-0d0458ed--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app-1778271929770.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ff3aa25f-a816-4998-9836-df5a9093fe16/id-preview-0d0458ed--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app-1778271929770.png",
+      },
     ],
     links: [
       {

@@ -3,9 +3,17 @@ import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui-bits";
 import { Section } from "@/components/connect/Primitives";
 import {
-  MapToolbar, MapSearchBox, LayerControlPanel, MapCanvas, ZoneCard,
-  SelectedMapObjectPanel, PolygonDrawModal, AreaMeasurementBadge,
-  DataCoveragePanel, MapInsightCard, Toast,
+  MapToolbar,
+  MapSearchBox,
+  LayerControlPanel,
+  MapCanvas,
+  ZoneCard,
+  SelectedMapObjectPanel,
+  PolygonDrawModal,
+  AreaMeasurementBadge,
+  DataCoveragePanel,
+  MapInsightCard,
+  Toast,
   type MapSelection,
 } from "@/components/connect/MapPrimitives";
 import { LAYER_DEFS, MAP_PROJECTS, MOCK_ZONES_GEO, type LayerKey } from "@/lib/connect-map-data";
@@ -17,7 +25,7 @@ export const Route = createFileRoute("/app/connect/map")({
 function Page() {
   const [project, setProject] = useState(MAP_PROJECTS[0].name);
   const [active, setActive] = useState<Record<LayerKey, boolean>>(
-    Object.fromEntries(LAYER_DEFS.map((l) => [l.key, l.defaultOn])) as Record<LayerKey, boolean>
+    Object.fromEntries(LAYER_DEFS.map((l) => [l.key, l.defaultOn])) as Record<LayerKey, boolean>,
   );
   const [tool, setTool] = useState<any>(null);
   const [drawing, setDrawing] = useState(false);
@@ -29,7 +37,10 @@ function Page() {
   const [toast, setToast] = useState<string | null>(null);
 
   const projects = MAP_PROJECTS;
-  const projectArea = useMemo(() => projects.find((p) => p.name === project)?.area ?? "—", [project, projects]);
+  const projectArea = useMemo(
+    () => projects.find((p) => p.name === project)?.area ?? "—",
+    [project, projects],
+  );
 
   const handleTool = (t: typeof tool) => {
     setTool(t);
@@ -73,19 +84,30 @@ function Page() {
               onChange={(e) => setProject(e.target.value)}
               className="w-full rounded-lg border bg-background px-2.5 py-2 text-sm"
             >
-              {projects.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+              {projects.map((p) => (
+                <option key={p.id} value={p.name}>
+                  {p.name}
+                </option>
+              ))}
             </select>
             <div className="text-[11px] text-muted-foreground mt-1.5">Areal: {projectArea}</div>
           </div>
           <div className="rounded-xl border bg-card p-4">
-            <LayerControlPanel active={active} onToggle={(k, v) => setActive({ ...active, [k]: v })} />
+            <LayerControlPanel
+              active={active}
+              onToggle={(k, v) => setActive({ ...active, [k]: v })}
+            />
           </div>
         </div>
 
         {/* Center */}
         <div className="space-y-3">
           <MapSearchBox onPick={(s) => setToast(`Centreret på ${s}`)} />
-          <MapToolbar active={tool} onTool={handleTool} areaText={drawArea > 0 ? `${drawArea.toFixed(1)} ha` : undefined} />
+          <MapToolbar
+            active={tool}
+            onTool={handleTool}
+            areaText={drawArea > 0 ? `${drawArea.toFixed(1)} ha` : undefined}
+          />
           <div className="rounded-xl border bg-card overflow-hidden">
             <MapCanvas
               layers={active}
@@ -131,7 +153,11 @@ function Page() {
       <PolygonDrawModal
         open={showZoneModal}
         areaText={`${drawArea.toFixed(1)} ha`}
-        onClose={() => { setShowZoneModal(false); setDrawnPoints([]); setDrawArea(0); }}
+        onClose={() => {
+          setShowZoneModal(false);
+          setDrawnPoints([]);
+          setDrawArea(0);
+        }}
         onSave={(z) => {
           setZones([
             ...zones,
@@ -171,5 +197,7 @@ function mockArea(pts: { x: number; y: number }[]) {
 
 function pointsToPath(pts: { x: number; y: number }[]) {
   if (!pts.length) return "";
-  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(0)},${p.y.toFixed(0)}`).join(" ") + " Z";
+  return (
+    pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(0)},${p.y.toFixed(0)}`).join(" ") + " Z"
+  );
 }

@@ -33,10 +33,36 @@ function CSRDPage() {
       </Card>
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <ESGMetricCard label="Samlet readiness" value="68" unit="%" trend={6} icon={<ClipboardList className="h-4 w-4" />} />
-        <ESGMetricCard label="Dækkede datapunkter" value="142" unit="/210" trend={4} icon={<CheckCircle2 className="h-4 w-4" />} tone="success" />
-        <ESGMetricCard label="Kritiske mangler" value="12" trend={-3} icon={<AlertTriangle className="h-4 w-4" />} tone="warning" />
-        <ESGMetricCard label="Klar til intern review" value="6" unit="områder" trend={2} icon={<ClipboardCheck className="h-4 w-4" />} tone="info" />
+        <ESGMetricCard
+          label="Samlet readiness"
+          value="68"
+          unit="%"
+          trend={6}
+          icon={<ClipboardList className="h-4 w-4" />}
+        />
+        <ESGMetricCard
+          label="Dækkede datapunkter"
+          value="142"
+          unit="/210"
+          trend={4}
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          tone="success"
+        />
+        <ESGMetricCard
+          label="Kritiske mangler"
+          value="12"
+          trend={-3}
+          icon={<AlertTriangle className="h-4 w-4" />}
+          tone="warning"
+        />
+        <ESGMetricCard
+          label="Klar til intern review"
+          value="6"
+          unit="områder"
+          trend={2}
+          icon={<ClipboardCheck className="h-4 w-4" />}
+          tone="info"
+        />
       </div>
 
       {/* ESRS cards */}
@@ -48,7 +74,11 @@ function CSRDPage() {
                 <div className="text-xs text-muted-foreground">{c.code}</div>
                 <div className="font-semibold">{c.name}</div>
               </div>
-              <Pill tone={c.priority === "Høj" ? "danger" : c.priority === "Medium" ? "warning" : "default"}>
+              <Pill
+                tone={
+                  c.priority === "Høj" ? "danger" : c.priority === "Medium" ? "warning" : "default"
+                }
+              >
                 {c.priority} prioritet
               </Pill>
             </div>
@@ -86,7 +116,15 @@ function CSRDPage() {
                 <td className="px-5 py-3 font-medium">{g.area}</td>
                 <td>{g.dataPoint}</td>
                 <td>
-                  <Pill tone={g.status === "Mangler" ? "danger" : g.status === "Delvist" ? "warning" : "info"}>
+                  <Pill
+                    tone={
+                      g.status === "Mangler"
+                        ? "danger"
+                        : g.status === "Delvist"
+                          ? "warning"
+                          : "info"
+                    }
+                  >
                     {g.status}
                   </Pill>
                 </td>
@@ -145,7 +183,9 @@ function CSRDPage() {
                       <Icon className="h-4 w-4" />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Trin {i + 1}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Trin {i + 1}
+                      </div>
                       <div className="text-sm font-medium leading-tight">{s.label}</div>
                     </div>
                   </li>
@@ -153,7 +193,8 @@ function CSRDPage() {
               })}
             </ol>
             <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
-              <CalendarClock className="h-4 w-4" /> Næste milepæl: <span className="text-foreground">Internal review · 2026-06-15</span>
+              <CalendarClock className="h-4 w-4" /> Næste milepæl:{" "}
+              <span className="text-foreground">Internal review · 2026-06-15</span>
             </div>
           </div>
         </Card>
@@ -165,8 +206,9 @@ function CSRDPage() {
             <div className="rounded-xl border p-4 bg-leaf/10 flex items-start gap-3">
               <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div className="text-sm leading-relaxed">
-                Prioritér de 3 høj-risiko gaps i ESRS E1 og E4 først, valider DEFRA-faktorer for varme, og tilføj
-                feltdata til Skallebæk-projektet. Det vil hæve readiness fra 68% til ~78% inden Q3.
+                Prioritér de 3 høj-risiko gaps i ESRS E1 og E4 først, valider DEFRA-faktorer for
+                varme, og tilføj feltdata til Skallebæk-projektet. Det vil hæve readiness fra 68%
+                til ~78% inden Q3.
               </div>
             </div>
             <ul className="text-xs space-y-1.5">

@@ -80,16 +80,23 @@ export function ConstructionProjectCard({ summary }: Props) {
       {/* Phase */}
       {summary.constructionExt?.construction_phase && (
         <div className="text-xs text-muted-foreground">
-          Fase: <span className="font-medium text-foreground">{summary.constructionExt.construction_phase}</span>
+          Fase:{" "}
+          <span className="font-medium text-foreground">
+            {summary.constructionExt.construction_phase}
+          </span>
         </div>
       )}
 
       {/* Score chips */}
       <div className="flex flex-wrap gap-1.5">
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreTone(natureSensitivityScore)}`}>
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreTone(natureSensitivityScore)}`}
+        >
           Natur: {scoreLabel(natureSensitivityScore)}
         </span>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreTone(runoffRiskScore)}`}>
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreTone(runoffRiskScore)}`}
+        >
           Afstrømning: {scoreLabel(runoffRiskScore)}
         </span>
       </div>

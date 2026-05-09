@@ -44,12 +44,12 @@ create table public.organization_memberships (
 
 ## Roles
 
-| Role | Description |
-|---|---|
-| `owner` | Full control: manage members, delete org |
-| `admin` | Create/edit all resources, manage members |
+| Role     | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `owner`  | Full control: manage members, delete org              |
+| `admin`  | Create/edit all resources, manage members             |
 | `editor` | Create/edit projects, upload evidence, submit reports |
-| `viewer` | Read-only access to all project data |
+| `viewer` | Read-only access to all project data                  |
 
 ## Implementation steps
 
@@ -65,15 +65,17 @@ create table public.organization_memberships (
 
 ```typescript
 // src/lib/auth.tsx
-import { supabase } from './supabase/client'
+import { supabase } from "./supabase/client";
 
 export function useAuth() {
-  const [session, setSession] = useState(null)
+  const [session, setSession] = useState(null);
   useEffect(() => {
-    supabase?.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = supabase?.auth.onAuthStateChange((_, s) => setSession(s))
-    return () => subscription.unsubscribe()
-  }, [])
-  return session
+    supabase?.auth.getSession().then(({ data }) => setSession(data.session));
+    const {
+      data: { subscription },
+    } = supabase?.auth.onAuthStateChange((_, s) => setSession(s));
+    return () => subscription.unsubscribe();
+  }, []);
+  return session;
 }
 ```

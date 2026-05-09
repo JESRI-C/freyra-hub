@@ -15,8 +15,7 @@ const constructionProjectsQuery = {
 
 export const Route = createFileRoute("/app/construction/")({
   head: () => ({ meta: [{ title: "Byggeri & Natur — GoFreyra" }] }),
-  loader: ({ context: { queryClient } }) =>
-    queryClient.ensureQueryData(constructionProjectsQuery),
+  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(constructionProjectsQuery),
   component: ConstructionIndexPage,
 });
 
@@ -56,8 +55,9 @@ function ConstructionIndexPage() {
       summaries.reduce(
         (acc, s) =>
           acc +
-          s.risks.filter((r) => r.status === "Åben" && (r.severity === "Kritisk" || r.severity === "Høj"))
-            .length,
+          s.risks.filter(
+            (r) => r.status === "Åben" && (r.severity === "Kritisk" || r.severity === "Høj"),
+          ).length,
         0,
       ),
     [summaries],
@@ -73,9 +73,7 @@ function ConstructionIndexPage() {
 
   const avgReadiness = useMemo(() => {
     if (summaries.length === 0) return 0;
-    return Math.round(
-      summaries.reduce((acc, s) => acc + s.readinessScore, 0) / summaries.length,
-    );
+    return Math.round(summaries.reduce((acc, s) => acc + s.readinessScore, 0) / summaries.length);
   }, [summaries]);
 
   return (
@@ -122,7 +120,11 @@ function ConstructionIndexPage() {
         <div className="h-2 rounded-full bg-muted overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${
-              avgReadiness >= 80 ? "bg-emerald-500" : avgReadiness >= 50 ? "bg-amber-400" : "bg-red-400"
+              avgReadiness >= 80
+                ? "bg-emerald-500"
+                : avgReadiness >= 50
+                  ? "bg-amber-400"
+                  : "bg-red-400"
             }`}
             style={{ width: `${avgReadiness}%` }}
           />

@@ -50,10 +50,12 @@ Example: `proj-001/2025/field_photo/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg`
 ## Thumbnails
 
 Option A (recommended for v1): Client-side Canvas resize before upload.
+
 - Resize longest dimension to 400px, JPEG quality 80
 - No server cost, no Edge Function needed
 
 Option B (v2): Supabase Edge Function triggered on Storage insert.
+
 - Higher quality, consistent sizing
 - Requires Edge Function deployment
 

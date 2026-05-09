@@ -1,5 +1,13 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Brain, ListChecks, ShieldAlert, FlaskConical, Database, FileText, MessageSquare } from "lucide-react";
+import {
+  Brain,
+  ListChecks,
+  ShieldAlert,
+  FlaskConical,
+  Database,
+  FileText,
+  MessageSquare,
+} from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/decisions")({
@@ -22,7 +30,10 @@ function DecisionsLayout() {
 
   return (
     <>
-      <AppTopbar title="DecisionsIQ" subtitle="AI-drevet beslutningsintelligens for projektets data" />
+      <AppTopbar
+        title="DecisionsIQ"
+        subtitle="AI-drevet beslutningsintelligens for projektets data"
+      />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">

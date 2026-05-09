@@ -24,8 +24,13 @@ function LoginPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="hidden lg:flex relative overflow-hidden bg-sidebar text-sidebar-foreground p-12 flex-col justify-between">
-        <div className="absolute inset-0 opacity-30 pointer-events-none"
-             style={{ background: "radial-gradient(900px 600px at 20% 30%, oklch(0.45 0.15 150 / 0.6), transparent 60%), radial-gradient(700px 500px at 80% 90%, oklch(0.55 0.18 145 / 0.4), transparent 60%)" }} />
+        <div
+          className="absolute inset-0 opacity-30 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(900px 600px at 20% 30%, oklch(0.45 0.15 150 / 0.6), transparent 60%), radial-gradient(700px 500px at 80% 90%, oklch(0.55 0.18 145 / 0.4), transparent 60%)",
+          }}
+        />
         <div className="relative flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-leaf/90 grid place-items-center text-leaf-foreground">
             <Leaf className="h-5 w-5" />
@@ -40,7 +45,8 @@ function LoginPage() {
             Mål, dokumentér og handl på <span className="text-leaf">verificeret impact</span>.
           </h1>
           <p className="text-sidebar-muted">
-            Forbind data, beslutninger og rapportering i én platform — bygget til ansvarlige organisationer i Norden.
+            Forbind data, beslutninger og rapportering i én platform — bygget til ansvarlige
+            organisationer i Norden.
           </p>
           <div className="grid grid-cols-3 gap-4 pt-4">
             {[
@@ -48,14 +54,19 @@ function LoginPage() {
               { k: "98%", v: "Verificeret" },
               { k: "ESG", v: "Klar rapport" },
             ].map((x) => (
-              <div key={x.v} className="rounded-xl bg-sidebar-accent/60 p-4 border border-sidebar-border">
+              <div
+                key={x.v}
+                className="rounded-xl bg-sidebar-accent/60 p-4 border border-sidebar-border"
+              >
                 <div className="text-2xl font-semibold text-leaf">{x.k}</div>
                 <div className="text-xs text-sidebar-muted mt-1">{x.v}</div>
               </div>
             ))}
           </div>
         </div>
-        <div className="relative text-xs text-sidebar-muted">© {new Date().getFullYear()} Freyra ApS</div>
+        <div className="relative text-xs text-sidebar-muted">
+          © {new Date().getFullYear()} Freyra ApS
+        </div>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
@@ -68,7 +79,9 @@ function LoginPage() {
           </div>
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Velkommen tilbage</h2>
-            <p className="text-sm text-muted-foreground mt-1">Log ind for at fortsætte til din arbejdsplads.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Log ind for at fortsætte til din arbejdsplads.
+            </p>
           </div>
 
           <div className="space-y-3">
@@ -78,7 +91,9 @@ function LoginPage() {
                 <label
                   key={u.id}
                   className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition ${
-                    selected === u.id ? "border-primary bg-accent/40 shadow-soft" : "border-border hover:bg-muted/40"
+                    selected === u.id
+                      ? "border-primary bg-accent/40 shadow-soft"
+                      : "border-border hover:bg-muted/40"
                   }`}
                 >
                   <input
@@ -94,7 +109,9 @@ function LoginPage() {
                   </div>
                   <div className="flex-1">
                     <div className="text-sm font-medium">{u.name}</div>
-                    <div className="text-xs text-muted-foreground">{u.role} · {u.email}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {u.role} · {u.email}
+                    </div>
                   </div>
                   {selected === u.id && <span className="h-2 w-2 rounded-full bg-primary" />}
                 </label>
@@ -113,7 +130,9 @@ function LoginPage() {
                 className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <p className="text-xs text-muted-foreground">Demo-adgang — enhver adgangskode virker.</p>
+            <p className="text-xs text-muted-foreground">
+              Demo-adgang — enhver adgangskode virker.
+            </p>
           </div>
 
           <button
@@ -124,7 +143,10 @@ function LoginPage() {
           </button>
 
           <div className="text-xs text-muted-foreground text-center">
-            Brug for hjælp? <a className="text-primary hover:underline" href="#">Kontakt support</a>
+            Brug for hjælp?{" "}
+            <a className="text-primary hover:underline" href="#">
+              Kontakt support
+            </a>
           </div>
         </form>
       </div>

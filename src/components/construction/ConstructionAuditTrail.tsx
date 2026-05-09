@@ -32,7 +32,9 @@ export function ConstructionAuditTrail({ events }: Props) {
         action={<Pill tone="info">{events.length}</Pill>}
       />
       {events.length === 0 ? (
-        <div className="px-5 pb-5 text-sm text-muted-foreground">Ingen auditbegivenheder registreret</div>
+        <div className="px-5 pb-5 text-sm text-muted-foreground">
+          Ingen auditbegivenheder registreret
+        </div>
       ) : (
         <div className="px-5 pb-4 divide-y">
           {events.map((ev) => (

@@ -45,7 +45,10 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
                 {RANGES.map((r) => (
                   <button
                     key={r}
-                    onClick={() => { setRange(r); setOpenRange(false); }}
+                    onClick={() => {
+                      setRange(r);
+                      setOpenRange(false);
+                    }}
                     className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-muted ${r === range ? "text-primary font-medium" : ""}`}
                   >
                     {r}
@@ -55,11 +58,17 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
             )}
           </div>
 
-          <button className="relative h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition" title="Notifikationer">
+          <button
+            className="relative h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
+            title="Notifikationer"
+          >
             <Bell className="h-4 w-4" />
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
           </button>
-          <button className="h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition" title="Hjælp">
+          <button
+            className="h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
+            title="Hjælp"
+          >
             <HelpCircle className="h-4 w-4" />
           </button>
 
@@ -71,7 +80,9 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
               <span className="h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center text-xs font-semibold">
                 {user?.initials}
               </span>
-              <span className="hidden sm:block text-sm font-medium">{user?.name.split(" ")[0]}</span>
+              <span className="hidden sm:block text-sm font-medium">
+                {user?.name.split(" ")[0]}
+              </span>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
             {openUser && (
@@ -88,7 +99,10 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
                   Skift arbejdsplads
                 </button>
                 <button
-                  onClick={() => { logout(); navigate({ to: "/login" }); }}
+                  onClick={() => {
+                    logout();
+                    navigate({ to: "/login" });
+                  }}
                   className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm hover:bg-muted text-destructive"
                 >
                   <LogOut className="h-4 w-4" /> Log ud
