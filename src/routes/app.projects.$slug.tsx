@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
@@ -22,7 +22,7 @@ import { getOpenActionsByProject, actionPriorityTone } from "@/services/actions-
 import { getEvidenceFilesByProject } from "@/services/evidence-service";
 import { getObservationsByProject, observationTypeLabel } from "@/services/observations-service";
 import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/report-engine";
-import { getProjectMedia } from "@/data/project-media";
+import { listProjectMedia } from "@/services/project-media-service";
 import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { ProjectGeometryMap } from "@/components/data-foundation/ProjectGeometryMap";
@@ -94,11 +94,8 @@ function ProjectDetailPage() {
     queryFn: () => getProjectBySlug(slug),
   });
 
-  if (!project) {
-    return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
-  }
-
-  const projectId = project.id;
+  // projectId is always set when project exists; hooks below use it unconditionally
+  const projectId = project?.id ?? "";
 
   // Sub-queries — all parallel via standard suspense
   const { data: indicators } = useSuspenseQuery({
@@ -133,9 +130,9 @@ function ProjectDetailPage() {
       const geometry = getProjectGeometrySeed(projectId);
       return buildProjectEnvironmentalContext(
         projectId,
-        project.name,
-        project.location_name ?? project.municipality ?? "Danmark",
-        project.municipality ?? "Danmark",
+        project?.name ?? "",
+        project?.location_name ?? project?.municipality ?? "Danmark",
+        project?.municipality ?? "Danmark",
         geometry,
       );
     },
@@ -144,15 +141,40 @@ function ProjectDetailPage() {
   // Sync helpers (seed data)
   const sites = getSitesByProject(projectId);
   const dataSources = getDataSourcesByProject(projectId);
-  const mediaItems = getProjectMedia(projectId);
   const geometry = getProjectGeometrySeed(projectId);
+
+  // Async media state
+  const [mediaItems, setMediaItems] = useState<
+    import("@/lib/platform/media-types").ProjectMediaItem[]
+  >([]);
+  const [mediaLoading, setMediaLoading] = useState(true);
+
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    setMediaLoading(true);
+    listProjectMedia(projectId).then((result) => {
+      if (!cancelled) {
+        setMediaItems(result.data ?? []);
+        setMediaLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  // Local action state (optimistic UI)
+  const [localActions, setLocalActions] = useState<Action[]>(actions);
+
+  if (!project) {
+    return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
+  }
 
   const activeDataSourcesCount = dataSources.filter(
     (d) => d.status === "online" || d.status === "partial",
   ).length;
 
-  // Local action state (optimistic UI)
-  const [localActions, setLocalActions] = useState<Action[]>(actions);
   const syncActions = (ids: string[], newStatus: string) => {
     setLocalActions((prev) =>
       prev.map((a) => (ids.includes(a.id) ? { ...a, status: newStatus } : a)),
@@ -476,10 +498,11 @@ function ProjectDetailPage() {
                   </div>
                 )}
                 <div className="grid lg:grid-cols-[1fr_360px] gap-5 items-start">
-                  <ProjectMediaGallery items={mediaItems} />
+                  <ProjectMediaGallery items={mediaItems} isLoading={mediaLoading} />
                   <ProjectMediaUploadPanel
                     projectId={projectId}
                     projectCentroid={geometry.centroid ?? undefined}
+                    onUploadComplete={(item) => setMediaItems((prev) => [item, ...prev])}
                   />
                 </div>
               </div>

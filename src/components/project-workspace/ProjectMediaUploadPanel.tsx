@@ -1,11 +1,15 @@
-import { useState } from "react";
-import { UploadCloud, Info } from "lucide-react";
+import { useState, useRef } from "react";
+import { UploadCloud, Info, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
-import type { MediaCategory } from "@/lib/platform/media-types";
+import type { MediaCategory, ProjectMediaItem } from "@/lib/platform/media-types";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { uploadProjectMedia } from "@/services/project-media-service";
+import exifr from "exifr";
 
 interface ProjectMediaUploadPanelProps {
   projectId: string;
   projectCentroid?: { lat: number; lng: number };
+  onUploadComplete?: (item: ProjectMediaItem) => void;
 }
 
 const CATEGORIES: MediaCategory[] = [
@@ -19,10 +23,19 @@ const CATEGORIES: MediaCategory[] = [
   "satellite_snapshot",
 ];
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function ProjectMediaUploadPanel({
-  projectId: _projectId,
+  projectId,
   projectCentroid,
+  onUploadComplete,
 }: ProjectMediaUploadPanelProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<MediaCategory>("field_photo");
@@ -30,26 +43,166 @@ export function ProjectMediaUploadPanel({
   const [useCentroid, setUseCentroid] = useState(!!projectCentroid);
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
-  const [simulationMsg, setSimulationMsg] = useState<string | null>(null);
+  const [tags, setTags] = useState("");
 
-  const handleSubmit = () => {
-    setSimulationMsg(
-      `Simulation: "${title || "Uden titel"}" ville blive uploadet i kategorien "${MEDIA_CATEGORY_LABELS[category]}".`,
-    );
+  const [isUploading, setIsUploading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+
+    setSelectedFile(file);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+
+    // Generate image preview
+    if (file.type.startsWith("image/")) {
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+    } else {
+      setPreviewUrl(null);
+    }
+
+    // Extract EXIF GPS data
+    try {
+      const gps = await exifr.gps(file);
+      if (gps && gps.latitude != null && gps.longitude != null) {
+        setManualLat(String(gps.latitude));
+        setManualLng(String(gps.longitude));
+        setUseCentroid(false);
+      }
+    } catch {
+      // No EXIF or GPS data — not an error
+    }
+  };
+
+  const handleDropzoneClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      setErrorMsg("Vælg venligst en fil før upload.");
+      return;
+    }
+    if (!title.trim()) {
+      setErrorMsg("Udfyld venligst en titel.");
+      return;
+    }
+
+    setIsUploading(true);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+
+    let coordinates:
+      | { lat: number; lng: number; altitudeM?: number; accuracyM?: number }
+      | undefined;
+
+    if (useCentroid && projectCentroid) {
+      coordinates = { lat: projectCentroid.lat, lng: projectCentroid.lng };
+    } else if (manualLat && manualLng) {
+      const lat = parseFloat(manualLat);
+      const lng = parseFloat(manualLng);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        coordinates = { lat, lng };
+      }
+    }
+
+    const tagList = tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    const result = await uploadProjectMedia({
+      projectId,
+      file: selectedFile,
+      title: title.trim(),
+      description: description.trim() || undefined,
+      category,
+      source: "field_upload",
+      isReportReady,
+      tags: tagList,
+      coordinates,
+    });
+
+    setIsUploading(false);
+
+    if (result.error) {
+      setErrorMsg(`Upload mislykkedes: ${result.error}`);
+    } else if (result.data) {
+      setSuccessMsg(`"${result.data.title}" er uploadet.`);
+      onUploadComplete?.(result.data);
+      // Reset form
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setTitle("");
+      setDescription("");
+      setCategory("field_photo");
+      setIsReportReady(false);
+      setManualLat("");
+      setManualLng("");
+      setTags("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <div className="text-sm font-semibold">Upload medie</div>
 
-      {/* Dropzone — visual only */}
-      <div className="rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/10 flex flex-col items-center gap-2 py-8 cursor-not-allowed opacity-60">
-        <UploadCloud className="h-6 w-6 text-muted-foreground" />
-        <p className="text-xs text-muted-foreground text-center">
-          Træk billeder hertil eller klik for at vælge
-        </p>
-        <p className="text-[10px] text-muted-foreground/60">JPG, PNG, TIFF · max 50 MB</p>
+      {/* Preview mode banner */}
+      {!isSupabaseConfigured && (
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+          <Info className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-[11px] text-amber-800">
+            Preview mode — filer gemmes ikke i denne session.
+          </p>
+        </div>
+      )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      {/* Dropzone */}
+      <div
+        onClick={handleDropzoneClick}
+        className="rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/10 flex flex-col items-center gap-2 py-6 cursor-pointer hover:bg-muted/20 transition"
+      >
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt="Forhåndsvisning"
+            className="max-h-32 rounded-lg object-contain"
+          />
+        ) : (
+          <>
+            <UploadCloud className="h-6 w-6 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground text-center">
+              Træk billeder hertil eller klik for at vælge
+            </p>
+            <p className="text-[10px] text-muted-foreground/60">JPG, PNG, TIFF, PDF · max 50 MB</p>
+          </>
+        )}
       </div>
+
+      {/* File info */}
+      {selectedFile && (
+        <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+          <span className="font-medium text-foreground">{selectedFile.name}</span>
+          {" · "}
+          {formatFileSize(selectedFile.size)}
+        </div>
+      )}
 
       {/* Category */}
       <div className="space-y-1">
@@ -88,6 +241,18 @@ export function ProjectMediaUploadPanel({
           placeholder="Yderligere detaljer om billedet..."
           rows={2}
           className="w-full rounded-lg border bg-background text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+        />
+      </div>
+
+      {/* Tags */}
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Tags (kommasepareret)</label>
+        <input
+          type="text"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="fx padde, vandhul, §3"
+          className="w-full rounded-lg border bg-background text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
@@ -148,26 +313,34 @@ export function ProjectMediaUploadPanel({
       <button
         type="button"
         onClick={handleSubmit}
-        title="Upload bliver koblet til Supabase Storage i næste fase."
-        className="w-full rounded-xl bg-primary text-primary-foreground text-sm font-medium py-2.5 hover:opacity-90 transition"
+        disabled={isUploading}
+        className="w-full rounded-xl bg-primary text-primary-foreground text-sm font-medium py-2.5 hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        Upload billede (simulation)
+        {isUploading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Uploader…
+          </>
+        ) : (
+          "Upload billede"
+        )}
       </button>
 
-      {simulationMsg && (
-        <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
-          {simulationMsg}
-        </p>
+      {/* Success message */}
+      {successMsg && (
+        <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+          <CheckCircle className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-emerald-800">{successMsg}</p>
+        </div>
       )}
 
-      {/* Info banner */}
-      <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-        <Info className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
-        <p className="text-[11px] text-amber-800">
-          Upload er i simuleringstilstand. Filer gemmes ikke endnu — Supabase Storage kobles til i
-          næste fase.
-        </p>
-      </div>
+      {/* Error message */}
+      {errorMsg && (
+        <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+          <XCircle className="h-3.5 w-3.5 text-red-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-red-800">{errorMsg}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,6 +9,11 @@ import {
   copernicusClient,
 } from "@/services/live-data";
 import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+
+type UntypedSupabase = ReturnType<typeof createClient>;
+const untypedSupabase = supabase as unknown as UntypedSupabase | null;
 
 export const Route = createFileRoute("/app/system-test")({
   head: () => ({ meta: [{ title: "System Test — GoFreyra" }] }),
@@ -79,9 +84,50 @@ function PresentBadge({ present }: { present: boolean }) {
   );
 }
 
+type SupabaseCheckStatus = "ok" | "fejl" | "ikke-konfigureret" | "afventer";
+
+interface SupabaseMediaCheck {
+  label: string;
+  status: SupabaseCheckStatus;
+  detail?: string;
+}
+
+function SupabaseStatusBadge({ status }: { status: SupabaseCheckStatus }) {
+  if (status === "ok") {
+    return (
+      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
+        OK
+      </span>
+    );
+  }
+  if (status === "fejl") {
+    return (
+      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700">
+        Fejl
+      </span>
+    );
+  }
+  if (status === "ikke-konfigureret") {
+    return (
+      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+        Ikke konfigureret
+      </span>
+    );
+  }
+  return (
+    <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+      Afventer…
+    </span>
+  );
+}
+
 function SystemTestPage() {
   const config = getLiveDataConfig();
   const [connectors, setConnectors] = useState<ConnectorRow[]>([]);
+  const [supabaseMediaChecks, setSupabaseMediaChecks] = useState<SupabaseMediaCheck[]>([
+    { label: "project_media tabel", status: "afventer" },
+    { label: "project-media bucket", status: "afventer" },
+  ]);
 
   useEffect(() => {
     Promise.all([
@@ -130,6 +176,53 @@ function SystemTestPage() {
       ]);
     });
   }, [config.credentials.copernicus.present, config.credentials.datafordeler.present]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || supabase === null) {
+      setSupabaseMediaChecks([
+        { label: "project_media tabel", status: "ikke-konfigureret" },
+        { label: "project-media bucket", status: "ikke-konfigureret" },
+      ]);
+      return;
+    }
+
+    // Check project_media table
+    untypedSupabase!
+      .from("project_media")
+      .select("id")
+      .limit(1)
+      .then(({ error }: { error: { message: string } | null }) => {
+        setSupabaseMediaChecks((prev) =>
+          prev.map((c) =>
+            c.label === "project_media tabel"
+              ? {
+                  ...c,
+                  status: error ? "fejl" : "ok",
+                  detail: error ? error.message : undefined,
+                }
+              : c,
+          ),
+        );
+      });
+
+    // Check project-media storage bucket
+    supabase.storage
+      .from("project-media")
+      .list("", { limit: 1 })
+      .then(({ error }) => {
+        setSupabaseMediaChecks((prev) =>
+          prev.map((c) =>
+            c.label === "project-media bucket"
+              ? {
+                  ...c,
+                  status: error ? "fejl" : "ok",
+                  detail: error ? error.message : undefined,
+                }
+              : c,
+          ),
+        );
+      });
+  }, []);
 
   return (
     <>
@@ -318,7 +411,42 @@ function SystemTestPage() {
           <div className="px-5 pb-5" />
         </Card>
 
-        {/* ── Section 4: Pages showing live data ──────────────────────────── */}
+        {/* ── Section 4: Supabase Medier ──────────────────────────────────── */}
+        <Card>
+          <CardHeader
+            title="Supabase Medier"
+            subtitle="Status for project_media tabel og project-media storage bucket"
+            action={
+              <span
+                className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                  isSupabaseConfigured
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {isSupabaseConfigured ? "Supabase konfigureret" : "Supabase ikke konfigureret"}
+              </span>
+            }
+          />
+          <div className="px-5 pb-5 space-y-2">
+            {supabaseMediaChecks.map((check) => (
+              <div
+                key={check.label}
+                className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0"
+              >
+                <div>
+                  <span className="text-sm font-medium">{check.label}</span>
+                  {check.detail && (
+                    <p className="text-[11px] text-red-600 mt-0.5 font-mono">{check.detail}</p>
+                  )}
+                </div>
+                <SupabaseStatusBadge status={check.status} />
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* ── Section 5: Sider med live data ──────────────────────────────── */}
         <Card>
           <CardHeader
             title="Sider med live data"
