@@ -1,10 +1,5 @@
 import { getLiveDataConfig } from "@/config/live-data-config";
-import {
-  fetchWithTimeout,
-  fetchConnector,
-  previewResponse,
-  missingKeyResponse,
-} from "../live-data-client";
+import { fetchWithTimeout, fetchConnector, previewResponse } from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
 
@@ -25,7 +20,7 @@ export interface DmiWeatherData {
   stationName?: string;
 }
 
-const DMI_BASE = "https://dmigw.govcloud.dk/v2/metObs/collections/observation/items";
+const DMI_OBS_PATH = "/v2/metObs/collections/observation/items";
 
 const PREVIEW_DATA: DmiWeatherData = {
   temperature: {
@@ -62,32 +57,26 @@ const PREVIEW_DATA: DmiWeatherData = {
 
 export async function getStatus(): Promise<"live" | "preview" | "missing_key"> {
   const config = getLiveDataConfig();
-  if (!config.credentials.dmi.present) return "missing_key";
-  if (!config.isLiveDataEnabled) return "preview";
-  return "live";
+  return config.isLiveDataEnabled ? "live" : "preview";
 }
 
 export async function fetchByGeometry(
   geometry: ProjectGeometry,
 ): Promise<ConnectorResponse<DmiWeatherData>> {
   const config = getLiveDataConfig();
-  if (!config.credentials.dmi.present || !config.isLiveDataEnabled) {
-    if (!config.credentials.dmi.present) return missingKeyResponse<DmiWeatherData>();
-    return previewResponse(PREVIEW_DATA);
-  }
+  if (!config.isLiveDataEnabled) return previewResponse(PREVIEW_DATA);
 
-  const key = config.credentials.dmi.key!;
   const lat = geometry.centroid?.lat;
   const lng = geometry.centroid?.lng;
+  const base = config.dmiBaseUrl;
 
   return fetchConnector(async () => {
     const params = new URLSearchParams({
-      "api-key": key,
       parameterId: "temp_dry,precip_past10min,wind_speed,humidity",
       limit: "4",
       ...(lat && lng ? { bbox: `${lng - 0.5},${lat - 0.5},${lng + 0.5},${lat + 0.5}` } : {}),
     });
-    const res = await fetchWithTimeout(`${DMI_BASE}?${params}`);
+    const res = await fetchWithTimeout(`${base}${DMI_OBS_PATH}?${params}`);
     if (!res.ok) throw new Error(`DMI API ${res.status}`);
     const json = (await res.json()) as {
       features: Array<{

@@ -119,9 +119,9 @@ export const CONNECTOR_REGISTRY: DataConnector[] = [
     description:
       "Historiske nedbørsdata, klimanormaler, stationsobservationer og klimaprojektioner til afstrømnings- og risikoanalyse.",
     status: "active",
-    api_base_url: "https://dmigw.govcloud.dk/v2",
-    requires_api_key: true,
-    env_key_name: "VITE_DMI_API_KEY",
+    api_base_url: "https://opendataapi.dmi.dk",
+    requires_api_key: false,
+    env_key_name: null,
     data_format: "JSON",
     update_frequency: "Timebaseret",
     coverage: "Danmark",

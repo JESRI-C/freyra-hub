@@ -27,7 +27,7 @@ const CATEGORY_COLORS: Record<ConnectorCategory, string> = {
 };
 
 const NEXT_STEPS = [
-  "Konfigurer VITE_DMI_API_KEY for adgang til DMI klimadata",
+  "Sæt VITE_ENABLE_LIVE_DATA=true for at aktivere DMI Open Data (ingen nøgle kræves)",
   "Konfigurer VITE_COPERNICUS_TOKEN for Sentinel-2 vegetationsanalyse",
   "Konfigurer VITE_DATAFORDELER_KEY for matrikeldata og højdemodel",
   "Tilknyt projektpolygoner for geometribaserede WFS-forespørgsler",

@@ -95,9 +95,9 @@ function SystemTestPage() {
           name: "DMI Vejrdata",
           id: "dmi-open-data",
           status: dmiStatus,
-          requiresKey: true,
-          keyPresent: config.credentials.dmi.present,
-          keyEnvVar: "VITE_DMI_API_KEY",
+          requiresKey: false,
+          keyPresent: true,
+          keyEnvVar: null,
           previewFallback: true,
         },
         {
@@ -129,11 +129,7 @@ function SystemTestPage() {
         },
       ]);
     });
-  }, [
-    config.credentials.copernicus.present,
-    config.credentials.datafordeler.present,
-    config.credentials.dmi.present,
-  ]);
+  }, [config.credentials.copernicus.present, config.credentials.datafordeler.present]);
 
   return (
     <>
@@ -237,9 +233,13 @@ function SystemTestPage() {
                   ),
                 },
                 {
-                  label: "VITE_DMI_API_KEY",
-                  present: config.credentials.dmi.present,
-                  chip: <PresentBadge present={config.credentials.dmi.present} />,
+                  label: "VITE_DMI_BASE_URL",
+                  present: true,
+                  chip: (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
+                      ✓ Åben API
+                    </span>
+                  ),
                 },
                 {
                   label: "VITE_DATAFORDELER_KEY",

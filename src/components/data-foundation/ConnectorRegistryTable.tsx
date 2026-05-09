@@ -51,13 +51,8 @@ function liveModeBadge(connectorId: string): React.ReactNode {
   const config = getLiveDataConfig();
   const isLiveEnabled = config.isLiveDataEnabled;
 
-  const keyRequiredIds = [
-    "copernicus-sentinel-2",
-    "datafordeler-matrikel",
-    "datafordeler-dhm",
-    "dmi-opendata",
-    "dmi-open-data",
-  ];
+  // DMI and Miljøportal are open APIs — no key required
+  const keyRequiredIds = ["copernicus-sentinel-2", "datafordeler-matrikel", "datafordeler-dhm"];
   const requiresKey = keyRequiredIds.includes(connectorId);
 
   let keyPresent = true;
@@ -65,8 +60,6 @@ function liveModeBadge(connectorId: string): React.ReactNode {
     keyPresent = config.credentials.copernicus.present;
   } else if (connectorId === "datafordeler-matrikel" || connectorId === "datafordeler-dhm") {
     keyPresent = config.credentials.datafordeler.present;
-  } else if (connectorId === "dmi-opendata" || connectorId === "dmi-open-data") {
-    keyPresent = config.credentials.dmi.present;
   }
 
   if (requiresKey && !keyPresent) {
