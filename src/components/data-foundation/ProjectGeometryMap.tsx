@@ -4,11 +4,14 @@ import "leaflet/dist/leaflet.css";
 import type { ProjectGeometry } from "@/lib/supabase/types";
 import type { BufferZonesGeoJSON } from "@/services/geo-service";
 import { MapPin, AlertTriangle } from "lucide-react";
+import type { ProjectMediaItem } from "@/lib/platform/media-types";
+import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
 
 interface ProjectGeometryMapProps {
   geometry: ProjectGeometry;
   projectName: string;
   height?: number;
+  mediaItems?: ProjectMediaItem[];
 }
 
 type ActiveBuffer = "none" | "100m" | "500m" | "1000m";
@@ -23,6 +26,7 @@ export function ProjectGeometryMap({
   geometry,
   projectName,
   height = 360,
+  mediaItems,
 }: ProjectGeometryMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<LeafletMap | null>(null);
@@ -87,6 +91,25 @@ export function ProjectGeometryMap({
         mapInstance.current = map;
       }
 
+      // ── Media markers ─────────────────────────────────────────────────────────
+      if (mediaItems && mediaItems.length > 0 && mapInstance.current) {
+        const geoMediaItems = mediaItems.filter((m) => !!m.coordinates);
+        for (const item of geoMediaItems) {
+          if (!item.coordinates) continue;
+          const mediaIcon = L.divIcon({
+            html: `<div style="width:16px;height:16px;border-radius:50%;background:#F59E0B;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:8px;">📷</div>`,
+            className: "",
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+          });
+          L.marker([item.coordinates.lat, item.coordinates.lng], { icon: mediaIcon })
+            .addTo(mapInstance.current)
+            .bindPopup(
+              `<strong>${item.title}</strong><br/>${MEDIA_CATEGORY_LABELS[item.category]}<br/><small>${new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK")}</small>`,
+            );
+        }
+      }
+
       const { buildBufferZonesGeoJSON } = await import("@/services/geo-service");
       if (!cancelled) {
         bufferDataRef.current = await buildBufferZonesGeoJSON(geometry);
@@ -100,7 +123,7 @@ export function ProjectGeometryMap({
         mapInstance.current = null;
       }
     };
-  }, [geometry, projectName]);
+  }, [geometry, projectName, mediaItems]);
 
   useEffect(() => {
     if (!mapInstance.current) return;

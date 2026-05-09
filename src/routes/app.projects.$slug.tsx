@@ -22,6 +22,10 @@ import { getOpenActionsByProject, actionPriorityTone } from "@/services/actions-
 import { getEvidenceFilesByProject } from "@/services/evidence-service";
 import { getObservationsByProject, observationTypeLabel } from "@/services/observations-service";
 import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/report-engine";
+import { getProjectMedia } from "@/data/project-media";
+import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
+import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
+import { ProjectGeometryMap } from "@/components/data-foundation/ProjectGeometryMap";
 import {
   dataSourceStatusTone,
   dataSourceStatusLabel,
@@ -75,6 +79,7 @@ const TABS = [
   { id: "handlinger", label: "Handlinger" },
   { id: "audit", label: "Audit trail" },
   { id: "dokumentation", label: "Dokumentation" },
+  { id: "medier", label: "Medier" },
   { id: "rapporter", label: "Rapporter" },
   { id: "miljodata", label: "Miljødata" },
 ];
@@ -139,6 +144,8 @@ function ProjectDetailPage() {
   // Sync helpers (seed data)
   const sites = getSitesByProject(projectId);
   const dataSources = getDataSourcesByProject(projectId);
+  const mediaItems = getProjectMedia(projectId);
+  const geometry = getProjectGeometrySeed(projectId);
 
   const activeDataSourcesCount = dataSources.filter(
     (d) => d.status === "online" || d.status === "partial",
@@ -162,9 +169,10 @@ function ProjectDetailPage() {
     actions: localActions,
     auditEvents,
     evidenceFiles,
+    mediaItems,
   });
 
-  const nextAction = getRecommendedNextAction(project, indicators, localActions);
+  const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems);
 
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
@@ -451,6 +459,29 @@ function ProjectDetailPage() {
                 <Card className="p-5">
                   <EvidenceUploadForm projectId={projectId} />
                 </Card>
+              </div>
+            )}
+
+            {/* ── Medier ─────────────────────────────────────────────────── */}
+            {active === "medier" && (
+              <div className="space-y-5">
+                {geometry.hasValidGeometry && (
+                  <div className="rounded-xl overflow-hidden border">
+                    <ProjectGeometryMap
+                      geometry={geometry}
+                      projectName={project.name}
+                      height={280}
+                      mediaItems={mediaItems.filter((m) => !!m.coordinates)}
+                    />
+                  </div>
+                )}
+                <div className="grid lg:grid-cols-[1fr_360px] gap-5 items-start">
+                  <ProjectMediaGallery items={mediaItems} />
+                  <ProjectMediaUploadPanel
+                    projectId={projectId}
+                    projectCentroid={geometry.centroid ?? undefined}
+                  />
+                </div>
               </div>
             )}
 

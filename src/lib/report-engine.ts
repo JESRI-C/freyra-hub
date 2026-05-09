@@ -11,6 +11,7 @@ import type {
   AuditEvent,
   EvidenceFile,
 } from "@/lib/supabase/types";
+import type { ProjectMediaItem } from "@/lib/platform/media-types";
 
 export interface IndicatorSummaryRow {
   label: string;
@@ -43,6 +44,7 @@ interface GenerateInput {
   actions: Action[];
   auditEvents: AuditEvent[];
   evidenceFiles: EvidenceFile[];
+  mediaItems?: ProjectMediaItem[];
 }
 
 function formatDanishDate(iso: string): string {
@@ -68,6 +70,7 @@ export function generateProjectReportPreview({
   actions,
   auditEvents,
   evidenceFiles,
+  mediaItems,
 }: GenerateInput): ProjectReportPreview {
   // ── Readiness score ─────────────────────────────────────────────────────────
   const readinessIndicator = indicators.find((i) => i.key === "report_readiness");
@@ -83,6 +86,16 @@ export function generateProjectReportPreview({
     const hasIndicators = indicators.length > 0 ? 20 : 0;
     const hasEvidence = evidenceFiles.length > 0 ? 20 : 0;
     readinessScore = hasDescription + hasSites + hasDataSources + hasIndicators + hasEvidence;
+  }
+
+  // ── Media bonus scoring ─────────────────────────────────────────────────────
+  if (mediaItems && mediaItems.length > 0) {
+    if (mediaItems.length >= 3) readinessScore = Math.min(100, readinessScore + 10);
+    if (mediaItems.some((m) => m.isReportReady)) readinessScore = Math.min(100, readinessScore + 5);
+    if (mediaItems.some((m) => !!m.coordinates)) readinessScore = Math.min(100, readinessScore + 5);
+    if (mediaItems.some((m) => m.category === "field_photo" || m.category === "before_after")) {
+      readinessScore = Math.min(100, readinessScore + 5);
+    }
   }
 
   // ── Key findings from indicators ────────────────────────────────────────────
@@ -188,6 +201,7 @@ export function getRecommendedNextAction(
   project: Project,
   indicators: Indicator[],
   actions: Action[],
+  mediaItems?: ProjectMediaItem[],
 ): string {
   // If there's a high-priority open action, return its title
   const highPriorityAction = actions.find((a) => a.priority === "Høj" && a.status !== "Lukket");
@@ -216,6 +230,20 @@ export function getRecommendedNextAction(
   if (biodiversity?.trend === "down") {
     return "Gennemgå biodiversitetsdrivere";
   }
+
+  // Media-based recommendations
+  if (!mediaItems || mediaItems.length === 0) {
+    return "Upload feltfotos som dokumentation af projektets nuværende tilstand.";
+  }
+  if (!mediaItems.some((m) => !!m.coordinates)) {
+    return "Tilføj placering til billeder, så de kan bruges i kortvisning og rapport.";
+  }
+  if (!mediaItems.some((m) => m.isReportReady)) {
+    return "Markér mindst ét billede som rapportklar dokumentation.";
+  }
+
+  // Suppress unused variable warning from Project param — keep signature stable
+  void project;
 
   return "Projektet er klar til næste rapporteringscyklus";
 }
