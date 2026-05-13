@@ -7,7 +7,6 @@ import {
   BookCheck,
   Cable,
   FileText,
-  Database,
   Settings,
   Leaf,
   ChevronsUpDown,
@@ -17,7 +16,7 @@ import {
   FolderOpen,
   Globe,
   FlaskConical,
-  Radio,
+  Building2,
 } from "lucide-react";
 import { useAuth, getCurrentOrg, getCurrentProject } from "@/lib/auth";
 
@@ -37,13 +36,13 @@ const GROUPS: SidebarGroup[] = [
       { to: "/app/connect/upload", label: "Upload Center", icon: Upload },
       { to: "/app/connect/registry", label: "Connector Registry", icon: Globe },
       { to: "/app/decisions", label: "DecisionsIQ", icon: Brain },
-      { to: "/app/system-test", label: "Live Data", icon: Radio },
     ],
   },
   {
     label: "Impact & Dokumentation",
     items: [
       { to: "/app/projects", label: "Projekter", icon: FolderOpen },
+      { to: "/app/construction", label: "Byggeri & Natur", icon: Building2 },
       { to: "/app/impact", label: "Impact Exchange", icon: Repeat2 },
       { to: "/app/ledger", label: "ESG Ledger", icon: BookCheck },
     ],
@@ -57,15 +56,11 @@ const GROUPS: SidebarGroup[] = [
     items: [
       { to: "/app/settings", label: "Organisation", icon: Settings },
       { to: "/app/settings/users", label: "Brugere & roller", icon: Users },
-      { to: "/app/data", label: "Datakilder", icon: Database },
     ],
   },
   {
     label: "System",
-    items: [
-      { to: "/app/system-test", label: "System Test", icon: FlaskConical },
-      { to: "/app/connect/registry", label: "Live Data Status", icon: Radio },
-    ],
+    items: [{ to: "/app/system-test", label: "System Test", icon: FlaskConical }],
   },
 ];
 
