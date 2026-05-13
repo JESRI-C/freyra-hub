@@ -1,9 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Card, CardHeader, PageHeader } from "@/components/ui-bits";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ConfidenceScore } from "@/components/decisions/Primitives";
-import { SUGGESTED_PROMPTS, SAMPLE_ASSISTANT_REPLIES } from "@/lib/decisions-data";
+import { SUGGESTED_PROMPTS } from "@/lib/decisions-data";
 import { getCurrentProject, useAuth } from "@/lib/auth";
+import { getIndicatorsByProject } from "@/services/indicators-service";
+import { getOpenActionsByProject } from "@/services/actions-service";
+import { getProjectGeometrySeed } from "@/services/geo-service";
+import { getProjectSensors } from "@/services/iot-simulation-service";
+import type { Indicator } from "@/lib/supabase/types";
+import type { Action } from "@/lib/supabase/types";
+import type { IoTSensor } from "@/services/iot-simulation-service";
 import {
   Sparkles,
   Send,
@@ -12,6 +20,8 @@ import {
   Clock,
   FileCheck2,
   MessageSquare,
+  Radio,
+  Activity,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/decisions/assistant")({
@@ -19,23 +29,267 @@ export const Route = createFileRoute("/app/decisions/assistant")({
   component: Page,
 });
 
-type Msg =
-  | { role: "user"; text: string }
-  | { role: "assistant"; reply: (typeof SAMPLE_ASSISTANT_REPLIES)["default"] };
+// ─── Reply shape ──────────────────────────────────────────────────────────────
 
-function pickReply(text: string) {
-  const t = text.toLowerCase();
-  if (t.includes("risic") || t.includes("risik")) return SAMPLE_ASSISTANT_REPLIES["risici"];
-  if (t.includes("co₂") || t.includes("co2")) return SAMPLE_ASSISTANT_REPLIES["co2"];
-  return SAMPLE_ASSISTANT_REPLIES["default"];
+interface AssistantReply {
+  short: string;
+  basis: string[];
+  recommendation: string;
+  uncertainty: string;
+  nextAction: string;
 }
+
+type Msg = { role: "user"; text: string } | { role: "assistant"; reply: AssistantReply };
+
+// ─── Context-aware reply builder ──────────────────────────────────────────────
+
+interface ProjectCtx {
+  projectName: string;
+  indicators: Indicator[];
+  actions: Action[];
+  sensors: IoTSensor[];
+}
+
+function val(indicators: Indicator[], key: string): number | null {
+  return indicators.find((i) => i.key === key)?.value ?? null;
+}
+
+function buildContextualReply(text: string, ctx: ProjectCtx): AssistantReply {
+  const t = text.toLowerCase();
+  const { projectName, indicators, actions, sensors } = ctx;
+
+  const openHigh = actions.filter((a) => a.priority === "Høj" && a.status !== "Lukket");
+  const openMed = actions.filter((a) => a.priority === "Medium" && a.status !== "Lukket");
+  const offlineSensors = sensors.filter((s) => s.status === "offline");
+  const lowBatSensors = sensors.filter((s) => s.batteryPercent < 20 && s.status !== "offline");
+  const biodiversity = val(indicators, "biodiversity_index");
+  const dataQuality = val(indicators, "data_quality") ?? val(indicators, "data_confidence");
+  const reportReadiness = val(indicators, "report_readiness");
+  const co2 = val(indicators, "co2_sequestration") ?? val(indicators, "co2_reduction");
+
+  // ── Sensor / IoT
+  if (t.includes("sensor") || t.includes("iot") || t.includes("feltdata")) {
+    const onlineCount = sensors.filter((s) => s.status === "online").length;
+    return {
+      short:
+        offlineSensors.length > 0
+          ? `${offlineSensors.length} sensor${offlineSensors.length > 1 ? "er er" : " er"} offline i ${projectName} og sender ikke data.`
+          : `Alle ${sensors.length} sensorer er online i ${projectName} med normale aflæsninger.`,
+      basis: [
+        `${onlineCount}/${sensors.length} sensorer online`,
+        `${lowBatSensors.length} med lavt batteri`,
+        "IoT feltmålinger (simuleret)",
+      ],
+      recommendation:
+        offlineSensors.length > 0
+          ? `Tjek ${offlineSensors.map((s) => s.label).join(", ")} i felten snarest.`
+          : lowBatSensors.length > 0
+            ? `Udskift batteri i ${lowBatSensors.map((s) => s.label).join(", ")}.`
+            : "Sensornetværket er sundt. Fortsæt planlagte kalibreringer.",
+      uncertainty: "Simuleret IoT-data — erstat med live feeds via Smart Connect.",
+      nextAction: "Åbn Livekort → Feltsensorer for detaljeret sensorstatus.",
+    };
+  }
+
+  // ── Risici / risiko
+  if (t.includes("risic") || t.includes("risik")) {
+    const topRisk = openHigh[0];
+    return {
+      short:
+        openHigh.length > 0
+          ? `${openHigh.length} høj-prioritet handling${openHigh.length > 1 ? "er kræver" : " kræver"} øjeblikkelig opmærksomhed i ${projectName}.`
+          : `Ingen kritiske risici identificeret for ${projectName} — ${openMed.length} medium-prioritet handlinger er åbne.`,
+      basis: [
+        `${actions.length} åbne handlinger analyseret`,
+        offlineSensors.length > 0 ? `${offlineSensors.length} offline sensorer` : "Sensorer OK",
+        dataQuality !== null ? `Datakvalitet: ${dataQuality}%` : "Ingen datakvalitetsscore",
+      ],
+      recommendation: topRisk
+        ? `Prioritér "${topRisk.title}"${topRisk.due_date ? ` — frist ${new Date(topRisk.due_date).toLocaleDateString("da-DK")}` : ""}.`
+        : "Vedligehold nuværende mitigationsplan og overvåg medium-risici.",
+      uncertainty:
+        dataQuality !== null && dataQuality < 70
+          ? `Konfidens begrænset af datakvalitet på ${dataQuality}%.`
+          : "Konfidens høj — datagrundlag er komplet.",
+      nextAction: "Åbn Handlinger-tabbet i projektet eller DecisionsIQ → Risikoanalyse.",
+    };
+  }
+
+  // ── Anbefalinger / prioriter
+  if (t.includes("anbefal") || t.includes("prioriter") || t.includes("hvad bør")) {
+    const top3 = actions.slice(0, 3);
+    return {
+      short:
+        top3.length > 0
+          ? `De ${top3.length} vigtigste handlinger for ${projectName}: ${top3.map((a) => a.title).join("; ")}.`
+          : `Ingen åbne handlinger registreret for ${projectName}. Projektet er i god stand.`,
+      basis: [
+        `${actions.length} handlinger evalueret`,
+        biodiversity !== null ? `Biodiversitetsindeks: ${biodiversity}/100` : "Biodiversitet ikke målt",
+        reportReadiness !== null ? `Rapportklarhed: ${reportReadiness}%` : "Rapportklarhed ukendt",
+      ],
+      recommendation:
+        top3.length > 0
+          ? `Start med "${top3[0].title}" (${top3[0].priority ?? "Ukendt"} prioritet).`
+          : "Fokusér på at tilføje nye observationer og opdatere indikatorer.",
+      uncertainty: "Prioritering baseres på registrerede handlinger — manuelle vurderinger kan afvige.",
+      nextAction: "Gå til Projekter → Handlinger for at opdatere status.",
+    };
+  }
+
+  // ── Biodiversitet / natur / dokumentation
+  if (t.includes("biodiversitet") || t.includes("natur") || t.includes("dokumenter")) {
+    const bioVal = biodiversity ?? 0;
+    const trend = bioVal > 70 ? "positiv" : bioVal > 50 ? "neutral" : "negativ";
+    return {
+      short:
+        biodiversity !== null
+          ? `Biodiversitetsindeks for ${projectName} er ${bioVal}/100 — en ${trend} tilstand.`
+          : `Biodiversitetsindeks er endnu ikke målt for ${projectName}.`,
+      basis: [
+        biodiversity !== null ? `Biodiversitetsindeks: ${bioVal}/100` : "Mangler baseline-måling",
+        `${sensors.filter((s) => s.type === "soil_moisture" || s.type === "soil_temperature" || s.type === "air_temperature").length} miljøsensorer aktive`,
+        "Feltobservationer og satellitdata",
+      ],
+      recommendation:
+        bioVal < 60
+          ? "Igangsæt habitatforbedring og øg observationsdækning i lavtydende zoner."
+          : "Fortsæt nuværende forvaltning og dokumentér med regelmæssige feltbesøg.",
+      uncertainty:
+        biodiversity === null
+          ? "Ingen baseline etableret — tal er estimerede."
+          : "Konfidens afhænger af observationstæthed.",
+      nextAction: "Upload feltfotos som dokumentation via Projekter → Medier.",
+    };
+  }
+
+  // ── CO₂ / klima / emission
+  if (t.includes("co₂") || t.includes("co2") || t.includes("klima") || t.includes("emission")) {
+    const co2Val = co2;
+    return {
+      short:
+        co2Val !== null
+          ? `${projectName} sekvestrerer/reducerer ${co2Val} enheder CO₂ ifølge aktuelle målinger.`
+          : `CO₂-målinger er endnu ikke registreret for ${projectName}.`,
+      basis: [
+        co2Val !== null ? `CO₂: ${co2Val} enheder` : "Ingen CO₂-data",
+        "ESG Ledger Scope-opgørelse",
+        "Emissionsfaktor-bibliotek",
+      ],
+      recommendation:
+        co2Val !== null
+          ? "Validér beregningsgrundlag og opdatér emissionsfaktorer i ESG Ledger."
+          : "Registrér baseline CO₂-data i ESG Ledger for at aktivere klima-tracking.",
+      uncertainty: "CO₂-beregninger kræver verifikation af en uafhængig tredjepart.",
+      nextAction: "Åbn ESG Ledger → CO₂-regnskab.",
+    };
+  }
+
+  // ── Datakvalitet / datakilder / svagest
+  if (t.includes("datakvalitet") || t.includes("datakilder") || t.includes("svagest") || t.includes("data")) {
+    const dq = dataQuality ?? 0;
+    return {
+      short:
+        dataQuality !== null
+          ? `Datakvaliteten for ${projectName} er ${dq}% — ${dq >= 80 ? "god" : dq >= 60 ? "acceptabel" : "under target"}.`
+          : `Datakvalitet er ikke evalueret for ${projectName} endnu.`,
+      basis: [
+        dataQuality !== null ? `Datakvalitet: ${dq}%` : "Mangler evaluering",
+        `${offlineSensors.length} offline sensorer`,
+        `${actions.filter((a) => a.status !== "Lukket").length} uløste handlinger`,
+      ],
+      recommendation:
+        dq < 70
+          ? "Kalibrér offline sensorer og valider seneste dataindlæsninger i Smart Connect."
+          : "Datakvaliteten er tilstrækkelig. Overvåg løbende via Smart Connect.",
+      uncertainty: "Kvalitetsscore er baseret på tilgængelige indikatorer og kan være ufuldstændig.",
+      nextAction: "Åbn Smart Connect → Datakvalitet for detaljer.",
+    };
+  }
+
+  // ── ESG / score / rapport
+  if (t.includes("esg") || t.includes("rapport") || t.includes("score") || t.includes("forbedre")) {
+    const rr = reportReadiness ?? 0;
+    return {
+      short:
+        reportReadiness !== null
+          ? `Rapportklarhed for ${projectName} er ${rr}% — ${rr >= 80 ? "klar til ekstern brug" : rr >= 60 ? "klar til intern brug" : "kræver supplerende dokumentation"}.`
+          : `Rapportklarhed er ikke beregnet for ${projectName}.`,
+      basis: [
+        reportReadiness !== null ? `Rapportklarhed: ${rr}%` : "Ikke beregnet",
+        `${actions.filter((a) => a.status !== "Lukket").length} åbne handlinger`,
+        biodiversity !== null ? `Biodiversitet: ${biodiversity}/100` : "Biodiversitet ikke målt",
+      ],
+      recommendation:
+        rr < 70
+          ? "Fuldfør manglende dokumentation og luk åbne handlinger for at øge ESG-scoren."
+          : "Projektet er klar. Igangsæt godkendelsesflow i Rapporter.",
+      uncertainty: "Rapportklarhed beregnes dynamisk baseret på registrerede data.",
+      nextAction: "Åbn Rapporter → Rapportklarhed eller Projekter → Rapporter.",
+    };
+  }
+
+  // ── Default: projektoverview
+  return {
+    short:
+      `${projectName} har ${actions.filter((a) => a.status !== "Lukket").length} åbne handlinger` +
+      (offlineSensors.length > 0 ? `, ${offlineSensors.length} offline sensor${offlineSensors.length > 1 ? "er" : ""}` : "") +
+      (biodiversity !== null ? ` og biodiversitetsindeks på ${biodiversity}/100` : "") +
+      ".",
+    basis: [
+      `${indicators.length} indikatorer evalueret`,
+      `${sensors.length} feltSensorer (${sensors.filter((s) => s.status === "online").length} online)`,
+      `${actions.length} handlinger analyseret`,
+    ],
+    recommendation:
+      openHigh.length > 0
+        ? `Prioritér "${openHigh[0].title}" som første handling.`
+        : "Projektet er i god stand. Fokusér på løbende dokumentation.",
+    uncertainty:
+      dataQuality !== null
+        ? `Konfidens begrænset af datakvalitet på ${dataQuality}%.`
+        : "Konfidens afhænger af datafuldstændighed.",
+    nextAction: "Åbn Projekter → Overblik for det fulde projekt-dashboard.",
+  };
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 function Page() {
   const { orgId, projectId } = useAuth();
   const project = getCurrentProject(orgId, projectId);
+  const activeProjectId = projectId ?? "";
+
+  const { data: indicators = [] } = useQuery({
+    queryKey: ["indicators", activeProjectId],
+    queryFn: () => getIndicatorsByProject(activeProjectId),
+    enabled: !!activeProjectId,
+  });
+
+  const { data: actions = [] } = useQuery({
+    queryKey: ["actions", activeProjectId],
+    queryFn: () => getOpenActionsByProject(activeProjectId),
+    enabled: !!activeProjectId,
+  });
+
+  const geometry = getProjectGeometrySeed(activeProjectId);
+  const sensors = geometry.centroid ? getProjectSensors(activeProjectId, geometry.centroid) : [];
+
+  const ctx: ProjectCtx = {
+    projectName: project?.name ?? "projektet",
+    indicators: indicators ?? [],
+    actions: actions ?? [],
+    sensors,
+  };
+
+  const onlineSensors = sensors.filter((s) => s.status === "online").length;
+  const dataQualityVal =
+    (indicators ?? []).find((i) => i.key === "data_quality" || i.key === "data_confidence")
+      ?.value ?? null;
+  const confidence = dataQualityVal !== null ? dataQualityVal / 100 : 0.75;
 
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", reply: SAMPLE_ASSISTANT_REPLIES["default"] },
+    { role: "assistant", reply: buildContextualReply("", ctx) },
   ]);
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,7 +300,7 @@ function Page() {
     setMessages((m) => [
       ...m,
       { role: "user", text: t },
-      { role: "assistant", reply: pickReply(t) },
+      { role: "assistant", reply: buildContextualReply(t, ctx) },
     ]);
     setInput("");
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -54,10 +308,19 @@ function Page() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
-      <PageHeader
-        title="AI-assistent"
-        description="Stil spørgsmål til dit projekt — svar baseres kun på tilgængelige, verificerede data."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">AI-assistent</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Stil spørgsmål til{" "}
+            <span className="font-medium text-foreground">{project?.name ?? "projektet"}</span> —
+            svar baseres kun på tilgængelige, verificerede data.
+          </p>
+        </div>
+        <Pill tone={onlineSensors > 0 ? "success" : "warning"}>
+          {onlineSensors}/{sensors.length} sensorer online
+        </Pill>
+      </div>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-5">
         <Card className="flex flex-col h-[620px]">
@@ -161,21 +424,30 @@ function Page() {
                 label="Projekt"
                 value={project?.name ?? "—"}
               />
-              <Ctx icon={<Clock className="h-4 w-4" />} label="Periode" value="Sidste 30 dage" />
+              <Ctx
+                icon={<Activity className="h-4 w-4" />}
+                label="Åbne handlinger"
+                value={`${actions.length} handlinger`}
+              />
+              <Ctx
+                icon={<Radio className="h-4 w-4" />}
+                label="Sensorer"
+                value={`${onlineSensors}/${sensors.length} online`}
+              />
               <Ctx
                 icon={<Database className="h-4 w-4" />}
-                label="Forbundne kilder"
-                value="Sensorer, Sentinel-2, Felt, ESG ledger"
+                label="Indikatorer"
+                value={`${indicators.length} registrerede`}
               />
               <Ctx
                 icon={<Sparkles className="h-4 w-4" />}
                 label="Datakonfidens"
-                value={<ConfidenceScore value={0.82} size="sm" />}
+                value={<ConfidenceScore value={confidence} size="sm" />}
               />
               <Ctx
                 icon={<Clock className="h-4 w-4" />}
-                label="Sidst opdateret"
-                value="3 min siden"
+                label="Periode"
+                value="Sidste 30 dage"
               />
             </ul>
           </Card>
@@ -220,6 +492,7 @@ function Block({
     </div>
   );
 }
+
 function Ctx({
   icon,
   label,
