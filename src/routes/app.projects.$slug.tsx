@@ -18,7 +18,11 @@ import {
 import { getIndicatorsByProject } from "@/services/indicators-service";
 import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
-import { getOpenActionsByProject, actionPriorityTone } from "@/services/actions-service";
+import {
+  getOpenActionsByProject,
+  actionPriorityTone,
+  suggestSensorActions,
+} from "@/services/actions-service";
 import { getEvidenceFilesByProject } from "@/services/evidence-service";
 import { getObservationsByProject, observationTypeLabel } from "@/services/observations-service";
 import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/report-engine";
@@ -202,7 +206,8 @@ function ProjectDetailPage() {
     sensors,
   });
 
-  const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems);
+  const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors);
+  const sensorActions = suggestSensorActions(sensors);
 
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
@@ -401,37 +406,79 @@ function ProjectDetailPage() {
 
             {/* ── Handlinger ─────────────────────────────────────────────── */}
             {active === "handlinger" && (
-              <Card>
-                <CardHeader
-                  title="Handlinger"
-                  subtitle="Åbne og igangværende handlinger"
-                  action={
-                    <Pill
-                      tone={
-                        localActions.filter((a) => a.status !== "Lukket").length > 0
-                          ? "warning"
-                          : "success"
+              <div className="space-y-4">
+                {/* Sensor-derived action suggestions */}
+                {sensorActions.length > 0 && (
+                  <Card>
+                    <CardHeader
+                      title="Sensor-anbefalinger"
+                      subtitle="Automatisk afledt fra IoT-feltdata"
+                      action={
+                        <Pill tone="warning">{sensorActions.length} forslag</Pill>
                       }
-                    >
-                      {localActions.filter((a) => a.status !== "Lukket").length} åbne
-                    </Pill>
-                  }
-                />
-                <div className="px-5 pb-3">
-                  {localActions.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4">Ingen åbne handlinger</p>
-                  ) : (
-                    localActions.map((action) => (
-                      <ActionItem
-                        key={action.id}
-                        action={action}
-                        onMarkInProgress={(id) => syncActions([id], "I gang")}
-                        onMarkCompleted={(id) => syncActions([id], "Lukket")}
-                      />
-                    ))
-                  )}
-                </div>
-              </Card>
+                    />
+                    <div className="px-5 pb-3 divide-y">
+                      {sensorActions.map((sa, i) => (
+                        <div key={i} className="py-3 flex items-start gap-3">
+                          <AlertTriangle
+                            className={`h-4 w-4 shrink-0 mt-0.5 ${
+                              sa.priority === "Høj" ? "text-destructive" : "text-amber-500"
+                            }`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium">{sa.label}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{sa.reason}</div>
+                          </div>
+                          <Pill
+                            tone={
+                              sa.priority === "Høj"
+                                ? "danger"
+                                : sa.priority === "Medium"
+                                  ? "warning"
+                                  : "default"
+                            }
+                          >
+                            {sa.priority}
+                          </Pill>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Project actions from Supabase / seed */}
+                <Card>
+                  <CardHeader
+                    title="Handlinger"
+                    subtitle="Åbne og igangværende handlinger"
+                    action={
+                      <Pill
+                        tone={
+                          localActions.filter((a) => a.status !== "Lukket").length > 0
+                            ? "warning"
+                            : "success"
+                        }
+                      >
+                        {localActions.filter((a) => a.status !== "Lukket").length} åbne
+                      </Pill>
+                    }
+                  />
+                  <div className="px-5 pb-3">
+                    {localActions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4">Ingen åbne handlinger</p>
+                    ) : (
+                      localActions.map((action) => (
+                        <ActionItem
+                          key={action.id}
+                          action={action}
+                          onMarkInProgress={(id) => syncActions([id], "I gang")}
+                          onMarkCompleted={(id) => syncActions([id], "Lukket")}
+                        />
+                      ))
+                    )}
+                  </div>
+                </Card>
+              </div>
             )}
 
             {/* ── Audit trail ────────────────────────────────────────────── */}

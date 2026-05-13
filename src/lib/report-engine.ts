@@ -214,7 +214,20 @@ export function getRecommendedNextAction(
   indicators: Indicator[],
   actions: Action[],
   mediaItems?: ProjectMediaItem[],
+  sensors?: IoTSensor[],
 ): string {
+  // Sensor emergencies take top priority
+  if (sensors && sensors.length > 0) {
+    const offline = sensors.filter((s) => s.status === "offline");
+    if (offline.length > 0) {
+      return `Tjek ${offline.length} offline sensor${offline.length > 1 ? "er" : ""} i felten`;
+    }
+    const lowBat = sensors.filter((s) => s.batteryPercent < 20 && s.status !== "offline");
+    if (lowBat.length > 0) {
+      return `Udskift batteri i ${lowBat.length} sensor${lowBat.length > 1 ? "er" : ""}`;
+    }
+  }
+
   // If there's a high-priority open action, return its title
   const highPriorityAction = actions.find((a) => a.priority === "Høj" && a.status !== "Lukket");
   if (highPriorityAction) return highPriorityAction.title;
