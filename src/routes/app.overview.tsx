@@ -181,6 +181,27 @@ function OverviewPage() {
   const project = getCurrentProject(orgId, projectId);
   const firstName = user?.name.split(" ")[0] ?? "";
 
+  // Build project id → slug map from summaries for action links
+  const projectSlugMap = Object.fromEntries(
+    summaries.map((s) => [s.project.id, s.project.slug ?? s.project.id]),
+  );
+  // Map live actions to the format CriticalActionsPanel expects
+  const liveActionItems = openActions.slice(0, 5).map((a) => {
+    const slug = a.project_id ? (projectSlugMap[a.project_id] ?? null) : null;
+    const projectName =
+      summaries.find((s) => s.project.id === a.project_id)?.project.name ?? "Projekt";
+    return {
+      module: projectName,
+      title: a.title,
+      priority: a.priority ?? "Lav",
+      owner: a.owner ?? "—",
+      deadline: a.due_date
+        ? new Date(a.due_date).toLocaleDateString("da-DK", { day: "numeric", month: "short" })
+        : "—",
+      href: slug ? `/app/projects/${slug}` : "/app/projects",
+    };
+  });
+
   return (
     <>
       <AppTopbar title="Oversigt" subtitle={`${org?.name ?? ""} · ${project?.name ?? ""}`} />
@@ -304,7 +325,9 @@ function OverviewPage() {
                 </Link>
               }
             />
-            <CriticalActionsPanel items={CRITICAL_ACTIONS} />
+            <CriticalActionsPanel
+              items={liveActionItems.length > 0 ? liveActionItems : CRITICAL_ACTIONS}
+            />
           </Card>
           <OnboardingChecklist steps={ONBOARDING_STEPS} />
         </div>
