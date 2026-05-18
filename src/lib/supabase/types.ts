@@ -399,11 +399,11 @@ export type ConnectorFetchLog = {
   mode: string;
   status: string;
   latency_ms: number;
-  error_message?: string | null;
+  error_message: string | null;
   source_type: string;
   geometry_used: boolean;
   fetched_at: string;
-}
+};
 
 // ─── Project media (mirrors 006_project_media.sql) ────────────────────────────
 
