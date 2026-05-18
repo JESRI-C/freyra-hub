@@ -249,7 +249,7 @@ function Page() {
               </div>
 
               <div className="mt-4 space-y-2 text-sm">
-                {[
+                {([
                   ["Inkludér tekst", true],
                   ["Inkludér diagrammer", active.charts > 0],
                   ["Inkludér tabeller", true],
