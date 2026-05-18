@@ -190,7 +190,7 @@ function Page() {
               ["Eksportér revisorpakke", FileCheck],
               ["Lav projektfakta", Leaf],
               ["Send rapport til review", Send],
-            ].map(([label, Icon]) => (
+            ] as const).map(([label, Icon]) => (
               <Link
                 key={label}
                 to="/app/reports/new"

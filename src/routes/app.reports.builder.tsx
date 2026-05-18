@@ -255,7 +255,7 @@ function Page() {
                   ["Inkludér tabeller", true],
                   ["Inkludér AI-resumé", true],
                   ["Inkludér rådata", false],
-                ].map(([l, def]) => (
+                ] as const).map(([l, def]) => (
                   <label key={l} className="flex items-center justify-between py-1">
                     <span>{l}</span>
                     <input type="checkbox" defaultChecked={def} />
