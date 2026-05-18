@@ -113,7 +113,8 @@ const ACTIVE = [
 ];
 
 function Page() {
-  const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
+  const [selected, setSelected] = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useState<any>(null);
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">

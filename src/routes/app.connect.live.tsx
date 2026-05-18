@@ -21,7 +21,8 @@ function Page() {
   const [project, setProject] = useState<string>("Alle");
   const [measurement, setMeasurement] = useState<string>("Alle");
   const [status, setStatus] = useState<string>("Alle");
-  const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
+  const [selected, setSelected] = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useState<any>(null);
 
   const filtered = useMemo(
     () =>
