@@ -183,7 +183,7 @@ function Page() {
 
         <Section title="Hurtige handlinger" subtitle="Genveje til typiske rapporter">
           <div className="grid grid-cols-2 gap-2">
-            {[
+            {([
               ["Opret ledelsesrapport", Briefcase],
               ["Generér CO₂-bilag", BarChart3],
               ["Byg investorrapport", Building],
