@@ -534,5 +534,7 @@ export type Database = {
         Update: Partial<Omit<ProjectMediaRow, "id">>;
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 };
