@@ -392,7 +392,7 @@ export type NatureProjectSummary = {
 
 // ─── Connector fetch logs ─────────────────────────────────────────────────────
 
-export interface ConnectorFetchLog {
+export type ConnectorFetchLog = {
   id: string;
   connector_id: string;
   project_id: string | null;
@@ -407,7 +407,7 @@ export interface ConnectorFetchLog {
 
 // ─── Project media (mirrors 006_project_media.sql) ────────────────────────────
 
-export interface ProjectMediaRow {
+export type ProjectMediaRow = {
   id: string;
   project_id: string;
   title: string;
