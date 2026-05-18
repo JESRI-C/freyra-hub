@@ -19,6 +19,7 @@ import {
   Repeat2,
   BookCheck,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Card, CardHeader, PageHeader, StatCard, Pill } from "@/components/ui-bits";
 import {
   ReadinessBar,
@@ -189,7 +190,7 @@ function Page() {
               ["Eksportér revisorpakke", FileCheck],
               ["Lav projektfakta", Leaf],
               ["Send rapport til review", Send],
-            ].map(([label, Icon]: any) => (
+            ].map(([label, Icon]: [string, LucideIcon]) => (
               <Link
                 key={label}
                 to="/app/reports/new"

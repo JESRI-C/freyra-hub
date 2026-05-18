@@ -114,7 +114,7 @@ function CreditsPage() {
                   <td className="text-xs">{a.unit}</td>
                   <td className="text-xs">{a.vintage}</td>
                   <td>
-                    <Pill tone={tone as any}>{a.status}</Pill>
+                    <Pill tone={tone}>{a.status}</Pill>
                   </td>
                   <td>
                     <VerificationBadge status={a.verification} />

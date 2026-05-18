@@ -1,3 +1,4 @@
+import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -112,7 +113,7 @@ const ACTIVE = [
 ];
 
 function Page() {
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
@@ -368,7 +369,7 @@ function Stat({
   );
 }
 
-function KV({ label, v }: { label: string; v: any }) {
+function KV({ label, v }: { label: string; v: React.ReactNode }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-3">
       <div className="text-[11px] text-muted-foreground">{label}</div>

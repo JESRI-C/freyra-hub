@@ -1,3 +1,4 @@
+import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
@@ -349,7 +350,7 @@ function Page() {
   );
 }
 
-function Field({ label, children }: { label: string; children: any }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
       <div className="text-xs text-muted-foreground mb-1">{label}</div>
@@ -357,7 +358,7 @@ function Field({ label, children }: { label: string; children: any }) {
     </label>
   );
 }
-function KV({ label, v }: { label: string; v: any }) {
+function KV({ label, v }: { label: string; v: React.ReactNode }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-3">
       <div className="text-[11px] text-muted-foreground">{label}</div>

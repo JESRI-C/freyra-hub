@@ -43,7 +43,7 @@ function DecisionsLayout() {
               return (
                 <Link
                   key={t.to}
-                  to={t.to as any}
+                  to={t.to}
                   className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${
                     active
                       ? "border-primary text-foreground font-medium"

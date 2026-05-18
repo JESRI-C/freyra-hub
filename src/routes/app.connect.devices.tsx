@@ -1,3 +1,4 @@
+import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -251,7 +252,7 @@ function Page() {
   );
 }
 
-function KV({ label, v }: { label: string; v: any }) {
+function KV({ label, v }: { label: string; v: React.ReactNode }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-3">
       <div className="text-[11px] text-muted-foreground">{label}</div>

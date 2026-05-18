@@ -1,3 +1,4 @@
+import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Activity, Radio, AlertTriangle, ShieldCheck, Ban, Send } from "lucide-react";
@@ -20,7 +21,7 @@ function Page() {
   const [project, setProject] = useState<string>("Alle");
   const [measurement, setMeasurement] = useState<string>("Alle");
   const [status, setStatus] = useState<string>("Alle");
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
 
   const filtered = useMemo(
     () =>
@@ -301,7 +302,7 @@ function Select({
   );
 }
 
-function KV({ label, v }: { label: string; v: any }) {
+function KV({ label, v }: { label: string; v: React.ReactNode }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-3">
       <div className="text-[11px] text-muted-foreground">{label}</div>

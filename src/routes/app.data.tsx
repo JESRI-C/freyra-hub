@@ -86,7 +86,7 @@ function Page() {
                   </td>
                   <td className="tabular-nums">{r[3]}</td>
                   <td>
-                    <Pill tone={r[4] as any}>{r[5]}</Pill>
+                    <Pill tone={r[4] as "success" | "warning" | "danger" | "info" | "default"}>{r[5]}</Pill>
                   </td>
                   <td className="text-muted-foreground">{r[6]}</td>
                 </tr>
