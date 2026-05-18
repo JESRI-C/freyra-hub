@@ -49,7 +49,7 @@ export function MapToolbar({
   onTool: (t: ToolKey) => void;
   areaText?: string;
 }) {
-  const tools: { k: ToolKey; label: string; icon: any }[] = [
+  const tools: { k: ToolKey; label: string; icon: LucideIcon }[] = [
     { k: "search", label: "Søg lokation", icon: Search },
     { k: "boundary", label: "Tegn projektgrænse", icon: Square },
     { k: "zone", label: "Tegn zone", icon: PencilLine },
