@@ -190,7 +190,7 @@ function Page() {
               ["Eksportér revisorpakke", FileCheck],
               ["Lav projektfakta", Leaf],
               ["Send rapport til review", Send],
-            ].map(([label, Icon]: [string, LucideIcon]) => (
+            ].map((entry) => (
               <Link
                 key={label}
                 to="/app/reports/new"

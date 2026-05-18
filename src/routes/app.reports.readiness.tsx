@@ -56,7 +56,7 @@ function Page() {
 
         <Section title="Ekstern delings-tjekliste" subtitle="Kræves før ekstern brug">
           <ul className="space-y-1.5">
-            {CHECKLIST.map(([l, ok]: [string, boolean]) => (
+            {CHECKLIST.map((entry) => (
               <li
                 key={l}
                 className="flex items-center gap-2 text-sm p-2 rounded-lg border bg-muted/30"
