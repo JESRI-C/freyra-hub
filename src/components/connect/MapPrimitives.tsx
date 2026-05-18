@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useState, useRef } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   Search,
   PencilLine,
