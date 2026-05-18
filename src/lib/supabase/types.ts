@@ -390,6 +390,46 @@ export type NatureProjectSummary = {
   latestReport: Report | null;
 };
 
+// ─── Connector fetch logs ─────────────────────────────────────────────────────
+
+export interface ConnectorFetchLog {
+  id: string;
+  connector_id: string;
+  project_id: string | null;
+  mode: string;
+  status: string;
+  latency_ms: number;
+  error_message?: string | null;
+  source_type: string;
+  geometry_used: boolean;
+  fetched_at: string;
+}
+
+// ─── Project media (mirrors 006_project_media.sql) ────────────────────────────
+
+export interface ProjectMediaRow {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  source: string;
+  file_path: string;
+  url: string;
+  thumbnail_url: string | null;
+  uploaded_at: string;
+  captured_at: string | null;
+  lat: number | null;
+  lng: number | null;
+  altitude_m: number | null;
+  accuracy_m: number | null;
+  is_report_ready: boolean;
+  tags: string[];
+  status: string;
+  file_size_bytes: number | null;
+  mime_type: string | null;
+}
+
 export type Database = {
   public: {
     Tables: {
