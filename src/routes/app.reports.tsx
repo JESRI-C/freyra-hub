@@ -25,7 +25,7 @@ const TABS = [
   { to: "/app/reports/templates", label: "Skabeloner", icon: LayoutTemplate },
   { to: "/app/reports/library", label: "Rapportbibliotek", icon: Library },
   { to: "/app/reports/approval", label: "Godkendelse & eksport", icon: Send },
-] as const;
+];
 
 function ReportsLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -44,7 +44,7 @@ function ReportsLayout() {
               return (
                 <Link
                   key={t.to}
-                  to={t.to}
+                  to={t.to as never}
                   className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${active ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
                 >
                   <Icon className="h-4 w-4" /> {t.label}

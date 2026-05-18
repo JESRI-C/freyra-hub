@@ -27,7 +27,7 @@ const TABS = [
   { to: "/app/settings/notifications", label: "Notifikationer", icon: Bell },
   { to: "/app/settings/security", label: "API & sikkerhed", icon: KeyRound },
   { to: "/app/settings/billing", label: "Abonnement", icon: CreditCard },
-] as const;
+];
 
 function SettingsLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -46,7 +46,7 @@ function SettingsLayout() {
               return (
                 <Link
                   key={t.to}
-                  to={t.to}
+                  to={t.to as never}
                   className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${active ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
                 >
                   <Icon className="h-4 w-4" /> {t.label}

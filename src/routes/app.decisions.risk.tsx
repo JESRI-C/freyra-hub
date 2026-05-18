@@ -61,7 +61,7 @@ function Page() {
             </div>
           </div>
           <div className="mt-3">
-            <RiskBadge level={level as "Lav" | "Middel" | "Høj"} />
+            <RiskBadge level={level as never} />
           </div>
           <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
             Risikoniveauet er <strong>medium</strong>. Datakvalitet og vandkvalitet er drivere;
