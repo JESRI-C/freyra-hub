@@ -437,124 +437,102 @@ export type Database = {
         Row: Organization;
         Insert: Omit<Organization, "id" | "created_at">;
         Update: Partial<Omit<Organization, "id">>;
-        Relationships: [];
       };
       projects: {
         Row: Project;
         Insert: Omit<Project, "id" | "created_at">;
         Update: Partial<Omit<Project, "id">>;
-        Relationships: [];
       };
       sites: {
         Row: Site;
         Insert: Omit<Site, "id" | "created_at">;
         Update: Partial<Omit<Site, "id">>;
-        Relationships: [];
       };
       data_sources: {
         Row: DataSource;
         Insert: Omit<DataSource, "id" | "created_at">;
         Update: Partial<Omit<DataSource, "id">>;
-        Relationships: [];
       };
       sensors: {
         Row: Sensor;
         Insert: Omit<Sensor, "id" | "created_at">;
         Update: Partial<Omit<Sensor, "id">>;
-        Relationships: [];
       };
       observations: {
         Row: Observation;
         Insert: Omit<Observation, "id" | "created_at">;
         Update: Partial<Omit<Observation, "id">>;
-        Relationships: [];
       };
       indicators: {
         Row: Indicator;
         Insert: Omit<Indicator, "id" | "updated_at">;
         Update: Partial<Omit<Indicator, "id">>;
-        Relationships: [];
       };
       reports: {
         Row: Report;
         Insert: Omit<Report, "id" | "created_at">;
         Update: Partial<Omit<Report, "id">>;
-        Relationships: [];
       };
       evidence_files: {
         Row: EvidenceFile;
         Insert: Omit<EvidenceFile, "id" | "created_at">;
         Update: Partial<Omit<EvidenceFile, "id">>;
-        Relationships: [];
       };
       audit_events: {
         Row: AuditEvent;
         Insert: Omit<AuditEvent, "id" | "created_at">;
         Update: Partial<Omit<AuditEvent, "id">>;
-        Relationships: [];
       };
       actions: {
         Row: Action;
         Insert: Omit<Action, "id" | "created_at">;
         Update: Partial<Omit<Action, "id">>;
-        Relationships: [];
       };
       impact_units: {
         Row: ImpactUnit;
         Insert: Omit<ImpactUnit, "id" | "created_at">;
         Update: Partial<Omit<ImpactUnit, "id">>;
-        Relationships: [];
       };
       construction_projects: {
         Row: ConstructionProject;
         Insert: Omit<ConstructionProject, "id" | "created_at">;
         Update: Partial<Omit<ConstructionProject, "id">>;
-        Relationships: [];
       };
       nature_contexts: {
         Row: NatureContext;
         Insert: Omit<NatureContext, "id" | "created_at">;
         Update: Partial<Omit<NatureContext, "id">>;
-        Relationships: [];
       };
       runoff_profiles: {
         Row: RunoffProfile;
         Insert: Omit<RunoffProfile, "id" | "created_at">;
         Update: Partial<Omit<RunoffProfile, "id">>;
-        Relationships: [];
       };
       environmental_risks: {
         Row: EnvironmentalRisk;
         Insert: Omit<EnvironmentalRisk, "id" | "created_at">;
         Update: Partial<Omit<EnvironmentalRisk, "id">>;
-        Relationships: [];
       };
       mitigation_measures: {
         Row: MitigationMeasure;
         Insert: Omit<MitigationMeasure, "id" | "created_at">;
         Update: Partial<Omit<MitigationMeasure, "id">>;
-        Relationships: [];
       };
       authority_submissions: {
         Row: AuthoritySubmission;
         Insert: Omit<AuthoritySubmission, "id" | "created_at">;
         Update: Partial<Omit<AuthoritySubmission, "id">>;
-        Relationships: [];
       };
       connector_fetch_logs: {
         Row: ConnectorFetchLog;
         Insert: Omit<ConnectorFetchLog, "id">;
         Update: Partial<Omit<ConnectorFetchLog, "id">>;
-        Relationships: [];
       };
       project_media: {
         Row: ProjectMediaRow;
         Insert: Omit<ProjectMediaRow, "id" | "uploaded_at">;
         Update: Partial<Omit<ProjectMediaRow, "id">>;
-        Relationships: [];
       };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
   };
 };
