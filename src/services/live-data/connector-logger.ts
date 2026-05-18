@@ -19,7 +19,7 @@ export async function logConnectorFetch(entry: ConnectorLogEntry): Promise<void>
     return;
   }
   try {
-    await (supabase.from("connector_fetch_logs") as any).insert({
+    await supabase.from("connector_fetch_logs").insert({
       ...entry,
       fetched_at: new Date().toISOString(),
     });
