@@ -27,7 +27,7 @@ const CHECKLIST = [
   ["Bilag vedlagt", false],
   ["Intern review gennemført", true],
   ["Godkendelse registreret", false],
-];
+] as const;
 
 function Page() {
   return (
