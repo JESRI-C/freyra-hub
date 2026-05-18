@@ -19,6 +19,7 @@ import {
   Repeat2,
   BookCheck,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Card, CardHeader, PageHeader, StatCard, Pill } from "@/components/ui-bits";
 import {
   ReadinessBar,
@@ -182,21 +183,21 @@ function Page() {
 
         <Section title="Hurtige handlinger" subtitle="Genveje til typiske rapporter">
           <div className="grid grid-cols-2 gap-2">
-            {[
+            {([
               ["Opret ledelsesrapport", Briefcase],
               ["Generér CO₂-bilag", BarChart3],
               ["Byg investorrapport", Building],
               ["Eksportér revisorpakke", FileCheck],
               ["Lav projektfakta", Leaf],
               ["Send rapport til review", Send],
-            ].map(([label, Icon]: any) => (
+            ] as const).map(([label, Icon]) => (
               <Link
                 key={label}
                 to="/app/reports/new"
                 className="rounded-lg border bg-card p-3 text-left text-sm hover:bg-muted transition flex items-start gap-2"
               >
                 <div className="h-8 w-8 rounded-lg bg-leaf/20 text-primary grid place-items-center">
-                  <Icon className="h-4 w-4" />
+                  {(() => { const I = Icon as LucideIcon; return <I className="h-4 w-4" />; })()}
                 </div>
                 <span className="flex-1">{label}</span>
               </Link>

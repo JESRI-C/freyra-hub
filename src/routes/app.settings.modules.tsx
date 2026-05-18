@@ -18,13 +18,14 @@ import {
   ShieldCheck,
   Briefcase,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/modules")({
   head: () => ({ meta: [{ title: "Moduler — GoFreyra" }] }),
   component: ModulesPage,
 });
 
-const ICONS: Record<string, any> = {
+const ICONS: Record<string, LucideIcon> = {
   decisions: Brain,
   impact: Repeat2,
   ledger: BookCheck,

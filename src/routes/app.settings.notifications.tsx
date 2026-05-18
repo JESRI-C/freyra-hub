@@ -206,13 +206,13 @@ function NotificationsPage() {
               label="Severity-tærskel"
               value={open.severity}
               options={["Lav", "Middel", "Høj"]}
-              onChange={(v) => setRule(openIdx, { severity: v as any })}
+              onChange={(v) => setRule(openIdx, { severity: v as "Lav" | "Middel" | "Høj" })}
             />
             <Select
               label="Frekvens"
               value={open.frequency}
               options={["Realtid", "Time", "Dag"]}
-              onChange={(v) => setRule(openIdx, { frequency: v as any })}
+              onChange={(v) => setRule(openIdx, { frequency: v as "Realtid" | "Time" | "Dag" })}
             />
             <Field
               label="Modtagere (rolle eller e-mail)"

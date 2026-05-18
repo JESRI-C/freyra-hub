@@ -196,7 +196,7 @@ function ProfilePage() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <div className="font-medium">{r.t}</div>
-                    <RiskBadge level={r.level as any} />
+                    <RiskBadge level={r.level as never} />
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">{r.note}</div>
                 </div>

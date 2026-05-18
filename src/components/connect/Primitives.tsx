@@ -15,11 +15,14 @@ import {
   Info,
   ArrowRight,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Card, Pill } from "@/components/ui-bits";
+
+type PillTone = "default" | "success" | "warning" | "danger" | "info";
 
 // ---------- Status ----------
 export function DeviceStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { tone: any; label: string; icon: any }> = {
+  const map: Record<string, { tone: PillTone; label: string; icon: LucideIcon }> = {
     online: { tone: "success", label: "Online", icon: CheckCircle2 },
     partial: { tone: "warning", label: "Delvist aktiv", icon: AlertCircle },
     attention: { tone: "danger", label: "Kræver handling", icon: AlertTriangle },

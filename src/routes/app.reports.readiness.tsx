@@ -27,7 +27,7 @@ const CHECKLIST = [
   ["Bilag vedlagt", false],
   ["Intern review gennemført", true],
   ["Godkendelse registreret", false],
-];
+] as const;
 
 function Page() {
   return (
@@ -56,7 +56,7 @@ function Page() {
 
         <Section title="Ekstern delings-tjekliste" subtitle="Kræves før ekstern brug">
           <ul className="space-y-1.5">
-            {CHECKLIST.map(([l, ok]: any) => (
+            {CHECKLIST.map(([l, ok]) => (
               <li
                 key={l}
                 className="flex items-center gap-2 text-sm p-2 rounded-lg border bg-muted/30"

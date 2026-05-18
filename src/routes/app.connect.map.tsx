@@ -27,7 +27,7 @@ function Page() {
   const [active, setActive] = useState<Record<LayerKey, boolean>>(
     Object.fromEntries(LAYER_DEFS.map((l) => [l.key, l.defaultOn])) as Record<LayerKey, boolean>,
   );
-  const [tool, setTool] = useState<any>(null);
+  const [tool, setTool] = useState<"search" | "boundary" | "zone" | "edit" | "measure" | "upload" | "save" | "export" | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [drawnPoints, setDrawnPoints] = useState<{ x: number; y: number }[]>([]);
   const [drawArea, setDrawArea] = useState<number>(0);
