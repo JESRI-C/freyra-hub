@@ -32,6 +32,7 @@ import {
   actionToast,
 } from "@/components/platform/Primitives";
 import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 
 export const Route = createFileRoute("/app/ledger/")({
   head: () => ({ meta: [{ title: "ESG Ledger — GoFreyra" }] }),
@@ -68,6 +69,14 @@ function OverviewPage() {
           icon: <ScrollText className="h-4 w-4" />,
         }}
       />
+
+      <AiInsightBanner
+        module="ESG Ledger"
+        tone="action"
+        context={`Projekt: ${PROJECT_FACTS.name}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Datakvalitet: ${PROJECT_FACTS.dataQuality}%. Åbne gaps: ${GAPS.map((g) => `${g.t} (${g.level})`).join("; ")}. Senest registrerede ledger-events: ${LEDGER_EVENTS.slice(0, 3).map((e) => `${e.type}: ${e.description}`).join("; ")}.`}
+      />
+
+
 
       {/* KPIs */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
