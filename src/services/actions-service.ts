@@ -6,22 +6,36 @@ import { SEED_ACTIONS } from "@/data/platform-seed";
 import type { IoTSensor } from "@/services/iot-simulation-service";
 import type { Action } from "@/lib/supabase/types";
 
+function isMissingTable(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
+}
+
 export async function getOpenActionsByProject(projectId: string): Promise<Action[]> {
-  if (!isSupabaseConfigured) {
-    return SEED_ACTIONS.filter((a) => a.project_id === projectId && a.status !== "Lukket").sort(
+  const fallback = () =>
+    SEED_ACTIONS.filter((a) => a.project_id === projectId && a.status !== "Lukket").sort(
       (a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""),
     );
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchOpenActionsByProject(projectId);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchOpenActionsByProject(projectId);
 }
 
 export async function getAllOpenActions(): Promise<Action[]> {
-  if (!isSupabaseConfigured) {
-    return SEED_ACTIONS.filter((a) => a.status !== "Lukket").sort((a, b) =>
+  const fallback = () =>
+    SEED_ACTIONS.filter((a) => a.status !== "Lukket").sort((a, b) =>
       (a.due_date ?? "").localeCompare(b.due_date ?? ""),
     );
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchAllOpenActions();
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchAllOpenActions();
 }
 
 export function actionPriorityTone(priority: string): "danger" | "warning" | "neutral" {
