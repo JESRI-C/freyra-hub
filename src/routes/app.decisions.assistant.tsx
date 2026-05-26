@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { askDecisionsAssistant } from "@/lib/decisions-assistant.functions";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ConfidenceScore } from "@/components/decisions/Primitives";
 import { SUGGESTED_PROMPTS } from "@/lib/decisions-data";
