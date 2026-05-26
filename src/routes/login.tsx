@@ -2,6 +2,19 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Leaf, Lock } from "lucide-react";
 import { DEMO_USERS, useAuth } from "@/lib/auth";
+import { lovable } from "@/integrations/lovable";
+
+async function handleGoogleSignIn() {
+  const result = await lovable.auth.signInWithOAuth("google", {
+    redirect_uri: window.location.origin,
+  });
+  if (result.error) {
+    console.error("Google sign-in failed", result.error);
+    return;
+  }
+  if (result.redirected) return;
+  window.location.href = "/select";
+}
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Log ind — GoFreyra" }] }),
