@@ -11,17 +11,24 @@ export interface LiveDataConfig {
 }
 
 export function getLiveDataConfig(): LiveDataConfig {
-  const enableLive = import.meta.env.VITE_ENABLE_LIVE_DATA === "true";
-  const dmiBaseUrl = import.meta.env.VITE_DMI_BASE_URL || "https://opendataapi.dmi.dk";
-  const datafordelerKey = import.meta.env.VITE_DATAFORDELER_KEY || null;
-  const copernicusToken = import.meta.env.VITE_COPERNICUS_TOKEN || null;
+  // Prefer server-side process.env when available (server functions),
+  // fall back to import.meta.env (client / build-time).
+  const serverEnv = (typeof process !== "undefined" ? (process as { env?: Record<string, string | undefined> }).env : undefined) ?? {};
+  const clientEnv = import.meta.env as Record<string, string | undefined>;
 
-  // Only key-gated connectors count as "missing"
+  const pick = (serverKey: string, clientKey: string): string | null =>
+    serverEnv[serverKey] ?? clientEnv[clientKey] ?? null;
+
+  const enableLiveRaw = pick("ENABLE_LIVE_DATA", "VITE_ENABLE_LIVE_DATA");
+  const enableLive = enableLiveRaw === "true" || enableLiveRaw === "1";
+  const dmiBaseUrl = pick("DMI_BASE_URL", "VITE_DMI_BASE_URL") || "https://opendataapi.dmi.dk";
+  const datafordelerKey = pick("DATAFORDELER_KEY", "VITE_DATAFORDELER_KEY");
+  const copernicusToken = pick("COPERNICUS_TOKEN", "VITE_COPERNICUS_TOKEN");
+
   const missingKeys: string[] = [];
-  if (!datafordelerKey) missingKeys.push("VITE_DATAFORDELER_KEY");
-  if (!copernicusToken) missingKeys.push("VITE_COPERNICUS_TOKEN");
+  if (!datafordelerKey) missingKeys.push("DATAFORDELER_KEY");
+  if (!copernicusToken) missingKeys.push("COPERNICUS_TOKEN");
 
-  // DMI + Miljøportal are always available — live mode only requires the flag
   const mode: "preview" | "live" = enableLive ? "live" : "preview";
 
   return {
@@ -35,3 +42,4 @@ export function getLiveDataConfig(): LiveDataConfig {
     missingKeys,
   };
 }
+
