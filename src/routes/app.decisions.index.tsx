@@ -33,6 +33,7 @@ import {
   actionToast,
 } from "@/components/platform/Primitives";
 import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 
 export const Route = createFileRoute("/app/decisions/")({
   head: () => ({ meta: [{ title: "DecisionsIQ — GoFreyra" }] }),
@@ -69,6 +70,14 @@ function OverviewPage() {
           icon: <Sparkles className="h-4 w-4" />,
         }}
       />
+
+      <AiInsightBanner
+        module="DecisionsIQ"
+        tone="risk"
+        context={`Projekt: ${PROJECT_FACTS.name}. Åbne anbefalinger: ${PROJECT_FACTS.openRecommendations}. Biodiversitetsindeks: ${PROJECT_FACTS.biodiversityIndex}. Nøgleindsigter: ${KEY_INSIGHTS.slice(0, 3).map((k) => k.title ?? k.label ?? JSON.stringify(k)).join("; ")}. Top-anbefalinger: ${RECOMMENDATIONS.slice(0, 3).map((r) => r.title ?? JSON.stringify(r)).join("; ")}.`}
+      />
+
+
 
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <ConfidenceScore value={0.82} />

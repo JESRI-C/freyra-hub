@@ -36,6 +36,7 @@ import {
   actionToast,
 } from "@/components/platform/Primitives";
 import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import { getAllReports, reportStatusTone } from "@/services/reports-service";
 import type { Report } from "@/lib/supabase/types";
 
@@ -135,6 +136,15 @@ function Page() {
           icon: <FileText className="h-4 w-4" />,
         }}
       />
+
+      <AiInsightBanner
+        module="Reports"
+        tone="action"
+        cacheKey={`reports:${reports.length}`}
+        context={`Antal rapporter i datalaget: ${reports.length}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Status-fordeling: ${Object.entries(reports.reduce<Record<string, number>>((acc, r) => { const s = r.status ?? "ukendt"; acc[s] = (acc[s] ?? 0) + 1; return acc; }, {})).map(([k, v]) => `${k}: ${v}`).join(", ")}. Seneste rapporter: ${RECENT_REPORTS.slice(0, 3).map((r) => r.title ?? r.name ?? JSON.stringify(r)).join("; ")}.`}
+      />
+
+
 
       <PageHeader
         title="Rapportcenter"

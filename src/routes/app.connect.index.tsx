@@ -33,6 +33,7 @@ import {
   actionToast,
 } from "@/components/platform/Primitives";
 import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 
 export const Route = createFileRoute("/app/connect/")({
   component: Page,
@@ -60,6 +61,14 @@ function Page() {
           icon: <Map className="h-4 w-4" />,
         }}
       />
+
+      <AiInsightBanner
+        module="Smart Connect"
+        tone="action"
+        context={`Projekt: ${PROJECT_FACTS.name}. Aktive datakilder: ${PROJECT_FACTS.activeDataSources}. Datakvalitet: ${PROJECT_FACTS.dataQuality}%. Status: ${PROJECT_FACTS.status}. Kritiske huller: ${PROJECT_FACTS.criticalGaps.join("; ")}. Aktive alerts: ${ALERTS.length}.`}
+      />
+
+
 
       <PageHeader
         title="Forbindelses-KPI'er"
