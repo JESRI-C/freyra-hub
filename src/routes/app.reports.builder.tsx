@@ -83,7 +83,7 @@ function Page() {
         reportType="ESG/CSRD bæredygtighedsrapport"
         projectName="Tisvilde Hegn"
         audience="Ledelse og rapporteringsteam"
-        context={`Valgte afsnit (${ordered.length}): ${ordered.map((s) => s.title).join("; ")}. Samlet ordtal: ${totalWords}. Diagrammer: ${totalCharts}. Gns. readiness: ${avgReadiness}%. Sektioner med datamangler: ${missing}.`}
+        context={`Valgte afsnit (${ordered.length}): ${ordered.map((s) => s.name).join("; ")}. Samlet ordtal: ${totalWords}. Diagrammer: ${totalCharts}. Gns. readiness: ${avgReadiness}%. Sektioner med datamangler: ${missing}.`}
       />
 
       <div className="grid lg:grid-cols-[280px_1fr_320px] gap-4">
