@@ -12,6 +12,8 @@ import type {
 } from "@/lib/supabase/types";
 import { getLiveDataConfig } from "@/config/live-data-config";
 import { dmiClient, miljoeportalClient } from "@/services/live-data";
+import { fetchProjectLiveData } from "@/lib/live-data.functions";
+
 
 // Check if a specific connector is configured
 function isConnectorConfigured(connector: DataConnector): boolean {
@@ -258,16 +260,16 @@ export async function buildProjectEnvironmentalContext(
   let liveData: LiveDataSnapshot | undefined;
 
   if (resolvedGeometry.hasValidGeometry) {
-    const [weatherResult, natureResult] = await Promise.all([
-      liveConfig.isLiveDataEnabled
-        ? dmiClient.fetchByGeometry(resolvedGeometry).catch(() => dmiClient.fetchPreview())
-        : dmiClient.fetchPreview(),
-      liveConfig.isLiveDataEnabled
-        ? miljoeportalClient
-            .fetchByGeometry(resolvedGeometry)
-            .catch(() => miljoeportalClient.fetchPreview())
-        : miljoeportalClient.fetchPreview(),
-    ]);
+    // Route live connector calls through a TanStack server function so the
+    // outbound HTTP runs server-side (no browser CORS, secrets stay on the
+    // server). When live mode is off we keep the local preview path.
+    const bundle = liveConfig.isLiveDataEnabled
+      ? await fetchProjectLiveData({ data: { geometry: resolvedGeometry } }).catch(() => null)
+      : null;
+
+    const weatherResult = bundle?.weather ?? (await dmiClient.fetchPreview());
+    const natureResult = bundle?.nature ?? (await miljoeportalClient.fetchPreview());
+
 
     const weatherNorm = dmiClient.normalizeResult(weatherResult);
     const natureNorm = miljoeportalClient.normalizeResult(natureResult);
