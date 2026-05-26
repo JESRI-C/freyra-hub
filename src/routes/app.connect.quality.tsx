@@ -58,7 +58,7 @@ function Page() {
         module="Datakvalitet"
         tone="risk"
         cacheKey={`quality:${QUALITY_DIMENSIONS.length}:${VALIDATION_RULES.length}`}
-        context={`Samlet kvalitet: 91%. Dimensioner: ${QUALITY_DIMENSIONS.map((q) => `${q.name}=${q.score}%`).join(", ")}. Antal valideringsregler: ${VALIDATION_RULES.length}. Datakilder under monitorering: ${DATA_SOURCES.length}. Fejlende regler: ${VALIDATION_RULES.filter((r) => r.status === "Fejlet" || r.status === "Advarsel").length}.`}
+        context={`Samlet kvalitet: 91%. Dimensioner: ${QUALITY_DIMENSIONS.map((q) => `${q.name}=${q.score}%`).join(", ")}. Antal valideringsregler: ${VALIDATION_RULES.length}. Datakilder under monitorering: ${DATA_SOURCES.length}.`}
       />
 
 

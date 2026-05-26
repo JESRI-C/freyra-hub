@@ -29,7 +29,7 @@ function CSRDPage() {
         module="CSRD/ESRS readiness"
         tone="action"
         cacheKey={`csrd:${ESRS_CATEGORIES.length}:${GAPS.length}`}
-        context={`Samlet readiness: 68%. Dækkede datapunkter: 142/210. Kritiske mangler: 12. ESRS-kategorier: ${ESRS_CATEGORIES.map((c) => `${c.id}=${c.readiness}%`).join(", ")}. Top-gaps: ${GAPS.slice(0, 4).map((g) => g.topic).join("; ")}.`}
+        context={`Samlet readiness: 68%. Dækkede datapunkter: 142/210. Kritiske mangler: 12. ESRS-kategorier: ${ESRS_CATEGORIES.map((c) => `${c.code}=${c.coverage}%`).join(", ")}. Top-gaps: ${GAPS.slice(0, 4).map((g) => g.dataPoint).join("; ")}.`}
       />
 
       <Card className="p-4 border-warning/30 bg-warning/10 flex items-start gap-3">
