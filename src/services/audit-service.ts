@@ -5,25 +5,39 @@ import { fetchAuditEventsByProject, fetchAllAuditEvents } from "@/lib/supabase/q
 import { SEED_AUDIT_EVENTS } from "@/data/platform-seed";
 import type { AuditEvent } from "@/lib/supabase/types";
 
+function isMissingTable(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
+}
+
 export async function getAuditEventsByProject(
   projectId: string,
   limit = 20,
 ): Promise<AuditEvent[]> {
-  if (!isSupabaseConfigured) {
-    return SEED_AUDIT_EVENTS.filter((e) => e.project_id === projectId)
+  const fallback = () =>
+    SEED_AUDIT_EVENTS.filter((e) => e.project_id === projectId)
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, limit);
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchAuditEventsByProject(projectId, limit);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchAuditEventsByProject(projectId, limit);
 }
 
 export async function getAllAuditEvents(limit = 30): Promise<AuditEvent[]> {
-  if (!isSupabaseConfigured) {
-    return [...SEED_AUDIT_EVENTS]
+  const fallback = () =>
+    [...SEED_AUDIT_EVENTS]
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, limit);
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchAllAuditEvents(limit);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchAllAuditEvents(limit);
 }
 
 // Returns a Lucide icon name for the event_type.

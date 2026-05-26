@@ -5,18 +5,31 @@ import { fetchIndicatorsByProject, fetchIndicator } from "@/lib/supabase/queries
 import { SEED_INDICATORS } from "@/data/platform-seed";
 import type { Indicator } from "@/lib/supabase/types";
 
+function isMissingTable(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
+}
+
 export async function getIndicatorsByProject(projectId: string): Promise<Indicator[]> {
-  if (!isSupabaseConfigured) {
-    return SEED_INDICATORS.filter((i) => i.project_id === projectId);
+  const fallback = () => SEED_INDICATORS.filter((i) => i.project_id === projectId);
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchIndicatorsByProject(projectId);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchIndicatorsByProject(projectId);
 }
 
 export async function getIndicator(projectId: string, key: string): Promise<Indicator | null> {
-  if (!isSupabaseConfigured) {
-    return SEED_INDICATORS.find((i) => i.project_id === projectId && i.key === key) ?? null;
+  const fallback = () =>
+    SEED_INDICATORS.find((i) => i.project_id === projectId && i.key === key) ?? null;
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchIndicator(projectId, key);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchIndicator(projectId, key);
 }
 
 // Formats an indicator value for display.

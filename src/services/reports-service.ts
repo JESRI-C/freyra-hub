@@ -53,18 +53,31 @@ export async function createReport(input: CreateReportInput): Promise<{ id: stri
   return { id: `report-${Date.now()}` };
 }
 
+function isMissingTable(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
+}
+
 export async function getReportsByProject(projectId: string): Promise<Report[]> {
-  if (!isSupabaseConfigured) {
-    return SEED_REPORTS.filter((r) => r.project_id === projectId);
+  const fallback = () => SEED_REPORTS.filter((r) => r.project_id === projectId);
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchReportsByProject(projectId);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchReportsByProject(projectId);
 }
 
 export async function getAllReports(): Promise<Report[]> {
-  if (!isSupabaseConfigured) {
-    return [...SEED_REPORTS].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const fallback = () =>
+    [...SEED_REPORTS].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchAllReports();
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchAllReports();
 }
 
 // Returns a badge tone for a report status value.

@@ -9,26 +9,48 @@ import { getIndicatorsByProject } from "./indicators-service";
 import { getAuditEventsByProject } from "./audit-service";
 import { getReportsByProject } from "./reports-service";
 
+// Returns true if the error indicates that the underlying Supabase table does
+// not exist yet (e.g. the schema has not been migrated). In that case we fall
+// back to the seed data so the app keeps working.
+function isMissingTable(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
+}
+
+function seedProjects(organizationId?: string): Project[] {
+  if (organizationId) return SEED_PROJECTS.filter((p) => p.organization_id === organizationId);
+  return SEED_PROJECTS;
+}
+
 export async function getProjects(organizationId?: string): Promise<Project[]> {
-  if (!isSupabaseConfigured) {
-    if (organizationId) return SEED_PROJECTS.filter((p) => p.organization_id === organizationId);
-    return SEED_PROJECTS;
+  if (!isSupabaseConfigured) return seedProjects(organizationId);
+  try {
+    return await fetchProjects(organizationId);
+  } catch (err) {
+    if (isMissingTable(err)) return seedProjects(organizationId);
+    throw err;
   }
-  return fetchProjects(organizationId);
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
-  if (!isSupabaseConfigured) {
-    return SEED_PROJECTS.find((p) => p.slug === slug) ?? null;
+  const fallback = () => SEED_PROJECTS.find((p) => p.slug === slug) ?? null;
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchProjectBySlug(slug);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchProjectBySlug(slug);
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
-  if (!isSupabaseConfigured) {
-    return SEED_PROJECTS.find((p) => p.id === id) ?? null;
+  const fallback = () => SEED_PROJECTS.find((p) => p.id === id) ?? null;
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchProjectById(id);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
   }
-  return fetchProjectById(id);
 }
 
 export function getSitesByProject(projectId: string): Site[] {
