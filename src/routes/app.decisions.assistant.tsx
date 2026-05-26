@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { askDecisionsAssistant } from "@/lib/decisions-assistant.functions";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ConfidenceScore } from "@/components/decisions/Primitives";
 import { SUGGESTED_PROMPTS } from "@/lib/decisions-data";
@@ -292,18 +294,44 @@ function Page() {
     { role: "assistant", reply: buildContextualReply("", ctx) },
   ]);
   const [input, setInput] = useState("");
+  const [pending, setPending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const ask = useServerFn(askDecisionsAssistant);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     const t = text.trim();
-    if (!t) return;
-    setMessages((m) => [
-      ...m,
-      { role: "user", text: t },
-      { role: "assistant", reply: buildContextualReply(t, ctx) },
-    ]);
+    if (!t || pending) return;
+    setMessages((m) => [...m, { role: "user", text: t }]);
     setInput("");
-    setTimeout(() => inputRef.current?.focus(), 0);
+    setPending(true);
+    try {
+      const res = await ask({
+        data: {
+          question: t,
+          projectName: ctx.projectName,
+          indicators: ctx.indicators.map((i) => ({ key: i.key, value: i.value })),
+          actions: ctx.actions.map((a) => ({
+            title: a.title,
+            priority: a.priority,
+            status: a.status,
+            due_date: a.due_date,
+          })),
+          sensors: ctx.sensors.map((s) => ({
+            label: s.label,
+            type: s.type,
+            status: s.status,
+            batteryPercent: s.batteryPercent,
+          })),
+        },
+      });
+      const reply = res.error || !res.reply ? buildContextualReply(t, ctx) : res.reply;
+      setMessages((m) => [...m, { role: "assistant", reply }]);
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", reply: buildContextualReply(t, ctx) }]);
+    } finally {
+      setPending(false);
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
   };
 
   return (
@@ -407,9 +435,10 @@ function Page() {
             />
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 text-sm font-medium shadow-soft"
+              disabled={pending}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 text-sm font-medium shadow-soft disabled:opacity-60"
             >
-              <Send className="h-4 w-4" /> Send
+              <Send className="h-4 w-4" /> {pending ? "Tænker…" : "Send"}
             </button>
           </form>
         </Card>
