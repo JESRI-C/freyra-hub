@@ -76,8 +76,8 @@ import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect
 import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
 import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
 import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
-import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
 import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
+import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
 
 const SelectRoute = SelectRouteImport.update({
   id: '/select',
@@ -416,17 +416,17 @@ const AppConnectAddRoute = AppConnectAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppConnectRoute,
 } as any)
+const AppProjectsMapSlugRoute = AppProjectsMapSlugRouteImport.update({
+  id: '/projects/map/$slug',
+  path: '/projects/map/$slug',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConstructionProjectsSlugRoute =
   AppConstructionProjectsSlugRouteImport.update({
     id: '/construction/projects/$slug',
     path: '/construction/projects/$slug',
     getParentRoute: () => AppRoute,
   } as any)
-const AppProjectsMapSlugRoute = AppProjectsMapSlugRouteImport.update({
-  id: '/projects/map/$slug',
-  path: '/projects/map/$slug',
-  getParentRoute: () => AppRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1324,18 +1324,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectAddRouteImport
       parentRoute: typeof AppConnectRoute
     }
-    '/app/construction/projects/$slug': {
-      id: '/app/construction/projects/$slug'
-      path: '/construction/projects/$slug'
-      fullPath: '/app/construction/projects/$slug'
-      preLoaderRoute: typeof AppConstructionProjectsSlugRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/projects/map/$slug': {
       id: '/app/projects/map/$slug'
       path: '/projects/map/$slug'
       fullPath: '/app/projects/map/$slug'
       preLoaderRoute: typeof AppProjectsMapSlugRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/construction/projects/$slug': {
+      id: '/app/construction/projects/$slug'
+      path: '/construction/projects/$slug'
+      fullPath: '/app/construction/projects/$slug'
+      preLoaderRoute: typeof AppConstructionProjectsSlugRouteImport
       parentRoute: typeof AppRoute
     }
   }
