@@ -53,7 +53,7 @@ export async function fetchByGeometry(
 ): Promise<ConnectorResponse<CopernicusData>> {
   const config = getLiveDataConfig();
   if (!config.isLiveDataEnabled) return previewResponse(PREVIEW_DATA);
-  if (!config.credentials.copernicus.present) return previewResponse(PREVIEW_DATA);
+  if (!config.credentials.copernicus.present) return { ...missingKeyResponse<CopernicusData>(), data: PREVIEW_DATA };
 
   const lat = geometry.centroid?.lat;
   const lng = geometry.centroid?.lng;
