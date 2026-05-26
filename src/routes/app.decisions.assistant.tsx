@@ -435,9 +435,10 @@ function Page() {
             />
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 text-sm font-medium shadow-soft"
+              disabled={pending}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 text-sm font-medium shadow-soft disabled:opacity-60"
             >
-              <Send className="h-4 w-4" /> Send
+              <Send className="h-4 w-4" /> {pending ? "Tænker…" : "Send"}
             </button>
           </form>
         </Card>
