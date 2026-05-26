@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { Map } from "lucide-react";
 import { PageHeader } from "@/components/ui-bits";
 import { ConnectorRegistryTable } from "@/components/data-foundation/ConnectorRegistryTable";
 import { CONNECTOR_REGISTRY, getActiveConnectors } from "@/data/connectors-registry";
@@ -40,6 +41,16 @@ function RegistryPage() {
       <PageHeader
         title="Data Connector Registry"
         description="Oversigt over alle tilgængelige datakilder og API-forbindelser i GoFreyra-platformen."
+        actions={
+          <Link
+            to="/app/projects/map/$slug"
+            params={{ slug: "skallebaek-biodiversity-pilot" }}
+            className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/40 transition"
+          >
+            <Map className="h-4 w-4 text-primary" />
+            Åbn geodata-kort
+          </Link>
+        }
       />
 
       {/* Summary stats */}

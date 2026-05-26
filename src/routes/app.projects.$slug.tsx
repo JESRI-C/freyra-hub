@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity } from "lucide-react";
@@ -629,6 +629,15 @@ function ProjectDetailPage() {
             {/* ── Livekort ────────────────────────────────────────────────── */}
             {active === "livekort" && (
               <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Link
+                    to="/app/projects/map/$slug"
+                    params={{ slug }}
+                    className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                  >
+                    Åbn fuldt geodata-kort →
+                  </Link>
+                </div>
                 <LiveProjectMap
                   geometry={geometry}
                   projectName={project.name}

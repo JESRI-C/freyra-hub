@@ -77,6 +77,7 @@ import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devi
 import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
 import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
 import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
+import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
 
 const SelectRoute = SelectRouteImport.update({
   id: '/select',
@@ -421,6 +422,11 @@ const AppConstructionProjectsSlugRoute =
     path: '/construction/projects/$slug',
     getParentRoute: () => AppRoute,
   } as any)
+const AppProjectsMapSlugRoute = AppProjectsMapSlugRouteImport.update({
+  id: '/projects/map/$slug',
+  path: '/projects/map/$slug',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -491,6 +497,7 @@ export interface FileRoutesByFullPath {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -555,6 +562,7 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -626,6 +634,7 @@ export interface FileRoutesById {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -698,6 +707,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/app/construction/projects/$slug'
+    | '/app/projects/map/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -762,6 +772,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/app/construction/projects/$slug'
+    | '/app/projects/map/$slug'
   id:
     | '__root__'
     | '/'
@@ -832,6 +843,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/app/construction/projects/$slug'
+    | '/app/projects/map/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1319,6 +1331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConstructionProjectsSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/projects/map/$slug': {
+      id: '/app/projects/map/$slug'
+      path: '/projects/map/$slug'
+      fullPath: '/app/projects/map/$slug'
+      preLoaderRoute: typeof AppProjectsMapSlugRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -1498,6 +1517,7 @@ interface AppRouteChildren {
   AppConstructionIndexRoute: typeof AppConstructionIndexRoute
   AppProjectsIndexRoute: typeof AppProjectsIndexRoute
   AppConstructionProjectsSlugRoute: typeof AppConstructionProjectsSlugRoute
+  AppProjectsMapSlugRoute: typeof AppProjectsMapSlugRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1514,6 +1534,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConstructionIndexRoute: AppConstructionIndexRoute,
   AppProjectsIndexRoute: AppProjectsIndexRoute,
   AppConstructionProjectsSlugRoute: AppConstructionProjectsSlugRoute,
+  AppProjectsMapSlugRoute: AppProjectsMapSlugRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
