@@ -1,5 +1,5 @@
 import { getLiveDataConfig } from "@/config/live-data-config";
-import { fetchWithTimeout, fetchConnector, previewResponse } from "../live-data-client";
+import { fetchWithTimeout, fetchConnector, previewResponse, missingKeyResponse } from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
 
@@ -53,7 +53,7 @@ export async function fetchByGeometry(
 ): Promise<ConnectorResponse<CopernicusData>> {
   const config = getLiveDataConfig();
   if (!config.isLiveDataEnabled) return previewResponse(PREVIEW_DATA);
-  if (!config.credentials.copernicus.present) return previewResponse(PREVIEW_DATA);
+  if (!config.credentials.copernicus.present) return { ...missingKeyResponse<CopernicusData>(), data: PREVIEW_DATA };
 
   const lat = geometry.centroid?.lat;
   const lng = geometry.centroid?.lng;

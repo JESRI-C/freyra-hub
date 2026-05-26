@@ -16,8 +16,14 @@ export function getLiveDataConfig(): LiveDataConfig {
   const serverEnv = (typeof process !== "undefined" ? (process as { env?: Record<string, string | undefined> }).env : undefined) ?? {};
   const clientEnv = import.meta.env as Record<string, string | undefined>;
 
-  const pick = (serverKey: string, clientKey: string): string | null =>
-    serverEnv[serverKey] ?? clientEnv[clientKey] ?? null;
+  const pick = (serverKey: string, clientKey: string): string | null => {
+    const raw = serverEnv[serverKey] ?? clientEnv[clientKey] ?? null;
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    // Treat empty string and the literal "preview" placeholder as "not set"
+    if (trimmed === "" || trimmed.toLowerCase() === "preview") return null;
+    return trimmed;
+  };
 
   const enableLiveRaw = pick("ENABLE_LIVE_DATA", "VITE_ENABLE_LIVE_DATA");
   const enableLive = enableLiveRaw === "true" || enableLiveRaw === "1";
