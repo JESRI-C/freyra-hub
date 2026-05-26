@@ -74,7 +74,7 @@ function OverviewPage() {
       <AiInsightBanner
         module="DecisionsIQ"
         tone="risk"
-        context={`Projekt: ${PROJECT_FACTS.name}. Åbne anbefalinger: ${PROJECT_FACTS.openRecommendations}. Biodiversitetsindeks: ${PROJECT_FACTS.biodiversityIndex}. Nøgleindsigter: ${KEY_INSIGHTS.slice(0, 3).map((k) => k.title ?? k.label ?? JSON.stringify(k)).join("; ")}. Top-anbefalinger: ${RECOMMENDATIONS.slice(0, 3).map((r) => r.title ?? JSON.stringify(r)).join("; ")}.`}
+        context={`Projekt: ${PROJECT_FACTS.name}. Åbne anbefalinger: ${PROJECT_FACTS.openRecommendations}. Biodiversitetsindeks: ${PROJECT_FACTS.biodiversityIndex}. Nøgleindsigter: ${KEY_INSIGHTS.slice(0, 3).map((k) => `${k.label}: ${k.value} (${k.description})`).join("; ")}. Top-anbefalinger: ${RECOMMENDATIONS.slice(0, 3).map((r) => r.title).join("; ")}.`}
       />
 
 

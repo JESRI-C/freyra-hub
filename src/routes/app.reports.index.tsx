@@ -141,7 +141,7 @@ function Page() {
         module="Reports"
         tone="action"
         cacheKey={`reports:${reports.length}`}
-        context={`Antal rapporter i datalaget: ${reports.length}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Status-fordeling: ${Object.entries(reports.reduce<Record<string, number>>((acc, r) => { const s = r.status ?? "ukendt"; acc[s] = (acc[s] ?? 0) + 1; return acc; }, {})).map(([k, v]) => `${k}: ${v}`).join(", ")}. Seneste rapporter: ${RECENT_REPORTS.slice(0, 3).map((r) => r.title ?? r.name ?? JSON.stringify(r)).join("; ")}.`}
+        context={`Antal rapporter i datalaget: ${reports.length}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Status-fordeling: ${Object.entries(reports.reduce<Record<string, number>>((acc, r) => { const s = r.status ?? "ukendt"; acc[s] = (acc[s] ?? 0) + 1; return acc; }, {})).map(([k, v]) => `${k}: ${v}`).join(", ")}. Seneste rapporter: ${RECENT_REPORTS.slice(0, 3).map((r) => r.name).join("; ")}.`}
       />
 
 

@@ -98,7 +98,7 @@ function OverviewPage() {
       <AiInsightBanner
         module="Impact Exchange"
         tone="insight"
-        context={`Antal projekter i markedet: ${PROJECTS.length}. Verificerede: ${PROJECTS.filter((p) => p.verification === "Verificeret").length}. Featured: ${PROJECTS.slice(0, 4).map((p) => p.name ?? p.title ?? p.id).join(", ")}. Kategorier: ${CATEGORIES.map((c) => c.name ?? c.label ?? c).join(", ")}.`}
+        context={`Antal projekter i markedet: ${PROJECTS.length}. Verificerede: ${PROJECTS.filter((p) => p.verification === "Verificeret").length}. Featured: ${PROJECTS.slice(0, 4).map((p) => p.title).join(", ")}. Kategorier: ${CATEGORIES.join(", ")}.`}
       />
 
 
