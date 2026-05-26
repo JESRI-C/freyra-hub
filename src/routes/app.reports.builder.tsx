@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { GripVertical, Trash2, Sparkles, Eye, Send, Filter, ChevronDown } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
+import { AiReportDraft } from "@/components/ai/AiReportDraft";
 import { Section, Chip, ReadinessBar } from "@/components/reports/Primitives";
 import { SECTION_LIBRARY, type SectionDef } from "@/lib/reports-data";
 
@@ -78,7 +79,15 @@ function Page() {
         }
       />
 
+      <AiReportDraft
+        reportType="ESG/CSRD bæredygtighedsrapport"
+        projectName="Tisvilde Hegn"
+        audience="Ledelse og rapporteringsteam"
+        context={`Valgte afsnit (${ordered.length}): ${ordered.map((s) => s.name).join("; ")}. Samlet ordtal: ${totalWords}. Diagrammer: ${totalCharts}. Gns. readiness: ${avgReadiness}%. Sektioner med datamangler: ${missing}.`}
+      />
+
       <div className="grid lg:grid-cols-[280px_1fr_320px] gap-4">
+
         {/* LEFT: Library */}
         <Card className="p-3">
           <div className="text-xs font-semibold text-muted-foreground px-2 mb-2">

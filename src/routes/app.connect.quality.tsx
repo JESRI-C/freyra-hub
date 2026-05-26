@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck, TrendingUp, TrendingDown, Sparkles, ArrowRight } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import {
   ConnectionHealthCard,
   DataQualityScore,
@@ -52,6 +53,14 @@ function Page() {
         title="Datakvalitet"
         description="Er data pålideligt nok til analyse, dokumentation og rapportering?"
       />
+
+      <AiInsightBanner
+        module="Datakvalitet"
+        tone="risk"
+        cacheKey={`quality:${QUALITY_DIMENSIONS.length}:${VALIDATION_RULES.length}`}
+        context={`Samlet kvalitet: 91%. Dimensioner: ${QUALITY_DIMENSIONS.map((q) => `${q.name}=${q.score}%`).join(", ")}. Antal valideringsregler: ${VALIDATION_RULES.length}. Datakilder under monitorering: ${DATA_SOURCES.length}.`}
+      />
+
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <ConnectionHealthCard

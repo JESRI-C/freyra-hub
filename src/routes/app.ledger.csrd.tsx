@@ -13,6 +13,7 @@ import {
   Send,
 } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import { ESGMetricCard, ReadinessScore } from "@/components/ledger/Primitives";
 import { ESRS_CATEGORIES, GAPS } from "@/lib/ledger-data";
 
@@ -24,6 +25,13 @@ export const Route = createFileRoute("/app/ledger/csrd")({
 function CSRDPage() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
+      <AiInsightBanner
+        module="CSRD/ESRS readiness"
+        tone="action"
+        cacheKey={`csrd:${ESRS_CATEGORIES.length}:${GAPS.length}`}
+        context={`Samlet readiness: 68%. Dækkede datapunkter: 142/210. Kritiske mangler: 12. ESRS-kategorier: ${ESRS_CATEGORIES.map((c) => `${c.code}=${c.coverage}%`).join(", ")}. Top-gaps: ${GAPS.slice(0, 4).map((g) => g.dataPoint).join("; ")}.`}
+      />
+
       <Card className="p-4 border-warning/30 bg-warning/10 flex items-start gap-3">
         <AlertTriangle className="h-4 w-4 text-warning-foreground shrink-0 mt-0.5" />
         <div className="text-xs text-warning-foreground">

@@ -9,6 +9,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import {
   ESGMetricCard,
   Donut,
@@ -43,7 +44,15 @@ function CO2Page() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
+      <AiInsightBanner
+        module="CO₂-regnskab"
+        tone="risk"
+        cacheKey={`co2:${Math.round(total)}`}
+        context={`Netto CO₂e: ${(total / 1000).toFixed(1)} kt. Scope 1: ${scope1} t. Scope 2: ${scope2} t. Scope 3: ${scope3} t. Dokumenterede offsets: ${offsets} t. Antal kilder: ${EMISSION_SOURCES.length}. Største kilde: ${[...EMISSION_SOURCES].sort((a, b) => b.co2e - a.co2e)[0]?.source ?? "—"}.`}
+      />
+
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+
         <ESGMetricCard
           label="Total CO₂e (netto)"
           value={(total / 1000).toFixed(1)}

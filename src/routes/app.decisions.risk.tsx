@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import { RiskBadge } from "@/components/decisions/Primitives";
 import { RiskMatrix } from "@/components/decisions/RiskMatrix";
 import {
@@ -27,6 +28,15 @@ function Page() {
         title="Risikoanalyse"
         description="Samlet risikobillede på tværs af klima, natur, data og compliance."
       />
+
+      <AiInsightBanner
+        module="Risikoanalyse"
+        tone="risk"
+        cacheKey={`risk:${overall}:${RISK_CATEGORIES.length}`}
+        context={`Samlet risikoscore: ${overall} (${level}). Risikokategorier: ${RISK_CATEGORIES.map((r) => `${r.name}=${r.score}`).join(", ")}. Aktive mitigationer: ${MITIGATIONS.length}. Tidslinje-punkter: ${RISK_TIMELINE.length}.`}
+      />
+
+
 
       {/* Overall risk */}
       <div className="grid lg:grid-cols-3 gap-5">
