@@ -76,6 +76,7 @@ import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect
 import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
 import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
 import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
 
 const SelectRoute = SelectRouteImport.update({
@@ -415,6 +416,12 @@ const AppConnectAddRoute = AppConnectAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppConnectRoute,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppConstructionProjectsSlugRoute =
   AppConstructionProjectsSlugRouteImport.update({
     id: '/construction/projects/$slug',
@@ -491,6 +498,7 @@ export interface FileRoutesByFullPath {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -555,6 +563,7 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -626,6 +635,7 @@ export interface FileRoutesById {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -698,6 +708,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/app/construction/projects/$slug'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -762,6 +773,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/app/construction/projects/$slug'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -832,6 +844,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/app/construction/projects/$slug'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -839,6 +852,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   SelectRoute: typeof SelectRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1312,6 +1326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectAddRouteImport
       parentRoute: typeof AppConnectRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/construction/projects/$slug': {
       id: '/app/construction/projects/$slug'
       path: '/construction/projects/$slug'
@@ -1523,6 +1544,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SelectRoute: SelectRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
