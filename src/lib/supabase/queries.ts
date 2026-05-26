@@ -30,7 +30,7 @@ export async function fetchProjects(organizationId?: string): Promise<Project[]>
   if (organizationId) query = query.eq("organization_id", organizationId);
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -38,7 +38,7 @@ export async function fetchProjectBySlug(slug: string): Promise<Project | null> 
   if (!supabase) throw new Error("Supabase not configured");
 
   const { data, error } = await supabase.from("projects").select("*").eq("slug", slug).single();
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data;
 }
 
@@ -46,7 +46,7 @@ export async function fetchProjectById(id: string): Promise<Project | null> {
   if (!supabase) throw new Error("Supabase not configured");
 
   const { data, error } = await supabase.from("projects").select("*").eq("id", id).single();
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data;
 }
 
@@ -56,7 +56,7 @@ export async function fetchSitesByProject(projectId: string): Promise<Site[]> {
   if (!supabase) throw new Error("Supabase not configured");
 
   const { data, error } = await supabase.from("sites").select("*").eq("project_id", projectId);
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -70,7 +70,7 @@ export async function fetchDataSourcesByProject(projectId: string): Promise<Data
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -84,7 +84,7 @@ export async function fetchIndicatorsByProject(projectId: string): Promise<Indic
     .select("*")
     .eq("project_id", projectId)
     .order("updated_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -97,7 +97,7 @@ export async function fetchIndicator(projectId: string, key: string): Promise<In
     .eq("project_id", projectId)
     .eq("key", key)
     .single();
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data;
 }
 
@@ -111,7 +111,7 @@ export async function fetchReportsByProject(projectId: string): Promise<Report[]
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -129,7 +129,7 @@ export async function fetchAuditEventsByProject(
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -144,7 +144,7 @@ export async function fetchOpenActionsByProject(projectId: string): Promise<Acti
     .eq("project_id", projectId)
     .neq("status", "Lukket")
     .order("due_date", { ascending: true });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -156,7 +156,7 @@ export async function fetchAllOpenActions(): Promise<Action[]> {
     .select("*")
     .neq("status", "Lukket")
     .order("due_date", { ascending: true });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -170,7 +170,7 @@ export async function fetchAllAuditEvents(limit = 30): Promise<AuditEvent[]> {
     .select("*")
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -181,7 +181,7 @@ export async function fetchAllReports(): Promise<Report[]> {
     .from("reports")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -192,7 +192,7 @@ export async function fetchAllDataSources(): Promise<DataSource[]> {
     .from("data_sources")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -206,7 +206,7 @@ export async function fetchSensorsByProject(projectId: string): Promise<Sensor[]
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -224,7 +224,7 @@ export async function fetchObservationsByProject(
     .eq("project_id", projectId)
     .order("observed_at", { ascending: false })
     .limit(limit);
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -238,7 +238,7 @@ export async function fetchEvidenceFilesByProject(projectId: string): Promise<Ev
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -249,7 +249,7 @@ export async function fetchAllEvidenceFiles(): Promise<EvidenceFile[]> {
     .from("evidence_files")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -264,7 +264,7 @@ export async function fetchConstructionExtension(
     .select("*")
     .eq("project_id", projectId)
     .maybeSingle();
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? null;
 }
 
@@ -275,7 +275,7 @@ export async function fetchNatureContext(projectId: string): Promise<NatureConte
     .select("*")
     .eq("project_id", projectId)
     .maybeSingle();
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? null;
 }
 
@@ -286,7 +286,7 @@ export async function fetchRunoffProfile(projectId: string): Promise<RunoffProfi
     .select("*")
     .eq("project_id", projectId)
     .maybeSingle();
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? null;
 }
 
@@ -297,7 +297,7 @@ export async function fetchEnvironmentalRisks(projectId: string): Promise<Enviro
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -308,7 +308,7 @@ export async function fetchMitigationMeasures(projectId: string): Promise<Mitiga
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
 
@@ -319,6 +319,6 @@ export async function fetchAuthoritySubmissions(projectId: string): Promise<Auth
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) { if ((error as { code?: string }).code === "PGRST205") return (data ?? null) as never; throw error; }
   return data ?? [];
 }
