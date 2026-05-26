@@ -4,12 +4,12 @@ import { Leaf, Lock } from "lucide-react";
 import { DEMO_USERS, useAuth } from "@/lib/auth";
 import { lovable } from "@/integrations/lovable";
 
-async function handleGoogleSignIn() {
-  const result = await lovable.auth.signInWithOAuth("google", {
+async function handleOAuthSignIn(provider: "google" | "apple") {
+  const result = await lovable.auth.signInWithOAuth(provider, {
     redirect_uri: window.location.origin,
   });
   if (result.error) {
-    console.error("Google sign-in failed", result.error);
+    console.error(`${provider} sign-in failed`, result.error);
     return;
   }
   if (result.redirected) return;
