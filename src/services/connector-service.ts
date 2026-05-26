@@ -12,6 +12,8 @@ import type {
 } from "@/lib/supabase/types";
 import { getLiveDataConfig } from "@/config/live-data-config";
 import { dmiClient, miljoeportalClient } from "@/services/live-data";
+import { fetchProjectLiveData } from "@/lib/live-data.functions";
+
 
 // Check if a specific connector is configured
 function isConnectorConfigured(connector: DataConnector): boolean {
