@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { AppTopbar } from "@/components/AppTopbar";
 import { Card, CardHeader, PageHeader } from "@/components/ui-bits";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import {
   ModuleStatusCard,
   DataFlowDiagram,
@@ -222,8 +223,17 @@ function OverviewPage() {
         {/* Live KPIs from data layer */}
         <LiveKpiStrip summaries={summaries} openActionCount={openActions.length} />
 
+        {/* AI overview insight */}
+        <AiInsightBanner
+          module="Oversigt"
+          tone="action"
+          cacheKey={`overview:${summaries.length}:${openActions.length}`}
+          context={`Antal projekter: ${summaries.length}. Åbne handlinger: ${openActions.length}. Højeste prioritet åbne handlinger: ${openActions.filter((a) => a.priority === "Høj").length}. Top-projekter (areal): ${summaries.slice(0, 3).map((s) => `${s.project.name}`).join(", ")}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Datakvalitet: ${PROJECT_FACTS.dataQuality}%. Status: ${PROJECT_FACTS.status}.`}
+        />
+
         {/* Live Data widget */}
         <LiveDataWidget />
+
 
         {/* Executive summary */}
         <Card className="overflow-hidden">

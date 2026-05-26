@@ -12,6 +12,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui-bits";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import {
   ImpactMetricCard,
   ProjectMap,
@@ -93,8 +94,16 @@ function PortfolioPage() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
+      <AiInsightBanner
+        module="Portefølje"
+        tone="insight"
+        cacheKey={`portfolio:${items.length}:${reportingReady}`}
+        context={`Antal projekter: ${items.length}. CO₂e potentiale: ${fmt(co2)} t. Areal: ${fmt(ha)} ha. Gennemsnitlig biodiversitet: ${bio}/100. Andel rapportklar: ${reportingReady}%. Kategorier: ${byType.map((c) => `${c.label}=${c.value}`).join(", ")}.`}
+      />
+
       {/* Summary */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
+
         <ImpactMetricCard
           label="Projekter i portefølje"
           value={`${items.length}`}
