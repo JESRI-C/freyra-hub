@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Search, Building2, Droplets, AlertTriangle, FileCheck } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bits";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import { ConstructionProjectCard } from "@/components/construction/ConstructionProjectCard";
 import { getConstructionProjects } from "@/services/construction-service";
 
@@ -84,8 +85,16 @@ function ConstructionIndexPage() {
         actions={<Pill tone="info">{summaries.length} projekter</Pill>}
       />
 
+      <AiInsightBanner
+        module="Byggeri & Natur"
+        tone="risk"
+        cacheKey={`construction:${summaries.length}:${openHighRisks}:${avgReadiness}`}
+        context={`Antal byggeprojekter: ${summaries.length}. Projekter nær vandløb: ${projectsNearWater}. Åbne kritiske/høje risici: ${openHighRisks}. Myndighedspakker klar/indsendt: ${authorityReportsReady}. Gns. readiness: ${avgReadiness}%. Top-projekter: ${summaries.slice(0, 3).map((s) => `${s.project.name} (${s.project.status})`).join("; ")}.`}
+      />
+
       {/* Stat bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
         <StatCard
           label="Aktive projekter"
           value={String(summaries.length)}

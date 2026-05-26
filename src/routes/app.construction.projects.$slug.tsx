@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Activity } from "lucide-react";
 import { Card } from "@/components/ui-bits";
+import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import { ConstructionProjectHeader } from "@/components/construction/ConstructionProjectHeader";
 import { ConstructionProjectTabs } from "@/components/construction/ConstructionProjectTabs";
 import { NatureContextPanel } from "@/components/construction/NatureContextPanel";
@@ -94,6 +95,13 @@ function ConstructionProjectDetailPage() {
             {/* ── Overblik ──────────────────────────────────────────────── */}
             {active === "overblik" && (
               <div className="space-y-5">
+                <AiInsightBanner
+                  module={`Byggeprojekt: ${summary.project.name}`}
+                  tone="action"
+                  cacheKey={`construction-detail:${summary.project.id}:${summary.risks.length}:${summary.mitigations.length}`}
+                  context={`Projekt: ${summary.project.name}. Type: ${summary.project.project_type ?? "—"}. Status: ${summary.project.status}. Lokation: ${summary.project.location_name ?? "—"}, ${summary.project.municipality ?? "—"}. Readiness: ${summary.readinessScore}%. Risici: ${summary.risks.length} (${summary.risks.filter((r) => r.status === "Åben").length} åbne, ${summary.risks.filter((r) => r.severity === "Kritisk" || r.severity === "Høj").length} kritiske/høje). Afværgetiltag: ${summary.mitigations.length} (${summary.mitigations.filter((m) => m.status === "Verificeret").length} verificeret). Dokumentation: ${summary.evidenceFiles.length} filer. Myndighedsindsendelser: ${summary.submissions.length}. Vandløb: ${summary.natureContext?.watercourse_present ? "ja" : "nej"}. Anbefalet næste skridt: ${nextAction}.`}
+                />
+
                 {/* Recommended next action */}
                 <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
                   <Activity className="h-5 w-5 text-primary shrink-0" />
@@ -102,6 +110,7 @@ function ConstructionProjectDetailPage() {
                     <div className="text-sm font-medium">{nextAction}</div>
                   </div>
                 </Card>
+
 
                 {/* Compliance mapping */}
                 <ComplianceMappingCard summary={summary} />
