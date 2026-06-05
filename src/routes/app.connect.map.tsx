@@ -246,32 +246,6 @@ function LayerToggle({
   );
 }
 
-function ToolButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs border transition ${
-        active
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-background hover:bg-muted"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
 function CoverageBar({ label, value }: { label: string; value: number }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   const tone =
