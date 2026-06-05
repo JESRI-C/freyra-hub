@@ -20,6 +20,10 @@ import {
   PROJECT_FACTS,
   AI_SUMMARY,
   NEXT_RECOMMENDED_ACTIONS,
+  KEY_MESSAGE,
+  POSITIONING_STATEMENT,
+  NATURE_DASHBOARD_CARDS,
+  STRATEGIC_SECTIONS,
 } from "@/lib/platform-data";
 import {
   Sparkles,
@@ -30,6 +34,7 @@ import {
   Database,
   ClipboardList,
   Radio,
+  Info,
 } from "lucide-react";
 import { getLiveDataConfig } from "@/config/live-data-config";
 import { getCurrentOrg, getCurrentProject, useAuth } from "@/lib/auth";
@@ -209,7 +214,7 @@ function OverviewPage() {
       <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
         <PageHeader
           title={`God morgen ${firstName} 👋`}
-          description="Kontrolrum for hele GoFreyra-platformen — fra datakilder til verificeret rapport."
+          description={POSITIONING_STATEMENT}
           actions={
             <Link
               to="/app/reports/builder"
@@ -219,6 +224,51 @@ function OverviewPage() {
             </Link>
           }
         />
+
+        {/* Key message — biodiversity ≠ CO2 */}
+        <Card className="p-5 border-l-4 border-l-primary bg-leaf/10">
+          <div className="flex gap-3 items-start">
+            <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary grid place-items-center shrink-0">
+              <Info className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">
+                Princip
+              </div>
+              <p className="text-sm leading-relaxed text-foreground/90">{KEY_MESSAGE}</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Nature project dashboard cards */}
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Naturprojekt-status
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            {NATURE_DASHBOARD_CARDS.map((c) => {
+              const toneClass =
+                c.tone === "success"
+                  ? "text-success border-success/30"
+                  : c.tone === "warning"
+                    ? "text-warning-foreground border-warning/40"
+                    : c.tone === "danger"
+                      ? "text-destructive border-destructive/30"
+                      : "text-foreground border-border";
+              return (
+                <Link
+                  key={c.id}
+                  to={c.href}
+                  className={`rounded-xl border bg-card p-4 hover:shadow-soft transition block ${toneClass}`}
+                >
+                  <div className="text-xs text-muted-foreground">{c.title}</div>
+                  <div className="text-2xl font-semibold mt-1.5">{c.value}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{c.sub}</div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Live KPIs from data layer */}
         <LiveKpiStrip summaries={summaries} openActionCount={openActions.length} />
