@@ -38,15 +38,15 @@ export function EnvironmentalCard({ project }: EnvironmentalCardProps) {
   const co2Display = annualCO2 != null ? `${annualCO2.toFixed(1)} t/år` : null;
   const co2TotalDisplay = totalCO2_30yr != null ? `${totalCO2_30yr.toFixed(0)} t (30 år)` : null;
 
-  const waterRiskLabel = waterRisk?.label ?? null;
+  const waterRiskLabel = waterRisk ?? null;
   const waterRiskTone =
-    waterRisk?.score != null
-      ? waterRisk.score > 70
+    waterRisk === "Meget høj"
+      ? "danger"
+      : waterRisk === "Høj"
         ? "danger"
-        : waterRisk.score > 40
+        : waterRisk === "Moderat"
           ? "warning"
-          : "success"
-      : null;
+          : "success";
 
   return (
     <Card>
