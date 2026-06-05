@@ -45,7 +45,7 @@ function Page() {
   }, [projects, selectedId]);
 
   const { ndvi } = useNdvi(
-    project?.id ?? null,
+    project?.id ?? "",
     project?.geometry_centroid_lat ?? null,
     project?.geometry_centroid_lng ?? null,
   );
