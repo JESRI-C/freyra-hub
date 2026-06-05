@@ -202,6 +202,7 @@ function GeoMapPage() {
             lat={geometry.centroid?.lat ?? null}
             lng={geometry.centroid?.lng ?? null}
           />
+          <EnvironmentalCard project={project} />
 
           {/* Sensor panel */}
           {sensors.length > 0 && visibleSlugs.has("sensors") && (
