@@ -1723,6 +1723,8 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_project_geojson: { Args: { input_project_id: string }; Returns: Json }
+      get_project_metrics: { Args: { input_project_id: string }; Returns: Json }
       gettransactionid: { Args: never; Returns: unknown }
       longtransactionsenabled: { Args: never; Returns: boolean }
       move_to_dlq: {
