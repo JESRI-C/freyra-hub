@@ -167,18 +167,18 @@ export function MapEditorMap({
       // Load Geoman drawing plugin
       try {
         await import("@geoman-io/leaflet-geoman-free");
-        // @ts-expect-error — geoman attaches to map
+        // @ts-ignore — geoman attaches to map
         if (map.pm) {
-          // @ts-expect-error
+          // @ts-ignore
           map.pm.setLang("da");
-          // @ts-expect-error
+          // @ts-ignore
           map.pm.addControls({ position: "topleft", drawMarker: false, drawCircle: false, drawCircleMarker: false, drawPolyline: false, drawRectangle: true, drawPolygon: true, editMode: true, dragMode: true, cutPolygon: false, removalMode: true });
 
           // Listen for drawn shapes
-          // @ts-expect-error
+          // @ts-ignore
           map.on("pm:create", async (e: { layer: import("leaflet").Layer; shape: string }) => {
             const layer = e.layer as import("leaflet").Polygon;
-            // @ts-expect-error
+            // @ts-ignore
             const geoJSON = layer.toGeoJSON();
             const polygon: GeoJsonPolygon = {
               type: "Polygon",
@@ -393,14 +393,14 @@ export function MapEditorMap({
   useEffect(() => {
     if (!mapInstance.current || !initialized) return;
     const map = mapInstance.current;
-    // @ts-expect-error — geoman API
+    // @ts-ignore — geoman API
     if (!map.pm) return;
 
-    // @ts-expect-error
+    // @ts-ignore
     map.pm.disableDraw();
 
     if (drawMode === "boundary" || drawMode === "zone" || drawMode === "measure") {
-      // @ts-expect-error
+      // @ts-ignore
       map.pm.enableDraw("Polygon", {
         snappable: true,
         snapDistance: 15,
