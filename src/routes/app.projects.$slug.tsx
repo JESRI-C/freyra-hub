@@ -1,6 +1,8 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
@@ -22,6 +24,9 @@ import {
   getOpenActionsByProject,
   actionPriorityTone,
   suggestSensorActions,
+  completeAction,
+  updateActionDetails,
+  createAction,
 } from "@/services/actions-service";
 import { getEvidenceFilesByProject } from "@/services/evidence-service";
 import { getObservationsByProject, observationTypeLabel } from "@/services/observations-service";
@@ -174,6 +179,12 @@ function ProjectDetailPage() {
 
   // Local action state (optimistic UI)
   const [localActions, setLocalActions] = useState<Action[]>(actions);
+  const queryClient = useQueryClient();
+
+  // Keep localActions in sync if the underlying query refreshes
+  useEffect(() => {
+    setLocalActions(actions);
+  }, [actions]);
 
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
@@ -183,10 +194,35 @@ function ProjectDetailPage() {
     (d) => d.status === "online" || d.status === "partial",
   ).length;
 
-  const syncActions = (ids: string[], newStatus: string) => {
+  const syncActions = async (ids: string[], newStatus: string) => {
+    // Optimistic UI
     setLocalActions((prev) =>
       prev.map((a) => (ids.includes(a.id) ? { ...a, status: newStatus } : a)),
     );
+
+    if (!isSupabaseConfigured) {
+      toast.info("Database ikke konfigureret — kun lokal opdatering");
+      return;
+    }
+
+    try {
+      await Promise.all(
+        ids.map((id) =>
+          newStatus === "Lukket"
+            ? completeAction(id, projectId)
+            : updateActionDetails(id, { status: newStatus }, projectId),
+        ),
+      );
+      toast.success(
+        newStatus === "Lukket" ? "Handling afsluttet" : `Handling opdateret: ${newStatus}`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
+    } catch (err) {
+      toast.error(`Kunne ikke opdatere handling: ${(err as Error).message}`);
+      // Roll back optimistic update on failure
+      setLocalActions(actions);
+    }
   };
 
   // IoT sensors — generated deterministically from project id + centroid
@@ -477,6 +513,15 @@ function ProjectDetailPage() {
                       ))
                     )}
                   </div>
+                  <div className="px-5 pb-5 pt-2 border-t">
+                    <CreateActionForm
+                      projectId={projectId}
+                      onCreated={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+                        await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
+                      }}
+                    />
+                  </div>
                 </Card>
               </div>
             )}
@@ -673,5 +718,97 @@ function ProjectDetailPage() {
         )}
       </ProjectTabs>
     </main>
+  );
+}
+
+// ─── Create-action inline form ────────────────────────────────────────────────
+
+function CreateActionForm({
+  projectId,
+  onCreated,
+}: {
+  projectId: string;
+  onCreated: () => void | Promise<void>;
+}) {
+  const [title, setTitle] = useState("");
+  const [priority, setPriority] = useState<"Høj" | "Medium" | "Lav">("Medium");
+  const [dueDate, setDueDate] = useState("");
+  const [owner, setOwner] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    if (!isSupabaseConfigured) {
+      toast.error("Database ikke konfigureret");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await createAction({
+        project_id: projectId,
+        title: title.trim(),
+        priority,
+        due_date: dueDate || undefined,
+        owner: owner.trim() || undefined,
+      });
+      toast.success("Handling oprettet");
+      setTitle("");
+      setDueDate("");
+      setOwner("");
+      setPriority("Medium");
+      await onCreated();
+    } catch (err) {
+      toast.error(`Kunne ikke oprette handling: ${(err as Error).message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-2 pt-3">
+      <div className="text-xs font-medium text-muted-foreground">Opret ny handling</div>
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Titel på handling"
+        className="w-full text-sm border rounded-lg px-3 py-2 bg-background"
+        required
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as "Høj" | "Medium" | "Lav")}
+          className="text-sm border rounded-lg px-3 py-2 bg-background"
+        >
+          <option value="Høj">Høj prioritet</option>
+          <option value="Medium">Medium prioritet</option>
+          <option value="Lav">Lav prioritet</option>
+        </select>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="text-sm border rounded-lg px-3 py-2 bg-background"
+        />
+        <input
+          type="text"
+          value={owner}
+          onChange={(e) => setOwner(e.target.value)}
+          placeholder="Ansvarlig (valgfri)"
+          className="text-sm border rounded-lg px-3 py-2 bg-background"
+        />
+      </div>
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={submitting || !title.trim()}
+          className="text-xs bg-primary text-primary-foreground rounded-lg px-3 py-1.5 hover:bg-primary/90 disabled:opacity-50 transition-colors"
+        >
+          {submitting ? "Opretter…" : "Opret handling"}
+        </button>
+      </div>
+    </form>
   );
 }
