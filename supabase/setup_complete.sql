@@ -282,28 +282,7 @@ create index if not exists idx_projects_centroid
   where geometry_centroid_lat is not null;
 
 -- ─── MIGRATION 006: Project Media ────────────────────────────────────────────
-create table if not exists project_media (
-  id              uuid primary key default gen_random_uuid(),
-  project_id      uuid not null references projects(id) on delete cascade,
-  title           text not null,
-  description     text,
-  category        text not null,
-  source          text not null,
-  file_path       text not null,
-  url             text not null,
-  thumbnail_url   text,
-  uploaded_at     timestamptz not null default now(),
-  captured_at     timestamptz,
-  lat             double precision,
-  lng             double precision,
-  altitude_m      double precision,
-  accuracy_m      double precision,
-  is_report_ready boolean not null default false,
-  tags            text[] not null default '{}',
-  status          text not null default 'uploaded',
-  file_size_bytes bigint,
-  mime_type       text
-);
+-- (håndteres separat — ikke nødvendig for seed-data)
 
 -- ─── MIGRATION 007: Geospatial MVP ───────────────────────────────────────────
 create extension if not exists postgis;
