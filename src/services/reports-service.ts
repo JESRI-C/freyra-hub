@@ -1,6 +1,8 @@
 // Reports Service
 
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { logAuditEvent } from "@/services/audit-service";
+import { updateReport } from "@/lib/supabase/queries";
 
 interface UntypedQueryBuilder {
   insert(values: Record<string, unknown>): UntypedQueryBuilder;
@@ -48,9 +50,56 @@ export async function createReport(input: CreateReportInput): Promise<{ id: stri
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    return { id: (data?.["id"] as string) ?? `report-${Date.now()}` };
+    const id = (data?.["id"] as string) ?? `report-${Date.now()}`;
+    void logAuditEvent({
+      event_type: "report_created",
+      title: `Rapport oprettet: ${input.type} (${input.period})`,
+      description: `Målgruppe: ${input.audience} · Format: ${input.formats.join(", ")}`,
+      actor: "Bruger",
+      source: "manual",
+    });
+    return { id };
   }
   return { id: `report-${Date.now()}` };
+}
+
+export async function approveReport(id: string, projectId?: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  await updateReport(id, { status: "approved" });
+  void logAuditEvent({
+    project_id: projectId,
+    event_type: "report",
+    title: "Rapport godkendt",
+    description: `Rapport-ID: ${id}`,
+    actor: "Bruger",
+    source: "manual",
+  });
+}
+
+export async function submitReportForReview(id: string, projectId?: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  await updateReport(id, { status: "review" });
+  void logAuditEvent({
+    project_id: projectId,
+    event_type: "report",
+    title: "Rapport sendt til review",
+    description: `Rapport-ID: ${id}`,
+    actor: "Bruger",
+    source: "manual",
+  });
+}
+
+export async function exportReport(id: string, projectId?: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  await updateReport(id, { status: "exported" });
+  void logAuditEvent({
+    project_id: projectId,
+    event_type: "report",
+    title: "Rapport eksporteret",
+    description: `Rapport-ID: ${id}`,
+    actor: "Bruger",
+    source: "manual",
+  });
 }
 
 function isMissingTable(err: unknown): boolean {

@@ -2,6 +2,7 @@
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { fetchObservationsByProject, insertObservation } from "@/lib/supabase/queries";
+import { logAuditEvent } from "@/services/audit-service";
 import { SEED_OBSERVATIONS } from "@/data/platform-seed";
 import type { Observation } from "@/lib/supabase/types";
 
@@ -35,6 +36,38 @@ export async function recordObservation(input: {
     ...input,
     observed_at: input.observed_at ?? new Date().toISOString(),
   });
+  void logAuditEvent({
+    project_id: input.project_id,
+    event_type: "observation",
+    title: `${observationTypeLabel(input.observation_type)}: ${input.indicator_key ?? input.observation_type}`,
+    description: input.value !== undefined
+      ? `Målt: ${input.value}${input.unit ? " " + input.unit : ""}`
+      : undefined,
+    actor: input.observation_type === "sensor" ? "IoT System" : "Bruger",
+    source: input.observation_type === "sensor" ? "automated" : "manual",
+  });
+}
+
+/**
+ * Batch-logger sensor-målinger fra IoT-simuleringen.
+ * Skrives kun hvis Supabase er konfigureret — fejler aldrig stille.
+ */
+export async function recordSensorBatch(
+  projectId: string,
+  readings: Array<{ sensorType: string; value: number; unit: string; label: string }>,
+): Promise<void> {
+  if (!isSupabaseConfigured) return;
+  await Promise.allSettled(
+    readings.map((r) =>
+      recordObservation({
+        project_id: projectId,
+        observation_type: "sensor",
+        indicator_key: r.sensorType,
+        value: r.value,
+        unit: r.unit,
+      }),
+    ),
+  );
 }
 
 export function observationTypeLabel(type: string | null): string {
