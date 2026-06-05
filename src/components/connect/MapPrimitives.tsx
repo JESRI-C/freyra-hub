@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import "leaflet/dist/leaflet.css";
 import type { LucideIcon } from "lucide-react";
 import {
   Search,
