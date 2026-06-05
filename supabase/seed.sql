@@ -1,215 +1,197 @@
--- GoFreyra Seed Data
--- Run after migration 001. Inserts demo org, projects, sites, sources, indicators, reports and audit events.
+-- GoFreyra Demo Seed
+-- Paste this entire file into: Supabase → SQL Editor → Run
+-- Safe to re-run (uses ON CONFLICT DO NOTHING / DO UPDATE)
 
--- ─── Organization ─────────────────────────────────────────────────────────────
-insert into organizations (id, name, type, country) values
-  ('00000000-0000-0000-0000-000000000001', 'Freyra Demo', 'Virksomhed', 'Denmark')
+-- ─── 1. Organisation ─────────────────────────────────────────────────────────
+insert into organizations (id, name, type, country)
+values ('00000000-0000-0000-0000-000000000001', 'GoFreyra Demo Org', 'ngo', 'Denmark')
+on conflict (id) do nothing;
+
+-- ─── 2. Projekter ────────────────────────────────────────────────────────────
+insert into projects (
+  id, organization_id, name, slug, project_type, location_name, municipality,
+  status, description, start_date,
+  geometry_centroid_lat, geometry_centroid_lng, geometry_area_ha, geometry_source,
+  geometry_polygon
+) values
+(
+  '10000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000001',
+  'Skallebæk Biodiversity Pilot',
+  'skallebaek-biodiversity-pilot',
+  'nature_restoration',
+  'Skallebæk Å-dal',
+  'Vejle',
+  'active',
+  'Pilotprojekt for biodiversitetsgendannelse langs Skallebæk Å med fokus på §3-natur, fugleovervågning og jordbundsrestauration.',
+  '2024-01-15',
+  55.252, 9.4828, 7.3, 'manual',
+  '{"type":"Polygon","coordinates":[[[9.4821,55.2514],[9.4835,55.2514],[9.4835,55.2525],[9.4821,55.2525],[9.4821,55.2514]]]}'::jsonb
+),
+(
+  '10000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000001',
+  'Vejle Ådal Rewilding',
+  'vejle-aadal-rewilding',
+  'rewilding',
+  'Vejle Ådal',
+  'Vejle',
+  'active',
+  'Rewilding af 42 ha ådalsterræn med naturlig hydrologi og vilde dyr.',
+  '2023-09-01',
+  55.706, 9.536, 42.0, 'manual',
+  '{"type":"Polygon","coordinates":[[[9.530,55.700],[9.542,55.700],[9.542,55.712],[9.530,55.712],[9.530,55.700]]]}'::jsonb
+),
+(
+  '10000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000001',
+  'Mols Bjerge Naturprojekt',
+  'mols-bjerge-naturprojekt',
+  'nature_restoration',
+  'Mols Bjerge',
+  'Syddjurs',
+  'planning',
+  'Planlægning af hegning og invasiv arts-bekæmpelse i Nationalpark Mols Bjerge.',
+  '2024-06-01',
+  56.218, 10.548, 18.5, 'manual',
+  '{"type":"Polygon","coordinates":[[[10.542,56.213],[10.554,56.213],[10.554,56.223],[10.542,56.223],[10.542,56.213]]]}'::jsonb
+)
+on conflict (id) do update set
+  name = excluded.name,
+  status = excluded.status;
+
+-- ─── 3. Map Layers ───────────────────────────────────────────────────────────
+insert into map_layers (name, slug, category, provider, layer_type, is_active, requires_api_key, refresh_interval, status) values
+  ('Projektområde',          'project_area',      'nature',    null,           'geojson', true,  false, null,       'preview'),
+  ('Beskyttet natur (§3)',   'protected_nature',  'nature',    'Miljøportal',  'wfs',     true,  false, '24h',      'preview'),
+  ('Vandløb',                'watercourses',      'water',     'Miljøportal',  'wfs',     true,  false, '24h',      'preview'),
+  ('Jordbundstyper',         'soil_types',        'terrain',   'GEUS',         'wms',     true,  false, '7d',       'preview'),
+  ('Sentinel-2 NDVI',        'sentinel_ndvi',     'satellite', 'Copernicus',   'tile',    false, true,  '5d',       'preview'),
+  ('IoT Feltsensorer',       'sensors',           'sensors',   'GoFreyra IoT', 'sensor',  true,  false, 'realtime', 'preview')
+on conflict (slug) do nothing;
+
+-- ─── 4. Projektområde (geo) ──────────────────────────────────────────────────
+insert into project_areas (project_id, name, area_type, geojson, area_ha)
+values (
+  '10000000-0000-0000-0000-000000000001',
+  'Skallebæk Pilotområde',
+  'pilot_area',
+  '{"type":"Polygon","coordinates":[[[9.4821,55.2514],[9.4835,55.2514],[9.4835,55.2525],[9.4821,55.2525],[9.4821,55.2514]]]}'::jsonb,
+  7.3
+)
 on conflict do nothing;
 
--- ─── Projects ─────────────────────────────────────────────────────────────────
-insert into projects (id, organization_id, name, slug, project_type, location_name, municipality, country, status, start_date, end_date, description) values
-  ('10000000-0000-0000-0000-000000000001',
-   '00000000-0000-0000-0000-000000000001',
-   'Skallebæk Biodiversity Pilot',
-   'skallebaek-biodiversity-pilot',
-   'Biodiversitet',
-   'Haderslev',
-   'Haderslev',
-   'Denmark',
-   'Under verifikation',
-   '2024-04-01',
-   '2027-03-31',
-   'Pilotprojekt for naturgenopretning langs Skallebæk med fokus på vandløbsbiodiversitet, vådområder og skovkant.'),
-
-  ('10000000-0000-0000-0000-000000000002',
-   '00000000-0000-0000-0000-000000000001',
-   'Nordic Coastal Restoration',
-   'nordic-coastal-restoration',
-   'Vand & hav',
-   'Limfjorden',
-   NULL,
-   'Denmark',
-   'Verificeret',
-   '2023-01-01',
-   '2028-12-31',
-   'Storskala genopretning af tang- og ålegræsenge langs den danske kyststrækning.'),
-
-  ('10000000-0000-0000-0000-000000000003',
-   '00000000-0000-0000-0000-000000000001',
-   'Urban Water Quality Program',
-   'urban-water-quality-program',
-   'Bynatur',
-   'København',
-   'København',
-   'Denmark',
-   'Verificeret',
-   '2024-01-01',
-   '2026-12-31',
-   'Forbedring af vandkvalitet og biodiversitet i bynære vandløb og havne i Storkøbenhavn.'),
-
-  ('10000000-0000-0000-0000-000000000004',
-   '00000000-0000-0000-0000-000000000001',
-   'Danish Wetland Restoration',
-   'danish-wetland-restoration',
-   'Vådområder',
-   'Vestjylland',
-   NULL,
-   'Denmark',
-   'Under verifikation',
-   '2025-03-01',
-   '2028-02-28',
-   'Genvådning af lavbundsjorde i Vestjylland for at reducere CO₂-udledning og styrke biodiversitet.')
+-- ─── 5. Geo-observationer (Skallebæk) ────────────────────────────────────────
+insert into geo_observations (project_id, observation_type, value, unit, properties, observed_at, geojson) values
+  ('10000000-0000-0000-0000-000000000001', 'soil_moisture',     38.2, '%',    '{"zone":"A","depth_cm":20}'::jsonb,          now() - interval '2 hours',  '{"type":"Point","coordinates":[9.4823,55.2516]}'::jsonb),
+  ('10000000-0000-0000-0000-000000000001', 'temperature',       14.7, '°C',   '{"zone":"A","sensor":"T-01"}'::jsonb,        now() - interval '1 hour',   '{"type":"Point","coordinates":[9.4826,55.2518]}'::jsonb),
+  ('10000000-0000-0000-0000-000000000001', 'acoustic_activity', 72.1, 'dB',   '{"zone":"B","species":"fugle"}'::jsonb,      now() - interval '30 min',   '{"type":"Point","coordinates":[9.4830,55.2521]}'::jsonb),
+  ('10000000-0000-0000-0000-000000000001', 'vegetation_index',  0.68, 'NDVI', '{"source":"sentinel-2"}'::jsonb,             now() - interval '5 days',   '{"type":"Point","coordinates":[9.4828,55.2520]}'::jsonb),
+  ('10000000-0000-0000-0000-000000000001', 'water_level',       1.23, 'm',    '{"zone":"C","stream":"Skallebæk Å"}'::jsonb, now() - interval '45 min',   '{"type":"Point","coordinates":[9.4832,55.2515]}'::jsonb)
 on conflict do nothing;
 
--- ─── Sites ────────────────────────────────────────────────────────────────────
-insert into sites (id, project_id, name, site_type, area_ha, baseline_status) values
-  ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Zone A — Vandløb',         'Vandløb',    1.4, 'Dokumenteret'),
-  ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Zone B — Eng og vådområde','Vådområde',  3.2, 'Dokumenteret'),
-  ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'Zone C — Skovkant',        'Skovkant',   1.9, 'Delvist dokumenteret'),
-  ('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'Zone D — Bufferområde',    'Buffer',     0.8, 'Ikke dokumenteret'),
-  ('20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000002', 'Limfjorden Vest',          'Kystnær',  840.0, 'Dokumenteret'),
-  ('20000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000003', 'København Havn',           'Bynær',    120.0, 'Dokumenteret')
+-- ─── 6. Beregnede metrics (Skallebæk) ────────────────────────────────────────
+insert into calculated_metrics (project_id, metric_key, metric_label, value, unit, method) values
+  ('10000000-0000-0000-0000-000000000001', 'total_area_ha',                  'Samlet areal',              7.3,  'ha',  'shoelace'),
+  ('10000000-0000-0000-0000-000000000001', 'protected_nature_overlap_ha',    'Beskyttet natur overlap',   4.1,  'ha',  'simulated'),
+  ('10000000-0000-0000-0000-000000000001', 'nearest_watercourse_distance_m', 'Nærmeste vandløb',         85.0,  'm',   'simulated'),
+  ('10000000-0000-0000-0000-000000000001', 'ndvi_mean',                      'NDVI (Sentinel-2)',          0.68,  null, 'simulated'),
+  ('10000000-0000-0000-0000-000000000001', 'data_completeness_score',        'Datakomplethed',            78.0,  '%',   'simulated')
 on conflict do nothing;
 
--- ─── Data Sources ─────────────────────────────────────────────────────────────
-insert into data_sources (id, project_id, name, source_type, provider, status, last_sync_at) values
-  ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'Skallebæk vandsensorer',   'IoT sensor',             'Freyra IoT',    'online',    now() - interval '2 minutes'),
-  ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'Feltobservation app',      'Feltobservation',         'Freyra Field',  'partial',   now() - interval '1 hour'),
-  ('30000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'Scope 3 transport CSV',    'CSV upload',              'Manuel',        'attention', now() - interval '3 days'),
-  ('30000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 'Sentinel-2 NDVI',          'Satellitlag',             'Sentinel Hub',  'online',    now() - interval '6 hours'),
-  ('30000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000002', 'DMI Klima API',            'API integration',         'DMI',           'online',    now() - interval '12 minutes'),
-  ('30000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000003', 'ERP energidata',           'ERP data',                'SAP',           'online',    now() - interval '30 minutes'),
-  ('30000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000004', 'Drone overflight Q2',      'Drone upload',            'Freyra Drone',  'attention', now() - interval '2 days'),
-  ('30000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000002', 'DNV verifikationsfeed',    'Tredjepartsverifikation', 'DNV',           'online',    now() - interval '1 day')
+-- ─── 7. Indikatorer ──────────────────────────────────────────────────────────
+insert into indicators (project_id, key, label, category, value, unit, trend, status) values
+  ('10000000-0000-0000-0000-000000000001', 'biodiversity_index', 'Biodiversitetsindeks',  'biodiversity', 68.0, 'point', 'up',    'good'),
+  ('10000000-0000-0000-0000-000000000001', 'soil_carbon',        'Jordbundskulstof',      'soil',          3.2, '%',     'up',    'good'),
+  ('10000000-0000-0000-0000-000000000001', 'water_quality',      'Vandkvalitet',          'water',        82.0, 'point', 'stable','good'),
+  ('10000000-0000-0000-0000-000000000001', 'invasive_species',   'Invasive arter',        'nature',        2.0, 'arter', 'down',  'warning'),
+  ('10000000-0000-0000-0000-000000000001', 'bird_species_count', 'Fuglearter observeret', 'biodiversity', 23.0, 'arter', 'up',    'good'),
+  ('10000000-0000-0000-0000-000000000001', 'co2_sequestration',  'CO₂-binding',           'climate',      12.4, 't/år',  'up',    'good'),
+  ('10000000-0000-0000-0000-000000000002', 'biodiversity_index', 'Biodiversitetsindeks',  'biodiversity', 55.0, 'point', 'stable','warning'),
+  ('10000000-0000-0000-0000-000000000002', 'rewilding_progress', 'Rewilding fremskridt',  'nature',       34.0, '%',     'up',    'warning'),
+  ('10000000-0000-0000-0000-000000000003', 'biodiversity_index', 'Biodiversitetsindeks',  'biodiversity', 40.0, 'point', 'stable','warning')
+on conflict (project_id, key) do update set
+  value      = excluded.value,
+  trend      = excluded.trend,
+  status     = excluded.status,
+  updated_at = now();
+
+-- ─── 8. Handlinger (actions) ─────────────────────────────────────────────────
+insert into actions (project_id, title, description, priority, status, due_date, owner) values
+  ('10000000-0000-0000-0000-000000000001', 'Fjern invasive bjørneklo',      'Mekanisk bekæmpelse langs sydlig skovkant', 'Høj',    'open', current_date + 14, 'Lars Nielsen'),
+  ('10000000-0000-0000-0000-000000000001', 'Upload jordbundsanalyse Q2',    'Lab-rapport fra maj-prøvetagning',          'Medium', 'open', current_date + 7,  'Anna Skov'),
+  ('10000000-0000-0000-0000-000000000001', 'Kalibrér sensor T-03',          'Temperaturafvigelse registreret',           'Høj',    'open', current_date + 3,  'IoT Team'),
+  ('10000000-0000-0000-0000-000000000001', 'Feltregistrering fugle (juni)', 'Transektoptælling zone B og C',             'Medium', 'open', current_date + 21, 'Marie Fugl'),
+  ('10000000-0000-0000-0000-000000000001', 'Opdatér §3-kortlægning',        'Ny afgrænsning efter vinteropmåling',       'Lav',    'open', current_date + 45, 'GIS-team'),
+  ('10000000-0000-0000-0000-000000000002', 'Opsæt vandstandsmåler',         'Sensor mangler ved bæk-indløb nord',        'Høj',    'open', current_date + 10, 'IoT Team'),
+  ('10000000-0000-0000-0000-000000000002', 'Indhent tilladelse til hegning','Ansøgning til Vejle Kommune',               'Høj',    'open', current_date + 30, 'Projekt PM'),
+  ('10000000-0000-0000-0000-000000000003', 'Kickoff-møde med lodsejere',    'Første orienteringsmøde om projektet',      'Høj',    'open', current_date + 7,  'Projekt PM')
 on conflict do nothing;
 
--- ─── Indicators ───────────────────────────────────────────────────────────────
-insert into indicators (id, project_id, key, label, category, value, unit, trend, status) values
-  ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'biodiversity_index',  'Biodiversitetsindeks',  'Natur',     76,   '/100',  'up',   'ok'),
-  ('40000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'data_quality',        'Datakvalitet',          'Data',      92,   '%',     'up',   'ok'),
-  ('40000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'report_readiness',    'Rapportklarhed',        'Rapport',   74,   '%',     'flat', 'warning'),
-  ('40000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'co2e_reduced',        'CO₂e reduceret',        'Klima',     420,  't CO₂e','up',   'ok'),
-  ('40000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', 'area_restored',       'Areal genoprettet',     'Natur',     6.3,  'ha',    'up',   'ok'),
-  ('40000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000001', 'active_data_sources', 'Aktive datakilder',     'Data',      12,   '',      'flat', 'ok'),
-  ('40000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000002', 'biodiversity_index',  'Biodiversitetsindeks',  'Natur',     82,   '/100',  'up',   'ok'),
-  ('40000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000002', 'co2e_reduced',        'CO₂e reduceret',        'Klima',     41200,'t CO₂e','up',   'ok'),
-  ('40000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000003', 'biodiversity_index',  'Biodiversitetsindeks',  'Natur',     64,   '/100',  'flat', 'warning'),
-  ('40000000-0000-0000-0000-000000000010', '10000000-0000-0000-0000-000000000003', 'co2e_reduced',        'CO₂e reduceret',        'Klima',     980,  't CO₂e','up',   'ok')
+-- ─── 9. Observationer ────────────────────────────────────────────────────────
+insert into observations (project_id, observation_type, indicator_key, value, unit, confidence, observed_at) values
+  ('10000000-0000-0000-0000-000000000001', 'field',  'biodiversity_index', 68.0, 'point', 0.85, now() - interval '3 days'),
+  ('10000000-0000-0000-0000-000000000001', 'sensor', 'soil_moisture',      38.2, '%',     0.95, now() - interval '2 hours'),
+  ('10000000-0000-0000-0000-000000000001', 'sensor', 'soil_carbon',         3.2, '%',     0.90, now() - interval '1 day'),
+  ('10000000-0000-0000-0000-000000000001', 'remote', 'vegetation_index',    0.68,'NDVI',  0.80, now() - interval '5 days'),
+  ('10000000-0000-0000-0000-000000000002', 'field',  'biodiversity_index', 55.0, 'point', 0.75, now() - interval '7 days')
 on conflict do nothing;
 
--- ─── Reports ──────────────────────────────────────────────────────────────────
-insert into reports (id, project_id, title, report_type, status, period_start, period_end, summary) values
-  ('50000000-0000-0000-0000-000000000001',
-   '10000000-0000-0000-0000-000000000001',
-   'Naturimpact-rapport Q1 2026 — Skallebæk',
-   'Naturimpact',
-   'Klar til review',
-   '2026-01-01',
-   '2026-03-31',
-   'Positiv biodiversitetsudvikling i Zone A og B. Zone C kræver feltverifikation.'),
-
-  ('50000000-0000-0000-0000-000000000002',
-   '10000000-0000-0000-0000-000000000002',
-   'ESG-bilag Q1 2026 — Nordic Coastal',
-   'ESG-bilag',
-   'Eksporteret',
-   '2026-01-01',
-   '2026-03-31',
-   'Fuld ESG-dokumentation genereret og signeret. Klar til revisors gennemgang.'),
-
-  ('50000000-0000-0000-0000-000000000003',
-   '10000000-0000-0000-0000-000000000001',
-   'Verifikationsrapport — Skallebæk Biodiversity Pilot',
-   'Verifikationsrapport',
-   'Godkendt',
-   '2025-10-01',
-   '2025-12-31',
-   'Tredjepartsverifikation gennemført af Bureau Veritas. Ingen kritiske fund.')
+-- ─── 10. Audit events ────────────────────────────────────────────────────────
+insert into audit_events (project_id, event_type, title, description, actor, source) values
+  ('10000000-0000-0000-0000-000000000001', 'data_upload',    'Jordbundsanalyse uploadet',      'Q1 lab-rapport fra ECO-Lab',        'Anna Skov',  'manual'),
+  ('10000000-0000-0000-0000-000000000001', 'sensor_event',   'Ny sensoraflæsning registreret', 'Sensor T-01 rapporterede 14.7°C',   'IoT system', 'automated'),
+  ('10000000-0000-0000-0000-000000000001', 'field_survey',   'Feltregistrering gennemført',    '23 fuglearter observeret i zone B', 'Marie Fugl', 'manual'),
+  ('10000000-0000-0000-0000-000000000001', 'report_created', 'Kvartalsrapport oprettet',       'Q1 2024 rapport klar til review',   'Lars Nielsen','manual'),
+  ('10000000-0000-0000-0000-000000000002', 'project_created','Projekt oprettet',               'Vejle Ådal Rewilding projekt sat i gang','Projekt PM','manual')
 on conflict do nothing;
 
--- ─── Audit Events ─────────────────────────────────────────────────────────────
-insert into audit_events (id, project_id, event_type, title, description, actor, source, created_at) values
-  ('60000000-0000-0000-0000-000000000001',
-   '10000000-0000-0000-0000-000000000001',
-   'verification',
-   'Tredjepartsreview påbegyndt',
-   'Bureau Veritas har påbegyndt review af feltdata og datakilder.',
-   'Bureau Veritas',
-   'Ekstern',
-   now() - interval '4 days'),
-
-  ('60000000-0000-0000-0000-000000000002',
-   '10000000-0000-0000-0000-000000000002',
-   'data_update',
-   'Satellitlag opdateret',
-   'Sentinel-2 vegetationsindeks opdateret med nye billeder.',
-   'Sentinel-2 layer',
-   'Automatisk',
-   now() - interval '6 days'),
-
-  ('60000000-0000-0000-0000-000000000001',
-   '10000000-0000-0000-0000-000000000001',
-   'observation',
-   'Feltobservation tilføjet — 12 arter',
-   '12 nye artsregistreringer tilføjet af feltteam i Zone B og C.',
-   'Feltteam DK-3',
-   'Freyra Field',
-   now() - interval '16 days'),
-
-  ('60000000-0000-0000-0000-000000000003',
-   '10000000-0000-0000-0000-000000000002',
-   'report',
-   'ESG-bilag genereret og signeret',
-   'Q1 ESG-bilag genereret automatisk og digitalt signeret.',
-   'Freyra Reporting',
-   'Automatisk',
-   now() - interval '20 days'),
-
-  ('60000000-0000-0000-0000-000000000004',
-   '10000000-0000-0000-0000-000000000003',
-   'risk',
-   'Risiko-flag gennemgået og lukket',
-   'AI-opdaget risiko-flag for vandkvalitet gennemgået og lukket.',
-   'AI risk monitor',
-   'Automatisk',
-   now() - interval '10 days')
+-- ─── 11. Rapporter ───────────────────────────────────────────────────────────
+insert into reports (project_id, title, report_type, status, period_start, period_end, summary) values
+  ('10000000-0000-0000-0000-000000000001', 'Q1 2024 Naturstatus',   'quarterly', 'approved', '2024-01-01', '2024-03-31', 'Stabil biodiversitetsudvikling. 23 fuglearter, jordbundskulstof +0.2%.'),
+  ('10000000-0000-0000-0000-000000000001', 'Årsrapport 2023',       'annual',    'approved', '2023-01-01', '2023-12-31', 'Første driftsår. Baseline etableret, invasive arter reduceret med 40%.'),
+  ('10000000-0000-0000-0000-000000000001', 'Q2 2024 Naturstatus',   'quarterly', 'draft',    '2024-04-01', '2024-06-30', null),
+  ('10000000-0000-0000-0000-000000000002', 'Baseline-rapport 2023', 'baseline',  'approved', '2023-09-01', '2023-12-31', 'Udgangspunkt for rewilding-intervention dokumenteret.')
 on conflict do nothing;
 
--- ─── Actions ──────────────────────────────────────────────────────────────────
-insert into actions (id, project_id, title, description, priority, status, due_date, owner) values
-  ('70000000-0000-0000-0000-000000000001',
-   '10000000-0000-0000-0000-000000000001',
-   'Feltverifikation i Zone C',
-   'Planlæg og gennemfør feltverifikation for at dokumentere artsstatus i Zone C.',
-   'Høj',
-   'Åben',
-   '2026-06-20',
-   'Emma Larsen'),
+-- ─── 12. RLS: åbn for INSERT/UPDATE i dev ────────────────────────────────────
+-- Kør dette så app'en kan skrive data uden auth.
+-- VIGTIGT: erstat med bruger-baserede policies inden produktion!
+do $$
+declare
+  tbl text;
+  tbls text[] := array[
+    'organizations','projects','sites','data_sources','sensors','observations',
+    'indicators','reports','evidence_files','audit_events','actions','impact_units',
+    'map_layers','project_areas','geo_features','geo_observations','calculated_metrics'
+  ];
+begin
+  foreach tbl in array tbls loop
+    begin
+      execute format(
+        'create policy "dev_all" on %I for all using (true) with check (true)', tbl
+      );
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;
 
-  ('70000000-0000-0000-0000-000000000002',
-   '10000000-0000-0000-0000-000000000001',
-   'Valider vandsensor Zone 3',
-   'Planlæg sensor-kalibrering for vandmåler Zone 3 der sender uregelmæssige værdier.',
-   'Høj',
-   'Åben',
-   '2026-06-12',
-   'Mikkel Holm'),
-
-  ('70000000-0000-0000-0000-000000000003',
-   '10000000-0000-0000-0000-000000000001',
-   'Geneksporter drone-upload med geotags',
-   'Re-eksportér Drone overflight Q2 med EXIF GPS aktiveret.',
-   'Medium',
-   'Åben',
-   '2026-06-15',
-   'Mikkel Holm'),
-
-  ('70000000-0000-0000-0000-000000000001',
-   '10000000-0000-0000-0000-000000000001',
-   'Send dokumentation til ESG Ledger',
-   'Overfør Skallebæk Q1-data til ESG Ledger for ESRS-rapportering.',
-   'Medium',
-   'Åben',
-   '2026-06-30',
-   'Emma Larsen')
-on conflict do nothing;
+-- ─── Tjek resultater ─────────────────────────────────────────────────────────
+select 'projects'          as tabel, count(*) as rækker from projects
+union all
+select 'indicators',       count(*) from indicators
+union all
+select 'actions',          count(*) from actions
+union all
+select 'map_layers',       count(*) from map_layers
+union all
+select 'project_areas',    count(*) from project_areas
+union all
+select 'geo_observations', count(*) from geo_observations
+union all
+select 'calculated_metrics', count(*) from calculated_metrics
+union all
+select 'reports',          count(*) from reports
+union all
+select 'audit_events',     count(*) from audit_events
+order by tabel;
