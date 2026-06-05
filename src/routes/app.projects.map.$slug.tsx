@@ -203,6 +203,7 @@ function GeoMapPage() {
             lat={geometry.centroid?.lat ?? null}
             lng={geometry.centroid?.lng ?? null}
           />
+          <BiodiversityCard project={project} />
           <EnvironmentalCard project={project} />
 
           {/* Sensor panel */}
