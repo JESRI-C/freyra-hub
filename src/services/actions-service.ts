@@ -8,6 +8,7 @@ import {
   updateAction,
   deleteAction,
 } from "@/lib/supabase/queries";
+import { logAuditEvent } from "@/services/audit-service";
 import { SEED_ACTIONS } from "@/data/platform-seed";
 import type { IoTSensor } from "@/services/iot-simulation-service";
 import type { Action } from "@/lib/supabase/types";
@@ -55,25 +56,56 @@ export async function createAction(input: {
   owner?: string;
 }): Promise<{ id: string }> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
-  return insertAction({ ...input, status: "open" });
+  const action = await insertAction({ ...input, status: "open" });
+  void logAuditEvent({
+    project_id: input.project_id,
+    event_type: "action_created",
+    title: `Handling oprettet: ${input.title}`,
+    description: input.description,
+    actor: input.owner ?? "Bruger",
+    source: "manual",
+  });
+  return action;
 }
 
-export async function completeAction(id: string): Promise<void> {
+export async function completeAction(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await updateAction(id, { status: "closed" });
+  void logAuditEvent({
+    project_id: projectId,
+    event_type: "action_completed",
+    title: "Handling markeret som afsluttet",
+    actor: "Bruger",
+    source: "manual",
+  });
 }
 
 export async function updateActionDetails(
   id: string,
   input: Partial<{ title: string; description: string; priority: string; due_date: string; owner: string; status: string }>,
+  projectId?: string,
 ): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await updateAction(id, input);
+  void logAuditEvent({
+    project_id: projectId,
+    event_type: "action_updated",
+    title: `Handling opdateret${input.status ? `: status → ${input.status}` : ""}`,
+    actor: "Bruger",
+    source: "manual",
+  });
 }
 
-export async function removeAction(id: string): Promise<void> {
+export async function removeAction(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await deleteAction(id);
+  void logAuditEvent({
+    project_id: projectId,
+    event_type: "action_deleted",
+    title: "Handling slettet",
+    actor: "Bruger",
+    source: "manual",
+  });
 }
 
 export function actionPriorityTone(priority: string): "danger" | "warning" | "neutral" {

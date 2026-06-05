@@ -2,6 +2,7 @@
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { fetchIndicatorsByProject, fetchIndicator, upsertIndicator } from "@/lib/supabase/queries";
+import { logAuditEvent } from "@/services/audit-service";
 import { SEED_INDICATORS } from "@/data/platform-seed";
 import type { Indicator } from "@/lib/supabase/types";
 
@@ -46,6 +47,16 @@ export async function saveIndicator(input: {
 }): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await upsertIndicator(input);
+  void logAuditEvent({
+    project_id: input.project_id,
+    event_type: "data_update",
+    title: `Indikator opdateret: ${input.label}`,
+    description: input.value !== undefined
+      ? `Ny værdi: ${input.value}${input.unit ?? ""}`
+      : undefined,
+    actor: "System",
+    source: "automated",
+  });
 }
 
 // Formats an indicator value for display.

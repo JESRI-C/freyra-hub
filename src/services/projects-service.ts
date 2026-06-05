@@ -9,6 +9,7 @@ import {
   insertProject,
   updateProject,
 } from "@/lib/supabase/queries";
+import { logAuditEvent } from "@/services/audit-service";
 import { SEED_PROJECTS, SEED_SITES, SEED_DATA_SOURCES } from "@/data/platform-seed";
 import type { Project, Site, DataSource, NatureProjectSummary } from "@/lib/supabase/types";
 import { getIndicatorsByProject } from "./indicators-service";
@@ -72,7 +73,16 @@ export async function createProject(input: {
   organization_id?: string;
 }): Promise<{ id: string; slug: string | null }> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
-  return insertProject({ ...input, status: "planning" });
+  const project = await insertProject({ ...input, status: "planning" });
+  void logAuditEvent({
+    project_id: project.id,
+    event_type: "project_created",
+    title: `Projekt oprettet: ${input.name}`,
+    description: input.description,
+    actor: "Bruger",
+    source: "manual",
+  });
+  return project;
 }
 
 export async function updateProjectDetails(
@@ -95,6 +105,13 @@ export async function updateProjectDetails(
 ): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await updateProject(id, input);
+  void logAuditEvent({
+    project_id: id,
+    event_type: "project_updated",
+    title: `Projekt opdateret${input.status ? `: status → ${input.status}` : ""}`,
+    actor: "Bruger",
+    source: "manual",
+  });
 }
 
 export function getSitesByProject(projectId: string): Site[] {
