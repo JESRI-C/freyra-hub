@@ -8,7 +8,6 @@ import {
   Cable,
   FileText,
   Settings,
-  Leaf,
   ChevronsUpDown,
   Map,
   Upload,
@@ -19,6 +18,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useAuth, getCurrentOrg, getCurrentProject } from "@/lib/auth";
+import logoMark from "@/assets/gofreyra-logo.png";
 
 type SidebarItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
 type SidebarGroup = { label: string; items: SidebarItem[] };
@@ -73,9 +73,7 @@ export function AppSidebar() {
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
       <div className="p-5 flex items-center gap-2.5 border-b border-sidebar-border">
-        <div className="h-9 w-9 rounded-xl bg-leaf grid place-items-center text-leaf-foreground">
-          <Leaf className="h-5 w-5" />
-        </div>
+        <img src={logoMark} alt="GoFreyra" className="h-9 w-9 object-contain" />
         <div>
           <div className="text-sm font-semibold tracking-tight">GoFreyra</div>
           <div className="text-[10px] uppercase tracking-wider text-sidebar-muted">Platform</div>
