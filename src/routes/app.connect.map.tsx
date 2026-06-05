@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, Hexagon, Ruler, Square, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { PageHeader, Card, CardHeader, Pill } from "@/components/ui-bits";
 import { Switch } from "@/components/ui/switch";
 import {
