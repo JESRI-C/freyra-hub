@@ -2,20 +2,20 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import React from "react";
 import {
   LayoutDashboard,
-  Brain,
-  Repeat2,
-  BookCheck,
-  Cable,
+  FolderOpen,
   FileText,
+  Database,
+  Coins,
+  Globe,
   Settings,
   ChevronsUpDown,
   Map,
-  Upload,
-  Users,
-  FolderOpen,
-  Globe,
-  FlaskConical,
   Building2,
+  Cable,
+  Brain,
+  BookCheck,
+  Users,
+  FlaskConical,
 } from "lucide-react";
 import { useAuth, getCurrentOrg, getCurrentProject } from "@/lib/auth";
 import logoMark from "@/assets/gofreyra-logo.png";
@@ -23,44 +23,44 @@ import logoMark from "@/assets/gofreyra-logo.png";
 type SidebarItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
 type SidebarGroup = { label: string; items: SidebarItem[] };
 
+// ─── New project-centered navigation ──────────────────────────────────────────
 const GROUPS: SidebarGroup[] = [
   {
-    label: "Hovedmenu",
-    items: [{ to: "/app/overview", label: "Oversigt", icon: LayoutDashboard }],
-  },
-  {
-    label: "Data & Intelligence",
+    label: "Arbejdsflow",
     items: [
-      { to: "/app/connect", label: "Monitoring & Field Data", icon: Cable },
-      { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
-      { to: "/app/connect/upload", label: "Upload Center", icon: Upload },
-      { to: "/app/connect/registry", label: "Connector Registry", icon: Globe },
-      { to: "/app/decisions", label: "Project Intelligence", icon: Brain },
-    ],
-  },
-  {
-    label: "Projekt & Dokumentation",
-    items: [
+      { to: "/app/overview", label: "Dashboard", icon: LayoutDashboard },
       { to: "/app/projects", label: "Naturprojekter", icon: FolderOpen },
-      { to: "/app/construction", label: "Byggeri & Natur", icon: Building2 },
-      { to: "/app/impact", label: "Funding & Impact", icon: Repeat2 },
-      { to: "/app/ledger", label: "Documentation & Audit", icon: BookCheck },
+      { to: "/app/reports", label: "Rapporter", icon: FileText },
     ],
   },
   {
-    label: "Output",
-    items: [{ to: "/app/reports", label: "Report Engine", icon: FileText }],
+    label: "Projektværktøjer",
+    items: [
+      { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
+      { to: "/app/construction", label: "Byggeri & natur", icon: Building2 },
+      { to: "/app/connect", label: "Monitoring & feltdata", icon: Cable },
+      { to: "/app/decisions", label: "Project Intelligence", icon: Brain },
+      { to: "/app/ledger", label: "Dokumentation & audit", icon: BookCheck },
+    ],
+  },
+  {
+    label: "Data & metoder",
+    items: [{ to: "/app/connect/registry", label: "Data & metoder", icon: Database }],
+  },
+  {
+    label: "Finansiering & impact",
+    items: [
+      { to: "/app/impact", label: "Funding & impact", icon: Coins },
+      { to: "/app/public-impact", label: "Public impact", icon: Globe },
+    ],
   },
   {
     label: "Administration",
     items: [
-      { to: "/app/settings", label: "Organisation", icon: Settings },
+      { to: "/app/settings", label: "Indstillinger", icon: Settings },
       { to: "/app/settings/users", label: "Brugere & roller", icon: Users },
+      { to: "/app/system-test", label: "System Test", icon: FlaskConical },
     ],
-  },
-  {
-    label: "System",
-    items: [{ to: "/app/system-test", label: "System Test", icon: FlaskConical }],
   },
 ];
 
@@ -76,7 +76,9 @@ export function AppSidebar() {
         <img src={logoMark} alt="GoFreyra" className="h-9 w-9 object-contain" />
         <div>
           <div className="text-sm font-semibold tracking-tight">GoFreyra</div>
-          <div className="text-[10px] uppercase tracking-wider text-sidebar-muted">Platform</div>
+          <div className="text-[10px] uppercase tracking-wider text-sidebar-muted">
+            Naturprojekt-platform
+          </div>
         </div>
       </div>
 
@@ -131,10 +133,10 @@ export function AppSidebar() {
 
       <div className="p-4 border-t border-sidebar-border">
         <div className="rounded-xl bg-sidebar-accent/60 border border-sidebar-border p-3">
-          <div className="text-xs text-sidebar-muted">Verificeret data</div>
-          <div className="text-sm font-medium mt-0.5">98% dækning</div>
+          <div className="text-xs text-sidebar-muted">Metodekvalitet</div>
+          <div className="text-sm font-medium mt-0.5">Dokumenteret & sporbar</div>
           <div className="mt-2 h-1.5 rounded-full bg-sidebar-border overflow-hidden">
-            <div className="h-full w-[98%] bg-leaf" />
+            <div className="h-full w-[82%] bg-leaf" />
           </div>
         </div>
       </div>

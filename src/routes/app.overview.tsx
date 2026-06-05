@@ -1,471 +1,379 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { AppTopbar } from "@/components/AppTopbar";
-import { Card, CardHeader, PageHeader } from "@/components/ui-bits";
-import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import {
-  ModuleStatusCard,
-  DataFlowDiagram,
-  ActivityFeed,
-  CriticalActionsPanel,
-  OnboardingChecklist,
-  ReadinessScore,
-  StatusBadge,
-} from "@/components/platform/Primitives";
-import {
-  PLATFORM_MODULES,
-  ACTIVITY_FEED,
-  CRITICAL_ACTIONS,
-  ONBOARDING_STEPS,
-  PROJECT_FACTS,
-  AI_SUMMARY,
-  NEXT_RECOMMENDED_ACTIONS,
-  KEY_MESSAGE,
-  POSITIONING_STATEMENT,
-  NATURE_DASHBOARD_CARDS,
-  STRATEGIC_SECTIONS,
-} from "@/lib/platform-data";
-import {
-  Sparkles,
   ArrowRight,
-  MapPin,
+  Plus,
   FileText,
+  AlertTriangle,
+  CheckCircle2,
+  MapPin,
+  Sprout,
+  ShieldCheck,
+  Coins,
+  Globe,
+  Cable,
+  Brain,
+  BookCheck,
+  ClipboardList,
+  Users,
   TrendingUp,
   Database,
-  ClipboardList,
-  Radio,
   Info,
 } from "lucide-react";
-import { getLiveDataConfig } from "@/config/live-data-config";
-import { getCurrentOrg, getCurrentProject, useAuth } from "@/lib/auth";
-import { getAllNatureProjectSummaries } from "@/services/projects-service";
-import { getAllOpenActions } from "@/services/actions-service";
-import { DEFAULT_ORG_ID } from "@/data/platform-seed";
-import type { NatureProjectSummary } from "@/lib/supabase/types";
-
-// ─── Queries ──────────────────────────────────────────────────────────────────
-
-const projectSummariesQuery = {
-  queryKey: ["nature-project-summaries", DEFAULT_ORG_ID],
-  queryFn: () => getAllNatureProjectSummaries(DEFAULT_ORG_ID),
-};
-
-const openActionsQuery = {
-  queryKey: ["all-open-actions"],
-  queryFn: () => getAllOpenActions(),
-};
+import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
 
 export const Route = createFileRoute("/app/overview")({
-  head: () => ({ meta: [{ title: "Oversigt — GoFreyra" }] }),
-  loader: ({ context: { queryClient } }) =>
-    Promise.all([
-      queryClient.ensureQueryData(projectSummariesQuery),
-      queryClient.ensureQueryData(openActionsQuery),
-    ]),
-  component: OverviewPage,
+  head: () => ({ meta: [{ title: "Dashboard — GoFreyra" }] }),
+  component: DashboardPage,
 });
 
-function LiveKpiStrip({
-  summaries,
-  openActionCount,
-}: {
-  summaries: NatureProjectSummary[];
-  openActionCount: number;
-}) {
-  const avgBiodiversity =
-    summaries.reduce((sum, s) => {
-      const bi = s.indicators.find((i) => i.key === "biodiversity_index");
-      return sum + (bi?.value ?? 0);
-    }, 0) / (summaries.length || 1);
+// ─── Mock data (display-only, restructure scope) ──────────────────────────────
 
-  const avgDataQuality =
-    summaries.reduce((sum, s) => {
-      const dq = s.indicators.find((i) => i.key === "data_quality");
-      return sum + (dq?.value ?? 0);
-    }, 0) / (summaries.length || 1);
+const PORTFOLIO_KPIS = [
+  { label: "Aktive naturprojekter", value: "12", hint: "3 nye sidste 30 dage" },
+  { label: "Hektar under forvaltning", value: "428", hint: "Skov, eng, vådområde" },
+  { label: "Grøn trepart-parathed", value: "64%", hint: "8 ud af 12 projekter" },
+  { label: "Rapportparathed", value: "71%", hint: "Gennemsnit på tværs" },
+  { label: "Metodekonfidens", value: "Middel", hint: "Variabel pr. projekt" },
+  { label: "Lodsejer-risiko", value: "2", hint: "Projekter kræver dialog" },
+  { label: "Datadækning", value: "83%", hint: "Sensorer · satellit · felt" },
+  { label: "Offentlige impact-sider", value: "5", hint: "Publiceret + 3 i udkast" },
+] as const;
 
-  const totalActiveSources = summaries.reduce((sum, s) => sum + s.activeDataSources, 0);
+const CRITICAL_ACTIONS = [
+  {
+    title: "Baseline mangler for vådområdeprojekt",
+    project: "Skallebæk Wetland",
+    tone: "danger" as const,
+    cta: "Åbn baseline",
+  },
+  {
+    title: "Lodsejer-brief klar til gennemsyn",
+    project: "Regenerative Farm Pilot",
+    tone: "warning" as const,
+    cta: "Gennemgå",
+  },
+  {
+    title: "Lav metodekonfidens i biodiversitetsvurdering",
+    project: "Byggeri & natur · Kolding",
+    tone: "warning" as const,
+    cta: "Tilføj evidens",
+  },
+  {
+    title: "Public impact-side mangler billeder",
+    project: "Stream Restoration eDNA",
+    tone: "default" as const,
+    cta: "Tilføj medier",
+  },
+  {
+    title: "Rapport klar til kommunal afgørelsesnote",
+    project: "Skallebæk Wetland",
+    tone: "success" as const,
+    cta: "Send til kommune",
+  },
+];
 
-  const kpis = [
-    {
-      label: "Aktive projekter",
-      value: String(summaries.length),
-      icon: <TrendingUp className="h-4 w-4" />,
-      color: "text-emerald-600",
-    },
-    {
-      label: "Ø biodiversitetsindeks",
-      value: `${avgBiodiversity.toFixed(0)}/100`,
-      icon: <TrendingUp className="h-4 w-4" />,
-      color: "text-emerald-600",
-    },
-    {
-      label: "Ø datakvalitet",
-      value: `${avgDataQuality.toFixed(0)}%`,
-      icon: <Database className="h-4 w-4" />,
-      color: "text-emerald-600",
-    },
-    {
-      label: "Aktive datakilder",
-      value: String(totalActiveSources),
-      icon: <Database className="h-4 w-4" />,
-      color: "text-blue-600",
-    },
-    {
-      label: "Åbne handlinger",
-      value: String(openActionCount),
-      icon: <ClipboardList className="h-4 w-4" />,
-      color: openActionCount > 0 ? "text-amber-600" : "text-emerald-600",
-    },
-  ];
+const PROJECT_PORTFOLIO = [
+  {
+    name: "Skallebæk Wetland & Biodiversity",
+    slug: "skallebaek-biodiversity-pilot",
+    type: "Vådområde · biodiversitet",
+    ha: 7.3,
+    status: "Aktiv",
+    tripart: 78,
+    report: 84,
+    method: "Høj",
+    risk: "Lav",
+    nextAction: "Send afgørelsesnote til kommunen",
+  },
+  {
+    name: "Regenerative Farm Documentation Pilot",
+    slug: "regenerative-farm-pilot",
+    type: "Landbrug · regenerativ",
+    ha: 142,
+    status: "I dialog",
+    tripart: 55,
+    report: 48,
+    method: "Middel",
+    risk: "Medium",
+    nextAction: "Færdiggør lodsejer-brief",
+  },
+  {
+    name: "Stream Restoration with eDNA Monitoring",
+    slug: "stream-restoration-edna",
+    type: "Vandløb · eDNA-monitorering",
+    ha: 19.4,
+    status: "Aktiv",
+    tripart: 62,
+    report: 71,
+    method: "Høj",
+    risk: "Lav",
+    nextAction: "Upload eDNA-resultater Q2",
+  },
+];
 
+const WORKFLOW_STEPS = [
+  "Project intake",
+  "Area intelligence",
+  "Stakeholders",
+  "Economy",
+  "Scenario",
+  "Monitoring",
+  "Methods",
+  "Reports",
+  "Public impact",
+];
+
+const REPOSITIONED_MODULES = [
+  {
+    label: "Monitoring & Field Data",
+    was: "Smart Connect",
+    desc: "Feltobservationer, IoT-sensorer, eDNA, drone- og satellitdata.",
+    to: "/app/connect",
+    icon: Cable,
+  },
+  {
+    label: "Project Intelligence",
+    was: "DecisionsIQ",
+    desc: "Risici, næste handlinger og manglende dokumentation pr. projekt.",
+    to: "/app/decisions",
+    icon: Brain,
+  },
+  {
+    label: "Documentation & Audit Trail",
+    was: "ESG Ledger",
+    desc: "Filer, metoder, beslutninger og evidenshistorik — sporbart.",
+    to: "/app/ledger",
+    icon: BookCheck,
+  },
+  {
+    label: "Funding & Impact Potential",
+    was: "Impact Exchange",
+    desc: "Fonde, tilskud, ESG-finansiering og fremtidige nature credits.",
+    to: "/app/impact",
+    icon: Coins,
+  },
+  {
+    label: "Report Engine",
+    was: "Reports",
+    desc: "Lodsejer-briefs, kommunale noter, baseline-rapporter og public impact.",
+    to: "/app/reports",
+    icon: FileText,
+  },
+];
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+function DashboardPage() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-      {kpis.map((k) => (
-        <div key={k.label} className="rounded-xl border bg-card p-4 space-y-1">
-          <div className={`${k.color}`}>{k.icon}</div>
-          <div className="text-2xl font-semibold">{k.value}</div>
-          <div className="text-xs text-muted-foreground">{k.label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function LiveDataWidget() {
-  const config = getLiveDataConfig();
-  return (
-    <div
-      className={`rounded-xl border p-4 flex items-center gap-4 ${
-        config.mode === "live" ? "bg-emerald-50 border-emerald-200" : "bg-muted/30 border-dashed"
-      }`}
-    >
-      <div
-        className={`h-9 w-9 rounded-lg grid place-items-center shrink-0 ${
-          config.mode === "live"
-            ? "bg-emerald-100 text-emerald-700"
-            : "bg-muted text-muted-foreground"
-        }`}
-      >
-        <Radio className="h-4 w-4" />
-      </div>
-      <div className="flex-1">
-        <div className="text-sm font-medium flex items-center gap-2">
-          Live Data
-          <span
-            className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-              config.mode === "live"
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {config.mode === "live" ? "Live" : "Preview"}
-          </span>
-        </div>
-        <div className="text-xs text-muted-foreground mt-0.5">
-          {config.mode === "preview"
-            ? `Preview mode aktiv — ${
-                config.missingKeys.length > 0
-                  ? config.missingKeys.join(", ") + " mangler"
-                  : "sæt VITE_ENABLE_LIVE_DATA=true for at aktivere"
-              }`
-            : `${4 - config.missingKeys.length} af 4 connectorer aktive`}
-        </div>
-      </div>
-      <Link to="/app/system-test" className="text-xs text-primary hover:underline shrink-0">
-        Detaljer →
-      </Link>
-    </div>
-  );
-}
-
-function OverviewPage() {
-  const { data: summaries } = useSuspenseQuery(projectSummariesQuery);
-  const { data: openActions } = useSuspenseQuery(openActionsQuery);
-  const { user, orgId, projectId } = useAuth();
-  const org = getCurrentOrg(orgId);
-  const project = getCurrentProject(orgId, projectId);
-  const firstName = user?.name.split(" ")[0] ?? "";
-
-  // Build project id → slug map from summaries for action links
-  const projectSlugMap = Object.fromEntries(
-    summaries.map((s) => [s.project.id, s.project.slug ?? s.project.id]),
-  );
-  // Map live actions to the format CriticalActionsPanel expects
-  const liveActionItems = openActions.slice(0, 5).map((a) => {
-    const slug = a.project_id ? (projectSlugMap[a.project_id] ?? null) : null;
-    const projectName =
-      summaries.find((s) => s.project.id === a.project_id)?.project.name ?? "Projekt";
-    return {
-      module: projectName,
-      title: a.title,
-      priority: a.priority ?? "Lav",
-      owner: a.owner ?? "—",
-      deadline: a.due_date
-        ? new Date(a.due_date).toLocaleDateString("da-DK", { day: "numeric", month: "short" })
-        : "—",
-      href: slug ? `/app/projects/${slug}` : "/app/projects",
-    };
-  });
-
-  return (
-    <>
-      <AppTopbar title="Oversigt" subtitle={`${org?.name ?? ""} · ${project?.name ?? ""}`} />
-      <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
-        <PageHeader
-          title={`God morgen ${firstName} 👋`}
-          description={POSITIONING_STATEMENT}
-          actions={
+    <main className="p-6 max-w-[1500px] w-full mx-auto space-y-6">
+      {/* 1. Hero */}
+      <section className="rounded-2xl border bg-gradient-to-br from-leaf/20 via-card to-card p-8 relative overflow-hidden">
+        <div className="max-w-3xl space-y-3">
+          <Pill tone="success">Nature Project Command Center</Pill>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+            Fra naturmål til dokumenteret handling
+          </h1>
+          <p className="text-muted-foreground leading-relaxed">
+            GoFreyra samler naturprojekter, arealdata, lodsejerdialog, biodiversitetsmetoder,
+            rapportering og offentlig dokumentation i ét arbejdsflow.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-2">
             <Link
-              to="/app/reports/builder"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium shadow-soft hover:opacity-95"
+              to="/app/projects"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-95"
             >
-              <Sparkles className="h-4 w-4" /> Generér rapport
+              <Plus className="h-4 w-4" /> Opret naturprojekt
+            </Link>
+            <Link
+              to="/app/reports"
+              className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
+              <FileText className="h-4 w-4" /> Generér rapport
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Portfolio KPI cards */}
+      <section>
+        <div className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+          Porteføljeoverblik
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {PORTFOLIO_KPIS.map((k) => (
+            <Card key={k.label} className="p-4">
+              <div className="text-xs text-muted-foreground">{k.label}</div>
+              <div className="text-2xl font-semibold mt-1 tabular-nums">{k.value}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">{k.hint}</div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid lg:grid-cols-3 gap-5">
+        {/* 3. Critical actions */}
+        <Card className="lg:col-span-2">
+          <CardHeader
+            title="Kritiske handlinger"
+            subtitle="Hvad kræver din opmærksomhed nu"
+          />
+          <ul className="px-5 pb-5 divide-y">
+            {CRITICAL_ACTIONS.map((a) => (
+              <li key={a.title} className="py-3 flex items-start gap-3">
+                {a.tone === "danger" && (
+                  <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                )}
+                {a.tone === "warning" && (
+                  <ClipboardList className="h-4 w-4 text-warning-foreground shrink-0 mt-0.5" />
+                )}
+                {a.tone === "success" && (
+                  <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                )}
+                {a.tone === "default" && (
+                  <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{a.title}</div>
+                  <div className="text-xs text-muted-foreground">{a.project}</div>
+                </div>
+                <button className="text-xs rounded-lg border px-2.5 py-1.5 hover:bg-muted shrink-0">
+                  {a.cta}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+
+        {/* 6. Method confidence message */}
+        <Card className="p-5 bg-leaf/10 border-leaf/30">
+          <div className="inline-flex items-center gap-1.5 mb-2">
+            <Sprout className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+              Metodekonfidens
+            </span>
+          </div>
+          <p className="text-sm leading-relaxed text-foreground/85">
+            <strong>Biodiversitet er ikke CO₂.</strong> GoFreyra reducerer ikke natur til én simpel
+            score. Hver vurdering kan kobles til metode, kontekst, datakilder, usikkerhed og
+            anbefalet anvendelse.
+          </p>
+          <Link
+            to="/app/decisions"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary mt-3 hover:underline"
+          >
+            Se metodevurderinger <ArrowRight className="h-3 w-3" />
+          </Link>
+        </Card>
+      </div>
+
+      {/* 4. Project portfolio */}
+      <Card>
+        <CardHeader
+          title="Naturprojekter"
+          subtitle="Aktuel status pr. projekt"
+          action={
+            <Link
+              to="/app/projects"
+              className="text-xs inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              Se alle <ArrowRight className="h-3 w-3" />
             </Link>
           }
         />
-
-        {/* Key message — biodiversity ≠ CO2 */}
-        <Card className="p-5 border-l-4 border-l-primary bg-leaf/10">
-          <div className="flex gap-3 items-start">
-            <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary grid place-items-center shrink-0">
-              <Info className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">
-                Princip
+        <div className="px-5 pb-5 grid md:grid-cols-3 gap-3">
+          {PROJECT_PORTFOLIO.map((p) => (
+            <Link
+              key={p.slug}
+              to="/app/projects/$slug"
+              params={{ slug: p.slug }}
+              className="rounded-xl border p-4 hover:shadow-soft transition bg-card"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-semibold text-sm leading-tight">{p.name}</div>
+                <Pill tone={p.status === "Aktiv" ? "success" : "warning"}>{p.status}</Pill>
               </div>
-              <p className="text-sm leading-relaxed text-foreground/90">{KEY_MESSAGE}</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Nature project dashboard cards */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Naturprojekt-status
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-            {NATURE_DASHBOARD_CARDS.map((c) => {
-              const toneClass =
-                c.tone === "success"
-                  ? "text-success border-success/30"
-                  : c.tone === "warning"
-                    ? "text-warning-foreground border-warning/40"
-                    : c.tone === "danger"
-                      ? "text-destructive border-destructive/30"
-                      : "text-foreground border-border";
-              return (
-                <Link
-                  key={c.id}
-                  to={c.href}
-                  className={`rounded-xl border bg-card p-4 hover:shadow-soft transition block ${toneClass}`}
-                >
-                  <div className="text-xs text-muted-foreground">{c.title}</div>
-                  <div className="text-2xl font-semibold mt-1.5">{c.value}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{c.sub}</div>
-                </Link>
-              );
-            })}
-          </div>
+              <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> {p.type} · {p.ha} ha
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4 text-[11px]">
+                <KpiMini label="Tripart-parathed" value={`${p.tripart}%`} />
+                <KpiMini label="Rapportparathed" value={`${p.report}%`} />
+                <KpiMini label="Metodekonfidens" value={p.method} />
+                <KpiMini label="Lodsejer-risiko" value={p.risk} />
+              </div>
+              <div className="border-t mt-3 pt-3 text-xs">
+                <div className="text-muted-foreground">Næste handling</div>
+                <div className="font-medium mt-0.5">{p.nextAction}</div>
+              </div>
+            </Link>
+          ))}
         </div>
+      </Card>
 
-        {/* Live KPIs from data layer */}
-        <LiveKpiStrip summaries={summaries} openActionCount={openActions.length} />
-
-        {/* AI overview insight */}
-        <AiInsightBanner
-          module="Oversigt"
-          tone="action"
-          cacheKey={`overview:${summaries.length}:${openActions.length}`}
-          context={`Antal projekter: ${summaries.length}. Åbne handlinger: ${openActions.length}. Højeste prioritet åbne handlinger: ${openActions.filter((a) => a.priority === "Høj").length}. Top-projekter (areal): ${summaries.slice(0, 3).map((s) => `${s.project.name}`).join(", ")}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Datakvalitet: ${PROJECT_FACTS.dataQuality}%. Status: ${PROJECT_FACTS.status}.`}
-        />
-
-        {/* Live Data widget */}
-        <LiveDataWidget />
-
-
-        {/* Executive summary */}
-        <Card className="overflow-hidden">
-          <div
-            className="p-6 grid lg:grid-cols-[1.6fr_1fr] gap-6"
-            style={{
-              background:
-                "linear-gradient(135deg, oklch(0.95 0.04 150 / 0.5), oklch(0.97 0.02 150 / 0.3))",
-            }}
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-leaf/30 text-primary">
-                  <Sparkles className="h-3.5 w-3.5" /> AI-resumé
+      {/* 5. Workflow */}
+      <Card className="p-5">
+        <div className="text-sm font-semibold">Sådan arbejder vi fremover</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          Standardflow for hvert naturprojekt — fra idé til offentlig dokumentation
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {WORKFLOW_STEPS.map((step, i) => (
+            <div key={step} className="flex items-center gap-2">
+              <div className="rounded-full border bg-background px-3 py-1.5 text-xs font-medium inline-flex items-center gap-2">
+                <span className="h-5 w-5 rounded-full bg-leaf/40 text-primary grid place-items-center text-[10px] font-semibold">
+                  {i + 1}
                 </span>
-                <StatusBadge status={PROJECT_FACTS.status} />
-                <span className="text-xs text-muted-foreground">Opdateret 14 min siden</span>
+                {step}
               </div>
-              <h2 className="text-xl font-semibold tracking-tight">{PROJECT_FACTS.name}</h2>
-              <div className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-1.5">
-                <MapPin className="h-3 w-3" /> {PROJECT_FACTS.location} · {PROJECT_FACTS.area}
-              </div>
-              <p className="mt-4 text-sm text-foreground/85 leading-relaxed max-w-2xl">
-                {AI_SUMMARY}
-              </p>
-              <div className="mt-5 grid grid-cols-3 gap-3 max-w-md">
-                <div>
-                  <div className="text-xs text-muted-foreground">Datakvalitet</div>
-                  <div className="text-lg font-semibold mt-0.5">{PROJECT_FACTS.dataQuality}%</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Biodiversitet</div>
-                  <div className="text-lg font-semibold mt-0.5">
-                    {PROJECT_FACTS.biodiversityIndex}/100
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Datakilder</div>
-                  <div className="text-lg font-semibold mt-0.5">
-                    {PROJECT_FACTS.activeDataSources}
-                  </div>
-                </div>
-              </div>
+              {i < WORKFLOW_STEPS.length - 1 && (
+                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+              )}
             </div>
-            <div className="rounded-2xl bg-card border p-5 space-y-4">
-              <div className="text-sm font-semibold">Rapportklarhed</div>
-              <ReadinessScore value={PROJECT_FACTS.reportReadiness} />
-              <div className="text-xs text-muted-foreground">
-                Klar til intern brug. Eksterne ESG-bilag kræver feltverifikation og dronemetadata.
-              </div>
-              <div className="space-y-1.5 pt-2 border-t">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Kritiske mangler
-                </div>
-                {PROJECT_FACTS.criticalGaps.map((g) => (
-                  <div key={g} className="text-xs flex items-start gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
-                    <span>{g}</span>
+          ))}
+        </div>
+      </Card>
+
+      {/* 7. Module repositioning */}
+      <section>
+        <div className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+          Eksisterende moduler i ny struktur
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {REPOSITIONED_MODULES.map((m) => {
+            const Icon = m.icon;
+            return (
+              <Link
+                key={m.label}
+                to={m.to}
+                className="rounded-xl border bg-card p-4 hover:shadow-soft transition group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-lg bg-leaf/20 text-primary grid place-items-center">
+                    <Icon className="h-4 w-4" />
                   </div>
-                ))}
-              </div>
-              <Link
-                to="/app/reports/readiness"
-                className="text-sm text-primary inline-flex items-center gap-1 hover:underline"
-              >
-                Se rapportklarhed <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-        </Card>
-
-        {/* Data flow */}
-        <DataFlowDiagram steps={PLATFORM_MODULES} />
-
-        {/* Module status cards */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Platform-status
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            {PLATFORM_MODULES.map((m) => (
-              <ModuleStatusCard key={m.id} {...m} />
-            ))}
-          </div>
-        </div>
-
-        {/* Critical actions + Onboarding */}
-        <div className="grid lg:grid-cols-3 gap-5">
-          <Card className="lg:col-span-2">
-            <CardHeader
-              title="Kritiske handlinger"
-              subtitle="Prioriterede opgaver på tværs af modulerne"
-              action={
-                <Link
-                  to="/app/decisions/recommendations"
-                  className="text-sm text-primary hover:underline"
-                >
-                  Se alle
-                </Link>
-              }
-            />
-            <CriticalActionsPanel
-              items={liveActionItems.length > 0 ? liveActionItems : CRITICAL_ACTIONS}
-            />
-          </Card>
-          <OnboardingChecklist steps={ONBOARDING_STEPS} />
-        </div>
-
-        {/* Activity + Next actions */}
-        <div className="grid lg:grid-cols-3 gap-5">
-          <Card className="lg:col-span-2">
-            <CardHeader title="Seneste aktivitet" subtitle="Hændelser på tværs af alle moduler" />
-            <ActivityFeed items={ACTIVITY_FEED} />
-          </Card>
-          <Card>
-            <CardHeader title="Næste anbefalede skridt" subtitle="AI-foreslået rækkefølge" />
-            <ul className="px-5 pb-5 space-y-2">
-              {NEXT_RECOMMENDED_ACTIONS.map((a, i) => (
-                <li key={i}>
-                  <Link
-                    to={a.href}
-                    className="flex items-start gap-3 p-3 rounded-xl border bg-background hover:bg-muted/40 transition"
-                  >
-                    <div className="h-7 w-7 rounded-lg bg-leaf/20 text-primary grid place-items-center shrink-0 text-xs font-semibold">
-                      {i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium">{a.title}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{a.module}</div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground mt-1.5" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </div>
-
-        {/* Strategic implementation sections */}
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Implementeringsområder
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {STRATEGIC_SECTIONS.map((s) => (
-              <Link
-                key={s.id}
-                to={s.href}
-                className="rounded-xl border bg-card p-4 hover:shadow-soft hover:border-primary/40 transition block"
-              >
-                <div className="text-sm font-semibold">{s.title}</div>
-                <div className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  {s.description}
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Tidl. {m.was}
+                  </span>
                 </div>
-                <div className="text-xs text-primary inline-flex items-center gap-1 mt-3">
-                  Åbn område <ArrowRight className="h-3 w-3" />
+                <div className="font-semibold text-sm mt-3">{m.label}</div>
+                <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{m.desc}</div>
+                <div className="text-xs text-primary mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+                  Åbn modul <ArrowRight className="h-3 w-3" />
                 </div>
               </Link>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </section>
+    </main>
+  );
+}
 
-        {/* Footer CTA */}
-        <Card className="p-5 flex flex-wrap items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-leaf/20 text-primary grid place-items-center">
-            <FileText className="h-5 w-5" />
-          </div>
-          <div className="flex-1 min-w-[240px]">
-            <div className="font-semibold text-sm">Klar til Green Tripart-indmelding?</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              Saml monitorering, metode, lodsejer-aftaler og audit trail i ét rapport-flow —
-              klar til kommune, fond og borgere.
-            </div>
-          </div>
-          <Link
-            to="/app/reports/builder"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium shadow-soft hover:opacity-95"
-          >
-            Åbn rapportbygger <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Card>
-      </main>
-    </>
+function KpiMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className="text-xs font-semibold tabular-nums mt-0.5">{value}</div>
+    </div>
   );
 }

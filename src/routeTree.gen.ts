@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSystemTestRouteImport } from './routes/app.system-test'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppPublicImpactRouteImport } from './routes/app.public-impact'
 import { Route as AppOverviewRouteImport } from './routes/app.overview'
 import { Route as AppLedgerRouteImport } from './routes/app.ledger'
 import { Route as AppImpactRouteImport } from './routes/app.impact'
@@ -112,6 +113,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppReportsRoute = AppReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPublicImpactRoute = AppPublicImpactRouteImport.update({
+  id: '/public-impact',
+  path: '/public-impact',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOverviewRoute = AppOverviewRouteImport.update({
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/app/impact': typeof AppImpactRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
+  '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
   '/app/system-test': typeof AppSystemTestRoute
@@ -506,6 +513,7 @@ export interface FileRoutesByTo {
   '/select': typeof SelectRoute
   '/app/data': typeof AppDataRoute
   '/app/overview': typeof AppOverviewRoute
+  '/app/public-impact': typeof AppPublicImpactRoute
   '/app/system-test': typeof AppSystemTestRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
@@ -576,6 +584,7 @@ export interface FileRoutesById {
   '/app/impact': typeof AppImpactRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
+  '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
   '/app/system-test': typeof AppSystemTestRoute
@@ -649,6 +658,7 @@ export interface FileRouteTypes {
     | '/app/impact'
     | '/app/ledger'
     | '/app/overview'
+    | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
     | '/app/system-test'
@@ -716,6 +726,7 @@ export interface FileRouteTypes {
     | '/select'
     | '/app/data'
     | '/app/overview'
+    | '/app/public-impact'
     | '/app/system-test'
     | '/app/connect/add'
     | '/app/connect/alerts'
@@ -785,6 +796,7 @@ export interface FileRouteTypes {
     | '/app/impact'
     | '/app/ledger'
     | '/app/overview'
+    | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
     | '/app/system-test'
@@ -902,6 +914,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/app/reports'
       preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/public-impact': {
+      id: '/app/public-impact'
+      path: '/public-impact'
+      fullPath: '/app/public-impact'
+      preLoaderRoute: typeof AppPublicImpactRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/overview': {
@@ -1510,6 +1529,7 @@ interface AppRouteChildren {
   AppImpactRoute: typeof AppImpactRouteWithChildren
   AppLedgerRoute: typeof AppLedgerRouteWithChildren
   AppOverviewRoute: typeof AppOverviewRoute
+  AppPublicImpactRoute: typeof AppPublicImpactRoute
   AppReportsRoute: typeof AppReportsRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppSystemTestRoute: typeof AppSystemTestRoute
@@ -1527,6 +1547,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppImpactRoute: AppImpactRouteWithChildren,
   AppLedgerRoute: AppLedgerRouteWithChildren,
   AppOverviewRoute: AppOverviewRoute,
+  AppPublicImpactRoute: AppPublicImpactRoute,
   AppReportsRoute: AppReportsRouteWithChildren,
   AppSettingsRoute: AppSettingsRouteWithChildren,
   AppSystemTestRoute: AppSystemTestRoute,
