@@ -2,7 +2,13 @@
 // When Supabase is not configured, returns TypeScript seed data transparently.
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { fetchProjects, fetchProjectBySlug, fetchProjectById } from "@/lib/supabase/queries";
+import {
+  fetchProjects,
+  fetchProjectBySlug,
+  fetchProjectById,
+  insertProject,
+  updateProject,
+} from "@/lib/supabase/queries";
 import { SEED_PROJECTS, SEED_SITES, SEED_DATA_SOURCES } from "@/data/platform-seed";
 import type { Project, Site, DataSource, NatureProjectSummary } from "@/lib/supabase/types";
 import { getIndicatorsByProject } from "./indicators-service";
@@ -51,6 +57,44 @@ export async function getProjectById(id: string): Promise<Project | null> {
     if (isMissingTable(err)) return fallback();
     throw err;
   }
+}
+
+// ─── Write ────────────────────────────────────────────────────────────────────
+
+export async function createProject(input: {
+  name: string;
+  slug: string;
+  project_type?: string;
+  location_name?: string;
+  municipality?: string;
+  description?: string;
+  start_date?: string;
+  organization_id?: string;
+}): Promise<{ id: string; slug: string | null }> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  return insertProject({ ...input, status: "planning" });
+}
+
+export async function updateProjectDetails(
+  id: string,
+  input: Partial<{
+    name: string;
+    status: string;
+    description: string;
+    location_name: string;
+    municipality: string;
+    project_type: string;
+    start_date: string;
+    end_date: string;
+    geometry_area_ha: number;
+    geometry_centroid_lat: number;
+    geometry_centroid_lng: number;
+    geometry_polygon: object;
+    geometry_source: string;
+  }>,
+): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  await updateProject(id, input);
 }
 
 export function getSitesByProject(projectId: string): Site[] {

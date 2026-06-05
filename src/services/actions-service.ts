@@ -1,7 +1,13 @@
 // Actions Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { fetchOpenActionsByProject, fetchAllOpenActions } from "@/lib/supabase/queries";
+import {
+  fetchOpenActionsByProject,
+  fetchAllOpenActions,
+  insertAction,
+  updateAction,
+  deleteAction,
+} from "@/lib/supabase/queries";
 import { SEED_ACTIONS } from "@/data/platform-seed";
 import type { IoTSensor } from "@/services/iot-simulation-service";
 import type { Action } from "@/lib/supabase/types";
@@ -36,6 +42,38 @@ export async function getAllOpenActions(): Promise<Action[]> {
     if (isMissingTable(err)) return fallback();
     throw err;
   }
+}
+
+// ─── Write ────────────────────────────────────────────────────────────────────
+
+export async function createAction(input: {
+  project_id: string;
+  title: string;
+  description?: string;
+  priority?: "Høj" | "Medium" | "Lav";
+  due_date?: string;
+  owner?: string;
+}): Promise<{ id: string }> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  return insertAction({ ...input, status: "open" });
+}
+
+export async function completeAction(id: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  await updateAction(id, { status: "closed" });
+}
+
+export async function updateActionDetails(
+  id: string,
+  input: Partial<{ title: string; description: string; priority: string; due_date: string; owner: string; status: string }>,
+): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  await updateAction(id, input);
+}
+
+export async function removeAction(id: string): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  await deleteAction(id);
 }
 
 export function actionPriorityTone(priority: string): "danger" | "warning" | "neutral" {

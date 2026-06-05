@@ -1,7 +1,7 @@
 // Indicators Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { fetchIndicatorsByProject, fetchIndicator } from "@/lib/supabase/queries";
+import { fetchIndicatorsByProject, fetchIndicator, upsertIndicator } from "@/lib/supabase/queries";
 import { SEED_INDICATORS } from "@/data/platform-seed";
 import type { Indicator } from "@/lib/supabase/types";
 
@@ -30,6 +30,22 @@ export async function getIndicator(projectId: string, key: string): Promise<Indi
     if (isMissingTable(err)) return fallback();
     throw err;
   }
+}
+
+// ─── Write ────────────────────────────────────────────────────────────────────
+
+export async function saveIndicator(input: {
+  project_id: string;
+  key: string;
+  label: string;
+  category?: string;
+  value?: number;
+  unit?: string;
+  trend?: "up" | "down" | "stable";
+  status?: "good" | "warning" | "critical";
+}): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  await upsertIndicator(input);
 }
 
 // Formats an indicator value for display.

@@ -1,7 +1,7 @@
 // Audit Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { fetchAuditEventsByProject, fetchAllAuditEvents } from "@/lib/supabase/queries";
+import { fetchAuditEventsByProject, fetchAllAuditEvents, insertAuditEvent } from "@/lib/supabase/queries";
 import { SEED_AUDIT_EVENTS } from "@/data/platform-seed";
 import type { AuditEvent } from "@/lib/supabase/types";
 
@@ -38,6 +38,20 @@ export async function getAllAuditEvents(limit = 30): Promise<AuditEvent[]> {
     if (isMissingTable(err)) return fallback();
     throw err;
   }
+}
+
+// ─── Write ────────────────────────────────────────────────────────────────────
+
+export async function logAuditEvent(input: {
+  project_id?: string;
+  event_type?: string;
+  title: string;
+  description?: string;
+  actor?: string;
+  source?: "manual" | "automated" | "api";
+}): Promise<void> {
+  if (!isSupabaseConfigured) return; // silent no-op i dev
+  await insertAuditEvent(input);
 }
 
 // Returns a Lucide icon name for the event_type.

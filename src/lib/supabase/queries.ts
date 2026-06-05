@@ -322,3 +322,126 @@ export async function fetchAuthoritySubmissions(projectId: string): Promise<Auth
   if (error) throw error;
   return data ?? [];
 }
+
+// ─── Write: Projects ──────────────────────────────────────────────────────────
+
+export async function insertProject(input: {
+  organization_id?: string;
+  name: string;
+  slug: string;
+  project_type?: string;
+  location_name?: string;
+  municipality?: string;
+  status?: string;
+  description?: string;
+  start_date?: string;
+}): Promise<Project> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).from("projects").insert(input).select().single();
+  if (error) throw error;
+  return data as Project;
+}
+
+export async function updateProject(
+  id: string,
+  input: Partial<{
+    name: string; slug: string; project_type: string; location_name: string;
+    municipality: string; status: string; description: string; start_date: string;
+    end_date: string; geometry_polygon: object; geometry_centroid_lat: number;
+    geometry_centroid_lng: number; geometry_area_ha: number; geometry_source: string;
+  }>,
+): Promise<Project> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).from("projects").update(input).eq("id", id).select().single();
+  if (error) throw error;
+  return data as Project;
+}
+
+// ─── Write: Actions ───────────────────────────────────────────────────────────
+
+export async function insertAction(input: {
+  project_id: string; title: string; description?: string;
+  priority?: string; status?: string; due_date?: string; owner?: string;
+}): Promise<Action> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).from("actions").insert(input).select().single();
+  if (error) throw error;
+  return data as Action;
+}
+
+export async function updateAction(
+  id: string,
+  input: Partial<{ title: string; description: string; priority: string; status: string; due_date: string; owner: string }>,
+): Promise<Action> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).from("actions").update(input).eq("id", id).select().single();
+  if (error) throw error;
+  return data as Action;
+}
+
+export async function deleteAction(id: string): Promise<void> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("actions").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Write: Indicators ────────────────────────────────────────────────────────
+
+export async function upsertIndicator(input: {
+  project_id: string; key: string; label: string; category?: string;
+  value?: number; unit?: string; trend?: string; status?: string;
+}): Promise<Indicator> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("indicators")
+    .upsert({ ...input, updated_at: new Date().toISOString() }, { onConflict: "project_id,key" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Indicator;
+}
+
+// ─── Write: Observations ──────────────────────────────────────────────────────
+
+export async function insertObservation(input: {
+  project_id: string; observation_type?: string; indicator_key?: string;
+  value?: number; unit?: string; confidence?: number; observed_at?: string; metadata?: object;
+}): Promise<Observation> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).from("observations").insert(input).select().single();
+  if (error) throw error;
+  return data as Observation;
+}
+
+// ─── Write: Audit Events ──────────────────────────────────────────────────────
+
+export async function insertAuditEvent(input: {
+  project_id?: string; event_type?: string; title: string;
+  description?: string; actor?: string; source?: string;
+}): Promise<AuditEvent> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).from("audit_events").insert(input).select().single();
+  if (error) throw error;
+  return data as AuditEvent;
+}
+
+// ─── Write: Reports ───────────────────────────────────────────────────────────
+
+export async function updateReport(
+  id: string,
+  input: Partial<{ title: string; status: string; summary: string; period_start: string; period_end: string }>,
+): Promise<Report> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).from("reports").update(input).eq("id", id).select().single();
+  if (error) throw error;
+  return data as Report;
+}
