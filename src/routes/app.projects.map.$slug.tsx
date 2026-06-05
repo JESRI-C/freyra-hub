@@ -13,6 +13,7 @@ import { ProjectMetricsPanel } from "@/components/maps/ProjectMetricsPanel";
 import { ConnectorStatusPanel } from "@/components/maps/ConnectorStatusPanel";
 import { MapExportPanel } from "@/components/maps/MapExportPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
+import { NdviCard } from "@/components/project/NdviCard";
 import type { ConnectorStatusItem } from "@/components/maps/ConnectorStatusPanel";
 
 export const Route = createFileRoute("/app/projects/map/$slug")({
@@ -194,6 +195,12 @@ function GeoMapPage() {
 
           {/* Metrics */}
           {metrics && <ProjectMetricsPanel metrics={metrics} />}
+
+          <NdviCard
+            projectId={projectId}
+            lat={geometry.centroid?.lat ?? null}
+            lng={geometry.centroid?.lng ?? null}
+          />
 
           {/* Sensor panel */}
           {sensors.length > 0 && visibleSlugs.has("sensors") && (

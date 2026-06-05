@@ -12,6 +12,7 @@ import { ActionItem } from "@/components/project/ActionItem";
 import { EvidenceList } from "@/components/project/EvidenceList";
 import { EvidenceUploadForm } from "@/components/project/EvidenceUploadForm";
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
+import { NdviCard } from "@/components/project/NdviCard";
 import {
   getProjectBySlug,
   getSitesByProject,
@@ -425,7 +426,12 @@ function ProjectDetailPage() {
 
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
-              <div>
+              <div className="space-y-4">
+                <NdviCard
+                  projectId={projectId}
+                  lat={geometry.centroid?.lat ?? null}
+                  lng={geometry.centroid?.lng ?? null}
+                />
                 {indicators.length === 0 ? (
                   <Card className="py-10 text-center text-sm text-muted-foreground">
                     Ingen indikatorer registreret
