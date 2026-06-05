@@ -4,7 +4,11 @@ import type { Database } from "./types";
 // Reads env vars injected by Vite (VITE_ prefix).
 // Falls back gracefully so the app still boots locally without a Supabase project.
 const supabaseUrl = (import.meta.env["VITE_SUPABASE_URL"] as string | undefined) ?? "";
-const supabaseKey = (import.meta.env["VITE_SUPABASE_ANON_KEY"] as string | undefined) ?? "";
+// Lovable Cloud bruger VITE_SUPABASE_PUBLISHABLE_KEY — vi læser begge så det virker lokalt og i Lovable
+const supabaseKey =
+  (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ??
+  (import.meta.env["VITE_SUPABASE_ANON_KEY"] as string | undefined) ??
+  "";
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
 
