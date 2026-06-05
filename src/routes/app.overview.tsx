@@ -422,16 +422,40 @@ function OverviewPage() {
           </Card>
         </div>
 
+        {/* Strategic implementation sections */}
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Implementeringsområder
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {STRATEGIC_SECTIONS.map((s) => (
+              <Link
+                key={s.id}
+                to={s.href}
+                className="rounded-xl border bg-card p-4 hover:shadow-soft hover:border-primary/40 transition block"
+              >
+                <div className="text-sm font-semibold">{s.title}</div>
+                <div className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  {s.description}
+                </div>
+                <div className="text-xs text-primary inline-flex items-center gap-1 mt-3">
+                  Åbn område <ArrowRight className="h-3 w-3" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
         {/* Footer CTA */}
         <Card className="p-5 flex flex-wrap items-center gap-4">
           <div className="h-10 w-10 rounded-xl bg-leaf/20 text-primary grid place-items-center">
             <FileText className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-[240px]">
-            <div className="font-semibold text-sm">Klar til at samle Q2-rapporten?</div>
+            <div className="font-semibold text-sm">Klar til Green Tripart-indmelding?</div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              Træk data fra Smart Connect, anbefalinger fra DecisionsIQ, dokumentation fra ESG
-              Ledger og portefølje fra Impact Exchange — i ét flow.
+              Saml monitorering, metode, lodsejer-aftaler og audit trail i ét rapport-flow —
+              klar til kommune, fond og borgere.
             </div>
           </div>
           <Link
