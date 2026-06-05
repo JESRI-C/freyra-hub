@@ -513,6 +513,15 @@ function ProjectDetailPage() {
                       ))
                     )}
                   </div>
+                  <div className="px-5 pb-5 pt-2 border-t">
+                    <CreateActionForm
+                      projectId={projectId}
+                      onCreated={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+                        await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
+                      }}
+                    />
+                  </div>
                 </Card>
               </div>
             )}
