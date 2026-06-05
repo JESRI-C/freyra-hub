@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, Hexagon, Ruler, Square, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { PageHeader, Card, CardHeader, Pill } from "@/components/ui-bits";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -121,37 +121,6 @@ function Page() {
 
         {/* ── Center: toolbar + map ────────────────────────────────── */}
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2">
-            <ToolButton
-              active={map.drawMode === "boundary"}
-              onClick={() => map.setDrawMode("boundary")}
-              icon={<Square className="h-3.5 w-3.5" />}
-              label="Tegn projektgrænse"
-            />
-            <ToolButton
-              active={map.drawMode === "zone"}
-              onClick={() => map.setDrawMode("zone")}
-              icon={<Hexagon className="h-3.5 w-3.5" />}
-              label="Tegn zone"
-            />
-            <ToolButton
-              active={map.drawMode === "measure"}
-              onClick={() => map.setDrawMode("measure")}
-              icon={<Ruler className="h-3.5 w-3.5" />}
-              label="Mål areal"
-            />
-            <ToolButton
-              active={map.drawMode === "none"}
-              onClick={() => map.setDrawMode("none")}
-              icon={<Pencil className="h-3.5 w-3.5" />}
-              label="Stop tegning"
-            />
-            <div className="ml-auto text-[11px] text-muted-foreground pr-2">
-              {map.drawMode !== "none"
-                ? `Aktivt værktøj: ${map.drawMode}`
-                : "Vælg et værktøj for at tegne"}
-            </div>
-          </div>
 
           <div className="rounded-xl border bg-card overflow-hidden">
             {hasGeometry && project ? (
@@ -274,32 +243,6 @@ function LayerToggle({
       <span>{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} />
     </label>
-  );
-}
-
-function ToolButton({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs border transition ${
-        active
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-background hover:bg-muted"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 
