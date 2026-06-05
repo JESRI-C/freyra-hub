@@ -121,37 +121,6 @@ function Page() {
 
         {/* ── Center: toolbar + map ────────────────────────────────── */}
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2">
-            <ToolButton
-              active={map.drawMode === "boundary"}
-              onClick={() => map.setDrawMode("boundary")}
-              icon={<Square className="h-3.5 w-3.5" />}
-              label="Tegn projektgrænse"
-            />
-            <ToolButton
-              active={map.drawMode === "zone"}
-              onClick={() => map.setDrawMode("zone")}
-              icon={<Hexagon className="h-3.5 w-3.5" />}
-              label="Tegn zone"
-            />
-            <ToolButton
-              active={map.drawMode === "measure"}
-              onClick={() => map.setDrawMode("measure")}
-              icon={<Ruler className="h-3.5 w-3.5" />}
-              label="Mål areal"
-            />
-            <ToolButton
-              active={map.drawMode === "none"}
-              onClick={() => map.setDrawMode("none")}
-              icon={<Pencil className="h-3.5 w-3.5" />}
-              label="Stop tegning"
-            />
-            <div className="ml-auto text-[11px] text-muted-foreground pr-2">
-              {map.drawMode !== "none"
-                ? `Aktivt værktøj: ${map.drawMode}`
-                : "Vælg et værktøj for at tegne"}
-            </div>
-          </div>
 
           <div className="rounded-xl border bg-card overflow-hidden">
             {hasGeometry && project ? (
