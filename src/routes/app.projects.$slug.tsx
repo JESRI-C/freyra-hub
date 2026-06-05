@@ -434,6 +434,7 @@ function ProjectDetailPage() {
                   lat={geometry.centroid?.lat ?? null}
                   lng={geometry.centroid?.lng ?? null}
                 />
+                <BiodiversityCard project={project} />
                 <EnvironmentalCard project={project} />
                 {indicators.length === 0 ? (
                   <Card className="py-10 text-center text-sm text-muted-foreground">
