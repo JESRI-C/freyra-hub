@@ -32,8 +32,8 @@ function LedgerLayout() {
   return (
     <>
       <AppTopbar
-        title="ESG Ledger"
-        subtitle="Dokumentation, audit trail og rapporteringsklar ESG-data"
+        title="Documentation & Audit Trail"
+        subtitle="Sporbar dokumentation, metode og bilag — klar til myndigheder, revisor og fonde"
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
