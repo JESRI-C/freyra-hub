@@ -31,25 +31,25 @@ const GROUPS: SidebarGroup[] = [
   {
     label: "Data & Intelligence",
     items: [
-      { to: "/app/connect", label: "Smart Connect", icon: Cable },
+      { to: "/app/connect", label: "Monitoring & Field Data", icon: Cable },
       { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
       { to: "/app/connect/upload", label: "Upload Center", icon: Upload },
       { to: "/app/connect/registry", label: "Connector Registry", icon: Globe },
-      { to: "/app/decisions", label: "DecisionsIQ", icon: Brain },
+      { to: "/app/decisions", label: "Project Intelligence", icon: Brain },
     ],
   },
   {
-    label: "Impact & Dokumentation",
+    label: "Projekt & Dokumentation",
     items: [
-      { to: "/app/projects", label: "Projekter", icon: FolderOpen },
+      { to: "/app/projects", label: "Naturprojekter", icon: FolderOpen },
       { to: "/app/construction", label: "Byggeri & Natur", icon: Building2 },
-      { to: "/app/impact", label: "Impact Exchange", icon: Repeat2 },
-      { to: "/app/ledger", label: "ESG Ledger", icon: BookCheck },
+      { to: "/app/impact", label: "Funding & Impact", icon: Repeat2 },
+      { to: "/app/ledger", label: "Documentation & Audit", icon: BookCheck },
     ],
   },
   {
     label: "Output",
-    items: [{ to: "/app/reports", label: "Rapporter", icon: FileText }],
+    items: [{ to: "/app/reports", label: "Report Engine", icon: FileText }],
   },
   {
     label: "Administration",

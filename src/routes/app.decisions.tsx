@@ -11,16 +11,16 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/decisions")({
-  head: () => ({ meta: [{ title: "DecisionsIQ — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Project Intelligence — GoFreyra" }] }),
   component: DecisionsLayout,
 });
 
 const TABS: { to: string; label: string; icon: typeof Brain; exact?: boolean }[] = [
   { to: "/app/decisions", label: "AI-overblik", icon: Brain, exact: true },
   { to: "/app/decisions/recommendations", label: "Anbefalinger", icon: ListChecks },
-  { to: "/app/decisions/risk", label: "Risikoanalyse", icon: ShieldAlert },
+  { to: "/app/decisions/risk", label: "Risiko & lodsejer", icon: ShieldAlert },
   { to: "/app/decisions/scenarios", label: "Scenarier", icon: FlaskConical },
-  { to: "/app/decisions/data-quality", label: "Datakvalitet", icon: Database },
+  { to: "/app/decisions/data-quality", label: "Metode & datakvalitet", icon: Database },
   { to: "/app/decisions/notes", label: "Beslutningsnotater", icon: FileText },
   { to: "/app/decisions/assistant", label: "AI-assistent", icon: MessageSquare },
 ];
@@ -31,8 +31,8 @@ function DecisionsLayout() {
   return (
     <>
       <AppTopbar
-        title="DecisionsIQ"
-        subtitle="AI-drevet beslutningsintelligens for projektets data"
+        title="Project Intelligence"
+        subtitle="AI-drevet beslutningsgrundlag for naturprojektets implementering"
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">

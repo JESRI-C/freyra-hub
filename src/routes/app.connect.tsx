@@ -36,8 +36,8 @@ function ConnectLayout() {
   return (
     <>
       <AppTopbar
-        title="Smart Connect"
-        subtitle="Datarygraden i GoFreyra — sensorer, satellit, drone, API'er og felt"
+        title="Monitoring & Field Data"
+        subtitle="Datarygraden for naturprojekter — sensorer, satellit, drone, felt og offentlige API'er"
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
