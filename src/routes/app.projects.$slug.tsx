@@ -13,7 +13,7 @@ import { EvidenceList } from "@/components/project/EvidenceList";
 import { EvidenceUploadForm } from "@/components/project/EvidenceUploadForm";
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
 import { NdviCard } from "@/components/project/NdviCard";
-import { BiodiversityCard } from "@/components/project/BiodiversityCard";
+import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import {
   getProjectBySlug,
   getSitesByProject,
@@ -433,7 +433,7 @@ function ProjectDetailPage() {
                   lat={geometry.centroid?.lat ?? null}
                   lng={geometry.centroid?.lng ?? null}
                 />
-                <BiodiversityCard project={project} />
+                <EnvironmentalCard project={project} />
                 {indicators.length === 0 ? (
                   <Card className="py-10 text-center text-sm text-muted-foreground">
                     Ingen indikatorer registreret

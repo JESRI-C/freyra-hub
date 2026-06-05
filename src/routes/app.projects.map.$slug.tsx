@@ -14,7 +14,7 @@ import { ConnectorStatusPanel } from "@/components/maps/ConnectorStatusPanel";
 import { MapExportPanel } from "@/components/maps/MapExportPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
 import { NdviCard } from "@/components/project/NdviCard";
-import { BiodiversityCard } from "@/components/project/BiodiversityCard";
+import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import type { ConnectorStatusItem } from "@/components/maps/ConnectorStatusPanel";
 
 export const Route = createFileRoute("/app/projects/map/$slug")({
@@ -202,8 +202,7 @@ function GeoMapPage() {
             lat={geometry.centroid?.lat ?? null}
             lng={geometry.centroid?.lng ?? null}
           />
-
-          <BiodiversityCard project={project} />
+          <EnvironmentalCard project={project} />
 
           {/* Sensor panel */}
           {sensors.length > 0 && visibleSlugs.has("sensors") && (
