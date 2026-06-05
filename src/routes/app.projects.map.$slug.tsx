@@ -14,6 +14,7 @@ import { ConnectorStatusPanel } from "@/components/maps/ConnectorStatusPanel";
 import { MapExportPanel } from "@/components/maps/MapExportPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
 import { NdviCard } from "@/components/project/NdviCard";
+import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import type { ConnectorStatusItem } from "@/components/maps/ConnectorStatusPanel";
 
 export const Route = createFileRoute("/app/projects/map/$slug")({
