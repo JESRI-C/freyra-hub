@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import "leaflet/dist/leaflet.css";
 import type { LucideIcon } from "lucide-react";
 import {
   Search,
@@ -207,270 +208,348 @@ export function MapCanvas({
   onDoubleClick?: () => void;
 }) {
   const proj = MAP_PROJECTS.find((p) => p.name === project) ?? MAP_PROJECTS[0];
-  const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!drawing || !onCanvasClick) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 600;
-    const y = ((e.clientY - rect.top) / rect.height) * 400;
-    onCanvasClick(x, y);
+  const [lat0, lng0] = proj.center.split(",").map((s) => parseFloat(s.trim())) as [number, number];
+
+  // viewBox(600x400) <-> lat/lng. ~1km wide, ~0.8km tall around project center.
+  const DX = 0.012 / 600; // deg lng per vb unit
+  const DY = 0.008 / 400; // deg lat per vb unit
+  const vbToLatLng = (x: number, y: number): [number, number] => [
+    lat0 - (y - 200) * DY,
+    lng0 + (x - 300) * DX,
+  ];
+  const latLngToVb = (lat: number, lng: number): { x: number; y: number } => ({
+    x: 300 + (lng - lng0) / DX,
+    y: 200 - (lat - lat0) / DY,
+  });
+  const pathToLatLngs = (path: string): [number, number][] => {
+    const coords = path.match(/[ML]\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/g) ?? [];
+    return coords.map((c) => {
+      const m = c.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
+      return vbToLatLng(parseFloat(m![1]), parseFloat(m![2]));
+    });
   };
+
+  const mapEl = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<import("leaflet").Map | null>(null);
+  const baseLayersRef = useRef<{
+    sat?: import("leaflet").TileLayer;
+    osm?: import("leaflet").TileLayer;
+    ortho?: import("leaflet").TileLayer;
+    terrain?: import("leaflet").TileLayer;
+    labels?: import("leaflet").TileLayer;
+  }>({});
+  const overlayRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const drawingRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const LRef = useRef<typeof import("leaflet") | null>(null);
+
+  // init map
+  useEffect(() => {
+    if (!mapEl.current || mapRef.current) return;
+    let cancelled = false;
+    (async () => {
+      const L = await import("leaflet");
+      if (cancelled || !mapEl.current) return;
+      LRef.current = L;
+      const iconProto = L.Icon.Default.prototype as unknown as Record<string, unknown>;
+      delete iconProto["_getIconUrl"];
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+      const map = L.map(mapEl.current, {
+        zoomControl: true,
+        doubleClickZoom: false,
+        attributionControl: true,
+      }).setView([lat0, lng0], 15);
+
+      baseLayersRef.current.sat = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19,
+          attribution:
+            "Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+        },
+      );
+      baseLayersRef.current.osm = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        { maxZoom: 19, attribution: "&copy; OpenStreetMap" },
+      );
+      baseLayersRef.current.ortho = L.tileLayer(
+        "https://services.datafordeler.dk/GeoDanmarkOrto/orto_foraar_wmts/1.0.0/WMTS/?service=WMTS&request=GetTile&version=1.0.0&layer=orto_foraar_wmts&style=default&tilematrixset=View1&format=image/jpeg&tilematrix={z}&tilerow={y}&tilecol={x}",
+        { maxZoom: 19, attribution: "Ortofoto &copy; Datafordeleren / SDFI" },
+      );
+      baseLayersRef.current.terrain = L.tileLayer(
+        "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        { maxZoom: 17, attribution: "&copy; OpenTopoMap (CC-BY-SA)", subdomains: "abc" },
+      );
+      baseLayersRef.current.labels = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png",
+        { maxZoom: 19, attribution: "&copy; CARTO", subdomains: "abcd", pane: "shadowPane" },
+      );
+
+      overlayRef.current = L.layerGroup().addTo(map);
+      drawingRef.current = L.layerGroup().addTo(map);
+
+      map.on("click", (e: import("leaflet").LeafletMouseEvent) => {
+        if (!onCanvasClick) return;
+        const { x, y } = latLngToVb(e.latlng.lat, e.latlng.lng);
+        onCanvasClick(x, y);
+      });
+      map.on("dblclick", () => onDoubleClick?.());
+
+      mapRef.current = map;
+      // initial base layer
+      baseLayersRef.current.sat.addTo(map);
+    })();
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // re-center on project change
+  useEffect(() => {
+    if (mapRef.current) mapRef.current.setView([lat0, lng0], 15);
+  }, [lat0, lng0]);
+
+  // swap base layers
+  useEffect(() => {
+    const map = mapRef.current;
+    const bl = baseLayersRef.current;
+    if (!map) return;
+    const setOn = (layer: import("leaflet").TileLayer | undefined, on: boolean) => {
+      if (!layer) return;
+      const has = map.hasLayer(layer);
+      if (on && !has) layer.addTo(map);
+      if (!on && has) map.removeLayer(layer);
+    };
+    // priority: ortofoto > satellite > terrain > osm
+    const useOrtho = !!layers.ortofoto;
+    const useSat = !useOrtho && !!layers.satellite;
+    const useTerrain = !useOrtho && !useSat && !!layers.terrain;
+    const useOsm = !useOrtho && !useSat && !useTerrain && !!layers.basemap;
+    setOn(bl.ortho, useOrtho);
+    setOn(bl.sat, useSat);
+    setOn(bl.terrain, useTerrain);
+    setOn(bl.osm, useOsm || (!useOrtho && !useSat && !useTerrain));
+    // labels overlay on satellite/ortho for context
+    setOn(bl.labels, useSat || useOrtho);
+  }, [layers.satellite, layers.ortofoto, layers.terrain, layers.basemap]);
+
+  // render overlays (zones, sensors, etc.)
+  useEffect(() => {
+    const L = LRef.current;
+    const og = overlayRef.current;
+    if (!L || !og) return;
+    og.clearLayers();
+
+    if (layers.boundary) {
+      const ring = pathToLatLngs("M60,60 L520,80 L540,300 L80,340 Z");
+      L.polygon(ring, {
+        color: "#16a34a",
+        weight: 2.5,
+        dashArray: "6 4",
+        fillOpacity: 0.04,
+      }).addTo(og);
+    }
+    if (layers.zones) {
+      MOCK_ZONES_GEO.forEach((z, i) => {
+        const ring = pathToLatLngs(z.path);
+        const poly = L.polygon(ring, {
+          color: "#16a34a",
+          weight: 1.5,
+          fillColor: "#22c55e",
+          fillOpacity: 0.1 + i * 0.04,
+        })
+          .addTo(og)
+          .on("click", () => onPick({ kind: "zone", data: z }));
+        poly.bindTooltip(z.name, { direction: "center", className: "text-xs" });
+      });
+    }
+    if (layers.drone) {
+      L.polygon(pathToLatLngs("M70,70 L420,75 L440,260 L80,250 Z"), {
+        color: "#0ea5e9",
+        weight: 1,
+        dashArray: "3 3",
+        fillOpacity: 0.08,
+      }).addTo(og);
+    }
+    if (layers.satellite) {
+      // visual NDVI hint rectangle
+      L.rectangle(
+        [vbToLatLng(40, 40), vbToLatLng(560, 360)],
+        { color: "#84cc16", weight: 0, fillOpacity: 0.07 },
+      ).addTo(og);
+    }
+    if (layers.gaps) {
+      [
+        { x: 420, y: 235, w: 80, h: 60, label: "Datagap nordøst" },
+        { x: 460, y: 90, w: 60, h: 40, label: "Drone gap nordøst" },
+      ].forEach((g) => {
+        const sw = vbToLatLng(g.x, g.y + g.h);
+        const ne = vbToLatLng(g.x + g.w, g.y);
+        L.rectangle([sw, ne], {
+          color: "#f59e0b",
+          weight: 1.5,
+          dashArray: "4 3",
+          fillOpacity: 0.18,
+        })
+          .addTo(og)
+          .on("click", () => onPick({ kind: "gap", data: { label: g.label } }));
+      });
+    }
+    if (layers.sensors) {
+      MOCK_SENSORS.forEach((s) => {
+        const [la, ln] = vbToLatLng(s.x, s.y);
+        L.circleMarker([la, ln], {
+          radius: 6,
+          color: "#16a34a",
+          fillColor: "#22c55e",
+          fillOpacity: 0.9,
+          weight: 2,
+        })
+          .addTo(og)
+          .bindTooltip(`${s.id} · ${s.label}`)
+          .on("click", () => onPick({ kind: "sensor", data: s }));
+      });
+    }
+    if (layers.gateways) {
+      const [la, ln] = vbToLatLng(297, 177);
+      L.circleMarker([la, ln], {
+        radius: 7,
+        color: "#dc2626",
+        fillColor: "#ef4444",
+        fillOpacity: 0.9,
+        weight: 2,
+      })
+        .addTo(og)
+        .bindTooltip("GW-03 offline")
+        .on("click", () =>
+          onPick({ kind: "gateway", data: { id: "SKB-GW-03", label: "LoRaWAN Gateway 03" } }),
+        );
+    }
+    if (layers.field) {
+      MOCK_FIELD_OBS.forEach((f, i) => {
+        const [la, ln] = vbToLatLng(f.x, f.y);
+        L.circleMarker([la, ln], {
+          radius: 5,
+          color: "#15803d",
+          fillColor: "#86efac",
+          fillOpacity: 0.95,
+          weight: 1.5,
+        })
+          .addTo(og)
+          .bindTooltip(`${f.label} · ${f.date}`)
+          .on("click", () => onPick({ kind: "field", data: f }));
+      });
+    }
+    if (layers.water) {
+      MOCK_WATER_SAMPLES.forEach((w, i) => {
+        const [la, ln] = vbToLatLng(w.x, w.y);
+        L.circleMarker([la, ln], {
+          radius: 5,
+          color: "#1d4ed8",
+          fillColor: "#3b82f6",
+          fillOpacity: 0.95,
+          weight: 1.5,
+        })
+          .addTo(og)
+          .bindTooltip(`${w.label} · pH ${w.ph}`)
+          .on("click", () => onPick({ kind: "water", data: w }));
+      });
+    }
+    if (layers.alerts) {
+      const [la, ln] = vbToLatLng(297, 177);
+      L.circleMarker([la, ln], {
+        radius: 14,
+        color: "#dc2626",
+        weight: 1.5,
+        fillOpacity: 0.18,
+      })
+        .addTo(og)
+        .bindTooltip("Alert: Sensor Gateway 03 offline");
+    }
+  }, [layers, onPick]);
+
+  // drawing overlay
+  useEffect(() => {
+    const L = LRef.current;
+    const dg = drawingRef.current;
+    if (!L || !dg) return;
+    dg.clearLayers();
+    if (drawnPoints.length === 0) return;
+    const latlngs = drawnPoints.map((p) => vbToLatLng(p.x, p.y));
+    L.polyline(latlngs, {
+      color: "#16a34a",
+      weight: 2,
+      dashArray: "4 3",
+    }).addTo(dg);
+    if (drawnPoints.length >= 3) {
+      L.polygon(latlngs, {
+        color: "#16a34a",
+        weight: 0,
+        fillColor: "#22c55e",
+        fillOpacity: 0.18,
+      }).addTo(dg);
+    }
+    latlngs.forEach(([la, ln]) =>
+      L.circleMarker([la, ln], {
+        radius: 3,
+        color: "#16a34a",
+        fillColor: "#16a34a",
+        fillOpacity: 1,
+        weight: 1,
+      }).addTo(dg),
+    );
+  }, [drawnPoints]);
+
   return (
-    <div className="relative h-[560px] bg-gradient-to-br from-leaf/30 via-card to-leaf/10 overflow-hidden">
-      <svg
-        viewBox="0 0 600 400"
-        className={`w-full h-full ${drawing ? "cursor-crosshair" : ""}`}
-        onClick={handleClick}
-        onDoubleClick={onDoubleClick}
-      >
-        <defs>
-          <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeOpacity="0.06" />
-          </pattern>
-          <pattern id="ortho" width="14" height="14" patternUnits="userSpaceOnUse">
-            <rect width="14" height="14" fill="oklch(0.85 0.04 100)" />
-            <circle cx="3" cy="3" r="1.2" fill="oklch(0.65 0.08 130)" />
-            <circle cx="9" cy="8" r="1.4" fill="oklch(0.6 0.1 140)" />
-          </pattern>
-          <pattern id="ndvi" width="20" height="20" patternUnits="userSpaceOnUse">
-            <rect width="20" height="20" fill="oklch(0.78 0.16 140 / 0.18)" />
-            <circle cx="10" cy="10" r="3" fill="oklch(0.72 0.18 145 / 0.35)" />
-          </pattern>
-        </defs>
-        {layers.ortofoto && <rect width="600" height="400" fill="url(#ortho)" opacity="0.5" />}
-        {!layers.ortofoto && <rect width="600" height="400" fill="url(#grid2)" />}
-        {layers.terrain && <rect width="600" height="400" fill="oklch(0.88 0.04 90 / 0.4)" />}
-
-        {/* Satellite NDVI overlay */}
-        {layers.satellite && <rect x="40" y="40" width="520" height="320" fill="url(#ndvi)" />}
-
-        {/* Drone coverage overlay */}
-        {layers.drone && (
-          <path
-            d="M70,70 L420,75 L440,260 L80,250 Z"
-            fill="oklch(0.7 0.1 200 / 0.15)"
-            stroke="oklch(0.55 0.12 210)"
-            strokeOpacity="0.4"
-            strokeDasharray="3 3"
-          />
-        )}
-
-        {/* Project boundary */}
-        {layers.boundary && (
-          <path
-            d="M60,60 L520,80 L540,300 L80,340 Z"
-            fill="oklch(0.45 0.13 155 / 0.04)"
-            stroke="hsl(var(--primary, 0 0% 0%))"
-            style={{ stroke: "var(--primary)" }}
-            strokeDasharray="6 4"
-            strokeWidth="2.5"
-          />
-        )}
-
-        {/* Zones */}
-        {layers.zones &&
-          MOCK_ZONES_GEO.map((z, i) => (
-            <g
-              key={z.name}
-              className="cursor-pointer"
-              onClick={() => onPick({ kind: "zone", data: z })}
-            >
-              <path
-                d={z.path}
-                fill={`oklch(0.55 0.13 155 / ${0.06 + i * 0.02})`}
-                stroke="var(--primary)"
-                strokeOpacity="0.4"
-              />
-            </g>
-          ))}
-
-        {/* Zone labels */}
-        {layers.zones &&
-          MOCK_ZONES_GEO.map((z) => {
-            const m = z.path.match(/M(\d+),(\d+)/);
-            if (!m) return null;
-            const x = +m[1] + 60,
-              y = +m[2] + 60;
-            return (
-              <text
-                key={z.name + "l"}
-                x={x}
-                y={y}
-                fontSize="10"
-                className="fill-foreground pointer-events-none"
-                opacity="0.75"
-              >
-                {z.name.split("—")[0].trim()}
-              </text>
-            );
-          })}
-
-        {/* Data gaps */}
-        {layers.gaps && (
-          <>
-            <g
-              className="cursor-pointer"
-              onClick={() => onPick({ kind: "gap", data: { label: "Datagap nordøst" } })}
-            >
-              <rect
-                x={420}
-                y={235}
-                width="80"
-                height="60"
-                fill="oklch(0.78 0.14 60 / 0.25)"
-                stroke="oklch(0.6 0.18 50)"
-                strokeDasharray="4 3"
-              />
-              <text x={428} y={270} fontSize="10" fill="oklch(0.45 0.18 50)">
-                Datagap
-              </text>
-            </g>
-            <g
-              className="cursor-pointer"
-              onClick={() => onPick({ kind: "gap", data: { label: "Drone gap nordøst" } })}
-            >
-              <rect
-                x={460}
-                y={90}
-                width="60"
-                height="40"
-                fill="oklch(0.78 0.14 60 / 0.2)"
-                stroke="oklch(0.6 0.18 50)"
-                strokeDasharray="4 3"
-              />
-            </g>
-          </>
-        )}
-
-        {/* Sensors */}
-        {layers.sensors &&
-          MOCK_SENSORS.map((s) => (
-            <g
-              key={s.id}
-              className="cursor-pointer"
-              onClick={() => onPick({ kind: "sensor", data: s })}
-            >
-              <circle cx={s.x} cy={s.y} r="10" fill="var(--primary)" opacity="0.18" />
-              <circle cx={s.x} cy={s.y} r="5" fill="var(--primary)" />
-            </g>
-          ))}
-
-        {/* Gateway */}
-        {layers.gateways && (
-          <g
-            className="cursor-pointer"
-            onClick={() =>
-              onPick({ kind: "gateway", data: { id: "SKB-GW-03", label: "LoRaWAN Gateway 03" } })
-            }
-          >
-            <rect x={290} y={170} width="14" height="14" fill="oklch(0.55 0.2 25)" />
-            <text x={310} y={182} fontSize="10" fill="oklch(0.5 0.2 25)">
-              GW-03 offline
-            </text>
-          </g>
-        )}
-
-        {/* Field obs */}
-        {layers.field &&
-          MOCK_FIELD_OBS.map((f, i) => (
-            <g
-              key={i}
-              className="cursor-pointer"
-              onClick={() => onPick({ kind: "field", data: f })}
-            >
-              <polygon
-                points={`${f.x},${f.y - 7} ${f.x + 6},${f.y + 5} ${f.x - 6},${f.y + 5}`}
-                fill="var(--leaf)"
-              />
-            </g>
-          ))}
-
-        {/* Water samples */}
-        {layers.water &&
-          MOCK_WATER_SAMPLES.map((w, i) => (
-            <g
-              key={i}
-              className="cursor-pointer"
-              onClick={() => onPick({ kind: "water", data: w })}
-            >
-              <circle
-                cx={w.x}
-                cy={w.y}
-                r="6"
-                fill="oklch(0.6 0.15 230)"
-                stroke="white"
-                strokeWidth="1.5"
-              />
-            </g>
-          ))}
-
-        {/* Alerts */}
-        {layers.alerts && (
-          <g
-            className="cursor-pointer"
-            onClick={() =>
-              onPick({
-                kind: "alert",
-                data: { id: "ALT-2041", label: "Sensor Gateway 03 offline" },
-              })
-            }
-          >
-            <circle cx={297} cy={177} r="14" fill="oklch(0.55 0.2 25 / 0.25)" />
-          </g>
-        )}
-
-        {/* Drawing in progress */}
-        {drawnPoints.length > 0 && (
-          <>
-            <polyline
-              points={drawnPoints.map((p) => `${p.x},${p.y}`).join(" ")}
-              fill="oklch(0.55 0.13 155 / 0.15)"
-              stroke="var(--primary)"
-              strokeWidth="2"
-              strokeDasharray="4 3"
-            />
-            {drawnPoints.map((p, i) => (
-              <circle key={i} cx={p.x} cy={p.y} r="3" fill="var(--primary)" />
-            ))}
-          </>
-        )}
-      </svg>
+    <div className="relative h-[560px] overflow-hidden">
+      <div
+        ref={mapEl}
+        className={`absolute inset-0 ${drawing ? "cursor-crosshair" : ""}`}
+        style={{ zIndex: 0 }}
+      />
 
       {/* Project chip */}
-      <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 text-xs bg-card/95 border rounded-full px-2.5 py-1 shadow-soft">
+      <div className="absolute top-3 left-3 z-[400] inline-flex items-center gap-1.5 text-xs bg-card/95 border rounded-full px-2.5 py-1 shadow-soft">
         <MapPin className="h-3 w-3 text-primary" /> {proj.name} · {proj.area}
       </div>
 
       {/* Drawing instruction */}
       {drawing && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 text-xs bg-foreground text-background rounded-full px-3 py-1.5 shadow-card">
-          <Crosshair className="h-3.5 w-3.5" /> Klik på kortet for at tegne zonen. Dobbeltklik for
-          at afslutte.
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[400] inline-flex items-center gap-2 text-xs bg-foreground text-background rounded-full px-3 py-1.5 shadow-card">
+          <Crosshair className="h-3.5 w-3.5" /> Klik på kortet for at tegne. Dobbeltklik for at
+          afslutte.
         </div>
       )}
 
       {/* Mini legend */}
-      <div className="absolute bottom-3 right-3 bg-card/95 border rounded-lg p-2.5 text-[11px] space-y-1 shadow-soft">
+      <div className="absolute bottom-3 right-3 z-[400] bg-card/95 border rounded-lg p-2.5 text-[11px] space-y-1 shadow-soft">
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-primary" /> Sensor
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm" style={{ background: "oklch(0.55 0.2 25)" }} />{" "}
-          Gateway / Alert
+          <span className="h-2 w-2 rounded-full" style={{ background: "#ef4444" }} /> Gateway /
+          Alert
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rotate-45 bg-leaf" /> Feltobservation
+          <span className="h-2 w-2 rounded-full" style={{ background: "#86efac" }} /> Feltobservation
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ background: "oklch(0.6 0.15 230)" }} />{" "}
-          Vandprøve
+          <span className="h-2 w-2 rounded-full" style={{ background: "#3b82f6" }} /> Vandprøve
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2" style={{ background: "oklch(0.78 0.14 60)" }} /> Datagap
+          <span className="h-2 w-2" style={{ background: "#f59e0b" }} /> Datagap
         </div>
       </div>
     </div>
   );
 }
+
 
 // ---------- Zone card ----------
 export function ZoneCard({
