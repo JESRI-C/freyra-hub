@@ -284,7 +284,7 @@ create index if not exists idx_projects_centroid
 -- ─── MIGRATION 006: Project Media ────────────────────────────────────────────
 create table if not exists project_media (
   id              uuid primary key default gen_random_uuid(),
-  project_id      text not null references projects(id) on delete cascade,
+  project_id      uuid not null references projects(id) on delete cascade,
   title           text not null,
   description     text,
   category        text not null,
