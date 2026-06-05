@@ -32,8 +32,8 @@ function ReportsLayout() {
   return (
     <>
       <AppTopbar
-        title="Rapporter"
-        subtitle="AI-assisteret rapporteringsstudie til ESG, natur og impact"
+        title="Report Engine"
+        subtitle="Generér Green Tripart-, lodsejer-, metode- og myndighedsnotater fra projektets data"
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
