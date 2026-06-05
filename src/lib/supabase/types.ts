@@ -148,6 +148,12 @@ export type Project = {
   end_date: string | null;
   description: string | null;
   created_at: string;
+  // Geometry fields (migration 005)
+  geometry_polygon: Record<string, unknown> | null;
+  geometry_centroid_lat: number | null;
+  geometry_centroid_lng: number | null;
+  geometry_area_ha: number | null;
+  geometry_source: string | null;
 };
 
 export type Site = {

@@ -40,6 +40,8 @@ export const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
+const GEO_NULL = { geometry_polygon: null, geometry_centroid_lat: null, geometry_centroid_lng: null, geometry_area_ha: null, geometry_source: "none" as const };
+
 export const SEED_PROJECTS: Project[] = [
   {
     id: "10000000-0000-0000-0000-000000000001",
@@ -47,15 +49,19 @@ export const SEED_PROJECTS: Project[] = [
     name: "Skallebæk Biodiversity Pilot",
     slug: "skallebaek-biodiversity-pilot",
     project_type: "Biodiversitet",
-    location_name: "Haderslev",
-    municipality: "Haderslev",
+    location_name: "Skallebæk Å-dal",
+    municipality: "Vejle",
     country: "Denmark",
     status: "Under verifikation",
     start_date: "2024-04-01",
     end_date: "2027-03-31",
-    description:
-      "Pilotprojekt for naturgenopretning langs Skallebæk med fokus på vandløbsbiodiversitet, vådområder og skovkant.",
+    description: "Pilotprojekt for naturgenopretning langs Skallebæk med fokus på vandløbsbiodiversitet, vådområder og skovkant.",
     created_at: "2024-04-01T08:00:00Z",
+    geometry_polygon: { type: "Polygon", coordinates: [[[9.4821,55.2514],[9.4835,55.2514],[9.4835,55.2525],[9.4821,55.2525],[9.4821,55.2514]]] },
+    geometry_centroid_lat: 55.252,
+    geometry_centroid_lng: 9.4828,
+    geometry_area_ha: 7.3,
+    geometry_source: "manual",
   },
   {
     id: "10000000-0000-0000-0000-000000000002",
@@ -71,6 +77,11 @@ export const SEED_PROJECTS: Project[] = [
     end_date: "2028-12-31",
     description: "Storskala genopretning af tang- og ålegræsenge langs den danske kyststrækning.",
     created_at: "2023-01-15T09:00:00Z",
+    geometry_polygon: null,
+    geometry_centroid_lat: 56.83,
+    geometry_centroid_lng: 9.25,
+    geometry_area_ha: 42.0,
+    geometry_source: "estimated",
   },
   {
     id: "10000000-0000-0000-0000-000000000003",
@@ -84,9 +95,13 @@ export const SEED_PROJECTS: Project[] = [
     status: "Verificeret",
     start_date: "2024-01-01",
     end_date: "2026-12-31",
-    description:
-      "Forbedring af vandkvalitet og biodiversitet i bynære vandløb og havne i Storkøbenhavn.",
+    description: "Forbedring af vandkvalitet og biodiversitet i bynære vandløb og havne i Storkøbenhavn.",
     created_at: "2024-01-10T10:00:00Z",
+    geometry_polygon: null,
+    geometry_centroid_lat: 55.676,
+    geometry_centroid_lng: 12.568,
+    geometry_area_ha: 12.0,
+    geometry_source: "estimated",
   },
   {
     id: "10000000-0000-0000-0000-000000000004",
@@ -100,9 +115,13 @@ export const SEED_PROJECTS: Project[] = [
     status: "Under verifikation",
     start_date: "2025-03-01",
     end_date: "2028-02-28",
-    description:
-      "Genvådning af lavbundsjorde i Vestjylland for at reducere CO₂-udledning og styrke biodiversitet.",
+    description: "Genvådning af lavbundsjorde i Vestjylland for at reducere CO₂-udledning og styrke biodiversitet.",
     created_at: "2025-03-01T08:00:00Z",
+    geometry_polygon: null,
+    geometry_centroid_lat: 56.0,
+    geometry_centroid_lng: 8.4,
+    geometry_area_ha: 85.0,
+    geometry_source: "estimated",
   },
   // ─── Construction projects ──────────────────────────────────────────────────
   {
@@ -117,9 +136,9 @@ export const SEED_PROJECTS: Project[] = [
     status: "Under verifikation",
     start_date: "2025-09-01",
     end_date: "2027-06-30",
-    description:
-      "Parkeringshus med 480 pladser ved Aarhus Å. Projektet grænser op til vandløbet og kræver afstrømningsdokumentation og natur-KV-rapport til Aarhus Kommune.",
+    description: "Parkeringshus med 480 pladser ved Aarhus Å. Projektet grænser op til vandløbet og kræver afstrømningsdokumentation og natur-KV-rapport til Aarhus Kommune.",
     created_at: "2025-08-15T08:00:00Z",
+    ...GEO_NULL,
   },
   {
     id: "10000000-0000-0000-0000-000000000006",
@@ -133,9 +152,9 @@ export const SEED_PROJECTS: Project[] = [
     status: "Kladde",
     start_date: "2026-03-01",
     end_date: "2027-12-31",
-    description:
-      "Logistikcenter på 18.000 m² med stor befæstet areal. Placeret nær beskyttet eng — kræver miljøvurdering og myndighedsansøgning til Kolding Kommune og Miljøstyrelsen.",
+    description: "Logistikcenter på 18.000 m² med stor befæstet areal. Placeret nær beskyttet eng — kræver miljøvurdering og myndighedsansøgning til Kolding Kommune og Miljøstyrelsen.",
     created_at: "2025-11-01T08:00:00Z",
+    ...GEO_NULL,
   },
   {
     id: "10000000-0000-0000-0000-000000000007",
@@ -149,9 +168,9 @@ export const SEED_PROJECTS: Project[] = [
     status: "Under verifikation",
     start_date: "2026-01-15",
     end_date: "2028-09-30",
-    description:
-      "340 boliger i 6 etager med grøn tagterrasse og klimatilpasset lokal afledning af regnvand. Myndighedspakke sendt til Teknik- og Miljøforvaltningen.",
+    description: "340 boliger i 6 etager med grøn tagterrasse og klimatilpasset lokal afledning af regnvand. Myndighedspakke sendt til Teknik- og Miljøforvaltningen.",
     created_at: "2025-12-01T08:00:00Z",
+    ...GEO_NULL,
   },
 ];
 
