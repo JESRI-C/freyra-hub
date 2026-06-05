@@ -179,6 +179,12 @@ function ProjectDetailPage() {
 
   // Local action state (optimistic UI)
   const [localActions, setLocalActions] = useState<Action[]>(actions);
+  const queryClient = useQueryClient();
+
+  // Keep localActions in sync if the underlying query refreshes
+  useEffect(() => {
+    setLocalActions(actions);
+  }, [actions]);
 
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
@@ -188,10 +194,35 @@ function ProjectDetailPage() {
     (d) => d.status === "online" || d.status === "partial",
   ).length;
 
-  const syncActions = (ids: string[], newStatus: string) => {
+  const syncActions = async (ids: string[], newStatus: string) => {
+    // Optimistic UI
     setLocalActions((prev) =>
       prev.map((a) => (ids.includes(a.id) ? { ...a, status: newStatus } : a)),
     );
+
+    if (!isSupabaseConfigured) {
+      toast.info("Database ikke konfigureret — kun lokal opdatering");
+      return;
+    }
+
+    try {
+      await Promise.all(
+        ids.map((id) =>
+          newStatus === "Lukket"
+            ? completeAction(id, projectId)
+            : updateActionDetails(id, { status: newStatus }, projectId),
+        ),
+      );
+      toast.success(
+        newStatus === "Lukket" ? "Handling afsluttet" : `Handling opdateret: ${newStatus}`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
+    } catch (err) {
+      toast.error(`Kunne ikke opdatere handling: ${(err as Error).message}`);
+      // Roll back optimistic update on failure
+      setLocalActions(actions);
+    }
   };
 
   // IoT sensors — generated deterministically from project id + centroid
