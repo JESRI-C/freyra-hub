@@ -12,7 +12,7 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/impact")({
-  head: () => ({ meta: [{ title: "Impact Exchange — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Funding & Impact Potential — GoFreyra" }] }),
   component: ImpactLayout,
 });
 
@@ -20,10 +20,10 @@ const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: b
   { to: "/app/impact", label: "Overblik", icon: LayoutDashboard, exact: true },
   { to: "/app/impact/projects", label: "Projekter", icon: Layers },
   { to: "/app/impact/project", label: "Projektprofil", icon: FileBadge },
-  { to: "/app/impact/portfolio", label: "Min portefølje", icon: Briefcase },
-  { to: "/app/impact/credits", label: "Credits & aktiver", icon: Coins },
+  { to: "/app/impact/portfolio", label: "Portefølje", icon: Briefcase },
+  { to: "/app/impact/credits", label: "Finansiering & midler", icon: Coins },
   { to: "/app/impact/verification", label: "Verifikation", icon: ShieldCheck },
-  { to: "/app/impact/organizations", label: "Organisationer", icon: Building2 },
+  { to: "/app/impact/organizations", label: "Partnere & fonde", icon: Building2 },
   { to: "/app/impact/reports", label: "Impact-rapporter", icon: FileBarChart },
 ];
 
@@ -32,8 +32,8 @@ function ImpactLayout() {
   return (
     <>
       <AppTopbar
-        title="Impact Exchange"
-        subtitle="Find, vurdér og dokumentér verificerede natur- og klimaprojekter"
+        title="Funding & Impact Potential"
+        subtitle="Find finansiering og dokumentér naturprojekters effekt for fonde, kommuner og lodsejere"
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">

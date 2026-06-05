@@ -35,7 +35,7 @@ import {
   ReportReadinessBadge,
   actionToast,
 } from "@/components/platform/Primitives";
-import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
+import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS, MOCK_REPORT_TEMPLATES } from "@/lib/platform-data";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import { getAllReports, reportStatusTone } from "@/services/reports-service";
 import type { Report } from "@/lib/supabase/types";
@@ -147,9 +147,34 @@ function Page() {
 
 
       <PageHeader
-        title="Rapportcenter"
-        description="Realtidsoverblik over rapportering, klarhed og aktivitet."
+        title="Report Engine"
+        description="Generér rapporter til Green Tripart, lodsejere, myndigheder, fonde og borgere — med metode og kilder synlige."
       />
+
+      {/* Mock report cards — strategic templates */}
+      <div>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Rapportskabeloner til naturprojekter
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {MOCK_REPORT_TEMPLATES.map((t) => (
+            <Link
+              key={t.id}
+              to={t.href}
+              className="rounded-xl border bg-card p-4 hover:shadow-soft hover:border-primary/40 transition block"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-8 w-8 rounded-lg bg-leaf/20 text-primary grid place-items-center">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <Pill>{t.audience}</Pill>
+              </div>
+              <div className="text-sm font-semibold leading-tight">{t.title}</div>
+              <div className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.sub}</div>
+            </Link>
+          ))}
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard label="Rapporter" value="24" icon={<FileText className="h-5 w-5" />} />
