@@ -14,6 +14,7 @@ import { EvidenceUploadForm } from "@/components/project/EvidenceUploadForm";
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
+import { BiodiversityCard } from "@/components/project/BiodiversityCard";
 import {
   getProjectBySlug,
   getSitesByProject,
