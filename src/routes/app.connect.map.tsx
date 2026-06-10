@@ -14,8 +14,16 @@ import {
 import { MapEditorMap } from "@/components/maps/MapEditorMap";
 import { useMapEditor } from "@/hooks/useMapEditor";
 import { useNdvi } from "@/hooks/useNdvi";
+import { useFullAnalysis } from "@/hooks/useFullAnalysis";
 import { getProjects } from "@/services/projects-service";
 import { ZONE_TYPE_LABELS, type Zone, type ZoneType } from "@/services/zones-service";
+import {
+  buildProjectGeoJSON,
+  buildMetricsCsv,
+  buildZonesCsv,
+  downloadGeoJSON,
+  downloadCsv,
+} from "@/services/export-service";
 
 export const Route = createFileRoute("/app/connect/map")({
   head: () => ({ meta: [{ title: "Kort & zoner — GoFreyra" }] }),
@@ -51,10 +59,35 @@ function Page() {
   );
 
   const map = useMapEditor(project, ndvi);
+  const analysis = useFullAnalysis(project);
 
   const lat = project?.geometry_centroid_lat ?? null;
   const lng = project?.geometry_centroid_lng ?? null;
   const hasGeometry = !!project && lat != null && lng != null;
+
+  const handleExportGeoJSON = () => {
+    if (!project) return;
+    const gj = buildProjectGeoJSON({
+      project,
+      zones: map.zones,
+      sensors: map.sensors,
+      paragraph3Areas: map.paragraph3Areas,
+      watercourses: map.watercourseFeatures,
+      analysis: analysis.summary,
+    });
+    downloadGeoJSON(gj, project.slug ?? "projekt");
+  };
+
+  const handleExportMetricsCsv = async () => {
+    if (!project) return;
+    const csv = await buildMetricsCsv(project, analysis.summary);
+    downloadCsv(csv, `${project.slug ?? "projekt"}-metrics.csv`);
+  };
+
+  const handleExportZonesCsv = () => {
+    if (!project || map.zones.length === 0) return;
+    downloadCsv(buildZonesCsv(map.zones), `${project.slug ?? "projekt"}-zoner.csv`);
+  };
 
   return (
     <main className="p-6 max-w-[1500px] w-full mx-auto space-y-4">
@@ -195,6 +228,86 @@ function Page() {
               </div>
             </Card>
           )}
+
+          {/* ── Fuld miljøanalyse ─────────────────────────────────────── */}
+          <Card>
+            <CardHeader title="Miljøanalyse" subtitle="Satellit, natur, klima og vand" />
+            <div className="px-5 pb-5 space-y-3">
+              <button
+                onClick={analysis.run}
+                disabled={analysis.isRunning || !hasGeometry}
+                className="w-full text-sm rounded-lg bg-primary text-primary-foreground px-3 py-2.5 font-medium disabled:opacity-50"
+              >
+                {analysis.isRunning ? analysis.stepLabel : "▶ Kør fuld analyse"}
+              </button>
+
+              {analysis.error && (
+                <div className="text-xs text-destructive">{analysis.error}</div>
+              )}
+
+              {analysis.summary && (
+                <div className="space-y-2 text-sm">
+                  <ResultRow label="NDVI" value={analysis.summary.ndviValue?.toFixed(2) ?? "—"} />
+                  <ResultRow
+                    label="Biodiversitet"
+                    value={analysis.summary.biodiversityScore != null
+                      ? `${analysis.summary.biodiversityScore}/100 · ${analysis.summary.biodiversityClass}`
+                      : "—"}
+                  />
+                  <ResultRow
+                    label="§3-natur"
+                    value={analysis.summary.p3OverlapHa != null ? `${analysis.summary.p3OverlapHa} ha` : "—"}
+                  />
+                  <ResultRow
+                    label="Arter"
+                    value={analysis.summary.speciesCount != null
+                      ? `${analysis.summary.speciesCount} (${analysis.summary.redListedCount ?? 0} rødlistede)`
+                      : "—"}
+                  />
+                  <ResultRow
+                    label="CO₂-binding"
+                    value={analysis.summary.annualCO2 != null ? `${analysis.summary.annualCO2} t/år` : "—"}
+                  />
+                  <ResultRow
+                    label="Vandrisiko"
+                    value={analysis.summary.waterRisk ?? "—"}
+                  />
+                  <div className="text-[11px] text-muted-foreground pt-1">
+                    Gennemført på {analysis.durationS}s — gemt i databasen
+                    {analysis.stepsFailed.length > 0 && ` · ${analysis.stepsFailed.length} trin fejlede`}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* ── Dataudtræk ────────────────────────────────────────────── */}
+          <Card>
+            <CardHeader title="Dataudtræk" subtitle="Download projektets data" />
+            <div className="px-5 pb-5 space-y-2">
+              <button
+                onClick={handleExportGeoJSON}
+                disabled={!project}
+                className="w-full text-sm rounded-lg border px-3 py-2 hover:bg-muted text-left disabled:opacity-50"
+              >
+                ⬇ GeoJSON — grænse, zoner, sensorer, §3, vandløb
+              </button>
+              <button
+                onClick={handleExportMetricsCsv}
+                disabled={!project}
+                className="w-full text-sm rounded-lg border px-3 py-2 hover:bg-muted text-left disabled:opacity-50"
+              >
+                ⬇ CSV — indikatorer og analyseresultater
+              </button>
+              <button
+                onClick={handleExportZonesCsv}
+                disabled={!project || map.zones.length === 0}
+                className="w-full text-sm rounded-lg border px-3 py-2 hover:bg-muted text-left disabled:opacity-50"
+              >
+                ⬇ CSV — zoner med areal
+              </button>
+            </div>
+          </Card>
         </div>
       </div>
 
@@ -270,6 +383,15 @@ function LayerToggle({
       <span>{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} />
     </label>
+  );
+}
+
+function ResultRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="font-medium text-right">{value}</span>
+    </div>
   );
 }
 
