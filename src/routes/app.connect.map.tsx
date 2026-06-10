@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { MapEditorMap } from "@/components/maps/MapEditorMap";
+import { SpeciesIdentifier } from "@/components/nature/SpeciesIdentifier";
 import { useMapEditor } from "@/hooks/useMapEditor";
 import { useNdvi } from "@/hooks/useNdvi";
 import { useFullAnalysis } from "@/hooks/useFullAnalysis";
@@ -167,6 +168,8 @@ function Page() {
               onChange={map.setShowNdviOverlay}
             />
           </Card>
+
+          <SpeciesIdentifier project={project} />
         </div>
 
         {/* ── Center: toolbar + map ────────────────────────────────── */}
