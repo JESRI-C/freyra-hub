@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin } from "lucide-react";
+import { MapPin, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { PageHeader, Card, CardHeader, Pill } from "@/components/ui-bits";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -15,7 +15,7 @@ import { MapEditorMap } from "@/components/maps/MapEditorMap";
 import { useMapEditor } from "@/hooks/useMapEditor";
 import { useNdvi } from "@/hooks/useNdvi";
 import { getProjects } from "@/services/projects-service";
-import { ZONE_TYPE_LABELS, type ZoneType } from "@/services/zones-service";
+import { ZONE_TYPE_LABELS, type Zone, type ZoneType } from "@/services/zones-service";
 
 export const Route = createFileRoute("/app/connect/map")({
   head: () => ({ meta: [{ title: "Kort & zoner — GoFreyra" }] }),
@@ -62,6 +62,23 @@ function Page() {
         title="Kort & zoner"
         description="Geospatialt arbejdsrum — tegn projektgrænse og zoner, slå lag til/fra og se datadækning."
       />
+
+      {/* Fejl- og succes-bannere */}
+      {map.lastError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span className="flex-1">{map.lastError}</span>
+          <button onClick={map.clearError} aria-label="Luk">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      {map.boundarySaved && (
+        <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/10 px-4 py-2.5 text-sm text-success">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          Projektgrænse gemt — areal og centroid er opdateret.
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-[280px_1fr_320px] gap-4">
         {/* ── Left panel ───────────────────────────────────────────── */}
@@ -220,8 +237,18 @@ function Page() {
         areaHa={map.newZoneState?.area_ha ?? 0}
         defaultName={map.newZoneState?.name ?? ""}
         isSaving={map.isSavingZone}
-        onCancel={() => map.setDrawMode("none")}
+        onCancel={map.cancelNewZone}
         onConfirm={(name, type) => map.confirmCreateZone(name, type)}
+      />
+
+      {/* ── Zone detail dialog (rediger/slet) ──────────────────────── */}
+      <ZoneDetailDialog
+        zone={map.selectedZone}
+        isUpdating={map.isUpdatingZone}
+        isDeleting={map.isDeletingZone}
+        onClose={() => map.setSelectedZone(null)}
+        onSave={(id, name, type) => map.updateZone(id, { name, area_type: type })}
+        onDelete={(id) => map.deleteZone(id)}
       />
     </main>
   );
@@ -282,8 +309,11 @@ function NewZoneDialog({
   const [type, setType] = useState<ZoneType>("nature");
 
   // sync default name when dialog opens
-  useMemo(() => {
-    if (open) setName(defaultName);
+  useEffect(() => {
+    if (open) {
+      setName(defaultName);
+      setType("nature");
+    }
   }, [open, defaultName]);
 
   return (
@@ -331,6 +361,113 @@ function NewZoneDialog({
             className="text-sm rounded-lg bg-primary text-primary-foreground px-3 py-2 disabled:opacity-50"
           >
             {isSaving ? "Gemmer…" : "Gem zone"}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ZoneDetailDialog({
+  zone,
+  isUpdating,
+  isDeleting,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  zone: Zone | null;
+  isUpdating: boolean;
+  isDeleting: boolean;
+  onClose: () => void;
+  onSave: (id: string, name: string, type: ZoneType) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [type, setType] = useState<ZoneType>("nature");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (zone) {
+      setName(zone.name);
+      setType(zone.area_type);
+      setConfirmDelete(false);
+    }
+  }, [zone]);
+
+  if (!zone) return null;
+
+  return (
+    <Dialog open={!!zone} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Redigér zone</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="text-muted-foreground">
+            Areal: <span className="text-foreground font-medium">{zone.area_ha?.toFixed(2) ?? "—"} ha</span>
+            <span className="mx-2">·</span>
+            Oprettet: {new Date(zone.created_at).toLocaleDateString("da-DK")}
+          </div>
+          <label className="block">
+            <div className="text-xs text-muted-foreground mb-1">Navn</div>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-lg border bg-background px-2.5 py-2 text-sm"
+            />
+          </label>
+          <label className="block">
+            <div className="text-xs text-muted-foreground mb-1">Type</div>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as ZoneType)}
+              className="w-full rounded-lg border bg-background px-2.5 py-2 text-sm"
+            >
+              {Object.entries(ZONE_TYPE_LABELS).map(([k, label]) => (
+                <option key={k} value={k}>{label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <DialogFooter className="flex-wrap gap-2">
+          {confirmDelete ? (
+            <div className="flex items-center gap-2 mr-auto">
+              <span className="text-xs text-destructive">Slet permanent?</span>
+              <button
+                disabled={isDeleting}
+                onClick={() => onDelete(zone.id)}
+                className="text-sm rounded-lg bg-destructive text-destructive-foreground px-3 py-2 disabled:opacity-50"
+              >
+                {isDeleting ? "Sletter…" : "Ja, slet"}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-sm rounded-lg border px-3 py-2 hover:bg-muted"
+              >
+                Nej
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="text-sm rounded-lg border border-destructive/40 text-destructive px-3 py-2 hover:bg-destructive/10 mr-auto"
+            >
+              Slet zone
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="text-sm rounded-lg border px-3 py-2 hover:bg-muted"
+          >
+            Annullér
+          </button>
+          <button
+            disabled={isUpdating || !name.trim()}
+            onClick={() => onSave(zone.id, name.trim(), type)}
+            className="text-sm rounded-lg bg-primary text-primary-foreground px-3 py-2 disabled:opacity-50"
+          >
+            {isUpdating ? "Gemmer…" : "Gem ændringer"}
           </button>
         </DialogFooter>
       </DialogContent>

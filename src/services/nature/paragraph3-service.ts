@@ -264,6 +264,69 @@ export async function fetchSpeciesObservations(
   };
 }
 
+// ─── Vandløb ──────────────────────────────────────────────────────────────────
+
+export interface WatercourseFeature {
+  id: string;
+  name?: string;
+  coordinates: number[][]; // [lng, lat] par langs linjen
+}
+
+/**
+ * Henter vandløbslinjer indenfor bbox via Miljøportalens WFS.
+ * Returnerer LineString-koordinater klar til Leaflet polylines.
+ */
+export async function fetchWatercourses(
+  lat: number,
+  lng: number,
+  delta = 0.02,
+): Promise<WatercourseFeature[]> {
+  try {
+    const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
+    const params = new URLSearchParams({
+      service: "WFS",
+      version: "2.0.0",
+      request: "GetFeature",
+      typeNames: "mp:vandloeb",
+      outputFormat: "application/json",
+      bbox: `${bbox},EPSG:4326`,
+      srsName: "EPSG:4326",
+      count: "50",
+    });
+
+    const res = await fetch(`${WFS_BASE}?${params}`, {
+      signal: AbortSignal.timeout(10_000),
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return [];
+
+    const json = (await res.json()) as {
+      features?: Array<{
+        id?: string;
+        geometry?: { type: string; coordinates: unknown };
+        properties?: Record<string, unknown>;
+      }>;
+    };
+
+    const out: WatercourseFeature[] = [];
+    (json.features ?? []).forEach((f, i) => {
+      const geom = f.geometry;
+      if (!geom) return;
+      const name = (f.properties?.["navn"] ?? f.properties?.["name"]) as string | undefined;
+      if (geom.type === "LineString") {
+        out.push({ id: f.id ?? `wl-${i}`, name, coordinates: geom.coordinates as number[][] });
+      } else if (geom.type === "MultiLineString") {
+        (geom.coordinates as number[][][]).forEach((line, j) => {
+          out.push({ id: `${f.id ?? `wl-${i}`}-${j}`, name, coordinates: line });
+        });
+      }
+    });
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Henter §3 og artsobservationer med graceful fallback til preview.
  */
