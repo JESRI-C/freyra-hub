@@ -343,39 +343,124 @@ function Page() {
           </>
         }
       >
-        {selected && (
-          <>
-            <p className="text-sm">{selected.title}</p>
-            <Section title="Hvorfor det er vigtigt">
-              <p className="text-sm text-muted-foreground">
-                {selected.severity === "critical"
-                  ? "Påvirker direkte rapporteringsklarhed og kan blokere ESG Ledger entries."
-                  : "Reducerer datakvalitet og kan udløse falske anbefalinger i DecisionsIQ."}
-              </p>
-            </Section>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <KV label="Severity" v={<SeverityBadge severity={selected.severity} />} />
-              <KV label="Type" v={selected.type} />
-              <KV label="Først detekteret" v={selected.first} />
-              <KV label="Sidst detekteret" v={selected.last} />
-              <KV label="Projekt" v={selected.project} />
-              <KV label="Kilde" v={selected.source} />
-            </div>
-            <Section title="Anbefalet handling">
-              <p className="text-sm">{selected.action}</p>
-            </Section>
-            <Section title="Tidslinje">
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>{selected.first} — Alert udløst</li>
-                <li>{selected.last} — Sidste forekomst</li>
-                <li>Owner notificeret · {selected.owner}</li>
-              </ul>
-            </Section>
-          </>
-        )}
+        {selected && (() => {
+          const r = toRow(selected);
+          const isLive = selected.__live === true;
+          return (
+            <>
+              <p className="text-sm">{r.title}</p>
+              <Section title="Hvorfor det er vigtigt">
+                <p className="text-sm text-muted-foreground">
+                  {r.sev === "critical"
+                    ? "Påvirker direkte rapporteringsklarhed og kan blokere ESG Ledger entries."
+                    : "Reducerer datakvalitet og kan udløse falske anbefalinger i DecisionsIQ."}
+                </p>
+              </Section>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <KV label="Severity" v={<SeverityBadge severity={r.sev} />} />
+                <KV label="Type" v={r.type} />
+                <KV label="Først detekteret" v={r.first} />
+                <KV label="Sidst detekteret" v={r.last} />
+                <KV label="Projekt" v={r.project} />
+                <KV label="Kilde" v={r.source} />
+              </div>
+              <Section title="Anbefalet handling">
+                <p className="text-sm">{r.action}</p>
+              </Section>
+              <Section title="Tidslinje">
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>{r.first} — Alert udløst</li>
+                  <li>{r.last} — Sidste forekomst</li>
+                  <li>Owner notificeret · {r.owner}</li>
+                </ul>
+              </Section>
+              {isLive && (
+                <Section title="Handlinger">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await resolveAlert(r.id);
+                          toast.success("Alarm markeret som løst");
+                          setSelected(null);
+                          await liveAlertsQuery.refetch();
+                        } catch (e) {
+                          toast.error(`Kunne ikke opdatere: ${(e as Error).message}`);
+                        }
+                      }}
+                      className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Marker som løst
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { data: auth } = await supabase!.auth.getUser();
+                          if (auth.user) await acknowledgeAlert(r.id, auth.user.id);
+                          toast.success("Alarm bekræftet");
+                          await liveAlertsQuery.refetch();
+                        } catch (e) {
+                          toast.error(`Kunne ikke bekræfte: ${(e as Error).message}`);
+                        }
+                      }}
+                      className="text-xs rounded-lg border bg-card px-3 py-1.5"
+                    >
+                      Bekræft
+                    </button>
+                  </div>
+                </Section>
+              )}
+            </>
+          );
+        })()}
       </Drawer>
     </main>
   );
+}
+
+function toRow(a: AnyAlert): {
+  id: string;
+  title: string;
+  sev: "critical" | "medium" | "low";
+  type: string;
+  project: string;
+  source: string;
+  first: string;
+  last: string;
+  owner: string;
+  action: string;
+  status: string;
+} {
+  if (a.__live === true) {
+    const live = a as LiveAlert;
+    return {
+      id: live.id,
+      title: live.title,
+      sev: severityRank(live.severity),
+      type: live.alert_type,
+      project: live.project_id.slice(0, 8),
+      source: live.source_type ?? "system",
+      first: new Date(live.triggered_at).toLocaleString(),
+      last: new Date(live.updated_at).toLocaleString(),
+      owner: live.assigned_to ? live.assigned_to.slice(0, 8) : "—",
+      action: live.message ?? "Se detaljer i konteksten.",
+      status: live.status,
+    };
+  }
+  const demo = a as DemoAlert;
+  return {
+    id: demo.id,
+    title: demo.title,
+    sev: severityRank(demo.severity),
+    type: demo.type,
+    project: demo.project,
+    source: demo.source,
+    first: demo.first,
+    last: demo.last,
+    owner: demo.owner,
+    action: demo.action,
+    status: demo.status,
+  };
 }
 
 function KV({ label, v }: { label: string; v: React.ReactNode }) {
@@ -385,4 +470,5 @@ function KV({ label, v }: { label: string; v: React.ReactNode }) {
       <div className="mt-1 text-sm">{v}</div>
     </div>
   );
+
 }
