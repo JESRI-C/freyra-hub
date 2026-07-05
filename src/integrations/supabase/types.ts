@@ -462,6 +462,88 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          action_id: string | null
+          created_at: string
+          created_by: string | null
+          document_type: string
+          file_name: string | null
+          file_size: number | null
+          generated_from: string | null
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          project_id: string
+          site_id: string | null
+          status: string
+          storage_path: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          action_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_type: string
+          file_name?: string | null
+          file_size?: number | null
+          generated_from?: string | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          project_id: string
+          site_id?: string | null
+          status?: string
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          action_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_type?: string
+          file_name?: string | null
+          file_size?: number | null
+          generated_from?: string | null
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          project_id?: string
+          site_id?: string | null
+          status?: string
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string

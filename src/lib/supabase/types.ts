@@ -315,6 +315,26 @@ export type ActionEvidence = {
   created_at: string;
 };
 
+export type ProjectDocument = {
+  id: string;
+  project_id: string;
+  site_id: string | null;
+  action_id: string | null;
+  title: string;
+  document_type: string;
+  status: string;
+  storage_path: string | null;
+  file_name: string | null;
+  mime_type: string | null;
+  file_size: number | null;
+  version: number;
+  generated_from: string | null;
+  metadata: Record<string, unknown> | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ImpactUnit = {
   id: string;
   project_id: string | null;
