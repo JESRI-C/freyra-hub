@@ -84,6 +84,8 @@ function Page() {
       toast.success(
         `Regler kørt: ${res.detected} fund, ${res.inserted} nye issues, ${res.skippedDuplicates} eksisterende`,
       );
+      await issuesQuery.refetch();
+
     } catch (e) {
       toast.error(`Fejl under kørsel: ${(e as Error).message}`);
     } finally {
