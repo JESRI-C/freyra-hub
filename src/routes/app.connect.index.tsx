@@ -44,18 +44,18 @@ function Page() {
   const activityFeed = useLiveActivityFeed();
   const criticalActions = useLiveCriticalActions();
   return (
-    <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
+    <main className="p-4 sm:p-6 w-full min-w-0 space-y-4">
       <ModuleHeader
-        eyebrow="Smart Connect"
-        title="Smart Connect"
-        subtitle="Forbind, overvåg og valider datakilder på tværs af projektet."
+        eyebrow="Monitoring & Field Data"
+        title="Overblik"
+        subtitle="Kontroltårn for feltdata — enheder, datakilder og observationer."
         projectName={PROJECT_FACTS.name}
-        freshness="3 min"
+        freshness="—"
         status={PROJECT_FACTS.status}
         readiness={PROJECT_FACTS.reportReadiness}
         primaryCta={{
-          label: "Tilføj datakilde",
-          to: "/app/connect/add",
+          label: "Tilføj enhed",
+          to: "/app/connect/devices",
           icon: <Plug className="h-4 w-4" />,
         }}
         secondaryCta={{
@@ -65,55 +65,60 @@ function Page() {
         }}
       />
 
-      <AiInsightBanner
-        module="Smart Connect"
-        tone="action"
-        context={`Projekt: ${PROJECT_FACTS.name}. Aktive datakilder: ${PROJECT_FACTS.activeDataSources}. Datakvalitet: ${PROJECT_FACTS.dataQuality}%. Status: ${PROJECT_FACTS.status}. Kritiske huller: ${PROJECT_FACTS.criticalGaps.join("; ")}. Aktive alerts: ${ALERTS.length}.`}
-      />
-
-
+      <Card className="p-4 border-warning/40 bg-warning/5 text-sm">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <div className="font-medium">Overblikket forbindes til ægte data i Fase B</div>
+            <p className="text-muted-foreground text-xs mt-1">
+              Statuskort, datastrøm og aktivitetsfeed nedenfor viser stadig eksempler
+              fra prototypen. Datamodellen er på plads — næste fase kobler dem til
+              dine reelle enheder, målinger og zoner.
+            </p>
+          </div>
+        </div>
+      </Card>
 
       <PageHeader
         title="Forbindelses-KPI'er"
-        description="Realtidsoverblik på datarygradens sundhed."
+        description="Realtidsoverblik på datarygradens sundhed (eksempeldata)."
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <ConnectionHealthCard
           label="Aktive datakilder"
-          value="42"
+          value="—"
+          sub="Ingen data endnu"
           icon={<Database className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Online"
-          value="36"
-          tone="success"
-          sub="86% af alle kilder"
+          value="—"
+          sub="Ingen data endnu"
           icon={<CheckCircle2 className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Kræver handling"
-          value="4"
-          tone="warning"
-          sub="Validering nødvendig"
+          value="—"
+          sub="Ingen data endnu"
           icon={<AlertTriangle className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Offline"
-          value="2"
-          tone="danger"
+          value="—"
+          sub="Ingen data endnu"
           icon={<WifiOff className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Ø datakvalitet"
-          value={`${PROJECT_FACTS.dataQuality}%`}
-          tone="success"
+          value="—"
+          sub="Beregnes i Fase B"
           icon={<ShieldCheck className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Seneste sync"
-          value="3 min"
-          sub="MQTT broker"
+          value="—"
+          sub="Ingen data endnu"
           icon={<Clock className="h-5 w-5" />}
         />
       </div>
