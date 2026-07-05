@@ -103,6 +103,7 @@ const TABS = [
   { id: "indikatorer", label: "Indikatorer" },
   { id: "handlinger", label: "Handlinger" },
   { id: "audit", label: "Audit trail" },
+  { id: "roller", label: "Roller" },
   { id: "dokumentation", label: "Dokumentation" },
   { id: "medier", label: "Medier" },
   { id: "rapporter", label: "Rapporter" },
