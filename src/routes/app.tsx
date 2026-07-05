@@ -8,10 +8,10 @@ export const Route = createFileRoute("/app")({
 });
 
 function AppLayout() {
-  const { user, projectId, loading } = useAuth();
+  const { user, orgId, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
-  if (!projectId) return <Navigate to="/select" />;
+  if (!orgId) return <Navigate to="/select" />;
 
   return (
     <div className="min-h-screen flex bg-background">
