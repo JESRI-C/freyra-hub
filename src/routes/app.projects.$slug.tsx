@@ -250,7 +250,9 @@ function ProjectDetailPage() {
         ids.map((id) =>
           newStatus === "Lukket"
             ? completeAction(id, projectId)
-            : updateActionDetails(id, { status: newStatus }, projectId),
+            : newStatus === "I gang"
+              ? startAction(id, projectId)
+              : updateActionDetails(id, { status: newStatus }, projectId),
         ),
       );
       toast.success(
