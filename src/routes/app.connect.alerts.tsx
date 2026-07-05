@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Bell,
   AlertTriangle,
@@ -11,6 +12,7 @@ import {
   Sparkles,
   Send,
   ExternalLink,
+  Plus,
 } from "lucide-react";
 import { Card, PageHeader, Bars } from "@/components/ui-bits";
 import {
@@ -21,15 +23,25 @@ import {
   Chip,
 } from "@/components/connect/Primitives";
 import { ALERTS } from "@/lib/connect-data";
+import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
+import { useConnectContext } from "@/lib/connect-context";
+import { listAlertRules, toggleAlertRule } from "@/services/monitoring/alert-rules-service";
 
 export const Route = createFileRoute("/app/connect/alerts")({
   component: Page,
 });
 
 function Page() {
+  const { projectId } = useConnectContext();
   const [filter, setFilter] = useState<string>("all");
   const [selected, setSelected] = useState<(typeof ALERTS)[0] | null>(null);
+  const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
   const filtered = filter === "all" ? ALERTS : ALERTS.filter((a) => a.severity === filter);
+
+  const rulesQuery = useQuery({
+    queryKey: ["alert-rules", projectId],
+    queryFn: () => listAlertRules(projectId),
+  });
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
