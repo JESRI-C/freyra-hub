@@ -32,6 +32,9 @@ import { getIndicatorsByProject } from "@/services/indicators-service";
 import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
+import { ProjectMembersPanel } from "@/components/project/ProjectMembersPanel";
+import { getMyProjectRole, permissionsFor } from "@/services/project-members-service";
+import { useAuth } from "@/lib/auth";
 import {
   getOpenActionsByProject,
   actionPriorityTone,
