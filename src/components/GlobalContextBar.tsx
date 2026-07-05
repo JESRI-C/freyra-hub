@@ -1,13 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Calendar, Activity, ShieldCheck, ChevronsUpDown, Bell, Sparkles } from "lucide-react";
-import { useAuth, getCurrentOrg, getCurrentProject } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { PROJECT_FACTS } from "@/lib/platform-data";
 import { DemoModeBadge, StatusBadge } from "@/components/platform/Primitives";
 
 export function GlobalContextBar() {
-  const { orgId, projectId } = useAuth();
-  const org = getCurrentOrg(orgId);
-  const project = getCurrentProject(orgId, projectId);
+  const { currentOrg: org, currentProject: project } = useAuth();
 
   return (
     <div className="sticky top-0 z-30 border-b bg-card/90 backdrop-blur">

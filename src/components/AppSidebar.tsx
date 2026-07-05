@@ -17,7 +17,7 @@ import {
   Users,
   FlaskConical,
 } from "lucide-react";
-import { useAuth, getCurrentOrg, getCurrentProject } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import logoMark from "@/assets/gofreyra-logo.png";
 
 type SidebarItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
@@ -66,9 +66,7 @@ const GROUPS: SidebarGroup[] = [
 
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { orgId, projectId } = useAuth();
-  const org = getCurrentOrg(orgId);
-  const project = getCurrentProject(orgId, projectId);
+  const { currentOrg: org, currentProject: project } = useAuth();
 
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
