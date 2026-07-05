@@ -165,7 +165,7 @@ export function ActionItem({
               I gang
             </button>
           )}
-          {!isClosed && completeHandler && !completingWithImpact && (
+          {!isClosed && !completingWithImpact && (completeHandler || onMarkCompleted) && (
             <button
               onClick={handleComplete}
               disabled={!canComplete}
