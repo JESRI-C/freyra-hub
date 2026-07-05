@@ -348,8 +348,8 @@ export async function updateProject(
   input: Partial<{
     name: string; slug: string; project_type: string; location_name: string;
     municipality: string; status: string; description: string; start_date: string;
-    end_date: string; geometry_polygon: object; geometry_centroid_lat: number;
-    geometry_centroid_lng: number; geometry_area_ha: number; geometry_source: string;
+    end_date: string; geometry_polygon: object | null; geometry_centroid_lat: number | null;
+    geometry_centroid_lng: number | null; geometry_area_ha: number | null; geometry_source: string | null;
   }>,
 ): Promise<Project> {
   if (!supabase) throw new Error("Supabase not configured");

@@ -163,22 +163,22 @@ function ProjectDetailPage() {
     queryKey: ["data-sources", projectId],
     queryFn: () => getDataSourcesByProject(projectId),
   });
-  // Prefer geometry stored on the project row; fall back to seed data
+  // Geometri: DB-tegnet polygon vinder altid over seed-data. Kun hvis projektet
+  // hverken har en gemt polygon eller centroid, falder vi tilbage til seed.
   const seedGeometry = getProjectGeometrySeed(projectId);
   const geometry = (() => {
-    if (seedGeometry.hasValidGeometry) return seedGeometry;
-    if (project?.geometry_centroid_lat != null && project?.geometry_centroid_lng != null) {
+    if (project?.geometry_polygon != null || project?.geometry_centroid_lat != null) {
       const polygon =
         (project.geometry_polygon as { type: "Polygon"; coordinates: number[][][] } | null) ??
         null;
       return {
         polygon,
-        centroid: {
-          lat: project.geometry_centroid_lat,
-          lng: project.geometry_centroid_lng,
-        },
+        centroid:
+          project.geometry_centroid_lat != null && project.geometry_centroid_lng != null
+            ? { lat: project.geometry_centroid_lat, lng: project.geometry_centroid_lng }
+            : null,
         areaHa: project.geometry_area_ha ?? null,
-        hasValidGeometry: true,
+        hasValidGeometry: polygon != null,
         geometrySource:
           (project.geometry_source as "uploaded" | "manual" | "estimated" | "none" | null) ??
           "manual",

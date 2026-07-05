@@ -369,6 +369,19 @@ function GeometryEditorPage() {
                   </div>
                   <div>Kilde: {sourceLabel(project.geometry_source)}</div>
                 </dl>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Ryd projektgrænsen? Alle afledte beregninger vil kræve at der tegnes et nyt område.")) {
+                      map.clearBoundary();
+                      toast.success("Projektgrænse ryddet");
+                    }
+                  }}
+                  disabled={map.isClearingBoundary}
+                  className="mt-2 w-full text-xs px-2.5 py-1.5 rounded-md border border-destructive/40 text-destructive hover:bg-destructive/5 disabled:opacity-50"
+                >
+                  {map.isClearingBoundary ? "Rydder …" : "Ryd projektgrænse"}
+                </button>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">Intet område defineret endnu.</p>

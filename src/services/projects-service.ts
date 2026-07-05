@@ -112,11 +112,11 @@ export async function updateProjectDetails(
     project_type: string;
     start_date: string;
     end_date: string;
-    geometry_area_ha: number;
-    geometry_centroid_lat: number;
-    geometry_centroid_lng: number;
-    geometry_polygon: object;
-    geometry_source: string;
+    geometry_area_ha: number | null;
+    geometry_centroid_lat: number | null;
+    geometry_centroid_lng: number | null;
+    geometry_polygon: object | null;
+    geometry_source: string | null;
   }>,
 ): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
