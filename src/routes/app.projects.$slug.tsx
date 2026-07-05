@@ -483,16 +483,79 @@ function ProjectDetailPage() {
                       </Pill>
                     }
                   />
+
+                  {/* Filters */}
+                  <div className="px-5 pb-3 flex flex-wrap gap-2 border-b">
+                    <select
+                      value={actionFilterSite}
+                      onChange={(e) => setActionFilterSite(e.target.value)}
+                      className="text-xs border rounded-lg px-2 py-1 bg-background"
+                    >
+                      <option value="">Alle sites</option>
+                      {sites.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={actionFilterStatus}
+                      onChange={(e) => setActionFilterStatus(e.target.value)}
+                      className="text-xs border rounded-lg px-2 py-1 bg-background"
+                    >
+                      <option value="">Alle statuser</option>
+                      <option value="Åben">Åben</option>
+                      <option value="I gang">I gang</option>
+                      <option value="Lukket">Lukket</option>
+                    </select>
+                    <select
+                      value={actionFilterPriority}
+                      onChange={(e) => setActionFilterPriority(e.target.value)}
+                      className="text-xs border rounded-lg px-2 py-1 bg-background"
+                    >
+                      <option value="">Alle prioriteter</option>
+                      <option value="Høj">Høj</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Lav">Lav</option>
+                    </select>
+                    {(actionFilterSite || actionFilterStatus || actionFilterPriority) && (
+                      <button
+                        onClick={() => {
+                          setActionFilterSite("");
+                          setActionFilterStatus("");
+                          setActionFilterPriority("");
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        Nulstil
+                      </button>
+                    )}
+                  </div>
+
                   <div className="px-5 pb-3">
-                    {localActions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Ingen åbne handlinger</p>
+                    {filteredActions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4">Ingen handlinger matcher filter</p>
                     ) : (
-                      localActions.map((action) => (
+                      filteredActions.map((action) => (
                         <ActionItem
                           key={action.id}
                           action={action}
-                          onMarkInProgress={(id) => syncActions([id], "I gang")}
-                          onMarkCompleted={(id) => syncActions([id], "Lukket")}
+                          siteName={sites.find((s) => s.id === action.site_id)?.name}
+                          indicatorLabel={
+                            indicators.find((i) => i.id === action.linked_indicator_id)?.label
+                          }
+                          onStart={(id) => syncActions([id], "I gang")}
+                          onComplete={async (id, actualImpact) => {
+                            if (actualImpact) {
+                              try {
+                                await completeAction(id, projectId, actualImpact);
+                                await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+                                toast.success("Handling afsluttet");
+                              } catch (e) {
+                                toast.error((e as Error).message);
+                              }
+                            } else {
+                              await syncActions([id], "Lukket");
+                            }
+                          }}
                         />
                       ))
                     )}
@@ -500,6 +563,8 @@ function ProjectDetailPage() {
                   <div className="px-5 pb-5 pt-2 border-t">
                     <CreateActionForm
                       projectId={projectId}
+                      sites={sites}
+                      indicators={indicators}
                       onCreated={async () => {
                         await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
                         await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
