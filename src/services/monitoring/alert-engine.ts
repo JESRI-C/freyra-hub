@@ -218,16 +218,17 @@ export interface AlertRunResult {
 
 export async function runAlertEvaluation(
   projectId: string,
-  opts?: { windowMinutes?: number },
+  opts?: { windowMinutes?: number; client?: Client },
 ): Promise<AlertRunResult> {
-  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const client = (opts?.client ?? browserClient) as Client | null;
+  if (!client || (!opts?.client && !isSupabaseConfigured)) throw new Error("Supabase not configured");
   const windowMinutes = opts?.windowMinutes ?? 24 * 60;
   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
 
   const [rulesRes, devicesRes, issuesCountRes] = await Promise.all([
-    supabase.from("alert_rules").select("*").or(`project_id.eq.${projectId},project_id.is.null`).eq("is_active", true),
-    supabase.from("monitoring_devices").select("*").eq("project_id", projectId),
-    supabase.from("data_quality_issues").select("id", { count: "exact", head: true }).eq("project_id", projectId).eq("status", "open"),
+    client.from("alert_rules").select("*").or(`project_id.eq.${projectId},project_id.is.null`).eq("is_active", true),
+    client.from("monitoring_devices").select("*").eq("project_id", projectId),
+    client.from("data_quality_issues").select("id", { count: "exact", head: true }).eq("project_id", projectId).eq("status", "open"),
   ]);
   if (rulesRes.error) throw rulesRes.error;
   if (devicesRes.error) throw devicesRes.error;
@@ -238,7 +239,7 @@ export async function runAlertEvaluation(
 
   let measurements: Measurement[] = [];
   if (deviceIds.length > 0) {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("device_measurements")
       .select("*")
       .in("device_id", deviceIds)
@@ -258,7 +259,7 @@ export async function runAlertEvaluation(
   });
 
   // Dedupe against active alerts for this project.
-  const { data: openAlertsRaw } = await supabase
+  const { data: openAlertsRaw } = await client
     .from("monitoring_alerts")
     .select("id, alert_rule_id, alert_type, source_id, status")
     .eq("project_id", projectId)
@@ -297,10 +298,11 @@ export async function runAlertEvaluation(
 
   let fired = 0;
   if (inserts.length > 0) {
-    const { error, count } = await supabase.from("monitoring_alerts").insert(inserts as never, { count: "exact" });
+    const { error, count } = await client.from("monitoring_alerts").insert(inserts as never, { count: "exact" });
     if (error) throw error;
     fired = count ?? inserts.length;
   }
+
 
   const summary: AlertRunResult = {
     ruleCount: rules.length,
