@@ -173,13 +173,22 @@ export function MapEditorMap({
     ndvi: import("leaflet").GeoJSON | null;
     sensors: import("leaflet").FeatureGroup | null;
     drawn: import("leaflet").FeatureGroup | null;
-    activeDrawer: { disable: () => void } | null;
+    activeDrawer: {
+      disable: () => void;
+      deleteLastVertex?: () => void;
+      completeShape?: () => void;
+      _markers?: unknown[];
+    } | null;
     editHandler: { enable: () => void; disable: () => void; save: () => void } | null;
     wms: Map<string, import("leaflet").TileLayer.WMS>;
+    addressMarker: import("leaflet").Marker | null;
+    preview: import("leaflet").GeoJSON | null;
   }>({
     base: null, boundary: null, zones: null, p3: null, wl: null,
     ndvi: null, sensors: null, drawn: null, activeDrawer: null, editHandler: null,
     wms: new Map(),
+    addressMarker: null,
+    preview: null,
   });
 
   // Intern mode-state, synkroniseret med evt. controlled prop
