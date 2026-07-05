@@ -1082,3 +1082,23 @@ function DokumentationTab({
     </div>
   );
 }
+
+// ─── Roller Tab ───────────────────────────────────────────────────────────────
+
+function RollerTab({ projectId }: { projectId: string }) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const { data: role } = useQuery({
+    queryKey: ["my-project-role", projectId, userId],
+    queryFn: () => (userId ? getMyProjectRole(projectId, userId) : Promise.resolve(null)),
+    enabled: !!projectId && !!userId,
+  });
+  const permissions = permissionsFor(role ?? null);
+  return (
+    <ProjectMembersPanel
+      projectId={projectId}
+      currentUserId={userId}
+      permissions={permissions}
+    />
+  );
+}
