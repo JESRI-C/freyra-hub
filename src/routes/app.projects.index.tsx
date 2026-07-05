@@ -129,7 +129,19 @@ function ProjectsIndexPage() {
         throw new Error("Backend er ikke konfigureret.");
       }
 
-      const { data: inserted, error } = await supabase
+      const db = supabase as unknown as {
+        from: (t: string) => {
+          insert: (v: Record<string, unknown>) => {
+            select: (cols: string) => {
+              single: () => Promise<{
+                data: { id: string; slug: string | null } | null;
+                error: { message: string } | null;
+              }>;
+            };
+          };
+        };
+      };
+      const { data: inserted, error } = await db
         .from("projects")
         .insert({
           organization_id: orgId,
@@ -143,8 +155,9 @@ function ProjectsIndexPage() {
         .select("id, slug")
         .single();
       if (error) throw new Error(error.message);
-      const newId = inserted?.id as string;
-      const newSlug = (inserted?.slug as string | null) ?? newId;
+      if (!inserted) throw new Error("Ingen data returneret");
+      const newId = inserted.id;
+      const newSlug = inserted.slug ?? newId;
 
       // Optimistic local summary so it appears instantly on return
       const newSummary: NatureProjectSummary = {
