@@ -705,14 +705,75 @@ export type Database = {
           },
         ]
       }
+      indicator_measurements: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          indicator_id: string
+          measured_at: string
+          metadata: Json
+          method: string | null
+          project_id: string | null
+          source: string | null
+          unit: string | null
+          value: number
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          indicator_id: string
+          measured_at?: string
+          metadata?: Json
+          method?: string | null
+          project_id?: string | null
+          source?: string | null
+          unit?: string | null
+          value: number
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          indicator_id?: string
+          measured_at?: string
+          metadata?: Json
+          method?: string | null
+          project_id?: string | null
+          source?: string | null
+          unit?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicator_measurements_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicator_measurements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indicators: {
         Row: {
           category: string | null
+          description: string | null
           id: string
           key: string
           label: string
           project_id: string | null
           status: string | null
+          threshold_critical: number | null
+          threshold_direction: string
+          threshold_warning: number | null
           trend: string | null
           unit: string | null
           updated_at: string | null
@@ -720,11 +781,15 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          description?: string | null
           id?: string
           key: string
           label: string
           project_id?: string | null
           status?: string | null
+          threshold_critical?: number | null
+          threshold_direction?: string
+          threshold_warning?: number | null
           trend?: string | null
           unit?: string | null
           updated_at?: string | null
@@ -732,11 +797,15 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          description?: string | null
           id?: string
           key?: string
           label?: string
           project_id?: string | null
           status?: string | null
+          threshold_critical?: number | null
+          threshold_direction?: string
+          threshold_warning?: number | null
           trend?: string | null
           unit?: string | null
           updated_at?: string | null
