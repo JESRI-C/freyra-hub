@@ -74,9 +74,17 @@ function ProjectsIndexPage() {
     [localSummaries, querySummaries],
   );
 
+  const [openActionsOnly, setOpenActionsOnly] = useState(false);
+  const [highReadinessOnly, setHighReadinessOnly] = useState(false);
+
   const filtered = useMemo(() => {
     return summaries.filter((s) => {
       if (statusFilter !== "Alle" && s.project.status !== statusFilter) return false;
+      if (openActionsOnly && s.openActions === 0) return false;
+      if (highReadinessOnly) {
+        const readiness = s.indicators.find((i) => i.key === "report_readiness")?.value;
+        if (readiness == null || (readiness as number) < 80) return false;
+      }
       if (q) {
         const search = q.toLowerCase();
         const text =
@@ -85,10 +93,15 @@ function ProjectsIndexPage() {
       }
       return true;
     });
-  }, [summaries, q, statusFilter]);
+  }, [summaries, q, statusFilter, openActionsOnly, highReadinessOnly]);
 
   const totalOpenActions = useMemo(
     () => summaries.reduce((acc, s) => acc + s.openActions, 0),
+    [summaries],
+  );
+
+  const totalSites = useMemo(
+    () => summaries.reduce((acc, s) => acc + (s.activeDataSources ?? 0), 0),
     [summaries],
   );
 
@@ -100,6 +113,13 @@ function ProjectsIndexPage() {
     if (vals.length === 0) return null;
     return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
   }, [summaries]);
+
+  function clearFilters() {
+    setStatusFilter("Alle");
+    setOpenActionsOnly(false);
+    setHighReadinessOnly(false);
+    setQ("");
+  }
 
   function showToast(msg: string) {
     setToast(msg);
@@ -222,16 +242,18 @@ function ProjectsIndexPage() {
         }
       />
 
-      {/* Stat bar */}
+      {/* Stat bar — klikbare filtre */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Projekter i alt"
           value={String(summaries.length)}
           icon={<FolderOpen className="h-5 w-5" />}
+          onClick={clearFilters}
+          active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
         />
         <StatCard
-          label="Sites"
-          value="6+"
+          label="Aktive datakilder"
+          value={String(totalSites)}
           icon={<Leaf className="h-5 w-5" />}
         />
         <StatCard
@@ -239,11 +261,21 @@ function ProjectsIndexPage() {
           value={String(totalOpenActions)}
           icon={<AlertCircle className="h-5 w-5" />}
           accent="bg-amber-100 text-amber-700"
+          onClick={() => {
+            setOpenActionsOnly((v) => !v);
+            setHighReadinessOnly(false);
+          }}
+          active={openActionsOnly}
         />
         <StatCard
           label="Gns. rapportklarhed"
           value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
           icon={<BarChart2 className="h-5 w-5" />}
+          onClick={() => {
+            setHighReadinessOnly((v) => !v);
+            setOpenActionsOnly(false);
+          }}
+          active={highReadinessOnly}
         />
       </div>
 
@@ -258,7 +290,7 @@ function ProjectsIndexPage() {
             className="flex-1 bg-transparent outline-none text-sm"
           />
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {STATUS_FILTERS.map((f) => (
             <button
               key={f}
@@ -272,8 +304,33 @@ function ProjectsIndexPage() {
               {f}
             </button>
           ))}
+          {(openActionsOnly || highReadinessOnly || statusFilter !== "Alle" || q) && (
+            <button
+              onClick={clearFilters}
+              className="ml-auto text-xs px-3 py-1.5 rounded-full border hover:bg-muted inline-flex items-center gap-1"
+            >
+              <X className="h-3 w-3" /> Nulstil filtre
+            </button>
+          )}
         </div>
+        {(openActionsOnly || highReadinessOnly) && (
+          <div className="flex flex-wrap gap-1.5 text-xs">
+            {openActionsOnly && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-1">
+                Kun med åbne handlinger
+                <button onClick={() => setOpenActionsOnly(false)}><X className="h-3 w-3" /></button>
+              </span>
+            )}
+            {highReadinessOnly && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-1">
+                Rapportklarhed ≥ 80%
+                <button onClick={() => setHighReadinessOnly(false)}><X className="h-3 w-3" /></button>
+              </span>
+            )}
+          </div>
+        )}
       </Card>
+
 
       {/* Result count */}
       <div className="text-sm text-muted-foreground">

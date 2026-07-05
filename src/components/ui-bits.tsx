@@ -31,34 +31,51 @@ export function StatCard({
   delta,
   icon,
   accent = "bg-leaf/20 text-primary",
+  onClick,
+  active = false,
 }: {
   label: string;
   value: string;
   delta?: number;
   icon: ReactNode;
   accent?: string;
+  onClick?: () => void;
+  active?: boolean;
 }) {
   const up = (delta ?? 0) >= 0;
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <div className="text-2xl font-semibold mt-2 tracking-tight">{value}</div>
-          {delta !== undefined && (
-            <div
-              className={`mt-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${up ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}
-            >
-              {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {up ? "+" : ""}
-              {delta}% vs. forrige periode
-            </div>
-          )}
-        </div>
-        <div className={`h-10 w-10 rounded-xl grid place-items-center ${accent}`}>{icon}</div>
+  const clickable = Boolean(onClick);
+  const activeCls = active ? "ring-2 ring-primary/60" : "";
+  const hoverCls = clickable ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" : "";
+  const content = (
+    <div className="flex items-start justify-between">
+      <div>
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="text-2xl font-semibold mt-2 tracking-tight">{value}</div>
+        {delta !== undefined && (
+          <div
+            className={`mt-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${up ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}
+          >
+            {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            {up ? "+" : ""}
+            {delta}% vs. forrige periode
+          </div>
+        )}
       </div>
-    </Card>
+      <div className={`h-10 w-10 rounded-xl grid place-items-center ${accent}`}>{icon}</div>
+    </div>
   );
+  if (clickable) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`text-left rounded-2xl bg-card border shadow-soft p-5 ${hoverCls} ${activeCls}`}
+      >
+        {content}
+      </button>
+    );
+  }
+  return <Card className={`p-5 ${activeCls}`}>{content}</Card>;
 }
 
 export function Sparkline({ values, color = "var(--leaf)" }: { values: number[]; color?: string }) {
