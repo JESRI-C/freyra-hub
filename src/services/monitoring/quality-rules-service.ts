@@ -44,7 +44,8 @@ export async function listRules(projectId: string | null): Promise<QualityRule[]
 
 export async function createRule(input: QualityRuleInsert): Promise<QualityRule> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.from("data_quality_rules").insert(input as never).select("*").single();
+  const { data: raw, error } = await supabase.from("data_quality_rules").insert(input as never).select("*").single();
+  const data = raw as QualityRule;
   if (error) throw error;
   await logAuditEvent({
     projectId: data.project_id,
@@ -87,7 +88,8 @@ export async function listIssues(params: {
 
 export async function createIssue(input: QualityIssueInsert): Promise<QualityIssue> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.from("data_quality_issues").insert(input as never).select("*").single();
+  const { data: raw, error } = await supabase.from("data_quality_issues").insert(input as never).select("*").single();
+  const data = raw as QualityIssue;
   if (error) throw error;
   await logAuditEvent({
     projectId: data.project_id,
@@ -104,7 +106,8 @@ export async function createIssue(input: QualityIssueInsert): Promise<QualityIss
 export async function updateIssue(id: string, patch: Partial<QualityIssue>, reason?: string): Promise<QualityIssue> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const { data: current } = await supabase.from("data_quality_issues").select("*").eq("id", id).maybeSingle();
-  const { data, error } = await supabase.from("data_quality_issues").update(patch as never).eq("id", id).select("*").single();
+  const { data: raw, error } = await supabase.from("data_quality_issues").update(patch as never).eq("id", id).select("*").single();
+  const data = raw as QualityIssue;
   if (error) throw error;
   await logAuditEvent({
     projectId: data.project_id,
