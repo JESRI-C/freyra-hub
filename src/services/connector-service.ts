@@ -1,6 +1,7 @@
-// Scaffold fetch functions for each connector.
-// Returns fallback/preview data when API keys are not configured.
-// In production, replace fallback blocks with real API calls.
+// Real-data connector wrappers.
+// Where a live source exists (Miljøportal §3 + vandløb, DMI observationer),
+// we call it when the project has a valid centroid. Otherwise vi returnerer
+// preview-data så UI'et altid har noget at vise.
 
 import { CONNECTOR_REGISTRY } from "@/data/connectors-registry";
 import type {
@@ -13,6 +14,10 @@ import type {
 import { getLiveDataConfig } from "@/config/live-data-config";
 import { dmiClient, miljoeportalClient } from "@/services/live-data";
 import { fetchProjectLiveData } from "@/lib/live-data.functions";
+import {
+  fetchParagraph3Overlap,
+  fetchWatercourses,
+} from "@/services/nature/paragraph3-service";
 
 
 // Check if a specific connector is configured
