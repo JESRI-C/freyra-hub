@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ShieldCheck, TrendingUp, TrendingDown, Sparkles, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ShieldCheck, TrendingUp, TrendingDown, Sparkles, ArrowRight, Plus } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import {
@@ -10,6 +12,9 @@ import {
   Chip,
 } from "@/components/connect/Primitives";
 import { QUALITY_DIMENSIONS, VALIDATION_RULES, DATA_SOURCES } from "@/lib/connect-data";
+import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
+import { useConnectContext } from "@/lib/connect-context";
+import { listRules, toggleRule } from "@/services/monitoring/quality-rules-service";
 
 export const Route = createFileRoute("/app/connect/quality")({
   component: Page,
