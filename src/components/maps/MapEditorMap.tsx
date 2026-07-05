@@ -22,6 +22,16 @@ import type { IoTSensor } from "@/services/iot-simulation-service";
 export type DrawMode = "none" | "boundary" | "zone" | "measure";
 export type BaseLayer = "satellite" | "osm" | "terrain" | "topo";
 
+export interface WmsOverlay {
+  id: string;
+  url: string;
+  layers: string;
+  opacity?: number;
+  format?: string;
+  transparent?: boolean;
+  attribution?: string;
+}
+
 export interface MapEditorMapProps {
   projectId: string;
   projectName: string;
@@ -44,6 +54,10 @@ export interface MapEditorMapProps {
   onZoneClicked?: (zone: Zone) => void;
   onBoundaryDrawn?: (geojson: GeoJsonPolygon, areaHa: number) => void;
   onMeasurement?: (areaHa: number, perimeterM: number) => void;
+  /** External center commands (e.g. from address search). Changes trigger flyTo. */
+  centerOverride?: { lat: number; lng: number; zoom?: number } | null;
+  /** Extra WMS layers to overlay on the map (e.g. cadastre, field blocks). */
+  wmsOverlays?: WmsOverlay[];
   height?: number;
   className?: string;
 }
