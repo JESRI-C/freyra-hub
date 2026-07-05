@@ -225,7 +225,13 @@ export function MapEditorMap({
     setMode("none");
   }, [setMode]);
 
-  const removeSetMode = 0; void removeSetMode;
+
+  // Refs holder friske callbacks + pickMode så map-event listeners ikke skal genregistreres
+  const pickModeRef = useRef(pickMode);
+  useEffect(() => { pickModeRef.current = pickMode; }, [pickMode]);
+  const onPickRef = useRef(onFeaturePicked);
+  useEffect(() => { onPickRef.current = onFeaturePicked; }, [onFeaturePicked]);
+
 
 
   // Holder callbacks friske i event handlers
