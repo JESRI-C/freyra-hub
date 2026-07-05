@@ -64,6 +64,13 @@ function Page() {
     queryKey: ["quality-rules", projectId],
     queryFn: () => listRules(projectId),
   });
+  const issuesQuery = useQuery({
+    queryKey: ["quality-issues", projectId],
+    queryFn: () => (projectId ? listIssues({ projectId, limit: 50 }) : Promise.resolve([])),
+    enabled: !!projectId,
+  });
+  const issueSummary = summarizeIssues(issuesQuery.data ?? []);
+
 
   async function handleRunNow() {
     if (!projectId) {
