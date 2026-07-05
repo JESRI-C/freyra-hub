@@ -228,10 +228,10 @@ export type Indicator = {
   unit: string | null;
   trend: "up" | "down" | "flat" | null;
   status: "ok" | "warning" | "critical" | null;
-  threshold_warning: number | null;
-  threshold_critical: number | null;
-  threshold_direction: "above" | "below";
-  description: string | null;
+  threshold_warning?: number | null;
+  threshold_critical?: number | null;
+  threshold_direction?: "above" | "below";
+  description?: string | null;
   updated_at: string;
 };
 
