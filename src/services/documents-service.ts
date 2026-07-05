@@ -253,11 +253,11 @@ export function computeDocumentationScore(input: {
     { label: "Projektbeskrivelse", ok: !!project.description && project.description.length > 20, weight: 10 },
     { label: "Mindst ét site defineret", ok: sites.length > 0, weight: 15 },
     { label: "Mindst én indikator", ok: indicators.length > 0, weight: 15 },
-    { label: "Indikatorer med målværdi", ok: indicators.some((i) => i.target_value != null), weight: 10 },
+    { label: "Indikatorer med tærskler", ok: indicators.some((i) => i.threshold_warning != null || i.threshold_critical != null), weight: 10 },
     { label: "Aktive handlinger", ok: actions.some((a) => a.status !== "Færdig"), weight: 10 },
     { label: "Foto/evidens på seneste 5 færdige handlinger", ok: recentActions.length > 0 && missingEvidence.length === 0, weight: 20, hint: missingEvidence.length ? `${missingEvidence.length} mangler` : undefined },
     { label: "Mindst én genereret rapport", ok: documents.length > 0, weight: 10 },
-    { label: "Areal / geografi opgivet", ok: !!project.area_hectares, weight: 10 },
+    { label: "Areal / geografi opgivet", ok: !!project.geometry_area_ha, weight: 10 },
   ];
   const totalWeight = items.reduce((s, i) => s + i.weight, 0);
   const scored = items.reduce((s, i) => s + (i.ok ? i.weight : 0), 0);
