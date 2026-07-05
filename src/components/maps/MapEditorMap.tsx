@@ -617,6 +617,54 @@ export function MapEditorMap({
     })();
   }, [wmsOverlays, ready]);
 
+  // ── Adressemarkør (fra søgning) ────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    (async () => {
+      const L = await import("leaflet");
+      const map = mapRef.current!;
+      if (layersRef.current.addressMarker) {
+        map.removeLayer(layersRef.current.addressMarker);
+        layersRef.current.addressMarker = null;
+      }
+      if (!addressMarker) return;
+      const m = L.marker([addressMarker.lat, addressMarker.lng])
+        .bindPopup(`<strong>${addressMarker.label}</strong>`)
+        .addTo(map);
+      m.openPopup();
+      layersRef.current.addressMarker = m;
+    })();
+  }, [addressMarker, ready]);
+
+  // ── Preview polygon (fra markblok/matrikel klik) ──────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    (async () => {
+      const L = await import("leaflet");
+      const map = mapRef.current!;
+      if (layersRef.current.preview) {
+        map.removeLayer(layersRef.current.preview);
+        layersRef.current.preview = null;
+      }
+      if (!previewPolygon) return;
+      const layer = L.geoJSON(
+        { type: "Feature", geometry: previewPolygon, properties: {} } as never,
+        { style: { color: "#f59e0b", weight: 2.5, dashArray: "6 4", fillColor: "#f59e0b", fillOpacity: 0.2 } },
+      ).addTo(map);
+      layersRef.current.preview = layer;
+      map.fitBounds(layer.getBounds(), { padding: [40, 40] });
+    })();
+  }, [previewPolygon, ready]);
+
+  // ── Cursor for pick-mode ──────────────────────────────────────────────────
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.style.cursor = pickMode ? "crosshair" : "";
+  }, [pickMode]);
+
+
+
 
   // ─── UI ─────────────────────────────────────────────────────────────────────
   const toolBtn = (active: boolean, activeCls: string) =>
