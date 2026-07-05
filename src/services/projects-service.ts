@@ -1,11 +1,13 @@
 // Projects Service — wraps Supabase queries with seed-data fallback.
 // When Supabase is not configured, returns TypeScript seed data transparently.
 
-import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import {
   fetchProjects,
   fetchProjectBySlug,
   fetchProjectById,
+  fetchSitesByProject,
+  fetchDataSourcesByProject,
   insertProject,
   updateProject,
 } from "@/lib/supabase/queries";
@@ -92,6 +94,10 @@ export async function createProject(input: {
     actor: "Bruger",
     source: "manual",
   });
+  // Seed starter data so every tab has something to show
+  await seedProjectStarterData(project.id, input.name).catch((err) =>
+    console.warn("Kunne ikke seede startdata:", err),
+  );
   return project;
 }
 
@@ -124,13 +130,175 @@ export async function updateProjectDetails(
   });
 }
 
-export function getSitesByProject(projectId: string): Site[] {
-  return SEED_SITES.filter((s) => s.project_id === projectId);
+// ─── Starter data ─────────────────────────────────────────────────────────────
+
+// Populates a brand-new project with a small set of default rows so the
+// Overview/Sites/Data sources/Indicators/Actions tabs are immediately useful.
+export async function seedProjectStarterData(
+  projectId: string,
+  projectName: string,
+): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+
+  const nowIso = new Date().toISOString();
+  const in14Days = new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10);
+  const in30Days = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+
+  const client = supabase as unknown as {
+    from: (table: string) => { insert: (rows: unknown[]) => Promise<unknown> };
+  };
+
+  await Promise.all([
+    client.from("sites").insert([
+      {
+        project_id: projectId,
+        name: `${projectName} — Hovedområde`,
+        site_type: "Naturareal",
+        area_ha: 12.4,
+        baseline_status: "Afventer baseline",
+      },
+      {
+        project_id: projectId,
+        name: `${projectName} — Vådområde`,
+        site_type: "Vådområde",
+        area_ha: 3.1,
+        baseline_status: "Delvist dokumenteret",
+      },
+    ]),
+    client.from("data_sources").insert([
+      {
+        project_id: projectId,
+        name: "DMI Klima API",
+        source_type: "api",
+        provider: "DMI",
+        status: "online",
+        last_sync_at: nowIso,
+      },
+      {
+        project_id: projectId,
+        name: "Miljøportalen (arter & natur)",
+        source_type: "api",
+        provider: "Miljøstyrelsen",
+        status: "online",
+        last_sync_at: nowIso,
+      },
+      {
+        project_id: projectId,
+        name: "Sentinel-2 satellitdata",
+        source_type: "satellite",
+        provider: "Copernicus",
+        status: "partial",
+        last_sync_at: nowIso,
+      },
+      {
+        project_id: projectId,
+        name: "Feltobservationer (manuel upload)",
+        source_type: "manual",
+        provider: "Feltteam",
+        status: "attention",
+        last_sync_at: null,
+      },
+    ]),
+    client.from("indicators").insert([
+      {
+        project_id: projectId,
+        key: "biodiversity_index",
+        label: "Biodiversitetsindeks",
+        category: "biodiversitet",
+        value: 0,
+        unit: "score",
+        status: "afventer",
+        trend: "flat",
+        updated_at: nowIso,
+      },
+      {
+        project_id: projectId,
+        key: "co2_sequestration",
+        label: "CO₂-binding",
+        category: "klima",
+        value: 0,
+        unit: "t CO₂e/år",
+        status: "afventer",
+        trend: "flat",
+        updated_at: nowIso,
+      },
+      {
+        project_id: projectId,
+        key: "water_quality",
+        label: "Vandkvalitet",
+        category: "vand",
+        value: 0,
+        unit: "score",
+        status: "afventer",
+        trend: "flat",
+        updated_at: nowIso,
+      },
+      {
+        project_id: projectId,
+        key: "habitat_area",
+        label: "Habitatareal",
+        category: "areal",
+        value: 0,
+        unit: "ha",
+        status: "afventer",
+        trend: "flat",
+        updated_at: nowIso,
+      },
+    ]),
+    client.from("actions").insert([
+      {
+        project_id: projectId,
+        title: "Definér projektgeometri (polygon)",
+        priority: "Høj",
+        status: "Åben",
+        owner: "Projektleder",
+        due_date: in14Days,
+        description: "Upload GeoJSON eller tegn polygon for at aktivere miljø- og satellitanalyse.",
+      },
+      {
+        project_id: projectId,
+        title: "Registrér baseline for hovedområde",
+        priority: "Høj",
+        status: "Åben",
+        owner: "Feltteam",
+        due_date: in30Days,
+        description: "Dokumentér udgangspunkt for biodiversitet, jord og vand før interventioner.",
+      },
+      {
+        project_id: projectId,
+        title: "Tilknyt IoT-sensorer",
+        priority: "Medium",
+        status: "Åben",
+        owner: "Data-ansvarlig",
+        due_date: in30Days,
+        description: "Sæt vandkvalitets- og jordfugtighedssensorer op på hovedområdet.",
+      },
+    ]),
+  ]);
 }
 
-export function getDataSourcesByProject(projectId: string): DataSource[] {
-  return SEED_DATA_SOURCES.filter((d) => d.project_id === projectId);
+export async function getSitesByProject(projectId: string): Promise<Site[]> {
+  if (!isSupabaseConfigured) {
+    return SEED_SITES.filter((s) => s.project_id === projectId);
+  }
+  try {
+    return await fetchSitesByProject(projectId);
+  } catch {
+    return SEED_SITES.filter((s) => s.project_id === projectId);
+  }
 }
+
+export async function getDataSourcesByProject(projectId: string): Promise<DataSource[]> {
+  if (!isSupabaseConfigured) {
+    return SEED_DATA_SOURCES.filter((d) => d.project_id === projectId);
+  }
+  try {
+    return await fetchDataSourcesByProject(projectId);
+  } catch {
+    return SEED_DATA_SOURCES.filter((d) => d.project_id === projectId);
+  }
+}
+
 
 // Returns a rich summary for the Nature Project Monitor view.
 export async function getNatureProjectSummary(
@@ -143,7 +311,7 @@ export async function getNatureProjectSummary(
     getIndicatorsByProject(projectId),
     getAuditEventsByProject(projectId),
     getReportsByProject(projectId),
-    Promise.resolve(getDataSourcesByProject(projectId)),
+    getDataSourcesByProject(projectId),
   ]);
 
   return {
