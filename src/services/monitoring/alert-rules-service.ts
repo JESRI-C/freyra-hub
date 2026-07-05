@@ -83,7 +83,8 @@ export async function addComment(alertId: string, content: string): Promise<Aler
 
 export async function assignAlert(alertId: string, userId: string | null): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: current } = await supabase.from("monitoring_alerts").select("*").eq("id", alertId).maybeSingle();
+  const { data: currentRaw } = await supabase.from("monitoring_alerts").select("*").eq("id", alertId).maybeSingle();
+  const current = currentRaw as unknown as MonitoringAlert | null;
   const { error } = await supabase.from("monitoring_alerts").update({ assigned_to: userId } as never).eq("id", alertId);
   if (error) throw error;
   await logAuditEvent({
