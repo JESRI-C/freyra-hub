@@ -296,6 +296,7 @@ function ProjectDetailPage() {
             {/* ── Overblik ─────────────────────────────────────────────────── */}
             {active === "overblik" && (
               <div className="space-y-5">
+                {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
                 {/* Recommended next action */}
                 <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
                   <Activity className="h-5 w-5 text-primary shrink-0" />
