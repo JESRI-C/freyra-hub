@@ -114,9 +114,8 @@ export async function generateProjectReport(input: GenerateReportInput): Promise
     for (const i of indicators) {
       y = ensure(pdf, y);
       pdf.setFontSize(10);
-      const val = i.current_value != null ? `${i.current_value}${i.unit ? ` ${i.unit}` : ""}` : "—";
-      const target = i.target_value != null ? ` / mål ${i.target_value}${i.unit ? ` ${i.unit}` : ""}` : "";
-      pdf.text(`• ${i.name}: ${val}${target} — ${i.status || "ukendt"}`, 40, y);
+      const val = i.value != null ? `${i.value}${i.unit ? ` ${i.unit}` : ""}` : "—";
+      pdf.text(`• ${i.label}: ${val} — ${i.status || "ukendt"}`, 40, y);
       y += 14;
     }
   }
