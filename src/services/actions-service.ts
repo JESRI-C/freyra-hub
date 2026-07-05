@@ -7,11 +7,14 @@ import {
   insertAction,
   updateAction,
   deleteAction,
+  fetchActionEvidence,
+  insertActionEvidence,
+  deleteActionEvidence,
 } from "@/lib/supabase/queries";
 import { logAuditEvent } from "@/services/audit-service";
 import { SEED_ACTIONS } from "@/data/platform-seed";
 import type { IoTSensor } from "@/services/iot-simulation-service";
-import type { Action } from "@/lib/supabase/types";
+import type { Action, ActionEvidence } from "@/lib/supabase/types";
 
 function isMissingTable(err: unknown): boolean {
   return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
