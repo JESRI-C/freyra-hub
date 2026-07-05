@@ -163,7 +163,7 @@ function GeometryEditorPage() {
         setUploadError("Filen indeholder ikke en gyldig Polygon-geometri.");
         return;
       }
-      map.handleBoundaryDrawn(parsed.polygon as GeoJsonPolygon, parsed.areaHa ?? 0);
+      map.handleBoundaryDrawn(parsed.polygon as GeoJsonPolygon, parsed.areaHa ?? 0, "uploaded");
       toast.success("Projektområde uploadet");
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "Kunne ikke læse fil");
