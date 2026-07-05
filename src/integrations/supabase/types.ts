@@ -154,8 +154,12 @@ export type Database = {
       audit_events: {
         Row: {
           actor: string | null
+          after_data: Json | null
+          before_data: Json | null
           created_at: string | null
           description: string | null
+          entity_id: string | null
+          entity_type: string | null
           event_type: string | null
           hash: string | null
           id: string
@@ -165,8 +169,12 @@ export type Database = {
         }
         Insert: {
           actor?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
           created_at?: string | null
           description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           event_type?: string | null
           hash?: string | null
           id?: string
@@ -176,8 +184,12 @@ export type Database = {
         }
         Update: {
           actor?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
           created_at?: string | null
           description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
           event_type?: string | null
           hash?: string | null
           id?: string
