@@ -155,6 +155,10 @@ export function MapEditorMap({
   onMeasurement,
   centerOverride,
   wmsOverlays,
+  addressMarker,
+  pickMode,
+  onFeaturePicked,
+  previewPolygon,
   height = 540,
   className,
 }: MapEditorMapProps) {
