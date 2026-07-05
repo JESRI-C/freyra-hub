@@ -1,12 +1,16 @@
 import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Building2, MapPin, ChevronRight, Leaf, LogOut, CheckCircle2, Loader2 } from "lucide-react";
+import { Building2, MapPin, ChevronRight, Leaf, LogOut, CheckCircle2, Loader2, Plus, X, Info, Users, ShieldCheck, FolderTree } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/select")({
   head: () => ({ meta: [{ title: "Vælg arbejdsplads — GoFreyra" }] }),
   component: SelectPage,
 });
+
+const ORG_TYPES = ["Kommune", "Rådgiver", "NGO", "Bygherre", "Forsyning", "Andet"] as const;
+type OrgType = (typeof ORG_TYPES)[number];
 
 function SelectPage() {
   const { user, loading, logout, selectOrg, selectProject, orgId, organizations } = useAuth();
