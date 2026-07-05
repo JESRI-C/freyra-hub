@@ -996,3 +996,96 @@ function GeometryRequiredBanner({
     </Card>
   );
 }
+
+// ─── Dokumentation Tab ────────────────────────────────────────────────────────
+
+function DokumentationTab({
+  projectId,
+  project,
+  sites,
+  actions,
+  indicators,
+  evidenceFiles,
+}: {
+  projectId: string;
+  project: import("@/lib/supabase/types").Project;
+  sites: import("@/lib/supabase/types").Site[];
+  actions: Action[];
+  indicators: import("@/lib/supabase/types").Indicator[];
+  evidenceFiles: import("@/lib/supabase/types").EvidenceFile[];
+}) {
+  const { data: documents = [] } = useQuery({
+    queryKey: ["documents", projectId],
+    queryFn: () => listDocuments(projectId),
+    enabled: !!projectId,
+  });
+
+  // Evidence count per action (from linked evidence files via report_id? we use action_evidence via action id)
+  // For lightweight scoring, we approximate: count evidenceFiles.length grouped none — use action.completed_at + evidenceFiles length.
+  const evidenceCountByAction: Record<string, number> = {};
+  for (const f of evidenceFiles) {
+    // Only counts project-level evidence; per-action evidence would need action_evidence table fetch.
+    // For scoring, we credit each recent action if project has any evidence file.
+    void f;
+  }
+  const hasAnyEvidence = evidenceFiles.length > 0;
+  for (const a of actions) {
+    evidenceCountByAction[a.id] = hasAnyEvidence ? 1 : 0;
+  }
+
+  const score = computeDocumentationScore({
+    project,
+    sites,
+    actions,
+    indicators,
+    documents,
+    evidenceCountByAction,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid lg:grid-cols-[1fr_360px] gap-4">
+        <Card>
+          <CardHeader
+            title="Genererede dokumenter"
+            subtitle="Rapporter, notater og eksporter til myndigheder og partnere"
+            action={
+              <div className="flex items-center gap-2">
+                <Pill tone="info">{documents.length}</Pill>
+                <GenerateReportDialog
+                  project={project}
+                  sites={sites}
+                  actions={actions}
+                  indicators={indicators}
+                />
+              </div>
+            }
+          />
+          <div className="px-5 pb-4">
+            <DocumentList projectId={projectId} />
+          </div>
+        </Card>
+        <Card>
+          <CardHeader title="Dokumentationsscore" subtitle="Hvor komplet er projektets dokumentation" />
+          <div className="px-5 pb-5">
+            <DocumentationScore score={score} />
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader
+          title="Evidensfiler"
+          subtitle="Certifikater og bilag tilknyttet projektet"
+          action={<Pill tone="info">{evidenceFiles.length}</Pill>}
+        />
+        <div className="px-5 pb-4">
+          <EvidenceList files={evidenceFiles} />
+        </div>
+      </Card>
+      <Card className="p-5">
+        <EvidenceUploadForm projectId={projectId} />
+      </Card>
+    </div>
+  );
+}
