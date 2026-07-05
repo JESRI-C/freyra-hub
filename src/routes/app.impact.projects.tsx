@@ -26,21 +26,14 @@ import {
 import { PROJECTS, CATEGORIES } from "@/lib/impact-data";
 import { usePortfolio, useCompare } from "@/lib/impact-state";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
-import { DEFAULT_ORG_ID } from "@/data/platform-seed";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
-
-// ─── Query ────────────────────────────────────────────────────────────────────
-
-const projectSummariesQuery = {
-  queryKey: ["nature-project-summaries", DEFAULT_ORG_ID],
-  queryFn: () => getAllNatureProjectSummaries(DEFAULT_ORG_ID),
-};
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/app/impact/projects")({
   head: () => ({ meta: [{ title: "Projekter — Impact Exchange" }] }),
-  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(projectSummariesQuery),
   component: ProjectsPage,
 });
+
 
 const FILTERS = [
   "Region",
@@ -133,8 +126,13 @@ function ProjectsPage() {
   const portfolio = usePortfolio();
   const compare = useCompare();
 
-  // Live data from service layer (falls back to seed transparently)
-  const { data: summaries } = useSuspenseQuery(projectSummariesQuery);
+  // Live data from service layer, scoped to current organization
+  const { currentOrg } = useAuth();
+  const orgId = currentOrg?.id ?? "";
+  const { data: summaries } = useSuspenseQuery({
+    queryKey: ["nature-project-summaries", orgId],
+    queryFn: () => getAllNatureProjectSummaries(orgId),
+  });
 
   const filtered = useMemo(() => {
     return PROJECTS.filter((p) => {

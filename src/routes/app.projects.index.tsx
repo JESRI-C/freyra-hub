@@ -4,24 +4,19 @@ import { useMemo, useState } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bits";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
-import { DEFAULT_ORG_ID } from "@/data/platform-seed";
 import { ProjectMonitorCard } from "@/components/project/ProjectMonitorCard";
 import { Leaf, FolderOpen, AlertCircle, BarChart2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
+import { useAuth } from "@/lib/auth";
 
-// ─── Query ────────────────────────────────────────────────────────────────────
-
-const projectSummariesQuery = {
-  queryKey: ["nature-project-summaries", DEFAULT_ORG_ID],
-  queryFn: () => getAllNatureProjectSummaries(DEFAULT_ORG_ID),
-};
+// ─── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/projects/")({
   head: () => ({ meta: [{ title: "Projektoversigt — GoFreyra" }] }),
-  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(projectSummariesQuery),
   component: ProjectsIndexPage,
 });
+
 
 const STATUS_FILTERS = ["Alle", "Under verifikation", "Verificeret", "Afsluttet"];
 
@@ -55,6 +50,8 @@ const FORM_DEFAULTS: CreateProjectForm = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProjectsIndexPage() {
+  const { currentOrg } = useAuth();
+  const orgId = currentOrg?.id ?? "";
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -63,7 +60,11 @@ function ProjectsIndexPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
-  const { data: querySummaries } = useSuspenseQuery(projectSummariesQuery);
+  const { data: querySummaries } = useSuspenseQuery({
+    queryKey: ["nature-project-summaries", orgId],
+    queryFn: () => getAllNatureProjectSummaries(orgId),
+  });
+
 
   // Prepend any locally created projects so they appear immediately
   const summaries = useMemo(
@@ -121,7 +122,7 @@ function ProjectsIndexPage() {
         const db = supabase as unknown as { from: (t: string) => { insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } };
         const { error } = await db.from("projects").insert({
           id: newId,
-          organization_id: DEFAULT_ORG_ID,
+          organization_id: orgId,
           name: form.name.trim(),
           description: form.description.trim() || null,
           project_type: form.projectType,
@@ -140,7 +141,7 @@ function ProjectsIndexPage() {
       const newSummary: NatureProjectSummary = {
         project: {
           id: newId,
-          organization_id: DEFAULT_ORG_ID,
+          organization_id: orgId,
           name: form.name.trim(),
           slug: null,
           project_type: form.projectType,

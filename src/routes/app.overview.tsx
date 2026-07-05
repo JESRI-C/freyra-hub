@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
   ArrowRight,
   Plus,
@@ -20,96 +22,19 @@ import {
   Info,
 } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
+import { useAuth } from "@/lib/auth";
+import { getAllNatureProjectSummaries } from "@/services/projects-service";
+import { getAllOpenActions } from "@/services/actions-service";
+import { getAllReports } from "@/services/reports-service";
 
 export const Route = createFileRoute("/app/overview")({
   head: () => ({ meta: [{ title: "Dashboard — GoFreyra" }] }),
   component: DashboardPage,
 });
 
-// ─── Mock data (display-only, restructure scope) ──────────────────────────────
 
-const PORTFOLIO_KPIS = [
-  { label: "Aktive naturprojekter", value: "12", hint: "3 nye sidste 30 dage" },
-  { label: "Hektar under forvaltning", value: "428", hint: "Skov, eng, vådområde" },
-  { label: "Grøn trepart-parathed", value: "64%", hint: "8 ud af 12 projekter" },
-  { label: "Rapportparathed", value: "71%", hint: "Gennemsnit på tværs" },
-  { label: "Metodekonfidens", value: "Middel", hint: "Variabel pr. projekt" },
-  { label: "Lodsejer-risiko", value: "2", hint: "Projekter kræver dialog" },
-  { label: "Datadækning", value: "83%", hint: "Sensorer · satellit · felt" },
-  { label: "Offentlige impact-sider", value: "5", hint: "Publiceret + 3 i udkast" },
-] as const;
+// ─── Static structure copy (module map & workflow) ───────────────────────────
 
-const CRITICAL_ACTIONS = [
-  {
-    title: "Baseline mangler for vådområdeprojekt",
-    project: "Skallebæk Wetland",
-    tone: "danger" as const,
-    cta: "Åbn baseline",
-  },
-  {
-    title: "Lodsejer-brief klar til gennemsyn",
-    project: "Regenerative Farm Pilot",
-    tone: "warning" as const,
-    cta: "Gennemgå",
-  },
-  {
-    title: "Lav metodekonfidens i biodiversitetsvurdering",
-    project: "Byggeri & natur · Kolding",
-    tone: "warning" as const,
-    cta: "Tilføj evidens",
-  },
-  {
-    title: "Public impact-side mangler billeder",
-    project: "Stream Restoration eDNA",
-    tone: "default" as const,
-    cta: "Tilføj medier",
-  },
-  {
-    title: "Rapport klar til kommunal afgørelsesnote",
-    project: "Skallebæk Wetland",
-    tone: "success" as const,
-    cta: "Send til kommune",
-  },
-];
-
-const PROJECT_PORTFOLIO = [
-  {
-    name: "Skallebæk Wetland & Biodiversity",
-    slug: "skallebaek-biodiversity-pilot",
-    type: "Vådområde · biodiversitet",
-    ha: 7.3,
-    status: "Aktiv",
-    tripart: 78,
-    report: 84,
-    method: "Høj",
-    risk: "Lav",
-    nextAction: "Send afgørelsesnote til kommunen",
-  },
-  {
-    name: "Regenerative Farm Documentation Pilot",
-    slug: "regenerative-farm-pilot",
-    type: "Landbrug · regenerativ",
-    ha: 142,
-    status: "I dialog",
-    tripart: 55,
-    report: 48,
-    method: "Middel",
-    risk: "Medium",
-    nextAction: "Færdiggør lodsejer-brief",
-  },
-  {
-    name: "Stream Restoration with eDNA Monitoring",
-    slug: "stream-restoration-edna",
-    type: "Vandløb · eDNA-monitorering",
-    ha: 19.4,
-    status: "Aktiv",
-    tripart: 62,
-    report: 71,
-    method: "Høj",
-    risk: "Lav",
-    nextAction: "Upload eDNA-resultater Q2",
-  },
-];
 
 const WORKFLOW_STEPS = [
   "Project intake",
@@ -164,6 +89,87 @@ const REPOSITIONED_MODULES = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function DashboardPage() {
+  const { currentOrg } = useAuth();
+  const orgId = currentOrg?.id ?? "";
+
+  const { data: summaries } = useSuspenseQuery({
+    queryKey: ["nature-project-summaries", orgId],
+    queryFn: () => getAllNatureProjectSummaries(orgId),
+  });
+  const { data: openActions } = useSuspenseQuery({
+    queryKey: ["all-open-actions", orgId],
+    queryFn: () => getAllOpenActions(),
+  });
+  const { data: allReports } = useSuspenseQuery({
+    queryKey: ["all-reports", orgId],
+    queryFn: () => getAllReports(),
+  });
+
+  const kpis = useMemo(() => {
+    const activeProjects = summaries.filter((s) => s.project.status !== "Afsluttet").length;
+    const totalHa = summaries.reduce(
+      (a, s) => a + (Number(s.project.geometry_area_ha) || 0),
+      0,
+    );
+    const readinessVals = summaries
+      .flatMap((s) => s.indicators)
+      .filter((i) => i.key === "report_readiness" && i.value !== null)
+      .map((i) => i.value as number);
+    const avgReadiness =
+      readinessVals.length > 0
+        ? Math.round(readinessVals.reduce((a, b) => a + b, 0) / readinessVals.length)
+        : null;
+    const dataSourceTotal = summaries.reduce((a, s) => a + (s.activeDataSources ?? 0), 0);
+    const publishedReports = allReports.filter(
+      (r) => r.status === "Publiceret" || r.status === "Offentliggjort",
+    ).length;
+    return [
+      { label: "Aktive naturprojekter", value: String(activeProjects), hint: `${summaries.length} i alt` },
+      { label: "Hektar under forvaltning", value: totalHa > 0 ? totalHa.toFixed(1) : "—", hint: "Fra projektarealer" },
+      { label: "Rapportparathed", value: avgReadiness !== null ? `${avgReadiness}%` : "—", hint: "Gennemsnit på tværs" },
+      { label: "Åbne handlinger", value: String(openActions.length), hint: "På tværs af projekter" },
+      { label: "Aktive datakilder", value: String(dataSourceTotal), hint: "Sensorer · satellit · felt" },
+      { label: "Rapporter i alt", value: String(allReports.length), hint: `${publishedReports} publiceret` },
+    ];
+  }, [summaries, openActions, allReports]);
+
+  const criticalActions = useMemo(() => {
+    const nameById = new Map(summaries.map((s) => [s.project.id, s.project.name] as const));
+    return openActions.slice(0, 5).map((a) => ({
+      id: a.id,
+      title: a.title,
+      project: nameById.get(a.project_id ?? "") ?? "—",
+      tone:
+        a.priority === "Høj"
+          ? ("danger" as const)
+          : a.priority === "Medium"
+            ? ("warning" as const)
+            : ("default" as const),
+    }));
+  }, [openActions, summaries]);
+
+  const portfolio = useMemo(
+    () =>
+      summaries.slice(0, 6).map((s) => {
+        const readiness = s.indicators.find((i) => i.key === "report_readiness");
+        const bio = s.indicators.find((i) => i.key === "biodiversity_index");
+        const quality = s.indicators.find((i) => i.key === "data_quality");
+        return {
+          id: s.project.id,
+          name: s.project.name,
+          slug: s.project.slug ?? s.project.id,
+          type: s.project.project_type ?? "Naturprojekt",
+          ha: Number(s.project.geometry_area_ha) || null,
+          status: s.project.status ?? "—",
+          readiness: readiness?.value ?? null,
+          bio: bio?.value ?? null,
+          quality: quality?.value ?? null,
+          openActions: s.openActions,
+        };
+      }),
+    [summaries],
+  );
+
   return (
     <main className="p-6 max-w-[1500px] w-full mx-auto space-y-6">
       {/* 1. Hero */}
@@ -200,7 +206,7 @@ function DashboardPage() {
           Porteføljeoverblik
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {PORTFOLIO_KPIS.map((k) => (
+          {kpis.map((k) => (
             <Card key={k.label} className="p-4">
               <div className="text-xs text-muted-foreground">{k.label}</div>
               <div className="text-2xl font-semibold mt-1 tabular-nums">{k.value}</div>
@@ -218,16 +224,18 @@ function DashboardPage() {
             subtitle="Hvad kræver din opmærksomhed nu"
           />
           <ul className="px-5 pb-5 divide-y">
-            {CRITICAL_ACTIONS.map((a) => (
-              <li key={a.title} className="py-3 flex items-start gap-3">
+            {criticalActions.length === 0 && (
+              <li className="py-6 text-sm text-muted-foreground text-center">
+                Ingen åbne handlinger — godt gået 🌱
+              </li>
+            )}
+            {criticalActions.map((a) => (
+              <li key={a.id} className="py-3 flex items-start gap-3">
                 {a.tone === "danger" && (
                   <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 )}
                 {a.tone === "warning" && (
                   <ClipboardList className="h-4 w-4 text-warning-foreground shrink-0 mt-0.5" />
-                )}
-                {a.tone === "success" && (
-                  <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
                 )}
                 {a.tone === "default" && (
                   <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -236,9 +244,12 @@ function DashboardPage() {
                   <div className="font-medium text-sm">{a.title}</div>
                   <div className="text-xs text-muted-foreground">{a.project}</div>
                 </div>
-                <button className="text-xs rounded-lg border px-2.5 py-1.5 hover:bg-muted shrink-0">
-                  {a.cta}
-                </button>
+                <Link
+                  to="/app/decisions"
+                  className="text-xs rounded-lg border px-2.5 py-1.5 hover:bg-muted shrink-0"
+                >
+                  Åbn
+                </Link>
               </li>
             ))}
           </ul>
@@ -281,29 +292,46 @@ function DashboardPage() {
           }
         />
         <div className="px-5 pb-5 grid md:grid-cols-3 gap-3">
-          {PROJECT_PORTFOLIO.map((p) => (
+          {portfolio.length === 0 && (
+            <div className="col-span-full text-sm text-muted-foreground text-center py-6">
+              Ingen projekter endnu.{" "}
+              <Link to="/app/projects" className="text-primary hover:underline">
+                Opret dit første naturprojekt
+              </Link>
+              .
+            </div>
+          )}
+          {portfolio.map((p) => (
             <Link
-              key={p.slug}
+              key={p.id}
               to="/app/projects/$slug"
               params={{ slug: p.slug }}
               className="rounded-xl border p-4 hover:shadow-soft transition bg-card"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="font-semibold text-sm leading-tight">{p.name}</div>
-                <Pill tone={p.status === "Aktiv" ? "success" : "warning"}>{p.status}</Pill>
+                <Pill tone={p.status === "Aktiv" || p.status === "active" ? "success" : "warning"}>
+                  {p.status}
+                </Pill>
               </div>
               <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> {p.type} · {p.ha} ha
+                <MapPin className="h-3 w-3" /> {p.type}
+                {p.ha !== null ? ` · ${p.ha.toFixed(1)} ha` : ""}
               </div>
               <div className="grid grid-cols-2 gap-2 mt-4 text-[11px]">
-                <KpiMini label="Tripart-parathed" value={`${p.tripart}%`} />
-                <KpiMini label="Rapportparathed" value={`${p.report}%`} />
-                <KpiMini label="Metodekonfidens" value={p.method} />
-                <KpiMini label="Lodsejer-risiko" value={p.risk} />
-              </div>
-              <div className="border-t mt-3 pt-3 text-xs">
-                <div className="text-muted-foreground">Næste handling</div>
-                <div className="font-medium mt-0.5">{p.nextAction}</div>
+                <KpiMini
+                  label="Rapportparathed"
+                  value={p.readiness !== null ? `${p.readiness}%` : "—"}
+                />
+                <KpiMini
+                  label="Datakvalitet"
+                  value={p.quality !== null ? `${p.quality}%` : "—"}
+                />
+                <KpiMini
+                  label="Biodiversitet"
+                  value={p.bio !== null ? String(p.bio) : "—"}
+                />
+                <KpiMini label="Åbne handlinger" value={String(p.openActions)} />
               </div>
             </Link>
           ))}
