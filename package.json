@@ -51,6 +51,7 @@
     "@tanstack/react-router": "^1.168.25",
     "@tanstack/react-start": "^1.167.50",
     "@tanstack/router-plugin": "^1.167.28",
+    "@tmcw/togeojson": "^7.1.2",
     "@turf/turf": "^7.3.5",
     "@types/leaflet-draw": "^1.0.13",
     "ai": "^6.0.191",
@@ -66,6 +67,7 @@
     "leaflet-draw": "^1.0.4",
     "lucide-react": "^0.575.0",
     "nitro": "3.0.260603-beta",
+    "papaparse": "^5.5.4",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -78,6 +80,7 @@
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -85,6 +88,7 @@
     "@lovable.dev/vite-tanstack-config": "2.7.0",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.16.5",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
