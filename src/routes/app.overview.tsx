@@ -292,29 +292,46 @@ function DashboardPage() {
           }
         />
         <div className="px-5 pb-5 grid md:grid-cols-3 gap-3">
+          {portfolio.length === 0 && (
+            <div className="col-span-full text-sm text-muted-foreground text-center py-6">
+              Ingen projekter endnu.{" "}
+              <Link to="/app/projects" className="text-primary hover:underline">
+                Opret dit første naturprojekt
+              </Link>
+              .
+            </div>
+          )}
           {portfolio.map((p) => (
             <Link
-              key={p.slug}
+              key={p.id}
               to="/app/projects/$slug"
               params={{ slug: p.slug }}
               className="rounded-xl border p-4 hover:shadow-soft transition bg-card"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="font-semibold text-sm leading-tight">{p.name}</div>
-                <Pill tone={p.status === "Aktiv" ? "success" : "warning"}>{p.status}</Pill>
+                <Pill tone={p.status === "Aktiv" || p.status === "active" ? "success" : "warning"}>
+                  {p.status}
+                </Pill>
               </div>
               <div className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> {p.type} · {p.ha} ha
+                <MapPin className="h-3 w-3" /> {p.type}
+                {p.ha !== null ? ` · ${p.ha.toFixed(1)} ha` : ""}
               </div>
               <div className="grid grid-cols-2 gap-2 mt-4 text-[11px]">
-                <KpiMini label="Tripart-parathed" value={`${p.tripart}%`} />
-                <KpiMini label="Rapportparathed" value={`${p.report}%`} />
-                <KpiMini label="Metodekonfidens" value={p.method} />
-                <KpiMini label="Lodsejer-risiko" value={p.risk} />
-              </div>
-              <div className="border-t mt-3 pt-3 text-xs">
-                <div className="text-muted-foreground">Næste handling</div>
-                <div className="font-medium mt-0.5">{p.nextAction}</div>
+                <KpiMini
+                  label="Rapportparathed"
+                  value={p.readiness !== null ? `${p.readiness}%` : "—"}
+                />
+                <KpiMini
+                  label="Datakvalitet"
+                  value={p.quality !== null ? `${p.quality}%` : "—"}
+                />
+                <KpiMini
+                  label="Biodiversitet"
+                  value={p.bio !== null ? String(p.bio) : "—"}
+                />
+                <KpiMini label="Åbne handlinger" value={String(p.openActions)} />
               </div>
             </Link>
           ))}
