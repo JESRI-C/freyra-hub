@@ -164,6 +164,12 @@ export type Site = {
   area_ha: number | null;
   geometry_geojson: Record<string, unknown> | null;
   baseline_status: string | null;
+  description?: string | null;
+  centroid_lat?: number | null;
+  centroid_lng?: number | null;
+  status?: string | null;
+  archived_at?: string | null;
+  updated_at?: string | null;
   created_at: string;
 };
 
