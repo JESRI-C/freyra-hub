@@ -30,24 +30,52 @@ import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
 import { useConnectContext } from "@/lib/connect-context";
 import { listAlertRules, toggleAlertRule } from "@/services/monitoring/alert-rules-service";
 import { runAlertEvaluation } from "@/services/monitoring/alert-engine";
-
+import { listAlerts, resolveAlert, acknowledgeAlert, type MonitoringAlert } from "@/services/monitoring/alerts-service";
+import { supabase } from "@/lib/supabase/client";
 
 export const Route = createFileRoute("/app/connect/alerts")({
   component: Page,
 });
 
+type LiveAlert = MonitoringAlert & { __live: true };
+type DemoAlert = (typeof ALERTS)[0] & { __live?: false };
+type AnyAlert = LiveAlert | DemoAlert;
+
+function severityRank(s: string): "critical" | "medium" | "low" {
+  if (s === "critical" || s === "high") return "critical";
+  if (s === "medium" || s === "warning") return "medium";
+  return "low";
+}
+
 function Page() {
   const { projectId } = useConnectContext();
   const [filter, setFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<(typeof ALERTS)[0] | null>(null);
+  const [selected, setSelected] = useState<AnyAlert | null>(null);
   const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [lastRun, setLastRun] = useState<{ fired: number; detected: number; ranAt: string } | null>(null);
-  const filtered = filter === "all" ? ALERTS : ALERTS.filter((a) => a.severity === filter);
+
+  const liveAlertsQuery = useQuery({
+    queryKey: ["monitoring-alerts", projectId],
+    queryFn: async (): Promise<LiveAlert[]> => {
+      if (!projectId) return [];
+      const rows = await listAlerts(projectId, { limit: 100 });
+      return rows.map((r) => ({ ...r, __live: true as const }));
+    },
+    enabled: !!projectId,
+  });
+
+  const live = liveAlertsQuery.data ?? [];
+  const useDemo = live.length === 0;
+  const source: AnyAlert[] = useDemo ? (ALERTS as AnyAlert[]) : live;
+  const filtered = filter === "all"
+    ? source
+    : source.filter((a) => severityRank(a.severity) === filter);
 
   const rulesQuery = useQuery({
     queryKey: ["alert-rules", projectId],
     queryFn: () => listAlertRules(projectId),
+
   });
 
   async function handleRunNow() {
@@ -62,6 +90,8 @@ function Page() {
       toast.success(
         `Alarmregler kørt: ${res.detected} fund, ${res.fired} nye alarmer, ${res.skippedDuplicates} eksisterende`,
       );
+      await liveAlertsQuery.refetch();
+
     } catch (e) {
       toast.error(`Fejl under kørsel: ${(e as Error).message}`);
     } finally {
@@ -218,33 +248,40 @@ function Page() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((a) => (
-                <tr
-                  key={a.id}
-                  className="hover:bg-muted/40 cursor-pointer"
-                  onClick={() => setSelected(a)}
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{a.title}</div>
-                    <div className="text-[11px] text-muted-foreground">{a.id}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <SeverityBadge severity={a.severity} />
-                  </td>
-                  <td className="px-4 py-3 text-xs">{a.project}</td>
-                  <td className="px-4 py-3 text-xs">{a.source}</td>
-                  <td className="px-4 py-3 text-xs">
-                    <Chip>{a.type}</Chip>
-                  </td>
-                  <td className="px-4 py-3 text-xs">{a.first}</td>
-                  <td className="px-4 py-3 text-xs">{a.last}</td>
-                  <td className="px-4 py-3 text-xs">
-                    <Chip tone={a.status === "Åben" ? "muted" : "primary"}>{a.status}</Chip>
-                  </td>
-                  <td className="px-4 py-3 text-xs">{a.owner}</td>
-                </tr>
-              ))}
+              {filtered.map((a) => {
+                const r = toRow(a);
+                return (
+                  <tr
+                    key={r.id}
+                    className="hover:bg-muted/40 cursor-pointer"
+                    onClick={() => setSelected(a)}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{r.title}</div>
+                      <div className="text-[11px] text-muted-foreground">{r.id}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <SeverityBadge severity={r.sev} />
+                    </td>
+                    <td className="px-4 py-3 text-xs">{r.project}</td>
+                    <td className="px-4 py-3 text-xs">{r.source}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <Chip>{r.type}</Chip>
+                    </td>
+                    <td className="px-4 py-3 text-xs">{r.first}</td>
+                    <td className="px-4 py-3 text-xs">{r.last}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <Chip tone={r.status === "Åben" || r.status === "active" ? "muted" : "primary"}>{r.status}</Chip>
+                    </td>
+                    <td className="px-4 py-3 text-xs">{r.owner}</td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">Ingen alarmer i dette filter.</td></tr>
+              )}
             </tbody>
+
           </table>
         </div>
       </Card>
@@ -308,39 +345,124 @@ function Page() {
           </>
         }
       >
-        {selected && (
-          <>
-            <p className="text-sm">{selected.title}</p>
-            <Section title="Hvorfor det er vigtigt">
-              <p className="text-sm text-muted-foreground">
-                {selected.severity === "critical"
-                  ? "Påvirker direkte rapporteringsklarhed og kan blokere ESG Ledger entries."
-                  : "Reducerer datakvalitet og kan udløse falske anbefalinger i DecisionsIQ."}
-              </p>
-            </Section>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <KV label="Severity" v={<SeverityBadge severity={selected.severity} />} />
-              <KV label="Type" v={selected.type} />
-              <KV label="Først detekteret" v={selected.first} />
-              <KV label="Sidst detekteret" v={selected.last} />
-              <KV label="Projekt" v={selected.project} />
-              <KV label="Kilde" v={selected.source} />
-            </div>
-            <Section title="Anbefalet handling">
-              <p className="text-sm">{selected.action}</p>
-            </Section>
-            <Section title="Tidslinje">
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>{selected.first} — Alert udløst</li>
-                <li>{selected.last} — Sidste forekomst</li>
-                <li>Owner notificeret · {selected.owner}</li>
-              </ul>
-            </Section>
-          </>
-        )}
+        {selected && (() => {
+          const r = toRow(selected);
+          const isLive = selected.__live === true;
+          return (
+            <>
+              <p className="text-sm">{r.title}</p>
+              <Section title="Hvorfor det er vigtigt">
+                <p className="text-sm text-muted-foreground">
+                  {r.sev === "critical"
+                    ? "Påvirker direkte rapporteringsklarhed og kan blokere ESG Ledger entries."
+                    : "Reducerer datakvalitet og kan udløse falske anbefalinger i DecisionsIQ."}
+                </p>
+              </Section>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <KV label="Severity" v={<SeverityBadge severity={r.sev} />} />
+                <KV label="Type" v={r.type} />
+                <KV label="Først detekteret" v={r.first} />
+                <KV label="Sidst detekteret" v={r.last} />
+                <KV label="Projekt" v={r.project} />
+                <KV label="Kilde" v={r.source} />
+              </div>
+              <Section title="Anbefalet handling">
+                <p className="text-sm">{r.action}</p>
+              </Section>
+              <Section title="Tidslinje">
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>{r.first} — Alert udløst</li>
+                  <li>{r.last} — Sidste forekomst</li>
+                  <li>Owner notificeret · {r.owner}</li>
+                </ul>
+              </Section>
+              {isLive && (
+                <Section title="Handlinger">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await resolveAlert(r.id);
+                          toast.success("Alarm markeret som løst");
+                          setSelected(null);
+                          await liveAlertsQuery.refetch();
+                        } catch (e) {
+                          toast.error(`Kunne ikke opdatere: ${(e as Error).message}`);
+                        }
+                      }}
+                      className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Marker som løst
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { data: auth } = await supabase!.auth.getUser();
+                          if (auth.user) await acknowledgeAlert(r.id, auth.user.id);
+                          toast.success("Alarm bekræftet");
+                          await liveAlertsQuery.refetch();
+                        } catch (e) {
+                          toast.error(`Kunne ikke bekræfte: ${(e as Error).message}`);
+                        }
+                      }}
+                      className="text-xs rounded-lg border bg-card px-3 py-1.5"
+                    >
+                      Bekræft
+                    </button>
+                  </div>
+                </Section>
+              )}
+            </>
+          );
+        })()}
       </Drawer>
     </main>
   );
+}
+
+function toRow(a: AnyAlert): {
+  id: string;
+  title: string;
+  sev: "critical" | "medium" | "low";
+  type: string;
+  project: string;
+  source: string;
+  first: string;
+  last: string;
+  owner: string;
+  action: string;
+  status: string;
+} {
+  if (a.__live === true) {
+    const live = a as LiveAlert;
+    return {
+      id: live.id,
+      title: live.title,
+      sev: severityRank(live.severity),
+      type: live.alert_type,
+      project: live.project_id.slice(0, 8),
+      source: live.source_type ?? "system",
+      first: new Date(live.triggered_at).toLocaleString(),
+      last: new Date(live.updated_at).toLocaleString(),
+      owner: live.assigned_to ? live.assigned_to.slice(0, 8) : "—",
+      action: live.message ?? "Se detaljer i konteksten.",
+      status: live.status,
+    };
+  }
+  const demo = a as DemoAlert;
+  return {
+    id: demo.id,
+    title: demo.title,
+    sev: severityRank(demo.severity),
+    type: demo.type,
+    project: demo.project,
+    source: demo.source,
+    first: demo.first,
+    last: demo.last,
+    owner: demo.owner,
+    action: demo.action,
+    status: demo.status,
+  };
 }
 
 function KV({ label, v }: { label: string; v: React.ReactNode }) {
@@ -350,4 +472,5 @@ function KV({ label, v }: { label: string; v: React.ReactNode }) {
       <div className="mt-1 text-sm">{v}</div>
     </div>
   );
+
 }
