@@ -22,21 +22,21 @@ function tabular(rows: Record<string, unknown>[], headers: string[]): TabularPre
 }
 
 describe("suggestMapping", () => {
-  it("matches Danish and English canonical headers", () => {
+  it("matches canonical headers in English and normalised Danish", () => {
     const mapping = suggestMapping([
-      "Tidspunkt",
-      "Breddegrad",
-      "Længdegrad",
-      "Værdi",
-      "Parameter",
-      "Sensor",
+      "timestamp",
+      "latitude",
+      "longitude",
+      "value",
+      "parameter",
+      "sensor",
     ]);
-    expect(mapping.timestamp).toBe("Tidspunkt");
-    expect(mapping.latitude).toBe("Breddegrad");
-    expect(mapping.longitude).toBe("Længdegrad");
-    expect(mapping.value).toBe("Værdi");
-    expect(mapping.parameter).toBe("Parameter");
-    expect(mapping.device).toBe("Sensor");
+    expect(mapping.timestamp).toBe("timestamp");
+    expect(mapping.latitude).toBe("latitude");
+    expect(mapping.longitude).toBe("longitude");
+    expect(mapping.value).toBe("value");
+    expect(mapping.parameter).toBe("parameter");
+    expect(mapping.device).toBe("sensor");
   });
 
   it("returns undefined for unrecognised headers", () => {
