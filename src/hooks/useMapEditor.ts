@@ -162,9 +162,9 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
     setNewZoneState({ name: `Zone ${(zonesQuery.data?.length ?? 0) + 1}`, area_type: "nature", geojson, area_ha: ha });
   }, [zonesQuery.data?.length]);
 
-  const handleBoundaryDrawn = useCallback((geojson: GeoJsonPolygon, ha: number) => {
+  const handleBoundaryDrawn = useCallback((geojson: GeoJsonPolygon, ha: number, source?: string) => {
     setDrawMode("none");
-    saveBoundaryMutation.mutate({ geojson, ha });
+    saveBoundaryMutation.mutate({ geojson, ha, source });
   }, [saveBoundaryMutation]);
 
   const confirmCreateZone = useCallback((name: string, area_type: ZoneType) => {
