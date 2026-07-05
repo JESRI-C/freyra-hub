@@ -58,6 +58,13 @@ export interface MapEditorMapProps {
   centerOverride?: { lat: number; lng: number; zoom?: number } | null;
   /** Extra WMS layers to overlay on the map (e.g. cadastre, field blocks). */
   wmsOverlays?: WmsOverlay[];
+  /** Marker to pin at a chosen location (address / place search result). */
+  addressMarker?: { lat: number; lng: number; label: string } | null;
+  /** When set, map clicks trigger onFeaturePicked instead of drawing. */
+  pickMode?: "markblok" | "matrikel" | null;
+  onFeaturePicked?: (latlng: { lat: number; lng: number }) => void;
+  /** Preview polygon for a picked feature (shown before confirm). */
+  previewPolygon?: GeoJsonPolygon | null;
   height?: number;
   className?: string;
 }
