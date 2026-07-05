@@ -18,7 +18,7 @@ import { DocumentList } from "@/components/documents/DocumentList";
 import { GenerateReportDialog } from "@/components/documents/GenerateReportDialog";
 import { DocumentationScore } from "@/components/documents/DocumentationScore";
 import { computeDocumentationScore, listDocuments } from "@/services/documents-service";
-import { useQuery } from "@tanstack/react-query";
+
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
