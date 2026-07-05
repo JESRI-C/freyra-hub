@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Sparkles, Plus } from "lucide-react";
 import { Card, PageHeader, Pill } from "@/components/ui-bits";
 import { Section, Chip } from "@/components/connect/Primitives";
 import {
@@ -13,16 +14,26 @@ import {
   Toast,
 } from "@/components/connect/MapPrimitives";
 import { UPLOAD_TYPES, UPLOAD_QUEUE, VALIDATION_WARNINGS } from "@/lib/connect-map-data";
+import { UploadWizard } from "@/components/monitoring/UploadWizard";
+import { useConnectContext } from "@/lib/connect-context";
+import { listUploads, uploadStatusLabel } from "@/services/monitoring/uploads-service";
 
 export const Route = createFileRoute("/app/connect/upload")({
   component: Page,
 });
 
 function Page() {
+  const { projectId } = useConnectContext();
   const [queue, setQueue] = useState(UPLOAD_QUEUE);
   const [selectedId, setSelectedId] = useState<string | null>(queue[0]?.id ?? null);
   const [routing, setRouting] = useState<string[]>(["map", "ledger"]);
   const [toast, setToast] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  const uploadsQuery = useQuery({
+    queryKey: ["monitoring-uploads", projectId],
+    queryFn: () => listUploads({ projectId, limit: 20 }),
+  });
 
   const selected = useMemo(
     () => queue.find((q) => q.id === selectedId) ?? null,
