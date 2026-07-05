@@ -1619,6 +1619,7 @@ export type Database = {
           }
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enablelongtransactions: { Args: never; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
