@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { ArrowLeft, MapPin, Upload, Pencil, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { toast } from "sonner";
-import { Card, PageHeader } from "@/components/ui-bits";
+import { Card } from "@/components/ui-bits";
 import { MapEditorMap } from "@/components/maps/MapEditorMap";
 import { useMapEditor } from "@/hooks/useMapEditor";
 import { getProjectBySlug } from "@/services/projects-service";
