@@ -1351,10 +1351,14 @@ export type Database = {
       project_media: {
         Row: {
           accuracy_m: number | null
+          action_id: string | null
           altitude_m: number | null
+          before_media_id: string | null
           captured_at: string | null
           category: string
           description: string | null
+          direction: number | null
+          document_id: string | null
           file_path: string
           file_size_bytes: number | null
           id: string
@@ -1373,10 +1377,14 @@ export type Database = {
         }
         Insert: {
           accuracy_m?: number | null
+          action_id?: string | null
           altitude_m?: number | null
+          before_media_id?: string | null
           captured_at?: string | null
           category: string
           description?: string | null
+          direction?: number | null
+          document_id?: string | null
           file_path: string
           file_size_bytes?: number | null
           id?: string
@@ -1395,10 +1403,14 @@ export type Database = {
         }
         Update: {
           accuracy_m?: number | null
+          action_id?: string | null
           altitude_m?: number | null
+          before_media_id?: string | null
           captured_at?: string | null
           category?: string
           description?: string | null
+          direction?: number | null
+          document_id?: string | null
           file_path?: string
           file_size_bytes?: number | null
           id?: string
@@ -1416,6 +1428,27 @@ export type Database = {
           url?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_media_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_media_before_media_id_fkey"
+            columns: ["before_media_id"]
+            isOneToOne: false
+            referencedRelation: "project_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_media_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_media_project_id_fkey"
             columns: ["project_id"]
