@@ -205,6 +205,28 @@ export function MapEditorMap({
       (window as any).L = (L as any).default ?? L;
       try {
         await import("leaflet-draw");
+        // Patch known leaflet-draw bug: readableArea references undefined `type`
+        // in Leaflet 1.8+, which crashes when adding a 2nd polygon vertex.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const GU = (L as any).GeometryUtil;
+        if (GU) {
+          GU.readableArea = function (area: number, isMetric: boolean | unknown[], precision?: Record<string, number>) {
+            const p = { km: 2, ha: 2, m: 2, ...(precision || {}) };
+            let str = "";
+            const metric = Array.isArray(isMetric) ? isMetric : (isMetric ? ["km", "ha", "m"] : []);
+            if (metric.length) {
+              if (area >= 1_000_000 && metric.indexOf("km") !== -1) str = (area * 1e-6).toFixed(p.km) + " km²";
+              else if (area >= 10_000 && metric.indexOf("ha") !== -1) str = (area * 1e-4).toFixed(p.ha) + " ha";
+              else str = area.toFixed(p.m) + " m²";
+            } else {
+              const yards = area / 0.836127;
+              if (yards >= 3097600) str = (yards / 3097600).toFixed(p.km) + " mi²";
+              else if (yards >= 4840) str = (yards / 4840).toFixed(p.ha) + " acres";
+              else str = Math.ceil(yards).toString() + " yd²";
+            }
+            return str;
+          };
+        }
       } catch {
         // tegning utilgængelig — kortet og lagene virker stadig
       }
