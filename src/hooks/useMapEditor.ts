@@ -135,12 +135,12 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
 
   // Gem tegnet projektgrænse på projektet
   const saveBoundaryMutation = useMutation({
-    mutationFn: async ({ geojson, ha }: { geojson: GeoJsonPolygon; ha: number }) => {
+    mutationFn: async ({ geojson, ha, source }: { geojson: GeoJsonPolygon; ha: number; source?: string }) => {
       const centroid = polygonCentroid(geojson);
       await updateProjectDetails(project!.id, {
         geometry_polygon: geojson,
         geometry_area_ha: ha,
-        geometry_source: "manual",
+        geometry_source: source ?? "manual",
         ...(centroid ? {
           geometry_centroid_lat: centroid.lat,
           geometry_centroid_lng: centroid.lng,
@@ -162,9 +162,9 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
     setNewZoneState({ name: `Zone ${(zonesQuery.data?.length ?? 0) + 1}`, area_type: "nature", geojson, area_ha: ha });
   }, [zonesQuery.data?.length]);
 
-  const handleBoundaryDrawn = useCallback((geojson: GeoJsonPolygon, ha: number) => {
+  const handleBoundaryDrawn = useCallback((geojson: GeoJsonPolygon, ha: number, source?: string) => {
     setDrawMode("none");
-    saveBoundaryMutation.mutate({ geojson, ha });
+    saveBoundaryMutation.mutate({ geojson, ha, source });
   }, [saveBoundaryMutation]);
 
   const confirmCreateZone = useCallback((name: string, area_type: ZoneType) => {

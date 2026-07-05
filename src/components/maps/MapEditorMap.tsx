@@ -58,6 +58,13 @@ export interface MapEditorMapProps {
   centerOverride?: { lat: number; lng: number; zoom?: number } | null;
   /** Extra WMS layers to overlay on the map (e.g. cadastre, field blocks). */
   wmsOverlays?: WmsOverlay[];
+  /** Marker to pin at a chosen location (address / place search result). */
+  addressMarker?: { lat: number; lng: number; label: string } | null;
+  /** When set, map clicks trigger onFeaturePicked instead of drawing. */
+  pickMode?: "markblok" | "matrikel" | null;
+  onFeaturePicked?: (latlng: { lat: number; lng: number }) => void;
+  /** Preview polygon for a picked feature (shown before confirm). */
+  previewPolygon?: GeoJsonPolygon | null;
   height?: number;
   className?: string;
 }
@@ -148,6 +155,10 @@ export function MapEditorMap({
   onMeasurement,
   centerOverride,
   wmsOverlays,
+  addressMarker,
+  pickMode,
+  onFeaturePicked,
+  previewPolygon,
   height = 540,
   className,
 }: MapEditorMapProps) {
@@ -162,13 +173,22 @@ export function MapEditorMap({
     ndvi: import("leaflet").GeoJSON | null;
     sensors: import("leaflet").FeatureGroup | null;
     drawn: import("leaflet").FeatureGroup | null;
-    activeDrawer: { disable: () => void } | null;
+    activeDrawer: {
+      disable: () => void;
+      deleteLastVertex?: () => void;
+      completeShape?: () => void;
+      _markers?: unknown[];
+    } | null;
     editHandler: { enable: () => void; disable: () => void; save: () => void } | null;
     wms: Map<string, import("leaflet").TileLayer.WMS>;
+    addressMarker: import("leaflet").Marker | null;
+    preview: import("leaflet").GeoJSON | null;
   }>({
     base: null, boundary: null, zones: null, p3: null, wl: null,
     ndvi: null, sensors: null, drawn: null, activeDrawer: null, editHandler: null,
     wms: new Map(),
+    addressMarker: null,
+    preview: null,
   });
 
   // Intern mode-state, synkroniseret med evt. controlled prop
@@ -181,11 +201,38 @@ export function MapEditorMap({
   const [baseLayer, setBaseLayer] = useState<BaseLayer>("satellite");
   const [measurement, setMeasurement] = useState<{ areaHa: number; perimeterM: number } | null>(null);
   const [ready, setReady] = useState(false);
+  // Live-tæller for punkter under tegning
+  const [drawingPoints, setDrawingPoints] = useState(0);
 
   const setMode = useCallback((mode: DrawMode) => {
     setInternalMode(mode);
     onDrawModeChange?.(mode);
+    setDrawingPoints(0);
   }, [onDrawModeChange]);
+
+  // Tegn-værktøjslinje-handlers
+  const undoLastVertex = useCallback(() => {
+    layersRef.current.activeDrawer?.deleteLastVertex?.();
+    setDrawingPoints((n) => Math.max(0, n - 1));
+  }, []);
+  const finishShape = useCallback(() => {
+    layersRef.current.activeDrawer?.completeShape?.();
+  }, []);
+  const cancelDrawing = useCallback(() => {
+    layersRef.current.activeDrawer?.disable();
+    layersRef.current.activeDrawer = null;
+    setDrawingPoints(0);
+    setMode("none");
+  }, [setMode]);
+
+
+  // Refs holder friske callbacks + pickMode så map-event listeners ikke skal genregistreres
+  const pickModeRef = useRef(pickMode);
+  useEffect(() => { pickModeRef.current = pickMode; }, [pickMode]);
+  const onPickRef = useRef(onFeaturePicked);
+  useEffect(() => { onPickRef.current = onFeaturePicked; }, [onFeaturePicked]);
+
+
 
   // Holder callbacks friske i event handlers
   const callbacksRef = useRef({ onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked });
@@ -293,7 +340,29 @@ export function MapEditorMap({
         setInternalMode("none");
         onDrawModeChange?.("none");
       });
+
+      // Live tælling af tegnede vertices
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.on((LDraw as any).Event?.DRAWSTART ?? "draw:drawstart", () => setDrawingPoints(0));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.on((LDraw as any).Event?.DRAWVERTEX ?? "draw:drawvertex", (e: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const n = (e?.layers as any)?.getLayers?.().length ?? 0;
+        setDrawingPoints(n);
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.on((LDraw as any).Event?.DRAWSTOP ?? "draw:drawstop", () => setDrawingPoints(0));
       }
+
+      // ── Klik-vælg (markblok / matrikel) ────────────────────────────────────
+      map.on("click", (ev) => {
+        if (!pickModeRef.current) return;
+        const cb = onPickRef.current;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ll = (ev as any).latlng as { lat: number; lng: number };
+        cb?.({ lat: ll.lat, lng: ll.lng });
+      });
+
 
       mapRef.current = map;
       setReady(true);
@@ -548,6 +617,54 @@ export function MapEditorMap({
     })();
   }, [wmsOverlays, ready]);
 
+  // ── Adressemarkør (fra søgning) ────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    (async () => {
+      const L = await import("leaflet");
+      const map = mapRef.current!;
+      if (layersRef.current.addressMarker) {
+        map.removeLayer(layersRef.current.addressMarker);
+        layersRef.current.addressMarker = null;
+      }
+      if (!addressMarker) return;
+      const m = L.marker([addressMarker.lat, addressMarker.lng])
+        .bindPopup(`<strong>${addressMarker.label}</strong>`)
+        .addTo(map);
+      m.openPopup();
+      layersRef.current.addressMarker = m;
+    })();
+  }, [addressMarker, ready]);
+
+  // ── Preview polygon (fra markblok/matrikel klik) ──────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    (async () => {
+      const L = await import("leaflet");
+      const map = mapRef.current!;
+      if (layersRef.current.preview) {
+        map.removeLayer(layersRef.current.preview);
+        layersRef.current.preview = null;
+      }
+      if (!previewPolygon) return;
+      const layer = L.geoJSON(
+        { type: "Feature", geometry: previewPolygon, properties: {} } as never,
+        { style: { color: "#f59e0b", weight: 2.5, dashArray: "6 4", fillColor: "#f59e0b", fillOpacity: 0.2 } },
+      ).addTo(map);
+      layersRef.current.preview = layer;
+      map.fitBounds(layer.getBounds(), { padding: [40, 40] });
+    })();
+  }, [previewPolygon, ready]);
+
+  // ── Cursor for pick-mode ──────────────────────────────────────────────────
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.style.cursor = pickMode ? "crosshair" : "";
+  }, [pickMode]);
+
+
+
 
   // ─── UI ─────────────────────────────────────────────────────────────────────
   const toolBtn = (active: boolean, activeCls: string) =>
@@ -616,12 +733,39 @@ export function MapEditorMap({
         <div ref={containerRef} className="h-full w-full" />
 
         {drawMode !== "none" && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur rounded-xl shadow-lg border px-4 py-2 text-sm font-medium pointer-events-none">
-            {drawMode === "boundary" && "Tegn projektgrænsen — klik punkter, klik på første punkt for at lukke"}
-            {drawMode === "zone" && "Tegn zonen — klik punkter, klik på første punkt for at lukke"}
-            {drawMode === "measure" && "Tegn måleområde — klik punkter, luk polygonen for resultat"}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/98 backdrop-blur rounded-xl shadow-lg border px-3 py-2 flex items-center gap-2 flex-wrap max-w-[95%]">
+            <span className="text-sm font-medium text-foreground pr-1">
+              {drawMode === "boundary" && "Tegning aktiv — klik på kortet for at tilføje punkter"}
+              {drawMode === "zone" && "Tegn zone — klik punkter"}
+              {drawMode === "measure" && "Tegn måleområde"}
+            </span>
+            <span className="text-xs text-muted-foreground border-l pl-2">
+              {drawingPoints} punkt{drawingPoints === 1 ? "" : "er"}
+            </span>
+            <div className="w-px h-4 bg-border" />
+            <button
+              onClick={undoLastVertex}
+              disabled={drawingPoints === 0}
+              className="text-xs px-2.5 py-1 rounded-md border bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+            >↶ Fortryd punkt</button>
+            <button
+              onClick={finishShape}
+              disabled={drawingPoints < 3}
+              className="text-xs px-2.5 py-1 rounded-md border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >✓ Afslut flade</button>
+            <button
+              onClick={cancelDrawing}
+              className="text-xs px-2.5 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+            >✕ Annuller</button>
           </div>
         )}
+
+        {pickMode && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-amber-50 border border-amber-300 rounded-xl shadow-lg px-4 py-2 text-sm font-medium text-amber-900">
+            Klik på kortet for at vælge {pickMode === "markblok" ? "markblok" : "matrikel"}
+          </div>
+        )}
+
 
         {measurement && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-white rounded-xl shadow-lg border px-5 py-3 flex items-center gap-4">

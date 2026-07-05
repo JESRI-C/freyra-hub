@@ -1,7 +1,8 @@
 import { createFileRoute, notFound, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
-import { ArrowLeft, MapPin, Upload, Pencil, CheckCircle2, AlertCircle, X, Layers } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, MapPin, Upload, Pencil, CheckCircle2, AlertCircle, X, Layers, Grid3x3, LandPlot, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui-bits";
 import { MapEditorMap, type WmsOverlay } from "@/components/maps/MapEditorMap";
@@ -9,6 +10,7 @@ import { AddressSearch } from "@/components/maps/AddressSearch";
 import { useMapEditor } from "@/hooks/useMapEditor";
 import { getProjectBySlug } from "@/services/projects-service";
 import { parseProjectGeometry } from "@/services/geo-service";
+import { pickMarkblok, pickMatrikel, type PickedFeature } from "@/lib/geo-search.functions";
 import type { GeoJsonPolygon } from "@/services/zones-service";
 
 export const Route = createFileRoute("/app/projects/geometry/$slug")({
@@ -22,23 +24,16 @@ export const Route = createFileRoute("/app/projects/geometry/$slug")({
     return project;
   },
   component: GeometryEditorPage,
-  errorComponent: ({ error }) => (
-    <div className="p-6 text-sm text-destructive">{error.message}</div>
-  ),
-  notFoundComponent: () => (
-    <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>
-  ),
+  errorComponent: ({ error }) => <div className="p-6 text-sm text-destructive">{error.message}</div>,
+  notFoundComponent: () => <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>,
 });
 
-// Denmark centroid fallback so the map has a starting point when no geometry exists.
 const DK_FALLBACK = { lat: 56.0, lng: 10.5 };
 
-// Dataforsyningen token (kan sættes via env; ellers bruges åbne endpoints).
+// Datafordeler-token til visning af matrikellag (WMS er offentligt token-baseret).
 const DAF_TOKEN = import.meta.env.VITE_DATAFORSYNINGEN_TOKEN as string | undefined;
 
-// Kendte offentlige WMS-endpoints for danske overlays.
-// Matriklen leveres af Datafordeleren via Dataforsyningen. Kræver token.
-// Markblokke leveres af Landbrugsstyrelsen (åbne data).
+// Kortlag der kan slås til/fra som visuel reference.
 const OVERLAY_DEFS: Record<
   "cadastre" | "fieldBlocks" | "protectedNature",
   Omit<WmsOverlay, "id"> & { label: string; description: string; requiresToken?: boolean }
@@ -51,15 +46,15 @@ const OVERLAY_DEFS: Record<
     opacity: 0.9,
     transparent: true,
     format: "image/png",
-    attribution: "© Styrelsen for Dataforsyning og Effektivisering",
+    attribution: "© Styrelsen for Dataforsyning",
     requiresToken: true,
   },
   fieldBlocks: {
     label: "Markblokke",
-    description: "Landbrugsstyrelsens markblokke (offentlig data)",
+    description: "Landbrugsstyrelsens markblokke",
     url: "https://kort.lbst.dk/service?SERVICENAME=marker_wms_v3",
     layers: "Markblokke",
-    opacity: 0.65,
+    opacity: 0.55,
     transparent: true,
     format: "image/png",
     attribution: "© Landbrugsstyrelsen",
@@ -77,6 +72,7 @@ const OVERLAY_DEFS: Record<
 };
 
 type OverlayKey = keyof typeof OVERLAY_DEFS;
+type PickMode = "markblok" | "matrikel" | null;
 
 function GeometryEditorPage() {
   const { slug } = Route.useParams();
@@ -89,6 +85,11 @@ function GeometryEditorPage() {
     protectedNature: false,
   });
   const [center, setCenter] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
+  const [addressMarker, setAddressMarker] = useState<{ lat: number; lng: number; label: string } | null>(null);
+  const [pickMode, setPickMode] = useState<PickMode>(null);
+  const [pickedFeature, setPickedFeature] = useState<PickedFeature | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [pickError, setPickError] = useState<string | null>(null);
 
   const { data: project } = useSuspenseQuery({
     queryKey: ["project-by-slug", slug],
@@ -96,18 +97,62 @@ function GeometryEditorPage() {
   });
 
   const map = useMapEditor(project, null);
+  const pickMarkblokFn = useServerFn(pickMarkblok);
+  const pickMatrikelFn = useServerFn(pickMatrikel);
 
-  const wmsOverlays = useMemo<WmsOverlay[]>(() => {
-    return (Object.keys(enabled) as OverlayKey[])
-      .filter((k) => enabled[k])
-      .map((k) => ({ id: k, ...OVERLAY_DEFS[k] }));
-  }, [enabled]);
+  const wmsOverlays = useMemo<WmsOverlay[]>(
+    () => (Object.keys(enabled) as OverlayKey[]).filter((k) => enabled[k]).map((k) => ({ id: k, ...OVERLAY_DEFS[k] })),
+    [enabled],
+  );
 
   if (!project) return null;
 
   const hasPolygon = project.geometry_polygon != null;
   const lat = project.geometry_centroid_lat ?? DK_FALLBACK.lat;
   const lng = project.geometry_centroid_lng ?? DK_FALLBACK.lng;
+
+  const activateDrawing = () => {
+    setPickMode(null);
+    setPickedFeature(null);
+    map.setDrawMode(map.drawMode === "boundary" ? "none" : "boundary");
+  };
+
+  const activatePick = (mode: PickMode) => {
+    map.setDrawMode("none");
+    setPickedFeature(null);
+    setPickError(null);
+    setPickMode((cur) => (cur === mode ? null : mode));
+    // Sørg for at markbloklaget er tændt så brugeren ser hvad de vælger
+    if (mode === "markblok") setEnabled((e) => ({ ...e, fieldBlocks: true }));
+    if (mode === "matrikel") setEnabled((e) => ({ ...e, cadastre: true }));
+  };
+
+  const handleFeaturePick = async (ll: { lat: number; lng: number }) => {
+    if (!pickMode || picking) return;
+    setPicking(true);
+    setPickError(null);
+    try {
+      const fn = pickMode === "markblok" ? pickMarkblokFn : pickMatrikelFn;
+      const result = await fn({ data: ll });
+      if (!result) {
+        setPickError(`Ingen ${pickMode} fundet på det klikkede punkt.`);
+        return;
+      }
+      setPickedFeature(result);
+    } catch (e) {
+      setPickError(e instanceof Error ? e.message : "Kunne ikke hente valgt geometri");
+    } finally {
+      setPicking(false);
+    }
+  };
+
+  const useFeatureAsBoundary = () => {
+    if (!pickedFeature) return;
+    map.handleBoundaryDrawn(pickedFeature.geometry as GeoJsonPolygon, pickedFeature.areaHa, pickedFeature.source);
+    toast.success(`${pickedFeature.label} valgt som projektgrænse`);
+    setPickedFeature(null);
+    setPickMode(null);
+  };
 
   const handleFile = async (file: File) => {
     setUploadError(null);
@@ -118,15 +163,25 @@ function GeometryEditorPage() {
         setUploadError("Filen indeholder ikke en gyldig Polygon-geometri.");
         return;
       }
-      map.handleBoundaryDrawn(parsed.polygon as GeoJsonPolygon, parsed.areaHa ?? 0);
+      map.handleBoundaryDrawn(parsed.polygon as GeoJsonPolygon, parsed.areaHa ?? 0, "uploaded");
       toast.success("Projektområde uploadet");
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "Kunne ikke læse fil");
     }
   };
 
+  const toolButton = (active: boolean, disabled = false) =>
+    `w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition ${
+      disabled
+        ? "opacity-50 cursor-not-allowed bg-muted/40"
+        : active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-background hover:bg-muted"
+    }`;
+
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4 pb-16">
+      {/* Header */}
       <div className="flex items-start gap-4">
         <Link
           to="/app/projects/$slug"
@@ -142,102 +197,135 @@ function GeometryEditorPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight truncate">{project.name}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Tegn projektgrænsen på kortet, søg efter adresse, eller upload en GeoJSON-fil.
-            Alle beregninger (NDVI, biodiversitet, miljø) baseres på dette område.
+            Find området, vælg en matrikel eller markblok, eller tegn selv. Alle analyser baseres
+            på det gemte projektområde.
           </p>
         </div>
       </div>
 
+      {/* Feedback banners */}
       {map.lastError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span className="flex-1">{map.lastError}</span>
-          <button onClick={map.clearError} aria-label="Luk"><X className="h-4 w-4" /></button>
-        </div>
+        <Banner tone="error" onClose={map.clearError}>{map.lastError}</Banner>
       )}
       {uploadError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span className="flex-1">{uploadError}</span>
-          <button onClick={() => setUploadError(null)} aria-label="Luk"><X className="h-4 w-4" /></button>
-        </div>
+        <Banner tone="error" onClose={() => setUploadError(null)}>{uploadError}</Banner>
+      )}
+      {pickError && (
+        <Banner tone="error" onClose={() => setPickError(null)}>{pickError}</Banner>
       )}
       {map.boundarySaved && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-700 dark:text-emerald-400">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span className="flex-1">Projektområde gemt. Beregninger er nu tilgængelige.</span>
+        <Banner tone="success">
+          Projektområde gemt.{" "}
           <button
             onClick={() => navigate({ to: "/app/projects/$slug", params: { slug } })}
-            className="text-xs font-medium underline"
+            className="underline font-medium"
           >
             Gå til projekt →
           </button>
-        </div>
+        </Banner>
       )}
 
-      <div className="grid lg:grid-cols-[300px_1fr] gap-4 items-start">
-        {/* Side panel */}
+      <div className="grid lg:grid-cols-[320px_1fr] gap-4 items-start">
+        {/* ── Sidepanel ─────────────────────────────────────────────────────── */}
         <div className="space-y-3">
-          <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold">Find sted</div>
+          {/* 1. Find sted */}
+          <Card className="p-4 space-y-2">
+            <SectionTitle n={1}>Find sted</SectionTitle>
             <AddressSearch
-              onSelect={(p) => setCenter({ lat: p.lat, lng: p.lng, zoom: 17 })}
+              onSelect={(p) => {
+                setCenter({ lat: p.lat, lng: p.lng, zoom: 17 });
+                setAddressMarker({ lat: p.lat, lng: p.lng, label: p.label });
+              }}
             />
             <p className="text-[11px] text-muted-foreground">
-              Søger i alle danske adresser og stednavne via DAWA.
+              Adresse, vej, stednavn eller koordinater. Kortet zoomer direkte ind på stedet.
             </p>
           </Card>
 
-          <Card className="p-4 space-y-3">
-            <div className="text-sm font-semibold">Værktøjer</div>
+          {/* 2. Vælg projektgrænse */}
+          <Card className="p-4 space-y-2">
+            <SectionTitle n={2}>Vælg projektgrænse</SectionTitle>
             <button
               type="button"
-              onClick={() => map.setDrawMode(map.drawMode === "boundary" ? "none" : "boundary")}
-              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition ${
-                map.drawMode === "boundary"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background hover:bg-muted"
-              }`}
+              onClick={activateDrawing}
+              className={toolButton(map.drawMode === "boundary")}
             >
               <Pencil className="h-4 w-4" />
-              {map.drawMode === "boundary" ? "Tegner… klik for at stoppe" : "Tegn projektgrænse"}
+              {map.drawMode === "boundary" ? "Tegner … stop" : "Tegn manuelt"}
             </button>
 
-            <div className="pt-2 border-t">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm bg-background hover:bg-muted transition"
-              >
-                <Upload className="h-4 w-4" />
-                Upload GeoJSON
-              </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".geojson,.json,application/geo+json,application/json"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void handleFile(f);
-                  e.target.value = "";
-                }}
-              />
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                Understøtter GeoJSON Polygon eller Feature med polygon-geometri.
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => activatePick("matrikel")}
+              className={toolButton(pickMode === "matrikel")}
+              title="Kræver Datafordeler service-bruger på serveren"
+            >
+              <Grid3x3 className="h-4 w-4" />
+              Vælg matrikel
+            </button>
 
-            {map.isSavingBoundary && (
-              <p className="text-xs text-muted-foreground">Gemmer…</p>
+            <button
+              type="button"
+              onClick={() => activatePick("markblok")}
+              className={toolButton(pickMode === "markblok")}
+            >
+              <LandPlot className="h-4 w-4" />
+              Vælg markblok
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className={toolButton(false)}
+            >
+              <Upload className="h-4 w-4" />
+              Upload GeoJSON
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".geojson,.json,application/geo+json,application/json"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); e.target.value = ""; }}
+            />
+
+            {(map.isSavingBoundary || picking) && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {picking ? "Henter valgt geometri …" : "Gemmer …"}
+              </p>
             )}
           </Card>
 
-          <Card className="p-4 space-y-2.5">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <Layers className="h-4 w-4" />
-              Kortlag
-            </div>
+          {/* Picked feature preview */}
+          {pickedFeature && (
+            <Card className="p-4 space-y-2 border-amber-300 bg-amber-50/40">
+              <div className="text-sm font-semibold text-amber-900">{pickedFeature.label}</div>
+              <dl className="text-xs space-y-0.5 text-amber-900/80">
+                <div className="flex justify-between"><dt>Areal</dt><dd>{pickedFeature.areaHa} ha</dd></div>
+                <div className="flex justify-between"><dt>Kilde</dt><dd className="truncate ml-2">{pickedFeature.attribution}</dd></div>
+              </dl>
+              <p className="text-[10px] text-amber-900/70 italic">{pickedFeature.disclaimer}</p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={useFeatureAsBoundary}
+                  className="flex-1 text-xs px-2.5 py-1.5 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-700"
+                >
+                  Brug som projektgrænse
+                </button>
+                <button
+                  onClick={() => setPickedFeature(null)}
+                  className="text-xs px-2.5 py-1.5 rounded-md border hover:bg-muted"
+                >
+                  Annuller
+                </button>
+              </div>
+            </Card>
+          )}
+
+          {/* 3. Kortlag */}
+          <Card className="p-4 space-y-2">
+            <SectionTitle n={3} icon={<Layers className="h-3.5 w-3.5" />}>Kortlag</SectionTitle>
             {(Object.keys(OVERLAY_DEFS) as OverlayKey[]).map((key) => {
               const def = OVERLAY_DEFS[key];
               const missingToken = def.requiresToken && !DAF_TOKEN;
@@ -258,9 +346,7 @@ function GeometryEditorPage() {
                     <span className="block font-medium text-foreground">{def.label}</span>
                     <span className="block text-muted-foreground">{def.description}</span>
                     {missingToken && enabled[key] && (
-                      <span className="block mt-1 text-amber-600 dark:text-amber-400">
-                        Kræver Dataforsyningen-token (VITE_DATAFORSYNINGEN_TOKEN).
-                      </span>
+                      <span className="block mt-1 text-amber-600">Kræver Datafordeler-token.</span>
                     )}
                   </span>
                 </label>
@@ -268,30 +354,29 @@ function GeometryEditorPage() {
             })}
           </Card>
 
-          <Card className="p-4">
-            <div className="text-xs text-muted-foreground mb-1.5">Nuværende område</div>
+          {/* 4. Aktuelt område */}
+          <Card className="p-4 space-y-1.5">
+            <SectionTitle n={4}>Aktuelt projektområde</SectionTitle>
             {hasPolygon ? (
-              <div className="space-y-0.5 text-sm">
-                <div className="font-medium">
-                  {project.geometry_area_ha?.toFixed(1) ?? "—"} ha
+              <>
+                <div className="text-lg font-semibold">
+                  {project.geometry_area_ha?.toFixed(2) ?? "—"} ha
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Centroid: {project.geometry_centroid_lat?.toFixed(4)}°N,{" "}
-                  {project.geometry_centroid_lng?.toFixed(4)}°E
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Kilde: {project.geometry_source ?? "—"}
-                </div>
-              </div>
+                <dl className="text-xs text-muted-foreground space-y-0.5">
+                  <div>
+                    Centroid: {project.geometry_centroid_lat?.toFixed(4)}°N,{" "}
+                    {project.geometry_centroid_lng?.toFixed(4)}°E
+                  </div>
+                  <div>Kilde: {sourceLabel(project.geometry_source)}</div>
+                </dl>
+              </>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Intet område defineret endnu.
-              </p>
+              <p className="text-sm text-muted-foreground">Intet område defineret endnu.</p>
             )}
           </Card>
         </div>
 
-        {/* Map */}
+        {/* ── Kort ──────────────────────────────────────────────────────────── */}
         <div className="rounded-xl border overflow-hidden bg-card">
           <MapEditorMap
             projectId={project.id}
@@ -308,10 +393,64 @@ function GeometryEditorPage() {
             onBoundaryDrawn={map.handleBoundaryDrawn}
             centerOverride={center}
             wmsOverlays={wmsOverlays}
+            addressMarker={addressMarker}
+            pickMode={pickMode}
+            onFeaturePicked={handleFeaturePick}
+            previewPolygon={(pickedFeature?.geometry ?? null) as GeoJsonPolygon | null}
             height={640}
           />
         </div>
       </div>
     </main>
   );
+}
+
+// ─── UI-hjælpere ────────────────────────────────────────────────────────────
+
+function SectionTitle({ n, children, icon }: { n: number; children: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 text-sm font-semibold">
+      <span className="h-5 w-5 rounded-full bg-primary/10 text-primary text-[11px] flex items-center justify-center font-bold">
+        {n}
+      </span>
+      {icon}
+      {children}
+    </div>
+  );
+}
+
+function Banner({
+  tone,
+  children,
+  onClose,
+}: {
+  tone: "success" | "error";
+  children: React.ReactNode;
+  onClose?: () => void;
+}) {
+  const cls =
+    tone === "success"
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      : "border-destructive/30 bg-destructive/10 text-destructive";
+  const Icon = tone === "success" ? CheckCircle2 : AlertCircle;
+  return (
+    <div className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm ${cls}`}>
+      <Icon className="h-4 w-4 shrink-0" />
+      <span className="flex-1">{children}</span>
+      {onClose && (
+        <button onClick={onClose} aria-label="Luk"><X className="h-4 w-4" /></button>
+      )}
+    </div>
+  );
+}
+
+function sourceLabel(src: string | null | undefined): string {
+  switch (src) {
+    case "manual": return "Manuelt tegnet";
+    case "uploaded": return "GeoJSON-upload";
+    case "markblok": return "Markblok";
+    case "matrikel": return "Matrikel";
+    case "estimated": return "Estimeret";
+    default: return src ?? "—";
+  }
 }
