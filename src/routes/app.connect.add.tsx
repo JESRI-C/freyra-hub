@@ -1,10 +1,12 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Sparkles, Loader2 } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { WizardSteps, Section, Chip } from "@/components/connect/Primitives";
 import { PROJECTS, ZONES, SOURCE_TYPES, VALIDATION_RULES } from "@/lib/connect-data";
+import { useConnectContext } from "@/lib/connect-context";
+import { createDataSource } from "@/services/monitoring/data-sources-service";
 
 export const Route = createFileRoute("/app/connect/add")({
   component: Page,
