@@ -862,3 +862,47 @@ function CreateActionForm({
     </form>
   );
 }
+
+// ─── GeometryRequiredBanner ──────────────────────────────────────────────────
+// Shown when a project has no polygon defined. All area-based analyses
+// (NDVI, biodiversity, environmental) require this before running.
+
+function GeometryRequiredBanner({
+  slug,
+  variant = "compact",
+}: {
+  slug: string;
+  variant?: "compact" | "detailed";
+}) {
+  return (
+    <Card
+      className={`border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/5 ${
+        variant === "detailed" ? "p-6" : "p-4"
+      }`}
+    >
+      <div className="flex items-start gap-4">
+        <div className="h-10 w-10 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <MapPin className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold">Projektområde mangler</div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {variant === "detailed"
+              ? "For at beregne NDVI, biodiversitet og miljøpåvirkning skal projektets afgrænsning defineres. Tegn polygonen på kortet, eller upload en GeoJSON-fil — beregningerne aktiveres straks efter."
+              : "Definér projektets afgrænsning før beregninger kan køre."}
+          </p>
+          <div className="mt-3">
+            <Link
+              to="/app/projects/geometry/$slug"
+              params={{ slug }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              Definér projektområde
+            </Link>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
