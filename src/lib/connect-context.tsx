@@ -89,7 +89,7 @@ export function useConnectContext() {
   const setProject = useCallback(
     (id: string) => {
       auth.selectProject(id);
-      void navigate({ to: ".", search: (prev) => ({ ...prev, project: id }) as never });
+      void navigate({ to: ".", search: (prev: Record<string, unknown>) => ({ ...prev, project: id }) as never });
     },
     [auth, navigate],
   );
@@ -98,7 +98,7 @@ export function useConnectContext() {
     (key: ConnectRangeKey, custom?: { from: string; to: string }) => {
       void navigate({
         to: ".",
-        search: (prev) => {
+        search: (prev: Record<string, unknown>) => {
           const next = { ...prev, range: key } as Record<string, unknown>;
           if (key === "custom" && custom) {
             next.from = custom.from;
