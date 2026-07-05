@@ -534,6 +534,9 @@ export async function insertObservation(input: {
 export async function insertAuditEvent(input: {
   project_id?: string; event_type?: string; title: string;
   description?: string; actor?: string; source?: string;
+  entity_type?: string; entity_id?: string;
+  before_data?: Record<string, unknown> | null;
+  after_data?: Record<string, unknown> | null;
 }): Promise<AuditEvent> {
   if (!supabase) throw new Error("Supabase not configured");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
