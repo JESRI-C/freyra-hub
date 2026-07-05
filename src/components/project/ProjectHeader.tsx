@@ -52,7 +52,7 @@ export function ProjectHeader({
 
   async function invalidate() {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["project-by-slug", project.slug] }),
+      queryClient.invalidateQueries({ queryKey: ["project-by-slug"] }),
       queryClient.invalidateQueries({ queryKey: ["nature-project-summaries"] }),
       queryClient.invalidateQueries({ queryKey: ["audit", project.id] }),
     ]);
