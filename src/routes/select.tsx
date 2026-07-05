@@ -284,10 +284,7 @@ function CreateOrganizationDialog({
         .select("id")
         .single();
       if (orgErr) throw orgErr;
-      const { error: memErr } = await supabase
-        .from("organization_memberships")
-        .insert({ organization_id: org.id, user_id: userId, role: "owner" });
-      if (memErr) throw memErr;
+      // Owner-medlemskab tilføjes automatisk af DB-trigger (add_creator_as_owner)
       await onCreated(org.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Kunne ikke oprette organisation";
