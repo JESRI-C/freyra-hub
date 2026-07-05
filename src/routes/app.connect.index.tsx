@@ -41,6 +41,8 @@ export const Route = createFileRoute("/app/connect/")({
 });
 
 function Page() {
+  const activityFeed = useLiveActivityFeed();
+  const criticalActions = useLiveCriticalActions();
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
       <ModuleHeader
