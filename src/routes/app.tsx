@@ -8,7 +8,8 @@ export const Route = createFileRoute("/app")({
 });
 
 function AppLayout() {
-  const { user, projectId } = useAuth();
+  const { user, projectId, loading } = useAuth();
+  if (loading) return null;
   if (!user) return <Navigate to="/login" />;
   if (!projectId) return <Navigate to="/select" />;
 

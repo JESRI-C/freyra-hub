@@ -6,7 +6,7 @@ import { askDecisionsAssistant } from "@/lib/decisions-assistant.functions";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ConfidenceScore } from "@/components/decisions/Primitives";
 import { SUGGESTED_PROMPTS } from "@/lib/decisions-data";
-import { getCurrentProject, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { getIndicatorsByProject } from "@/services/indicators-service";
 import { getOpenActionsByProject } from "@/services/actions-service";
 import { getProjectGeometrySeed } from "@/services/geo-service";
@@ -258,8 +258,7 @@ function buildContextualReply(text: string, ctx: ProjectCtx): AssistantReply {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function Page() {
-  const { orgId, projectId } = useAuth();
-  const project = getCurrentProject(orgId, projectId);
+  const { projectId, currentProject: project } = useAuth();
   const activeProjectId = projectId ?? "";
 
   const { data: indicators = [] } = useQuery({

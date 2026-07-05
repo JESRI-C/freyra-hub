@@ -114,44 +114,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .filter((x): x is string => !!x);
 
     // Projects for those orgs
-    let projectsByOrg: Record<string, OrgProject[]> = {};
+    const projectsByOrg: Record<string, OrgProject[]> = {};
     if (orgIds.length > 0) {
       const { data: projects } = await supabase
         .from("projects")
-        .select("id, name, slug, status, area_name, organization_id")
+        .select("id, name, slug, status, location_name, municipality, organization_id")
         .in("organization_id", orgIds);
-      for (const p of projects ?? []) {
-        const pRow = p as {
-          id: string;
-          name: string;
-          slug: string | null;
-          status: string | null;
-          area_name: string | null;
-          organization_id: string;
-        };
-        (projectsByOrg[pRow.organization_id] ??= []).push({
-          id: pRow.id,
-          name: pRow.name,
-          slug: pRow.slug,
-          location: pRow.area_name || "—",
-          status: statusLabel(pRow.status),
+      for (const p of (projects ?? []) as Array<{
+        id: string;
+        name: string;
+        slug: string | null;
+        status: string | null;
+        location_name: string | null;
+        municipality: string | null;
+        organization_id: string | null;
+      }>) {
+        if (!p.organization_id) continue;
+        (projectsByOrg[p.organization_id] ??= []).push({
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          location: p.location_name || p.municipality || "—",
+          status: statusLabel(p.status),
         });
       }
     }
 
-    const orgs: Organization[] = (memberships ?? [])
-      .map((m) => {
-        const o = m.organization as { id: string; name: string; type: string | null; country: string | null } | null;
-        if (!o) return null;
-        return {
-          id: o.id,
-          name: o.name,
-          description: [o.type, o.country].filter(Boolean).join(" · "),
-          projects: projectsByOrg[o.id] ?? [],
-          role: m.role,
-        };
-      })
-      .filter((x): x is Organization => !!x);
+    const orgs: Organization[] = [];
+    for (const m of (memberships ?? []) as Array<{
+      role: string;
+      organization: { id: string; name: string; type: string | null; country: string | null } | null;
+    }>) {
+      const o = m.organization;
+      if (!o) continue;
+      orgs.push({
+        id: o.id,
+        name: o.name,
+        description: [o.type, o.country].filter(Boolean).join(" · "),
+        projects: projectsByOrg[o.id] ?? [],
+        role: m.role,
+      });
+    }
 
     const displayName =
       profile?.full_name ||
