@@ -2,6 +2,7 @@ import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Bell,
   AlertTriangle,
@@ -13,6 +14,8 @@ import {
   Send,
   ExternalLink,
   Plus,
+  PlayCircle,
+  Loader2,
 } from "lucide-react";
 import { Card, PageHeader, Bars } from "@/components/ui-bits";
 import {
@@ -26,6 +29,8 @@ import { ALERTS } from "@/lib/connect-data";
 import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
 import { useConnectContext } from "@/lib/connect-context";
 import { listAlertRules, toggleAlertRule } from "@/services/monitoring/alert-rules-service";
+import { runAlertEvaluation } from "@/services/monitoring/alert-engine";
+
 
 export const Route = createFileRoute("/app/connect/alerts")({
   component: Page,
