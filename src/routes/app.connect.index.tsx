@@ -292,17 +292,15 @@ function Page() {
       {/* Activity + critical actions */}
       <div className="grid lg:grid-cols-2 gap-5">
         <Card>
-          <CardHeader title="Seneste aktivitet" subtitle="Smart Connect-relaterede hændelser" />
-          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "Smart Connect")} />
+          <CardHeader title="Seneste aktivitet" subtitle="Live fra platformens audit-trail" />
+          <ActivityFeed items={activityFeed} />
         </Card>
         <Card>
           <CardHeader
             title="Kritiske handlinger"
-            subtitle="Skal håndteres for at hæve datakvaliteten"
+            subtitle="Åbne handlinger på tværs af projekter"
           />
-          <CriticalActionsPanel
-            items={CRITICAL_ACTIONS.filter((c) => c.module === "Smart Connect")}
-          />
+          <CriticalActionsPanel items={criticalActions} />
         </Card>
       </div>
     </main>
