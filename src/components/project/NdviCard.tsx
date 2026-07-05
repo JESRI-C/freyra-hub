@@ -63,8 +63,14 @@ export function NdviCard({ projectId, lat, lng }: NdviCardProps) {
           <p className="text-sm text-muted-foreground">Henter Sentinel-2 scene …</p>
         )}
 
-        {hasGeometry && isError && (
+        {hasGeometry && (isError || (!isLoading && ndvi == null && error)) && (
           <p className="text-sm text-destructive">{error ?? "Kunne ikke hente NDVI-data"}</p>
+        )}
+
+        {hasGeometry && !isLoading && !isError && ndvi == null && !error && (
+          <p className="text-sm text-muted-foreground">
+            Ingen Sentinel-2 scener fundet for området.
+          </p>
         )}
 
         {hasGeometry && ndvi != null && interpretation && (
