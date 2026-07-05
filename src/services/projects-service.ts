@@ -165,7 +165,7 @@ export async function seedProjectStarterData(
         baseline_status: "Delvist dokumenteret",
       },
     ]),
-    supabase.from("data_sources").insert([
+    client.from("data_sources").insert([
       {
         project_id: projectId,
         name: "DMI Klima API",
@@ -199,7 +199,7 @@ export async function seedProjectStarterData(
         last_sync_at: null,
       },
     ]),
-    supabase.from("indicators").insert([
+    client.from("indicators").insert([
       {
         project_id: projectId,
         key: "biodiversity_index",
@@ -245,7 +245,7 @@ export async function seedProjectStarterData(
         updated_at: nowIso,
       },
     ]),
-    supabase.from("actions").insert([
+    client.from("actions").insert([
       {
         project_id: projectId,
         title: "Definér projektgeometri (polygon)",
