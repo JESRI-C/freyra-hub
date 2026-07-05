@@ -79,7 +79,7 @@ function Page() {
                   <tr key={r.id}>
                     <td className="px-4 py-3 font-medium">{r.name}</td>
                     <td className="px-4 py-3 text-xs"><Chip>{r.trigger_type}</Chip></td>
-                    <td className="px-4 py-3 text-xs"><SeverityBadge severity={r.severity} /></td>
+                    <td className="px-4 py-3 text-xs"><SeverityBadge severity={(r.severity === "critical" || r.severity === "medium" || r.severity === "low" ? r.severity : "low") as "critical" | "medium" | "low"} /></td>
                     <td className="px-4 py-3 text-xs">
                       <label className="inline-flex items-center gap-1.5 cursor-pointer">
                         <input
