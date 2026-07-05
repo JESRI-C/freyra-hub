@@ -630,21 +630,14 @@ function ProjectDetailPage() {
 
             {/* ── Dokumentation ──────────────────────────────────────────── */}
             {active === "dokumentation" && (
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader
-                    title="Dokumentation"
-                    subtitle="Evidensfiler og certifikater tilknyttet projektet"
-                    action={<Pill tone="info">{evidenceFiles.length}</Pill>}
-                  />
-                  <div className="px-5 pb-4">
-                    <EvidenceList files={evidenceFiles} />
-                  </div>
-                </Card>
-                <Card className="p-5">
-                  <EvidenceUploadForm projectId={projectId} />
-                </Card>
-              </div>
+              <DokumentationTab
+                projectId={projectId}
+                project={project}
+                sites={sites}
+                actions={actions}
+                indicators={indicators}
+                evidenceFiles={evidenceFiles}
+              />
             )}
 
             {/* ── Medier ─────────────────────────────────────────────────── */}
