@@ -126,8 +126,13 @@ function ProjectsPage() {
   const portfolio = usePortfolio();
   const compare = useCompare();
 
-  // Live data from service layer (falls back to seed transparently)
-  const { data: summaries } = useSuspenseQuery(projectSummariesQuery);
+  // Live data from service layer, scoped to current organization
+  const { currentOrg } = useAuth();
+  const orgId = currentOrg?.id ?? "";
+  const { data: summaries } = useSuspenseQuery({
+    queryKey: ["nature-project-summaries", orgId],
+    queryFn: () => getAllNatureProjectSummaries(orgId),
+  });
 
   const filtered = useMemo(() => {
     return PROJECTS.filter((p) => {
