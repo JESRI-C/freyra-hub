@@ -2,7 +2,8 @@
 import * as React from "react";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Check, X, AlertTriangle, Info, AlertCircle } from "lucide-react";
-import { Card, Section } from "@/components/connect/Primitives";
+import { Card } from "@/components/ui-bits";
+import { Section } from "@/components/connect/Primitives";
 import { listAlerts, acknowledgeAlert, resolveAlert, severityTone, type MonitoringAlert } from "@/services/monitoring/alerts-service";
 import { useAuth } from "@/lib/auth";
 
