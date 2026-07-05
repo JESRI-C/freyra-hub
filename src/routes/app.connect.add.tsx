@@ -75,9 +75,10 @@ function Page() {
         project_id: projectId,
         name: `${type} — ${project}`,
         source_type: type,
-        connection_method: method,
+        provider: method,
         status: "active",
-        configuration: {
+        description: `${type} · ${zone}`,
+        config: {
           zone,
           method,
           validation_rules: rules,
