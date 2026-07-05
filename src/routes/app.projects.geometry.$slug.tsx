@@ -85,7 +85,7 @@ function GeometryEditorPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [enabled, setEnabled] = useState<Record<OverlayKey, boolean>>({
     cadastre: false,
-    fieldBlocks: false,
+    fieldBlocks: true,
     protectedNature: false,
   });
   const [center, setCenter] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
