@@ -393,6 +393,12 @@ function ProjectsIndexPage() {
                 </div>
               </div>
 
+              {formError && (
+                <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                  {formError}
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-1">
                 <button
