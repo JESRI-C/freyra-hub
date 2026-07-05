@@ -97,7 +97,8 @@ export async function setDataSourceStatus(id: string, status: string, message?: 
 
 export async function deleteDataSource(id: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: existing } = await supabase.from("data_sources").select("*").eq("id", id).maybeSingle();
+  const { data: existingRaw } = await supabase.from("data_sources").select("*").eq("id", id).maybeSingle();
+  const existing = existingRaw as unknown as DataSource | null;
   const { error } = await supabase.from("data_sources").delete().eq("id", id);
   if (error) throw error;
   await logAuditEvent({
