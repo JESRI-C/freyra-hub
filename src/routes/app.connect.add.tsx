@@ -60,9 +60,37 @@ function Page() {
   const [routing, setRouting] = useState<string[]>(["DecisionsIQ", "ESG Ledger"]);
   const [tested, setTested] = useState(false);
   const [activated, setActivated] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
+  const { projectId } = useConnectContext();
 
   const toggle = (arr: string[], v: string, set: (a: string[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+
+  const activate = async () => {
+    setActivating(true);
+    setActivationError(null);
+    try {
+      await createDataSource({
+        project_id: projectId,
+        name: `${type} — ${project}`,
+        source_type: type,
+        connection_method: method,
+        status: "active",
+        configuration: {
+          zone,
+          method,
+          validation_rules: rules,
+          routing,
+        } as never,
+      } as never);
+      setActivated(true);
+    } catch (err) {
+      setActivationError((err as Error).message);
+    } finally {
+      setActivating(false);
+    }
+  };
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
