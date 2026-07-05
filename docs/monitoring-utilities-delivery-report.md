@@ -1,6 +1,6 @@
 # Monitoring utilities — leveringsrapport
 
-Sidste opdatering: 2026-07-05
+Sidste opdatering: 2026-07-05 (Fase 3 audit mod testkrav)
 
 ## Leverance-status
 
@@ -12,6 +12,8 @@ Sidste opdatering: 2026-07-05
 | D4 | Tilføj datakilde-wizard + oprydning | Leveret |
 | Fase 2 | Regel-motor + auto-eksekvering | Leveret |
 | Fase 3 | Live data i UI + pg_cron scheduling | Leveret |
+| Fase 3.1 | Sikkerheds-hardening af RLS (25 findings) | Leveret |
+| Fase 3.2 | Parser-tests + audit mod testkrav | Leveret |
 
 ## Aktive komponenter
 
