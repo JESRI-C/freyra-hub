@@ -36,7 +36,7 @@ export async function listAlertRules(projectId: string | null): Promise<AlertRul
 export async function createAlertRule(input: AlertRuleInsert): Promise<AlertRule> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const { data: raw, error } = await supabase.from("alert_rules").insert(input as never).select("*").single();
-  const data = raw as AlertRule;
+  const data = raw as unknown as AlertRule;
   if (error) throw error;
   await logAuditEvent({
     projectId: data.project_id,

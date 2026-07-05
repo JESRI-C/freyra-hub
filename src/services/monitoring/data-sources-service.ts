@@ -59,7 +59,7 @@ export async function listDataSources(projectId: string): Promise<DataSource[]> 
 export async function createDataSource(input: DataSourceInsert, mappings: Omit<DataSourceMappingInsert, "data_source_id">[] = []): Promise<DataSource> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const { data: raw, error } = await supabase.from("data_sources").insert(input as never).select("*").single();
-  const data = raw as DataSource;
+  const data = raw as unknown as DataSource;
   if (error) throw error;
   const source = data as DataSource;
   if (mappings.length) {
