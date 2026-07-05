@@ -8,6 +8,7 @@ import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
+import { IndicatorDetail } from "@/components/indicators/IndicatorDetail";
 import { SitesPanel } from "@/components/project/SitesPanel";
 import { DataSourcesPanel } from "@/components/project/DataSourcesPanel";
 import { ActionItem } from "@/components/project/ActionItem";
