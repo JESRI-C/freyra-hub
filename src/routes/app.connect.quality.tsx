@@ -15,8 +15,9 @@ import {
 import { QUALITY_DIMENSIONS, VALIDATION_RULES, DATA_SOURCES } from "@/lib/connect-data";
 import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
 import { useConnectContext } from "@/lib/connect-context";
-import { listRules, toggleRule } from "@/services/monitoring/quality-rules-service";
+import { listRules, toggleRule, listIssues, resolveIssue, summarizeIssues } from "@/services/monitoring/quality-rules-service";
 import { runQualityEvaluation } from "@/services/monitoring/quality-engine";
+
 
 
 export const Route = createFileRoute("/app/connect/quality")({
