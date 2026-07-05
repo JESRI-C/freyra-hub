@@ -74,9 +74,17 @@ function ProjectsIndexPage() {
     [localSummaries, querySummaries],
   );
 
+  const [openActionsOnly, setOpenActionsOnly] = useState(false);
+  const [highReadinessOnly, setHighReadinessOnly] = useState(false);
+
   const filtered = useMemo(() => {
     return summaries.filter((s) => {
       if (statusFilter !== "Alle" && s.project.status !== statusFilter) return false;
+      if (openActionsOnly && s.openActions === 0) return false;
+      if (highReadinessOnly) {
+        const readiness = s.indicators.find((i) => i.key === "report_readiness")?.value;
+        if (readiness == null || (readiness as number) < 80) return false;
+      }
       if (q) {
         const search = q.toLowerCase();
         const text =
@@ -85,10 +93,15 @@ function ProjectsIndexPage() {
       }
       return true;
     });
-  }, [summaries, q, statusFilter]);
+  }, [summaries, q, statusFilter, openActionsOnly, highReadinessOnly]);
 
   const totalOpenActions = useMemo(
     () => summaries.reduce((acc, s) => acc + s.openActions, 0),
+    [summaries],
+  );
+
+  const totalSites = useMemo(
+    () => summaries.reduce((acc, s) => acc + (s.activeDataSources ?? 0), 0),
     [summaries],
   );
 
@@ -100,6 +113,13 @@ function ProjectsIndexPage() {
     if (vals.length === 0) return null;
     return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
   }, [summaries]);
+
+  function clearFilters() {
+    setStatusFilter("Alle");
+    setOpenActionsOnly(false);
+    setHighReadinessOnly(false);
+    setQ("");
+  }
 
   function showToast(msg: string) {
     setToast(msg);
