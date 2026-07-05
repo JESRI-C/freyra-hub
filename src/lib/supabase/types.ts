@@ -176,11 +176,17 @@ export type Site = {
 export type DataSource = {
   id: string;
   project_id: string | null;
+  site_id?: string | null;
   name: string;
   source_type: string | null;
   provider: string | null;
   status: string | null;
   last_sync_at: string | null;
+  last_sync_status?: string | null;
+  last_sync_message?: string | null;
+  description?: string | null;
+  config?: Record<string, unknown> | null;
+  updated_at?: string | null;
   created_at: string;
 };
 
