@@ -474,6 +474,172 @@ export type Database = {
           },
         ]
       }
+      device_maintenance_logs: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          maintenance_type: string
+          metadata: Json
+          next_due_at: string | null
+          notes: string | null
+          performed_at: string
+          performed_by: string | null
+          result: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          maintenance_type: string
+          metadata?: Json
+          next_due_at?: string | null
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          result?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          maintenance_type?: string
+          metadata?: Json
+          next_due_at?: string | null
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string | null
+          result?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_maintenance_logs_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_measurements: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          measured_at: string
+          parameter_id: string | null
+          quality_score: number | null
+          quality_status: string
+          received_at: string
+          source_payload: Json | null
+          unit: string | null
+          validation_flags: Json
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          measured_at: string
+          parameter_id?: string | null
+          quality_score?: number | null
+          quality_status?: string
+          received_at?: string
+          source_payload?: Json | null
+          unit?: string | null
+          validation_flags?: Json
+          value: number
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          measured_at?: string
+          parameter_id?: string | null
+          quality_score?: number | null
+          quality_status?: string
+          received_at?: string
+          source_payload?: Json | null
+          unit?: string | null
+          validation_flags?: Json
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_measurements_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_measurements_parameter_id_fkey"
+            columns: ["parameter_id"]
+            isOneToOne: false
+            referencedRelation: "device_parameters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      device_parameters: {
+        Row: {
+          created_at: string
+          device_id: string
+          expected_interval_minutes: number | null
+          id: string
+          is_active: boolean
+          max_value: number | null
+          min_value: number | null
+          parameter_key: string
+          parameter_name: string
+          unit: string | null
+          updated_at: string
+          validation_rules: Json
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          expected_interval_minutes?: number | null
+          id?: string
+          is_active?: boolean
+          max_value?: number | null
+          min_value?: number | null
+          parameter_key: string
+          parameter_name: string
+          unit?: string | null
+          updated_at?: string
+          validation_rules?: Json
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          expected_interval_minutes?: number | null
+          id?: string
+          is_active?: boolean
+          max_value?: number | null
+          min_value?: number | null
+          parameter_key?: string
+          parameter_name?: string
+          unit?: string | null
+          updated_at?: string
+          validation_rules?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_parameters_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           action_id: string | null
@@ -1106,6 +1272,183 @@ export type Database = {
             columns: ["risk_id"]
             isOneToOne: false
             referencedRelation: "environmental_risks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitoring_devices: {
+        Row: {
+          battery_level: number | null
+          configuration: Json
+          connectivity_type: string | null
+          created_at: string
+          created_by: string | null
+          device_type: string
+          expected_interval_minutes: number | null
+          external_device_id: string | null
+          firmware_version: string | null
+          geometry: Json | null
+          id: string
+          last_measurement_at: string | null
+          last_seen_at: string | null
+          latitude: number | null
+          longitude: number | null
+          manufacturer: string | null
+          model: string | null
+          name: string
+          organization_id: string | null
+          project_id: string
+          serial_number: string | null
+          signal_strength: number | null
+          status: string
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          battery_level?: number | null
+          configuration?: Json
+          connectivity_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          device_type: string
+          expected_interval_minutes?: number | null
+          external_device_id?: string | null
+          firmware_version?: string | null
+          geometry?: Json | null
+          id?: string
+          last_measurement_at?: string | null
+          last_seen_at?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          manufacturer?: string | null
+          model?: string | null
+          name: string
+          organization_id?: string | null
+          project_id: string
+          serial_number?: string | null
+          signal_strength?: number | null
+          status?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          battery_level?: number | null
+          configuration?: Json
+          connectivity_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          device_type?: string
+          expected_interval_minutes?: number | null
+          external_device_id?: string | null
+          firmware_version?: string | null
+          geometry?: Json | null
+          id?: string
+          last_measurement_at?: string | null
+          last_seen_at?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          manufacturer?: string | null
+          model?: string | null
+          name?: string
+          organization_id?: string | null
+          project_id?: string
+          serial_number?: string | null
+          signal_strength?: number | null
+          status?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitoring_devices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitoring_devices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitoring_devices_zone_fk"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitoring_zones: {
+        Row: {
+          area_hectares: number | null
+          area_m2: number | null
+          centroid_lat: number | null
+          centroid_lng: number | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          geometry: Json | null
+          id: string
+          name: string
+          project_id: string
+          source_metadata: Json
+          source_type: string
+          status: string
+          tags: string[]
+          updated_at: string
+          zone_type: string
+        }
+        Insert: {
+          area_hectares?: number | null
+          area_m2?: number | null
+          centroid_lat?: number | null
+          centroid_lng?: number | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          geometry?: Json | null
+          id?: string
+          name: string
+          project_id: string
+          source_metadata?: Json
+          source_type?: string
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          zone_type?: string
+        }
+        Update: {
+          area_hectares?: number | null
+          area_m2?: number | null
+          centroid_lat?: number | null
+          centroid_lng?: number | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          geometry?: Json | null
+          id?: string
+          name?: string
+          project_id?: string
+          source_metadata?: Json
+          source_type?: string
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          zone_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitoring_zones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
