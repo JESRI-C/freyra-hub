@@ -148,11 +148,43 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
       });
     },
     onSuccess: () => {
+      // Alle afledte forespørgsler skal genindlæses når projektgrænsen ændres.
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
       void queryClient.invalidateQueries({ queryKey: ["project-by-slug"] });
+      void queryClient.invalidateQueries({ queryKey: ["environmental-context"] });
+      void queryClient.invalidateQueries({ queryKey: ["nature-data"] });
+      void queryClient.invalidateQueries({ queryKey: ["watercourses"] });
+      void queryClient.invalidateQueries({ queryKey: ["biodiversity"] });
+      void queryClient.invalidateQueries({ queryKey: ["ndvi"] });
+      void queryClient.invalidateQueries({ queryKey: ["indicators"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit"] });
       setBoundarySaved(true);
       setLastError(null);
       setTimeout(() => setBoundarySaved(false), 4000);
+    },
+    onError: onMutationError,
+  });
+
+  // Ryd projektgrænsen helt (nulstil polygon, areal og kilde).
+  const clearBoundaryMutation = useMutation({
+    mutationFn: async () => {
+      await updateProjectDetails(project!.id, {
+        geometry_polygon: null,
+        geometry_area_ha: null,
+        geometry_source: null,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["projects"] });
+      void queryClient.invalidateQueries({ queryKey: ["project-by-slug"] });
+      void queryClient.invalidateQueries({ queryKey: ["environmental-context"] });
+      void queryClient.invalidateQueries({ queryKey: ["nature-data"] });
+      void queryClient.invalidateQueries({ queryKey: ["watercourses"] });
+      void queryClient.invalidateQueries({ queryKey: ["biodiversity"] });
+      void queryClient.invalidateQueries({ queryKey: ["ndvi"] });
+      void queryClient.invalidateQueries({ queryKey: ["indicators"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit"] });
+      setLastError(null);
     },
     onError: onMutationError,
   });
@@ -166,6 +198,10 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
     setDrawMode("none");
     saveBoundaryMutation.mutate({ geojson, ha, source });
   }, [saveBoundaryMutation]);
+
+  const clearBoundary = useCallback(() => {
+    clearBoundaryMutation.mutate();
+  }, [clearBoundaryMutation]);
 
   const confirmCreateZone = useCallback((name: string, area_type: ZoneType) => {
     if (!newZoneState?.geojson || !newZoneState.area_ha) return;
