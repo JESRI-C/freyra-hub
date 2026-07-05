@@ -224,16 +224,18 @@ function DashboardPage() {
             subtitle="Hvad kræver din opmærksomhed nu"
           />
           <ul className="px-5 pb-5 divide-y">
+            {criticalActions.length === 0 && (
+              <li className="py-6 text-sm text-muted-foreground text-center">
+                Ingen åbne handlinger — godt gået 🌱
+              </li>
+            )}
             {criticalActions.map((a) => (
-              <li key={a.title} className="py-3 flex items-start gap-3">
+              <li key={a.id} className="py-3 flex items-start gap-3">
                 {a.tone === "danger" && (
                   <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 )}
                 {a.tone === "warning" && (
                   <ClipboardList className="h-4 w-4 text-warning-foreground shrink-0 mt-0.5" />
-                )}
-                {a.tone === "success" && (
-                  <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
                 )}
                 {a.tone === "default" && (
                   <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -242,9 +244,12 @@ function DashboardPage() {
                   <div className="font-medium text-sm">{a.title}</div>
                   <div className="text-xs text-muted-foreground">{a.project}</div>
                 </div>
-                <button className="text-xs rounded-lg border px-2.5 py-1.5 hover:bg-muted shrink-0">
-                  {a.cta}
-                </button>
+                <Link
+                  to="/app/decisions"
+                  className="text-xs rounded-lg border px-2.5 py-1.5 hover:bg-muted shrink-0"
+                >
+                  Åbn
+                </Link>
               </li>
             ))}
           </ul>
