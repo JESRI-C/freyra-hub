@@ -281,6 +281,10 @@ export type AuditEvent = {
   actor: string | null;
   source: string | null;
   hash: string | null;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  before_data?: Record<string, unknown> | null;
+  after_data?: Record<string, unknown> | null;
   created_at: string;
 };
 

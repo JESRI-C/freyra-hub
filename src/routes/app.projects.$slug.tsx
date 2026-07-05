@@ -31,6 +31,7 @@ import {
 import { getIndicatorsByProject } from "@/services/indicators-service";
 import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
+import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import {
   getOpenActionsByProject,
   actionPriorityTone,
@@ -594,36 +595,11 @@ function ProjectDetailPage() {
               <Card>
                 <CardHeader
                   title="Audit trail"
-                  subtitle="Kronologisk log over alle hændelser"
+                  subtitle="Filtrer, søg og eksportér alle projekthændelser"
                   action={<Pill tone="info">{auditEvents.length}</Pill>}
                 />
-                <div className="px-5 pb-4 divide-y">
-                  {auditEvents.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4">Ingen auditbegivenheder</p>
-                  ) : (
-                    auditEvents.map((ev) => (
-                      <div key={ev.id} className="py-3 flex items-start gap-3 text-sm">
-                        <span className="mt-0.5 text-muted-foreground">
-                          <AuditIcon name={auditEventIcon(ev.event_type)} />
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium">{ev.title}</div>
-                          {ev.description && (
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {ev.description}
-                            </div>
-                          )}
-                          <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
-                            {ev.actor && <span>{ev.actor}</span>}
-                            {ev.source && <span>· {ev.source}</span>}
-                          </div>
-                        </div>
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          {new Date(ev.created_at).toLocaleDateString("da-DK")}
-                        </span>
-                      </div>
-                    ))
-                  )}
+                <div className="px-5 pb-4">
+                  <AuditTrailPanel events={auditEvents} projectName={project.name} />
                 </div>
               </Card>
             )}

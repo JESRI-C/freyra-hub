@@ -78,13 +78,18 @@ export async function createAction(input: {
 
 export async function startAction(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
-  await updateAction(id, { status: "I gang", started_at: new Date().toISOString() });
+  const startedAt = new Date().toISOString();
+  await updateAction(id, { status: "I gang", started_at: startedAt });
   void logAuditEvent({
     project_id: projectId,
     event_type: "action_updated",
+    entity_type: "action",
+    entity_id: id,
     title: "Handling startet",
     actor: "Bruger",
     source: "manual",
+    before_data: { status: "Afventer" },
+    after_data: { status: "I gang", started_at: startedAt },
   });
 }
 
@@ -94,18 +99,23 @@ export async function completeAction(
   actual_impact?: string,
 ): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  const completedAt = new Date().toISOString();
   await updateAction(id, {
     status: "Lukket",
-    completed_at: new Date().toISOString(),
+    completed_at: completedAt,
     ...(actual_impact ? { actual_impact } : {}),
   });
   void logAuditEvent({
     project_id: projectId,
     event_type: "action_completed",
+    entity_type: "action",
+    entity_id: id,
     title: "Handling markeret som afsluttet",
     description: actual_impact,
     actor: "Bruger",
     source: "manual",
+    before_data: { status: "I gang" },
+    after_data: { status: "Lukket", completed_at: completedAt, ...(actual_impact ? { actual_impact } : {}) },
   });
 }
 
@@ -125,9 +135,12 @@ export async function updateActionDetails(
   void logAuditEvent({
     project_id: projectId,
     event_type: "action_updated",
+    entity_type: "action",
+    entity_id: id,
     title: `Handling opdateret${input.status ? `: status → ${input.status}` : ""}`,
     actor: "Bruger",
     source: "manual",
+    after_data: input as Record<string, unknown>,
   });
 }
 

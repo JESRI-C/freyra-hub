@@ -124,9 +124,12 @@ export async function updateProjectDetails(
   void logAuditEvent({
     project_id: id,
     event_type: "project_updated",
+    entity_type: "project",
+    entity_id: id,
     title: `Projekt opdateret${input.status ? `: status → ${input.status}` : ""}`,
     actor: "Bruger",
     source: "manual",
+    after_data: input as Record<string, unknown>,
   });
 }
 
