@@ -259,7 +259,7 @@ export async function buildProjectEnvironmentalContext(
 
   const [natureCtx, satelliteCtx, rainfallCtx, groundwaterCtx, terrainCtx, protectedCtx, soilCtx] =
     await Promise.all([
-      fetchNatureContext(projectId, locationLabel).catch(() => null),
+      fetchNatureContext(projectId, locationLabel, geometry?.centroid ?? null, geometry?.areaHa ?? null).catch(() => null),
       fetchSatelliteVegetation(projectId, locationLabel).catch(() => null),
       fetchRainfallContext(projectId, municipality).catch(() => null),
       fetchGroundwaterContext(projectId, locationLabel).catch(() => null),
