@@ -200,16 +200,16 @@ export function permissionsFor(role: ProjectRole | null | undefined): ProjectPer
 }
 
 export async function getMyProjectRole(projectId: string, userId: string): Promise<ProjectRole | null> {
-  const db = getDb();
-  if (!db) return null;
+  if (!isSupabaseConfigured || !supabase) return null;
   try {
-    const res = await db.from("project_members").select("role").eq("project_id", projectId);
-    const { data, error } = await res;
-    if (error) return null;
-    const mine = (data as Array<{ user_id?: string; role?: ProjectRole }> | null)?.find(
-      (m) => m.user_id === userId,
-    );
-    return mine?.role ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from("project_members")
+      .select("role")
+      .eq("project_id", projectId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    return (data as { role?: ProjectRole } | null)?.role ?? null;
   } catch {
     return null;
   }
