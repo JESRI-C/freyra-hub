@@ -608,6 +608,19 @@ function ProjectDetailPage() {
               </Card>
             )}
 
+            {/* ── Roller ─────────────────────────────────────────────────── */}
+            {active === "roller" && (
+              <Card>
+                <CardHeader
+                  title="Roller & adgang"
+                  subtitle="Hvem har adgang til projektet, og hvad kan de gøre"
+                />
+                <div className="px-5 pb-5">
+                  <RollerTab projectId={projectId} />
+                </div>
+              </Card>
+            )}
+
             {/* ── Dokumentation ──────────────────────────────────────────── */}
             {active === "dokumentation" && (
               <DokumentationTab
