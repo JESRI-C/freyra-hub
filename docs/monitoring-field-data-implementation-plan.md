@@ -49,35 +49,42 @@
 - Server functions under `src/lib/monitoring/*.functions.ts` med `requireSupabaseAuth`.
 - Følsomme arts-observationer bruger `visibility` (præcis / maskeret / kun zone / skjult).
 
-## Fase C — planlagt
+## Fase C — leveret
 
-**Nye tabeller**
-- `integration_connections`, `drone_flights`, `drone_assets`, `environmental_analyses`, `data_exports`, `monitoring_alerts`.
+**Migration**
+- Nye tabeller: `integration_connections`, `drone_flights`, `drone_assets`, `environmental_analyses`, `data_exports`, `monitoring_alerts`. RLS via `is_project_member` + GRANTs til `authenticated` / `service_role`.
 
 **Nye services**
-- `src/services/monitoring/integrations-service.ts` — credentials gemmes som Supabase Vault-reference, aldrig plaintext i DB.
-- `src/services/monitoring/species-recognition-service.ts` — Lovable AI Gateway (Gemini vision), forslag med sandsynlighed.
-- `src/services/monitoring/drone-service.ts`.
-- `src/services/monitoring/export-service.ts` — GeoJSON, CSV, Excel, PDF, JSON, KML med metadata.
-- `src/services/monitoring/alerts-service.ts`.
+- `src/services/monitoring/integrations-service.ts` — CRUD for 3.-parts kilder (fx Sentinel Hub, MiljøGIS, GBIF). Credentials refereres via `credential_ref` (peger på Supabase-secret), aldrig plaintext i DB.
+- `src/services/monitoring/drone-service.ts` — flyvninger + tilhørende assets.
+- `src/services/monitoring/alerts-service.ts` — list, opret, `acknowledgeAlert`, `resolveAlert`, severity-tone helper.
+- `src/services/monitoring/observations-service.ts` — feltobservationer + `maskCoordinates()` for følsomme arter (præcis / maskeret ≈1 km / kun zone ≈10 km / skjult).
+- `src/services/monitoring/export-service.ts` — CSV, GeoJSON og JSON generatorer + browser-download; Excel/PDF/KML markeret som næste iteration.
 
 **Nye komponenter**
-- `src/components/monitoring/SpeciesRecognitionFlow.tsx` — upload → EXIF → AI → validér → gem observation.
-- `src/components/monitoring/IntegrationWizard.tsx`.
-- `src/components/monitoring/DroneFlightForm.tsx`.
-- `src/components/monitoring/ExportWizard.tsx`.
-- `src/components/monitoring/NotificationCenter.tsx`.
+- `src/components/monitoring/SpeciesRecognitionFlow.tsx` — upload feltbillede → Lovable AI Gateway (Gemini vision via eksisterende `identifySpeciesFromImage`) → forslag med sandsynlighed → bekræft og gem som `field_observation`.
+- `src/components/monitoring/NotificationCenter.tsx` — viser åbne / bekræftede alarmer, tillader bekræft og løs.
+
+**Sikkerhed**
+- Alle nye tabeller kræver projektmedlemsskab; ingen anon-adgang.
+- Observationer bruger `visibility` og `maskCoordinates()` for at skjule præcise koordinater for følsomme arter (fx redepladser for rovfugle).
 
 **Miljøvariabler**
-- `LOVABLE_API_KEY` (findes) — bruges til artsgenkendelse.
-- Evt. `SENTINEL_HUB_INSTANCE_ID` hvis rigtig satellit-behandling aktiveres.
-
-**Teststrategi**
-- Vitest: datakvalitets-beregning, anomali-detektion, zone-geometri, EXIF-parsing, permissions, eksport-generatorer.
-- Playwright: zone-tegning (mere end 3 punkter), upload-til-observation, opret-integration, eksport, mobil-flow.
+- `LOVABLE_API_KEY` — allerede aktiv, bruges af `identifySpeciesFromImage`.
+- Eventuelle satellitkilder (Sentinel Hub Instance ID mv.) tilføjes via `integration_connections.configuration` + secret-reference — ikke som globale env vars.
 
 **Kendte begrænsninger**
-- Ægte satellit-pixel-behandling kræver ekstern service (Sentinel Hub, Planet). Fase C leverer adapter-interface, ikke råpixel-beregning.
-- Rigtig realtid kræver enten Supabase Realtime (≤100 enheder) eller ekstern MQTT-broker. Vi starter med Supabase Realtime + ærlig "opdateres hvert 5 min" ved batch-kilder.
-- Drone ortofoto-stitching (OpenDroneMap eller lignende) markeres som ekstern integration; upload + metadata leveres.
-- Rate limiting sker applikations-side; egentlig platform-limit kræver Cloudflare-konfiguration.
+- IntegrationWizard, DroneFlightForm og ExportWizard er ikke leveret som UI endnu — services er klar, wizards mangler.
+- Ægte satellit-pixel-behandling kræver ekstern service (Sentinel Hub, Planet). `environmental_analyses` er datamodel og adapter-punkt, ikke råpixel-processor.
+- Rigtig realtid: Supabase Realtime kan slås til pr. tabel når behovet opstår; i dag polles via TanStack Query.
+- Drone ortofoto-stitching (OpenDroneMap eller lignende) er ekstern; upload + metadata + link til færdig ortho leveres via `drone_assets`.
+- Export understøtter CSV / GeoJSON / JSON — Excel, PDF og KML mangler.
+- Alarmer skabes p.t. programmatisk (fx fra anomali-detektion i `measurements-service.detectAnomalies`) — en automatisk cron eller trigger til at oprette dem er ikke sat op endnu.
+
+## Anbefalede næste udviklingsspor
+
+1. **IntegrationWizard + DroneFlightForm + ExportWizard UI** oven på de leverede services.
+2. **Alarm-motor**: cron/edge-job der ser på nye `device_measurements` og opretter `monitoring_alerts` når `detectAnomalies` eller device-offline-status slår ind.
+3. **Storage buckets** for observation-media og drone-assets (RLS bundet til projektmedlemsskab).
+4. **Excel/PDF/KML** til `export-service.ts` (fx via `xlsx`, server-side PDF).
+5. **Realtime** via Supabase Realtime på `monitoring_alerts` og `device_measurements` når skalering kræver det.
