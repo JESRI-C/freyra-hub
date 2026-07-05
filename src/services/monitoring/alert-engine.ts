@@ -1,9 +1,13 @@
 // Alert-rule evaluation engine.
 // Pure evaluators + orchestrator that fetches state and fires monitoring_alerts.
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabase as browserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { AlertRule } from "./alert-rules-service";
 import { logAuditEvent } from "./audit-service";
+
+type Client = SupabaseClient<Database>;
+
 
 type Device = Database["public"]["Tables"]["monitoring_devices"]["Row"];
 type Measurement = Database["public"]["Tables"]["device_measurements"]["Row"];
