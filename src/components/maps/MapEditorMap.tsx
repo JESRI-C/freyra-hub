@@ -733,12 +733,39 @@ export function MapEditorMap({
         <div ref={containerRef} className="h-full w-full" />
 
         {drawMode !== "none" && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur rounded-xl shadow-lg border px-4 py-2 text-sm font-medium pointer-events-none">
-            {drawMode === "boundary" && "Tegn projektgrænsen — klik punkter, klik på første punkt for at lukke"}
-            {drawMode === "zone" && "Tegn zonen — klik punkter, klik på første punkt for at lukke"}
-            {drawMode === "measure" && "Tegn måleområde — klik punkter, luk polygonen for resultat"}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/98 backdrop-blur rounded-xl shadow-lg border px-3 py-2 flex items-center gap-2 flex-wrap max-w-[95%]">
+            <span className="text-sm font-medium text-foreground pr-1">
+              {drawMode === "boundary" && "Tegning aktiv — klik på kortet for at tilføje punkter"}
+              {drawMode === "zone" && "Tegn zone — klik punkter"}
+              {drawMode === "measure" && "Tegn måleområde"}
+            </span>
+            <span className="text-xs text-muted-foreground border-l pl-2">
+              {drawingPoints} punkt{drawingPoints === 1 ? "" : "er"}
+            </span>
+            <div className="w-px h-4 bg-border" />
+            <button
+              onClick={undoLastVertex}
+              disabled={drawingPoints === 0}
+              className="text-xs px-2.5 py-1 rounded-md border bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+            >↶ Fortryd punkt</button>
+            <button
+              onClick={finishShape}
+              disabled={drawingPoints < 3}
+              className="text-xs px-2.5 py-1 rounded-md border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >✓ Afslut flade</button>
+            <button
+              onClick={cancelDrawing}
+              className="text-xs px-2.5 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+            >✕ Annuller</button>
           </div>
         )}
+
+        {pickMode && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-amber-50 border border-amber-300 rounded-xl shadow-lg px-4 py-2 text-sm font-medium text-amber-900">
+            Klik på kortet for at vælge {pickMode === "markblok" ? "markblok" : "matrikel"}
+          </div>
+        )}
+
 
         {measurement && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-white rounded-xl shadow-lg border px-5 py-3 flex items-center gap-4">
