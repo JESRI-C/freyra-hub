@@ -88,8 +88,8 @@ export async function generateProjectReport(input: GenerateReportInput): Promise
   y = kv(pdf, "Navn", project.name, y);
   y = kv(pdf, "Type", project.project_type || "—", y);
   y = kv(pdf, "Status", project.status || "—", y);
-  y = kv(pdf, "Areal", project.area_hectares ? `${project.area_hectares} ha` : "—", y);
-  y = kv(pdf, "Lokation", project.location || "—", y);
+  y = kv(pdf, "Areal", project.geometry_area_ha ? `${project.geometry_area_ha} ha` : "—", y);
+  y = kv(pdf, "Lokation", project.location_name || project.municipality || "—", y);
   y += 8;
 
   // Sites
