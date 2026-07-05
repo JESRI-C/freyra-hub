@@ -1,26 +1,35 @@
 // Public cron endpoint: evaluates quality + alert rules across all projects.
-// Requires header `X-Cron-Secret` matching MONITORING_CRON_SECRET env var.
+// Authenticated by Supabase anon/publishable key in the `apikey` header — the
+// canonical Lovable pattern for pg_cron → /api/public/* endpoints.
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/api/public/monitoring/evaluate")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const secret = request.headers.get("x-cron-secret");
-        const expected = process.env.MONITORING_CRON_SECRET;
+        const providedKey = request.headers.get("apikey") ?? request.headers.get("x-api-key");
+        const expected =
+          process.env.SUPABASE_PUBLISHABLE_KEY ??
+          process.env.SUPABASE_ANON_KEY ??
+          process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         if (!expected) {
-          return new Response("Cron not configured", { status: 503 });
+          return new Response(JSON.stringify({ error: "Server key not configured" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          });
         }
-        if (!secret || secret !== expected) {
-          return new Response("Unauthorized", { status: 401 });
+        if (!providedKey || providedKey !== expected) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { runQualityEvaluation } = await import("@/services/monitoring/quality-engine");
         const { runAlertEvaluation } = await import("@/services/monitoring/alert-engine");
 
-        // Scope: optional { project_id?: string } body — if omitted, iterate
-        // all projects that have at least one active rule.
+        // Optional body: { project_id?: string } for single-project runs.
         let projectIds: string[] = [];
         try {
           const body = (await request.json()) as { project_id?: string } | null;
@@ -59,7 +68,11 @@ export const Route = createFileRoute("/api/public/monitoring/evaluate")({
           }
         }
 
-        return Response.json({ ranAt: new Date().toISOString(), projects: results.length, results });
+        return Response.json({
+          ranAt: new Date().toISOString(),
+          projects: results.length,
+          results,
+        });
       },
     },
   },
