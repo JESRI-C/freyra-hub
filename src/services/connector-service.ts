@@ -1,6 +1,7 @@
-// Scaffold fetch functions for each connector.
-// Returns fallback/preview data when API keys are not configured.
-// In production, replace fallback blocks with real API calls.
+// Real-data connector wrappers.
+// Where a live source exists (Miljøportal §3 + vandløb, DMI observationer),
+// we call it when the project has a valid centroid. Otherwise vi returnerer
+// preview-data så UI'et altid har noget at vise.
 
 import { CONNECTOR_REGISTRY } from "@/data/connectors-registry";
 import type {
@@ -13,6 +14,10 @@ import type {
 import { getLiveDataConfig } from "@/config/live-data-config";
 import { dmiClient, miljoeportalClient } from "@/services/live-data";
 import { fetchProjectLiveData } from "@/lib/live-data.functions";
+import {
+  fetchParagraph3Overlap,
+  fetchWatercourses,
+} from "@/services/nature/paragraph3-service";
 
 
 // Check if a specific connector is configured
@@ -45,21 +50,73 @@ function previewResult(
 export async function fetchNatureContext(
   projectId: string,
   location: string,
+  centroid?: { lat: number; lng: number } | null,
+  areaHa?: number | null,
 ): Promise<EnvironmentalContextResult> {
   const connector = CONNECTOR_REGISTRY.find((c) => c.id === "miljoeportal-arealdata")!;
-  // Scaffold: return preview data; replace with real WFS call in production
-  return previewResult(
-    connector,
-    projectId,
-    {
-      protected_nature_types: ["§3 Eng", "§3 Mose"],
-      watercourses_within_500m: 2,
-      nearest_watercourse_m: 45,
-      natura2000_nearby: false,
-      buffer_zones: ["Å-beskyttelseslinje 150m"],
-    },
-    `Naturkontekst for ${location}: 2 §3-naturtyper inden for 500m, vandløb 45m fra projektgrænse.`,
-  );
+
+  // Uden centroid kan vi ikke lave et opslag mod Miljøportalen — returner preview.
+  if (!centroid) {
+    return previewResult(
+      connector,
+      projectId,
+      {
+        protected_nature_types: ["Ikke beregnet"],
+        watercourses_within_500m: null,
+        nearest_watercourse_m: null,
+        natura2000_nearby: null,
+        buffer_zones: [],
+      },
+      `Naturkontekst for ${location}: kræver projektgeometri for at kunne beregnes.`,
+    );
+  }
+
+  try {
+    const [p3, watercourses] = await Promise.all([
+      fetchParagraph3Overlap(centroid.lat, centroid.lng, areaHa ?? 1).catch(() => null),
+      fetchWatercourses(centroid.lat, centroid.lng).catch(() => []),
+    ]);
+
+    // Groft nærmeste-afstands-estimat: første koordinat på hver linje.
+    let nearestM: number | null = null;
+    for (const w of watercourses) {
+      const first = w.coordinates[0];
+      if (!first) continue;
+      const [lng, lat] = first;
+      const dLat = (lat - centroid.lat) * 111_320;
+      const dLng = (lng - centroid.lng) * 111_320 * Math.cos((centroid.lat * Math.PI) / 180);
+      const d = Math.round(Math.sqrt(dLat * dLat + dLng * dLng));
+      if (nearestM === null || d < nearestM) nearestM = d;
+    }
+
+    const natureTypes = p3?.natureTypes ?? [];
+    const summary =
+      p3 && p3.areas.length > 0
+        ? `Naturkontekst: ${p3.areas.length} §3-arealer i området (${natureTypes.join(", ")}), ${watercourses.length} vandløb${nearestM !== null ? `, nærmeste ~${nearestM} m` : ""}.`
+        : `Naturkontekst: Ingen §3-registreringer fundet i området, ${watercourses.length} vandløb${nearestM !== null ? `, nærmeste ~${nearestM} m` : ""}.`;
+
+    return {
+      connector,
+      projectId,
+      fetchedAt: new Date().toISOString(),
+      status: "success",
+      data: {
+        protected_nature_types: natureTypes,
+        protected_nature_ha: p3?.overlapHa ?? 0,
+        protected_nature_overlap_pct: p3?.overlapPercent ?? 0,
+        watercourses_within_500m: watercourses.length,
+        nearest_watercourse_m: nearestM,
+      },
+      summary,
+    };
+  } catch (err) {
+    return previewResult(
+      connector,
+      projectId,
+      { error: err instanceof Error ? err.message : "Ukendt fejl" },
+      `Naturkontekst for ${location}: kunne ikke hentes (bruger preview).`,
+    );
+  }
 }
 
 export async function fetchSatelliteVegetation(
@@ -202,7 +259,7 @@ export async function buildProjectEnvironmentalContext(
 
   const [natureCtx, satelliteCtx, rainfallCtx, groundwaterCtx, terrainCtx, protectedCtx, soilCtx] =
     await Promise.all([
-      fetchNatureContext(projectId, locationLabel).catch(() => null),
+      fetchNatureContext(projectId, locationLabel, geometry?.centroid ?? null, geometry?.areaHa ?? null).catch(() => null),
       fetchSatelliteVegetation(projectId, locationLabel).catch(() => null),
       fetchRainfallContext(projectId, municipality).catch(() => null),
       fetchGroundwaterContext(projectId, locationLabel).catch(() => null),
