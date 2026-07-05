@@ -318,12 +318,18 @@ function Page() {
                       }
                     />
                   </div>
+                  {activationError && (
+                    <div className="mt-3 rounded-lg border bg-destructive/10 border-destructive/30 p-2.5 text-xs flex items-start gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5" /> {activationError}
+                    </div>
+                  )}
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
-                      onClick={() => setActivated(true)}
-                      className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm"
+                      onClick={activate}
+                      disabled={activating}
+                      className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm inline-flex items-center gap-2 disabled:opacity-40"
                     >
-                      Aktivér datakilde
+                      {activating && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Aktivér datakilde
                     </button>
                     <button className="rounded-lg border bg-card px-4 py-2 text-sm">
                       Test forbindelse
