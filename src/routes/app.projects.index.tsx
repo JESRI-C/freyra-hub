@@ -165,7 +165,7 @@ function ProjectsIndexPage() {
           id: newId,
           organization_id: orgId,
           name: form.name.trim(),
-          slug: (inserted?.slug as string | null) ?? null,
+          slug: inserted.slug,
           project_type: form.projectType,
           location_name: form.location.trim() || null,
           municipality: null,
