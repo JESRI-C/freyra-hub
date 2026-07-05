@@ -1,11 +1,13 @@
 // Projects Service — wraps Supabase queries with seed-data fallback.
 // When Supabase is not configured, returns TypeScript seed data transparently.
 
-import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import {
   fetchProjects,
   fetchProjectBySlug,
   fetchProjectById,
+  fetchSitesByProject,
+  fetchDataSourcesByProject,
   insertProject,
   updateProject,
 } from "@/lib/supabase/queries";
