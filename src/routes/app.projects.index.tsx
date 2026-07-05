@@ -122,7 +122,7 @@ function ProjectsIndexPage() {
         const db = supabase as unknown as { from: (t: string) => { insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } };
         const { error } = await db.from("projects").insert({
           id: newId,
-          organization_id: DEFAULT_ORG_ID,
+          organization_id: orgId,
           name: form.name.trim(),
           description: form.description.trim() || null,
           project_type: form.projectType,
@@ -141,7 +141,7 @@ function ProjectsIndexPage() {
       const newSummary: NatureProjectSummary = {
         project: {
           id: newId,
-          organization_id: DEFAULT_ORG_ID,
+          organization_id: orgId,
           name: form.name.trim(),
           slug: null,
           project_type: form.projectType,
