@@ -1470,6 +1470,44 @@ export type Database = {
           },
         ]
       }
+      project_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          project_id: string
+          role: Database["public"]["Enums"]["project_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          project_id: string
+          role: Database["public"]["Enums"]["project_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          project_id?: string
+          role?: Database["public"]["Enums"]["project_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           country: string | null
@@ -2122,8 +2160,24 @@ export type Database = {
         Args: { _org_id: string; _roles: string[]; _user_id: string }
         Returns: boolean
       }
+      has_project_role: {
+        Args: {
+          _project_id: string
+          _role: Database["public"]["Enums"]["project_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_org_member: {
         Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_project_admin: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_project_member: {
+        Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
@@ -2778,7 +2832,13 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      project_role:
+        | "admin"
+        | "project_manager"
+        | "editor"
+        | "field"
+        | "viewer"
+        | "external"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -2913,6 +2973,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      project_role: [
+        "admin",
+        "project_manager",
+        "editor",
+        "field",
+        "viewer",
+        "external",
+      ],
+    },
   },
 } as const

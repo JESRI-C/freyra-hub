@@ -32,6 +32,9 @@ import { getIndicatorsByProject } from "@/services/indicators-service";
 import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
+import { ProjectMembersPanel } from "@/components/project/ProjectMembersPanel";
+import { getMyProjectRole, permissionsFor } from "@/services/project-members-service";
+import { useAuth } from "@/lib/auth";
 import {
   getOpenActionsByProject,
   actionPriorityTone,
@@ -103,6 +106,7 @@ const TABS = [
   { id: "indikatorer", label: "Indikatorer" },
   { id: "handlinger", label: "Handlinger" },
   { id: "audit", label: "Audit trail" },
+  { id: "roller", label: "Roller" },
   { id: "dokumentation", label: "Dokumentation" },
   { id: "medier", label: "Medier" },
   { id: "rapporter", label: "Rapporter" },
@@ -604,6 +608,19 @@ function ProjectDetailPage() {
               </Card>
             )}
 
+            {/* ── Roller ─────────────────────────────────────────────────── */}
+            {active === "roller" && (
+              <Card>
+                <CardHeader
+                  title="Roller & adgang"
+                  subtitle="Hvem har adgang til projektet, og hvad kan de gøre"
+                />
+                <div className="px-5 pb-5">
+                  <RollerTab projectId={projectId} />
+                </div>
+              </Card>
+            )}
+
             {/* ── Dokumentation ──────────────────────────────────────────── */}
             {active === "dokumentation" && (
               <DokumentationTab
@@ -1063,5 +1080,25 @@ function DokumentationTab({
         <EvidenceUploadForm projectId={projectId} />
       </Card>
     </div>
+  );
+}
+
+// ─── Roller Tab ───────────────────────────────────────────────────────────────
+
+function RollerTab({ projectId }: { projectId: string }) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const { data: role } = useQuery({
+    queryKey: ["my-project-role", projectId, userId],
+    queryFn: () => (userId ? getMyProjectRole(projectId, userId) : Promise.resolve(null)),
+    enabled: !!projectId && !!userId,
+  });
+  const permissions = permissionsFor(role ?? null);
+  return (
+    <ProjectMembersPanel
+      projectId={projectId}
+      currentUserId={userId}
+      permissions={permissions}
+    />
   );
 }
