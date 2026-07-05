@@ -8,6 +8,11 @@ export type MonitoringDeviceUpdate = Database["public"]["Tables"]["monitoring_de
 
 export type DeviceStatus = "online" | "partial" | "attention" | "offline" | "not_activated";
 
+function client() {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  return supabase;
+}
+
 /** Compute a device status from last_seen_at + expected_interval_minutes. */
 export function deriveDeviceStatus(device: Pick<MonitoringDevice, "status" | "last_seen_at" | "expected_interval_minutes" | "battery_level">): DeviceStatus {
   if (device.status === "not_activated") return "not_activated";
@@ -21,37 +26,37 @@ export function deriveDeviceStatus(device: Pick<MonitoringDevice, "status" | "la
 }
 
 export async function listDevices(projectId: string): Promise<MonitoringDevice[]> {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
     .from("monitoring_devices")
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data as MonitoringDevice[] | null) ?? [];
 }
 
 export async function getDevice(id: string): Promise<MonitoringDevice | null> {
-  if (!isSupabaseConfigured) return null;
+  if (!isSupabaseConfigured || !supabase) return null;
   const { data, error } = await supabase.from("monitoring_devices").select("*").eq("id", id).maybeSingle();
   if (error) throw error;
-  return data;
+  return data as MonitoringDevice | null;
 }
 
 export async function createDevice(input: MonitoringDeviceInsert): Promise<MonitoringDevice> {
-  const { data, error } = await supabase.from("monitoring_devices").insert(input).select("*").single();
+  const { data, error } = await client().from("monitoring_devices").insert(input as never).select("*").single();
   if (error) throw error;
-  return data;
+  return data as MonitoringDevice;
 }
 
 export async function updateDevice(id: string, patch: MonitoringDeviceUpdate): Promise<MonitoringDevice> {
-  const { data, error } = await supabase.from("monitoring_devices").update(patch).eq("id", id).select("*").single();
+  const { data, error } = await client().from("monitoring_devices").update(patch as never).eq("id", id).select("*").single();
   if (error) throw error;
-  return data;
+  return data as MonitoringDevice;
 }
 
 export async function deleteDevice(id: string): Promise<void> {
-  const { error } = await supabase.from("monitoring_devices").delete().eq("id", id);
+  const { error } = await client().from("monitoring_devices").delete().eq("id", id);
   if (error) throw error;
 }
 

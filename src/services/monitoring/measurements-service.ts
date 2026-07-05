@@ -6,20 +6,21 @@ export type DeviceMeasurement = Database["public"]["Tables"]["device_measurement
 export type DeviceMeasurementInsert = Database["public"]["Tables"]["device_measurements"]["Insert"];
 
 export async function listMeasurements(deviceId: string, opts?: { from?: Date; to?: Date; limit?: number }): Promise<DeviceMeasurement[]> {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured || !supabase) return [];
   let q = supabase.from("device_measurements").select("*").eq("device_id", deviceId).order("measured_at", { ascending: false });
   if (opts?.from) q = q.gte("measured_at", opts.from.toISOString());
   if (opts?.to) q = q.lte("measured_at", opts.to.toISOString());
   if (opts?.limit) q = q.limit(opts.limit);
   const { data, error } = await q;
   if (error) throw error;
-  return data ?? [];
+  return (data as DeviceMeasurement[] | null) ?? [];
 }
 
 export async function insertMeasurement(m: DeviceMeasurementInsert): Promise<DeviceMeasurement> {
-  const { data, error } = await supabase.from("device_measurements").insert(m).select("*").single();
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const { data, error } = await supabase.from("device_measurements").insert(m as never).select("*").single();
   if (error) throw error;
-  return data;
+  return data as DeviceMeasurement;
 }
 
 /** Simple z-score anomaly detection on a numeric series. */
