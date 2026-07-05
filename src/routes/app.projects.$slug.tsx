@@ -188,6 +188,10 @@ function ProjectDetailPage() {
     return seedGeometry;
   })();
 
+  // A project has "real" geometry only when a polygon has been drawn or uploaded —
+  // a centroid alone (from location name) is not enough to run area-based analyses.
+  const hasRealGeometry = project?.geometry_polygon != null;
+
   // Async media state
   const [mediaItems, setMediaItems] = useState<
     import("@/lib/platform/media-types").ProjectMediaItem[]
