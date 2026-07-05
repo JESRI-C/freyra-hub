@@ -1,151 +1,220 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
-export type DemoUser = {
+export type AppUser = {
   id: string;
   name: string;
-  role: string;
   email: string;
+  role: string;
   initials: string;
+  avatar_url?: string | null;
 };
 
-export const DEMO_USERS: DemoUser[] = [
-  { id: "jesper", name: "Jesper Riel", role: "Admin", email: "jesper@freyra.io", initials: "JR" },
-  {
-    id: "emma",
-    name: "Emma Larsen",
-    role: "Sustainability Lead",
-    email: "emma@freyra.io",
-    initials: "EL",
-  },
-  {
-    id: "mikkel",
-    name: "Mikkel Holm",
-    role: "Data Manager",
-    email: "mikkel@freyra.io",
-    initials: "MH",
-  },
-];
+export type OrgProject = {
+  id: string;
+  name: string;
+  location: string;
+  status: string;
+  slug?: string | null;
+};
 
 export type Organization = {
   id: string;
   name: string;
   description: string;
-  projects: { id: string; name: string; location: string; status: string }[];
+  projects: OrgProject[];
+  role?: string;
 };
 
-export const ORGANIZATIONS: Organization[] = [
-  {
-    id: "freyra-demo",
-    name: "Freyra Demo",
-    description: "Demoorganisation til afprøvning af platformen",
-    projects: [
-      { id: "fd-overview", name: "Demo Oversigt", location: "Danmark", status: "Aktiv" },
-      { id: "fd-pilot", name: "Pilot Område Nord", location: "Aalborg", status: "Aktiv" },
-    ],
-  },
-  {
-    id: "nordic-coastal",
-    name: "Nordic Coastal Restoration",
-    description: "Genopretning af kystnære økosystemer",
-    projects: [
-      { id: "nc-limfjord", name: "Limfjorden Tang", location: "Limfjorden", status: "Aktiv" },
-      { id: "nc-kattegat", name: "Kattegat Stenrev", location: "Kattegat", status: "Planlægning" },
-    ],
-  },
-  {
-    id: "skallebaek",
-    name: "Skallebæk Biodiversity Pilot",
-    description: "Pilotprojekt for biodiversitet i ådal",
-    projects: [
-      { id: "sk-aadal", name: "Skallebæk Ådal", location: "Haderslev, Danmark", status: "Aktiv" },
-    ],
-  },
-  {
-    id: "urban-water",
-    name: "Urban Water Quality Program",
-    description: "Vandkvalitet i bynære områder",
-    projects: [
-      { id: "uw-cph", name: "København Havn", location: "København", status: "Aktiv" },
-      { id: "uw-aarhus", name: "Aarhus Å", location: "Aarhus", status: "Aktiv" },
-    ],
-  },
-  {
-    id: "danish-wetland",
-    name: "Danish Wetland Restoration",
-    description: "Genetablering af vådområder i Jylland",
-    projects: [
-      { id: "dw-vejle", name: "Vejle Ådal Vådområde", location: "Vejle", status: "Aktiv" },
-    ],
-  },
-  {
-    id: "urban-bio-cph",
-    name: "Urban Biodiversity Corridor Copenhagen",
-    description: "Sammenhængende biodiversitetskorridor i København",
-    projects: [
-      {
-        id: "ub-amager",
-        name: "Amager Fælled Korridor",
-        location: "København",
-        status: "Under verifikation",
-      },
-    ],
-  },
-  {
-    id: "mangrove-id",
-    name: "Mangrove Restoration Indonesia",
-    description: "Restaurering af mangroveskove i Sydøstasien",
-    projects: [
-      { id: "mg-sulawesi", name: "Sulawesi Mangrove", location: "Indonesien", status: "Aktiv" },
-    ],
-  },
-];
-
 type AuthState = {
-  user: DemoUser | null;
+  loading: boolean;
+  session: Session | null;
+  user: AppUser | null;
+  organizations: Organization[];
   orgId: string | null;
   projectId: string | null;
-  login: (user: DemoUser) => void;
-  logout: () => void;
+  currentOrg: Organization | null;
+  currentProject: OrgProject | null;
+  logout: () => Promise<void>;
   selectOrg: (id: string) => void;
   selectProject: (id: string) => void;
+  refresh: () => Promise<void>;
 };
 
 const AuthCtx = createContext<AuthState | null>(null);
-const KEY = "freyra-auth-v1";
+const KEY = "freyra-auth-selection-v1";
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase() ?? "")
+    .join("") || "??";
+}
+
+function statusLabel(raw: string | null | undefined): string {
+  const s = (raw ?? "").toLowerCase();
+  if (s === "active" || s === "aktiv") return "Aktiv";
+  if (s === "planning" || s === "planlægning") return "Planlægning";
+  if (s === "completed" || s === "afsluttet") return "Afsluttet";
+  return raw || "Aktiv";
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<DemoUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
 
+  // Restore selected org/project from localStorage
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const s = JSON.parse(raw);
-        setUser(s.user ?? null);
         setOrgId(s.orgId ?? null);
         setProjectId(s.projectId ?? null);
       }
     } catch {}
-    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(KEY, JSON.stringify({ user, orgId, projectId }));
-  }, [user, orgId, projectId, hydrated]);
+    if (typeof window === "undefined") return;
+    localStorage.setItem(KEY, JSON.stringify({ orgId, projectId }));
+  }, [orgId, projectId]);
+
+  const loadUserData = useCallback(async (currentSession: Session | null) => {
+    if (!currentSession?.user) {
+      setUser(null);
+      setOrganizations([]);
+      return;
+    }
+
+    const uid = currentSession.user.id;
+
+    // Profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, avatar_url")
+      .eq("id", uid)
+      .maybeSingle();
+
+    // Memberships + organizations
+    const { data: memberships } = await supabase
+      .from("organization_memberships")
+      .select("role, organization:organizations(id, name, type, country)")
+      .eq("user_id", uid);
+
+    const orgIds = (memberships ?? [])
+      .map((m) => (m.organization as { id?: string } | null)?.id)
+      .filter((x): x is string => !!x);
+
+    // Projects for those orgs
+    let projectsByOrg: Record<string, OrgProject[]> = {};
+    if (orgIds.length > 0) {
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("id, name, slug, status, area_name, organization_id")
+        .in("organization_id", orgIds);
+      for (const p of projects ?? []) {
+        const pRow = p as {
+          id: string;
+          name: string;
+          slug: string | null;
+          status: string | null;
+          area_name: string | null;
+          organization_id: string;
+        };
+        (projectsByOrg[pRow.organization_id] ??= []).push({
+          id: pRow.id,
+          name: pRow.name,
+          slug: pRow.slug,
+          location: pRow.area_name || "—",
+          status: statusLabel(pRow.status),
+        });
+      }
+    }
+
+    const orgs: Organization[] = (memberships ?? [])
+      .map((m) => {
+        const o = m.organization as { id: string; name: string; type: string | null; country: string | null } | null;
+        if (!o) return null;
+        return {
+          id: o.id,
+          name: o.name,
+          description: [o.type, o.country].filter(Boolean).join(" · "),
+          projects: projectsByOrg[o.id] ?? [],
+          role: m.role,
+        };
+      })
+      .filter((x): x is Organization => !!x);
+
+    const displayName =
+      profile?.full_name ||
+      (currentSession.user.user_metadata?.full_name as string | undefined) ||
+      (currentSession.user.email?.split("@")[0] ?? "Bruger");
+
+    const primaryRole = orgs[0]?.role ?? "Member";
+
+    setUser({
+      id: uid,
+      name: displayName,
+      email: profile?.email || currentSession.user.email || "",
+      role: primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1),
+      initials: initials(displayName),
+      avatar_url: profile?.avatar_url ?? null,
+    });
+    setOrganizations(orgs);
+
+    // Auto-select first org if none set / stale
+    setOrgId((prev) => {
+      if (prev && orgs.some((o) => o.id === prev)) return prev;
+      return orgs[0]?.id ?? null;
+    });
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    // Subscribe first, then hydrate
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!mounted) return;
+      setSession(s);
+      void loadUserData(s);
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      void loadUserData(data.session).finally(() => mounted && setLoading(false));
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [loadUserData]);
+
+  const currentOrg = organizations.find((o) => o.id === orgId) ?? null;
+  const currentProject = currentOrg?.projects.find((p) => p.id === projectId) ?? null;
 
   return (
     <AuthCtx.Provider
       value={{
+        loading,
+        session,
         user,
+        organizations,
         orgId,
         projectId,
-        login: (u) => setUser(u),
-        logout: () => {
-          setUser(null);
+        currentOrg,
+        currentProject,
+        logout: async () => {
+          await supabase.auth.signOut();
           setOrgId(null);
           setProjectId(null);
         },
@@ -154,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProjectId(null);
         },
         selectProject: (id) => setProjectId(id),
+        refresh: () => loadUserData(session),
       }}
     >
       {children}
@@ -167,10 +237,12 @@ export function useAuth() {
   return ctx;
 }
 
-export function getCurrentOrg(orgId: string | null) {
-  return ORGANIZATIONS.find((o) => o.id === orgId) ?? null;
+// Backwards-compat helpers — read from currently mounted context via useAuth in components.
+// These pure-function versions are kept as no-ops for legacy call sites and always return null.
+// Prefer `useAuth().currentOrg` / `useAuth().currentProject`.
+export function getCurrentOrg(_orgId: string | null): Organization | null {
+  return null;
 }
-export function getCurrentProject(orgId: string | null, projectId: string | null) {
-  const org = getCurrentOrg(orgId);
-  return org?.projects.find((p) => p.id === projectId) ?? null;
+export function getCurrentProject(_orgId: string | null, _projectId: string | null): OrgProject | null {
+  return null;
 }
