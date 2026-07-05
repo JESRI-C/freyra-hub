@@ -50,13 +50,15 @@ const FORM_DEFAULTS: CreateProjectForm = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProjectsIndexPage() {
-  const { currentOrg } = useAuth();
+  const { currentOrg, selectProject, refresh } = useAuth();
   const orgId = currentOrg?.id ?? "";
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<CreateProjectForm>(FORM_DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
