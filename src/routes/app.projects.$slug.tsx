@@ -698,6 +698,12 @@ function ProjectDetailPage() {
           </>
         )}
       </ProjectTabs>
+
+      <IndicatorDetail
+        indicator={selectedIndicator}
+        open={indicatorDetailOpen}
+        onOpenChange={setIndicatorDetailOpen}
+      />
     </main>
   );
 }
