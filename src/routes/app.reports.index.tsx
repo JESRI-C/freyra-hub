@@ -379,12 +379,12 @@ function Page() {
 
       <div className="grid lg:grid-cols-2 gap-5">
         <Card>
-          <CardHeader title="Seneste aktivitet" subtitle="Rapport-relaterede hændelser" />
-          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "Rapporter")} />
+          <CardHeader title="Seneste aktivitet" subtitle="Live fra platformens audit-trail" />
+          <ActivityFeed items={activityFeed} />
         </Card>
         <Card>
           <CardHeader title="Kritiske handlinger" subtitle="Skal lukkes før eksternt brug" />
-          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "Rapporter")} />
+          <CriticalActionsPanel items={criticalActions} />
         </Card>
       </div>
     </main>
