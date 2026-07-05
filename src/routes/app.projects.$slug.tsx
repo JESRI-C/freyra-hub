@@ -31,6 +31,7 @@ import {
 import { getIndicatorsByProject } from "@/services/indicators-service";
 import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
+import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import {
   getOpenActionsByProject,
   actionPriorityTone,
