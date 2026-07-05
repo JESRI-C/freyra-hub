@@ -1,10 +1,12 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Sparkles, Loader2 } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { WizardSteps, Section, Chip } from "@/components/connect/Primitives";
 import { PROJECTS, ZONES, SOURCE_TYPES, VALIDATION_RULES } from "@/lib/connect-data";
+import { useConnectContext } from "@/lib/connect-context";
+import { createDataSource } from "@/services/monitoring/data-sources-service";
 
 export const Route = createFileRoute("/app/connect/add")({
   component: Page,
@@ -58,9 +60,38 @@ function Page() {
   const [routing, setRouting] = useState<string[]>(["DecisionsIQ", "ESG Ledger"]);
   const [tested, setTested] = useState(false);
   const [activated, setActivated] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
+  const { projectId } = useConnectContext();
 
   const toggle = (arr: string[], v: string, set: (a: string[]) => void) =>
     set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+
+  const activate = async () => {
+    setActivating(true);
+    setActivationError(null);
+    try {
+      await createDataSource({
+        project_id: projectId,
+        name: `${type} — ${project}`,
+        source_type: type,
+        provider: method,
+        status: "active",
+        description: `${type} · ${zone}`,
+        config: {
+          zone,
+          method,
+          validation_rules: rules,
+          routing,
+        } as never,
+      } as never);
+      setActivated(true);
+    } catch (err) {
+      setActivationError((err as Error).message);
+    } finally {
+      setActivating(false);
+    }
+  };
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
@@ -287,12 +318,18 @@ function Page() {
                       }
                     />
                   </div>
+                  {activationError && (
+                    <div className="mt-3 rounded-lg border bg-destructive/10 border-destructive/30 p-2.5 text-xs flex items-start gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5" /> {activationError}
+                    </div>
+                  )}
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
-                      onClick={() => setActivated(true)}
-                      className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm"
+                      onClick={activate}
+                      disabled={activating}
+                      className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm inline-flex items-center gap-2 disabled:opacity-40"
                     >
-                      Aktivér datakilde
+                      {activating && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Aktivér datakilde
                     </button>
                     <button className="rounded-lg border bg-card px-4 py-2 text-sm">
                       Test forbindelse

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Bell,
   AlertTriangle,
@@ -11,6 +12,7 @@ import {
   Sparkles,
   Send,
   ExternalLink,
+  Plus,
 } from "lucide-react";
 import { Card, PageHeader, Bars } from "@/components/ui-bits";
 import {
@@ -21,21 +23,91 @@ import {
   Chip,
 } from "@/components/connect/Primitives";
 import { ALERTS } from "@/lib/connect-data";
+import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
+import { useConnectContext } from "@/lib/connect-context";
+import { listAlertRules, toggleAlertRule } from "@/services/monitoring/alert-rules-service";
 
 export const Route = createFileRoute("/app/connect/alerts")({
   component: Page,
 });
 
 function Page() {
+  const { projectId } = useConnectContext();
   const [filter, setFilter] = useState<string>("all");
   const [selected, setSelected] = useState<(typeof ALERTS)[0] | null>(null);
+  const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
   const filtered = filter === "all" ? ALERTS : ALERTS.filter((a) => a.severity === filter);
+
+  const rulesQuery = useQuery({
+    queryKey: ["alert-rules", projectId],
+    queryFn: () => listAlertRules(projectId),
+  });
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-      <PageHeader
-        title="Alerts"
-        description="Aktive alerts, hændelser og data-operations issues."
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Alerts"
+          description="Aktive alerts, hændelser og data-operations issues."
+        />
+        <button
+          onClick={() => setRuleDrawerOpen(true)}
+          className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5 shrink-0 mt-1"
+        >
+          <Plus className="h-3.5 w-3.5" /> Ny alarmregel
+        </button>
+      </div>
+
+      <Section
+        title="Aktive alarmregler"
+        subtitle={rulesQuery.isLoading ? "Henter…" : `${rulesQuery.data?.length ?? 0} regler i backend`}
+      >
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground border-b">
+                  <th className="px-4 py-3">Navn</th>
+                  <th className="px-4 py-3">Trigger</th>
+                  <th className="px-4 py-3">Severity</th>
+                  <th className="px-4 py-3">Aktiv</th>
+                  <th className="px-4 py-3">Oprettet</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {(rulesQuery.data ?? []).map((r) => (
+                  <tr key={r.id}>
+                    <td className="px-4 py-3 font-medium">{r.name}</td>
+                    <td className="px-4 py-3 text-xs"><Chip>{r.trigger_type}</Chip></td>
+                    <td className="px-4 py-3 text-xs"><SeverityBadge severity={(r.severity === "critical" || r.severity === "medium" || r.severity === "low" ? r.severity : "low") as "critical" | "medium" | "low"} /></td>
+                    <td className="px-4 py-3 text-xs">
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          defaultChecked={r.is_active}
+                          onChange={(e) => { void toggleAlertRule(r.id, e.target.checked).then(() => rulesQuery.refetch()); }}
+                        />
+                        {r.is_active ? "Aktiv" : "Inaktiv"}
+                      </label>
+                    </td>
+                    <td className="px-4 py-3 text-xs">{new Date(r.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+                {!rulesQuery.isLoading && (rulesQuery.data ?? []).length === 0 && (
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-muted-foreground">Ingen regler endnu — tryk "Ny alarmregel".</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </Section>
+
+      <RuleDrawer
+        open={ruleDrawerOpen}
+        onClose={() => setRuleDrawerOpen(false)}
+        variant="alert"
+        projectId={projectId}
+        onCreated={() => rulesQuery.refetch()}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

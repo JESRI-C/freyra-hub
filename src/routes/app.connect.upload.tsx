@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Sparkles, Plus } from "lucide-react";
 import { Card, PageHeader, Pill } from "@/components/ui-bits";
 import { Section, Chip } from "@/components/connect/Primitives";
 import {
@@ -13,16 +14,26 @@ import {
   Toast,
 } from "@/components/connect/MapPrimitives";
 import { UPLOAD_TYPES, UPLOAD_QUEUE, VALIDATION_WARNINGS } from "@/lib/connect-map-data";
+import { UploadWizard } from "@/components/monitoring/UploadWizard";
+import { useConnectContext } from "@/lib/connect-context";
+import { listUploads, uploadStatusLabel } from "@/services/monitoring/uploads-service";
 
 export const Route = createFileRoute("/app/connect/upload")({
   component: Page,
 });
 
 function Page() {
+  const { projectId } = useConnectContext();
   const [queue, setQueue] = useState(UPLOAD_QUEUE);
   const [selectedId, setSelectedId] = useState<string | null>(queue[0]?.id ?? null);
   const [routing, setRouting] = useState<string[]>(["map", "ledger"]);
   const [toast, setToast] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  const uploadsQuery = useQuery({
+    queryKey: ["monitoring-uploads", projectId],
+    queryFn: () => listUploads({ projectId, limit: 20 }),
+  });
 
   const selected = useMemo(
     () => queue.find((q) => q.id === selectedId) ?? null,
@@ -53,15 +64,66 @@ function Page() {
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Chip tone="primary">{queue.length} filer i kø</Chip>
             <Chip>{queue.filter((q) => q.status === "Klar").length} klar</Chip>
             <Chip tone="muted">
               {queue.filter((q) => q.status === "Validering").length} under validering
             </Chip>
+            <button
+              onClick={() => setWizardOpen(true)}
+              className="ml-2 text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" /> Ny upload
+            </button>
           </div>
         </div>
       </Card>
+
+      {/* Live uploads from backend */}
+      <Section
+        title="Live upload-kø"
+        subtitle={uploadsQuery.isLoading ? "Henter…" : `${uploadsQuery.data?.length ?? 0} filer i backend`}
+      >
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground border-b">
+                  <th className="px-4 py-3">Filnavn</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Størrelse</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Uploadet</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {(uploadsQuery.data ?? []).map((u) => (
+                  <tr key={u.id}>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-muted-foreground" />{u.original_file_name}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs"><Chip>{u.upload_type}</Chip></td>
+                    <td className="px-4 py-3 text-xs">{Math.round(u.file_size / 1024)} KB</td>
+                    <td className="px-4 py-3 text-xs"><Chip tone={u.status === "imported" ? "primary" : "muted"}>{uploadStatusLabel(u.status)}</Chip></td>
+                    <td className="px-4 py-3 text-xs">{new Date(u.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+                {!uploadsQuery.isLoading && (uploadsQuery.data ?? []).length === 0 && (
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-muted-foreground">Ingen uploads endnu — tryk "Ny upload" for at komme i gang.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </Section>
+
+      <UploadWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        projectId={projectId}
+        onImported={() => { void uploadsQuery.refetch(); setToast("Fil uploadet — se live kø nedenfor"); }}
+      />
 
       {/* Dropzone */}
       <UploadDropzone
