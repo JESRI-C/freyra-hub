@@ -31,7 +31,8 @@ import {
   ReportReadinessBadge,
   actionToast,
 } from "@/components/platform/Primitives";
-import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
+import { PROJECT_FACTS } from "@/lib/platform-data";
+import { useLiveActivityFeed, useLiveCriticalActions } from "@/lib/platform-live";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 
 export const Route = createFileRoute("/app/ledger/")({
@@ -48,6 +49,8 @@ const GAPS = [
 ];
 
 function OverviewPage() {
+  const activityFeed = useLiveActivityFeed();
+  const criticalActions = useLiveCriticalActions();
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
       <ModuleHeader
@@ -295,16 +298,12 @@ function OverviewPage() {
 
       <div className="grid lg:grid-cols-2 gap-5">
         <Card>
-          <CardHeader title="Seneste aktivitet" subtitle="ESG Ledger-relaterede hændelser" />
-          <ActivityFeed
-            items={ACTIVITY_FEED.filter(
-              (a) => a.module === "ESG Ledger" || a.module === "Impact Exchange",
-            )}
-          />
+          <CardHeader title="Seneste aktivitet" subtitle="Live fra platformens audit-trail" />
+          <ActivityFeed items={activityFeed} />
         </Card>
         <Card>
           <CardHeader title="Kritiske handlinger" subtitle="Skal lukkes før rapportering" />
-          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "ESG Ledger")} />
+          <CriticalActionsPanel items={criticalActions} />
         </Card>
       </div>
     </main>

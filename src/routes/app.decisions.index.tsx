@@ -32,7 +32,8 @@ import {
   CrossModuleLink,
   actionToast,
 } from "@/components/platform/Primitives";
-import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-data";
+import { PROJECT_FACTS } from "@/lib/platform-data";
+import { useLiveActivityFeed, useLiveCriticalActions } from "@/lib/platform-live";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 
 export const Route = createFileRoute("/app/decisions/")({
@@ -49,6 +50,8 @@ const ICONS: Record<string, React.ReactNode> = {
 };
 
 function OverviewPage() {
+  const activityFeed = useLiveActivityFeed();
+  const criticalActions = useLiveCriticalActions();
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
       <ModuleHeader
@@ -246,18 +249,12 @@ function OverviewPage() {
       {/* Activity + critical actions filtered to DecisionsIQ */}
       <div className="grid lg:grid-cols-2 gap-5">
         <Card>
-          <CardHeader title="Seneste aktivitet" subtitle="DecisionsIQ-relaterede hændelser" />
-          <ActivityFeed
-            items={ACTIVITY_FEED.filter((a) => a.module === "DecisionsIQ").concat(
-              ACTIVITY_FEED.filter((a) => a.module !== "DecisionsIQ").slice(0, 2),
-            )}
-          />
+          <CardHeader title="Seneste aktivitet" subtitle="Live fra platformens audit-trail" />
+          <ActivityFeed items={activityFeed} />
         </Card>
         <Card>
-          <CardHeader title="Kritiske handlinger" subtitle="Prioriterede opgaver" />
-          <CriticalActionsPanel
-            items={CRITICAL_ACTIONS.filter((c) => c.module === "DecisionsIQ")}
-          />
+          <CardHeader title="Kritiske handlinger" subtitle="Prioriterede åbne opgaver" />
+          <CriticalActionsPanel items={criticalActions} />
         </Card>
       </div>
 

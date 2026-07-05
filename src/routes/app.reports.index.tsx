@@ -35,7 +35,8 @@ import {
   ReportReadinessBadge,
   actionToast,
 } from "@/components/platform/Primitives";
-import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS, MOCK_REPORT_TEMPLATES } from "@/lib/platform-data";
+import { PROJECT_FACTS, MOCK_REPORT_TEMPLATES } from "@/lib/platform-data";
+import { useLiveActivityFeed, useLiveCriticalActions } from "@/lib/platform-live";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import { getAllReports, reportStatusTone } from "@/services/reports-service";
 import type { Report } from "@/lib/supabase/types";
@@ -115,6 +116,8 @@ function DataLayerReportsTable({ reports }: { reports: Report[] }) {
 
 function Page() {
   const { data: reports } = useSuspenseQuery(allReportsQuery);
+  const activityFeed = useLiveActivityFeed();
+  const criticalActions = useLiveCriticalActions();
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
       <ModuleHeader
@@ -376,12 +379,12 @@ function Page() {
 
       <div className="grid lg:grid-cols-2 gap-5">
         <Card>
-          <CardHeader title="Seneste aktivitet" subtitle="Rapport-relaterede hændelser" />
-          <ActivityFeed items={ACTIVITY_FEED.filter((a) => a.module === "Rapporter")} />
+          <CardHeader title="Seneste aktivitet" subtitle="Live fra platformens audit-trail" />
+          <ActivityFeed items={activityFeed} />
         </Card>
         <Card>
           <CardHeader title="Kritiske handlinger" subtitle="Skal lukkes før eksternt brug" />
-          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "Rapporter")} />
+          <CriticalActionsPanel items={criticalActions} />
         </Card>
       </div>
     </main>
