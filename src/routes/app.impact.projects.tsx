@@ -26,21 +26,14 @@ import {
 import { PROJECTS, CATEGORIES } from "@/lib/impact-data";
 import { usePortfolio, useCompare } from "@/lib/impact-state";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
-import { DEFAULT_ORG_ID } from "@/data/platform-seed";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
-
-// ─── Query ────────────────────────────────────────────────────────────────────
-
-const projectSummariesQuery = {
-  queryKey: ["nature-project-summaries", DEFAULT_ORG_ID],
-  queryFn: () => getAllNatureProjectSummaries(DEFAULT_ORG_ID),
-};
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/app/impact/projects")({
   head: () => ({ meta: [{ title: "Projekter — Impact Exchange" }] }),
-  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(projectSummariesQuery),
   component: ProjectsPage,
 });
+
 
 const FILTERS = [
   "Region",
