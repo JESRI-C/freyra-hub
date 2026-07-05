@@ -289,6 +289,15 @@ function ProjectDetailPage() {
 
   const [selectedIndicator, setSelectedIndicator] = useState<typeof indicators[number] | null>(null);
   const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
+  const [actionFilterSite, setActionFilterSite] = useState<string>("");
+  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
+  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
+  const filteredActions = localActions.filter((a) => {
+    if (actionFilterSite && a.site_id !== actionFilterSite) return false;
+    if (actionFilterStatus && a.status !== actionFilterStatus) return false;
+    if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
+    return true;
+  });
   const openIndicator = (ind: typeof indicators[number]) => {
     setSelectedIndicator(ind);
     setIndicatorDetailOpen(true);
