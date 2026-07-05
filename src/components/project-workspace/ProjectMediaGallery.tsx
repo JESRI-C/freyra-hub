@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Camera, MapPin } from "lucide-react";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import { MEDIA_CATEGORY_LABELS, MEDIA_CATEGORY_COLORS } from "@/lib/platform/media-types";
+import { MediaLightbox } from "./MediaLightbox";
 
 interface ProjectMediaGalleryProps {
   items: ProjectMediaItem[];
@@ -8,6 +10,8 @@ interface ProjectMediaGalleryProps {
 }
 
 export function ProjectMediaGallery({ items, isLoading }: ProjectMediaGalleryProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -37,11 +41,19 @@ export function ProjectMediaGallery({ items, isLoading }: ProjectMediaGalleryPro
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {items.map((item) => (
-        <MediaCard key={item.id} item={item} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map((item) => (
+          <MediaCard key={item.id} item={item} onOpen={() => setActiveId(item.id)} />
+        ))}
+      </div>
+      <MediaLightbox
+        items={items}
+        activeId={activeId}
+        onClose={() => setActiveId(null)}
+        onChange={setActiveId}
+      />
+    </>
   );
 }
 
