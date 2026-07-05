@@ -259,6 +259,8 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
     isSavingZone: createZoneMutation.isPending,
     isSavingBoundary: saveBoundaryMutation.isPending,
     boundarySaved,
+    clearBoundary,
+    isClearingBoundary: clearBoundaryMutation.isPending,
 
     // Zone selection
     selectedZone,
