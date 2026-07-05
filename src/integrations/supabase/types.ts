@@ -305,34 +305,52 @@ export type Database = {
       }
       data_sources: {
         Row: {
+          config: Json
           created_at: string | null
+          description: string | null
           id: string
           last_sync_at: string | null
+          last_sync_message: string | null
+          last_sync_status: string | null
           name: string
           project_id: string | null
           provider: string | null
+          site_id: string | null
           source_type: string | null
           status: string | null
+          updated_at: string
         }
         Insert: {
+          config?: Json
           created_at?: string | null
+          description?: string | null
           id?: string
           last_sync_at?: string | null
+          last_sync_message?: string | null
+          last_sync_status?: string | null
           name: string
           project_id?: string | null
           provider?: string | null
+          site_id?: string | null
           source_type?: string | null
           status?: string | null
+          updated_at?: string
         }
         Update: {
+          config?: Json
           created_at?: string | null
+          description?: string | null
           id?: string
           last_sync_at?: string | null
+          last_sync_message?: string | null
+          last_sync_status?: string | null
           name?: string
           project_id?: string | null
           provider?: string | null
+          site_id?: string | null
           source_type?: string | null
           status?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -340,6 +358,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_sources_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
             referencedColumns: ["id"]
           },
         ]
