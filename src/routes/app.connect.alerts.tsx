@@ -30,24 +30,52 @@ import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
 import { useConnectContext } from "@/lib/connect-context";
 import { listAlertRules, toggleAlertRule } from "@/services/monitoring/alert-rules-service";
 import { runAlertEvaluation } from "@/services/monitoring/alert-engine";
-
+import { listAlerts, resolveAlert, acknowledgeAlert, type MonitoringAlert } from "@/services/monitoring/alerts-service";
+import { supabase } from "@/lib/supabase/client";
 
 export const Route = createFileRoute("/app/connect/alerts")({
   component: Page,
 });
 
+type LiveAlert = MonitoringAlert & { __live: true };
+type DemoAlert = (typeof ALERTS)[0] & { __live?: false };
+type AnyAlert = LiveAlert | DemoAlert;
+
+function severityRank(s: string): "critical" | "medium" | "low" {
+  if (s === "critical" || s === "high") return "critical";
+  if (s === "medium" || s === "warning") return "medium";
+  return "low";
+}
+
 function Page() {
   const { projectId } = useConnectContext();
   const [filter, setFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<(typeof ALERTS)[0] | null>(null);
+  const [selected, setSelected] = useState<AnyAlert | null>(null);
   const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [lastRun, setLastRun] = useState<{ fired: number; detected: number; ranAt: string } | null>(null);
-  const filtered = filter === "all" ? ALERTS : ALERTS.filter((a) => a.severity === filter);
+
+  const liveAlertsQuery = useQuery({
+    queryKey: ["monitoring-alerts", projectId],
+    queryFn: async (): Promise<LiveAlert[]> => {
+      if (!projectId) return [];
+      const rows = await listAlerts(projectId, { limit: 100 });
+      return rows.map((r) => ({ ...r, __live: true as const }));
+    },
+    enabled: !!projectId,
+  });
+
+  const live = liveAlertsQuery.data ?? [];
+  const useDemo = live.length === 0;
+  const source: AnyAlert[] = useDemo ? (ALERTS as AnyAlert[]) : live;
+  const filtered = filter === "all"
+    ? source
+    : source.filter((a) => severityRank(a.severity) === filter);
 
   const rulesQuery = useQuery({
     queryKey: ["alert-rules", projectId],
     queryFn: () => listAlertRules(projectId),
+
   });
 
   async function handleRunNow() {
