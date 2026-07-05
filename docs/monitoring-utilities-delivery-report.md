@@ -291,7 +291,7 @@ Type-check: `tsgo --noEmit` → 0 fejl.
 5. **`onAuthStateChange`-storm** — tidligere kaldte `invalidateQueries()` på hver token-refresh. Filtreret til identity-transitions kun.
 6. **`supabaseAdmin` importeret på module-scope i `.functions.ts`** — flyttet ind i handler bodies for at undgå læk til client-bundle.
 
-
+## Kendte begrænsninger
 
 - **Regeltyper der endnu ikke er kablet op**:
   - `missing_value` er no-op (`device_measurements.value` er NOT NULL —
