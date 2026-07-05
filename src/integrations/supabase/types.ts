@@ -408,6 +408,68 @@ export type Database = {
           },
         ]
       }
+      data_quality_assessments: {
+        Row: {
+          assessed_at: string
+          completeness_score: number | null
+          consistency_score: number | null
+          created_at: string
+          explanation: string | null
+          id: string
+          metadata: Json
+          overall_score: number | null
+          project_id: string
+          scope_id: string | null
+          scope_type: string
+          spatial_score: number | null
+          temporal_score: number | null
+          timeliness_score: number | null
+          validation_score: number | null
+        }
+        Insert: {
+          assessed_at?: string
+          completeness_score?: number | null
+          consistency_score?: number | null
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          metadata?: Json
+          overall_score?: number | null
+          project_id: string
+          scope_id?: string | null
+          scope_type: string
+          spatial_score?: number | null
+          temporal_score?: number | null
+          timeliness_score?: number | null
+          validation_score?: number | null
+        }
+        Update: {
+          assessed_at?: string
+          completeness_score?: number | null
+          consistency_score?: number | null
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          metadata?: Json
+          overall_score?: number | null
+          project_id?: string
+          scope_id?: string | null
+          scope_type?: string
+          spatial_score?: number | null
+          temporal_score?: number | null
+          timeliness_score?: number | null
+          validation_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_quality_assessments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_sources: {
         Row: {
           config: Json
@@ -907,6 +969,84 @@ export type Database = {
           },
         ]
       }
+      field_observations: {
+        Row: {
+          accuracy_m: number | null
+          count_value: number | null
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          metadata: Json
+          notes: string | null
+          observation_type: string
+          observed_at: string
+          observer_id: string | null
+          project_id: string
+          species_confidence: number | null
+          species_name: string | null
+          status: string
+          updated_at: string
+          visibility: string
+          zone_id: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          count_value?: number | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json
+          notes?: string | null
+          observation_type: string
+          observed_at?: string
+          observer_id?: string | null
+          project_id: string
+          species_confidence?: number | null
+          species_name?: string | null
+          status?: string
+          updated_at?: string
+          visibility?: string
+          zone_id?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          count_value?: number | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json
+          notes?: string | null
+          observation_type?: string
+          observed_at?: string
+          observer_id?: string | null
+          project_id?: string
+          species_confidence?: number | null
+          species_name?: string | null
+          status?: string
+          updated_at?: string
+          visibility?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_observations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_observations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_features: {
         Row: {
           created_at: string | null
@@ -1167,6 +1307,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "indicators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_runs: {
+        Row: {
+          created_at: string
+          data_source_id: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          metadata: Json
+          project_id: string
+          records_failed: number
+          records_processed: number
+          started_at: string
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_source_id: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          metadata?: Json
+          project_id: string
+          records_failed?: number
+          records_processed?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_source_id?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          metadata?: Json
+          project_id?: string
+          records_failed?: number
+          records_processed?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_runs_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_runs_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -1508,6 +1708,59 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      observation_media: {
+        Row: {
+          ai_suggestions: Json
+          created_at: string
+          exif_data: Json
+          file_size_bytes: number | null
+          height: number | null
+          id: string
+          media_type: string
+          mime_type: string | null
+          observation_id: string
+          storage_path: string
+          uploaded_by: string | null
+          width: number | null
+        }
+        Insert: {
+          ai_suggestions?: Json
+          created_at?: string
+          exif_data?: Json
+          file_size_bytes?: number | null
+          height?: number | null
+          id?: string
+          media_type: string
+          mime_type?: string | null
+          observation_id: string
+          storage_path: string
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Update: {
+          ai_suggestions?: Json
+          created_at?: string
+          exif_data?: Json
+          file_size_bytes?: number | null
+          height?: number | null
+          id?: string
+          media_type?: string
+          mime_type?: string | null
+          observation_id?: string
+          storage_path?: string
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observation_media_observation_id_fkey"
+            columns: ["observation_id"]
+            isOneToOne: false
+            referencedRelation: "field_observations"
             referencedColumns: ["id"]
           },
         ]

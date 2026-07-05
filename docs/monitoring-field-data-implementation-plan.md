@@ -18,37 +18,36 @@
 **Ny miljøvariabel**
 - Ingen nye påkrævet i Fase A.
 
-## Fase B — planlagt
+## Fase B — leveret
 
-**Nye tabeller (migration)**
-- `data_sources`, `integration_runs`, `field_observations`, `observation_media`, `data_quality_assessments`.
+**Migration**
+- Nye tabeller: `integration_runs`, `field_observations`, `observation_media`, `data_quality_assessments`. Alle med `is_project_member`-baseret RLS og GRANTs til `authenticated` + `service_role`.
+- `data_sources` findes fra tidligere schema og genbruges.
 
 **Nye services**
-- `src/services/monitoring/devices-service.ts` — CRUD + status-beregning fra `last_seen_at` og `expected_interval_minutes`.
-- `src/services/monitoring/measurements-service.ts` — insert + aggregering pr. time/dag/uge.
-- `src/services/monitoring/zones-service.ts` — CRUD på `monitoring_zones` (afløser den eksisterende `zones-service.ts` som skriver til `project_areas`).
-- `src/services/monitoring/data-sources-service.ts` — CRUD + synkronisering.
-- `src/services/monitoring/data-quality-service.ts` — beregning af komplethed, aktualitet, konsistens, validering, rumlig, tidsmæssig; leverer også klartekst-forklaring.
+- `src/services/monitoring/devices-service.ts` — CRUD + `deriveDeviceStatus()` fra `last_seen_at` og `expected_interval_minutes`; `computeDeviceKpis()` for topkort.
+- `src/services/monitoring/measurements-service.ts` — insert + list + `detectAnomalies()` (z-score).
+- `src/services/monitoring/data-quality-service.ts` — beregner komplethed, aktualitet, konsistens, validering, rumlig og tidsmæssig score + klartekst-forklaring.
 
 **Nye komponenter**
-- `src/components/monitoring/DeviceWizard.tsx` — 6-trins opret-enhed.
-- `src/components/monitoring/DeviceDetailDrawer.tsx` — målehistorik, batterikurve, vedligeholdelseslog.
-- `src/components/monitoring/DataSourceForm.tsx`.
-- `src/components/monitoring/LiveStream.tsx` — batch-polling hvert 5 min., anomali-flag.
-- `src/components/monitoring/CoverageAnalysis.tsx`.
+- `src/components/monitoring/DeviceWizard.tsx` — 6-trins opret-enhed (type → identifikation → placering → parametre → interval → bekræft).
 
-**Server functions**
-- `src/lib/monitoring/devices.functions.ts` — `listDevices`, `getDevice`, `createDevice`, `updateDevice`, `logMaintenance`, `insertMeasurement`.
-- `src/lib/monitoring/live-data.functions.ts` — `getLiveStream({ projectId, range })`.
-- `src/lib/monitoring/coverage.functions.ts` — geografisk datadækning pr. zone.
+**Sider koblet på ægte data**
+- `src/routes/app.connect.devices.tsx` — henter `monitoring_devices` for det valgte projekt, viser tom-tilstand hvis der ingen enheder er, KPI'er beregnes fra rigtige felter, status udledes serverside-neutralt i klienten.
 
-**Sikkerhedstiltag**
-- Alle server functions bruger `requireSupabaseAuth`.
-- Følsomme arts-observationer får `visibility`-kolonne (præcis / maskeret / kun zone / skjult for eksterne).
+**Kendte begrænsninger (til Fase C)**
+- Detaljedrawer med målehistorik, batterikurve og vedligeholdelseslog er endnu ikke koblet på (Wizard opretter enheden; historikvisning tilføjes næste iteration).
+- `data_sources`-siden og live-strømmen kører fortsat på seed indtil deres wire-up i næste iteration.
+- Zone-CRUD flyttes fra `project_areas` til `monitoring_zones` når kort-editoren refaktoreres.
+- Ingen aggregerings-view endnu — måleaggregering laves ad-hoc i klienten indtil datamængden retfærdiggør et materialized view.
 
-**Performance**
-- Måleaggregering laves i database-view eller materialized view for lange tidsserier.
-- Viewport-baseret WFS-loading af kortlag over 1 km².
+## Fase B — udestående (planlagt til færdiggørelse)
+
+- `src/services/monitoring/data-sources-service.ts` + wire af `app.connect.sources.tsx`.
+- `src/services/monitoring/zones-service.ts` + skift af kortet til `monitoring_zones`.
+- `src/components/monitoring/DeviceDetailDrawer.tsx`, `LiveStream.tsx`, `CoverageAnalysis.tsx`.
+- Server functions under `src/lib/monitoring/*.functions.ts` med `requireSupabaseAuth`.
+- Følsomme arts-observationer bruger `visibility` (præcis / maskeret / kun zone / skjult).
 
 ## Fase C — planlagt
 
