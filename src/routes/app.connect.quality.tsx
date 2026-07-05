@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ShieldCheck, TrendingUp, TrendingDown, Sparkles, ArrowRight, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { ShieldCheck, TrendingUp, TrendingDown, Sparkles, ArrowRight, Plus, PlayCircle, Loader2 } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import {
@@ -15,6 +16,8 @@ import { QUALITY_DIMENSIONS, VALIDATION_RULES, DATA_SOURCES } from "@/lib/connec
 import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
 import { useConnectContext } from "@/lib/connect-context";
 import { listRules, toggleRule } from "@/services/monitoring/quality-rules-service";
+import { runQualityEvaluation } from "@/services/monitoring/quality-engine";
+
 
 export const Route = createFileRoute("/app/connect/quality")({
   component: Page,
@@ -54,10 +57,31 @@ const READINESS = [
 function Page() {
   const { projectId } = useConnectContext();
   const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [lastRun, setLastRun] = useState<{ inserted: number; detected: number; ranAt: string } | null>(null);
   const rulesQuery = useQuery({
     queryKey: ["quality-rules", projectId],
     queryFn: () => listRules(projectId),
   });
+
+  async function handleRunNow() {
+    if (!projectId) {
+      toast.error("Vælg et projekt først");
+      return;
+    }
+    setRunning(true);
+    try {
+      const res = await runQualityEvaluation(projectId);
+      setLastRun({ inserted: res.inserted, detected: res.detected, ranAt: res.ranAt });
+      toast.success(
+        `Regler kørt: ${res.detected} fund, ${res.inserted} nye issues, ${res.skippedDuplicates} eksisterende`,
+      );
+    } catch (e) {
+      toast.error(`Fejl under kørsel: ${(e as Error).message}`);
+    } finally {
+      setRunning(false);
+    }
+  }
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
@@ -66,13 +90,30 @@ function Page() {
           title="Datakvalitet"
           description="Er data pålideligt nok til analyse, dokumentation og rapportering?"
         />
-        <button
-          onClick={() => setRuleDrawerOpen(true)}
-          className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5 shrink-0 mt-1"
-        >
-          <Plus className="h-3.5 w-3.5" /> Ny kvalitetsregel
-        </button>
+        <div className="flex items-center gap-2 shrink-0 mt-1">
+          <button
+            onClick={handleRunNow}
+            disabled={running}
+            className="text-xs rounded-lg border px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />}
+            Kør regler nu
+          </button>
+          <button
+            onClick={() => setRuleDrawerOpen(true)}
+            className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"
+          >
+            <Plus className="h-3.5 w-3.5" /> Ny kvalitetsregel
+          </button>
+        </div>
       </div>
+
+      {lastRun && (
+        <div className="text-xs text-muted-foreground">
+          Senest kørt {new Date(lastRun.ranAt).toLocaleTimeString()} — {lastRun.detected} fund, {lastRun.inserted} nye issues.
+        </div>
+      )}
+
 
       <Section
         title="Aktive kvalitetsregler"

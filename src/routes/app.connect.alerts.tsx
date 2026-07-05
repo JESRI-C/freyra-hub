@@ -2,6 +2,7 @@ import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Bell,
   AlertTriangle,
@@ -13,6 +14,8 @@ import {
   Send,
   ExternalLink,
   Plus,
+  PlayCircle,
+  Loader2,
 } from "lucide-react";
 import { Card, PageHeader, Bars } from "@/components/ui-bits";
 import {
@@ -26,6 +29,8 @@ import { ALERTS } from "@/lib/connect-data";
 import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
 import { useConnectContext } from "@/lib/connect-context";
 import { listAlertRules, toggleAlertRule } from "@/services/monitoring/alert-rules-service";
+import { runAlertEvaluation } from "@/services/monitoring/alert-engine";
+
 
 export const Route = createFileRoute("/app/connect/alerts")({
   component: Page,
@@ -36,12 +41,33 @@ function Page() {
   const [filter, setFilter] = useState<string>("all");
   const [selected, setSelected] = useState<(typeof ALERTS)[0] | null>(null);
   const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [lastRun, setLastRun] = useState<{ fired: number; detected: number; ranAt: string } | null>(null);
   const filtered = filter === "all" ? ALERTS : ALERTS.filter((a) => a.severity === filter);
 
   const rulesQuery = useQuery({
     queryKey: ["alert-rules", projectId],
     queryFn: () => listAlertRules(projectId),
   });
+
+  async function handleRunNow() {
+    if (!projectId) {
+      toast.error("Vælg et projekt først");
+      return;
+    }
+    setRunning(true);
+    try {
+      const res = await runAlertEvaluation(projectId);
+      setLastRun({ fired: res.fired, detected: res.detected, ranAt: res.ranAt });
+      toast.success(
+        `Alarmregler kørt: ${res.detected} fund, ${res.fired} nye alarmer, ${res.skippedDuplicates} eksisterende`,
+      );
+    } catch (e) {
+      toast.error(`Fejl under kørsel: ${(e as Error).message}`);
+    } finally {
+      setRunning(false);
+    }
+  }
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
@@ -50,13 +76,30 @@ function Page() {
           title="Alerts"
           description="Aktive alerts, hændelser og data-operations issues."
         />
-        <button
-          onClick={() => setRuleDrawerOpen(true)}
-          className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5 shrink-0 mt-1"
-        >
-          <Plus className="h-3.5 w-3.5" /> Ny alarmregel
-        </button>
+        <div className="flex items-center gap-2 shrink-0 mt-1">
+          <button
+            onClick={handleRunNow}
+            disabled={running}
+            className="text-xs rounded-lg border px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />}
+            Kør alarmregler nu
+          </button>
+          <button
+            onClick={() => setRuleDrawerOpen(true)}
+            className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"
+          >
+            <Plus className="h-3.5 w-3.5" /> Ny alarmregel
+          </button>
+        </div>
       </div>
+
+      {lastRun && (
+        <div className="text-xs text-muted-foreground">
+          Senest kørt {new Date(lastRun.ranAt).toLocaleTimeString()} — {lastRun.detected} fund, {lastRun.fired} nye alarmer.
+        </div>
+      )}
+
 
       <Section
         title="Aktive alarmregler"
