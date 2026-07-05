@@ -1,10 +1,14 @@
 // Quality-rule evaluation engine.
 // Pure evaluators (unit-testable) + orchestrator that fetches recent
 // measurements for a project and persists issues (with dedupe).
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabase as browserClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { QualityRule, QualityIssueInsert } from "./quality-rules-service";
 import { logAuditEvent } from "./audit-service";
+
+type Client = SupabaseClient<Database>;
+
 
 export type Measurement = Database["public"]["Tables"]["device_measurements"]["Row"];
 export type Device = Database["public"]["Tables"]["monitoring_devices"]["Row"];
