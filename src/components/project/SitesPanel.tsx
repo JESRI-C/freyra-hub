@@ -300,13 +300,13 @@ function SiteDetailDrawer({ site, onClose }: { site: Site; onClose: () => void }
   const [relations, setRelations] = useState<SiteRelations | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useState(() => {
+  useEffect(() => {
     let cancelled = false;
     getSiteRelations(site)
       .then((r) => { if (!cancelled) { setRelations(r); setLoading(false); } })
       .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  });
+  }, [site]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex justify-end" onClick={(e) => e.target === e.currentTarget && onClose()}>
