@@ -90,6 +90,8 @@ function Page() {
       toast.success(
         `Alarmregler kørt: ${res.detected} fund, ${res.fired} nye alarmer, ${res.skippedDuplicates} eksisterende`,
       );
+      await liveAlertsQuery.refetch();
+
     } catch (e) {
       toast.error(`Fejl under kørsel: ${(e as Error).message}`);
     } finally {
