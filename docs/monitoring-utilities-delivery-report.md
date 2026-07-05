@@ -51,11 +51,103 @@ Sidste opdatering: 2026-07-05 (Fase 3 audit mod testkrav)
 
 ## Test-status
 
-Vitest: 76 passing (12 test-filer). Nye:
+Vitest: **83/83 passing** (13 test-filer). Nye i denne fase:
 - `src/services/monitoring/__tests__/engines.test.ts` — 12 unit-tests
   for kvalitets- og alarm-evaluators.
+- `src/services/monitoring/__tests__/upload-import.test.ts` — 7 tests
+  for `suggestMapping`, `validateTabular` og `parseGeoJson`
+  (feature-tælling, bbox, fejl-håndtering).
 
 `tsgo --noEmit`: 0 fejl.
+
+### Testkrav-matrix (fra testplanen)
+
+Signaturer:
+- **A** = automatiseret test (vitest) findes og er grøn
+- **U** = manuelt verificerbart via UI (implementeret, ikke automatiseret)
+- **M** = mangler — enten ikke bygget eller kun stub
+
+#### Upload center
+| Krav | Status | Note |
+| ---- | ------ | ---- |
+| Upload JPEG | U | `parseImage` bruger `exifr` + `createImageBitmap` |
+| Upload HEIC | U | Browser-support afhænger af Safari; ingen konvertering |
+| Upload CSV | U/A | `parseCsv` (Papaparse), mapping-tests dækker |
+| Upload Excel | U | `parseExcel` (xlsx) |
+| Upload GeoJSON | A | `parseGeoJson` dækket af 3 tests |
+| Upload KML | U | `parseKml` via `@tmcw/togeojson` |
+| Upload GPX | U | `parseGpx` via `@tmcw/togeojson` |
+| Upload ugyldig fil | A | GeoJSON-parse-fejl testet |
+| Upload for stor fil | M | Ingen `MAX_FILE_SIZE` check i wizard |
+| Manglende metadata | A | `validateTabular` warnings |
+| Læs GPS fra billede | U | `parseImage` returnerer lat/lng når EXIF findes |
+| Map CSV-kolonner | A | `suggestMapping` testet |
+| Valider ugyldig dato | A | `validateTabular` |
+| Valider manglende GPS | A | `validateTabular` |
+| Importér gyldig fil | U | `uploadFile` → `uploads` + storage |
+| Import med advarsler | U | Vises i wizardens Preview-step |
+| Download fejlrapport | M | Ikke implementeret |
+| Audit-event efter import | U | `logAuditEvent("upload.imported")` kald findes |
+
+#### Datakvalitet
+| Krav | Status | Note |
+| ---- | ------ | ---- |
+| Beregn kvalitet for datakilde | M | Kun issue-detektion, ingen aggregat-score |
+| Beregn kvalitet for zone | M | Samme |
+| Registrér manglende data | A | `stale_data` evaluator |
+| Registrér outlier | A | `spike` evaluator |
+| Registrér dublet | A | `duplicate` evaluator |
+| Godkend / Afvis data | U | "Løs"-knap på issue i `/app/connect/quality` |
+| Ekskludér data fra indikator | M | Ingen kobling til indikator-beregninger endnu |
+| Genaktiver data | M | Ingen re-open-knap på lukkede issues |
+| Konsekvens for indikator | M | Ikke visualiseret |
+
+#### Alerts
+| Krav | Status | Note |
+| ---- | ------ | ---- |
+| Offline enhed | A | `device_offline` evaluator |
+| Lav datakvalitet | A | `low_data_quality` evaluator |
+| Afvigende måling | A | `data_anomaly` evaluator |
+| Tildel alert | M | UI-drawer viser assignee, men ingen tildel-action |
+| Opret handling fra alert | M | Manglende "→ action" knap |
+| Markér som løst | U | `resolveAlert` |
+| Genåbn alert | M | Ikke implementeret |
+| Ignorer med begrundelse | M | Ikke implementeret |
+| In-app notifikation | U | `NotificationCenter` viser nye alerts |
+| Rolle- og projektadgang | U | RLS via `is_project_member` (Fase 3.1) |
+
+#### Tilføj datakilde
+| Krav | Status | Note |
+| ---- | ------ | ---- |
+| Sensor-datakilde | U | Provider=`manual` i wizarden |
+| CSV-datakilde | U | Provider=`file` |
+| Satellit-datakilde | U | Provider=`sentinel_hub` |
+| API-datakilde | U | Provider=`webhook`/`api` |
+| Test API connection | M | Ingen test-knap i wizard |
+| Håndtér 401 | M | Ingen dedikeret fejl-branch |
+| Håndtér timeout | M | Ingen timeout-handler |
+| Valider datamapping | U | Delvist (wizardens felter valideres client-side) |
+| Aktivér datakilde | U | `createDataSource` sætter `is_active=true` |
+| Start første sync | M | Ingen kickoff — cron tager over ved næste tick |
+| Audit-event | U | `logAuditEvent("data_source.created")` |
+| Credentials usynlige i browser | U | `configuration` gemmes som JSON i DB; ikke logget i console. **Server-side masking endnu ikke implementeret** når det læses tilbage. |
+
+#### Layout
+| Krav | Status |
+| ---- | ------ |
+| Ingen global horisontal scroll desktop | U |
+| Upload center på tablet | U |
+| Upload via mobilkamera | M (native `<input type="file" accept="image/*" capture>` ikke sat) |
+| Alerts læsbare på mobil | U |
+| Wizard på mobil | U |
+
+### Test-typer
+
+| Type | Antal | Placering |
+| ---- | ----- | --------- |
+| Unit tests | 83 | `src/**/__tests__/*.test.ts` |
+| Integration tests (mocked supabase) | Delvis dækket via service-tests | `src/services/__tests__/` |
+| End-to-end tests | **0** | Ikke etableret — Playwright er kun installeret som ad hoc debug-værktøj |
 
 ## Kendte begrænsninger
 
