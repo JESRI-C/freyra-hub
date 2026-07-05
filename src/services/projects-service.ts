@@ -144,8 +144,12 @@ export async function seedProjectStarterData(
   const in14Days = new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10);
   const in30Days = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
 
+  const client = supabase as unknown as {
+    from: (table: string) => { insert: (rows: unknown[]) => Promise<unknown> };
+  };
+
   await Promise.all([
-    supabase.from("sites").insert([
+    client.from("sites").insert([
       {
         project_id: projectId,
         name: `${projectName} — Hovedområde`,
