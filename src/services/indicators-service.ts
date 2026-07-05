@@ -1,10 +1,18 @@
 // Indicators Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { fetchIndicatorsByProject, fetchIndicator, upsertIndicator } from "@/lib/supabase/queries";
+import {
+  fetchIndicatorsByProject,
+  fetchIndicator,
+  upsertIndicator,
+  fetchMeasurementsForIndicator,
+  insertMeasurement,
+  updateIndicatorConfig,
+} from "@/lib/supabase/queries";
 import { logAuditEvent } from "@/services/audit-service";
+import { createAction } from "@/services/actions-service";
 import { SEED_INDICATORS } from "@/data/platform-seed";
-import type { Indicator } from "@/lib/supabase/types";
+import type { Indicator, IndicatorMeasurement } from "@/lib/supabase/types";
 
 function isMissingTable(err: unknown): boolean {
   return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
