@@ -246,33 +246,40 @@ function Page() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((a) => (
-                <tr
-                  key={a.id}
-                  className="hover:bg-muted/40 cursor-pointer"
-                  onClick={() => setSelected(a)}
-                >
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{a.title}</div>
-                    <div className="text-[11px] text-muted-foreground">{a.id}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <SeverityBadge severity={a.severity} />
-                  </td>
-                  <td className="px-4 py-3 text-xs">{a.project}</td>
-                  <td className="px-4 py-3 text-xs">{a.source}</td>
-                  <td className="px-4 py-3 text-xs">
-                    <Chip>{a.type}</Chip>
-                  </td>
-                  <td className="px-4 py-3 text-xs">{a.first}</td>
-                  <td className="px-4 py-3 text-xs">{a.last}</td>
-                  <td className="px-4 py-3 text-xs">
-                    <Chip tone={a.status === "Åben" ? "muted" : "primary"}>{a.status}</Chip>
-                  </td>
-                  <td className="px-4 py-3 text-xs">{a.owner}</td>
-                </tr>
-              ))}
+              {filtered.map((a) => {
+                const r = toRow(a);
+                return (
+                  <tr
+                    key={r.id}
+                    className="hover:bg-muted/40 cursor-pointer"
+                    onClick={() => setSelected(a)}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{r.title}</div>
+                      <div className="text-[11px] text-muted-foreground">{r.id}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <SeverityBadge severity={r.sev} />
+                    </td>
+                    <td className="px-4 py-3 text-xs">{r.project}</td>
+                    <td className="px-4 py-3 text-xs">{r.source}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <Chip>{r.type}</Chip>
+                    </td>
+                    <td className="px-4 py-3 text-xs">{r.first}</td>
+                    <td className="px-4 py-3 text-xs">{r.last}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <Chip tone={r.status === "Åben" || r.status === "active" ? "muted" : "primary"}>{r.status}</Chip>
+                    </td>
+                    <td className="px-4 py-3 text-xs">{r.owner}</td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">Ingen alarmer i dette filter.</td></tr>
+              )}
             </tbody>
+
           </table>
         </div>
       </Card>
