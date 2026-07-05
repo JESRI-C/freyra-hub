@@ -293,6 +293,25 @@ export type Action = {
   status: string | null;
   due_date: string | null;
   owner: string | null;
+  site_id?: string | null;
+  action_type?: string | null;
+  linked_indicator_id?: string | null;
+  expected_impact?: string | null;
+  actual_impact?: string | null;
+  requires_evidence?: boolean;
+  started_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+};
+
+export type ActionEvidence = {
+  id: string;
+  action_id: string;
+  evidence_type: string;
+  media_id: string | null;
+  evidence_file_id: string | null;
+  note: string | null;
+  created_by: string | null;
   created_at: string;
 };
 
