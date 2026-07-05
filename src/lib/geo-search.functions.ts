@@ -66,6 +66,19 @@ async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
   }
 }
 
+/** Parse JSON, men returner null hvis serveren svarer med HTML e.l. */
+async function safeJson<T>(res: Response): Promise<T | null> {
+  const ct = res.headers.get("content-type") ?? "";
+  const text = await res.text();
+  if (!ct.includes("json")) {
+    // Endpoint svarede med HTML/tekst — typisk fordi WFS-URL'en er flyttet
+    // eller kræver andre parametre. Log serverside og lad kaldet fejle blødt.
+    console.warn(`[geo-search] Ikke-JSON respons (${ct || "ukendt"}):`, text.slice(0, 200));
+    return null;
+  }
+  try { return JSON.parse(text) as T; } catch { return null; }
+}
+
 function ringAreaHa(coords: number[][]): number {
   if (coords.length < 4) return 0;
   // Shoelace with equirectangular scaling at first vertex latitude.
