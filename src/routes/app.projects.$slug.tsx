@@ -463,13 +463,19 @@ function ProjectDetailPage() {
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
               <div className="space-y-4">
-                <NdviCard
-                  projectId={projectId}
-                  lat={geometry.centroid?.lat ?? null}
-                  lng={geometry.centroid?.lng ?? null}
-                />
-                <BiodiversityCard project={project} />
-                <EnvironmentalCard project={project} />
+                {!hasRealGeometry ? (
+                  <GeometryRequiredBanner slug={slug} variant="detailed" />
+                ) : (
+                  <>
+                    <NdviCard
+                      projectId={projectId}
+                      lat={geometry.centroid?.lat ?? null}
+                      lng={geometry.centroid?.lng ?? null}
+                    />
+                    <BiodiversityCard project={project} />
+                    <EnvironmentalCard project={project} />
+                  </>
+                )}
                 {indicators.length === 0 ? (
                   <Card className="py-10 text-center text-sm text-muted-foreground">
                     Ingen indikatorer registreret
