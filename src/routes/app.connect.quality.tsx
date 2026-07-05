@@ -52,11 +52,76 @@ const READINESS = [
 ];
 
 function Page() {
+  const { projectId } = useConnectContext();
+  const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
+  const rulesQuery = useQuery({
+    queryKey: ["quality-rules", projectId],
+    queryFn: () => listRules(projectId),
+  });
+
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-      <PageHeader
-        title="Datakvalitet"
-        description="Er data pålideligt nok til analyse, dokumentation og rapportering?"
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Datakvalitet"
+          description="Er data pålideligt nok til analyse, dokumentation og rapportering?"
+        />
+        <button
+          onClick={() => setRuleDrawerOpen(true)}
+          className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5 shrink-0 mt-1"
+        >
+          <Plus className="h-3.5 w-3.5" /> Ny kvalitetsregel
+        </button>
+      </div>
+
+      <Section
+        title="Aktive kvalitetsregler"
+        subtitle={rulesQuery.isLoading ? "Henter…" : `${rulesQuery.data?.length ?? 0} regler kører nu`}
+      >
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground border-b">
+                  <th className="px-4 py-3">Navn</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Severity</th>
+                  <th className="px-4 py-3">Aktiv</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {(rulesQuery.data ?? []).map((r) => (
+                  <tr key={r.id}>
+                    <td className="px-4 py-3 font-medium">{r.name}</td>
+                    <td className="px-4 py-3 text-xs"><Chip>{r.rule_type}</Chip></td>
+                    <td className="px-4 py-3 text-xs">{r.severity}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          defaultChecked={r.is_active}
+                          onChange={(e) => { void toggleRule(r.id, e.target.checked).then(() => rulesQuery.refetch()); }}
+                        />
+                        {r.is_active ? "Aktiv" : "Inaktiv"}
+                      </label>
+                    </td>
+                  </tr>
+                ))}
+                {!rulesQuery.isLoading && (rulesQuery.data ?? []).length === 0 && (
+                  <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">Ingen kvalitetsregler endnu — opret én for at aktivere kontrolrummet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </Section>
+
+      <RuleDrawer
+        open={ruleDrawerOpen}
+        onClose={() => setRuleDrawerOpen(false)}
+        variant="quality"
+        projectId={projectId}
+        onCreated={() => rulesQuery.refetch()}
       />
 
       <AiInsightBanner
