@@ -340,7 +340,29 @@ export function MapEditorMap({
         setInternalMode("none");
         onDrawModeChange?.("none");
       });
+
+      // Live tælling af tegnede vertices
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.on((LDraw as any).Event?.DRAWSTART ?? "draw:drawstart", () => setDrawingPoints(0));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.on((LDraw as any).Event?.DRAWVERTEX ?? "draw:drawvertex", (e: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const n = (e?.layers as any)?.getLayers?.().length ?? 0;
+        setDrawingPoints(n);
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.on((LDraw as any).Event?.DRAWSTOP ?? "draw:drawstop", () => setDrawingPoints(0));
       }
+
+      // ── Klik-vælg (markblok / matrikel) ────────────────────────────────────
+      map.on("click", (ev) => {
+        if (!pickModeRef.current) return;
+        const cb = onPickRef.current;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ll = (ev as any).latlng as { lat: number; lng: number };
+        cb?.({ lat: ll.lat, lng: ll.lng });
+      });
+
 
       mapRef.current = map;
       setReady(true);
