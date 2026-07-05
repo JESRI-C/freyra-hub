@@ -66,7 +66,8 @@ function computeRange(key: ConnectRangeKey, customFrom?: string, customTo?: stri
 
 export function useConnectContext() {
   const navigate = useNavigate();
-  const search = useRouterState({ select: (s) => s.location.search }) as Record<string, unknown>;
+  const searchRaw = useRouterState({ select: (s) => s.location.search });
+  const search = searchRaw as unknown as Record<string, unknown>;
   const auth = useAuth();
 
   const projectId =
