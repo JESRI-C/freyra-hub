@@ -230,15 +230,16 @@ export interface RunResult {
 /** Fetch → evaluate → dedupe → insert. Returns summary. */
 export async function runQualityEvaluation(
   projectId: string,
-  opts?: { windowMinutes?: number },
+  opts?: { windowMinutes?: number; client?: Client },
 ): Promise<RunResult> {
-  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const client = (opts?.client ?? browserClient) as Client | null;
+  if (!client || (!opts?.client && !isSupabaseConfigured)) throw new Error("Supabase not configured");
   const windowMinutes = opts?.windowMinutes ?? 24 * 60;
   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
 
   const [rulesRes, devicesRes] = await Promise.all([
-    supabase.from("data_quality_rules").select("*").or(`project_id.eq.${projectId},project_id.is.null`).eq("is_active", true),
-    supabase.from("monitoring_devices").select("*").eq("project_id", projectId),
+    client.from("data_quality_rules").select("*").or(`project_id.eq.${projectId},project_id.is.null`).eq("is_active", true),
+    client.from("monitoring_devices").select("*").eq("project_id", projectId),
   ]);
   if (rulesRes.error) throw rulesRes.error;
   if (devicesRes.error) throw devicesRes.error;
@@ -249,7 +250,7 @@ export async function runQualityEvaluation(
 
   let measurements: Measurement[] = [];
   if (deviceIds.length > 0) {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("device_measurements")
       .select("*")
       .in("device_id", deviceIds)
@@ -264,7 +265,7 @@ export async function runQualityEvaluation(
   const detected = evaluateRules(rules, { measurements, devices, now });
 
   // Dedupe against currently-open issues for this project.
-  const { data: openIssuesRaw } = await supabase
+  const { data: openIssuesRaw } = await client
     .from("data_quality_issues")
     .select("id, measurement_id, device_id, issue_type, status")
     .eq("project_id", projectId)
@@ -300,12 +301,13 @@ export async function runQualityEvaluation(
 
   let inserted = 0;
   if (inserts.length > 0) {
-    const { error, count } = await supabase
+    const { error, count } = await client
       .from("data_quality_issues")
       .insert(inserts as never, { count: "exact" });
     if (error) throw error;
     inserted = count ?? inserts.length;
   }
+
 
   const summary: RunResult = {
     ruleCount: rules.length,
