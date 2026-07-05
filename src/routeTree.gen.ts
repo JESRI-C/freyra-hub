@@ -78,6 +78,7 @@ import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devi
 import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
 import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
 import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
+import { Route as AppProjectsGeometrySlugRouteImport } from './routes/app.projects.geometry.$slug'
 import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
 
 const SelectRoute = SelectRouteImport.update({
@@ -427,6 +428,11 @@ const AppProjectsMapSlugRoute = AppProjectsMapSlugRouteImport.update({
   path: '/projects/map/$slug',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProjectsGeometrySlugRoute = AppProjectsGeometrySlugRouteImport.update({
+  id: '/projects/geometry/$slug',
+  path: '/projects/geometry/$slug',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConstructionProjectsSlugRoute =
   AppConstructionProjectsSlugRouteImport.update({
     id: '/construction/projects/$slug',
@@ -504,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
 export interface FileRoutesByTo {
@@ -570,6 +577,7 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
 export interface FileRoutesById {
@@ -643,6 +651,7 @@ export interface FileRoutesById {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
 export interface FileRouteTypes {
@@ -717,6 +726,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/app/construction/projects/$slug'
+    | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -783,6 +793,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/app/construction/projects/$slug'
+    | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   id:
     | '__root__'
@@ -855,6 +866,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/app/construction/projects/$slug'
+    | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -1350,6 +1362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsMapSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/projects/geometry/$slug': {
+      id: '/app/projects/geometry/$slug'
+      path: '/projects/geometry/$slug'
+      fullPath: '/app/projects/geometry/$slug'
+      preLoaderRoute: typeof AppProjectsGeometrySlugRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/construction/projects/$slug': {
       id: '/app/construction/projects/$slug'
       path: '/construction/projects/$slug'
@@ -1537,6 +1556,7 @@ interface AppRouteChildren {
   AppConstructionIndexRoute: typeof AppConstructionIndexRoute
   AppProjectsIndexRoute: typeof AppProjectsIndexRoute
   AppConstructionProjectsSlugRoute: typeof AppConstructionProjectsSlugRoute
+  AppProjectsGeometrySlugRoute: typeof AppProjectsGeometrySlugRoute
   AppProjectsMapSlugRoute: typeof AppProjectsMapSlugRoute
 }
 
@@ -1555,6 +1575,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConstructionIndexRoute: AppConstructionIndexRoute,
   AppProjectsIndexRoute: AppProjectsIndexRoute,
   AppConstructionProjectsSlugRoute: AppConstructionProjectsSlugRoute,
+  AppProjectsGeometrySlugRoute: AppProjectsGeometrySlugRoute,
   AppProjectsMapSlugRoute: AppProjectsMapSlugRoute,
 }
 

@@ -3,7 +3,7 @@ import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity } from "lucide-react";
+import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity, MapPin } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
@@ -188,6 +188,10 @@ function ProjectDetailPage() {
     return seedGeometry;
   })();
 
+  // A project has "real" geometry only when a polygon has been drawn or uploaded —
+  // a centroid alone (from location name) is not enough to run area-based analyses.
+  const hasRealGeometry = project?.geometry_polygon != null;
+
   // Async media state
   const [mediaItems, setMediaItems] = useState<
     import("@/lib/platform/media-types").ProjectMediaItem[]
@@ -292,6 +296,7 @@ function ProjectDetailPage() {
             {/* ── Overblik ─────────────────────────────────────────────────── */}
             {active === "overblik" && (
               <div className="space-y-5">
+                {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
                 {/* Recommended next action */}
                 <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
                   <Activity className="h-5 w-5 text-primary shrink-0" />
@@ -458,13 +463,19 @@ function ProjectDetailPage() {
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
               <div className="space-y-4">
-                <NdviCard
-                  projectId={projectId}
-                  lat={geometry.centroid?.lat ?? null}
-                  lng={geometry.centroid?.lng ?? null}
-                />
-                <BiodiversityCard project={project} />
-                <EnvironmentalCard project={project} />
+                {!hasRealGeometry ? (
+                  <GeometryRequiredBanner slug={slug} variant="detailed" />
+                ) : (
+                  <>
+                    <NdviCard
+                      projectId={projectId}
+                      lat={geometry.centroid?.lat ?? null}
+                      lng={geometry.centroid?.lng ?? null}
+                    />
+                    <BiodiversityCard project={project} />
+                    <EnvironmentalCard project={project} />
+                  </>
+                )}
                 {indicators.length === 0 ? (
                   <Card className="py-10 text-center text-sm text-muted-foreground">
                     Ingen indikatorer registreret
@@ -849,5 +860,49 @@ function CreateActionForm({
         </button>
       </div>
     </form>
+  );
+}
+
+// ─── GeometryRequiredBanner ──────────────────────────────────────────────────
+// Shown when a project has no polygon defined. All area-based analyses
+// (NDVI, biodiversity, environmental) require this before running.
+
+function GeometryRequiredBanner({
+  slug,
+  variant = "compact",
+}: {
+  slug: string;
+  variant?: "compact" | "detailed";
+}) {
+  return (
+    <Card
+      className={`border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/5 ${
+        variant === "detailed" ? "p-6" : "p-4"
+      }`}
+    >
+      <div className="flex items-start gap-4">
+        <div className="h-10 w-10 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <MapPin className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold">Projektområde mangler</div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {variant === "detailed"
+              ? "For at beregne NDVI, biodiversitet og miljøpåvirkning skal projektets afgrænsning defineres. Tegn polygonen på kortet, eller upload en GeoJSON-fil — beregningerne aktiveres straks efter."
+              : "Definér projektets afgrænsning før beregninger kan køre."}
+          </p>
+          <div className="mt-3">
+            <Link
+              to="/app/projects/geometry/$slug"
+              params={{ slug }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              Definér projektområde
+            </Link>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
