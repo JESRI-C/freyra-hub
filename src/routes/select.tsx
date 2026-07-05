@@ -199,6 +199,9 @@ function SelectPage() {
               ) : org.projects.length === 0 ? (
                 <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">
                   Ingen projekter i denne organisation endnu.
+                  <div className="mt-2 text-xs">
+                    Klik <span className="font-medium text-foreground">Åbn {org.name}</span> for at gå ind og oprette dit første projekt.
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-2">
