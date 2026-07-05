@@ -80,6 +80,7 @@ import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
 import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
 import { Route as AppProjectsGeometrySlugRouteImport } from './routes/app.projects.geometry.$slug'
 import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
+import { Route as ApiPublicMonitoringEvaluateRouteImport } from './routes/api/public/monitoring.evaluate'
 
 const SelectRoute = SelectRouteImport.update({
   id: '/select',
@@ -439,6 +440,12 @@ const AppConstructionProjectsSlugRoute =
     path: '/construction/projects/$slug',
     getParentRoute: () => AppRoute,
   } as any)
+const ApiPublicMonitoringEvaluateRoute =
+  ApiPublicMonitoringEvaluateRouteImport.update({
+    id: '/api/public/monitoring/evaluate',
+    path: '/api/public/monitoring/evaluate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -509,6 +516,7 @@ export interface FileRoutesByFullPath {
   '/app/projects/': typeof AppProjectsIndexRoute
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
+  '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
@@ -576,6 +584,7 @@ export interface FileRoutesByTo {
   '/app/projects': typeof AppProjectsIndexRoute
   '/app/reports': typeof AppReportsIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
+  '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
@@ -650,6 +659,7 @@ export interface FileRoutesById {
   '/app/projects/': typeof AppProjectsIndexRoute
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
+  '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
@@ -725,6 +735,7 @@ export interface FileRouteTypes {
     | '/app/projects/'
     | '/app/reports/'
     | '/app/settings/'
+    | '/api/public/monitoring/evaluate'
     | '/app/construction/projects/$slug'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
@@ -792,6 +803,7 @@ export interface FileRouteTypes {
     | '/app/projects'
     | '/app/reports'
     | '/app/settings'
+    | '/api/public/monitoring/evaluate'
     | '/app/construction/projects/$slug'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
@@ -865,6 +877,7 @@ export interface FileRouteTypes {
     | '/app/projects/'
     | '/app/reports/'
     | '/app/settings/'
+    | '/api/public/monitoring/evaluate'
     | '/app/construction/projects/$slug'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
@@ -875,6 +888,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   SelectRoute: typeof SelectRoute
+  ApiPublicMonitoringEvaluateRoute: typeof ApiPublicMonitoringEvaluateRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1376,6 +1390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConstructionProjectsSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/monitoring/evaluate': {
+      id: '/api/public/monitoring/evaluate'
+      path: '/api/public/monitoring/evaluate'
+      fullPath: '/api/public/monitoring/evaluate'
+      preLoaderRoute: typeof ApiPublicMonitoringEvaluateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1586,6 +1607,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SelectRoute: SelectRoute,
+  ApiPublicMonitoringEvaluateRoute: ApiPublicMonitoringEvaluateRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
