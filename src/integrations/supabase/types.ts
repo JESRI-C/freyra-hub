@@ -151,6 +151,97 @@ export type Database = {
           },
         ]
       }
+      alert_comments: {
+        Row: {
+          alert_id: string
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          alert_id: string
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          alert_id?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_comments_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_rules: {
+        Row: {
+          action_template_id: string | null
+          assignment_rule: Json | null
+          condition: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notification_channels: Json
+          organization_id: string | null
+          project_id: string | null
+          severity: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          action_template_id?: string | null
+          assignment_rule?: Json | null
+          condition?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notification_channels?: Json
+          organization_id?: string | null
+          project_id?: string | null
+          severity?: string
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          action_template_id?: string | null
+          assignment_rule?: Json | null
+          condition?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notification_channels?: Json
+          organization_id?: string | null
+          project_id?: string | null
+          severity?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_rules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_events: {
         Row: {
           actor: string | null
@@ -525,6 +616,209 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_quality_issues: {
+        Row: {
+          corrected_data: Json | null
+          created_at: string
+          data_source_id: string | null
+          description: string | null
+          device_id: string | null
+          id: string
+          issue_type: string
+          measurement_id: string | null
+          original_data: Json | null
+          project_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          updated_at: string
+          upload_id: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          corrected_data?: Json | null
+          created_at?: string
+          data_source_id?: string | null
+          description?: string | null
+          device_id?: string | null
+          id?: string
+          issue_type: string
+          measurement_id?: string | null
+          original_data?: Json | null
+          project_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+          upload_id?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          corrected_data?: Json | null
+          created_at?: string
+          data_source_id?: string | null
+          description?: string | null
+          device_id?: string | null
+          id?: string
+          issue_type?: string
+          measurement_id?: string | null
+          original_data?: Json | null
+          project_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+          upload_id?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_quality_issues_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_quality_rules: {
+        Row: {
+          configuration: Json
+          created_at: string
+          data_source_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string | null
+          parameter_key: string | null
+          project_id: string | null
+          rule_type: string
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          data_source_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id?: string | null
+          parameter_key?: string | null
+          project_id?: string | null
+          rule_type: string
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          data_source_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string | null
+          parameter_key?: string | null
+          project_id?: string | null
+          rule_type?: string
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_quality_rules_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_quality_rules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_source_mappings: {
+        Row: {
+          created_at: string
+          data_source_id: string
+          id: string
+          source_field: string
+          target_field: string
+          target_unit: string | null
+          transformation: Json
+          updated_at: string
+          validation_rules: Json
+        }
+        Insert: {
+          created_at?: string
+          data_source_id: string
+          id?: string
+          source_field: string
+          target_field: string
+          target_unit?: string | null
+          transformation?: Json
+          updated_at?: string
+          validation_rules?: Json
+        }
+        Update: {
+          created_at?: string
+          data_source_id?: string
+          id?: string
+          source_field?: string
+          target_field?: string
+          target_unit?: string | null
+          transformation?: Json
+          updated_at?: string
+          validation_rules?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_source_mappings_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -1780,15 +2074,22 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           acknowledged_by: string | null
+          alert_rule_id: string | null
           alert_type: string
+          assigned_to: string | null
+          category: string | null
           context: Json
           created_at: string
           device_id: string | null
           id: string
           message: string | null
           project_id: string
+          recommended_actions: Json
+          resolution_data: Json | null
           resolved_at: string | null
           severity: string
+          source_id: string | null
+          source_type: string | null
           status: string
           title: string
           triggered_at: string
@@ -1798,15 +2099,22 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          alert_rule_id?: string | null
           alert_type: string
+          assigned_to?: string | null
+          category?: string | null
           context?: Json
           created_at?: string
           device_id?: string | null
           id?: string
           message?: string | null
           project_id: string
+          recommended_actions?: Json
+          resolution_data?: Json | null
           resolved_at?: string | null
           severity?: string
+          source_id?: string | null
+          source_type?: string | null
           status?: string
           title: string
           triggered_at?: string
@@ -1816,15 +2124,22 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          alert_rule_id?: string | null
           alert_type?: string
+          assigned_to?: string | null
+          category?: string | null
           context?: Json
           created_at?: string
           device_id?: string | null
           id?: string
           message?: string | null
           project_id?: string
+          recommended_actions?: Json
+          resolution_data?: Json | null
           resolved_at?: string | null
           severity?: string
+          source_id?: string | null
+          source_type?: string | null
           status?: string
           title?: string
           triggered_at?: string
@@ -2814,6 +3129,140 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      upload_import_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_report_path: string | null
+          id: string
+          job_type: string
+          metadata: Json
+          records_failed: number | null
+          records_imported: number | null
+          records_total: number | null
+          started_at: string | null
+          status: string
+          upload_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_report_path?: string | null
+          id?: string
+          job_type: string
+          metadata?: Json
+          records_failed?: number | null
+          records_imported?: number | null
+          records_total?: number | null
+          started_at?: string | null
+          status?: string
+          upload_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_report_path?: string | null
+          id?: string
+          job_type?: string
+          metadata?: Json
+          records_failed?: number | null
+          records_imported?: number | null
+          records_total?: number | null
+          started_at?: string | null
+          status?: string
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_import_jobs_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uploads: {
+        Row: {
+          created_at: string
+          detected_metadata: Json
+          file_name: string
+          file_size: number
+          id: string
+          import_result: Json
+          mime_type: string
+          organization_id: string | null
+          original_file_name: string
+          project_id: string | null
+          source_reference: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          upload_type: string
+          uploaded_by: string
+          user_metadata: Json
+          validation_result: Json
+          zone_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detected_metadata?: Json
+          file_name: string
+          file_size: number
+          id?: string
+          import_result?: Json
+          mime_type: string
+          organization_id?: string | null
+          original_file_name: string
+          project_id?: string | null
+          source_reference?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          upload_type?: string
+          uploaded_by: string
+          user_metadata?: Json
+          validation_result?: Json
+          zone_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detected_metadata?: Json
+          file_name?: string
+          file_size?: number
+          id?: string
+          import_result?: Json
+          mime_type?: string
+          organization_id?: string | null
+          original_file_name?: string
+          project_id?: string | null
+          source_reference?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          upload_type?: string
+          uploaded_by?: string
+          user_metadata?: Json
+          validation_result?: Json
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uploads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploads_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_zones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
