@@ -50,6 +50,8 @@ const FORM_DEFAULTS: CreateProjectForm = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProjectsIndexPage() {
+  const { currentOrg } = useAuth();
+  const orgId = currentOrg?.id ?? "";
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -58,7 +60,11 @@ function ProjectsIndexPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
-  const { data: querySummaries } = useSuspenseQuery(projectSummariesQuery);
+  const { data: querySummaries } = useSuspenseQuery({
+    queryKey: ["nature-project-summaries", orgId],
+    queryFn: () => getAllNatureProjectSummaries(orgId),
+  });
+
 
   // Prepend any locally created projects so they appear immediately
   const summaries = useMemo(
