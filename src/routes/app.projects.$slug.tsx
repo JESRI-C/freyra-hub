@@ -376,49 +376,9 @@ function ProjectDetailPage() {
 
             {/* ── Datakilder ─────────────────────────────────────────────── */}
             {active === "datakilder" && (
-              <Card>
-                <CardHeader
-                  title="Datakilder"
-                  subtitle="Tilknyttede datafeeds og integrationer"
-                  action={<Pill tone="info">{dataSources.length}</Pill>}
-                />
-                <div className="px-5 pb-4 divide-y">
-                  {dataSources.map((ds) => {
-                    const tone = dataSourceStatusTone(ds.status ?? "offline");
-                    return (
-                      <div key={ds.id} className="py-3 flex items-center gap-3">
-                        <span
-                          className={`h-2 w-2 rounded-full shrink-0 ${
-                            tone === "success"
-                              ? "bg-emerald-500"
-                              : tone === "warning"
-                                ? "bg-amber-500"
-                                : tone === "danger"
-                                  ? "bg-red-500"
-                                  : "bg-muted-foreground"
-                          }`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{ds.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {ds.source_type}
-                            {ds.provider ? ` · ${ds.provider}` : ""}
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-xs font-medium">
-                            {dataSourceStatusLabel(ds.status ?? "offline")}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatLastSync(ds.last_sync_at)}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
+              <DataSourcesPanel projectId={projectId} sites={sites} dataSources={dataSources} />
             )}
+
 
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
