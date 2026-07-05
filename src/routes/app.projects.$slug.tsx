@@ -789,15 +789,25 @@ function ProjectDetailPage() {
 
 function CreateActionForm({
   projectId,
+  sites,
+  indicators,
   onCreated,
 }: {
   projectId: string;
+  sites: Array<{ id: string; name: string }>;
+  indicators: Array<{ id: string; label: string }>;
   onCreated: () => void | Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<"Høj" | "Medium" | "Lav">("Medium");
   const [dueDate, setDueDate] = useState("");
   const [owner, setOwner] = useState("");
+  const [siteId, setSiteId] = useState("");
+  const [actionType, setActionType] = useState("");
+  const [linkedIndicatorId, setLinkedIndicatorId] = useState("");
+  const [expectedImpact, setExpectedImpact] = useState("");
+  const [requiresEvidence, setRequiresEvidence] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -815,12 +825,23 @@ function CreateActionForm({
         priority,
         due_date: dueDate || undefined,
         owner: owner.trim() || undefined,
+        site_id: siteId || null,
+        action_type: actionType.trim() || null,
+        linked_indicator_id: linkedIndicatorId || null,
+        expected_impact: expectedImpact.trim() || null,
+        requires_evidence: requiresEvidence,
       });
       toast.success("Handling oprettet");
       setTitle("");
       setDueDate("");
       setOwner("");
       setPriority("Medium");
+      setSiteId("");
+      setActionType("");
+      setLinkedIndicatorId("");
+      setExpectedImpact("");
+      setRequiresEvidence(false);
+      setExpanded(false);
       await onCreated();
     } catch (err) {
       toast.error(`Kunne ikke oprette handling: ${(err as Error).message}`);
@@ -864,7 +885,64 @@ function CreateActionForm({
           className="text-sm border rounded-lg px-3 py-2 bg-background"
         />
       </div>
-      <div className="flex justify-end">
+
+      {expanded && (
+        <div className="space-y-2 pt-2 border-t">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <select
+              value={siteId}
+              onChange={(e) => setSiteId(e.target.value)}
+              className="text-sm border rounded-lg px-3 py-2 bg-background"
+            >
+              <option value="">Intet site</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={actionType}
+              onChange={(e) => setActionType(e.target.value)}
+              placeholder="Type (fx pleje, monitorering)"
+              className="text-sm border rounded-lg px-3 py-2 bg-background"
+            />
+          </div>
+          <select
+            value={linkedIndicatorId}
+            onChange={(e) => setLinkedIndicatorId(e.target.value)}
+            className="w-full text-sm border rounded-lg px-3 py-2 bg-background"
+          >
+            <option value="">Ingen tilknyttet indikator</option>
+            {indicators.map((i) => (
+              <option key={i.id} value={i.id}>{i.label}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={expectedImpact}
+            onChange={(e) => setExpectedImpact(e.target.value)}
+            placeholder="Forventet effekt (fx +5% dækning)"
+            className="w-full text-sm border rounded-lg px-3 py-2 bg-background"
+          />
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={requiresEvidence}
+              onChange={(e) => setRequiresEvidence(e.target.checked)}
+            />
+            <span>Kræv evidens før afslutning</span>
+          </label>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-xs text-muted-foreground hover:text-foreground underline"
+        >
+          {expanded ? "Skjul flere felter" : "Flere felter"}
+        </button>
         <button
           type="submit"
           disabled={submitting || !title.trim()}
