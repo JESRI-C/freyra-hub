@@ -6,15 +6,21 @@ import {
   Plug,
   Activity,
   Map,
-  ShieldCheck,
-  Bell,
-  Plus,
-  UploadCloud,
 } from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
+import { ConnectTopbar } from "@/components/connect/ConnectTopbar";
 
 export const Route = createFileRoute("/app/connect")({
-  head: () => ({ meta: [{ title: "Smart Connect — GoFreyra" }] }),
+  head: () => ({
+    meta: [
+      { title: "Monitoring & Field Data — GoFreyra" },
+      {
+        name: "description",
+        content:
+          "Operationelt datalag for naturprojekter — enheder, datakilder, integrationer, live data og kort.",
+      },
+    ],
+  }),
   component: ConnectLayout,
 });
 
@@ -25,22 +31,19 @@ const TABS = [
   { to: "/app/connect/integrations", label: "Integrationer", icon: Plug },
   { to: "/app/connect/live", label: "Live data", icon: Activity },
   { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
-  { to: "/app/connect/upload", label: "Upload center", icon: UploadCloud },
-  { to: "/app/connect/quality", label: "Datakvalitet", icon: ShieldCheck },
-  { to: "/app/connect/alerts", label: "Alerts", icon: Bell },
-  { to: "/app/connect/add", label: "Tilføj datakilde", icon: Plus },
 ];
 
 function ConnectLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <>
+    <div className="min-w-0 overflow-x-hidden">
       <AppTopbar
         title="Monitoring & Field Data"
-        subtitle="Datarygraden for naturprojekter — sensorer, satellit, drone, felt og offentlige API'er"
+        subtitle="Data fra sensorer, satellit, drone, felt og offentlige API'er"
       />
+      <ConnectTopbar />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
-        <div className="max-w-[1400px] mx-auto px-6">
+        <div className="w-full px-4 sm:px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
             {TABS.map((t) => {
               const active = t.exact ? path === t.to : path.startsWith(t.to);
@@ -62,7 +65,9 @@ function ConnectLayout() {
           </nav>
         </div>
       </div>
-      <Outlet />
-    </>
+      <div className="min-w-0">
+        <Outlet />
+      </div>
+    </div>
   );
 }
