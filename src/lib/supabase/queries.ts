@@ -5,6 +5,7 @@ import { supabase } from "./client";
 import type {
   Project,
   Indicator,
+  IndicatorMeasurement,
   AuditEvent,
   Report,
   Action,
