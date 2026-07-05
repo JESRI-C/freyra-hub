@@ -221,8 +221,8 @@ export const pickMatrikel = createServerFn({ method: "POST" })
     });
     const res = await safeFetch(`${DAF_MATRIKEL_WFS}?${params}`);
     if (!res.ok) return null;
-    const fc = (await res.json()) as WfsFeatureCollection;
-    const f = fc.features?.[0];
+    const fc = await safeJson<WfsFeatureCollection>(res);
+    const f = fc?.features?.[0];
     const poly = polygonFromWfsGeometry(f?.geometry);
     if (!f || !poly) return null;
     const props = f.properties ?? {};
