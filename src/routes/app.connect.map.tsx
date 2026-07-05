@@ -91,7 +91,7 @@ function Page() {
   };
 
   return (
-    <main className="p-6 max-w-[1500px] w-full mx-auto space-y-4">
+    <main className="p-4 sm:p-6 w-full min-w-0 space-y-4">
       <PageHeader
         title="Kort & zoner"
         description="Geospatialt arbejdsrum — tegn projektgrænse og zoner, slå lag til/fra og se datadækning."
@@ -101,7 +101,7 @@ function Page() {
       {map.lastError && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span className="flex-1">{map.lastError}</span>
+          <span className="flex-1 min-w-0">{map.lastError}</span>
           <button onClick={map.clearError} aria-label="Luk">
             <X className="h-4 w-4" />
           </button>
@@ -114,9 +114,9 @@ function Page() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[280px_1fr_320px] gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[260px_minmax(0,1fr)_300px] gap-4 min-w-0">
         {/* ── Left panel ───────────────────────────────────────────── */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <Card className="p-4">
             <div className="text-xs text-muted-foreground mb-1.5">Projekt</div>
             <select
