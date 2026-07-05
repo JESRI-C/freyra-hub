@@ -81,6 +81,10 @@ function rowToMediaItem(row: Record<string, unknown>): ProjectMediaItem {
     isReportReady: Boolean(row["is_report_ready"]),
     tags: Array.isArray(row["tags"]) ? (row["tags"] as string[]) : [],
     status: (row["status"] as MediaStatus) ?? "uploaded",
+    actionId: (row["action_id"] as string | null | undefined) ?? null,
+    documentId: (row["document_id"] as string | null | undefined) ?? null,
+    direction: (row["direction"] as number | null | undefined) ?? null,
+    beforeMediaId: (row["before_media_id"] as string | null | undefined) ?? null,
   };
 }
 

@@ -33,6 +33,10 @@ export interface ProjectMediaItem {
   isReportReady: boolean;
   tags: string[];
   status: MediaStatus;
+  actionId?: string | null;
+  documentId?: string | null;
+  direction?: number | null;
+  beforeMediaId?: string | null;
 }
 
 export const MEDIA_CATEGORY_LABELS: Record<MediaCategory, string> = {

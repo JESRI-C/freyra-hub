@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Camera, MapPin } from "lucide-react";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import { MEDIA_CATEGORY_LABELS, MEDIA_CATEGORY_COLORS } from "@/lib/platform/media-types";
+import { MediaLightbox } from "./MediaLightbox";
 
 interface ProjectMediaGalleryProps {
   items: ProjectMediaItem[];
@@ -8,6 +10,8 @@ interface ProjectMediaGalleryProps {
 }
 
 export function ProjectMediaGallery({ items, isLoading }: ProjectMediaGalleryProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -37,15 +41,23 @@ export function ProjectMediaGallery({ items, isLoading }: ProjectMediaGalleryPro
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {items.map((item) => (
-        <MediaCard key={item.id} item={item} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map((item) => (
+          <MediaCard key={item.id} item={item} onOpen={() => setActiveId(item.id)} />
+        ))}
+      </div>
+      <MediaLightbox
+        items={items}
+        activeId={activeId}
+        onClose={() => setActiveId(null)}
+        onChange={setActiveId}
+      />
+    </>
   );
 }
 
-function MediaCard({ item }: { item: ProjectMediaItem }) {
+function MediaCard({ item, onOpen }: { item: ProjectMediaItem; onOpen: () => void }) {
   const dateLabel = new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK", {
     day: "numeric",
     month: "short",
@@ -53,7 +65,11 @@ function MediaCard({ item }: { item: ProjectMediaItem }) {
   });
 
   return (
-    <div className="rounded-xl border bg-card overflow-hidden hover:shadow-sm transition group">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="text-left rounded-xl border bg-card overflow-hidden hover:shadow-md transition group focus:outline-none focus:ring-2 focus:ring-primary"
+    >
       <div className="aspect-video relative overflow-hidden bg-muted">
         <img
           src={item.thumbnailUrl ?? item.url}
@@ -100,6 +116,6 @@ function MediaCard({ item }: { item: ProjectMediaItem }) {
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
