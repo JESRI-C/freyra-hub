@@ -47,10 +47,9 @@ export function RuleDrawer({ open, onClose, variant, projectId, onCreated }: Pro
         await createRule({
           project_id: projectId,
           name: name.trim(),
-          description: description.trim() || null,
           rule_type: type,
           severity,
-          config: threshold as never,
+          configuration: { description: description.trim() || undefined, ...threshold } as never,
           is_active: true,
         } as never);
       } else {
@@ -60,7 +59,7 @@ export function RuleDrawer({ open, onClose, variant, projectId, onCreated }: Pro
           description: description.trim() || null,
           trigger_type: type,
           severity,
-          conditions: threshold as never,
+          condition: threshold as never,
           is_active: true,
         } as never);
       }
