@@ -154,9 +154,15 @@ function ProjectDetailPage() {
     },
   });
 
-  // Sync helpers (seed data)
-  const sites = getSitesByProject(projectId);
-  const dataSources = getDataSourcesByProject(projectId);
+  // Sites and data sources — DB-backed via suspense query
+  const { data: sites } = useSuspenseQuery({
+    queryKey: ["sites", projectId],
+    queryFn: () => getSitesByProject(projectId),
+  });
+  const { data: dataSources } = useSuspenseQuery({
+    queryKey: ["data-sources", projectId],
+    queryFn: () => getDataSourcesByProject(projectId),
+  });
   const geometry = getProjectGeometrySeed(projectId);
 
   // Async media state
