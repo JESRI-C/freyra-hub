@@ -89,6 +89,87 @@ const REPOSITIONED_MODULES = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function DashboardPage() {
+  const { currentOrg } = useAuth();
+  const orgId = currentOrg?.id ?? "";
+
+  const { data: summaries } = useSuspenseQuery({
+    queryKey: ["nature-project-summaries", orgId],
+    queryFn: () => getAllNatureProjectSummaries(orgId),
+  });
+  const { data: openActions } = useSuspenseQuery({
+    queryKey: ["all-open-actions", orgId],
+    queryFn: () => getAllOpenActions(),
+  });
+  const { data: allReports } = useSuspenseQuery({
+    queryKey: ["all-reports", orgId],
+    queryFn: () => getAllReports(),
+  });
+
+  const kpis = useMemo(() => {
+    const activeProjects = summaries.filter((s) => s.project.status !== "Afsluttet").length;
+    const totalHa = summaries.reduce(
+      (a, s) => a + (Number(s.project.geometry_area_ha) || 0),
+      0,
+    );
+    const readinessVals = summaries
+      .flatMap((s) => s.indicators)
+      .filter((i) => i.key === "report_readiness" && i.value !== null)
+      .map((i) => i.value as number);
+    const avgReadiness =
+      readinessVals.length > 0
+        ? Math.round(readinessVals.reduce((a, b) => a + b, 0) / readinessVals.length)
+        : null;
+    const dataSourceTotal = summaries.reduce((a, s) => a + (s.activeDataSources ?? 0), 0);
+    const publishedReports = allReports.filter(
+      (r) => r.status === "Publiceret" || r.status === "Offentliggjort",
+    ).length;
+    return [
+      { label: "Aktive naturprojekter", value: String(activeProjects), hint: `${summaries.length} i alt` },
+      { label: "Hektar under forvaltning", value: totalHa > 0 ? totalHa.toFixed(1) : "—", hint: "Fra projektarealer" },
+      { label: "Rapportparathed", value: avgReadiness !== null ? `${avgReadiness}%` : "—", hint: "Gennemsnit på tværs" },
+      { label: "Åbne handlinger", value: String(openActions.length), hint: "På tværs af projekter" },
+      { label: "Aktive datakilder", value: String(dataSourceTotal), hint: "Sensorer · satellit · felt" },
+      { label: "Rapporter i alt", value: String(allReports.length), hint: `${publishedReports} publiceret` },
+    ];
+  }, [summaries, openActions, allReports]);
+
+  const criticalActions = useMemo(() => {
+    const nameById = new Map(summaries.map((s) => [s.project.id, s.project.name] as const));
+    return openActions.slice(0, 5).map((a) => ({
+      id: a.id,
+      title: a.title,
+      project: nameById.get(a.project_id) ?? "—",
+      tone:
+        a.priority === "Kritisk" || a.priority === "Høj"
+          ? ("danger" as const)
+          : a.priority === "Middel"
+            ? ("warning" as const)
+            : ("default" as const),
+    }));
+  }, [openActions, summaries]);
+
+  const portfolio = useMemo(
+    () =>
+      summaries.slice(0, 6).map((s) => {
+        const readiness = s.indicators.find((i) => i.key === "report_readiness");
+        const bio = s.indicators.find((i) => i.key === "biodiversity_index");
+        const quality = s.indicators.find((i) => i.key === "data_quality");
+        return {
+          id: s.project.id,
+          name: s.project.name,
+          slug: s.project.slug ?? s.project.id,
+          type: s.project.project_type ?? "Naturprojekt",
+          ha: Number(s.project.geometry_area_ha) || null,
+          status: s.project.status ?? "—",
+          readiness: readiness?.value ?? null,
+          bio: bio?.value ?? null,
+          quality: quality?.value ?? null,
+          openActions: s.openActions,
+        };
+      }),
+    [summaries],
+  );
+
   return (
     <main className="p-6 max-w-[1500px] w-full mx-auto space-y-6">
       {/* 1. Hero */}
