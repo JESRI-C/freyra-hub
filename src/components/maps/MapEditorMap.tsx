@@ -146,6 +146,8 @@ export function MapEditorMap({
   onZoneClicked,
   onBoundaryDrawn,
   onMeasurement,
+  centerOverride,
+  wmsOverlays,
   height = 540,
   className,
 }: MapEditorMapProps) {
@@ -162,9 +164,11 @@ export function MapEditorMap({
     drawn: import("leaflet").FeatureGroup | null;
     activeDrawer: { disable: () => void } | null;
     editHandler: { enable: () => void; disable: () => void; save: () => void } | null;
+    wms: Map<string, import("leaflet").TileLayer.WMS>;
   }>({
     base: null, boundary: null, zones: null, p3: null, wl: null,
     ndvi: null, sensors: null, drawn: null, activeDrawer: null, editHandler: null,
+    wms: new Map(),
   });
 
   // Intern mode-state, synkroniseret med evt. controlled prop
