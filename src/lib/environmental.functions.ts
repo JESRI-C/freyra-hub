@@ -265,7 +265,8 @@ async function fetchTerrain(lat: number, lng: number) {
   const nn = n ?? c, ss = s ?? c, ee = e ?? c, ww = w ?? c;
   const dH = Math.max(Math.abs(nn - ss), Math.abs(ee - ww));
   const slope = Math.round((dH / 111) * 100 * 10) / 10;
-  const aspect = slope < 1 ? "flat" : slope < 5 ? "gentle" : slope < 15 ? "moderate" : "steep";
+  const aspect: "flat" | "gentle" | "moderate" | "steep" =
+    slope < 1 ? "flat" : slope < 5 ? "gentle" : slope < 15 ? "moderate" : "steep";
   return { elevationM: Math.round(c * 10) / 10, slopePct: slope, aspect };
 }
 
