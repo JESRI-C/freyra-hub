@@ -22,6 +22,16 @@ import type { IoTSensor } from "@/services/iot-simulation-service";
 export type DrawMode = "none" | "boundary" | "zone" | "measure";
 export type BaseLayer = "satellite" | "osm" | "terrain" | "topo";
 
+export interface WmsOverlay {
+  id: string;
+  url: string;
+  layers: string;
+  opacity?: number;
+  format?: string;
+  transparent?: boolean;
+  attribution?: string;
+}
+
 export interface MapEditorMapProps {
   projectId: string;
   projectName: string;
@@ -44,6 +54,10 @@ export interface MapEditorMapProps {
   onZoneClicked?: (zone: Zone) => void;
   onBoundaryDrawn?: (geojson: GeoJsonPolygon, areaHa: number) => void;
   onMeasurement?: (areaHa: number, perimeterM: number) => void;
+  /** External center commands (e.g. from address search). Changes trigger flyTo. */
+  centerOverride?: { lat: number; lng: number; zoom?: number } | null;
+  /** Extra WMS layers to overlay on the map (e.g. cadastre, field blocks). */
+  wmsOverlays?: WmsOverlay[];
   height?: number;
   className?: string;
 }
@@ -132,6 +146,8 @@ export function MapEditorMap({
   onZoneClicked,
   onBoundaryDrawn,
   onMeasurement,
+  centerOverride,
+  wmsOverlays,
   height = 540,
   className,
 }: MapEditorMapProps) {
@@ -148,9 +164,11 @@ export function MapEditorMap({
     drawn: import("leaflet").FeatureGroup | null;
     activeDrawer: { disable: () => void } | null;
     editHandler: { enable: () => void; disable: () => void; save: () => void } | null;
+    wms: Map<string, import("leaflet").TileLayer.WMS>;
   }>({
     base: null, boundary: null, zones: null, p3: null, wl: null,
     ndvi: null, sensors: null, drawn: null, activeDrawer: null, editHandler: null,
+    wms: new Map(),
   });
 
   // Intern mode-state, synkroniseret med evt. controlled prop
@@ -467,6 +485,47 @@ export function MapEditorMap({
       });
     })();
   }, [showSensors, sensors, ready]);
+
+  // ── Center override (from address search) ─────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready || !centerOverride) return;
+    mapRef.current.flyTo(
+      [centerOverride.lat, centerOverride.lng],
+      centerOverride.zoom ?? 16,
+      { duration: 0.8 },
+    );
+  }, [centerOverride, ready]);
+
+  // ── WMS overlays (matrikelskel, markblokke, etc.) ────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    (async () => {
+      const L = await import("leaflet");
+      const map = mapRef.current!;
+      const active = new Set((wmsOverlays ?? []).map((o) => o.id));
+      // Remove overlays that are no longer active
+      layersRef.current.wms.forEach((layer, id) => {
+        if (!active.has(id)) {
+          map.removeLayer(layer);
+          layersRef.current.wms.delete(id);
+        }
+      });
+      // Add new overlays
+      (wmsOverlays ?? []).forEach((o) => {
+        if (layersRef.current.wms.has(o.id)) return;
+        const layer = L.tileLayer.wms(o.url, {
+          layers: o.layers,
+          format: o.format ?? "image/png",
+          transparent: o.transparent ?? true,
+          opacity: o.opacity ?? 0.7,
+          attribution: o.attribution,
+        });
+        layer.addTo(map);
+        layersRef.current.wms.set(o.id, layer);
+      });
+    })();
+  }, [wmsOverlays, ready]);
+
 
   // ─── UI ─────────────────────────────────────────────────────────────────────
   const toolBtn = (active: boolean, activeCls: string) =>
