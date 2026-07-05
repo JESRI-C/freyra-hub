@@ -284,6 +284,14 @@ function ProjectDetailPage() {
   const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors);
   const sensorActions = suggestSensorActions(sensors);
 
+  const [selectedIndicator, setSelectedIndicator] = useState<typeof indicators[number] | null>(null);
+  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
+  const openIndicator = (ind: typeof indicators[number]) => {
+    setSelectedIndicator(ind);
+    setIndicatorDetailOpen(true);
+  };
+
+
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
       <ProjectHeader
