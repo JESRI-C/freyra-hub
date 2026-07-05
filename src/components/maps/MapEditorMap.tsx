@@ -486,6 +486,47 @@ export function MapEditorMap({
     })();
   }, [showSensors, sensors, ready]);
 
+  // ── Center override (from address search) ─────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready || !centerOverride) return;
+    mapRef.current.flyTo(
+      [centerOverride.lat, centerOverride.lng],
+      centerOverride.zoom ?? 16,
+      { duration: 0.8 },
+    );
+  }, [centerOverride, ready]);
+
+  // ── WMS overlays (matrikelskel, markblokke, etc.) ────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    (async () => {
+      const L = await import("leaflet");
+      const map = mapRef.current!;
+      const active = new Set((wmsOverlays ?? []).map((o) => o.id));
+      // Remove overlays that are no longer active
+      layersRef.current.wms.forEach((layer, id) => {
+        if (!active.has(id)) {
+          map.removeLayer(layer);
+          layersRef.current.wms.delete(id);
+        }
+      });
+      // Add new overlays
+      (wmsOverlays ?? []).forEach((o) => {
+        if (layersRef.current.wms.has(o.id)) return;
+        const layer = L.tileLayer.wms(o.url, {
+          layers: o.layers,
+          format: o.format ?? "image/png",
+          transparent: o.transparent ?? true,
+          opacity: o.opacity ?? 0.7,
+          attribution: o.attribution,
+        });
+        layer.addTo(map);
+        layersRef.current.wms.set(o.id, layer);
+      });
+    })();
+  }, [wmsOverlays, ready]);
+
+
   // ─── UI ─────────────────────────────────────────────────────────────────────
   const toolBtn = (active: boolean, activeCls: string) =>
     `text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
