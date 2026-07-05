@@ -18,6 +18,7 @@ import {
   fetchParagraph3Overlap,
   fetchWatercourses,
 } from "@/services/nature/paragraph3-service";
+import { fetchEnvironmentalBundle, type EnvironmentalBundle } from "@/lib/environmental.functions";
 
 
 // Check if a specific connector is configured
