@@ -100,7 +100,7 @@ export async function generateProjectReport(input: GenerateReportInput): Promise
     for (const s of sites.slice(0, 15)) {
       y = ensure(pdf, y);
       pdf.setFontSize(10);
-      pdf.text(`• ${s.name}${s.site_type ? ` (${s.site_type})` : ""}${s.area_hectares ? ` – ${s.area_hectares} ha` : ""}`, 40, y);
+      pdf.text(`• ${s.name}${s.site_type ? ` (${s.site_type})` : ""}${s.area_ha ? ` – ${s.area_ha} ha` : ""}`, 40, y);
       y += 14;
     }
   }
