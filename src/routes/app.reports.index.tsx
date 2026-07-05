@@ -35,7 +35,8 @@ import {
   ReportReadinessBadge,
   actionToast,
 } from "@/components/platform/Primitives";
-import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS, MOCK_REPORT_TEMPLATES } from "@/lib/platform-data";
+import { PROJECT_FACTS, MOCK_REPORT_TEMPLATES } from "@/lib/platform-data";
+import { useLiveActivityFeed, useLiveCriticalActions } from "@/lib/platform-live";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import { getAllReports, reportStatusTone } from "@/services/reports-service";
 import type { Report } from "@/lib/supabase/types";
