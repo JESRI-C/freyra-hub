@@ -148,7 +148,7 @@ function GeometryEditorPage() {
 
   const useFeatureAsBoundary = () => {
     if (!pickedFeature) return;
-    map.handleBoundaryDrawn(pickedFeature.geometry as GeoJsonPolygon, pickedFeature.areaHa);
+    map.handleBoundaryDrawn(pickedFeature.geometry as GeoJsonPolygon, pickedFeature.areaHa, pickedFeature.source);
     toast.success(`${pickedFeature.label} valgt som projektgrænse`);
     setPickedFeature(null);
     setPickMode(null);
