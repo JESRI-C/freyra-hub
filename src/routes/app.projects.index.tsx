@@ -109,21 +109,29 @@ function ProjectsIndexPage() {
   function closeModal() {
     setShowCreateModal(false);
     setForm(FORM_DEFAULTS);
+    setFormError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return;
+    if (!orgId) {
+      setFormError("Ingen organisation valgt. Gå tilbage til Vælg arbejdsplads.");
+      return;
+    }
     setSubmitting(true);
+    setFormError(null);
 
     const now = new Date().toISOString();
-    const newId = crypto.randomUUID();
 
     try {
-      if (isSupabaseConfigured && supabase) {
-        const db = supabase as unknown as { from: (t: string) => { insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } };
-        const { error } = await db.from("projects").insert({
-          id: newId,
+      if (!isSupabaseConfigured || !supabase) {
+        throw new Error("Backend er ikke konfigureret.");
+      }
+
+      const { data: inserted, error } = await supabase
+        .from("projects")
+        .insert({
           organization_id: orgId,
           name: form.name.trim(),
           description: form.description.trim() || null,
@@ -131,21 +139,20 @@ function ProjectsIndexPage() {
           location_name: form.location.trim() || null,
           status: form.status,
           country: "Denmark",
-          slug: null,
-          municipality: null,
-          start_date: null,
-          end_date: null,
-        });
-        if (error) throw new Error(error.message);
-      }
+        })
+        .select("id, slug")
+        .single();
+      if (error) throw new Error(error.message);
+      const newId = inserted?.id as string;
+      const newSlug = (inserted?.slug as string | null) ?? newId;
 
-      // Add to local state so it appears immediately in the list
+      // Optimistic local summary so it appears instantly on return
       const newSummary: NatureProjectSummary = {
         project: {
           id: newId,
           organization_id: orgId,
           name: form.name.trim(),
-          slug: null,
+          slug: (inserted?.slug as string | null) ?? null,
           project_type: form.projectType,
           location_name: form.location.trim() || null,
           municipality: null,
@@ -169,10 +176,15 @@ function ProjectsIndexPage() {
       };
 
       setLocalSummaries((prev) => [newSummary, ...prev]);
+      selectProject(newId);
+      await refresh();
       closeModal();
       showToast("Projekt oprettet");
+      navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Kunne ikke oprette projekt";
       console.error("Kunne ikke oprette projekt:", err);
+      setFormError(msg);
     } finally {
       setSubmitting(false);
     }
