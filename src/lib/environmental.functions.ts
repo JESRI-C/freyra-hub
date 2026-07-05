@@ -213,7 +213,7 @@ const SOIL_MAP: Record<string, { perm: "high" | "medium" | "low"; org: number; c
   Moræneler: { perm: "low", org: 4, cn: 78 },
   Ler: { perm: "low", org: 4, cn: 78 },
   Smeltevandssand: { perm: "high", org: 1, cn: 55 },
-  Marint sand: { perm: "high", org: 1, cn: 55 },
+  "Marint sand": { perm: "high", org: 1, cn: 55 },
   Flyvesand: { perm: "high", org: 1, cn: 50 },
   Sand: { perm: "high", org: 1, cn: 55 },
   Kalk: { perm: "high", org: 1, cn: 60 },
