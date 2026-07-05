@@ -37,7 +37,7 @@ export async function fetchProjects(organizationId?: string): Promise<Project[]>
 export async function fetchProjectBySlug(slug: string): Promise<Project | null> {
   if (!supabase) throw new Error("Supabase not configured");
 
-  const { data, error } = await supabase.from("projects").select("*").eq("slug", slug).single();
+  const { data, error } = await supabase.from("projects").select("*").eq("slug", slug).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -45,7 +45,7 @@ export async function fetchProjectBySlug(slug: string): Promise<Project | null> 
 export async function fetchProjectById(id: string): Promise<Project | null> {
   if (!supabase) throw new Error("Supabase not configured");
 
-  const { data, error } = await supabase.from("projects").select("*").eq("id", id).single();
+  const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
   if (error) throw error;
   return data;
 }

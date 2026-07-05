@@ -39,10 +39,20 @@ export async function getProjects(organizationId?: string): Promise<Project[]> {
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
-  const fallback = () => SEED_PROJECTS.find((p) => p.slug === slug) ?? null;
+  const fallback = () =>
+    SEED_PROJECTS.find((p) => p.slug === slug) ??
+    SEED_PROJECTS.find((p) => p.id === slug) ??
+    null;
   if (!isSupabaseConfigured) return fallback();
   try {
-    return await fetchProjectBySlug(slug);
+    const bySlug = await fetchProjectBySlug(slug);
+    if (bySlug) return bySlug;
+    // The route param may actually be a project id (projects created without a slug)
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRe.test(slug)) {
+      return await fetchProjectById(slug);
+    }
+    return null;
   } catch (err) {
     if (isMissingTable(err)) return fallback();
     throw err;
