@@ -206,7 +206,7 @@ function DashboardPage() {
           Porteføljeoverblik
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {PORTFOLIO_KPIS.map((k) => (
+          {kpis.map((k) => (
             <Card key={k.label} className="p-4">
               <div className="text-xs text-muted-foreground">{k.label}</div>
               <div className="text-2xl font-semibold mt-1 tabular-nums">{k.value}</div>
@@ -224,7 +224,7 @@ function DashboardPage() {
             subtitle="Hvad kræver din opmærksomhed nu"
           />
           <ul className="px-5 pb-5 divide-y">
-            {CRITICAL_ACTIONS.map((a) => (
+            {criticalActions.map((a) => (
               <li key={a.title} className="py-3 flex items-start gap-3">
                 {a.tone === "danger" && (
                   <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
@@ -287,7 +287,7 @@ function DashboardPage() {
           }
         />
         <div className="px-5 pb-5 grid md:grid-cols-3 gap-3">
-          {PROJECT_PORTFOLIO.map((p) => (
+          {portfolio.map((p) => (
             <Link
               key={p.slug}
               to="/app/projects/$slug"
