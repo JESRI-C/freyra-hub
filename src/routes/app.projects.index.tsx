@@ -4,24 +4,19 @@ import { useMemo, useState } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bits";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
-import { DEFAULT_ORG_ID } from "@/data/platform-seed";
 import { ProjectMonitorCard } from "@/components/project/ProjectMonitorCard";
 import { Leaf, FolderOpen, AlertCircle, BarChart2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
+import { useAuth } from "@/lib/auth";
 
-// ─── Query ────────────────────────────────────────────────────────────────────
-
-const projectSummariesQuery = {
-  queryKey: ["nature-project-summaries", DEFAULT_ORG_ID],
-  queryFn: () => getAllNatureProjectSummaries(DEFAULT_ORG_ID),
-};
+// ─── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/projects/")({
   head: () => ({ meta: [{ title: "Projektoversigt — GoFreyra" }] }),
-  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(projectSummariesQuery),
   component: ProjectsIndexPage,
 });
+
 
 const STATUS_FILTERS = ["Alle", "Under verifikation", "Verificeret", "Afsluttet"];
 
