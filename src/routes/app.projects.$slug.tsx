@@ -414,7 +414,7 @@ function ProjectDetailPage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {indicators.map((ind) => (
-                      <IndicatorCard key={ind.id} indicator={ind} />
+                      <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
                     ))}
                   </div>
                 )}
