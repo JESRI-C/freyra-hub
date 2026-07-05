@@ -428,6 +428,9 @@ export async function updateProject(
 export async function insertAction(input: {
   project_id: string; title: string; description?: string;
   priority?: string; status?: string; due_date?: string; owner?: string;
+  site_id?: string | null; action_type?: string | null;
+  linked_indicator_id?: string | null; expected_impact?: string | null;
+  requires_evidence?: boolean;
 }): Promise<Action> {
   if (!supabase) throw new Error("Supabase not configured");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -438,7 +441,13 @@ export async function insertAction(input: {
 
 export async function updateAction(
   id: string,
-  input: Partial<{ title: string; description: string; priority: string; status: string; due_date: string; owner: string }>,
+  input: Partial<{
+    title: string; description: string; priority: string; status: string;
+    due_date: string; owner: string; site_id: string | null; action_type: string | null;
+    linked_indicator_id: string | null; expected_impact: string | null;
+    actual_impact: string | null; requires_evidence: boolean;
+    started_at: string | null; completed_at: string | null;
+  }>,
 ): Promise<Action> {
   if (!supabase) throw new Error("Supabase not configured");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -451,6 +460,42 @@ export async function deleteAction(id: string): Promise<void> {
   if (!supabase) throw new Error("Supabase not configured");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any).from("actions").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Action Evidence ──────────────────────────────────────────────────────────
+
+export async function fetchActionEvidence(actionId: string): Promise<import("./types").ActionEvidence[]> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("action_evidence")
+    .select("*")
+    .eq("action_id", actionId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as import("./types").ActionEvidence[];
+}
+
+export async function insertActionEvidence(input: {
+  action_id: string;
+  evidence_type: string;
+  media_id?: string | null;
+  evidence_file_id?: string | null;
+  note?: string | null;
+}): Promise<import("./types").ActionEvidence> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("action_evidence").insert(input).select().single();
+  if (error) throw error;
+  return data as import("./types").ActionEvidence;
+}
+
+export async function deleteActionEvidence(id: string): Promise<void> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("action_evidence").delete().eq("id", id);
   if (error) throw error;
 }
 

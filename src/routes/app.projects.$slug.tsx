@@ -31,6 +31,7 @@ import {
   actionPriorityTone,
   suggestSensorActions,
   completeAction,
+  startAction,
   updateActionDetails,
   createAction,
 } from "@/services/actions-service";
@@ -249,7 +250,9 @@ function ProjectDetailPage() {
         ids.map((id) =>
           newStatus === "Lukket"
             ? completeAction(id, projectId)
-            : updateActionDetails(id, { status: newStatus }, projectId),
+            : newStatus === "I gang"
+              ? startAction(id, projectId)
+              : updateActionDetails(id, { status: newStatus }, projectId),
         ),
       );
       toast.success(
@@ -286,6 +289,15 @@ function ProjectDetailPage() {
 
   const [selectedIndicator, setSelectedIndicator] = useState<typeof indicators[number] | null>(null);
   const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
+  const [actionFilterSite, setActionFilterSite] = useState<string>("");
+  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
+  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
+  const filteredActions = localActions.filter((a) => {
+    if (actionFilterSite && a.site_id !== actionFilterSite) return false;
+    if (actionFilterStatus && a.status !== actionFilterStatus) return false;
+    if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
+    return true;
+  });
   const openIndicator = (ind: typeof indicators[number]) => {
     setSelectedIndicator(ind);
     setIndicatorDetailOpen(true);
@@ -480,16 +492,79 @@ function ProjectDetailPage() {
                       </Pill>
                     }
                   />
+
+                  {/* Filters */}
+                  <div className="px-5 pb-3 flex flex-wrap gap-2 border-b">
+                    <select
+                      value={actionFilterSite}
+                      onChange={(e) => setActionFilterSite(e.target.value)}
+                      className="text-xs border rounded-lg px-2 py-1 bg-background"
+                    >
+                      <option value="">Alle sites</option>
+                      {sites.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={actionFilterStatus}
+                      onChange={(e) => setActionFilterStatus(e.target.value)}
+                      className="text-xs border rounded-lg px-2 py-1 bg-background"
+                    >
+                      <option value="">Alle statuser</option>
+                      <option value="Åben">Åben</option>
+                      <option value="I gang">I gang</option>
+                      <option value="Lukket">Lukket</option>
+                    </select>
+                    <select
+                      value={actionFilterPriority}
+                      onChange={(e) => setActionFilterPriority(e.target.value)}
+                      className="text-xs border rounded-lg px-2 py-1 bg-background"
+                    >
+                      <option value="">Alle prioriteter</option>
+                      <option value="Høj">Høj</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Lav">Lav</option>
+                    </select>
+                    {(actionFilterSite || actionFilterStatus || actionFilterPriority) && (
+                      <button
+                        onClick={() => {
+                          setActionFilterSite("");
+                          setActionFilterStatus("");
+                          setActionFilterPriority("");
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        Nulstil
+                      </button>
+                    )}
+                  </div>
+
                   <div className="px-5 pb-3">
-                    {localActions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Ingen åbne handlinger</p>
+                    {filteredActions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4">Ingen handlinger matcher filter</p>
                     ) : (
-                      localActions.map((action) => (
+                      filteredActions.map((action) => (
                         <ActionItem
                           key={action.id}
                           action={action}
-                          onMarkInProgress={(id) => syncActions([id], "I gang")}
-                          onMarkCompleted={(id) => syncActions([id], "Lukket")}
+                          siteName={sites.find((s) => s.id === action.site_id)?.name}
+                          indicatorLabel={
+                            indicators.find((i) => i.id === action.linked_indicator_id)?.label
+                          }
+                          onStart={(id) => syncActions([id], "I gang")}
+                          onComplete={async (id, actualImpact) => {
+                            if (actualImpact) {
+                              try {
+                                await completeAction(id, projectId, actualImpact);
+                                await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+                                toast.success("Handling afsluttet");
+                              } catch (e) {
+                                toast.error((e as Error).message);
+                              }
+                            } else {
+                              await syncActions([id], "Lukket");
+                            }
+                          }}
                         />
                       ))
                     )}
@@ -497,6 +572,8 @@ function ProjectDetailPage() {
                   <div className="px-5 pb-5 pt-2 border-t">
                     <CreateActionForm
                       projectId={projectId}
+                      sites={sites}
+                      indicators={indicators}
                       onCreated={async () => {
                         await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
                         await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
@@ -712,15 +789,25 @@ function ProjectDetailPage() {
 
 function CreateActionForm({
   projectId,
+  sites,
+  indicators,
   onCreated,
 }: {
   projectId: string;
+  sites: Array<{ id: string; name: string }>;
+  indicators: Array<{ id: string; label: string }>;
   onCreated: () => void | Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<"Høj" | "Medium" | "Lav">("Medium");
   const [dueDate, setDueDate] = useState("");
   const [owner, setOwner] = useState("");
+  const [siteId, setSiteId] = useState("");
+  const [actionType, setActionType] = useState("");
+  const [linkedIndicatorId, setLinkedIndicatorId] = useState("");
+  const [expectedImpact, setExpectedImpact] = useState("");
+  const [requiresEvidence, setRequiresEvidence] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -738,12 +825,23 @@ function CreateActionForm({
         priority,
         due_date: dueDate || undefined,
         owner: owner.trim() || undefined,
+        site_id: siteId || null,
+        action_type: actionType.trim() || null,
+        linked_indicator_id: linkedIndicatorId || null,
+        expected_impact: expectedImpact.trim() || null,
+        requires_evidence: requiresEvidence,
       });
       toast.success("Handling oprettet");
       setTitle("");
       setDueDate("");
       setOwner("");
       setPriority("Medium");
+      setSiteId("");
+      setActionType("");
+      setLinkedIndicatorId("");
+      setExpectedImpact("");
+      setRequiresEvidence(false);
+      setExpanded(false);
       await onCreated();
     } catch (err) {
       toast.error(`Kunne ikke oprette handling: ${(err as Error).message}`);
@@ -787,7 +885,64 @@ function CreateActionForm({
           className="text-sm border rounded-lg px-3 py-2 bg-background"
         />
       </div>
-      <div className="flex justify-end">
+
+      {expanded && (
+        <div className="space-y-2 pt-2 border-t">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <select
+              value={siteId}
+              onChange={(e) => setSiteId(e.target.value)}
+              className="text-sm border rounded-lg px-3 py-2 bg-background"
+            >
+              <option value="">Intet site</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={actionType}
+              onChange={(e) => setActionType(e.target.value)}
+              placeholder="Type (fx pleje, monitorering)"
+              className="text-sm border rounded-lg px-3 py-2 bg-background"
+            />
+          </div>
+          <select
+            value={linkedIndicatorId}
+            onChange={(e) => setLinkedIndicatorId(e.target.value)}
+            className="w-full text-sm border rounded-lg px-3 py-2 bg-background"
+          >
+            <option value="">Ingen tilknyttet indikator</option>
+            {indicators.map((i) => (
+              <option key={i.id} value={i.id}>{i.label}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={expectedImpact}
+            onChange={(e) => setExpectedImpact(e.target.value)}
+            placeholder="Forventet effekt (fx +5% dækning)"
+            className="w-full text-sm border rounded-lg px-3 py-2 bg-background"
+          />
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={requiresEvidence}
+              onChange={(e) => setRequiresEvidence(e.target.checked)}
+            />
+            <span>Kræv evidens før afslutning</span>
+          </label>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-xs text-muted-foreground hover:text-foreground underline"
+        >
+          {expanded ? "Skjul flere felter" : "Flere felter"}
+        </button>
         <button
           type="submit"
           disabled={submitting || !title.trim()}

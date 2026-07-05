@@ -14,46 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_evidence: {
+        Row: {
+          action_id: string
+          created_at: string
+          created_by: string | null
+          evidence_file_id: string | null
+          evidence_type: string
+          id: string
+          media_id: string | null
+          note: string | null
+        }
+        Insert: {
+          action_id: string
+          created_at?: string
+          created_by?: string | null
+          evidence_file_id?: string | null
+          evidence_type: string
+          id?: string
+          media_id?: string | null
+          note?: string | null
+        }
+        Update: {
+          action_id?: string
+          created_at?: string
+          created_by?: string | null
+          evidence_file_id?: string | null
+          evidence_type?: string
+          id?: string
+          media_id?: string | null
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_evidence_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_evidence_evidence_file_id_fkey"
+            columns: ["evidence_file_id"]
+            isOneToOne: false
+            referencedRelation: "evidence_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_evidence_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "project_media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       actions: {
         Row: {
+          action_type: string | null
+          actual_impact: string | null
+          completed_at: string | null
           created_at: string | null
           description: string | null
           due_date: string | null
+          expected_impact: string | null
           id: string
+          linked_indicator_id: string | null
           owner: string | null
           priority: string | null
           project_id: string | null
+          requires_evidence: boolean
+          site_id: string | null
+          started_at: string | null
           status: string | null
           title: string
         }
         Insert: {
+          action_type?: string | null
+          actual_impact?: string | null
+          completed_at?: string | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          expected_impact?: string | null
           id?: string
+          linked_indicator_id?: string | null
           owner?: string | null
           priority?: string | null
           project_id?: string | null
+          requires_evidence?: boolean
+          site_id?: string | null
+          started_at?: string | null
           status?: string | null
           title: string
         }
         Update: {
+          action_type?: string | null
+          actual_impact?: string | null
+          completed_at?: string | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          expected_impact?: string | null
           id?: string
+          linked_indicator_id?: string | null
           owner?: string | null
           priority?: string | null
           project_id?: string | null
+          requires_evidence?: boolean
+          site_id?: string | null
+          started_at?: string | null
           status?: string | null
           title?: string
         }
         Relationships: [
           {
+            foreignKeyName: "actions_linked_indicator_id_fkey"
+            columns: ["linked_indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "actions_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
             referencedColumns: ["id"]
           },
         ]
