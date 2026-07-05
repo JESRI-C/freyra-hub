@@ -116,6 +116,6 @@ function MediaCard({ item, onOpen }: { item: ProjectMediaItem; onOpen: () => voi
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
