@@ -173,6 +173,19 @@ function SelectPage() {
                   );
                 })}
               </div>
+              {org && (
+                <button
+                  onClick={() => {
+                    selectOrg(org.id);
+                    selectProject("");
+                    navigate({ to: "/app/overview" });
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:opacity-90"
+                >
+                  Åbn {org.name}
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              )}
             </section>
 
             <section className="space-y-3">
