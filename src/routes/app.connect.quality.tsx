@@ -317,21 +317,50 @@ function Page() {
           </ul>
         </Section>
 
-        <Section title="Data-huller" subtitle="Skal håndteres for fuld rapportklarhed">
+        <Section
+          title="Åbne datakvalitets-issues"
+          subtitle={
+            issuesQuery.isLoading
+              ? "Henter…"
+              : `${issueSummary.open} åbne · ${issueSummary.resolved} løst · ${issueSummary.rejected} afvist`
+          }
+        >
           <ul className="text-sm space-y-2">
-            {[
-              "Mangler geotags på drone upload (Q2)",
-              "Mangler feltregistrering i Zone C i 8 dage",
-              "Scope 3 CSV mangler leverandørkategori",
-              "Vandmålinger mangler sensor calibration note",
-              "Satellit NDVI layer outdated (>5 dage)",
-            ].map((t, i) => (
-              <li key={i} className="flex gap-2 p-2.5 rounded-lg border bg-muted/30">
-                <span className="text-destructive">●</span> {t}
+            {(issuesQuery.data ?? [])
+              .filter((i) => i.status === "open")
+              .slice(0, 8)
+              .map((i) => (
+                <li key={i.id} className="flex items-start gap-2 p-2.5 rounded-lg border bg-muted/30">
+                  <span className={i.severity === "critical" || i.severity === "high" ? "text-destructive" : "text-amber-500"}>●</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate">{i.description ?? i.issue_type}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {i.issue_type} · {new Date(i.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <button
+                    className="text-[11px] rounded border px-2 py-0.5 hover:bg-muted"
+                    onClick={async () => {
+                      try {
+                        await resolveIssue(i.id, { status: "resolved", note: "Løst fra kvalitetsoversigt" });
+                        await issuesQuery.refetch();
+                      } catch (e) {
+                        console.error(e);
+                      }
+                    }}
+                  >
+                    Løs
+                  </button>
+                </li>
+              ))}
+            {!issuesQuery.isLoading && (issuesQuery.data ?? []).filter((i) => i.status === "open").length === 0 && (
+              <li className="p-3 text-center text-xs text-muted-foreground rounded-lg border border-dashed">
+                Ingen åbne issues — kør reglerne for at scanne data.
               </li>
-            ))}
+            )}
           </ul>
         </Section>
+
       </div>
 
       <Section
