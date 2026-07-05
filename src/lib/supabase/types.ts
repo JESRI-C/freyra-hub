@@ -228,7 +228,25 @@ export type Indicator = {
   unit: string | null;
   trend: "up" | "down" | "flat" | null;
   status: "ok" | "warning" | "critical" | null;
+  threshold_warning?: number | null;
+  threshold_critical?: number | null;
+  threshold_direction?: "above" | "below";
+  description?: string | null;
   updated_at: string;
+};
+
+export type IndicatorMeasurement = {
+  id: string;
+  indicator_id: string;
+  project_id: string | null;
+  measured_at: string;
+  value: number;
+  unit: string | null;
+  source: string | null;
+  confidence_score: number | null;
+  method: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
 };
 
 export type Report = {

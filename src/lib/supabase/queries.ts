@@ -5,6 +5,7 @@ import { supabase } from "./client";
 import type {
   Project,
   Indicator,
+  IndicatorMeasurement,
   AuditEvent,
   Report,
   Action,
@@ -100,6 +101,69 @@ export async function fetchIndicator(projectId: string, key: string): Promise<In
   if (error) throw error;
   return data;
 }
+
+// ─── Indicator Measurements ───────────────────────────────────────────────────
+
+export async function fetchMeasurementsForIndicator(
+  indicatorId: string,
+  sinceIso?: string,
+): Promise<IndicatorMeasurement[]> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let q: any = (supabase as any)
+    .from("indicator_measurements")
+    .select("*")
+    .eq("indicator_id", indicatorId)
+    .order("measured_at", { ascending: true });
+  if (sinceIso) q = q.gte("measured_at", sinceIso);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as IndicatorMeasurement[];
+}
+
+export async function insertMeasurement(input: {
+  indicator_id: string;
+  project_id?: string | null;
+  value: number;
+  unit?: string | null;
+  measured_at?: string;
+  source?: string | null;
+  confidence_score?: number | null;
+  method?: string | null;
+  metadata?: Record<string, unknown>;
+}): Promise<IndicatorMeasurement> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("indicator_measurements")
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as IndicatorMeasurement;
+}
+
+export async function updateIndicatorConfig(
+  id: string,
+  input: Partial<{
+    label: string;
+    description: string | null;
+    threshold_warning: number | null;
+    threshold_critical: number | null;
+    threshold_direction: "above" | "below";
+    unit: string | null;
+  }>,
+): Promise<void> {
+  if (!supabase) throw new Error("Supabase not configured");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from("indicators")
+    .update({ ...input, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
 

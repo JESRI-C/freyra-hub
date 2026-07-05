@@ -8,6 +8,7 @@ import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
+import { IndicatorDetail } from "@/components/indicators/IndicatorDetail";
 import { SitesPanel } from "@/components/project/SitesPanel";
 import { DataSourcesPanel } from "@/components/project/DataSourcesPanel";
 import { ActionItem } from "@/components/project/ActionItem";
@@ -283,6 +284,14 @@ function ProjectDetailPage() {
   const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors);
   const sensorActions = suggestSensorActions(sensors);
 
+  const [selectedIndicator, setSelectedIndicator] = useState<typeof indicators[number] | null>(null);
+  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
+  const openIndicator = (ind: typeof indicators[number]) => {
+    setSelectedIndicator(ind);
+    setIndicatorDetailOpen(true);
+  };
+
+
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
       <ProjectHeader
@@ -311,9 +320,10 @@ function ProjectDetailPage() {
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {indicators.slice(0, 6).map((ind) => (
-                    <IndicatorCard key={ind.id} indicator={ind} />
+                    <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
                   ))}
                 </div>
+
 
                 {/* Recent observations */}
                 {observations.length > 0 && (
@@ -404,7 +414,7 @@ function ProjectDetailPage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {indicators.map((ind) => (
-                      <IndicatorCard key={ind.id} indicator={ind} />
+                      <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
                     ))}
                   </div>
                 )}
@@ -688,6 +698,12 @@ function ProjectDetailPage() {
           </>
         )}
       </ProjectTabs>
+
+      <IndicatorDetail
+        indicator={selectedIndicator}
+        open={indicatorDetailOpen}
+        onOpenChange={setIndicatorDetailOpen}
+      />
     </main>
   );
 }

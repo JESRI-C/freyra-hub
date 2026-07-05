@@ -2,7 +2,13 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { indicatorStatusColor, formatIndicatorValue } from "@/services/indicators-service";
 import type { Indicator } from "@/lib/supabase/types";
 
-export function IndicatorCard({ indicator }: { indicator: Indicator }) {
+export function IndicatorCard({
+  indicator,
+  onClick,
+}: {
+  indicator: Indicator;
+  onClick?: (indicator: Indicator) => void;
+}) {
   const TrendIcon = () => {
     if (indicator.trend === "up") return <TrendingUp className="h-4 w-4 text-emerald-500" />;
     if (indicator.trend === "down") return <TrendingDown className="h-4 w-4 text-red-500" />;
@@ -18,8 +24,12 @@ export function IndicatorCard({ indicator }: { indicator: Indicator }) {
           ? "bg-red-50 border-red-200"
           : "bg-muted/40 border-border";
 
-  return (
-    <div className={`rounded-xl border p-4 flex flex-col gap-2 ${statusBg}`}>
+  const inner = (
+    <div
+      className={`rounded-xl border p-4 flex flex-col gap-2 ${statusBg} ${
+        onClick ? "hover:shadow-md hover:-translate-y-0.5 transition" : ""
+      }`}
+    >
       <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
         {indicator.category ?? "Indikator"}
       </div>
@@ -35,4 +45,13 @@ export function IndicatorCard({ indicator }: { indicator: Indicator }) {
       </div>
     </div>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={() => onClick(indicator)} className="text-left w-full">
+        {inner}
+      </button>
+    );
+  }
+  return inner;
 }
