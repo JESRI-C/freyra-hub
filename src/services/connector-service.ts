@@ -18,6 +18,7 @@ import {
   fetchParagraph3Overlap,
   fetchWatercourses,
 } from "@/services/nature/paragraph3-service";
+import { fetchEnvironmentalBundle, type EnvironmentalBundle } from "@/lib/environmental.functions";
 
 
 // Check if a specific connector is configured
@@ -243,7 +244,151 @@ export async function fetchSoilContext(projectId: string): Promise<Environmental
   );
 }
 
-// ─── Aggregate context builder ─────────────────────────────────────────────────
+// ─── Bundle-backed context builders ────────────────────────────────────────────
+
+async function buildNatureCtx(
+  projectId: string,
+  location: string,
+  bundle: EnvironmentalBundle | null,
+  centroid: { lat: number; lng: number } | null,
+  areaHa: number | null,
+): Promise<EnvironmentalContextResult | null> {
+  if (bundle) {
+    const connector = CONNECTOR_REGISTRY.find((c) => c.id === "miljoeportal-arealdata")!;
+    const { nature } = bundle;
+    return {
+      connector,
+      projectId,
+      fetchedAt: bundle.fetchedAt,
+      status: "success",
+      data: {
+        protected_nature_types: nature.natureTypes,
+        protected_nature_ha: nature.paragraph3AreasHa,
+        protected_nature_overlap_pct: nature.paragraph3Percent,
+        watercourses_within_500m: nature.watercourseCount,
+        nearest_watercourse_m: nature.nearestWatercourseM,
+      },
+      summary:
+        nature.natureTypes.length > 0
+          ? `Naturkontekst: ${nature.paragraph3AreasHa} ha §3 (${nature.natureTypes.join(", ")}), ${nature.watercourseCount} vandløb${nature.nearestWatercourseM !== null ? `, nærmeste ~${nature.nearestWatercourseM} m` : ""}.`
+          : `Naturkontekst: Ingen §3-registreringer i området, ${nature.watercourseCount} vandløb${nature.nearestWatercourseM !== null ? `, nærmeste ~${nature.nearestWatercourseM} m` : ""}.`,
+    };
+  }
+  return fetchNatureContext(projectId, location, centroid, areaHa).catch(() => null);
+}
+
+async function buildRainfallCtx(
+  projectId: string,
+  municipality: string,
+  bundle: EnvironmentalBundle | null,
+): Promise<EnvironmentalContextResult | null> {
+  const connector = CONNECTOR_REGISTRY.find((c) => c.id === "dmi-opendata")!;
+  if (!bundle) return fetchRainfallContext(projectId, municipality).catch(() => null);
+  const { rainfall } = bundle;
+  return {
+    connector,
+    projectId,
+    fetchedAt: bundle.fetchedAt,
+    status: rainfall.source === "dmi-live" ? "success" : "fallback",
+    data: {
+      annual_precipitation_mm: rainfall.annualMm,
+      design_rain_10yr_mm_hr: rainfall.designRain10yrMmHr,
+      design_rain_100yr_mm_hr: rainfall.designRain100yrMmHr,
+    },
+    summary: `Nedbør (${rainfall.source === "dmi-live" ? "DMI" : "klimanorm"}): ${rainfall.annualMm} mm/år, 10-årsregn ${rainfall.designRain10yrMmHr} mm/t.`,
+  };
+}
+
+async function buildGroundwaterCtx(
+  projectId: string,
+  location: string,
+  bundle: EnvironmentalBundle | null,
+): Promise<EnvironmentalContextResult | null> {
+  const connector = CONNECTOR_REGISTRY.find((c) => c.id === "geus-jupiter")!;
+  if (!bundle) return fetchGroundwaterContext(projectId, location).catch(() => null);
+  const { groundwater } = bundle;
+  return {
+    connector,
+    projectId,
+    fetchedAt: bundle.fetchedAt,
+    status: "success",
+    data: {
+      boreholes_within_500m: groundwater.boreholesWithin500m,
+      nearest_borehole_m: groundwater.nearestBoreholeM,
+      groundwater_depth_m: groundwater.depthM,
+    },
+    summary: `GEUS Jupiter: ${groundwater.boreholesWithin500m} boringer <500 m${groundwater.nearestBoreholeM !== null ? `, nærmeste ${groundwater.nearestBoreholeM} m` : ""}${groundwater.depthM !== null ? `, vandstand ${groundwater.depthM} m u.t.` : ""}.`,
+  };
+}
+
+async function buildTerrainCtx(
+  projectId: string,
+  bundle: EnvironmentalBundle | null,
+): Promise<EnvironmentalContextResult | null> {
+  const connector = CONNECTOR_REGISTRY.find((c) => c.id === "datafordeler-dhm")!;
+  if (!bundle || bundle.terrain.elevationM === null) return fetchTerrainContext(projectId).catch(() => null);
+  const { terrain } = bundle;
+  return {
+    connector,
+    projectId,
+    fetchedAt: bundle.fetchedAt,
+    status: "success",
+    data: {
+      elevation_mean_m: terrain.elevationM,
+      slope_max_pct: terrain.slopePct,
+      slope_mean_pct: terrain.slopePct,
+      terrain_type: terrain.aspect,
+    },
+    summary: `DHM: Terræn ${terrain.elevationM} m o.h., hældning ~${terrain.slopePct}% (${terrain.aspect}).`,
+  };
+}
+
+async function buildProtectedCtx(
+  projectId: string,
+  bundle: EnvironmentalBundle | null,
+): Promise<EnvironmentalContextResult | null> {
+  const connector = CONNECTOR_REGISTRY.find((c) => c.id === "natura2000-eea")!;
+  if (!bundle) return fetchProtectedNatureContext(projectId).catch(() => null);
+  const { natura2000 } = bundle;
+  const km = natura2000.withinM !== null ? Math.round(natura2000.withinM / 100) / 10 : null;
+  return {
+    connector,
+    projectId,
+    fetchedAt: bundle.fetchedAt,
+    status: "success",
+    data: {
+      natura2000_sites_within_5km: natura2000.sitesWithin5km,
+      nearest_natura2000_name: natura2000.nearestName,
+      nearest_natura2000_km: km,
+    },
+    summary:
+      natura2000.nearestName && km !== null
+        ? `Natura 2000: Nærmeste ${natura2000.nearestName} ${km} km væk.`
+        : `Natura 2000: Ingen habitatområder i nærheden.`,
+  };
+}
+
+async function buildSoilCtx(
+  projectId: string,
+  bundle: EnvironmentalBundle | null,
+): Promise<EnvironmentalContextResult | null> {
+  const connector = CONNECTOR_REGISTRY.find((c) => c.id === "esdac-soil")!;
+  if (!bundle) return fetchSoilContext(projectId).catch(() => null);
+  const { soil } = bundle;
+  return {
+    connector,
+    projectId,
+    fetchedAt: bundle.fetchedAt,
+    status: "success",
+    data: {
+      soil_type: soil.dominantType,
+      permeability: soil.permeability,
+      organic_carbon_pct: soil.organicPct,
+      runoff_curve_number: soil.curveNumber,
+    },
+    summary: `Jordbund (GEUS): ${soil.dominantType}, ${soil.permeability} permeabilitet, CN=${soil.curveNumber}.`,
+  };
+}
 
 export async function buildProjectEnvironmentalContext(
   projectId: string,
@@ -257,15 +402,26 @@ export async function buildProjectEnvironmentalContext(
     ? `${geometry.centroid.lat.toFixed(4)}°N, ${geometry.centroid.lng.toFixed(4)}°Ø`
     : location;
 
+  // Hent alle open-data konnektorer i én servertur når vi har en centroid.
+  const bundle: EnvironmentalBundle | null = geometry?.centroid
+    ? await fetchEnvironmentalBundle({
+        data: {
+          lat: geometry.centroid.lat,
+          lng: geometry.centroid.lng,
+          areaHa: geometry.areaHa ?? undefined,
+        },
+      }).catch(() => null)
+    : null;
+
   const [natureCtx, satelliteCtx, rainfallCtx, groundwaterCtx, terrainCtx, protectedCtx, soilCtx] =
     await Promise.all([
-      fetchNatureContext(projectId, locationLabel, geometry?.centroid ?? null, geometry?.areaHa ?? null).catch(() => null),
+      buildNatureCtx(projectId, locationLabel, bundle, geometry?.centroid ?? null, geometry?.areaHa ?? null),
       fetchSatelliteVegetation(projectId, locationLabel).catch(() => null),
-      fetchRainfallContext(projectId, municipality).catch(() => null),
-      fetchGroundwaterContext(projectId, locationLabel).catch(() => null),
-      fetchTerrainContext(projectId).catch(() => null),
-      fetchProtectedNatureContext(projectId).catch(() => null),
-      fetchSoilContext(projectId).catch(() => null),
+      buildRainfallCtx(projectId, municipality, bundle),
+      buildGroundwaterCtx(projectId, locationLabel, bundle),
+      buildTerrainCtx(projectId, bundle),
+      buildProtectedCtx(projectId, bundle),
+      buildSoilCtx(projectId, bundle),
     ]);
 
   const results = [
