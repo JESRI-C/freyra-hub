@@ -311,7 +311,7 @@ export async function getNatureProjectSummary(
     getIndicatorsByProject(projectId),
     getAuditEventsByProject(projectId),
     getReportsByProject(projectId),
-    Promise.resolve(getDataSourcesByProject(projectId)),
+    getDataSourcesByProject(projectId),
   ]);
 
   return {
