@@ -298,16 +298,12 @@ function OverviewPage() {
 
       <div className="grid lg:grid-cols-2 gap-5">
         <Card>
-          <CardHeader title="Seneste aktivitet" subtitle="ESG Ledger-relaterede hændelser" />
-          <ActivityFeed
-            items={ACTIVITY_FEED.filter(
-              (a) => a.module === "ESG Ledger" || a.module === "Impact Exchange",
-            )}
-          />
+          <CardHeader title="Seneste aktivitet" subtitle="Live fra platformens audit-trail" />
+          <ActivityFeed items={activityFeed} />
         </Card>
         <Card>
           <CardHeader title="Kritiske handlinger" subtitle="Skal lukkes før rapportering" />
-          <CriticalActionsPanel items={CRITICAL_ACTIONS.filter((c) => c.module === "ESG Ledger")} />
+          <CriticalActionsPanel items={criticalActions} />
         </Card>
       </div>
     </main>
