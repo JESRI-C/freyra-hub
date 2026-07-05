@@ -258,15 +258,26 @@ export async function buildProjectEnvironmentalContext(
     ? `${geometry.centroid.lat.toFixed(4)}°N, ${geometry.centroid.lng.toFixed(4)}°Ø`
     : location;
 
+  // Hent alle open-data konnektorer i én servertur når vi har en centroid.
+  const bundle: EnvironmentalBundle | null = geometry?.centroid
+    ? await fetchEnvironmentalBundle({
+        data: {
+          lat: geometry.centroid.lat,
+          lng: geometry.centroid.lng,
+          areaHa: geometry.areaHa ?? undefined,
+        },
+      }).catch(() => null)
+    : null;
+
   const [natureCtx, satelliteCtx, rainfallCtx, groundwaterCtx, terrainCtx, protectedCtx, soilCtx] =
     await Promise.all([
-      fetchNatureContext(projectId, locationLabel, geometry?.centroid ?? null, geometry?.areaHa ?? null).catch(() => null),
+      buildNatureCtx(projectId, locationLabel, bundle, geometry?.centroid ?? null, geometry?.areaHa ?? null),
       fetchSatelliteVegetation(projectId, locationLabel).catch(() => null),
-      fetchRainfallContext(projectId, municipality).catch(() => null),
-      fetchGroundwaterContext(projectId, locationLabel).catch(() => null),
-      fetchTerrainContext(projectId).catch(() => null),
-      fetchProtectedNatureContext(projectId).catch(() => null),
-      fetchSoilContext(projectId).catch(() => null),
+      buildRainfallCtx(projectId, municipality, bundle),
+      buildGroundwaterCtx(projectId, locationLabel, bundle),
+      buildTerrainCtx(projectId, bundle),
+      buildProtectedCtx(projectId, bundle),
+      buildSoilCtx(projectId, bundle),
     ]);
 
   const results = [
