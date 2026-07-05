@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
   ArrowRight,
   Plus,
@@ -20,11 +22,16 @@ import {
   Info,
 } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
+import { useAuth } from "@/lib/auth";
+import { getAllNatureProjectSummaries } from "@/services/projects-service";
+import { getAllOpenActions } from "@/services/actions-service";
+import { getAllReports } from "@/services/reports-service";
 
 export const Route = createFileRoute("/app/overview")({
   head: () => ({ meta: [{ title: "Dashboard — GoFreyra" }] }),
   component: DashboardPage,
 });
+
 
 // ─── Mock data (display-only, restructure scope) ──────────────────────────────
 
