@@ -57,7 +57,7 @@ export function ProjectMediaGallery({ items, isLoading }: ProjectMediaGalleryPro
   );
 }
 
-function MediaCard({ item }: { item: ProjectMediaItem }) {
+function MediaCard({ item, onOpen }: { item: ProjectMediaItem; onOpen: () => void }) {
   const dateLabel = new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK", {
     day: "numeric",
     month: "short",
@@ -65,7 +65,11 @@ function MediaCard({ item }: { item: ProjectMediaItem }) {
   });
 
   return (
-    <div className="rounded-xl border bg-card overflow-hidden hover:shadow-sm transition group">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="text-left rounded-xl border bg-card overflow-hidden hover:shadow-md transition group focus:outline-none focus:ring-2 focus:ring-primary"
+    >
       <div className="aspect-video relative overflow-hidden bg-muted">
         <img
           src={item.thumbnailUrl ?? item.url}
