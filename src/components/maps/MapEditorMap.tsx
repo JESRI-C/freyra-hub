@@ -201,11 +201,32 @@ export function MapEditorMap({
   const [baseLayer, setBaseLayer] = useState<BaseLayer>("satellite");
   const [measurement, setMeasurement] = useState<{ areaHa: number; perimeterM: number } | null>(null);
   const [ready, setReady] = useState(false);
+  // Live-tæller for punkter under tegning
+  const [drawingPoints, setDrawingPoints] = useState(0);
 
   const setMode = useCallback((mode: DrawMode) => {
     setInternalMode(mode);
     onDrawModeChange?.(mode);
+    setDrawingPoints(0);
   }, [onDrawModeChange]);
+
+  // Tegn-værktøjslinje-handlers
+  const undoLastVertex = useCallback(() => {
+    layersRef.current.activeDrawer?.deleteLastVertex?.();
+    setDrawingPoints((n) => Math.max(0, n - 1));
+  }, []);
+  const finishShape = useCallback(() => {
+    layersRef.current.activeDrawer?.completeShape?.();
+  }, []);
+  const cancelDrawing = useCallback(() => {
+    layersRef.current.activeDrawer?.disable();
+    layersRef.current.activeDrawer = null;
+    setDrawingPoints(0);
+    setMode("none");
+  }, [setMode]);
+
+  const removeSetMode = 0; void removeSetMode;
+
 
   // Holder callbacks friske i event handlers
   const callbacksRef = useRef({ onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked });
