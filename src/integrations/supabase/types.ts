@@ -408,6 +408,65 @@ export type Database = {
           },
         ]
       }
+      data_exports: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          export_type: string
+          file_path: string | null
+          file_size_bytes: number | null
+          filters: Json
+          format: string
+          id: string
+          metadata: Json
+          project_id: string
+          requested_at: string
+          requested_by: string | null
+          row_count: number | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          export_type: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          filters?: Json
+          format: string
+          id?: string
+          metadata?: Json
+          project_id: string
+          requested_at?: string
+          requested_by?: string | null
+          row_count?: number | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          export_type?: string
+          file_path?: string | null
+          file_size_bytes?: number | null
+          filters?: Json
+          format?: string
+          id?: string
+          metadata?: Json
+          project_id?: string
+          requested_at?: string
+          requested_by?: string | null
+          row_count?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_exports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_quality_assessments: {
         Row: {
           assessed_at: string
@@ -784,6 +843,128 @@ export type Database = {
           },
         ]
       }
+      drone_assets: {
+        Row: {
+          asset_type: string
+          bbox: Json | null
+          captured_at: string | null
+          created_at: string
+          file_size_bytes: number | null
+          flight_id: string
+          id: string
+          metadata: Json
+          mime_type: string | null
+          storage_path: string
+        }
+        Insert: {
+          asset_type: string
+          bbox?: Json | null
+          captured_at?: string | null
+          created_at?: string
+          file_size_bytes?: number | null
+          flight_id: string
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          storage_path: string
+        }
+        Update: {
+          asset_type?: string
+          bbox?: Json | null
+          captured_at?: string | null
+          created_at?: string
+          file_size_bytes?: number | null
+          flight_id?: string
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drone_assets_flight_id_fkey"
+            columns: ["flight_id"]
+            isOneToOne: false
+            referencedRelation: "drone_flights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drone_flights: {
+        Row: {
+          altitude_m: number | null
+          area_hectares: number | null
+          created_at: string
+          drone_model: string | null
+          duration_minutes: number | null
+          flight_path: Json | null
+          flown_at: string
+          id: string
+          metadata: Json
+          notes: string | null
+          pilot_id: string | null
+          project_id: string
+          purpose: string | null
+          status: string
+          updated_at: string
+          weather_conditions: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          altitude_m?: number | null
+          area_hectares?: number | null
+          created_at?: string
+          drone_model?: string | null
+          duration_minutes?: number | null
+          flight_path?: Json | null
+          flown_at: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          pilot_id?: string | null
+          project_id: string
+          purpose?: string | null
+          status?: string
+          updated_at?: string
+          weather_conditions?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          altitude_m?: number | null
+          area_hectares?: number | null
+          created_at?: string
+          drone_model?: string | null
+          duration_minutes?: number | null
+          flight_path?: Json | null
+          flown_at?: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          pilot_id?: string | null
+          project_id?: string
+          purpose?: string | null
+          status?: string
+          updated_at?: string
+          weather_conditions?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drone_flights_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drone_flights_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -870,6 +1051,72 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: []
+      }
+      environmental_analyses: {
+        Row: {
+          analysis_type: string
+          analyzed_at: string
+          created_at: string
+          id: string
+          metadata: Json
+          observed_at: string | null
+          project_id: string
+          result: Json
+          score: number | null
+          source_ref: string | null
+          source_type: string
+          status: string
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          analysis_type: string
+          analyzed_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          observed_at?: string | null
+          project_id: string
+          result?: Json
+          score?: number | null
+          source_ref?: string | null
+          source_type: string
+          status?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          analysis_type?: string
+          analyzed_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          observed_at?: string | null
+          project_id?: string
+          result?: Json
+          score?: number | null
+          source_ref?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "environmental_analyses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "environmental_analyses_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_zones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       environmental_risks: {
         Row: {
@@ -1314,6 +1561,59 @@ export type Database = {
           },
         ]
       }
+      integration_connections: {
+        Row: {
+          configuration: Json
+          created_at: string
+          created_by: string | null
+          credential_ref: string | null
+          id: string
+          last_error: string | null
+          last_run_at: string | null
+          name: string
+          project_id: string
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          credential_ref?: string | null
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          name: string
+          project_id: string
+          provider: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          credential_ref?: string | null
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          name?: string
+          project_id?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_connections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_runs: {
         Row: {
           created_at: string
@@ -1472,6 +1772,85 @@ export type Database = {
             columns: ["risk_id"]
             isOneToOne: false
             referencedRelation: "environmental_risks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitoring_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          context: Json
+          created_at: string
+          device_id: string | null
+          id: string
+          message: string | null
+          project_id: string
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+          triggered_at: string
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          context?: Json
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          message?: string | null
+          project_id: string
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title: string
+          triggered_at?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          context?: Json
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          message?: string | null
+          project_id?: string
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          triggered_at?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitoring_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitoring_alerts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitoring_alerts_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "monitoring_zones"
             referencedColumns: ["id"]
           },
         ]
