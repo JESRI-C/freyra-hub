@@ -8,6 +8,7 @@ import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
+import { SitesPanel } from "@/components/project/SitesPanel";
 import { ActionItem } from "@/components/project/ActionItem";
 import { EvidenceList } from "@/components/project/EvidenceList";
 import { EvidenceUploadForm } from "@/components/project/EvidenceUploadForm";
@@ -370,49 +371,8 @@ function ProjectDetailPage() {
             )}
 
             {/* ── Sites ──────────────────────────────────────────────────── */}
-            {active === "sites" && (
-              <Card>
-                <CardHeader
-                  title="Sites"
-                  subtitle="Alle registrerede sites tilknyttet projektet"
-                  action={<Pill tone="info">{sites.length}</Pill>}
-                />
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="text-left text-xs text-muted-foreground border-y bg-muted/30">
-                      <tr>
-                        <th className="px-5 py-2">Navn</th>
-                        <th className="py-2">Type</th>
-                        <th className="py-2 text-right">Areal (ha)</th>
-                        <th className="py-2">Baseline-status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {sites.map((site) => (
-                        <tr key={site.id} className="hover:bg-muted/20">
-                          <td className="px-5 py-3 font-medium">{site.name}</td>
-                          <td className="py-3">{site.site_type ?? "—"}</td>
-                          <td className="py-3 text-right tabular-nums">{site.area_ha ?? "—"}</td>
-                          <td className="py-3">
-                            <span
-                              className={`text-xs ${
-                                site.baseline_status === "Dokumenteret"
-                                  ? "text-emerald-600"
-                                  : site.baseline_status === "Delvist dokumenteret"
-                                    ? "text-amber-600"
-                                    : "text-muted-foreground"
-                              }`}
-                            >
-                              {site.baseline_status ?? "—"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            )}
+            {active === "sites" && <SitesPanel projectId={projectId} sites={sites} />}
+
 
             {/* ── Datakilder ─────────────────────────────────────────────── */}
             {active === "datakilder" && (

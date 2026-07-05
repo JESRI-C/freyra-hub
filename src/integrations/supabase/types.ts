@@ -1383,34 +1383,52 @@ export type Database = {
       }
       sites: {
         Row: {
+          archived_at: string | null
           area_ha: number | null
           baseline_status: string | null
+          centroid_lat: number | null
+          centroid_lng: number | null
           created_at: string | null
+          description: string | null
           geometry_geojson: Json | null
           id: string
           name: string
           project_id: string | null
           site_type: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           area_ha?: number | null
           baseline_status?: string | null
+          centroid_lat?: number | null
+          centroid_lng?: number | null
           created_at?: string | null
+          description?: string | null
           geometry_geojson?: Json | null
           id?: string
           name: string
           project_id?: string | null
           site_type?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           area_ha?: number | null
           baseline_status?: string | null
+          centroid_lat?: number | null
+          centroid_lng?: number | null
           created_at?: string | null
+          description?: string | null
           geometry_geojson?: Json | null
           id?: string
           name?: string
           project_id?: string | null
           site_type?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: [
           {
