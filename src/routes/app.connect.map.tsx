@@ -173,7 +173,7 @@ function Page() {
         </div>
 
         {/* ── Center: toolbar + map ────────────────────────────────── */}
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0">
 
           <div className="rounded-xl border bg-card overflow-hidden">
             {hasGeometry && project ? (
@@ -201,7 +201,7 @@ function Page() {
                 height={540}
               />
             ) : (
-              <div className="h-[540px] grid place-items-center text-sm text-muted-foreground">
+              <div className="h-[540px] grid place-items-center text-sm text-muted-foreground px-6 text-center">
                 {projectsQuery.isLoading
                   ? "Indlæser projekter…"
                   : "Vælg et projekt med koordinater for at se kortet."}
@@ -211,7 +211,7 @@ function Page() {
         </div>
 
         {/* ── Right panel ──────────────────────────────────────────── */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <Card>
             <CardHeader title="Datadækning" subtitle="Status pr. datakilde" />
             <div className="px-5 pb-5 space-y-3">
