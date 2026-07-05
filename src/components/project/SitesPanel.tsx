@@ -369,7 +369,7 @@ function SiteDetailDrawer({ site, onClose }: { site: Site; onClose: () => void }
               <ul className="text-sm divide-y">
                 {relations.indicators.map((i) => (
                   <li key={i.id} className="py-2 flex items-center justify-between">
-                    <span className="font-medium">{i.name}</span>
+                    <span className="font-medium">{i.label}</span>
                     <span className="tabular-nums text-muted-foreground">
                       {i.value != null ? `${i.value}${i.unit ? ` ${i.unit}` : ""}` : "—"}
                     </span>
