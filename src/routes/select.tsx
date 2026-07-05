@@ -13,9 +13,10 @@ const ORG_TYPES = ["Kommune", "Rådgiver", "NGO", "Bygherre", "Forsyning", "Ande
 type OrgType = (typeof ORG_TYPES)[number];
 
 function SelectPage() {
-  const { user, loading, logout, selectOrg, selectProject, orgId, organizations } = useAuth();
+  const { user, loading, logout, selectOrg, selectProject, orgId, organizations, refresh } = useAuth();
   const navigate = useNavigate();
   const [pickedOrg, setPickedOrg] = useState<string | null>(orgId);
+  const [showCreate, setShowCreate] = useState(false);
 
   if (loading) {
     return (
