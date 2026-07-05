@@ -138,11 +138,11 @@ function DashboardPage() {
     return openActions.slice(0, 5).map((a) => ({
       id: a.id,
       title: a.title,
-      project: nameById.get(a.project_id) ?? "—",
+      project: nameById.get(a.project_id ?? "") ?? "—",
       tone:
-        a.priority === "Kritisk" || a.priority === "Høj"
+        a.priority === "Høj"
           ? ("danger" as const)
-          : a.priority === "Middel"
+          : a.priority === "Medium"
             ? ("warning" as const)
             : ("default" as const),
     }));
