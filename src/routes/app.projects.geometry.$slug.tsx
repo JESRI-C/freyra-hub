@@ -257,13 +257,11 @@ function GeometryEditorPage() {
             <button
               type="button"
               onClick={() => activatePick("matrikel")}
-              disabled={!DAF_TOKEN}
-              className={toolButton(pickMode === "matrikel", !DAF_TOKEN)}
-              title={!DAF_TOKEN ? "Kræver Datafordeler-token (server-secret)" : ""}
+              className={toolButton(pickMode === "matrikel")}
+              title="Kræver Datafordeler service-bruger på serveren"
             >
               <Grid3x3 className="h-4 w-4" />
               Vælg matrikel
-              {!DAF_TOKEN && <span className="ml-auto text-[10px]">token kræves</span>}
             </button>
 
             <button
