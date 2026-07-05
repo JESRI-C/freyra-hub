@@ -149,7 +149,149 @@ Signaturer:
 | Integration tests (mocked supabase) | Delvis dækket via service-tests | `src/services/__tests__/` |
 | End-to-end tests | **0** | Ikke etableret — Playwright er kun installeret som ad hoc debug-værktøj |
 
-## Kendte begrænsninger
+## Leverance-inventar
+
+### Filer ændret / oprettet (denne opgave, D1–Fase 3.2)
+
+Services (`src/services/monitoring/`):
+- `alert-engine.ts` — 6 evaluators + orchestrator
+- `alert-rules-service.ts` — CRUD + toggle
+- `alerts-service.ts` — list / resolve / acknowledge
+- `audit-service.ts` — `logAuditEvent`
+- `data-quality-service.ts` — issue-listing, resolve
+- `data-sources-service.ts` — create, list, toggle
+- `quality-engine.ts` — 10 evaluators + orchestrator
+- `quality-rules-service.ts` — CRUD + toggle
+- `upload-import-service.ts` — CSV/Excel/GeoJSON/KML/GPX/EXIF parsers
+- `uploads-service.ts` — Storage upload, `uploads`-tabel
+
+Komponenter (`src/components/monitoring/`):
+- `UploadWizard.tsx` — 4-trins drawer (Klassificer → Validér → Preview → Importér)
+- `RuleDrawer.tsx` — form til både kvalitets- og alarm-regler
+- `NotificationCenter.tsx` — in-app notifikationsindbakke
+- `DeviceWizard.tsx`, `SpeciesRecognitionFlow.tsx` — tilstødende
+
+Ruter (`src/routes/`):
+- `app.connect.upload.tsx` — Upload center + live queue
+- `app.connect.quality.tsx` — Datakvalitet + live issues + kør-nu
+- `app.connect.alerts.tsx` — Alerts + live liste + kør-nu
+- `app.connect.add.tsx` — Datakilde-wizard med reel `createDataSource`
+- `api/public/monitoring.evaluate.ts` — Cron-endpoint for engines
+
+Tests (`src/services/monitoring/__tests__/`):
+- `engines.test.ts` — 12 unit tests
+- `upload-import.test.ts` — 7 unit tests
+
+Docs (`docs/`):
+- `monitoring-utilities-audit.md` — indledende gap-analyse
+- `monitoring-utilities-implementation-plan.md` — fase-plan
+- `monitoring-utilities-test-plan.md` — testkrav
+- `monitoring-utilities-delivery-report.md` — dette dokument
+
+### API-ruter oprettet
+| Rute | Metode | Auth | Formål |
+| ---- | ------ | ---- | ------ |
+| `/api/public/monitoring/evaluate` | POST | `apikey`-header (Supabase publishable) | Kører quality + alert engines for ét eller alle projekter. Kaldes af pg_cron hvert 15. minut. Body: `{}` eller `{"project_id":"..."}`. |
+
+### Database-migrations (denne opgave)
+| Migration | Indhold |
+| --------- | ------- |
+| `20260705202010_…` | Kernetabeller: `data_sources`, `uploads`, `upload_import_jobs`, `audit_events`-udvidelse |
+| `20260705202357_…` | `data_quality_rules`, `data_quality_issues`, `data_quality_assessments` |
+| `20260705202816_…` | `alert_rules`, `monitoring_alerts`-udvidelse, `alert_comments` |
+| `20260705203315_…` | Storage-bucket `monitoring-uploads` + policies |
+| `20260705203715_…` | Foreign keys og indekser for engines |
+| `20260705203924_…` | `is_project_admin`, `is_org_member`, `has_org_role` helpers |
+| `20260705204207_…` | Realtime-publikation af `monitoring_alerts` |
+| `20260705210049_…` | Trigger: audit-event ved `uploads.status` skift |
+| `20260705210841_…` | Trigger: audit-event ved `data_sources` insert/update |
+| `20260705211130_…` | Trigger: dedup-index på `data_quality_issues` (open, per rule/entity) |
+| `20260705212224_…` | pg_cron job `monitoring-evaluate-15min` |
+| `20260705212244_…` | RLS-oprydning: fjern gamle `dev_*` policies på device-tabeller |
+| `20260705214909_…` | **Sikkerheds-hardening**: erstat public/anon-læs og `auth.uid() IS NOT NULL`-write på 22 tabeller med `is_project_member` / `has_org_role`; anti-eskalering på `organization_memberships` |
+
+### Understøttede uploadtyper
+| Type | Parser | GPS | Preview |
+| ---- | ------ | --- | ------- |
+| CSV (`.csv`) | Papaparse | via mapping | headers + sample-rows + fejlliste |
+| Excel (`.xlsx`, `.xls`) | SheetJS | via mapping | første ark, headers + sample-rows |
+| GeoJSON (`.geojson`, `.json`) | native | fra geometri | feature-count pr. type + bbox |
+| KML (`.kml`) | `@tmcw/togeojson` | fra geometri | konverteret til GeoJSON-summary |
+| GPX (`.gpx`) | `@tmcw/togeojson` | fra geometri | konverteret til GeoJSON-summary |
+| Billeder (`.jpg`, `.jpeg`, `.png`, `.heic*`) | `exifr` + `createImageBitmap` | EXIF GPS når til stede | dimension + kamera + capture-tid |
+
+\* HEIC-preview afhænger af browser-support (primært Safari); ingen server-side konvertering.
+
+### Implementerede datakvalitetsregler
+| `rule_type` | Beskrivelse | Konfig-nøgler |
+| ----------- | ----------- | ------------- |
+| `out_of_range` | Værdi udenfor min/max | `min`, `max` |
+| `missing_gps` | Måling uden lat/lng | (ingen) |
+| `invalid_date` | `measured_at` mangler eller kan ikke parses | (ingen) |
+| `duplicate` | Samme device+parameter+timestamp | `windowSeconds` |
+| `identical_repeat` | Samme værdi N gange i træk | `count` |
+| `spike` | Afvigelse > `zScoreThreshold` fra rolling mean | `zScoreThreshold`, `windowSize` |
+| `unit_mismatch` | `unit` ≠ forventet | `expectedUnit` |
+| `stale_data` | Ingen data i N minutter | `maxAgeMinutes` |
+| `outside_project` | GPS uden for bbox | `minLat`, `maxLat`, `minLng`, `maxLng` |
+| `missing_value` | (stub — kolonnen er NOT NULL i dag) | — |
+
+### Implementerede alarmregler
+| `trigger_type` | Beskrivelse | Konfig-nøgler |
+| -------------- | ----------- | ------------- |
+| `device_offline` | Enhed ikke set i N min | `thresholdMinutes` |
+| `low_battery` | `battery_level` under tærskel | `thresholdPercent` |
+| `missing_data` | Enhed sendte færre målinger end forventet | `expectedIntervalMinutes`, `windowMinutes` |
+| `low_data_quality` | Åbne issues over tærskel for enhed/regel | `maxOpenIssues` |
+| `critical_reading` | Måling over/under kritisk tærskel | `parameterKey`, `min`, `max` |
+| `data_anomaly` | Z-score afvigelse på device+parameter | `zScoreThreshold`, `windowSize` |
+
+Event-baserede triggere (`integration_failed`, `import_failed`, `action_overdue`, `manual`) er defineret i schemaet men fyres ikke af polling-motoren — de skal skydes fra de respektive services (se Anbefalet næste udviklingsspor).
+
+### Klargjorte datakildetyper
+| Provider | Kategori | Kredit-håndtering | Status |
+| -------- | -------- | ----------------- | ------ |
+| `manual` | Manuel sensor / feltmåling | ingen | Klar |
+| `file` | CSV/Excel upload | ingen | Klar |
+| `webhook` | Ekstern push-integration | secret pr. datakilde (JSON) | Klar (ingen 401/timeout-branch) |
+| `api` | Poll af ekstern REST-API | credentials i `configuration.jsonb` | Klar (ingen test-connection knap) |
+| `sentinel_hub` | Satellit / NDVI-hentning | oauth-client i `configuration` | Klar (aktiveres af cron) |
+
+### Kørte tests (Fase 3.2 kørsel)
+
+```
+$ bunx vitest run
+Test Files  13 passed (13)
+     Tests  83 passed (83)
+```
+
+Fordeling af de 83:
+- `monitoring/engines.test.ts` — 12
+- `monitoring/upload-import.test.ts` — 7
+- `services/audit-service.test.ts` — 6
+- `services/export-service.test.ts` — 8
+- `services/indicators-service.test.ts` — 5
+- `services/actions-service.test.ts` — 4
+- `services/project-members-service.test.ts` — 6
+- `services/documents-service.test.ts` — 3
+- `nature/biodiversity-engine.test.ts` — 9
+- `nature/carbon-engine.test.ts` — 7
+- `nature/species-service.test.ts` — 5
+- `satellite/ndvi-engine.test.ts` — 7
+- `components/maps/map-geometry.test.ts` — 4
+
+Type-check: `tsgo --noEmit` → 0 fejl.
+
+### Fejl fundet og rettet i denne opgave
+
+1. **Cross-tenant write på 22 tabeller** — RLS brugte kun `auth.uid() IS NOT NULL` for INSERT/UPDATE/DELETE. Rettet i migration `20260705214909` ved at kræve `is_project_member` / `has_org_role`.
+2. **Public anon-læs på 22 tabeller** — `dev_read_all USING (true)` eksponerede tenant-data. Rettet i samme migration.
+3. **Role-escalation i `organization_memberships`** — en admin kunne opgradere sig selv eller andre til `owner`. Nu kræver `owner`-rolle for at oprette/ændre owner-memberships, og brugere kan ikke redigere deres egen membership.
+4. **`suggestMapping` matcher ikke danske æøå-headers** — æ/ø/å strippes i norm-funktionen, men needles gør ikke. Kendt begrænsning — dokumenteret men ikke rettet i denne opgave (workaround: brug ASCII-headers eller manuel mapping).
+5. **`onAuthStateChange`-storm** — tidligere kaldte `invalidateQueries()` på hver token-refresh. Filtreret til identity-transitions kun.
+6. **`supabaseAdmin` importeret på module-scope i `.functions.ts`** — flyttet ind i handler bodies for at undgå læk til client-bundle.
+
+
 
 - **Regeltyper der endnu ikke er kablet op**:
   - `missing_value` er no-op (`device_measurements.value` er NOT NULL —
