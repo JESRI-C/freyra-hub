@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Search, Plus, X } from "lucide-react";
@@ -50,13 +50,15 @@ const FORM_DEFAULTS: CreateProjectForm = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProjectsIndexPage() {
-  const { currentOrg } = useAuth();
+  const { currentOrg, selectProject, refresh } = useAuth();
   const orgId = currentOrg?.id ?? "";
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<CreateProjectForm>(FORM_DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
@@ -107,21 +109,41 @@ function ProjectsIndexPage() {
   function closeModal() {
     setShowCreateModal(false);
     setForm(FORM_DEFAULTS);
+    setFormError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return;
+    if (!orgId) {
+      setFormError("Ingen organisation valgt. Gå tilbage til Vælg arbejdsplads.");
+      return;
+    }
     setSubmitting(true);
+    setFormError(null);
 
     const now = new Date().toISOString();
-    const newId = crypto.randomUUID();
 
     try {
-      if (isSupabaseConfigured && supabase) {
-        const db = supabase as unknown as { from: (t: string) => { insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } };
-        const { error } = await db.from("projects").insert({
-          id: newId,
+      if (!isSupabaseConfigured || !supabase) {
+        throw new Error("Backend er ikke konfigureret.");
+      }
+
+      const db = supabase as unknown as {
+        from: (t: string) => {
+          insert: (v: Record<string, unknown>) => {
+            select: (cols: string) => {
+              single: () => Promise<{
+                data: { id: string; slug: string | null } | null;
+                error: { message: string } | null;
+              }>;
+            };
+          };
+        };
+      };
+      const { data: inserted, error } = await db
+        .from("projects")
+        .insert({
           organization_id: orgId,
           name: form.name.trim(),
           description: form.description.trim() || null,
@@ -129,21 +151,21 @@ function ProjectsIndexPage() {
           location_name: form.location.trim() || null,
           status: form.status,
           country: "Denmark",
-          slug: null,
-          municipality: null,
-          start_date: null,
-          end_date: null,
-        });
-        if (error) throw new Error(error.message);
-      }
+        })
+        .select("id, slug")
+        .single();
+      if (error) throw new Error(error.message);
+      if (!inserted) throw new Error("Ingen data returneret");
+      const newId = inserted.id;
+      const newSlug = inserted.slug ?? newId;
 
-      // Add to local state so it appears immediately in the list
+      // Optimistic local summary so it appears instantly on return
       const newSummary: NatureProjectSummary = {
         project: {
           id: newId,
           organization_id: orgId,
           name: form.name.trim(),
-          slug: null,
+          slug: inserted.slug,
           project_type: form.projectType,
           location_name: form.location.trim() || null,
           municipality: null,
@@ -167,10 +189,15 @@ function ProjectsIndexPage() {
       };
 
       setLocalSummaries((prev) => [newSummary, ...prev]);
+      selectProject(newId);
+      await refresh();
       closeModal();
       showToast("Projekt oprettet");
+      navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Kunne ikke oprette projekt";
       console.error("Kunne ikke oprette projekt:", err);
+      setFormError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -365,6 +392,12 @@ function ProjectsIndexPage() {
                   ))}
                 </div>
               </div>
+
+              {formError && (
+                <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                  {formError}
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-1">
