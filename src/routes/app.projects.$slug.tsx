@@ -163,7 +163,30 @@ function ProjectDetailPage() {
     queryKey: ["data-sources", projectId],
     queryFn: () => getDataSourcesByProject(projectId),
   });
-  const geometry = getProjectGeometrySeed(projectId);
+  // Prefer geometry stored on the project row; fall back to seed data
+  const seedGeometry = getProjectGeometrySeed(projectId);
+  const geometry = (() => {
+    if (seedGeometry.hasValidGeometry) return seedGeometry;
+    if (project?.geometry_centroid_lat != null && project?.geometry_centroid_lng != null) {
+      const polygon =
+        (project.geometry_polygon as { type: "Polygon"; coordinates: number[][][] } | null) ??
+        null;
+      return {
+        polygon,
+        centroid: {
+          lat: project.geometry_centroid_lat,
+          lng: project.geometry_centroid_lng,
+        },
+        areaHa: project.geometry_area_ha ?? null,
+        hasValidGeometry: true,
+        geometrySource:
+          (project.geometry_source as "uploaded" | "manual" | "estimated" | "none" | null) ??
+          "manual",
+        bufferZones: { buffer100m: false, buffer500m: false, buffer1000m: false },
+      };
+    }
+    return seedGeometry;
+  })();
 
   // Async media state
   const [mediaItems, setMediaItems] = useState<
