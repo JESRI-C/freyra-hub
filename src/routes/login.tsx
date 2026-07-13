@@ -9,14 +9,27 @@ import logoMark from "@/assets/gofreyra-logo.png";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Log ind — GoFreyra" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
   component: LoginPage,
 });
 
 type Mode = "signin" | "signup";
 
+// Accept only same-origin relative paths so an attacker cannot redirect
+// through login to an external URL.
+function safeNext(next: string | undefined): string | null {
+  if (!next) return null;
+  if (!next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 function LoginPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const nextPath = safeNext(next);
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +37,10 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  if (!loading && user) return <Navigate to="/select" />;
+  if (!loading && user) {
+    if (nextPath) return <Navigate to={nextPath} />;
+    return <Navigate to="/select" />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,13 +50,14 @@ function LoginPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Logget ind");
-        navigate({ to: "/select" });
+        if (nextPath) window.location.href = nextPath;
+        else navigate({ to: "/select" });
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/select`,
+            emailRedirectTo: `${window.location.origin}${nextPath ?? "/select"}`,
             data: { full_name: fullName || email.split("@")[0] },
           },
         });
@@ -59,11 +76,12 @@ function LoginPage() {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}${nextPath ?? ""}`,
       });
       if (result.error) throw result.error;
       if (result.redirected) return;
-      navigate({ to: "/select" });
+      if (nextPath) window.location.href = nextPath;
+      else navigate({ to: "/select" });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Google-login fejlede";
       toast.error(msg);
