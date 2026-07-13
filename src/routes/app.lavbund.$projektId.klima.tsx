@@ -283,6 +283,66 @@ function KlimaPage() {
         </Card>
       )}
 
+      {/* DecisionsIQ — regelbaserede anbefalinger */}
+      <Card>
+        <CardHeader
+          title="Anbefalinger (DecisionsIQ)"
+          subtitle="Regelbaserede forslag ud fra tiltag, afvigelser og verifikationsgrad."
+        />
+        <div className="px-5 pb-5">
+          {anbefalinger.isLoading && (
+            <div className="text-sm text-muted-foreground">Beregner anbefalinger…</div>
+          )}
+          {anbefalinger.data && anbefalinger.data.length === 0 && (
+            <div className="text-sm text-muted-foreground">
+              Ingen aktive anbefalinger — projektet opfylder tærskelværdierne.
+            </div>
+          )}
+          {anbefalinger.data && anbefalinger.data.length > 0 && (
+            <ul className="space-y-2">
+              {anbefalinger.data.map((a, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-2 text-sm rounded-xl border bg-muted/10 p-3"
+                >
+                  <Sparkles className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                  <span>{a}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Card>
+
+      {/* Impact Exchange — hård spærring for CO₂-kvotesalg */}
+      <Card className="border-destructive/40 bg-destructive/5">
+        <CardHeader
+          title="Impact Exchange"
+          subtitle="Overførsel til CO₂-kvotesalg er spærret for dette modul."
+        />
+        <div className="px-5 pb-5 flex items-start gap-3">
+          <Lock className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="text-sm space-y-2">
+            <p>
+              Verificeret effekt kan bogføres i ESG Ledger og bruges til tilskudsordninger
+              og kommunens klimaregnskab, men <strong>kan ikke overføres til Impact
+              Exchange</strong> som CO₂-kvoter. Metoden (v12) er ikke godkendt til
+              kvotehandel og afviger fra den nationale opgørelse.
+            </p>
+            <button
+              type="button"
+              disabled
+              title="Metoden understøtter ikke kvotesalg"
+              className="inline-flex items-center gap-2 rounded-xl border border-destructive/40 bg-background px-3 py-1.5 text-xs text-destructive opacity-70 cursor-not-allowed"
+            >
+              <Lock className="h-3.5 w-3.5" /> Overfør til Impact Exchange (spærret)
+            </button>
+          </div>
+        </div>
+      </Card>
+
+
+
       <div className="flex justify-end">
         <button
           type="button"
