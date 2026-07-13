@@ -228,8 +228,20 @@ export interface ColumnMapping {
  * confirm or override.
  */
 export function suggestMapping(headers: string[]): ColumnMapping {
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const find = (needles: string[]) => headers.find((h) => needles.includes(norm(h)));
+  // Translitterér danske bogstaver før vi fjerner ikke-alfanumeriske tegn, så
+  // fx "Længdegrad" bliver "laengdegrad" og matcher needle-listen (ellers ville
+  // æ/ø/å blive strippet og danske kolonnenavne aldrig matche).
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/æ/g, "ae")
+      .replace(/ø/g, "oe")
+      .replace(/å/g, "aa")
+      .replace(/[^a-z0-9]/g, "");
+  const find = (needles: string[]) => {
+    const normNeedles = needles.map(norm);
+    return headers.find((h) => normNeedles.includes(norm(h)));
+  };
   return {
     timestamp: find(["timestamp", "measuredat", "time", "date", "datetime", "tid", "tidspunkt", "målttidspunkt", "malttidspunkt"]),
     latitude: find(["lat", "latitude", "breddegrad"]),
@@ -265,9 +277,14 @@ export function validateTabular(preview: TabularPreview, mapping: ColumnMapping)
       }
     }
     if (ok && mapping.latitude && mapping.longitude) {
-      const lat = Number(row[mapping.latitude]);
-      const lng = Number(row[mapping.longitude]);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      const rawLat = row[mapping.latitude];
+      const rawLng = row[mapping.longitude];
+      // Manglende værdier må ikke coerce'es til 0 (Number(null) === 0) og dermed
+      // ende som gyldig (0,0)-position — de skal tælles som ugyldige.
+      const missing = rawLat == null || rawLat === "" || rawLng == null || rawLng === "";
+      const lat = Number(rawLat);
+      const lng = Number(rawLng);
+      if (missing || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
         invalid++;
         ok = false;
       }
