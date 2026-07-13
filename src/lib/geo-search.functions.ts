@@ -6,8 +6,21 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import {
+  ringToWkt,
+  ringToDawaPolygonParam,
+  jordstykkeLabel,
+  jordstykkeAreaHa,
+  markblokLabel,
+  markblokAreaHa,
+  capResults,
+  type AreaFeature,
+  type LngLat,
+} from "@/services/geo-lookup-transform";
 
 const AUTOCOMPLETE_URL = "https://api.dataforsyningen.dk/autocomplete";
+// DAWA jordstykker (matrikler) — gratis, nøglefri del af Dataforsyningen.
+const DAWA_JORDSTYKKER = "https://api.dataforsyningen.dk/jordstykker";
 
 // Landbrugsstyrelsens markblok-WFS (åbne data). Hvis endpoint navnene
 // ændrer sig kan de justeres her uden UI-ændringer.
@@ -24,6 +37,13 @@ const ResolveInput = z.object({ href: z.string().url() });
 const PointInput = z.object({
   lat: z.number().gte(54).lte(58),
   lng: z.number().gte(7).lte(16),
+});
+// Polygon som ring af [lng,lat]-par. Loft matcher tegneværktøjets MAX_DRAW_POINTS.
+const PolygonInput = z.object({
+  ring: z
+    .array(z.tuple([z.number().gte(7).lte(16), z.number().gte(54).lte(58)]))
+    .min(3)
+    .max(501),
 });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -197,47 +217,156 @@ export const pickMarkblok = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * Punkt-opslag af matrikel (jordstykke). Primær kilde: DAWA/Dataforsyningen
+ * jordstykker — gratis og nøglefri, så matrikel-valg virker uden opsætning.
+ * Datafordeler-WFS bruges kun som fallback når service-bruger-creds er sat.
+ */
 export const pickMatrikel = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => PointInput.parse(raw))
   .handler(async ({ data }): Promise<PickedFeature | null> => {
-    const user = process.env.DATAFORDELER_USER;
-    const pass = process.env.DATAFORDELER_PASS;
-    if (!user || !pass) {
-      throw new Error(
-        "Matrikel-opslag kræver DATAFORDELER_USER og DATAFORDELER_PASS på serveren.",
-      );
+    const fromDawa = await pickMatrikelDawa(data.lat, data.lng);
+    if (fromDawa) return fromDawa;
+    return pickMatrikelDatafordeler(data.lat, data.lng);
+  });
+
+async function pickMatrikelDawa(lat: number, lng: number): Promise<PickedFeature | null> {
+  const params = new URLSearchParams({
+    x: String(lng),
+    y: String(lat),
+    srid: "4326",
+    format: "geojson",
+  });
+  const res = await safeFetch(`${DAWA_JORDSTYKKER}?${params}`);
+  if (!res.ok) return null;
+  const fc = await safeJson<WfsFeatureCollection>(res);
+  const f = fc?.features?.[0];
+  const poly = polygonFromWfsGeometry(f?.geometry);
+  if (!f || !poly) return null;
+  const props = f.properties ?? {};
+  return {
+    source: "matrikel",
+    label: jordstykkeLabel(props),
+    properties: normalizeProps(props),
+    geometry: poly,
+    areaHa:
+      jordstykkeAreaHa(props) ??
+      Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
+    attribution: "© SDFI / Dataforsyningen (DAWA)",
+    disclaimer:
+      "Matrikeldata vises som digital reference. Endelig præcis grænse kræver landinspektørfaglig vurdering.",
+  };
+}
+
+async function pickMatrikelDatafordeler(lat: number, lng: number): Promise<PickedFeature | null> {
+  const user = process.env.DATAFORDELER_USER;
+  const pass = process.env.DATAFORDELER_PASS;
+  if (!user || !pass) return null; // ingen creds — DAWA var eneste mulighed
+  const params = new URLSearchParams({
+    username: user,
+    password: pass,
+    SERVICE: "WFS",
+    VERSION: "2.0.0",
+    REQUEST: "GetFeature",
+    TYPENAMES: "mat:Jordstykke_Gaeldende",
+    SRSNAME: "EPSG:4326",
+    COUNT: "1",
+    OUTPUTFORMAT: "application/json",
+    CQL_FILTER: `INTERSECTS(geometri, POINT(${lng} ${lat}))`,
+  });
+  const res = await safeFetch(`${DAF_MATRIKEL_WFS}?${params}`);
+  if (!res.ok) return null;
+  const fc = await safeJson<WfsFeatureCollection>(res);
+  const f = fc?.features?.[0];
+  const poly = polygonFromWfsGeometry(f?.geometry);
+  if (!f || !poly) return null;
+  const props = f.properties ?? {};
+  const mnr = String(props["matrikelnummer"] ?? "?");
+  const ejerlav = String(props["ejerlavsnavn"] ?? props["ejerlavskode"] ?? "?");
+  return {
+    source: "matrikel",
+    label: `Matr.nr. ${mnr}, ${ejerlav}`,
+    properties: normalizeProps(props),
+    geometry: poly,
+    areaHa: Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
+    attribution: "© Geodatastyrelsen / Datafordeleren",
+    disclaimer:
+      "Matrikeldata vises som digital reference. Endelig præcis grænse kræver landinspektørfaglig vurdering.",
+  };
+}
+
+// ─── Områdeopslag: hvilke matrikler/markblokke ligger i et tegnet område ─────
+
+export interface AreaLookupResult {
+  items: AreaFeature[];
+  truncated: boolean;
+}
+
+const AREA_LOOKUP_MAX = 500;
+
+/** Matrikler (jordstykker) der skærer polygonen — DAWA, pagineret op til 500. */
+export const listMatriklerInArea = createServerFn({ method: "POST" })
+  .inputValidator((raw: unknown) => PolygonInput.parse(raw))
+  .handler(async ({ data }): Promise<AreaLookupResult> => {
+    const ring = data.ring as LngLat[];
+    const all: AreaFeature[] = [];
+    const perPage = 100;
+    for (let page = 1; page <= Math.ceil(AREA_LOOKUP_MAX / perPage) + 1; page++) {
+      const params = new URLSearchParams({
+        polygon: ringToDawaPolygonParam(ring),
+        srid: "4326",
+        format: "geojson",
+        per_side: String(perPage),
+        side: String(page),
+      });
+      const res = await safeFetch(`${DAWA_JORDSTYKKER}?${params}`);
+      if (!res.ok) break;
+      const fc = await safeJson<WfsFeatureCollection>(res);
+      const feats = fc?.features ?? [];
+      for (const f of feats) {
+        const props = f.properties ?? {};
+        all.push({
+          id: String(f.id ?? `${props["ejerlavkode"] ?? ""}-${props["matrikelnr"] ?? all.length}`),
+          label: jordstykkeLabel(props),
+          areaHa: jordstykkeAreaHa(props),
+          geometry: (f.geometry ?? null) as AreaFeature["geometry"],
+        });
+      }
+      if (feats.length < perPage || all.length > AREA_LOOKUP_MAX) break;
     }
+    return capResults(all, AREA_LOOKUP_MAX);
+  });
+
+/** Markblokke der skærer polygonen — LBST-WFS med INTERSECTS, op til 500. */
+export const listMarkblokkeInArea = createServerFn({ method: "POST" })
+  .inputValidator((raw: unknown) => PolygonInput.parse(raw))
+  .handler(async ({ data }): Promise<AreaLookupResult> => {
+    const ring = data.ring as LngLat[];
     const params = new URLSearchParams({
-      username: user,
-      password: pass,
+      SERVICENAME: "marker_wfs_v3",
       SERVICE: "WFS",
       VERSION: "2.0.0",
       REQUEST: "GetFeature",
-      TYPENAMES: "mat:Jordstykke_Gaeldende",
+      TYPENAMES: "Markblokke",
       SRSNAME: "EPSG:4326",
-      COUNT: "1",
+      COUNT: String(AREA_LOOKUP_MAX),
       OUTPUTFORMAT: "application/json",
-      CQL_FILTER: `INTERSECTS(geometri, POINT(${data.lng} ${data.lat}))`,
+      CQL_FILTER: `INTERSECTS(geom, ${ringToWkt(ring)})`,
     });
-    const res = await safeFetch(`${DAF_MATRIKEL_WFS}?${params}`);
-    if (!res.ok) return null;
+    const res = await safeFetch(`${LBST_WFS}?${params}`);
+    if (!res.ok) return { items: [], truncated: false };
     const fc = await safeJson<WfsFeatureCollection>(res);
-    const f = fc?.features?.[0];
-    const poly = polygonFromWfsGeometry(f?.geometry);
-    if (!f || !poly) return null;
-    const props = f.properties ?? {};
-    const mnr = String(props["matrikelnummer"] ?? "?");
-    const ejerlav = String(props["ejerlavsnavn"] ?? props["ejerlavskode"] ?? "?");
-    return {
-      source: "matrikel",
-      label: `Matr.nr. ${mnr}, ${ejerlav}`,
-      properties: normalizeProps(props),
-      geometry: poly,
-      areaHa: Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
-      attribution: "© Geodatastyrelsen / Datafordeleren",
-      disclaimer:
-        "Matrikeldata vises som digital reference. Endelig præcis grænse kræver landinspektørfaglig vurdering.",
-    };
+    const feats = fc?.features ?? [];
+    const items: AreaFeature[] = feats.map((f, i) => {
+      const props = f.properties ?? {};
+      return {
+        id: String(f.id ?? i),
+        label: markblokLabel(props, f.id != null ? String(f.id) : undefined),
+        areaHa: markblokAreaHa(props),
+        geometry: (f.geometry ?? null) as AreaFeature["geometry"],
+      };
+    });
+    return capResults(items, AREA_LOOKUP_MAX);
   });
 
 function normalizeProps(

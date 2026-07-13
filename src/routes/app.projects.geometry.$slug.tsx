@@ -11,6 +11,7 @@ import { useMapEditor } from "@/hooks/useMapEditor";
 import { getProjectBySlug } from "@/services/projects-service";
 import { parseProjectGeometry } from "@/services/geo-service";
 import { pickMarkblok, pickMatrikel, type PickedFeature } from "@/lib/geo-search.functions";
+import { AreaCadastrePanel } from "@/components/data-foundation/AreaCadastrePanel";
 import type { GeoJsonPolygon } from "@/services/zones-service";
 
 export const Route = createFileRoute("/app/projects/geometry/$slug")({
@@ -90,6 +91,8 @@ function GeometryEditorPage() {
   const [pickedFeature, setPickedFeature] = useState<PickedFeature | null>(null);
   const [picking, setPicking] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
+  // Fremhævet matrikel/markblok fra områdepanelet (vises som preview på kortet).
+  const [highlightGeom, setHighlightGeom] = useState<GeoJsonPolygon | null>(null);
 
   const { data: project } = useSuspenseQuery({
     queryKey: ["project-by-slug", slug],
@@ -387,6 +390,16 @@ function GeometryEditorPage() {
               <p className="text-sm text-muted-foreground">Intet område defineret endnu.</p>
             )}
           </Card>
+
+          {/* 5. Matrikler & markblokke i området */}
+          {hasPolygon && (
+            <Card className="p-4">
+              <AreaCadastrePanel
+                polygon={project.geometry_polygon as GeoJsonPolygon | null}
+                onHighlight={setHighlightGeom}
+              />
+            </Card>
+          )}
         </div>
 
         {/* ── Kort ──────────────────────────────────────────────────────────── */}
@@ -409,7 +422,7 @@ function GeometryEditorPage() {
             addressMarker={addressMarker}
             pickMode={pickMode}
             onFeaturePicked={handleFeaturePick}
-            previewPolygon={(pickedFeature?.geometry ?? null) as GeoJsonPolygon | null}
+            previewPolygon={(pickedFeature?.geometry ?? highlightGeom ?? null) as GeoJsonPolygon | null}
             height={640}
           />
         </div>
