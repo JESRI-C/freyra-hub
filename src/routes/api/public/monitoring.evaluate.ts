@@ -28,6 +28,9 @@ export const Route = createFileRoute("/api/public/monitoring/evaluate")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { runQualityEvaluation } = await import("@/services/monitoring/quality-engine");
         const { runAlertEvaluation } = await import("@/services/monitoring/alert-engine");
+        const { runIndicatorAggregation } = await import(
+          "@/services/monitoring/indicator-aggregation-engine"
+        );
 
         // Optional body: { project_id?: string } for single-project runs.
         let projectIds: string[] = [];
@@ -39,13 +42,22 @@ export const Route = createFileRoute("/api/public/monitoring/evaluate")({
         }
 
         if (projectIds.length === 0) {
-          const [qr, ar] = await Promise.all([
+          // Projekter med aktive regler ELLER nye observationer (seneste døgn)
+          // — så indicator-genberegning også kører for projekter uden regler.
+          const sinceObs = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const [qr, ar, obs] = await Promise.all([
             supabaseAdmin.from("data_quality_rules").select("project_id").eq("is_active", true),
             supabaseAdmin.from("alert_rules").select("project_id").eq("is_active", true),
+            supabaseAdmin
+              .from("observations")
+              .select("project_id")
+              .gte("observed_at", sinceObs)
+              .limit(1000),
           ]);
           const ids = new Set<string>();
           for (const row of qr.data ?? []) if (row.project_id) ids.add(row.project_id);
           for (const row of ar.data ?? []) if (row.project_id) ids.add(row.project_id);
+          for (const row of obs.data ?? []) if (row.project_id) ids.add(row.project_id);
           projectIds = Array.from(ids);
         }
 
@@ -62,7 +74,12 @@ export const Route = createFileRoute("/api/public/monitoring/evaluate")({
           try {
             const quality = await runQualityEvaluation(pid, { client });
             const alerts = await runAlertEvaluation(pid, { client });
-            results.push({ project_id: pid, quality, alerts });
+            const indicators = await runIndicatorAggregation(pid, {
+              client: supabaseAdmin as unknown as import(
+                "@/services/monitoring/indicator-aggregation-engine"
+              ).AggregationClient,
+            });
+            results.push({ project_id: pid, quality, alerts, indicators });
           } catch (e) {
             results.push({ project_id: pid, error: (e as Error).message });
           }
