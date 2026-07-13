@@ -300,7 +300,36 @@ async function fetchGroundwater(lat: number, lng: number) {
   return { boreholesWithin500m: within500, nearestBoreholeM: nearest, depthM: depth };
 }
 
-// ─── Nedbør (DMI norm) ────────────────────────────────────────────────────────
+// ─── Nedbør (DMI climateData → norm-fallback) ────────────────────────────────
+
+const DMI_CLIMATE = "https://opendataapi.dmi.dk/v2/climateData/collections/stationValue/items";
+
+/**
+ * Henter ÆGTE årsnedbør fra DMI climateData (acc_precip pr. år for stationer
+ * omkring punktet). Kræver DMI_API_KEY (gratis, open.dmi.dk). Returnerer null
+ * uden nøgle eller ved fejl — caller falder tilbage til klimanorm.
+ */
+async function fetchDmiAnnualRainfall(lat: number, lng: number): Promise<number | null> {
+  const apiKey = process.env.DMI_API_KEY ?? process.env.VITE_DMI_API_KEY;
+  if (!apiKey) return null;
+  const delta = 0.4; // ~40 km boks — klimastationer ligger spredt
+  const lastYear = new Date().getFullYear() - 1;
+  const params = new URLSearchParams({
+    parameterId: "acc_precip",
+    timeResolution: "year",
+    datetime: `${lastYear}-01-01T00:00:00Z/${lastYear}-12-31T23:59:59Z`,
+    bbox: `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`,
+    limit: "20",
+    "api-key": apiKey,
+  });
+  const res = await safeFetch(`${DMI_CLIMATE}?${params}`);
+  const json = await safeJson<{ features?: Array<{ properties?: { value?: number } }> }>(res);
+  const values = (json?.features ?? [])
+    .map((f) => f.properties?.value)
+    .filter((v): v is number => typeof v === "number" && v > 100 && v < 2500);
+  if (values.length === 0) return null;
+  return Math.round(values.reduce((s, v) => s + v, 0) / values.length);
+}
 
 function rainfallFromClimateNorm(lat: number, lng: number) {
   // Grov klimazone: vest/øst Danmark. Vestjylland ~900 mm, København ~600 mm.
@@ -329,7 +358,10 @@ export const fetchEnvironmentalBundle = createServerFn({ method: "POST" })
       fetchTerrain(data.lat, data.lng).catch(() => ({ elevationM: null, slopePct: null, aspect: "unknown" as const })),
       fetchGroundwater(data.lat, data.lng).catch(() => ({ boreholesWithin500m: 0, nearestBoreholeM: null, depthM: null })),
     ]);
-    const rain = rainfallFromClimateNorm(data.lat, data.lng);
+    const norm = rainfallFromClimateNorm(data.lat, data.lng);
+    // Ægte DMI-måling når nøglen findes; designregn beholder norm-værdierne
+    // (dimensioneringsstørrelser), men årsnedbøren bliver målt i stedet for skønnet.
+    const dmiAnnual = await fetchDmiAnnualRainfall(data.lat, data.lng).catch(() => null);
 
     return {
       nature: { ...p3, ...water },
@@ -338,10 +370,10 @@ export const fetchEnvironmentalBundle = createServerFn({ method: "POST" })
       terrain,
       groundwater,
       rainfall: {
-        annualMm: rain.annualMm,
-        designRain10yrMmHr: rain.designRain10yrMmHr,
-        designRain100yrMmHr: rain.designRain100yrMmHr,
-        source: rain.source,
+        annualMm: dmiAnnual ?? norm.annualMm,
+        designRain10yrMmHr: norm.designRain10yrMmHr,
+        designRain100yrMmHr: norm.designRain100yrMmHr,
+        source: dmiAnnual != null ? "dmi-live" : norm.source,
       },
       fetchedAt: new Date().toISOString(),
     };
