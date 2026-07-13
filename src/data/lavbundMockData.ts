@@ -162,10 +162,10 @@ export const MOCK_TRANSEKTER: Transekt[] = MOCK_PROJEKTER.flatMap((p) => {
   for (let i = 0; i < antal; i++) {
     const base = {
       projektId: p.id,
-      landskabstype: (i % 2 === 0 ? "moraene" : "hedeslette") as const,
+      landskabstype: (i % 2 === 0 ? "moraene" : "hedeslette") as Transekt["landskabstype"],
       vandloebsType: ((i % 3) + 1) as 1 | 2 | 3,
       georegion: (((i * 2) % 8) + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-      vandloebsform: (i % 2 === 0 ? "slynget" : "udrettet") as const,
+      vandloebsform: (i % 2 === 0 ? "slynget" : "udrettet") as Transekt["vandloebsform"],
       laengdeM: 1200 + i * 200,
     };
     rows.push({
