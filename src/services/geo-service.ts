@@ -176,6 +176,44 @@ export function parseProjectGeometry(
   };
 }
 
+/** Projekt-felter der er nødvendige for at udlede geometri fra en DB-række. */
+export interface ProjectGeometryFields {
+  id: string;
+  geometry_polygon?: object | null;
+  geometry_centroid_lat?: number | null;
+  geometry_centroid_lng?: number | null;
+  geometry_area_ha?: number | null;
+  geometry_source?: string | null;
+}
+
+/**
+ * Resolve a project's geometry with the persisted DB polygon taking priority
+ * over seed data. Falls back to the seeded geometry (and finally an empty
+ * geometry) only when the project has neither a saved polygon nor a centroid.
+ */
+export function resolveProjectGeometry(project: ProjectGeometryFields | null | undefined): ProjectGeometry {
+  if (!project) return getProjectGeometrySeed("");
+  if (project.geometry_polygon != null || project.geometry_centroid_lat != null) {
+    const parsed = parseProjectGeometry(
+      (project.geometry_polygon ?? null) as GeoJSONPolygon | null,
+      (project.geometry_source as ProjectGeometry["geometrySource"] | null) ?? "manual",
+    );
+    const centroid =
+      parsed.centroid ??
+      (project.geometry_centroid_lat != null && project.geometry_centroid_lng != null
+        ? { lat: project.geometry_centroid_lat, lng: project.geometry_centroid_lng }
+        : null);
+    return {
+      ...parsed,
+      centroid,
+      areaHa: parsed.areaHa ?? project.geometry_area_ha ?? null,
+      // Et centroid uden polygon er stadig en brugbar position for kortet.
+      hasValidGeometry: parsed.hasValidGeometry,
+    };
+  }
+  return getProjectGeometrySeed(project.id);
+}
+
 /** Get geometry for a project from seed data (fallback when Supabase not configured). */
 export function getProjectGeometrySeed(projectId: string): ProjectGeometry {
   return (

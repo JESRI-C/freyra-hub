@@ -3,10 +3,11 @@ import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { getProjectBySlug } from "@/services/projects-service";
-import { getProjectGeometrySeed } from "@/services/geo-service";
+import { resolveProjectGeometry } from "@/services/geo-service";
 import { getProjectSensors } from "@/services/iot-simulation-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
 import { getMapLayers, getProjectGeoJSON, getProjectMetrics } from "@/services/geospatial-service";
+import { fetchAndIngestNatureGeo } from "@/lib/nature-geo.functions";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
 import { LayerControlPanel } from "@/components/maps/LayerControlPanel";
 import { ProjectMetricsPanel } from "@/components/maps/ProjectMetricsPanel";
@@ -83,7 +84,8 @@ function GeoMapPage() {
   });
 
   const projectId = project?.id ?? "";
-  const geometry = getProjectGeometrySeed(projectId);
+  // DB-tegnet polygon vinder over seed-geometri; seed er kun fallback.
+  const geometry = resolveProjectGeometry(project);
   const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
 
   // Environmental context for DMI overlay
@@ -98,6 +100,22 @@ function GeoMapPage() {
         geometry,
       ),
     enabled: !!projectId,
+  });
+
+  // Natur-geodata (§3 + vandløb): hentes live fra Miljøportal WFS og
+  // persisteres server-side i geo_features/nature_contexts (best-effort).
+  const { data: natureGeo } = useQuery({
+    queryKey: ["nature-geo", projectId],
+    queryFn: () =>
+      fetchAndIngestNatureGeo({
+        data: {
+          projectId,
+          lat: geometry.centroid?.lat ?? 0,
+          lng: geometry.centroid?.lng ?? 0,
+        },
+      }),
+    enabled: !!projectId && !!geometry.centroid,
+    staleTime: 30 * 60 * 1000,
   });
 
   // Geo data
@@ -181,6 +199,12 @@ function GeoMapPage() {
               projectId={projectId}
               height={540}
               sensors={visibleSlugs.has("sensors") ? sensors : []}
+              paragraph3GeoJSON={
+                visibleSlugs.has("protected_nature") ? (natureGeo?.paragraph3 ?? null) : null
+              }
+              watercoursesGeoJSON={
+                visibleSlugs.has("watercourses") ? (natureGeo?.watercourses ?? null) : null
+              }
               dmiData={
                 envCtx?.liveData?.weather
                   ? {

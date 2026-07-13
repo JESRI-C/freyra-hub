@@ -60,7 +60,7 @@ import {
   formatLastSync,
 } from "@/services/data-sources-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
-import { getProjectGeometrySeed } from "@/services/geo-service";
+import { resolveProjectGeometry } from "@/services/geo-service";
 import { ProjectEnvironmentalDashboard } from "@/components/data-foundation/ProjectEnvironmentalDashboard";
 import type { Action } from "@/lib/supabase/types";
 
@@ -157,7 +157,7 @@ function ProjectDetailPage() {
   const { data: environmentalCtx } = useSuspenseQuery({
     queryKey: ["environmental-context", slug],
     queryFn: () => {
-      const geometry = getProjectGeometrySeed(projectId);
+      const geometry = resolveProjectGeometry(project);
       return buildProjectEnvironmentalContext(
         projectId,
         project?.name ?? "",
@@ -179,28 +179,7 @@ function ProjectDetailPage() {
   });
   // Geometri: DB-tegnet polygon vinder altid over seed-data. Kun hvis projektet
   // hverken har en gemt polygon eller centroid, falder vi tilbage til seed.
-  const seedGeometry = getProjectGeometrySeed(projectId);
-  const geometry = (() => {
-    if (project?.geometry_polygon != null || project?.geometry_centroid_lat != null) {
-      const polygon =
-        (project.geometry_polygon as { type: "Polygon"; coordinates: number[][][] } | null) ??
-        null;
-      return {
-        polygon,
-        centroid:
-          project.geometry_centroid_lat != null && project.geometry_centroid_lng != null
-            ? { lat: project.geometry_centroid_lat, lng: project.geometry_centroid_lng }
-            : null,
-        areaHa: project.geometry_area_ha ?? null,
-        hasValidGeometry: polygon != null,
-        geometrySource:
-          (project.geometry_source as "uploaded" | "manual" | "estimated" | "none" | null) ??
-          "manual",
-        bufferZones: { buffer100m: false, buffer500m: false, buffer1000m: false },
-      };
-    }
-    return seedGeometry;
-  })();
+  const geometry = resolveProjectGeometry(project);
 
   // A project has "real" geometry only when a polygon has been drawn or uploaded —
   // a centroid alone (from location name) is not enough to run area-based analyses.
