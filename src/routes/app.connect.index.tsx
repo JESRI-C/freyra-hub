@@ -35,14 +35,71 @@ import {
 import { PROJECT_FACTS } from "@/lib/platform-data";
 import { useLiveActivityFeed, useLiveCriticalActions } from "@/lib/platform-live";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
+import { useQuery } from "@tanstack/react-query";
+import { useConnectContext } from "@/lib/connect-context";
+import {
+  listDevices,
+  computeDeviceKpis,
+  type MonitoringDevice,
+} from "@/services/monitoring/devices-service";
+import { listDataSources, type DataSource } from "@/services/monitoring/data-sources-service";
+import { listIssues, type QualityIssue } from "@/services/monitoring/quality-rules-service";
 
 export const Route = createFileRoute("/app/connect/")({
   component: Page,
 });
 
+/** Relativ dansk tidsangivelse for seneste sync. */
+function relativeTime(iso: string | null): string {
+  if (!iso) return "—";
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (mins < 1) return "nu";
+  if (mins < 60) return `${mins} min siden`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} t siden`;
+  return `${Math.round(hours / 24)} d siden`;
+}
+
 function Page() {
   const activityFeed = useLiveActivityFeed();
   const criticalActions = useLiveCriticalActions();
+  const { projectId } = useConnectContext();
+
+  // Ægte KPI-data fra monitoring-tabellerne (tom liste når intet projekt valgt).
+  const { data: devices = [] } = useQuery({
+    queryKey: ["monitoring-devices", projectId],
+    queryFn: () => (projectId ? listDevices(projectId) : Promise.resolve<MonitoringDevice[]>([])),
+  });
+  const { data: dataSources = [] } = useQuery({
+    queryKey: ["monitoring-data-sources", projectId],
+    queryFn: () => (projectId ? listDataSources(projectId) : Promise.resolve<DataSource[]>([])),
+  });
+  const { data: openIssues = [] } = useQuery({
+    queryKey: ["quality-issues-open", projectId],
+    queryFn: () =>
+      projectId
+        ? listIssues({ projectId, status: "open" })
+        : Promise.resolve<QualityIssue[]>([]),
+  });
+
+  const deviceKpis = computeDeviceKpis(devices);
+  const activeSources = dataSources.filter((s) => s.status === "active" || s.status === "online").length;
+  const totalDataPoints = devices.length + dataSources.length;
+  const qualityScore =
+    totalDataPoints > 0
+      ? Math.max(0, Math.min(100, Math.round(100 - (openIssues.length / Math.max(1, totalDataPoints)) * 100)))
+      : null;
+  const lastSync = devices
+    .map((d) => d.last_seen_at)
+    .filter((t): t is string => !!t)
+    .sort()
+    .at(-1) ??
+    dataSources
+      .map((s) => s.last_sync_at)
+      .filter((t): t is string => !!t)
+      .sort()
+      .at(-1) ?? null;
+  const hasAnyData = devices.length > 0 || dataSources.length > 0;
   return (
     <main className="p-4 sm:p-6 w-full min-w-0 space-y-4">
       <ModuleHeader
@@ -65,73 +122,74 @@ function Page() {
         }}
       />
 
-      <Card className="p-4 border-warning/40 bg-warning/5 text-sm">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-          <div className="min-w-0">
-            <div className="font-medium">Overblikket forbindes til ægte data i Fase B</div>
-            <p className="text-muted-foreground text-xs mt-1">
-              Statuskort, datastrøm og aktivitetsfeed nedenfor viser stadig eksempler
-              fra prototypen. Datamodellen er på plads — næste fase kobler dem til
-              dine reelle enheder, målinger og zoner.
-            </p>
+      {!hasAnyData && (
+        <Card className="p-4 border-warning/40 bg-warning/5 text-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <div className="font-medium">Ingen enheder eller datakilder endnu</div>
+              <p className="text-muted-foreground text-xs mt-1">
+                KPI&apos;erne nedenfor viser live-tal fra dine enheder, datakilder og
+                kvalitets-issues, så snart de første er oprettet. Start med
+                &quot;Tilføj enhed&quot; eller aktivér en datakilde.
+              </p>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       <PageHeader
         title="Forbindelses-KPI'er"
-        description="Realtidsoverblik på datarygradens sundhed (eksempeldata)."
+        description="Realtidsoverblik på datarygradens sundhed."
       />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <ConnectionHealthCard
           label="Aktive datakilder"
-          value="—"
-          sub="Ingen data endnu"
+          value={dataSources.length > 0 ? String(activeSources) : "—"}
+          sub={dataSources.length > 0 ? `af ${dataSources.length} i alt` : "Ingen data endnu"}
           icon={<Database className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Online"
-          value="—"
-          sub="Ingen data endnu"
+          value={devices.length > 0 ? String(deviceKpis.online) : "—"}
+          sub={devices.length > 0 ? `af ${deviceKpis.total} enheder` : "Ingen enheder endnu"}
           icon={<CheckCircle2 className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Kræver handling"
-          value="—"
-          sub="Ingen data endnu"
+          value={devices.length > 0 ? String(deviceKpis.attention) : "—"}
+          sub={openIssues.length > 0 ? `${openIssues.length} åbne kvalitets-issues` : "Ingen åbne issues"}
           icon={<AlertTriangle className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Offline"
-          value="—"
-          sub="Ingen data endnu"
+          value={devices.length > 0 ? String(deviceKpis.offline) : "—"}
+          sub={deviceKpis.lowBattery > 0 ? `${deviceKpis.lowBattery} med lavt batteri` : "Ingen data endnu"}
           icon={<WifiOff className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Ø datakvalitet"
-          value="—"
-          sub="Beregnes i Fase B"
+          value={qualityScore != null ? `${qualityScore}%` : "—"}
+          sub={qualityScore != null ? `${openIssues.length} åbne issues` : "Afventer data"}
           icon={<ShieldCheck className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Seneste sync"
-          value="—"
-          sub="Ingen data endnu"
+          value={relativeTime(lastSync)}
+          sub={lastSync ? new Date(lastSync).toLocaleString("da-DK", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "Ingen data endnu"}
           icon={<Clock className="h-5 w-5" />}
         />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
-        <Section title="Status på datakilder" subtitle="Fordeling på sundhedstilstand">
+        <Section title="Status på enheder" subtitle="Fordeling på sundhedstilstand (live)">
           <Bars
             data={[
-              { label: "Online", value: 36 },
-              { label: "Delvist aktiv", value: 4 },
-              { label: "Kræver handling", value: 4 },
-              { label: "Offline", value: 2 },
-              { label: "Under opsætning", value: 3 },
+              { label: "Online", value: deviceKpis.online },
+              { label: "Kræver handling", value: deviceKpis.attention },
+              { label: "Offline", value: deviceKpis.offline },
+              { label: "Lavt batteri", value: deviceKpis.lowBattery },
             ]}
           />
         </Section>

@@ -83,6 +83,7 @@ import { Route as AppConnectIntegrationsRouteImport } from './routes/app.connect
 import { Route as AppConnectDevicesRouteImport } from './routes/app.connect.devices'
 import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alerts'
 import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
+import { Route as ApiPublicObservationsRouteImport } from './routes/api/public/observations'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
@@ -469,6 +470,11 @@ const AppConnectAddRoute = AppConnectAddRouteImport.update({
   path: '/add',
   getParentRoute: () => AppConnectRoute,
 } as any)
+const ApiPublicObservationsRoute = ApiPublicObservationsRouteImport.update({
+  id: '/api/public/observations',
+  path: '/api/public/observations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -553,6 +559,7 @@ export interface FileRoutesByFullPath {
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/observations': typeof ApiPublicObservationsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
@@ -633,6 +640,7 @@ export interface FileRoutesByTo {
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/observations': typeof ApiPublicObservationsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
@@ -721,6 +729,7 @@ export interface FileRoutesById {
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/public/observations': typeof ApiPublicObservationsRoute
   '/app/connect/add': typeof AppConnectAddRoute
   '/app/connect/alerts': typeof AppConnectAlertsRoute
   '/app/connect/devices': typeof AppConnectDevicesRoute
@@ -810,6 +819,7 @@ export interface FileRouteTypes {
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/observations'
     | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
@@ -890,6 +900,7 @@ export interface FileRouteTypes {
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/observations'
     | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
@@ -977,6 +988,7 @@ export interface FileRouteTypes {
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/public/observations'
     | '/app/connect/add'
     | '/app/connect/alerts'
     | '/app/connect/devices'
@@ -1054,6 +1066,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiPublicObservationsRoute: typeof ApiPublicObservationsRoute
   ApiPublicMonitoringEvaluateRoute: typeof ApiPublicMonitoringEvaluateRoute
 }
 
@@ -1577,6 +1590,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConnectAddRouteImport
       parentRoute: typeof AppConnectRoute
     }
+    '/api/public/observations': {
+      id: '/api/public/observations'
+      path: '/api/public/observations'
+      fullPath: '/api/public/observations'
+      preLoaderRoute: typeof ApiPublicObservationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -1905,6 +1925,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiPublicObservationsRoute: ApiPublicObservationsRoute,
   ApiPublicMonitoringEvaluateRoute: ApiPublicMonitoringEvaluateRoute,
 }
 export const routeTree = rootRouteImport
