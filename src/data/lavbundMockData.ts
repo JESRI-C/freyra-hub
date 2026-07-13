@@ -6,6 +6,7 @@ import type {
   LavbundsProjekt,
   LedgerPost,
   Maalepunkt,
+  Opmaalingsintensitet,
   Transekt,
   VandstandsReading,
 } from "@/types/lavbund";
@@ -120,10 +121,10 @@ export const MOCK_MAALEPUNKTER: Maalepunkt[] = MOCK_PROJEKTER.flatMap((p, pi) =>
     position: { x: 20 + i * 15 + pi * 3, y: 25 + ((i * 17) % 40) },
     intensiteter:
       i === 0
-        ? (["minimal", "standard", "intensiv"] as const).slice()
+        ? (["minimal", "standard", "intensiv"] as Opmaalingsintensitet[])
         : i < 3
-          ? (["standard", "intensiv"] as const).slice()
-          : (["intensiv"] as const).slice(),
+          ? (["standard", "intensiv"] as Opmaalingsintensitet[])
+          : (["intensiv"] as Opmaalingsintensitet[]),
   })),
 );
 

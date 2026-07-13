@@ -19,6 +19,7 @@ import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppPublicImpactRouteImport } from './routes/app.public-impact'
 import { Route as AppOverviewRouteImport } from './routes/app.overview'
 import { Route as AppLedgerRouteImport } from './routes/app.ledger'
+import { Route as AppLavbundRouteImport } from './routes/app.lavbund'
 import { Route as AppImpactRouteImport } from './routes/app.impact'
 import { Route as AppDecisionsRouteImport } from './routes/app.decisions'
 import { Route as AppDataRouteImport } from './routes/app.data'
@@ -27,6 +28,7 @@ import { Route as AppSettingsIndexRouteImport } from './routes/app.settings.inde
 import { Route as AppReportsIndexRouteImport } from './routes/app.reports.index'
 import { Route as AppProjectsIndexRouteImport } from './routes/app.projects.index'
 import { Route as AppLedgerIndexRouteImport } from './routes/app.ledger.index'
+import { Route as AppLavbundIndexRouteImport } from './routes/app.lavbund.index'
 import { Route as AppImpactIndexRouteImport } from './routes/app.impact.index'
 import { Route as AppDecisionsIndexRouteImport } from './routes/app.decisions.index'
 import { Route as AppConstructionIndexRouteImport } from './routes/app.construction.index'
@@ -132,6 +134,11 @@ const AppLedgerRoute = AppLedgerRouteImport.update({
   path: '/ledger',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLavbundRoute = AppLavbundRouteImport.update({
+  id: '/lavbund',
+  path: '/lavbund',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppImpactRoute = AppImpactRouteImport.update({
   id: '/impact',
   path: '/impact',
@@ -171,6 +178,11 @@ const AppLedgerIndexRoute = AppLedgerIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppLedgerRoute,
+} as any)
+const AppLavbundIndexRoute = AppLavbundIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppLavbundRoute,
 } as any)
 const AppImpactIndexRoute = AppImpactIndexRouteImport.update({
   id: '/',
@@ -456,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
   '/app/impact': typeof AppImpactRouteWithChildren
+  '/app/lavbund': typeof AppLavbundRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
   '/app/public-impact': typeof AppPublicImpactRoute
@@ -512,6 +525,7 @@ export interface FileRoutesByFullPath {
   '/app/construction/': typeof AppConstructionIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
+  '/app/lavbund/': typeof AppLavbundIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
   '/app/projects/': typeof AppProjectsIndexRoute
   '/app/reports/': typeof AppReportsIndexRoute
@@ -580,6 +594,7 @@ export interface FileRoutesByTo {
   '/app/construction': typeof AppConstructionIndexRoute
   '/app/decisions': typeof AppDecisionsIndexRoute
   '/app/impact': typeof AppImpactIndexRoute
+  '/app/lavbund': typeof AppLavbundIndexRoute
   '/app/ledger': typeof AppLedgerIndexRoute
   '/app/projects': typeof AppProjectsIndexRoute
   '/app/reports': typeof AppReportsIndexRoute
@@ -599,6 +614,7 @@ export interface FileRoutesById {
   '/app/data': typeof AppDataRoute
   '/app/decisions': typeof AppDecisionsRouteWithChildren
   '/app/impact': typeof AppImpactRouteWithChildren
+  '/app/lavbund': typeof AppLavbundRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
   '/app/public-impact': typeof AppPublicImpactRoute
@@ -655,6 +671,7 @@ export interface FileRoutesById {
   '/app/construction/': typeof AppConstructionIndexRoute
   '/app/decisions/': typeof AppDecisionsIndexRoute
   '/app/impact/': typeof AppImpactIndexRoute
+  '/app/lavbund/': typeof AppLavbundIndexRoute
   '/app/ledger/': typeof AppLedgerIndexRoute
   '/app/projects/': typeof AppProjectsIndexRoute
   '/app/reports/': typeof AppReportsIndexRoute
@@ -675,6 +692,7 @@ export interface FileRouteTypes {
     | '/app/data'
     | '/app/decisions'
     | '/app/impact'
+    | '/app/lavbund'
     | '/app/ledger'
     | '/app/overview'
     | '/app/public-impact'
@@ -731,6 +749,7 @@ export interface FileRouteTypes {
     | '/app/construction/'
     | '/app/decisions/'
     | '/app/impact/'
+    | '/app/lavbund/'
     | '/app/ledger/'
     | '/app/projects/'
     | '/app/reports/'
@@ -799,6 +818,7 @@ export interface FileRouteTypes {
     | '/app/construction'
     | '/app/decisions'
     | '/app/impact'
+    | '/app/lavbund'
     | '/app/ledger'
     | '/app/projects'
     | '/app/reports'
@@ -817,6 +837,7 @@ export interface FileRouteTypes {
     | '/app/data'
     | '/app/decisions'
     | '/app/impact'
+    | '/app/lavbund'
     | '/app/ledger'
     | '/app/overview'
     | '/app/public-impact'
@@ -873,6 +894,7 @@ export interface FileRouteTypes {
     | '/app/construction/'
     | '/app/decisions/'
     | '/app/impact/'
+    | '/app/lavbund/'
     | '/app/ledger/'
     | '/app/projects/'
     | '/app/reports/'
@@ -963,6 +985,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLedgerRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/lavbund': {
+      id: '/app/lavbund'
+      path: '/lavbund'
+      fullPath: '/app/lavbund'
+      preLoaderRoute: typeof AppLavbundRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/impact': {
       id: '/app/impact'
       path: '/impact'
@@ -1018,6 +1047,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/ledger/'
       preLoaderRoute: typeof AppLedgerIndexRouteImport
       parentRoute: typeof AppLedgerRoute
+    }
+    '/app/lavbund/': {
+      id: '/app/lavbund/'
+      path: '/'
+      fullPath: '/app/lavbund/'
+      preLoaderRoute: typeof AppLavbundIndexRouteImport
+      parentRoute: typeof AppLavbundRoute
     }
     '/app/impact/': {
       id: '/app/impact/'
@@ -1482,6 +1518,18 @@ const AppImpactRouteWithChildren = AppImpactRoute._addFileChildren(
   AppImpactRouteChildren,
 )
 
+interface AppLavbundRouteChildren {
+  AppLavbundIndexRoute: typeof AppLavbundIndexRoute
+}
+
+const AppLavbundRouteChildren: AppLavbundRouteChildren = {
+  AppLavbundIndexRoute: AppLavbundIndexRoute,
+}
+
+const AppLavbundRouteWithChildren = AppLavbundRoute._addFileChildren(
+  AppLavbundRouteChildren,
+)
+
 interface AppLedgerRouteChildren {
   AppLedgerAuditRoute: typeof AppLedgerAuditRoute
   AppLedgerCo2Route: typeof AppLedgerCo2Route
@@ -1567,6 +1615,7 @@ interface AppRouteChildren {
   AppDataRoute: typeof AppDataRoute
   AppDecisionsRoute: typeof AppDecisionsRouteWithChildren
   AppImpactRoute: typeof AppImpactRouteWithChildren
+  AppLavbundRoute: typeof AppLavbundRouteWithChildren
   AppLedgerRoute: typeof AppLedgerRouteWithChildren
   AppOverviewRoute: typeof AppOverviewRoute
   AppPublicImpactRoute: typeof AppPublicImpactRoute
@@ -1586,6 +1635,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDataRoute: AppDataRoute,
   AppDecisionsRoute: AppDecisionsRouteWithChildren,
   AppImpactRoute: AppImpactRouteWithChildren,
+  AppLavbundRoute: AppLavbundRouteWithChildren,
   AppLedgerRoute: AppLedgerRouteWithChildren,
   AppOverviewRoute: AppOverviewRoute,
   AppPublicImpactRoute: AppPublicImpactRoute,
@@ -1612,13 +1662,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

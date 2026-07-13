@@ -103,7 +103,9 @@ function LoadingState() {
   return (
     <div className="space-y-3">
       {[0, 1, 2].map((i) => (
-        <Card key={i} className="p-5 animate-pulse h-24" />
+        <Card key={i} className="p-5 animate-pulse h-24">
+          <span />
+        </Card>
       ))}
     </div>
   );
