@@ -74,3 +74,14 @@ describe("lavbund skrive-veje (mock-fallback)", () => {
     expect(efter[0].laengdeM).toBe(120);
   });
 });
+
+describe("getLavbundOverblik (mock-fallback)", () => {
+  it("summerer projekter, areal og krediteret CO2", async () => {
+    const { getLavbundOverblik } = await import("@/services/lavbundService");
+    const o = await getLavbundOverblik();
+    expect(o.antalProjekter).toBeGreaterThan(0);
+    expect(o.samletArealHa).toBeGreaterThan(0);
+    expect(o.krediteretTotal).toBeGreaterThan(0);
+    expect(typeof o.verificeretTotal).toBe("number");
+  });
+});

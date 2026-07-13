@@ -409,6 +409,33 @@ async function syncSnapshotToIndicators(s: BeregningsSnapshot): Promise<void> {
     .upsert([buildCo2Indicator(linked, s)], { onConflict: "project_id,key" });
 }
 
+// ─── Overblik til dashboardet ────────────────────────────────────────────────
+
+export interface LavbundOverblik {
+  antalProjekter: number;
+  samletArealHa: number;
+  krediteretTotal: number;
+  verificeretTotal: number;
+}
+
+/** Samlet lavbund-status til app-overblikket (kredit fra v12, verificeret fra snapshots). */
+export async function getLavbundOverblik(): Promise<LavbundOverblik> {
+  const { beregnKrediteretCO2 } = await import("@/services/lavbundBeregning");
+  const projects = await getProjects();
+  let verificeretTotal = 0;
+  for (const p of projects) {
+    const snap = await getSnapshot(p.id).catch(() => null);
+    if (snap) verificeretTotal += snap.co2.verificeretTotal;
+  }
+  return {
+    antalProjekter: projects.length,
+    samletArealHa: Math.round(projects.reduce((s, p) => s + p.samletArealHa, 0) * 10) / 10,
+    krediteretTotal:
+      Math.round(projects.reduce((s, p) => s + beregnKrediteretCO2(p).krediteretTotal, 0) * 10) / 10,
+    verificeretTotal: Math.round(verificeretTotal * 10) / 10,
+  };
+}
+
 // ─── DecisionsIQ-anbefalinger ────────────────────────────────────────────────
 
 /** Regelbaserede anbefalinger ud fra projektets tilstand. */
