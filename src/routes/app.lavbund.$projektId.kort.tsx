@@ -10,11 +10,14 @@ import {
   getReadings,
   saveReading,
   saveMaalepunkt,
+  getLinkedProjectId,
 } from "@/services/lavbundService";
+import { getProjectById } from "@/services/projects-service";
 import { ledgerAppend } from "@/services/ledgerService";
-import { klassificerDybde } from "@/services/lavbundBeregning";
 import { normalizeHoboPayload } from "@/services/lavbundSmartConnect";
 import { AFVANDINGSKLASSER } from "@/data/lavbundFaktorer";
+import { LavbundFeltkort, KLASSE_FARVE } from "@/components/lavbund/LavbundFeltkort";
+import { TidsserieChart } from "@/components/lavbund/TidsserieChart";
 import type { Maalepunkt, Opmaalingsintensitet } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId/kort")({
@@ -22,33 +25,80 @@ export const Route = createFileRoute("/app/lavbund/$projektId/kort")({
   component: KortPage,
 });
 
-const KLASSE_FARVE: Record<string, string> = {
-  "Frit vandspejl": "#1e3a8a",
-  Sump: "#2563eb",
-  "Våd eng": "#38bdf8",
-  "Fugtig eng": "#86efac",
-  "Tør eng": "#fcd34d",
-  "Tør overjord": "#f97316",
-  Mark: "#b91c1c",
-};
-
 const INTENSITETER: { id: Opmaalingsintensitet; label: string; feltdage: number }[] = [
   { id: "minimal", label: "Minimal", feltdage: 4 },
   { id: "standard", label: "Standard", feltdage: 12 },
   { id: "intensiv", label: "Intensiv", feltdage: 26 },
 ];
 
+/** Fallback-centrum når hverken målepunkter eller koblet projekt har geodata. */
+const DK_CENTER = { lat: 55.494, lng: 9.472 };
+
 function KortPage() {
   const { projektId } = Route.useParams();
   const [intensitet, setIntensitet] = useState<Opmaalingsintensitet>("standard");
+  const [placing, setPlacing] = useState(false);
+  const qc = useQueryClient();
 
-  const [projekt, maalepunkter, readings] = useQueries({
+  const [projekt, maalepunkter, readings, linkedGeo] = useQueries({
     queries: [
       { queryKey: ["lavbund", "project", projektId], queryFn: () => getProject(projektId) },
       { queryKey: ["lavbund", "mp", projektId], queryFn: () => getMaalepunkter(projektId) },
       { queryKey: ["lavbund", "readings", projektId], queryFn: () => getReadings(projektId) },
+      {
+        queryKey: ["lavbund", "linked-geo", projektId],
+        queryFn: async () => {
+          // Geometri fra det koblede kerneprojekt: centrum + polygon til kortet.
+          const linkedId = await getLinkedProjectId(projektId);
+          if (!linkedId) return null;
+          const core = await getProjectById(linkedId).catch(() => null);
+          if (!core) return null;
+          return {
+            center:
+              core.geometry_centroid_lat != null && core.geometry_centroid_lng != null
+                ? { lat: core.geometry_centroid_lat, lng: core.geometry_centroid_lng }
+                : null,
+            polygon: (core.geometry_polygon ?? null) as {
+              type: "Polygon";
+              coordinates: number[][][];
+            } | null,
+          };
+        },
+      },
     ],
   });
+
+  const mapCenter = useMemo(() => {
+    const medGeo = (maalepunkter.data ?? []).find((m) => m.lat != null && m.lng != null);
+    if (medGeo?.lat != null && medGeo.lng != null) return { lat: medGeo.lat, lng: medGeo.lng };
+    return linkedGeo.data?.center ?? DK_CENTER;
+  }, [maalepunkter.data, linkedGeo.data]);
+
+  const placerMaalepunkt = async (pos: { lat: number; lng: number }) => {
+    setPlacing(false);
+    try {
+      const n = (maalepunkter.data ?? []).length;
+      const mp: Maalepunkt = {
+        id: `MP-${String(n + 1).padStart(2, "0")}-${projektId.slice(0, 4)}`,
+        projektId,
+        type: "markpejling",
+        position: { x: 10 + (n % 8) * 11, y: 12 + Math.floor(n / 8) * 14 },
+        lat: pos.lat,
+        lng: pos.lng,
+        intensiteter: ["minimal", "standard", "intensiv"],
+      };
+      await saveMaalepunkt(mp);
+      await ledgerAppend("lavbund", projektId, {
+        actor: "bruger",
+        event: "maalepunkt_placeret",
+        detail: `${mp.id} placeret på ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`,
+      });
+      await qc.invalidateQueries({ queryKey: ["lavbund"] });
+      toast.success(`Målepunkt ${mp.id} placeret på kortet`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunne ikke placere målepunkt");
+    }
+  };
 
   const isLoading = projekt.isLoading || maalepunkter.isLoading || readings.isLoading;
   const isError = projekt.isError || maalepunkter.isError || readings.isError;
@@ -168,23 +218,41 @@ function KortPage() {
             maalepunkter={maalepunkter.data ?? []}
           />
         </div>
-        <div className="px-5 pb-5 overflow-x-auto">
-          <div className="min-w-[600px]">
-            <VandspejlKort mps={filteredMp} senesteDybde={senesteDybde} />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+        <div className="px-5 pb-5">
+          <LavbundFeltkort
+            maalepunkter={filteredMp}
+            senesteDybde={senesteDybde}
+            center={mapCenter}
+            polygon={linkedGeo.data?.polygon ?? null}
+            placing={placing}
+            onPlace={placerMaalepunkt}
+            height={440}
+          />
+          <div className="mt-3 flex flex-wrap gap-2 items-center">
             {AFVANDINGSKLASSER.map((k) => (
               <span
                 key={k.navn}
                 className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border"
               >
                 <span
-                  className="h-2.5 w-2.5 rounded-sm"
+                  className="h-2.5 w-2.5 rounded-full border border-white shadow-sm"
                   style={{ backgroundColor: KLASSE_FARVE[k.navn] }}
                 />
                 {k.navn}
               </span>
             ))}
+            <button
+              type="button"
+              onClick={() => setPlacing((p) => !p)}
+              className={`ml-auto inline-flex items-center gap-1.5 text-xs rounded-lg border px-3 py-1.5 transition ${
+                placing
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "hover:bg-muted/40"
+              }`}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {placing ? "Annullér placering" : "Placér nyt målepunkt på kortet"}
+            </button>
           </div>
         </div>
       </Card>
@@ -194,10 +262,8 @@ function KortPage() {
           title="Tidsserie — dybde til vandspejl (24 mdr.)"
           subtitle="HOBO-logger 15-min serier + periodiske markpejlinger. Grænsen for Våd eng: 0,50 m."
         />
-        <div className="px-5 pb-5 overflow-x-auto">
-          <div className="min-w-[600px]">
-            <Tidsseriekurve serie={tidsserie} />
-          </div>
+        <div className="px-5 pb-5">
+          <TidsserieChart serie={tidsserie} height={260} />
           {stats && (
             <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
               <StatBoks label="Årsmiddel" value={`${stats.aar.toFixed(2)} m`} />
@@ -226,152 +292,6 @@ function StatBoks({ label, value }: { label: string; value: string }) {
   );
 }
 
-function VandspejlKort({
-  mps,
-  senesteDybde,
-}: {
-  mps: { id: string; type: string; position: { x: number; y: number } }[];
-  senesteDybde: Map<string, number>;
-}) {
-  const W = 100;
-  const H = 60;
-  const CELL = 5;
-  const cols = W / CELL;
-  const rows = H / CELL;
-  const cells: { x: number; y: number; color: string; klasse: string }[] = [];
-  for (let iy = 0; iy < rows; iy++) {
-    for (let ix = 0; ix < cols; ix++) {
-      const cx = ix * CELL + CELL / 2;
-      const cy = iy * CELL + CELL / 2;
-      let nearest = mps[0];
-      let bd = Infinity;
-      for (const mp of mps) {
-        const d = (mp.position.x - cx) ** 2 + (mp.position.y - cy) ** 2;
-        if (d < bd) {
-          bd = d;
-          nearest = mp;
-        }
-      }
-      if (!nearest) continue;
-      const dybde = senesteDybde.get(nearest.id) ?? 1;
-      const klasse = klassificerDybde(dybde);
-      cells.push({
-        x: ix * CELL,
-        y: iy * CELL,
-        color: KLASSE_FARVE[klasse.navn] ?? "#94a3b8",
-        klasse: klasse.navn,
-      });
-    }
-  }
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full h-[320px] rounded-lg border bg-muted/10"
-      role="img"
-      aria-label="Feltkort med vandspejlsklasser"
-    >
-      {cells.map((c, i) => (
-        <rect
-          key={i}
-          x={c.x}
-          y={c.y}
-          width={CELL}
-          height={CELL}
-          fill={c.color}
-          opacity={0.55}
-        />
-      ))}
-      <path
-        d={`M0,${H * 0.55} Q${W * 0.3},${H * 0.4} ${W * 0.55},${H * 0.6} T${W},${H * 0.5}`}
-        stroke="#0369a1"
-        strokeWidth={0.6}
-        fill="none"
-      />
-      {mps.map((mp) => {
-        const dybde = senesteDybde.get(mp.id);
-        const klasse = dybde !== undefined ? klassificerDybde(dybde).navn : "ukendt";
-        return (
-          <g key={mp.id} tabIndex={0} focusable="true">
-            <circle
-              cx={mp.position.x}
-              cy={mp.position.y}
-              r={mp.type === "kanal_logger" ? 1.4 : 1.0}
-              fill="#0f172a"
-              stroke="#ffffff"
-              strokeWidth={0.4}
-            >
-              <title>
-                {mp.id} — {mp.type === "kanal_logger" ? "Kanal-logger" : "Markpejling"}:{" "}
-                {dybde !== undefined ? `${dybde.toFixed(2)} m (${klasse})` : "ingen data"}
-              </title>
-            </circle>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function Tidsseriekurve({ serie }: { serie: { maaned: string; dybde: number }[] }) {
-  if (serie.length === 0)
-    return <div className="text-sm text-muted-foreground p-6">Ingen målinger endnu.</div>;
-  const W = 600;
-  const H = 180;
-  const P = 30;
-  const maxD = Math.max(1.5, ...serie.map((s) => s.dybde));
-  const minD = 0;
-  const x = (i: number) => P + (i * (W - P * 2)) / Math.max(1, serie.length - 1);
-  const y = (d: number) => P + ((d - minD) / (maxD - minD)) * (H - P * 2);
-  const path = serie.map((s, i) => `${i === 0 ? "M" : "L"} ${x(i)},${y(s.dybde)}`).join(" ");
-  const wetLine = y(0.5);
-  const etablering = Math.min(6, serie.length);
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full h-[220px]"
-      role="img"
-      aria-label="Tidsserie — dybde til vandspejl"
-    >
-      <rect
-        x={P}
-        y={P}
-        width={x(etablering - 1) - P}
-        height={H - P * 2}
-        fill="#fde68a"
-        opacity={0.25}
-      />
-      <line
-        x1={P}
-        x2={W - P}
-        y1={wetLine}
-        y2={wetLine}
-        stroke="#059669"
-        strokeDasharray="4 3"
-        strokeWidth={1}
-      />
-      <text x={W - P} y={wetLine - 4} fontSize={9} textAnchor="end" fill="#059669">
-        Våd eng ≤ 0,50 m
-      </text>
-      <path d={path} fill="none" stroke="#0369a1" strokeWidth={1.5} />
-      {serie.map((s, i) => (
-        <circle key={s.maaned} cx={x(i)} cy={y(s.dybde)} r={1.6} fill="#0369a1" />
-      ))}
-      <text x={P} y={H - 6} fontSize={9} fill="#64748b">
-        {serie[0]?.maaned}
-      </text>
-      <text x={W - P} y={H - 6} fontSize={9} textAnchor="end" fill="#64748b">
-        {serie[serie.length - 1]?.maaned}
-      </text>
-      <text x={4} y={P + 8} fontSize={9} fill="#64748b">
-        {minD.toFixed(1)} m
-      </text>
-      <text x={4} y={H - P + 4} fontSize={9} fill="#64748b">
-        {maxD.toFixed(1)} m
-      </text>
-    </svg>
-  );
-}
-
 // ─── Manuel pejling + nyt målepunkt ────────────────────────────────────────────
 
 function PejlingsForm({
@@ -385,7 +305,6 @@ function PejlingsForm({
   const [mpId, setMpId] = useState("");
   const [dybdeCm, setDybdeCm] = useState("");
   const [saving, setSaving] = useState(false);
-  const [addingMp, setAddingMp] = useState(false);
 
   const registrer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -414,28 +333,6 @@ function PejlingsForm({
       toast.error(err instanceof Error ? err.message : "Kunne ikke gemme pejling");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const tilfoejMaalepunkt = async () => {
-    setAddingMp(true);
-    try {
-      const n = maalepunkter.length;
-      const mp: Maalepunkt = {
-        id: `MP-${String(n + 1).padStart(2, "0")}-${projektId.slice(0, 4)}`,
-        projektId,
-        type: "markpejling",
-        position: { x: 10 + (n % 8) * 11, y: 12 + Math.floor(n / 8) * 14 },
-        intensiteter: ["minimal", "standard", "intensiv"],
-      };
-      await saveMaalepunkt(mp);
-      await qc.invalidateQueries({ queryKey: ["lavbund"] });
-      setMpId(mp.id);
-      toast.success(`Målepunkt ${mp.id} oprettet`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Kunne ikke oprette målepunkt");
-    } finally {
-      setAddingMp(false);
     }
   };
 
@@ -475,14 +372,6 @@ function PejlingsForm({
         className="rounded-lg bg-primary text-primary-foreground px-3.5 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
       >
         {saving ? "Gemmer…" : "Registrér pejling"}
-      </button>
-      <button
-        type="button"
-        onClick={tilfoejMaalepunkt}
-        disabled={addingMp}
-        className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm hover:bg-muted/40 disabled:opacity-50"
-      >
-        <Plus className="h-3.5 w-3.5" /> {addingMp ? "Opretter…" : "Nyt målepunkt"}
       </button>
     </form>
   );
