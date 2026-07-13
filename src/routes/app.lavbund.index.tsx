@@ -95,6 +95,18 @@ function LavbundIndexPage() {
 
       {showCreate && <CreateProjectDialog onClose={() => setShowCreate(false)} />}
 
+      {/* Formålet med modulet — produktfortællingen fra LavbundsMRV-oplægget */}
+      <Card className="p-4 bg-primary/5 border-primary/20">
+        <p className="text-sm leading-relaxed">
+          <strong>Hvorfor LavbundsMRV?</strong> Staten krediterer hvert lavbunds- og vandprojekts
+          CO₂- og fosforeffekt <em>på forhånd</em> (ex-ante) — men ingen måler, om den lovede effekt
+          faktisk indtræffer. Dette modul lukker hullet: felt- og loggermålinger dokumenterer den{" "}
+          <strong>opnåede</strong> effekt mod statens egne beregninger, med et SHA-256-kædet
+          revisionsspor til årlig godkendelse hos myndighed eller revisor. Driftsystemer
+          dokumenterer <em>handlingen</em> — LavbundsMRV dokumenterer <em>effekten</em>.
+        </p>
+      </Card>
+
       {q.isLoading && <LoadingState />}
       {q.isError && <ErrorState onRetry={() => q.refetch()} />}
       {q.data && q.data.length === 0 && <EmptyState onCreate={() => setShowCreate(true)} />}

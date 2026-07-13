@@ -231,3 +231,38 @@ export function bygSnapshot(input: {
     fosfor: fos,
   };
 }
+
+// ─── Opnåelsesgrad: lovet (ex-ante) vs. målt (verificeret) ────────────────────
+//
+// Produktets kerne (jf. LavbundsMRV-oplægget): staten krediterer effekten PÅ
+// FORHÅND — ingen måler om den indtræffer. Opnåelsesgraden er svaret: hvor
+// stor en andel af den LOVEDE effekt er dokumenteret målt. Som "lovet" bruges
+// statens publicerede ex-ante-tal fra forundersøgelsen når det findes; ellers
+// vores v12-genberegning (samme faktorer, samme resultat).
+
+export interface Opnaaelse {
+  /** Lovet årlig effekt (t CO₂e/år) — grundlaget kommunen er krediteret for. */
+  lovetTotal: number;
+  lovetKilde: "publiceret_ex_ante" | "genberegnet_v12";
+  verificeretTotal: number;
+  /** Målt andel af lovet effekt, 0-100+ (kan overstige 100 ved bedre vådlægning end antaget). */
+  procent: number;
+}
+
+export function beregnOpnaaelse(
+  projekt: Pick<LavbundsProjekt, "publiceretExAnteTonPrHa" | "samletArealHa">,
+  krediteretTotal: number,
+  verificeretTotal: number,
+): Opnaaelse {
+  const publiceret =
+    projekt.publiceretExAnteTonPrHa != null
+      ? projekt.publiceretExAnteTonPrHa * projekt.samletArealHa
+      : null;
+  const lovetTotal = publiceret ?? krediteretTotal;
+  return {
+    lovetTotal: Math.round(lovetTotal * 100) / 100,
+    lovetKilde: publiceret != null ? "publiceret_ex_ante" : "genberegnet_v12",
+    verificeretTotal: Math.round(verificeretTotal * 100) / 100,
+    procent: lovetTotal > 0 ? Math.round((verificeretTotal / lovetTotal) * 100) : 0,
+  };
+}
