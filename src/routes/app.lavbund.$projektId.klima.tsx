@@ -48,7 +48,7 @@ function KlimaPage() {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
 
-  const [projekt, mps, readings, transekter, groefter] = useQueries({
+  const [projekt, _mps, readings, transekter, groefter] = useQueries({
     queries: [
       { queryKey: ["lavbund", "project", projektId], queryFn: () => getProject(projektId) },
       { queryKey: ["lavbund", "mp", projektId], queryFn: () => getMaalepunkter(projektId) },
@@ -56,6 +56,11 @@ function KlimaPage() {
       { queryKey: ["lavbund", "transekter", projektId], queryFn: () => getTransekter(projektId) },
       { queryKey: ["lavbund", "groefter", projektId], queryFn: () => getGroefter(projektId) },
     ],
+  });
+  void _mps;
+  const anbefalinger = useQuery({
+    queryKey: ["lavbund", "anbefalinger", projektId],
+    queryFn: () => getAnbefalinger(projektId),
   });
 
   const co2 = useMemo(
