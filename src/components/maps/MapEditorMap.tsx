@@ -65,6 +65,11 @@ export interface MapEditorMapProps {
   /** When set, map clicks trigger onFeaturePicked instead of drawing. */
   pickMode?: "markblok" | "matrikel" | null;
   onFeaturePicked?: (latlng: { lat: number; lng: number }) => void;
+  /**
+   * Vis matrikelskel som vektorlag (DAWA — gratis, ingen token). Hentes for
+   * kortudsnittet ved zoom ≥ CADASTRE_MIN_ZOOM og opdateres når kortet flyttes.
+   */
+  showCadastreParcels?: boolean;
   /** Preview polygon for a picked feature (shown before confirm). */
   previewPolygon?: GeoJsonPolygon | null;
   height?: number;
@@ -115,6 +120,11 @@ const DRAW_STYLES: Record<Exclude<DrawMode, "none">, { color: string; fillOpacit
 /** Hårdt loft for punkter pr. tegnet flade — fladen afsluttes automatisk ved loftet. */
 export const MAX_DRAW_POINTS = 500;
 
+/** Matrikel-vektorlaget hentes først fra dette zoomniveau (DAWA-opslag pr. udsnit). */
+export const CADASTRE_MIN_ZOOM = 15;
+
+const CADASTRE_STYLE = { color: "#E11D48", weight: 1.2, fillOpacity: 0.03, fillColor: "#E11D48" };
+
 // ─── Geometri-hjælpere ────────────────────────────────────────────────────────
 
 export function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -163,6 +173,7 @@ export function MapEditorMap({
   addressMarker,
   pickMode,
   onFeaturePicked,
+  showCadastreParcels = false,
   previewPolygon,
   height = 540,
   className,
@@ -188,12 +199,14 @@ export function MapEditorMap({
     wms: Map<string, import("leaflet").TileLayer.WMS>;
     addressMarker: import("leaflet").Marker | null;
     preview: import("leaflet").GeoJSON | null;
+    cadastre: import("leaflet").GeoJSON | null;
   }>({
     base: null, boundary: null, zones: null, p3: null, wl: null,
     ndvi: null, sensors: null, drawn: null, activeDrawer: null, editHandler: null,
     wms: new Map(),
     addressMarker: null,
     preview: null,
+    cadastre: null,
   });
 
   // Intern mode-state, synkroniseret med evt. controlled prop
@@ -623,6 +636,83 @@ export function MapEditorMap({
       });
     })();
   }, [wmsOverlays, ready]);
+
+  // ── Matrikelskel som vektorlag (DAWA — gratis, ingen token) ────────────────
+  const cadastreSeqRef = useRef(0);
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+
+    const clearLayer = () => {
+      if (layersRef.current.cadastre) {
+        map.removeLayer(layersRef.current.cadastre);
+        layersRef.current.cadastre = null;
+      }
+    };
+
+    if (!showCadastreParcels) {
+      clearLayer();
+      return;
+    }
+
+    const load = async () => {
+      const seq = ++cadastreSeqRef.current;
+      if (map.getZoom() < CADASTRE_MIN_ZOOM) {
+        clearLayer();
+        return;
+      }
+      const b = map.getBounds();
+      // Clamp til dansk område (server-fn'ens validering kræver 7-16 / 54-58).
+      const clampLng = (v: number) => Math.min(16, Math.max(7, v));
+      const clampLat = (v: number) => Math.min(58, Math.max(54, v));
+      const w = clampLng(b.getWest());
+      const e = clampLng(b.getEast());
+      const s = clampLat(b.getSouth());
+      const n = clampLat(b.getNorth());
+      if (w >= e || s >= n) return; // udsnit helt uden for DK
+      const ring: [number, number][] = [[w, s], [e, s], [e, n], [w, n], [w, s]];
+
+      try {
+        const { listMatriklerInArea } = await import("@/lib/geo-search.functions");
+        const result = await listMatriklerInArea({ data: { ring } });
+        // Stale-guard: kortet kan være flyttet mens vi ventede.
+        if (seq !== cadastreSeqRef.current || !mapRef.current) return;
+        const L = await import("leaflet");
+        clearLayer();
+        const features = result.items
+          .filter((it) => it.geometry != null)
+          .map((it) => ({
+            type: "Feature" as const,
+            properties: { label: it.label, areaHa: it.areaHa },
+            geometry: it.geometry as { type: string; coordinates: unknown },
+          }));
+        if (features.length === 0) return;
+        const layer = L.geoJSON(
+          { type: "FeatureCollection", features } as never,
+          {
+            style: CADASTRE_STYLE,
+            onEachFeature: (feature, l) => {
+              const p = feature.properties as { label?: string; areaHa?: number | null };
+              l.bindTooltip(
+                `${p.label ?? "Matrikel"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`,
+                { sticky: true, direction: "top" },
+              );
+            },
+          },
+        ).addTo(map);
+        layersRef.current.cadastre = layer;
+      } catch {
+        // Opslag fejlede (offline/API nede) — kortet virker stadig uden laget.
+      }
+    };
+
+    void load();
+    map.on("moveend", load);
+    return () => {
+      map.off("moveend", load);
+      clearLayer();
+    };
+  }, [showCadastreParcels, ready]);
 
   // ── Adressemarkør (fra søgning) ────────────────────────────────────────────
   useEffect(() => {
