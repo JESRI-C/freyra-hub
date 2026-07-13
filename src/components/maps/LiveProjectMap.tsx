@@ -31,6 +31,17 @@ interface CopernicusData {
   mode: string;
 }
 
+/** GeoJSON FeatureCollection for et natur-lag (§3, vandløb). */
+export interface NatureLayerGeoJSON {
+  type: "FeatureCollection";
+  features: Array<{
+    type: "Feature";
+    id?: string | number;
+    properties: Record<string, unknown>;
+    geometry: { type: string; coordinates: unknown };
+  }>;
+}
+
 export interface LiveProjectMapProps {
   geometry: ProjectGeometry;
   projectName: string;
@@ -41,6 +52,10 @@ export interface LiveProjectMapProps {
   dmiData?: DmiData;
   miljoeportalData?: MiljoeportalData;
   copernicusData?: CopernicusData;
+  /** §3-beskyttet natur — vises når sat (send null/undefined for at skjule). */
+  paragraph3GeoJSON?: NatureLayerGeoJSON | null;
+  /** Vandløb — vises når sat (send null/undefined for at skjule). */
+  watercoursesGeoJSON?: NatureLayerGeoJSON | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -160,6 +175,8 @@ export function LiveProjectMap({
   dmiData,
   miljoeportalData: _miljoeportalData,
   copernicusData,
+  paragraph3GeoJSON,
+  watercoursesGeoJSON,
 }: LiveProjectMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<LeafletMap | null>(null);
@@ -169,11 +186,15 @@ export function LiveProjectMap({
   // Sensor markers are stored as individual marker refs — we just store the
   // marker layer group instance here.
   const sensorGroupRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const paragraph3LayerRef = useRef<LeafletGeoJSON | null>(null);
+  const watercoursesLayerRef = useRef<LeafletGeoJSON | null>(null);
 
   const [activeBuffer, setActiveBuffer] = useState<ActiveBuffer>("none");
   const [showMedia, setShowMedia] = useState(true);
   const [showSensors, setShowSensors] = useState(true);
   const [showDmi, setShowDmi] = useState(true);
+  // Async Leaflet-init: natur-lags-effekten må først køre når kortet findes.
+  const [mapReady, setMapReady] = useState(false);
 
   // ── Initial map setup ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -282,10 +303,12 @@ export function LiveProjectMap({
       if (!cancelled) {
         bufferDataRef.current = await buildBufferZonesGeoJSON(geometry);
       }
+      if (!cancelled) setMapReady(true);
     })();
 
     return () => {
       cancelled = true;
+      setMapReady(false);
       if (mapInstance.current) {
         mapInstance.current.remove();
         mapInstance.current = null;
@@ -323,6 +346,50 @@ export function LiveProjectMap({
       bufferLayerRef.current = layer;
     })();
   }, [activeBuffer]);
+
+  // ── Natur-lag (§3 + vandløb) — synces med props ───────────────────────────
+  useEffect(() => {
+    if (!mapReady || !mapInstance.current) return;
+    const map = mapInstance.current;
+    let cancelled = false;
+
+    (async () => {
+      const L = await import("leaflet");
+      if (cancelled || !mapInstance.current) return;
+
+      if (paragraph3LayerRef.current) {
+        map.removeLayer(paragraph3LayerRef.current);
+        paragraph3LayerRef.current = null;
+      }
+      if (paragraph3GeoJSON && paragraph3GeoJSON.features.length > 0) {
+        paragraph3LayerRef.current = L.geoJSON(paragraph3GeoJSON as never, {
+          style: { color: "#16A34A", weight: 1.5, fillColor: "#22C55E", fillOpacity: 0.25 },
+          onEachFeature: (feature, layer) => {
+            const t = (feature.properties as Record<string, unknown>)["natureType"];
+            layer.bindPopup(`<strong>§3 beskyttet natur</strong><br/>${t ?? "Naturareal"}`);
+          },
+        }).addTo(map);
+      }
+
+      if (watercoursesLayerRef.current) {
+        map.removeLayer(watercoursesLayerRef.current);
+        watercoursesLayerRef.current = null;
+      }
+      if (watercoursesGeoJSON && watercoursesGeoJSON.features.length > 0) {
+        watercoursesLayerRef.current = L.geoJSON(watercoursesGeoJSON as never, {
+          style: { color: "#0EA5E9", weight: 2, opacity: 0.85 },
+          onEachFeature: (feature, layer) => {
+            const navn = (feature.properties as Record<string, unknown>)["navn"];
+            layer.bindPopup(`<strong>Vandløb</strong>${navn ? `<br/>${navn}` : ""}`);
+          },
+        }).addTo(map);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapReady, paragraph3GeoJSON, watercoursesGeoJSON]);
 
   // ── Show/hide media layer ─────────────────────────────────────────────────
   useEffect(() => {

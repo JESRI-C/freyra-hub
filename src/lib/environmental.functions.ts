@@ -317,9 +317,28 @@ function rainfallFromClimateNorm(lat: number, lng: number) {
 
 // ─── Public server function ──────────────────────────────────────────────────
 
+/** Deterministisk preview-bundle når live-hentning er slået eksplicit fra. */
+function previewBundle(lat: number, lng: number): EnvironmentalBundle {
+  const rain = rainfallFromClimateNorm(lat, lng);
+  return {
+    nature: { paragraph3AreasHa: 0, paragraph3Percent: 0, natureTypes: [], watercourseCount: 0, nearestWatercourseM: null },
+    natura2000: { withinM: null, nearestName: null, sitesWithin5km: 0 },
+    soil: { dominantType: "Ukendt (preview)", permeability: "unknown", organicPct: 3, curveNumber: 70 },
+    terrain: { elevationM: null, slopePct: null, aspect: "unknown" },
+    groundwater: { boreholesWithin500m: 0, nearestBoreholeM: null, depthM: null },
+    rainfall: { annualMm: rain.annualMm, designRain10yrMmHr: rain.designRain10yrMmHr, designRain100yrMmHr: rain.designRain100yrMmHr, source: rain.source },
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
 export const fetchEnvironmentalBundle = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => PointInput.parse(raw))
   .handler(async ({ data }): Promise<EnvironmentalBundle> => {
+    // Respektér preview-mode: åbne kilder er live som standard, men slås fra
+    // hvis ENABLE_LIVE_DATA/VITE_ENABLE_LIVE_DATA er sat eksplicit falsk.
+    const { isOpenDataLiveEnabled } = await import("@/lib/nature-geo.functions");
+    if (!isOpenDataLiveEnabled()) return previewBundle(data.lat, data.lng);
+
     const areaHa = data.areaHa ?? 1;
     const [p3, water, n2k, soil, terrain, groundwater] = await Promise.all([
       fetchParagraph3(data.lat, data.lng, areaHa).catch(() => ({ paragraph3AreasHa: 0, paragraph3Percent: 0, natureTypes: [] })),
