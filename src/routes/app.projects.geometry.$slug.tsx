@@ -11,6 +11,7 @@ import { useMapEditor } from "@/hooks/useMapEditor";
 import { getProjectBySlug } from "@/services/projects-service";
 import { parseProjectGeometry } from "@/services/geo-service";
 import { pickMarkblok, pickMatrikel, type PickedFeature } from "@/lib/geo-search.functions";
+import { AreaCadastrePanel } from "@/components/data-foundation/AreaCadastrePanel";
 import type { GeoJsonPolygon } from "@/services/zones-service";
 
 export const Route = createFileRoute("/app/projects/geometry/$slug")({
@@ -40,13 +41,15 @@ const OVERLAY_DEFS: Record<
 > = {
   cadastre: {
     label: "Matrikelskel",
-    description: "Ejendoms- og matrikelgrænser (Datafordeleren)",
+    description: "Ejendoms- og matrikelgrænser — vises som vektorer fra Dataforsyningen (zoom ind)",
     url: `https://api.dataforsyningen.dk/wms/matrikel${DAF_TOKEN ? `?token=${DAF_TOKEN}` : ""}`,
     layers: "MatrikelSkel,Centroide",
     opacity: 0.9,
     transparent: true,
     format: "image/png",
     attribution: "© Styrelsen for Dataforsyning",
+    // WMS-varianten kræver token; uden token tegnes matrikler som vektorlag
+    // (DAWA) direkte i MapEditorMap via showCadastreParcels.
     requiresToken: true,
   },
   fieldBlocks: {
@@ -90,6 +93,8 @@ function GeometryEditorPage() {
   const [pickedFeature, setPickedFeature] = useState<PickedFeature | null>(null);
   const [picking, setPicking] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
+  // Fremhævet matrikel/markblok fra områdepanelet (vises som preview på kortet).
+  const [highlightGeom, setHighlightGeom] = useState<GeoJsonPolygon | null>(null);
 
   const { data: project } = useSuspenseQuery({
     queryKey: ["project-by-slug", slug],
@@ -101,7 +106,13 @@ function GeometryEditorPage() {
   const pickMatrikelFn = useServerFn(pickMatrikel);
 
   const wmsOverlays = useMemo<WmsOverlay[]>(
-    () => (Object.keys(enabled) as OverlayKey[]).filter((k) => enabled[k]).map((k) => ({ id: k, ...OVERLAY_DEFS[k] })),
+    () =>
+      (Object.keys(enabled) as OverlayKey[])
+        .filter((k) => enabled[k])
+        // Matrikel-WMS'en virker kun med token — uden token dækker vektorlaget
+        // (showCadastreParcels), så vi undlader døde WMS-requests.
+        .filter((k) => !(k === "cadastre" && !DAF_TOKEN))
+        .map((k) => ({ id: k, ...OVERLAY_DEFS[k] })),
     [enabled],
   );
 
@@ -345,7 +356,12 @@ function GeometryEditorPage() {
                   <span className="flex-1 min-w-0">
                     <span className="block font-medium text-foreground">{def.label}</span>
                     <span className="block text-muted-foreground">{def.description}</span>
-                    {missingToken && enabled[key] && (
+                    {missingToken && enabled[key] && key === "cadastre" && (
+                      <span className="block mt-1 text-muted-foreground">
+                        Vises som vektorer (zoom ind til niveau 15+).
+                      </span>
+                    )}
+                    {missingToken && enabled[key] && key !== "cadastre" && (
                       <span className="block mt-1 text-amber-600">Kræver Datafordeler-token.</span>
                     )}
                   </span>
@@ -387,6 +403,16 @@ function GeometryEditorPage() {
               <p className="text-sm text-muted-foreground">Intet område defineret endnu.</p>
             )}
           </Card>
+
+          {/* 5. Matrikler & markblokke i området */}
+          {hasPolygon && (
+            <Card className="p-4">
+              <AreaCadastrePanel
+                polygon={project.geometry_polygon as GeoJsonPolygon | null}
+                onHighlight={setHighlightGeom}
+              />
+            </Card>
+          )}
         </div>
 
         {/* ── Kort ──────────────────────────────────────────────────────────── */}
@@ -409,7 +435,8 @@ function GeometryEditorPage() {
             addressMarker={addressMarker}
             pickMode={pickMode}
             onFeaturePicked={handleFeaturePick}
-            previewPolygon={(pickedFeature?.geometry ?? null) as GeoJsonPolygon | null}
+            showCadastreParcels={enabled.cadastre}
+            previewPolygon={(pickedFeature?.geometry ?? highlightGeom ?? null) as GeoJsonPolygon | null}
             height={640}
           />
         </div>

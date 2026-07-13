@@ -1,8 +1,9 @@
 /**
  * MapEditorMap — Komplet interaktiv korteditor
  *
- * Tegning: leaflet-draw (stabil, battle-tested)
- *   - Tegn projektgrænse (gemmes på projektet)
+ * Tegning: leaflet-geoman (erstatter leaflet-draw, hvis vertex-håndtering
+ * crasher med Leaflet 1.9 og reelt låste tegning fast på 3 punkter)
+ *   - Tegn projektgrænse (gemmes på projektet) — op til MAX_DRAW_POINTS punkter
  *   - Tegn zone (åbner gem-dialog)
  *   - Mål areal (ha + omkreds, gemmes ikke)
  *   - Redigér tegnede former (træk i hjørnepunkter)
@@ -11,8 +12,9 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Map as LeafletMap } from "leaflet";
+import { toast } from "sonner";
 import "leaflet/dist/leaflet.css";
-import "leaflet-draw/dist/leaflet.draw.css";
+import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import type { Zone, ZoneType, GeoJsonPolygon } from "@/services/zones-service";
 import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS, calculatePolygonArea } from "@/services/zones-service";
 import type { IoTSensor } from "@/services/iot-simulation-service";
@@ -63,6 +65,11 @@ export interface MapEditorMapProps {
   /** When set, map clicks trigger onFeaturePicked instead of drawing. */
   pickMode?: "markblok" | "matrikel" | null;
   onFeaturePicked?: (latlng: { lat: number; lng: number }) => void;
+  /**
+   * Vis matrikelskel som vektorlag (DAWA — gratis, ingen token). Hentes for
+   * kortudsnittet ved zoom ≥ CADASTRE_MIN_ZOOM og opdateres når kortet flyttes.
+   */
+  showCadastreParcels?: boolean;
   /** Preview polygon for a picked feature (shown before confirm). */
   previewPolygon?: GeoJsonPolygon | null;
   height?: number;
@@ -109,6 +116,14 @@ const DRAW_STYLES: Record<Exclude<DrawMode, "none">, { color: string; fillOpacit
   zone:     { color: "#f59e0b", fillOpacity: 0.2 },
   measure:  { color: "#6366f1", fillOpacity: 0.12, dashArray: "5 5" },
 };
+
+/** Hårdt loft for punkter pr. tegnet flade — fladen afsluttes automatisk ved loftet. */
+export const MAX_DRAW_POINTS = 500;
+
+/** Matrikel-vektorlaget hentes først fra dette zoomniveau (DAWA-opslag pr. udsnit). */
+export const CADASTRE_MIN_ZOOM = 15;
+
+const CADASTRE_STYLE = { color: "#E11D48", weight: 1.2, fillOpacity: 0.03, fillColor: "#E11D48" };
 
 // ─── Geometri-hjælpere ────────────────────────────────────────────────────────
 
@@ -158,6 +173,7 @@ export function MapEditorMap({
   addressMarker,
   pickMode,
   onFeaturePicked,
+  showCadastreParcels = false,
   previewPolygon,
   height = 540,
   className,
@@ -183,12 +199,14 @@ export function MapEditorMap({
     wms: Map<string, import("leaflet").TileLayer.WMS>;
     addressMarker: import("leaflet").Marker | null;
     preview: import("leaflet").GeoJSON | null;
+    cadastre: import("leaflet").GeoJSON | null;
   }>({
     base: null, boundary: null, zones: null, p3: null, wl: null,
     ndvi: null, sensors: null, drawn: null, activeDrawer: null, editHandler: null,
     wms: new Map(),
     addressMarker: null,
     preview: null,
+    cadastre: null,
   });
 
   // Intern mode-state, synkroniseret med evt. controlled prop
@@ -247,39 +265,10 @@ export function MapEditorMap({
 
     (async () => {
       const L = await import("leaflet");
-      // leaflet-draw er et legacy-plugin der kræver global L
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).L = (L as any).default ?? L;
+      // Geoman registrerer sig på Leaflet-instansen ved import og giver
+      // map.pm-API'et. Ingen global L eller monkey-patches nødvendige.
       try {
-        await import("leaflet-draw");
-        // Patch known leaflet-draw bug: readableArea references undefined `type`
-        // in Leaflet 1.8+, which crashes when adding a 2nd polygon vertex.
-        const readableAreaFix = function (area: number, isMetric: boolean | unknown[], precision?: Record<string, number>) {
-          const p = { km: 2, ha: 2, m: 2, ...(precision || {}) };
-          let str = "";
-          const metric = Array.isArray(isMetric) ? isMetric : (isMetric ? ["km", "ha", "m"] : []);
-          if (metric.length) {
-            if (area >= 1_000_000 && metric.indexOf("km") !== -1) str = (area * 1e-6).toFixed(p.km) + " km²";
-            else if (area >= 10_000 && metric.indexOf("ha") !== -1) str = (area * 1e-4).toFixed(p.ha) + " ha";
-            else str = area.toFixed(p.m) + " m²";
-          } else {
-            const yards = area / 0.836127;
-            if (yards >= 3097600) str = (yards / 3097600).toFixed(p.km) + " mi²";
-            else if (yards >= 4840) str = (yards / 4840).toFixed(p.ha) + " acres";
-            else str = Math.ceil(yards).toString() + " yd²";
-          }
-          return str;
-        };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const anyL = L as any;
-        anyL.GeometryUtil = anyL.GeometryUtil ?? {};
-        anyL.GeometryUtil.readableArea = readableAreaFix;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const winL = (window as any).L;
-        if (winL && winL !== anyL) {
-          winL.GeometryUtil = winL.GeometryUtil ?? {};
-          winL.GeometryUtil.readableArea = readableAreaFix;
-        }
+        await import("@geoman-io/leaflet-geoman-free");
       } catch {
         // tegning utilgængelig — kortet og lagene virker stadig
       }
@@ -307,57 +296,66 @@ export function MapEditorMap({
       map.addLayer(drawnItems);
       layersRef.current.drawn = drawnItems;
 
-      // ── Tegnet form færdig ─────────────────────────────────────────────────
+      // ── Tegnet form færdig (geoman) ────────────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const LDraw = (window as any).L?.Draw;
-      if (LDraw) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      map.on(LDraw.Event.CREATED, async (e: any) => {
-        const mode = drawModeRef.current;
-        const layer = e.layer as import("leaflet").Polygon;
-
+      const pmMap = map as any;
+      if (pmMap.pm) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const gj = (layer as any).toGeoJSON() as { geometry: GeoJsonPolygon };
-        const polygon = gj.geometry;
-        const ha = await calculatePolygonArea(polygon);
+        map.on("pm:create", async (e: any) => {
+          const mode = drawModeRef.current;
+          const layer = e.layer as import("leaflet").Polygon;
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const gj = (layer as any).toGeoJSON() as { geometry: GeoJsonPolygon };
+          const polygon = gj.geometry;
+          const ha = await calculatePolygonArea(polygon);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ring: [number, number][] = ((layer as any).getLatLngs()[0] as Array<{ lat: number; lng: number }>)
+            .map((ll) => [ll.lat, ll.lng] as [number, number]);
+          const perimeterM = polygonPerimeterM([...ring, ring[0]]);
+
+          const style = DRAW_STYLES[mode === "none" ? "zone" : mode];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (layer as any).setStyle?.({ ...style, weight: 2, fillColor: style.color });
+
+          drawnItems.addLayer(layer);
+          layer.bindPopup(
+            `<strong>${ha} ha</strong><br/>${(perimeterM / 1000).toFixed(2)} km omkreds`,
+          ).openPopup();
+
+          setMeasurement({ areaHa: ha, perimeterM });
+
+          const cb = callbacksRef.current;
+          if (mode === "boundary") cb.onBoundaryDrawn?.(polygon, ha);
+          else if (mode === "zone") cb.onZoneCreated?.(polygon, ha);
+          else if (mode === "measure") cb.onMeasurement?.(ha, perimeterM);
+
+          layersRef.current.activeDrawer = null;
+          setInternalMode("none");
+          onDrawModeChange?.("none");
+        });
+
+        // Live tælling af tegnede vertices + hårdt loft på MAX_DRAW_POINTS.
+        // Vertex-events fyrer på geomans arbejdslag, så vi lytter fra drawstart.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ring: [number, number][] = ((layer as any).getLatLngs()[0] as Array<{ lat: number; lng: number }>)
-          .map((ll) => [ll.lat, ll.lng] as [number, number]);
-        const perimeterM = polygonPerimeterM([...ring, ring[0]]);
-
-        const style = DRAW_STYLES[mode === "none" ? "zone" : mode];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (layer as any).setStyle?.({ ...style, weight: 2, fillColor: style.color });
-
-        drawnItems.addLayer(layer);
-        layer.bindPopup(
-          `<strong>${ha} ha</strong><br/>${(perimeterM / 1000).toFixed(2)} km omkreds`,
-        ).openPopup();
-
-        setMeasurement({ areaHa: ha, perimeterM });
-
-        const cb = callbacksRef.current;
-        if (mode === "boundary") cb.onBoundaryDrawn?.(polygon, ha);
-        else if (mode === "zone") cb.onZoneCreated?.(polygon, ha);
-        else if (mode === "measure") cb.onMeasurement?.(ha, perimeterM);
-
-        layersRef.current.activeDrawer = null;
-        setInternalMode("none");
-        onDrawModeChange?.("none");
-      });
-
-      // Live tælling af tegnede vertices
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      map.on((LDraw as any).Event?.DRAWSTART ?? "draw:drawstart", () => setDrawingPoints(0));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      map.on((LDraw as any).Event?.DRAWVERTEX ?? "draw:drawvertex", (e: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const n = (e?.layers as any)?.getLayers?.().length ?? 0;
-        setDrawingPoints(n);
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      map.on((LDraw as any).Event?.DRAWSTOP ?? "draw:drawstop", () => setDrawingPoints(0));
+        map.on("pm:drawstart", (e: any) => {
+          setDrawingPoints(0);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          e?.workingLayer?.on?.("pm:vertexadded", () => {
+            setDrawingPoints((n) => {
+              const next = n + 1;
+              if (next >= MAX_DRAW_POINTS) {
+                // Afslut fladen automatisk — ellers vokser den ukontrolleret.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (map as any).pm?.Draw?.Polygon?._finishShape?.();
+                toast.info(`Maks ${MAX_DRAW_POINTS} punkter — fladen er afsluttet automatisk.`);
+              }
+              return next;
+            });
+          });
+        });
+        map.on("pm:drawend", () => setDrawingPoints(0));
       }
 
       // ── Klik-vælg (markblok / matrikel) ────────────────────────────────────
@@ -385,35 +383,38 @@ export function MapEditorMap({
   // ── Aktivér/deaktivér tegneværktøj når mode skifter ──────────────────────────
   useEffect(() => {
     if (!mapRef.current || !ready) return;
-    (async () => {
-      const map = mapRef.current!;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const GL = (window as any).L; // global L med Draw-plugin
+    const map = mapRef.current;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pm = (map as any).pm;
 
-      // Stop eksisterende tegning
-      layersRef.current.activeDrawer?.disable();
-      layersRef.current.activeDrawer = null;
+    // Stop eksisterende tegning
+    layersRef.current.activeDrawer?.disable();
+    layersRef.current.activeDrawer = null;
 
-      if (drawMode === "none" || !GL?.Draw) return;
+    if (drawMode === "none" || !pm) return;
 
-      const style = DRAW_STYLES[drawMode];
-      const drawer = new GL.Draw.Polygon(map, {
-        allowIntersection: false,
-        showArea: true,
-        shapeOptions: { ...style, weight: 2, fillColor: style.color },
-      });
-      drawer.enable();
-      layersRef.current.activeDrawer = drawer;
-    })();
+    const style = DRAW_STYLES[drawMode];
+    pm.enableDraw("Polygon", {
+      allowSelfIntersection: false,
+      continueDrawing: false,
+      tooltips: false,
+      pathOptions: { ...style, weight: 2, fillColor: style.color },
+      templineStyle: { color: style.color, weight: 2 },
+      hintlineStyle: { color: style.color, weight: 1.5, dashArray: "4 4" },
+    });
+    // Ensartet interface for værktøjslinjens Fortryd/Afslut/Annuller-knapper.
+    layersRef.current.activeDrawer = {
+      disable: () => pm.disableDraw(),
+      deleteLastVertex: () => pm.Draw?.Polygon?._removeLastVertex?.(),
+      completeShape: () => pm.Draw?.Polygon?._finishShape?.(),
+    };
   }, [drawMode, ready]);
 
-  // ── Redigér tegnede former ────────────────────────────────────────────────────
+  // ── Redigér tegnede former (geoman pr. lag) ──────────────────────────────────
   const toggleEdit = useCallback(() => {
     const map = mapRef.current;
     const drawnItems = layersRef.current.drawn;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const GL = (window as any).L;
-    if (!map || !drawnItems || !GL?.EditToolbar) return;
+    if (!map || !drawnItems) return;
 
     if (isEditing) {
       layersRef.current.editHandler?.save();
@@ -421,10 +422,23 @@ export function MapEditorMap({
       layersRef.current.editHandler = null;
       setIsEditing(false);
     } else {
-      const handler = new GL.EditToolbar.Edit(map, {
-        featureGroup: drawnItems,
-        selectedPathOptions: { maintainColor: true, dashArray: "10 10" },
-      });
+      const handler = {
+        enable: () => {
+          drawnItems.eachLayer((l) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (l as any).pm?.enable?.({ allowSelfIntersection: false });
+          });
+        },
+        disable: () => {
+          drawnItems.eachLayer((l) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (l as any).pm?.disable?.();
+          });
+        },
+        save: () => {
+          /* geoman opdaterer lagene live — intet separat save-trin */
+        },
+      };
       handler.enable();
       layersRef.current.editHandler = handler;
       setIsEditing(true);
@@ -622,6 +636,83 @@ export function MapEditorMap({
       });
     })();
   }, [wmsOverlays, ready]);
+
+  // ── Matrikelskel som vektorlag (DAWA — gratis, ingen token) ────────────────
+  const cadastreSeqRef = useRef(0);
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+
+    const clearLayer = () => {
+      if (layersRef.current.cadastre) {
+        map.removeLayer(layersRef.current.cadastre);
+        layersRef.current.cadastre = null;
+      }
+    };
+
+    if (!showCadastreParcels) {
+      clearLayer();
+      return;
+    }
+
+    const load = async () => {
+      const seq = ++cadastreSeqRef.current;
+      if (map.getZoom() < CADASTRE_MIN_ZOOM) {
+        clearLayer();
+        return;
+      }
+      const b = map.getBounds();
+      // Clamp til dansk område (server-fn'ens validering kræver 7-16 / 54-58).
+      const clampLng = (v: number) => Math.min(16, Math.max(7, v));
+      const clampLat = (v: number) => Math.min(58, Math.max(54, v));
+      const w = clampLng(b.getWest());
+      const e = clampLng(b.getEast());
+      const s = clampLat(b.getSouth());
+      const n = clampLat(b.getNorth());
+      if (w >= e || s >= n) return; // udsnit helt uden for DK
+      const ring: [number, number][] = [[w, s], [e, s], [e, n], [w, n], [w, s]];
+
+      try {
+        const { listMatriklerInArea } = await import("@/lib/geo-search.functions");
+        const result = await listMatriklerInArea({ data: { ring } });
+        // Stale-guard: kortet kan være flyttet mens vi ventede.
+        if (seq !== cadastreSeqRef.current || !mapRef.current) return;
+        const L = await import("leaflet");
+        clearLayer();
+        const features = result.items
+          .filter((it) => it.geometry != null)
+          .map((it) => ({
+            type: "Feature" as const,
+            properties: { label: it.label, areaHa: it.areaHa },
+            geometry: it.geometry as { type: string; coordinates: unknown },
+          }));
+        if (features.length === 0) return;
+        const layer = L.geoJSON(
+          { type: "FeatureCollection", features } as never,
+          {
+            style: CADASTRE_STYLE,
+            onEachFeature: (feature, l) => {
+              const p = feature.properties as { label?: string; areaHa?: number | null };
+              l.bindTooltip(
+                `${p.label ?? "Matrikel"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`,
+                { sticky: true, direction: "top" },
+              );
+            },
+          },
+        ).addTo(map);
+        layersRef.current.cadastre = layer;
+      } catch {
+        // Opslag fejlede (offline/API nede) — kortet virker stadig uden laget.
+      }
+    };
+
+    void load();
+    map.on("moveend", load);
+    return () => {
+      map.off("moveend", load);
+      clearLayer();
+    };
+  }, [showCadastreParcels, ready]);
 
   // ── Adressemarkør (fra søgning) ────────────────────────────────────────────
   useEffect(() => {
