@@ -278,14 +278,13 @@ function CreateOrganizationDialog({
     setBusy(true);
     setError(null);
     try {
-      const { data: org, error: orgErr } = await supabase
+      const newOrgId = crypto.randomUUID();
+      const { error: orgErr } = await supabase
         .from("organizations")
-        .insert({ name: trimmed, type, country: country.trim() || "Denmark" })
-        .select("id")
-        .single();
+        .insert({ id: newOrgId, name: trimmed, type, country: country.trim() || "Denmark" });
       if (orgErr) throw orgErr;
       // Owner-medlemskab tilføjes automatisk af DB-trigger (add_creator_as_owner)
-      await onCreated(org.id);
+      await onCreated(newOrgId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Kunne ikke oprette organisation";
       setError(msg);
