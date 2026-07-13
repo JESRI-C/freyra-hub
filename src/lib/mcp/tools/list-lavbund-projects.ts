@@ -1,5 +1,5 @@
 import { defineTool } from "@lovable.dev/mcp-js";
-import { z } from "zod";
+
 import { getProjects } from "@/services/lavbundService";
 import { beregnKrediteretCO2, tiltagValidering } from "@/services/lavbundBeregning";
 

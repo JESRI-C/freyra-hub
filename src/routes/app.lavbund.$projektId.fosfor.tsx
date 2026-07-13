@@ -5,12 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Droplets } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import {
-
   getGroefter,
   getProject,
   getReadings,
   getTransekter,
   saveSnapshot,
+  replaceTransekter,
+  replaceGroefter,
 } from "@/services/lavbundService";
 import { beregnFosforBalance, bygSnapshot } from "@/services/lavbundBeregning";
 import type {
@@ -108,6 +109,10 @@ function FosforPage() {
     if (!projekt.data) return;
     setSaving(true);
     try {
+      // Persistér de redigerede rækker FØR snapshotet, så beregningsgrundlag
+      // og database stemmer overens (før lå redigeringer kun i local state).
+      await replaceTransekter(projektId, transekter);
+      await replaceGroefter(projektId, groefter);
       const snap = bygSnapshot({
         projekt: projekt.data,
         readings: readings.data ?? [],
