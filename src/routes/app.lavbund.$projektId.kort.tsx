@@ -13,6 +13,7 @@ import {
 } from "@/services/lavbundService";
 import { ledgerAppend } from "@/services/ledgerService";
 import { klassificerDybde } from "@/services/lavbundBeregning";
+import { normalizeHoboPayload } from "@/services/lavbundSmartConnect";
 import { AFVANDINGSKLASSER } from "@/data/lavbundFaktorer";
 import type { Maalepunkt, Opmaalingsintensitet } from "@/types/lavbund";
 
@@ -153,12 +154,16 @@ function KortPage() {
             </strong>
           </span>
           <span className="inline-flex items-center gap-1 italic">
-            <Info className="h-3 w-3" /> Manuel pejling registreres nedenfor — Smart
-            Connect-kobling til loggere kommer senere
+            <Info className="h-3 w-3" /> Registrér manuel pejling eller importér
+            HOBO-logger-CSV nedenfor
           </span>
         </div>
-        <div className="px-5 pb-4">
+        <div className="px-5 pb-4 space-y-2">
           <PejlingsForm
+            projektId={projektId}
+            maalepunkter={maalepunkter.data ?? []}
+          />
+          <HoboImport
             projektId={projektId}
             maalepunkter={maalepunkter.data ?? []}
           />
@@ -480,5 +485,108 @@ function PejlingsForm({
         <Plus className="h-3.5 w-3.5" /> {addingMp ? "Opretter…" : "Nyt målepunkt"}
       </button>
     </form>
+  );
+}
+
+// ─── HOBO-logger CSV-import (Smart Connect) ───────────────────────────────────
+//
+// CSV-format: tidsstempel;dybde_cm (eller komma-separeret) — én række pr.
+// måling. Normaliseres via Smart Connect-adapteren og gemmes som
+// hobo_logger-readings på det valgte målepunkt.
+
+export function HoboImport({
+  projektId,
+  maalepunkter,
+}: {
+  projektId: string;
+  maalepunkter: Maalepunkt[];
+}) {
+  const qc = useQueryClient();
+  const [mpId, setMpId] = useState("");
+  const [importing, setImporting] = useState(false);
+
+  const handleFile = async (file: File) => {
+    if (!mpId) {
+      toast.error("Vælg målepunkt før import.");
+      return;
+    }
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const samples = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !/^[a-zA-Z#]/.test(line)) // skip header/kommentarer
+        .map((line) => {
+          const [t, v] = line.split(/[;,\t]/).map((s) => s?.trim());
+          return { t: t ?? "", waterDepthCm: Number((v ?? "").replace(",", ".")) };
+        });
+      const result = normalizeHoboPayload({ serial: file.name, maalepunktId: mpId, samples });
+      if (result.readings.length === 0) {
+        toast.error(
+          `Ingen gyldige målinger i filen${result.fejl.length ? ` (${result.fejl[0]})` : ""}.`,
+        );
+        return;
+      }
+      for (const r of result.readings) {
+        await saveReading(projektId, r);
+      }
+      await ledgerAppend("lavbund", projektId, {
+        actor: "bruger",
+        event: "hobo_import",
+        detail: `${result.readings.length} logger-målinger importeret til ${mpId} (${file.name})${
+          result.fejl.length ? ` · ${result.fejl.length} rækker afvist` : ""
+        }`,
+      });
+      await qc.invalidateQueries({ queryKey: ["lavbund"] });
+      toast.success(
+        `${result.readings.length} målinger importeret${
+          result.fejl.length ? ` · ${result.fejl.length} afvist` : ""
+        }`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Import fejlede");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-end gap-2 rounded-xl border bg-muted/20 p-3">
+      <label className="text-xs space-y-1">
+        <span className="font-medium">HOBO-logger CSV → målepunkt</span>
+        <select
+          value={mpId}
+          onChange={(e) => setMpId(e.target.value)}
+          className="block rounded-lg border bg-background px-2.5 py-1.5 text-sm min-w-[160px]"
+        >
+          <option value="">Vælg…</option>
+          {maalepunkter.map((m) => (
+            <option key={m.id} value={m.id}>{m.id}</option>
+          ))}
+        </select>
+      </label>
+      <label
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm cursor-pointer hover:bg-muted/40 ${
+          importing ? "opacity-50 pointer-events-none" : ""
+        }`}
+      >
+        <Plus className="h-3.5 w-3.5" />
+        {importing ? "Importerer…" : "Importér CSV"}
+        <input
+          type="file"
+          accept=".csv,.txt"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleFile(f);
+            e.target.value = "";
+          }}
+        />
+      </label>
+      <span className="text-[11px] text-muted-foreground">
+        Format: tidsstempel;dybde_cm — én måling pr. række
+      </span>
+    </div>
   );
 }

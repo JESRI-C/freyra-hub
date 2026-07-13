@@ -20,6 +20,7 @@ import {
   tiltagValidering,
 } from "@/services/lavbundBeregning";
 import { AFVANDINGSKLASSER } from "@/data/lavbundFaktorer";
+import { BeregningsgrundlagEditor } from "@/components/lavbund/BeregningsgrundlagEditor";
 import type { Tiltag } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId/klima")({
@@ -145,6 +146,9 @@ function KlimaPage() {
           </div>
         </Card>
       )}
+
+      {/* Redigér selve beregningsgrundlaget (arealfordeling, tiltag, vandspejl, afvigelser) */}
+      <BeregningsgrundlagEditor projekt={p} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5">

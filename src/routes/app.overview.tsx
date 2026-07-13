@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
   ArrowRight,
@@ -277,6 +277,9 @@ function DashboardPage() {
         </Card>
       </div>
 
+      {/* 3b. LavbundsMRV-status */}
+      <LavbundTile />
+
       {/* 4. Project portfolio */}
       <Card>
         <CardHeader
@@ -403,5 +406,61 @@ function KpiMini({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
       <div className="text-xs font-semibold tabular-nums mt-0.5">{value}</div>
     </div>
+  );
+}
+
+// ─── LavbundsMRV-status på forsiden ───────────────────────────────────────────
+
+function LavbundTile() {
+  const { data } = useQuery({
+    queryKey: ["lavbund", "overblik"],
+    queryFn: async () => {
+      const { getLavbundOverblik } = await import("@/services/lavbundService");
+      return getLavbundOverblik();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (!data || data.antalProjekter === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader
+        title="LavbundsMRV"
+        subtitle="Målt verifikation af CO₂-effekt (v12) på lavbundsprojekter"
+        action={
+          <Link
+            to="/app/lavbund"
+            className="text-xs inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            Åbn modul <ArrowRight className="h-3 w-3" />
+          </Link>
+        }
+      />
+      <div className="px-5 pb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-xl border p-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Projekter</div>
+          <div className="text-lg font-semibold tabular-nums mt-0.5">{data.antalProjekter}</div>
+        </div>
+        <div className="rounded-xl border p-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Samlet areal</div>
+          <div className="text-lg font-semibold tabular-nums mt-0.5">
+            {data.samletArealHa.toLocaleString("da-DK")} ha
+          </div>
+        </div>
+        <div className="rounded-xl border p-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Krediteret (v12)</div>
+          <div className="text-lg font-semibold tabular-nums mt-0.5">
+            {data.krediteretTotal.toLocaleString("da-DK")} t CO₂e/år
+          </div>
+        </div>
+        <div className="rounded-xl border p-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Verificeret (bogført)</div>
+          <div className="text-lg font-semibold tabular-nums mt-0.5 text-primary">
+            {data.verificeretTotal.toLocaleString("da-DK")} t CO₂e/år
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
