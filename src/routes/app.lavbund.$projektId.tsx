@@ -5,10 +5,14 @@ import {
   useRouterState,
   Navigate,
 } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Map, Leaf, Droplets, BookCheck, FileText, ArrowLeft } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Map, Leaf, Droplets, BookCheck, FileText, ArrowLeft, Link2 } from "lucide-react";
+import { toast } from "sonner";
 import { Pill } from "@/components/ui-bits";
-import { getProject } from "@/services/lavbundService";
+import { getProject, getLinkedProjectId, setLinkedProject } from "@/services/lavbundService";
+import { getProjects as getCoreProjects } from "@/services/projects-service";
+import { ledgerAppend } from "@/services/ledgerService";
+import { useAuth } from "@/lib/auth";
 import type { ProjektStatus } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId")({
@@ -77,6 +81,7 @@ function ProjektLayout() {
               )}
             </div>
           </div>
+          <LinkTilKerneprojekt projektId={projektId} />
         </div>
         <div className="w-full px-4 sm:px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
@@ -106,5 +111,62 @@ function ProjektLayout() {
         <Outlet />
       </div>
     </div>
+  );
+}
+
+/**
+ * Kobling til GoFreyra-kerneprojekt: når sat, skubber bogførte snapshots den
+ * verificerede CO₂-effekt til projektets co2e_reduced-indicator på dashboardet.
+ */
+function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
+  const { orgId } = useAuth();
+  const qc = useQueryClient();
+  const linked = useQuery({
+    queryKey: ["lavbund", "linked", projektId],
+    queryFn: () => getLinkedProjectId(projektId),
+  });
+  const coreProjects = useQuery({
+    queryKey: ["core-projects", orgId],
+    queryFn: () => getCoreProjects(orgId ?? undefined),
+  });
+
+  const skift = async (coreId: string) => {
+    try {
+      await setLinkedProject(projektId, coreId || null);
+      const navn = coreProjects.data?.find((p) => p.id === coreId)?.name;
+      await ledgerAppend("lavbund", projektId, {
+        actor: "bruger",
+        event: coreId ? "kerneprojekt_koblet" : "kerneprojekt_afkoblet",
+        detail: coreId ? `Koblet til ${navn ?? coreId}` : "Kobling fjernet",
+      });
+      await qc.invalidateQueries({ queryKey: ["lavbund", "linked", projektId] });
+      toast.success(
+        coreId
+          ? "Koblet — næste bogføring opdaterer projektets CO₂-indicator"
+          : "Kobling fjernet",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunne ikke opdatere kobling");
+    }
+  };
+
+  return (
+    <label className="hidden sm:flex flex-col items-end gap-1 text-[11px] text-muted-foreground shrink-0">
+      <span className="inline-flex items-center gap-1">
+        <Link2 className="h-3 w-3" /> Kobling til GoFreyra-projekt
+      </span>
+      <select
+        value={linked.data ?? ""}
+        onChange={(e) => skift(e.target.value)}
+        className="rounded-lg border bg-background px-2 py-1 text-xs max-w-[220px]"
+      >
+        <option value="">Ikke koblet</option>
+        {(coreProjects.data ?? []).map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

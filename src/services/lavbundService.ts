@@ -45,6 +45,8 @@ interface LooseClient {
     select(cols: string): LooseQuery;
     upsert(rows: unknown, opts?: { onConflict?: string }): Promise<{ error: LooseError | null }>;
     insert(rows: unknown): Promise<{ error: LooseError | null }>;
+    update(patch: unknown): { eq(col: string, v: unknown): Promise<{ error: LooseError | null }> };
+    delete(): { eq(col: string, v: unknown): Promise<{ error: LooseError | null }> };
   };
 }
 
@@ -118,6 +120,38 @@ export async function saveProject(p: LavbundsProjekt): Promise<LavbundsProjekt> 
   return { ...p };
 }
 
+// ─── Kobling til kerneprojekt (dashboard-indicators) ─────────────────────────
+
+/** Læs hvilket GoFreyra-kerneprojekt lavbundsprojektet er koblet til. */
+export async function getLinkedProjectId(projektId: string): Promise<string | null> {
+  const db = client();
+  if (!db) return null;
+  const { data, error } = await db
+    .from("lavbund_projekter")
+    .select("linked_project_id")
+    .eq("id", projektId)
+    .maybeSingle();
+  if (error) return null;
+  return (data as { linked_project_id: string | null } | null)?.linked_project_id ?? null;
+}
+
+/**
+ * Kobl (eller afkobl med null) lavbundsprojektet til et kerneprojekt, så
+ * bogførte snapshots skubber verificeret CO₂ til projektets indicators.
+ */
+export async function setLinkedProject(projektId: string, coreProjectId: string | null): Promise<void> {
+  const db = client();
+  if (!db) throw new Error("Kræver databaseforbindelse");
+  // Sørg for at projektrækken findes (demo-projekter lever ellers kun i mock).
+  const projekt = await getProject(projektId);
+  if (projekt) await saveProject(projekt);
+  const { error } = await db
+    .from("lavbund_projekter")
+    .update({ linked_project_id: coreProjectId })
+    .eq("id", projektId);
+  if (error && !isMissingTable(error)) throw new Error(error.message);
+}
+
 // ─── Målepunkter / readings / transekter / grøfter ───────────────────────────
 
 async function listPayloads<T extends object>(
@@ -176,6 +210,95 @@ export async function getGroefter(projektId: string): Promise<GroeftStraekning[]
   );
 }
 
+// ─── Skrive-veje: målepunkter, pejlinger, transekter, grøfter ─────────────────
+
+/** Sørg for at projektrækken findes i DB (mock-demo-projekter oprettes on-demand). */
+async function ensureProjectRow(projektId: string): Promise<boolean> {
+  const db = client();
+  if (!db) return false;
+  const { data } = await db
+    .from("lavbund_projekter")
+    .select("id")
+    .eq("id", projektId)
+    .maybeSingle();
+  if ((data as { id: string } | null)?.id) return true;
+  const projekt = await getProject(projektId);
+  if (!projekt) return false;
+  const { error } = await db.from("lavbund_projekter").upsert(
+    [{ id: projekt.id, navn: projekt.navn, status: projekt.status, payload: projekt, updated_at: new Date().toISOString() }],
+    { onConflict: "id" },
+  );
+  return !error;
+}
+
+export async function saveMaalepunkt(m: Maalepunkt): Promise<Maalepunkt> {
+  const db = client();
+  if (db && (await ensureProjectRow(m.projektId))) {
+    const { error } = await db.from("lavbund_maalepunkter").upsert(
+      [{ id: m.id, projekt_id: m.projektId, payload: m }],
+      { onConflict: "id" },
+    );
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    if (!error) return m;
+  }
+  MOCK_MAALEPUNKTER.push(m);
+  return m;
+}
+
+export async function saveReading(projektId: string, r: VandstandsReading): Promise<VandstandsReading> {
+  const db = client();
+  if (db && (await ensureProjectRow(projektId))) {
+    const { error } = await db.from("lavbund_readings").insert([
+      { projekt_id: projektId, maalepunkt_id: r.maalepunktId, tidspunkt: r.tidspunkt, payload: r },
+    ]);
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    if (!error) return r;
+  }
+  MOCK_READINGS.push(r);
+  return r;
+}
+
+/** Erstat projektets transekter med den redigerede liste (fosfor-editoren). */
+export async function replaceTransekter(projektId: string, list: Transekt[]): Promise<void> {
+  const db = client();
+  if (db && (await ensureProjectRow(projektId))) {
+    const del = await db.from("lavbund_transekter").delete().eq("projekt_id", projektId);
+    if (del.error && !isMissingTable(del.error)) throw new Error(del.error.message);
+    if (!del.error && list.length > 0) {
+      const { error } = await db.from("lavbund_transekter").insert(
+        list.map((t) => ({ projekt_id: projektId, nr: t.nr, fase: t.fase, payload: t })),
+      );
+      if (error) throw new Error(error.message);
+    }
+    if (!del.error) return;
+  }
+  // Mock-fallback: filtrér gamle ud og læg nye ind.
+  for (let i = MOCK_TRANSEKTER.length - 1; i >= 0; i--) {
+    if (MOCK_TRANSEKTER[i].projektId === projektId) MOCK_TRANSEKTER.splice(i, 1);
+  }
+  MOCK_TRANSEKTER.push(...list);
+}
+
+/** Erstat projektets grøftestrækninger med den redigerede liste. */
+export async function replaceGroefter(projektId: string, list: GroeftStraekning[]): Promise<void> {
+  const db = client();
+  if (db && (await ensureProjectRow(projektId))) {
+    const del = await db.from("lavbund_groefter").delete().eq("projekt_id", projektId);
+    if (del.error && !isMissingTable(del.error)) throw new Error(del.error.message);
+    if (!del.error && list.length > 0) {
+      const { error } = await db.from("lavbund_groefter").insert(
+        list.map((g) => ({ id: g.id, projekt_id: projektId, payload: g })),
+      );
+      if (error) throw new Error(error.message);
+    }
+    if (!del.error) return;
+  }
+  for (let i = MOCK_GROEFTER.length - 1; i >= 0; i--) {
+    if (MOCK_GROEFTER[i].projektId === projektId) MOCK_GROEFTER.splice(i, 1);
+  }
+  MOCK_GROEFTER.push(...list);
+}
+
 // ─── Ledger ───────────────────────────────────────────────────────────────────
 
 export async function getLedger(projektId: string): Promise<LedgerPost[]> {
@@ -196,7 +319,7 @@ export async function getLedger(projektId: string): Promise<LedgerPost[]> {
 
 export async function appendLedger(projektId: string, post: LedgerPost): Promise<LedgerPost> {
   const db = client();
-  if (db) {
+  if (db && (await ensureProjectRow(projektId))) {
     const { error } = await db
       .from("lavbund_ledger")
       .insert([{ projekt_id: projektId, seq: post.seq, payload: post }]);
@@ -227,7 +350,7 @@ export async function getSnapshot(projektId: string): Promise<BeregningsSnapshot
 
 export async function saveSnapshot(s: BeregningsSnapshot): Promise<BeregningsSnapshot> {
   const db = client();
-  if (db) {
+  if (db && (await ensureProjectRow(s.projektId))) {
     const { error } = await db.from("lavbund_snapshots").upsert(
       [{ projekt_id: s.projektId, payload: s, updated_at: new Date().toISOString() }],
       { onConflict: "projekt_id" },

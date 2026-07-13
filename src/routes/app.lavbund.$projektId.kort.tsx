@@ -1,12 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Info } from "lucide-react";
+import { Info, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
-import { getMaalepunkter, getProject, getReadings } from "@/services/lavbundService";
+import {
+  getMaalepunkter,
+  getProject,
+  getReadings,
+  saveReading,
+  saveMaalepunkt,
+} from "@/services/lavbundService";
+import { ledgerAppend } from "@/services/ledgerService";
 import { klassificerDybde } from "@/services/lavbundBeregning";
 import { AFVANDINGSKLASSER } from "@/data/lavbundFaktorer";
-import type { Opmaalingsintensitet } from "@/types/lavbund";
+import type { Maalepunkt, Opmaalingsintensitet } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId/kort")({
   head: () => ({ meta: [{ title: "Feltkort & tidsserie — LavbundsMRV" }] }),
@@ -145,8 +153,15 @@ function KortPage() {
             </strong>
           </span>
           <span className="inline-flex items-center gap-1 italic">
-            <Info className="h-3 w-3" /> Demodata indtil Smart Connect-kobling er live
+            <Info className="h-3 w-3" /> Manuel pejling registreres nedenfor — Smart
+            Connect-kobling til loggere kommer senere
           </span>
+        </div>
+        <div className="px-5 pb-4">
+          <PejlingsForm
+            projektId={projektId}
+            maalepunkter={maalepunkter.data ?? []}
+          />
         </div>
         <div className="px-5 pb-5 overflow-x-auto">
           <div className="min-w-[600px]">
@@ -349,5 +364,121 @@ function Tidsseriekurve({ serie }: { serie: { maaned: string; dybde: number }[] 
         {maxD.toFixed(1)} m
       </text>
     </svg>
+  );
+}
+
+// ─── Manuel pejling + nyt målepunkt ────────────────────────────────────────────
+
+function PejlingsForm({
+  projektId,
+  maalepunkter,
+}: {
+  projektId: string;
+  maalepunkter: Maalepunkt[];
+}) {
+  const qc = useQueryClient();
+  const [mpId, setMpId] = useState("");
+  const [dybdeCm, setDybdeCm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [addingMp, setAddingMp] = useState(false);
+
+  const registrer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const dybde = Number(dybdeCm.replace(",", "."));
+    if (!mpId || !Number.isFinite(dybde)) {
+      toast.error("Vælg målepunkt og angiv dybde i cm.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveReading(projektId, {
+        maalepunktId: mpId,
+        tidspunkt: new Date().toISOString(),
+        dybdeM: Math.round(dybde) / 100,
+        kilde: "manuel_pejling",
+      });
+      await ledgerAppend("lavbund", projektId, {
+        actor: "bruger",
+        event: "pejling_registreret",
+        detail: `Målepunkt ${mpId}: ${dybde} cm under terræn`,
+      });
+      await qc.invalidateQueries({ queryKey: ["lavbund"] });
+      setDybdeCm("");
+      toast.success("Pejling registreret");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunne ikke gemme pejling");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tilfoejMaalepunkt = async () => {
+    setAddingMp(true);
+    try {
+      const n = maalepunkter.length;
+      const mp: Maalepunkt = {
+        id: `MP-${String(n + 1).padStart(2, "0")}-${projektId.slice(0, 4)}`,
+        projektId,
+        type: "markpejling",
+        position: { x: 10 + (n % 8) * 11, y: 12 + Math.floor(n / 8) * 14 },
+        intensiteter: ["minimal", "standard", "intensiv"],
+      };
+      await saveMaalepunkt(mp);
+      await qc.invalidateQueries({ queryKey: ["lavbund"] });
+      setMpId(mp.id);
+      toast.success(`Målepunkt ${mp.id} oprettet`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunne ikke oprette målepunkt");
+    } finally {
+      setAddingMp(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={registrer}
+      className="flex flex-wrap items-end gap-2 rounded-xl border bg-muted/20 p-3"
+    >
+      <label className="text-xs space-y-1">
+        <span className="font-medium">Målepunkt</span>
+        <select
+          value={mpId}
+          onChange={(e) => setMpId(e.target.value)}
+          className="block rounded-lg border bg-background px-2.5 py-1.5 text-sm min-w-[160px]"
+        >
+          <option value="">Vælg…</option>
+          {maalepunkter.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.id} ({m.type === "kanal_logger" ? "logger" : "pejling"})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="text-xs space-y-1">
+        <span className="font-medium">Dybde under terræn (cm)</span>
+        <input
+          value={dybdeCm}
+          onChange={(e) => setDybdeCm(e.target.value)}
+          inputMode="decimal"
+          placeholder="Fx 35"
+          className="block rounded-lg border bg-background px-2.5 py-1.5 text-sm w-32"
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-lg bg-primary text-primary-foreground px-3.5 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+      >
+        {saving ? "Gemmer…" : "Registrér pejling"}
+      </button>
+      <button
+        type="button"
+        onClick={tilfoejMaalepunkt}
+        disabled={addingMp}
+        className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm hover:bg-muted/40 disabled:opacity-50"
+      >
+        <Plus className="h-3.5 w-3.5" /> {addingMp ? "Opretter…" : "Nyt målepunkt"}
+      </button>
+    </form>
   );
 }

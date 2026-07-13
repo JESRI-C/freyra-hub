@@ -1,16 +1,17 @@
 // Generisk ESG Ledger — append-only hændelseslog med SHA-256-kæde.
 // Kan bruges af flere moduler (module-parameter). LavbundsMRV skriver hertil.
+//
+// Persistens: lavbund-modulets poster skrives igennem til Supabase-tabellen
+// lavbund_ledger (via lavbundService) med in-memory som cache/fallback, så
+// revisionssporet overlever genindlæsning. Andre moduler kører in-memory
+// indtil de får egne tabeller.
 import type { LedgerPost } from "@/types/lavbund";
+import { getLedger as dbGetLedger, appendLedger as dbAppendLedger } from "@/services/lavbundService";
 
 const store = new Map<string, LedgerPost[]>();
-const LATENCY = 150;
 
 function key(modul: string, sagId: string): string {
   return `${modul}::${sagId}`;
-}
-
-function delay<T>(v: T): Promise<T> {
-  return new Promise((r) => setTimeout(() => r(v), LATENCY));
 }
 
 async function sha256Hex(input: string): Promise<string> {
@@ -25,9 +26,24 @@ function hashInput(prev: string, tid: string, actor: string, event: string, deta
   return `${prev}|${tid}|${actor}|${event}|${detail}`;
 }
 
+/** Hent posterne — for lavbund fra databasen (og prime cachen), ellers memory. */
+async function loadRows(modul: string, sagId: string): Promise<LedgerPost[]> {
+  if (modul === "lavbund") {
+    try {
+      const dbRows = await dbGetLedger(sagId);
+      if (dbRows.length > 0) {
+        store.set(key(modul, sagId), dbRows);
+        return dbRows.slice();
+      }
+    } catch {
+      // DB utilgængelig — brug memory
+    }
+  }
+  return (store.get(key(modul, sagId)) ?? []).slice();
+}
+
 export async function ledgerList(modul: string, sagId: string): Promise<LedgerPost[]> {
-  const rows = store.get(key(modul, sagId)) ?? [];
-  return delay(rows.slice());
+  return loadRows(modul, sagId);
 }
 
 export async function ledgerAppend(
@@ -35,7 +51,7 @@ export async function ledgerAppend(
   sagId: string,
   input: { actor: string; event: string; detail: string; tidspunkt?: string },
 ): Promise<LedgerPost> {
-  const rows = store.get(key(modul, sagId)) ?? [];
+  const rows = await loadRows(modul, sagId);
   const prev = rows[rows.length - 1];
   const prevHash = prev?.hash ?? "GENESIS";
   const tid = input.tidspunkt ?? new Date().toISOString();
@@ -51,7 +67,15 @@ export async function ledgerAppend(
   };
   rows.push(post);
   store.set(key(modul, sagId), rows);
-  return delay(post);
+  if (modul === "lavbund") {
+    // Best-effort persistens af HELE kæden (idempotent — unique(projekt_id,seq)
+    // afviser dubletter), så demo-historik fra mock også lander i databasen og
+    // kæden verificerer efter genindlæsning.
+    for (const r of rows) {
+      await dbAppendLedger(sagId, r).catch(() => undefined);
+    }
+  }
+  return post;
 }
 
 export interface KaedeResultat {
@@ -60,7 +84,7 @@ export interface KaedeResultat {
 }
 
 export async function ledgerVerify(modul: string, sagId: string): Promise<KaedeResultat> {
-  const rows = store.get(key(modul, sagId)) ?? [];
+  const rows = await loadRows(modul, sagId);
   let prev = "GENESIS";
   for (const p of rows) {
     if (p.prevHash !== prev) {

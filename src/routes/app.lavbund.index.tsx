@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, FolderOpen, Leaf, MapPin, Plus } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AlertTriangle, FolderOpen, Leaf, MapPin, Plus, X } from "lucide-react";
 import { Card, PageHeader, Pill, StatCard } from "@/components/ui-bits";
-import { getProjects } from "@/services/lavbundService";
+import { getProjects, saveProject } from "@/services/lavbundService";
 import {
   beregnKrediteretCO2,
   tiltagValidering,
@@ -72,6 +74,7 @@ function LavbundIndexPage() {
     queryKey: ["lavbund", "projects"],
     queryFn: getProjects,
   });
+  const [showCreate, setShowCreate] = useState(false);
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
@@ -81,9 +84,8 @@ function LavbundIndexPage() {
         actions={
           <button
             type="button"
+            onClick={() => setShowCreate(true)}
             className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition"
-            disabled
-            title="Opret projekt kommer i næste fase"
           >
             <Plus className="h-4 w-4" />
             Nyt lavbundsprojekt
@@ -91,11 +93,135 @@ function LavbundIndexPage() {
         }
       />
 
+      {showCreate && <CreateProjectDialog onClose={() => setShowCreate(false)} />}
+
       {q.isLoading && <LoadingState />}
       {q.isError && <ErrorState onRetry={() => q.refetch()} />}
-      {q.data && q.data.length === 0 && <EmptyState />}
+      {q.data && q.data.length === 0 && <EmptyState onCreate={() => setShowCreate(true)} />}
       {q.data && q.data.length > 0 && <Loaded projects={q.data} />}
     </main>
+  );
+}
+
+function CreateProjectDialog({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [navn, setNavn] = useState("");
+  const [kommune, setKommune] = useState("");
+  const [arealHa, setArealHa] = useState("");
+  const [torvAndel, setTorvAndel] = useState("100");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const areal = Number(arealHa.replace(",", "."));
+    if (!navn.trim() || !kommune.trim() || !Number.isFinite(areal) || areal <= 0) {
+      toast.error("Udfyld navn, kommune og et gyldigt areal.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const id = crypto.randomUUID();
+      const projekt: LavbundsProjekt = {
+        id,
+        navn: navn.trim(),
+        kommune: kommune.trim(),
+        status: "planlagt",
+        samletArealHa: areal,
+        // Arealfordelingen udfyldes i klima-fanen — én neutral post gør
+        // areal-afstemningen gyldig fra start.
+        arealFordeling: [
+          { kulstofklasse: ">12", arealanvendelse: "Permanent græs", buffer: false, hektar: areal },
+        ],
+        tiltag: {
+          draenAfbrydes: false,
+          groefterTilkastes: false,
+          vandloebsbundHaeves: false,
+          overrislingszoner: false,
+          pumpedriftStopper: false,
+        },
+        torvAndel: Math.min(1, Math.max(0, Number(torvAndel) / 100)) || 1,
+        vandspejlFoerM: 0.8,
+        usageScope: "tilskudsordning_klimaregnskab",
+        afvigelser: [],
+      };
+      await saveProject(projekt);
+      await qc.invalidateQueries({ queryKey: ["lavbund"] });
+      toast.success("Lavbundsprojekt oprettet");
+      navigate({ to: "/app/lavbund/$projektId/kort", params: { projektId: id } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kunne ikke oprette projekt");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="p-5 border-primary/30">
+      <form onSubmit={submit} className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="font-semibold text-sm">Nyt lavbundsprojekt</div>
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="text-xs space-y-1">
+            <span className="font-medium">Projektnavn</span>
+            <input
+              value={navn}
+              onChange={(e) => setNavn(e.target.value)}
+              placeholder="Fx Åmosen Vest"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              autoFocus
+            />
+          </label>
+          <label className="text-xs space-y-1">
+            <span className="font-medium">Kommune</span>
+            <input
+              value={kommune}
+              onChange={(e) => setKommune(e.target.value)}
+              placeholder="Fx Haderslev"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs space-y-1">
+            <span className="font-medium">Samlet areal (ha)</span>
+            <input
+              value={arealHa}
+              onChange={(e) => setArealHa(e.target.value)}
+              placeholder="Fx 42,5"
+              inputMode="decimal"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs space-y-1">
+            <span className="font-medium">Tørveandel (%)</span>
+            <input
+              value={torvAndel}
+              onChange={(e) => setTorvAndel(e.target.value)}
+              inputMode="numeric"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Arealfordeling på kulstofklasser, tiltag og vandspejl justeres bagefter i klima-fanen.
+        </p>
+        <div className="flex gap-2 justify-end">
+          <button type="button" onClick={onClose} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-muted/40">
+            Annuller
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg bg-primary text-primary-foreground px-4 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+          >
+            {saving ? "Opretter…" : "Opret projekt"}
+          </button>
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -129,7 +255,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <Card className="p-10 text-center">
       <FolderOpen className="h-10 w-10 mx-auto text-muted-foreground" />
@@ -138,8 +264,8 @@ function EmptyState() {
         Opret det første projekt for at komme i gang med MRV.
       </p>
       <button
-        disabled
-        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium opacity-80"
+        onClick={onCreate}
+        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90"
       >
         <Plus className="h-4 w-4" /> Opret det første projekt
       </button>
