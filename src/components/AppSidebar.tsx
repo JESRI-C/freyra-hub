@@ -40,6 +40,7 @@ const GROUPS: SidebarGroup[] = [
       { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
       { to: "/app/construction", label: "Byggeri & natur", icon: Building2 },
       { to: "/app/connect", label: "Monitoring & feltdata", icon: Cable },
+      { to: "/app/lavbund", label: "LavbundsMRV", icon: Droplets },
       { to: "/app/decisions", label: "Project Intelligence", icon: Brain },
       { to: "/app/ledger", label: "Dokumentation & audit", icon: BookCheck },
     ],
