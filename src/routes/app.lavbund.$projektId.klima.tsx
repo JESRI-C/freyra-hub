@@ -1,16 +1,16 @@
 import { ledgerAppend } from "@/services/ledgerService";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Leaf, Info } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Leaf, Info, Lock, Sparkles } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import {
+  getAnbefalinger,
   getGroefter,
   getMaalepunkter,
   getProject,
   getReadings,
   getTransekter,
-
   saveSnapshot,
 } from "@/services/lavbundService";
 import {
