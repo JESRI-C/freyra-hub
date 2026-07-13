@@ -23,6 +23,7 @@ export interface SentinelScene {
   b08Url: string | null; // NIR band COG
   thumbnailUrl: string | null;
   bbox: [number, number, number, number];
+  epsg: number | null; // UTM-zone for scenens COG'er (EPSG:326xx)
 }
 
 export interface NdviResult {
@@ -74,6 +75,7 @@ export async function findScenes(
         "properties.eo:cloud_cover",
         "properties.platform",
         "properties.s2:mgrs_tile",
+        "properties.proj:epsg",
         "assets.B04",
         "assets.B08",
         "assets.red",
@@ -102,6 +104,7 @@ export async function findScenes(
         "eo:cloud_cover": number;
         platform: string;
         "s2:mgrs_tile"?: string;
+        "proj:epsg"?: number;
       };
       assets: Record<string, { href: string; type?: string }>;
     }>;
@@ -120,6 +123,7 @@ export async function findScenes(
       f.assets?.["overview"]?.href ??
       null,
     bbox: f.bbox,
+    epsg: f.properties["proj:epsg"] ?? null,
   }));
 }
 
@@ -128,14 +132,18 @@ export async function findScenes(
 /**
  * Beregner NDVI fra Sentinel-2 bånd.
  *
- * Sentinel-2 COG filer er offentligt tilgængelige på S3.
- * Vi henter overview level 4 (lav opløsning, ~160m/px) for at spare båndbredde.
- * GeoTIFF-parsing er minimalistisk: vi læser de første 1000 pixels og beregner
- * median-NDVI for at undgå outliers.
+ * Primær vej: ÆGTE båndmatematik — geotiff.js læser et pixel-vindue omkring
+ * projektets centroid fra B04/B08 COG'erne (HTTP range requests mod et
+ * overview-niveau) og beregner median-NDVI af reflektansværdierne.
  *
- * Hvis bånd-download fejler, falder vi tilbage til estimat baseret på scene-metadata.
+ * Hvis bånd-læsning fejler (netværk/CORS/timeout), falder vi tilbage til
+ * thumbnail-analyse og til sidst metadata-estimat — tydeligt markeret med
+ * method: "sentinel2_estimated" og lavere confidence.
  */
-export async function computeNdvi(scene: SentinelScene): Promise<NdviResult> {
+export async function computeNdvi(
+  scene: SentinelScene,
+  point?: { lat: number; lng: number },
+): Promise<NdviResult> {
   const base: Omit<NdviResult, "ndvi" | "confidence" | "method"> = {
     sceneId: scene.id,
     sceneDate: scene.datetime,
@@ -143,15 +151,18 @@ export async function computeNdvi(scene: SentinelScene): Promise<NdviResult> {
     fetchedAt: new Date().toISOString(),
   };
 
-  // Forsøg 1: Hent faktiske bånddata fra S3 COG
+  // Forsøg 1: Ægte bånddata fra S3 COG (median-NDVI omkring punktet)
   if (scene.b04Url && scene.b08Url) {
     try {
-      const ndvi = await fetchBandNdvi(scene.b04Url, scene.b08Url);
+      const { computeWindowNdvi } = await import("./ndvi-band-math");
+      const lat = point?.lat ?? (scene.bbox[1] + scene.bbox[3]) / 2;
+      const lng = point?.lng ?? (scene.bbox[0] + scene.bbox[2]) / 2;
+      const ndvi = await computeWindowNdvi(scene.b04Url, scene.b08Url, lat, lng, scene.epsg);
       if (ndvi !== null) {
         return { ...base, ndvi, confidence: "high", method: "sentinel2_computed" };
       }
     } catch {
-      // CORS eller timeout — prøv estimat
+      // netværk/CORS/timeout — prøv estimat
     }
   }
 
@@ -170,39 +181,6 @@ export async function computeNdvi(scene: SentinelScene): Promise<NdviResult> {
   // Fallback: Statistisk estimat fra skydækning og årstid
   const ndvi = estimateNdviFromMetadata(scene);
   return { ...base, ndvi, confidence: "low", method: "sentinel2_estimated" };
-}
-
-/**
- * Henter overview-niveau fra Sentinel-2 COG og beregner NDVI.
- * Bruger HTTP Range requests til at hente kun overview tiles.
- */
-async function fetchBandNdvi(b04Url: string, b08Url: string): Promise<number | null> {
-  // COG overview level: tilføj ?overview=4 parameter hvis understøttet
-  // Alternativt: hent de første 64KB som indeholder IFD og overview data
-  const [b04Res, b08Res] = await Promise.all([
-    fetch(b04Url, { headers: { Range: "bytes=0-65535" }, signal: AbortSignal.timeout(8000) }),
-    fetch(b08Url, { headers: { Range: "bytes=0-65535" }, signal: AbortSignal.timeout(8000) }),
-  ]);
-
-  if (!b04Res.ok || !b08Res.ok) return null;
-
-  const [b04Buf, b08Buf] = await Promise.all([b04Res.arrayBuffer(), b08Res.arrayBuffer()]);
-
-  // Parse minimalistisk: læs Uint16 værdier fra GeoTIFF data section
-  // Sentinel-2 L2A bands er 16-bit integers, scale 10000 = reflektans 1.0
-  const b04Vals = extractUint16Samples(b04Buf, 200);
-  const b08Vals = extractUint16Samples(b08Buf, 200);
-
-  if (b04Vals.length === 0 || b08Vals.length === 0) return null;
-
-  const medB04 = median(b04Vals);
-  const medB08 = median(b08Vals);
-
-  if (medB04 + medB08 === 0) return null;
-
-  const ndvi = (medB08 - medB04) / (medB08 + medB04);
-  // Clamp til realistisk vegetations-range
-  return Math.max(-0.1, Math.min(0.9, ndvi));
 }
 
 /**
@@ -266,28 +244,6 @@ function estimateNdviFromMetadata(scene: SentinelScene): number {
   return Math.round(baseNdvi * 100) / 100;
 }
 
-// ─── Hjælpefunktioner ─────────────────────────────────────────────────────────
-
-function extractUint16Samples(buf: ArrayBuffer, sampleCount: number): number[] {
-  const view = new DataView(buf);
-  const samples: number[] = [];
-  // Spring over GeoTIFF header (~200 bytes) og læs Uint16 værdier
-  const offset = 200;
-  const step = Math.max(2, Math.floor((buf.byteLength - offset) / sampleCount / 2) * 2);
-  for (let i = offset; i < buf.byteLength - 1 && samples.length < sampleCount; i += step) {
-    const val = view.getUint16(i, true); // little-endian
-    if (val > 0 && val < 10000) samples.push(val); // filtrér no-data
-  }
-  return samples;
-}
-
-function median(arr: number[]): number {
-  if (arr.length === 0) return 0;
-  const sorted = [...arr].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
 // ─── Fuld pipeline: find + beregn + gem ───────────────────────────────────────
 
 /**
@@ -311,12 +267,12 @@ export async function runNdviPipeline(
         return { scenes: [], bestScene: null, ndvi: null, error: "Ingen scener fundet inden for 180 dage" };
       }
       const best = fallbackScenes[0];
-      const ndvi = await computeNdvi(best);
+      const ndvi = await computeNdvi(best, { lat, lng });
       return { scenes: fallbackScenes, bestScene: best, ndvi };
     }
 
     const best = scenes[0];
-    const ndvi = await computeNdvi(best);
+    const ndvi = await computeNdvi(best, { lat, lng });
     return { scenes, bestScene: best, ndvi };
   } catch (err) {
     return {

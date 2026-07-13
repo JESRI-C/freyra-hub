@@ -1,5 +1,9 @@
 // Service-lag for LavbundsMRV. UI-komponenter kalder KUN disse funktioner.
-// I dag læser vi fra in-memory mock-data; signaturerne er klar til API/DB.
+//
+// Læser/skriver nu Supabase-tabellerne lavbund_* (payload jsonb = domæneobjekt).
+// Falder gracefully tilbage til mock-data når Supabase ikke er konfigureret,
+// tabellerne mangler (PGRST205) eller databasen endnu er tom — så demo-projektet
+// altid er synligt og modulet aldrig crasher.
 import {
   MOCK_GROEFTER,
   MOCK_LEDGER,
@@ -18,86 +22,281 @@ import type {
   Transekt,
   VandstandsReading,
 } from "@/types/lavbund";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 
-const LATENCY = 300;
-
-function delay<T>(v: T): Promise<T> {
-  return new Promise((r) => setTimeout(() => r(v), LATENCY));
+// Lavbund-tabellerne er nyere end den genererede Database-type — klienten
+// tilgås derfor løst her, men alle payloads er typet ved modulets rand.
+interface LooseResult<T> {
+  data: T;
+  error: LooseError | null;
+}
+interface LooseError {
+  code?: string;
+  message: string;
+}
+interface LooseQuery {
+  eq(col: string, v: unknown): LooseQuery;
+  order(col: string, opts?: { ascending?: boolean }): LooseQuery;
+  maybeSingle(): Promise<LooseResult<unknown>>;
+  then<R>(onfulfilled: (v: LooseResult<unknown[] | null>) => R): Promise<R>;
+}
+interface LooseClient {
+  from(table: string): {
+    select(cols: string): LooseQuery;
+    upsert(rows: unknown, opts?: { onConflict?: string }): Promise<{ error: LooseError | null }>;
+    insert(rows: unknown): Promise<{ error: LooseError | null }>;
+  };
 }
 
-// Simpelt in-memory lager (mock).
+function client(): LooseClient | null {
+  if (!isSupabaseConfigured || !supabase) return null;
+  return supabase as unknown as LooseClient;
+}
+
+/** PGRST205 = tabellen findes ikke endnu (migration ikke kørt). */
+function isMissingTable(err: LooseError | null): boolean {
+  return err?.code === "PGRST205";
+}
+
+// In-memory mock-lager (fallback + dev uden Supabase).
 const projekter: LavbundsProjekt[] = MOCK_PROJEKTER.map((p) => ({ ...p }));
 
+// ─── Projekter ────────────────────────────────────────────────────────────────
+
 export async function getProjects(): Promise<LavbundsProjekt[]> {
-  return delay(projekter.map((p) => ({ ...p })));
+  const db = client();
+  if (db) {
+    const { data, error } = await db
+      .from("lavbund_projekter")
+      .select("payload")
+      .order("id");
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    if (!error && data && data.length > 0) {
+      return (data as Array<{ payload: LavbundsProjekt }>).map((r) => ({ ...r.payload }));
+    }
+  }
+  return projekter.map((p) => ({ ...p }));
 }
 
 export async function getProject(id: string): Promise<LavbundsProjekt | null> {
+  const db = client();
+  if (db) {
+    const { data, error } = await db
+      .from("lavbund_projekter")
+      .select("payload")
+      .eq("id", id)
+      .maybeSingle();
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    const row = data as { payload: LavbundsProjekt } | null;
+    if (!error && row) return { ...row.payload };
+  }
   const p = projekter.find((x) => x.id === id) ?? null;
-  return delay(p ? { ...p } : null);
+  return p ? { ...p } : null;
 }
 
 export async function saveProject(p: LavbundsProjekt): Promise<LavbundsProjekt> {
+  const db = client();
+  if (db) {
+    const { error } = await db.from("lavbund_projekter").upsert(
+      [
+        {
+          id: p.id,
+          navn: p.navn,
+          status: p.status,
+          payload: p,
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      { onConflict: "id" },
+    );
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    if (!error) return { ...p };
+  }
   const i = projekter.findIndex((x) => x.id === p.id);
   if (i >= 0) projekter[i] = { ...p };
   else projekter.push({ ...p });
-  return delay({ ...p });
+  return { ...p };
+}
+
+// ─── Målepunkter / readings / transekter / grøfter ───────────────────────────
+
+async function listPayloads<T extends object>(
+  table: string,
+  projektId: string,
+  mockRows: T[],
+  orderCol = "id",
+): Promise<T[]> {
+  const db = client();
+  if (db) {
+    const { data, error } = await db
+      .from(table)
+      .select("payload")
+      .eq("projekt_id", projektId)
+      .order(orderCol);
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    if (!error && data && data.length > 0) {
+      return (data as Array<{ payload: T }>).map((r) => ({ ...r.payload }));
+    }
+  }
+  return mockRows.map((r) => ({ ...r }));
 }
 
 export async function getMaalepunkter(projektId: string): Promise<Maalepunkt[]> {
-  return delay(MOCK_MAALEPUNKTER.filter((m) => m.projektId === projektId));
+  return listPayloads(
+    "lavbund_maalepunkter",
+    projektId,
+    MOCK_MAALEPUNKTER.filter((m) => m.projektId === projektId),
+  );
 }
 
 export async function getReadings(projektId: string): Promise<VandstandsReading[]> {
   const mpIds = new Set(
     MOCK_MAALEPUNKTER.filter((m) => m.projektId === projektId).map((m) => m.id),
   );
-  return delay(MOCK_READINGS.filter((r) => mpIds.has(r.maalepunktId)));
+  return listPayloads(
+    "lavbund_readings",
+    projektId,
+    MOCK_READINGS.filter((r) => mpIds.has(r.maalepunktId)),
+  );
 }
 
 export async function getTransekter(projektId: string): Promise<Transekt[]> {
-  return delay(MOCK_TRANSEKTER.filter((t) => t.projektId === projektId));
+  return listPayloads(
+    "lavbund_transekter",
+    projektId,
+    MOCK_TRANSEKTER.filter((t) => t.projektId === projektId),
+  );
 }
 
 export async function getGroefter(projektId: string): Promise<GroeftStraekning[]> {
-  return delay(MOCK_GROEFTER.filter((g) => g.projektId === projektId));
+  return listPayloads(
+    "lavbund_groefter",
+    projektId,
+    MOCK_GROEFTER.filter((g) => g.projektId === projektId),
+  );
 }
+
+// ─── Ledger ───────────────────────────────────────────────────────────────────
 
 export async function getLedger(projektId: string): Promise<LedgerPost[]> {
-  return delay((MOCK_LEDGER[projektId] ?? []).slice());
+  const db = client();
+  if (db) {
+    const { data, error } = await db
+      .from("lavbund_ledger")
+      .select("payload")
+      .eq("projekt_id", projektId)
+      .order("seq", { ascending: true });
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    if (!error && data && data.length > 0) {
+      return (data as Array<{ payload: LedgerPost }>).map((r) => ({ ...r.payload }));
+    }
+  }
+  return (MOCK_LEDGER[projektId] ?? []).slice();
 }
 
-export async function appendLedger(
-  projektId: string,
-  post: LedgerPost,
-): Promise<LedgerPost> {
+export async function appendLedger(projektId: string, post: LedgerPost): Promise<LedgerPost> {
+  const db = client();
+  if (db) {
+    const { error } = await db
+      .from("lavbund_ledger")
+      .insert([{ projekt_id: projektId, seq: post.seq, payload: post }]);
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    if (!error) return post;
+  }
   if (!MOCK_LEDGER[projektId]) MOCK_LEDGER[projektId] = [];
   MOCK_LEDGER[projektId].push(post);
-  return delay(post);
+  return post;
 }
 
-export async function getSnapshot(
-  projektId: string,
-): Promise<BeregningsSnapshot | null> {
-  return delay(MOCK_SNAPSHOTS[projektId] ?? null);
+// ─── Snapshots + indicator-kobling ────────────────────────────────────────────
+
+export async function getSnapshot(projektId: string): Promise<BeregningsSnapshot | null> {
+  const db = client();
+  if (db) {
+    const { data, error } = await db
+      .from("lavbund_snapshots")
+      .select("payload")
+      .eq("projekt_id", projektId)
+      .maybeSingle();
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    const row = data as { payload: BeregningsSnapshot } | null;
+    if (!error && row) return { ...row.payload };
+  }
+  return MOCK_SNAPSHOTS[projektId] ?? null;
 }
 
 export async function saveSnapshot(s: BeregningsSnapshot): Promise<BeregningsSnapshot> {
+  const db = client();
+  if (db) {
+    const { error } = await db.from("lavbund_snapshots").upsert(
+      [{ projekt_id: s.projektId, payload: s, updated_at: new Date().toISOString() }],
+      { onConflict: "projekt_id" },
+    );
+    if (error && !isMissingTable(error)) throw new Error(error.message);
+    if (!error) {
+      await syncSnapshotToIndicators(s).catch(() => undefined); // best-effort
+      return s;
+    }
+  }
   MOCK_SNAPSHOTS[s.projektId] = s;
-  return delay(s);
+  return s;
 }
 
-/** DecisionsIQ-hook (stub). Returnerer regelbaserede anbefalinger. */
+/** Byg indicator-rækken som et snapshot føder ind i kerneprojektets dashboard. */
+export function buildCo2Indicator(
+  linkedProjectId: string,
+  snapshot: BeregningsSnapshot,
+): {
+  project_id: string;
+  key: string;
+  label: string;
+  value: number;
+  unit: string;
+  trend: string;
+  updated_at: string;
+} {
+  return {
+    project_id: linkedProjectId,
+    key: "co2e_reduced",
+    label: "CO₂e reduceret (verificeret)",
+    value: Math.round(snapshot.co2.verificeretTotal * 100) / 100,
+    unit: "t CO₂e/år",
+    trend: "flat",
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Er lavbundsprojektet koblet til et kerneprojekt (linked_project_id), skubbes
+ * den verificerede CO₂-effekt ind i projektets co2e_reduced-indicator, så
+ * dashboardet viser den officielle v12-beregning frem for kun IPCC-estimatet.
+ */
+async function syncSnapshotToIndicators(s: BeregningsSnapshot): Promise<void> {
+  const db = client();
+  if (!db) return;
+  const { data } = await db
+    .from("lavbund_projekter")
+    .select("linked_project_id")
+    .eq("id", s.projektId)
+    .maybeSingle();
+  const linked = (data as { linked_project_id: string | null } | null)?.linked_project_id;
+  if (!linked) return;
+  await db
+    .from("indicators")
+    .upsert([buildCo2Indicator(linked, s)], { onConflict: "project_id,key" });
+}
+
+// ─── DecisionsIQ-anbefalinger ────────────────────────────────────────────────
+
+/** Regelbaserede anbefalinger ud fra projektets tilstand. */
 export async function getAnbefalinger(projektId: string): Promise<string[]> {
-  const p = projekter.find((x) => x.id === projektId);
-  if (!p) return delay([]);
+  const p = await getProject(projektId);
+  if (!p) return [];
   const anb: string[] = [];
   if (p.afvigelser.some((a) => a.aaben))
-    anb.push(
-      "Åben afvigelse — supplerende grøftelukning eller pumpestop anbefales.",
-    );
+    anb.push("Åben afvigelse — supplerende grøftelukning eller pumpestop anbefales.");
   const antalTiltag = Object.values(p.tiltag).filter(Boolean).length;
   if (antalTiltag < 2)
     anb.push("Overvej at kombinere mindst to hydrologiske tiltag for robust vådlægning.");
-  return delay(anb);
+  return anb;
 }
