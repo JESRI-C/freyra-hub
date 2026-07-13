@@ -16,6 +16,7 @@ import {
   BookCheck,
   Users,
   FlaskConical,
+  Droplets,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import logoMark from "@/assets/gofreyra-logo.png";
