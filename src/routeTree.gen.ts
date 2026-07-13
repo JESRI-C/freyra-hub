@@ -82,6 +82,8 @@ import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alert
 import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
 import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
 import { Route as AppProjectsGeometrySlugRouteImport } from './routes/app.projects.geometry.$slug'
+import { Route as AppLavbundProjektIdRevisionssporRouteImport } from './routes/app.lavbund.$projektId.revisionsspor'
+import { Route as AppLavbundProjektIdRapportRouteImport } from './routes/app.lavbund.$projektId.rapport'
 import { Route as AppLavbundProjektIdKortRouteImport } from './routes/app.lavbund.$projektId.kort'
 import { Route as AppLavbundProjektIdKlimaRouteImport } from './routes/app.lavbund.$projektId.klima'
 import { Route as AppLavbundProjektIdFosforRouteImport } from './routes/app.lavbund.$projektId.fosfor'
@@ -455,6 +457,18 @@ const AppProjectsGeometrySlugRoute = AppProjectsGeometrySlugRouteImport.update({
   path: '/projects/geometry/$slug',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLavbundProjektIdRevisionssporRoute =
+  AppLavbundProjektIdRevisionssporRouteImport.update({
+    id: '/revisionsspor',
+    path: '/revisionsspor',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
+const AppLavbundProjektIdRapportRoute =
+  AppLavbundProjektIdRapportRouteImport.update({
+    id: '/rapport',
+    path: '/rapport',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
 const AppLavbundProjektIdKortRoute = AppLavbundProjektIdKortRouteImport.update({
   id: '/kort',
   path: '/kort',
@@ -562,6 +576,8 @@ export interface FileRoutesByFullPath {
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
   '/app/lavbund/$projektId/kort': typeof AppLavbundProjektIdKortRoute
+  '/app/lavbund/$projektId/rapport': typeof AppLavbundProjektIdRapportRoute
+  '/app/lavbund/$projektId/revisionsspor': typeof AppLavbundProjektIdRevisionssporRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
@@ -635,6 +651,8 @@ export interface FileRoutesByTo {
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
   '/app/lavbund/$projektId/kort': typeof AppLavbundProjektIdKortRoute
+  '/app/lavbund/$projektId/rapport': typeof AppLavbundProjektIdRapportRoute
+  '/app/lavbund/$projektId/revisionsspor': typeof AppLavbundProjektIdRevisionssporRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
@@ -716,6 +734,8 @@ export interface FileRoutesById {
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
   '/app/lavbund/$projektId/kort': typeof AppLavbundProjektIdKortRoute
+  '/app/lavbund/$projektId/rapport': typeof AppLavbundProjektIdRapportRoute
+  '/app/lavbund/$projektId/revisionsspor': typeof AppLavbundProjektIdRevisionssporRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
@@ -798,6 +818,8 @@ export interface FileRouteTypes {
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
     | '/app/lavbund/$projektId/kort'
+    | '/app/lavbund/$projektId/rapport'
+    | '/app/lavbund/$projektId/revisionsspor'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -871,6 +893,8 @@ export interface FileRouteTypes {
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
     | '/app/lavbund/$projektId/kort'
+    | '/app/lavbund/$projektId/rapport'
+    | '/app/lavbund/$projektId/revisionsspor'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   id:
@@ -951,6 +975,8 @@ export interface FileRouteTypes {
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
     | '/app/lavbund/$projektId/kort'
+    | '/app/lavbund/$projektId/rapport'
+    | '/app/lavbund/$projektId/revisionsspor'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   fileRoutesById: FileRoutesById
@@ -1476,6 +1502,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsGeometrySlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/lavbund/$projektId/revisionsspor': {
+      id: '/app/lavbund/$projektId/revisionsspor'
+      path: '/revisionsspor'
+      fullPath: '/app/lavbund/$projektId/revisionsspor'
+      preLoaderRoute: typeof AppLavbundProjektIdRevisionssporRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
+    '/app/lavbund/$projektId/rapport': {
+      id: '/app/lavbund/$projektId/rapport'
+      path: '/rapport'
+      fullPath: '/app/lavbund/$projektId/rapport'
+      preLoaderRoute: typeof AppLavbundProjektIdRapportRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
     '/app/lavbund/$projektId/kort': {
       id: '/app/lavbund/$projektId/kort'
       path: '/kort'
@@ -1600,12 +1640,16 @@ interface AppLavbundProjektIdRouteChildren {
   AppLavbundProjektIdFosforRoute: typeof AppLavbundProjektIdFosforRoute
   AppLavbundProjektIdKlimaRoute: typeof AppLavbundProjektIdKlimaRoute
   AppLavbundProjektIdKortRoute: typeof AppLavbundProjektIdKortRoute
+  AppLavbundProjektIdRapportRoute: typeof AppLavbundProjektIdRapportRoute
+  AppLavbundProjektIdRevisionssporRoute: typeof AppLavbundProjektIdRevisionssporRoute
 }
 
 const AppLavbundProjektIdRouteChildren: AppLavbundProjektIdRouteChildren = {
   AppLavbundProjektIdFosforRoute: AppLavbundProjektIdFosforRoute,
   AppLavbundProjektIdKlimaRoute: AppLavbundProjektIdKlimaRoute,
   AppLavbundProjektIdKortRoute: AppLavbundProjektIdKortRoute,
+  AppLavbundProjektIdRapportRoute: AppLavbundProjektIdRapportRoute,
+  AppLavbundProjektIdRevisionssporRoute: AppLavbundProjektIdRevisionssporRoute,
 }
 
 const AppLavbundProjektIdRouteWithChildren =
