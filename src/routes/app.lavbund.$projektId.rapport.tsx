@@ -12,6 +12,7 @@ import {
 import { ledgerList } from "@/services/ledgerService";
 import { bygSnapshot } from "@/services/lavbundBeregning";
 import { AFVANDINGSKLASSER, FAKTOR_VERSIONER } from "@/data/lavbundFaktorer";
+import { FAKTOR_KILDER, FAKTOR_VERIFICERET_DATO } from "@/data/lavbundFaktorKilder";
 import type { Tiltag } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId/rapport")({
@@ -249,6 +250,28 @@ function RapportPage() {
             <dt className="text-muted-foreground">Anvendelsesområde</dt>
             <dd>{snap.usageScope}</dd>
           </dl>
+        </Section>
+
+        <Section title="8. Faktorgrundlag & verifikation">
+          <p className="text-xs text-muted-foreground mb-3">
+            Alle faktorer er indlæst fra de officielle beregningsark (medfølger i
+            systemets kildearkiv) og verificeres automatisk mod arkene ved hver
+            release. Senest verificeret: {FAKTOR_VERIFICERET_DATO}.
+          </p>
+          <ul className="space-y-2">
+            {FAKTOR_KILDER.map((k) => (
+              <li key={k.fil} className="rounded-lg border p-3 text-xs">
+                <div className="font-medium text-sm">{k.navn}</div>
+                <div className="text-muted-foreground mt-0.5">
+                  {k.udgiver} · version {k.version}
+                </div>
+                <div className="mt-1">{k.anvendtTil}</div>
+                <div className="mt-1 font-mono text-[10px] text-muted-foreground break-all">
+                  {k.fil} · SHA-256: {k.sha256}
+                </div>
+              </li>
+            ))}
+          </ul>
         </Section>
 
         <footer className="border-t pt-4 text-xs text-muted-foreground italic">
