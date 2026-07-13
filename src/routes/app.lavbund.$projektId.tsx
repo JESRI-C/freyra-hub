@@ -17,11 +17,11 @@ export const Route = createFileRoute("/app/lavbund/$projektId")({
 });
 
 const TABS = [
-  { to: "kort", label: "Feltkort & tidsserie", icon: Map },
-  { to: "klima", label: "Klima · CO₂", icon: Leaf },
-  { to: "fosfor", label: "Fosfor · brinkerosion", icon: Droplets },
-  { to: "revisionsspor", label: "Revisionsspor", icon: BookCheck },
-  { to: "rapport", label: "Rapport", icon: FileText },
+  { to: "/app/lavbund/$projektId/kort", suffix: "kort", label: "Feltkort & tidsserie", icon: Map },
+  { to: "/app/lavbund/$projektId/klima", suffix: "klima", label: "Klima · CO₂", icon: Leaf },
+  { to: "/app/lavbund/$projektId/fosfor", suffix: "fosfor", label: "Fosfor · brinkerosion", icon: Droplets },
+  { to: "/app/lavbund/$projektId/revisionsspor", suffix: "revisionsspor", label: "Revisionsspor", icon: BookCheck },
+  { to: "/app/lavbund/$projektId/rapport", suffix: "rapport", label: "Rapport", icon: FileText },
 ] as const;
 
 const STATUS_LABEL: Record<ProjektStatus, string> = {
@@ -81,13 +81,13 @@ function ProjektLayout() {
         <div className="w-full px-4 sm:px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
             {TABS.map((t) => {
-              const full = `/app/lavbund/${projektId}/${t.to}`;
+              const full = `/app/lavbund/${projektId}/${t.suffix}`;
               const active = path.startsWith(full);
               const Icon = t.icon;
               return (
                 <Link
-                  key={t.to}
-                  to={`/app/lavbund/$projektId/${t.to}` as never}
+                  key={t.suffix}
+                  to={t.to}
                   params={{ projektId }}
                   className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${
                     active
