@@ -1968,6 +1968,215 @@ export type Database = {
           },
         ]
       }
+      lavbund_groefter: {
+        Row: {
+          id: string
+          payload: Json
+          projekt_id: string
+        }
+        Insert: {
+          id: string
+          payload: Json
+          projekt_id: string
+        }
+        Update: {
+          id?: string
+          payload?: Json
+          projekt_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavbund_groefter_projekt_id_fkey"
+            columns: ["projekt_id"]
+            isOneToOne: false
+            referencedRelation: "lavbund_projekter"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lavbund_ledger: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          projekt_id: string
+          seq: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload: Json
+          projekt_id: string
+          seq: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          projekt_id?: string
+          seq?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavbund_ledger_projekt_id_fkey"
+            columns: ["projekt_id"]
+            isOneToOne: false
+            referencedRelation: "lavbund_projekter"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lavbund_maalepunkter: {
+        Row: {
+          id: string
+          payload: Json
+          projekt_id: string
+        }
+        Insert: {
+          id: string
+          payload: Json
+          projekt_id: string
+        }
+        Update: {
+          id?: string
+          payload?: Json
+          projekt_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavbund_maalepunkter_projekt_id_fkey"
+            columns: ["projekt_id"]
+            isOneToOne: false
+            referencedRelation: "lavbund_projekter"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lavbund_projekter: {
+        Row: {
+          id: string
+          linked_project_id: string | null
+          navn: string
+          payload: Json
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          linked_project_id?: string | null
+          navn: string
+          payload: Json
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          linked_project_id?: string | null
+          navn?: string
+          payload?: Json
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavbund_projekter_linked_project_id_fkey"
+            columns: ["linked_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lavbund_readings: {
+        Row: {
+          id: string
+          maalepunkt_id: string
+          payload: Json
+          projekt_id: string
+          tidspunkt: string | null
+        }
+        Insert: {
+          id?: string
+          maalepunkt_id: string
+          payload: Json
+          projekt_id: string
+          tidspunkt?: string | null
+        }
+        Update: {
+          id?: string
+          maalepunkt_id?: string
+          payload?: Json
+          projekt_id?: string
+          tidspunkt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavbund_readings_projekt_id_fkey"
+            columns: ["projekt_id"]
+            isOneToOne: false
+            referencedRelation: "lavbund_projekter"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lavbund_snapshots: {
+        Row: {
+          payload: Json
+          projekt_id: string
+          updated_at: string
+        }
+        Insert: {
+          payload: Json
+          projekt_id: string
+          updated_at?: string
+        }
+        Update: {
+          payload?: Json
+          projekt_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavbund_snapshots_projekt_id_fkey"
+            columns: ["projekt_id"]
+            isOneToOne: true
+            referencedRelation: "lavbund_projekter"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lavbund_transekter: {
+        Row: {
+          fase: string | null
+          id: string
+          nr: number | null
+          payload: Json
+          projekt_id: string
+        }
+        Insert: {
+          fase?: string | null
+          id?: string
+          nr?: number | null
+          payload: Json
+          projekt_id: string
+        }
+        Update: {
+          fase?: string | null
+          id?: string
+          nr?: number | null
+          payload?: Json
+          projekt_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavbund_transekter_projekt_id_fkey"
+            columns: ["projekt_id"]
+            isOneToOne: false
+            referencedRelation: "lavbund_projekter"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       map_layers: {
         Row: {
           category: string
