@@ -14,6 +14,7 @@ import {
   replaceGroefter,
 } from "@/services/lavbundService";
 import { beregnFosforBalance, bygSnapshot } from "@/services/lavbundBeregning";
+import { FosforChart } from "@/components/lavbund/FosforChart";
 import type {
   GroeftStraekning,
   Georegion,
@@ -141,6 +142,16 @@ function FosforPage() {
         <BalanceKort label="Grøfter FØR" value={balance.groefterFoerKgAar} tone="danger" />
         <BalanceKort label="Grøfter EFTER" value={balance.groefterEfterKgAar} tone="success" />
       </div>
+      <Card>
+        <CardHeader
+          title="Fosfortab før og efter vådlægning"
+          subtitle="Brinkerosion pr. kilde (DCE-263). Hover for præcise værdier."
+        />
+        <div className="px-5 pb-5">
+          <FosforChart data={balance} height={240} />
+        </div>
+      </Card>
+
       <Card className="p-5">
         <div className="flex items-center justify-between">
           <div>

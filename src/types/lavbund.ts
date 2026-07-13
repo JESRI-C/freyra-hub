@@ -66,6 +66,9 @@ export interface Maalepunkt {
   projektId: string;
   type: "kanal_logger" | "markpejling";
   position: { x: number; y: number };
+  /** Reel geoposition (WGS84) — sættes ved klik-placering på feltkortet. */
+  lat?: number;
+  lng?: number;
   intensiteter: Opmaalingsintensitet[];
 }
 
