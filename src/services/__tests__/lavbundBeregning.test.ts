@@ -96,3 +96,30 @@ describe("bygSnapshot", () => {
     expect(snap.co2.usikkerhedTotal).toBeCloseTo(snap.co2.verificeretTotal * 0.2, 5);
   });
 });
+
+describe("beregnOpnaaelse — lovet vs. målt", () => {
+  it("bruger statens publicerede ex-ante som 'lovet' når det findes", async () => {
+    const { beregnOpnaaelse } = await import("@/services/lavbundBeregning");
+    const o = beregnOpnaaelse(
+      { publiceretExAnteTonPrHa: 20, samletArealHa: 10 },
+      180, // v12-genberegning (sekundær)
+      170,
+    );
+    expect(o.lovetTotal).toBe(200); // 20 t/ha × 10 ha
+    expect(o.lovetKilde).toBe("publiceret_ex_ante");
+    expect(o.procent).toBe(85);
+  });
+
+  it("falder tilbage til v12-genberegningen uden publiceret tal", async () => {
+    const { beregnOpnaaelse } = await import("@/services/lavbundBeregning");
+    const o = beregnOpnaaelse({ samletArealHa: 10 }, 180, 90);
+    expect(o.lovetTotal).toBe(180);
+    expect(o.lovetKilde).toBe("genberegnet_v12");
+    expect(o.procent).toBe(50);
+  });
+
+  it("håndterer nul-lovet uden division-by-zero", async () => {
+    const { beregnOpnaaelse } = await import("@/services/lavbundBeregning");
+    expect(beregnOpnaaelse({ samletArealHa: 0 }, 0, 0).procent).toBe(0);
+  });
+});

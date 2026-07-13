@@ -52,3 +52,12 @@ src/services/lavbundBeregning.ts  (CO₂ v12, verifikationsgrad, fosforbalance)
 
 Senest verificeret: **2026-07-13** (alle værdier matcher 1:1 — ingen
 afvigelser mellem ark, reference og kode).
+
+## Kvælstof (N) — afventer kildemateriale
+
+Oplægget nævner tre effektsøjler: CO₂, fosfor og **kvælstof** (N-regnearket til
+kvælstoftilbageholdelse). N-regnearket indgår IKKE i kildepakken endnu, og der
+er derfor bevidst ikke implementeret nogen N-beregning — vi opfinder ikke
+faktorer. Når det officielle N-ark foreligger: følg processen ovenfor (læg
+arket i kildemappen, udvid referencefilen, implementér motoren, lad testene
+tvinge overensstemmelse).

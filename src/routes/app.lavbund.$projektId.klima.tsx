@@ -16,6 +16,7 @@ import {
 import {
   beregnKrediteretCO2,
   beregnVerifikationsgrad,
+  beregnOpnaaelse,
   bygSnapshot,
   tiltagValidering,
 } from "@/services/lavbundBeregning";
@@ -149,6 +150,55 @@ function KlimaPage() {
 
       {/* Redigér selve beregningsgrundlaget (arealfordeling, tiltag, vandspejl, afvigelser) */}
       <BeregningsgrundlagEditor projekt={p} />
+
+      {/* Opnåelsesgrad — produktets kerne: lovet (ex-ante) vs. målt */}
+      {(() => {
+        const opn = beregnOpnaaelse(p, co2.krediteretTotal, verificeretTotal);
+        const tone =
+          opn.procent >= 90 ? "text-primary" : opn.procent >= 70 ? "text-amber-600" : "text-destructive";
+        const barTone =
+          opn.procent >= 90 ? "bg-primary" : opn.procent >= 70 ? "bg-amber-500" : "bg-destructive";
+        return (
+          <Card className="p-5 border-primary/25">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Opnåelsesgrad — målt andel af den lovede effekt
+                </div>
+                <div className={`mt-1 text-4xl font-semibold tabular-nums ${tone}`}>
+                  {opn.procent} %
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground max-w-xl">
+                  Staten krediterer effekten <em>på forhånd</em> — LavbundsMRV dokumenterer om den
+                  faktisk indtræffer. Lovet grundlag:{" "}
+                  {opn.lovetKilde === "publiceret_ex_ante"
+                    ? "statens publicerede ex-ante-tal fra forundersøgelsen"
+                    : "genberegnet med statens v12-faktorer (publiceret ex-ante ikke angivet)"}
+                  .
+                </p>
+              </div>
+              <dl className="text-sm text-right space-y-0.5 shrink-0">
+                <div>
+                  <dt className="inline text-muted-foreground">Lovet (ex-ante): </dt>
+                  <dd className="inline font-medium tabular-nums">{fmtTon(opn.lovetTotal)}</dd>
+                </div>
+                <div>
+                  <dt className="inline text-muted-foreground">Målt verificeret: </dt>
+                  <dd className="inline font-semibold tabular-nums text-primary">
+                    {fmtTon(opn.verificeretTotal)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+            <div className="mt-3 h-2.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${barTone}`}
+                style={{ width: `${Math.min(100, opn.procent)}%` }}
+              />
+            </div>
+          </Card>
+        );
+      })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5">

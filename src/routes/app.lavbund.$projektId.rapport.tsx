@@ -9,8 +9,8 @@ import {
   getReadings,
   getTransekter,
 } from "@/services/lavbundService";
-import { ledgerList } from "@/services/ledgerService";
-import { bygSnapshot } from "@/services/lavbundBeregning";
+import { ledgerList, ledgerVerify } from "@/services/ledgerService";
+import { bygSnapshot, beregnOpnaaelse } from "@/services/lavbundBeregning";
 import { AFVANDINGSKLASSER, FAKTOR_VERSIONER } from "@/data/lavbundFaktorer";
 import { FAKTOR_KILDER, FAKTOR_VERIFICERET_DATO } from "@/data/lavbundFaktorKilder";
 import type { Tiltag } from "@/types/lavbund";
@@ -31,13 +31,17 @@ const TILTAG_LABEL: Record<keyof Tiltag, string> = {
 function RapportPage() {
   const { projektId } = Route.useParams();
 
-  const [projekt, readings, transekter, groefter, ledger] = useQueries({
+  const [projekt, readings, transekter, groefter, ledger, kaede] = useQueries({
     queries: [
       { queryKey: ["lavbund", "project", projektId], queryFn: () => getProject(projektId) },
       { queryKey: ["lavbund", "readings", projektId], queryFn: () => getReadings(projektId) },
       { queryKey: ["lavbund", "transekter", projektId], queryFn: () => getTransekter(projektId) },
       { queryKey: ["lavbund", "groefter", projektId], queryFn: () => getGroefter(projektId) },
       { queryKey: ["lavbund", "ledger", projektId], queryFn: () => ledgerList("lavbund", projektId) },
+      {
+        queryKey: ["lavbund", "ledger-verify", projektId],
+        queryFn: () => ledgerVerify("lavbund", projektId),
+      },
     ],
   });
 
@@ -136,6 +140,62 @@ function RapportPage() {
             {new Date(snap.genereret).toLocaleString("da-DK")}
           </div>
         </header>
+
+        {/* Konklusion — det revisor/myndighed skal kunne se på ét blik:
+            lovet vs. målt + om revisionssporet er intakt. */}
+        {(() => {
+          const opn = beregnOpnaaelse(p, snap.co2.krediteretTotal, snap.co2.verificeretTotal);
+          const kaedeOk = kaede.data?.ok === true;
+          return (
+            <Section title="Konklusion — målt verifikation af krediteret effekt">
+              <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">Lovet effekt (ex-ante)</div>
+                  <div className="mt-1 text-lg font-semibold tabular-nums">
+                    {opn.lovetTotal.toLocaleString("da-DK")} t CO₂e/år
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {opn.lovetKilde === "publiceret_ex_ante"
+                      ? "Statens publicerede forundersøgelsestal"
+                      : "Genberegnet med statens v12-faktorer"}
+                  </div>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">Målt verificeret</div>
+                  <div className="mt-1 text-lg font-semibold tabular-nums text-primary">
+                    {opn.verificeretTotal.toLocaleString("da-DK")} t CO₂e/år
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Opnåelsesgrad: <strong>{opn.procent} %</strong> ·{" "}
+                    {(readings.data ?? []).length} målinger · verifikationsgrad{" "}
+                    {(snap.co2.verifikationsgrad * 100).toFixed(0)} %
+                  </div>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">Revisionsspor</div>
+                  <div className="mt-1">
+                    {kaedeOk ? (
+                      <Pill tone="success">Kæde intakt · {ledger.data?.length ?? 0} poster</Pill>
+                    ) : kaede.data ? (
+                      <Pill tone="danger">KÆDEBRUD ved post {kaede.data.brud?.seq}</Pill>
+                    ) : (
+                      <Pill tone="default">Verificeres…</Pill>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1">
+                    SHA-256-kædet hændelseslog — efterprøvbar af revisor/myndighed.
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Formål: Staten krediterer projektets effekt ex-ante. Denne rapport dokumenterer den{" "}
+                <strong>målte</strong> effekt med fuldt revisionsspor, så kommunens klimatal er
+                verificerbare — ikke selvberegnede skøn. Effektfaktorerne er statens egne
+                (se faktorgrundlag, afsnit 8).
+              </p>
+            </Section>
+          );
+        })()}
 
         <Section title="1. Projektstamdata">
           <dl className="grid grid-cols-2 gap-y-1 text-sm">
