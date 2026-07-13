@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://ikrmcetjutqcjtwfhzfv.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "gofreyra-mcp",
+      "version": "0.1.0",
+      "title": "GoFreyra MCP"
+    },
+    "tools": [
+      {
+        "name": "echo",
+        "title": "Echo",
+        "description": "Echo the input text back to the caller. Use to verify connectivity.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Text to echo back."
+            }
+          },
+          "required": [
+            "text"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_lavbund_projects",
+        "title": "List lavbunds­projekter",
+        "description": "List all LavbundsMRV projects with municipality, status, area (ha) and officially credited CO₂e (t/år, v12).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_lavbund_project",
+        "title": "Hent lavbundsprojekt",
+        "description": "Return the LavbundsMRV project details plus a fresh calculation snapshot (CO₂ v12, verification degree, phosphorus balance) and DecisionsIQ recommendations.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Project id, e.g. 'lav-001'."
+            }
+          },
+          "required": [
+            "projectId"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
