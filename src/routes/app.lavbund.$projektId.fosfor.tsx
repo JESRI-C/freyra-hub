@@ -1,10 +1,11 @@
+import { ledgerAppend } from "@/services/ledgerService";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Droplets } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import {
-  appendLedger,
+
   getGroefter,
   getProject,
   getReadings,
@@ -115,14 +116,10 @@ function FosforPage() {
         groefter,
       });
       await saveSnapshot(snap);
-      await appendLedger(projektId, {
-        seq: Date.now(),
-        tidspunkt: new Date().toISOString(),
+      await ledgerAppend("lavbund", projektId, {
         actor: "bruger",
         event: "fosfor_bogfoert",
         detail: `Fosforbalance ${balance.balanceKgAar.toFixed(1)} kg P/år`,
-        prevHash: "",
-        hash: "",
       });
       await qc.invalidateQueries({ queryKey: ["lavbund"] });
       navigate({ to: "/app/lavbund/$projektId/revisionsspor", params: { projektId } });

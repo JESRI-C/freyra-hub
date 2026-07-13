@@ -1,3 +1,4 @@
+import { ledgerAppend } from "@/services/ledgerService";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -9,7 +10,7 @@ import {
   getProject,
   getReadings,
   getTransekter,
-  appendLedger,
+
   saveSnapshot,
 } from "@/services/lavbundService";
 import {
@@ -102,14 +103,10 @@ function KlimaPage() {
         groefter: groefter.data ?? [],
       });
       await saveSnapshot(snap);
-      await appendLedger(projektId, {
-        seq: Date.now(),
-        tidspunkt: new Date().toISOString(),
+      await ledgerAppend("lavbund", projektId, {
         actor: "bruger",
         event: "co2_bogfoert",
         detail: `Verificeret ${verificeretTotal.toFixed(1)} t CO₂e/år (${(ver.verifikationsgrad * 100).toFixed(0)} %)`,
-        prevHash: "",
-        hash: "",
       });
       await qc.invalidateQueries({ queryKey: ["lavbund"] });
       navigate({ to: "/app/lavbund/$projektId/revisionsspor", params: { projektId } });
