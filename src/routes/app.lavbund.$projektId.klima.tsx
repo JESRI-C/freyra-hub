@@ -1,0 +1,296 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Leaf, Info } from "lucide-react";
+import { Card, CardHeader, Pill } from "@/components/ui-bits";
+import {
+  getGroefter,
+  getMaalepunkter,
+  getProject,
+  getReadings,
+  getTransekter,
+  appendLedger,
+  saveSnapshot,
+} from "@/services/lavbundService";
+import {
+  beregnKrediteretCO2,
+  beregnVerifikationsgrad,
+  bygSnapshot,
+  tiltagValidering,
+} from "@/services/lavbundBeregning";
+import { AFVANDINGSKLASSER } from "@/data/lavbundFaktorer";
+import type { Tiltag } from "@/types/lavbund";
+
+export const Route = createFileRoute("/app/lavbund/$projektId/klima")({
+  head: () => ({ meta: [{ title: "Klima · CO₂ — LavbundsMRV" }] }),
+  component: KlimaPage,
+});
+
+const TILTAG_LABEL: Record<keyof Tiltag, string> = {
+  draenAfbrydes: "Dræn afbrydes",
+  groefterTilkastes: "Grøfter tilkastes",
+  vandloebsbundHaeves: "Vandløbsbund hæves",
+  overrislingszoner: "Overrislingszoner",
+  pumpedriftStopper: "Pumpedrift stopper",
+};
+
+function fmtTon(v: number): string {
+  return `${v.toLocaleString("da-DK", { maximumFractionDigits: 1 })} t CO₂e/år`;
+}
+function fmtHa(v: number): string {
+  return `${v.toLocaleString("da-DK", { maximumFractionDigits: 2 })} ha`;
+}
+
+function KlimaPage() {
+  const { projektId } = Route.useParams();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+
+  const [projekt, mps, readings, transekter, groefter] = useQueries({
+    queries: [
+      { queryKey: ["lavbund", "project", projektId], queryFn: () => getProject(projektId) },
+      { queryKey: ["lavbund", "mp", projektId], queryFn: () => getMaalepunkter(projektId) },
+      { queryKey: ["lavbund", "readings", projektId], queryFn: () => getReadings(projektId) },
+      { queryKey: ["lavbund", "transekter", projektId], queryFn: () => getTransekter(projektId) },
+      { queryKey: ["lavbund", "groefter", projektId], queryFn: () => getGroefter(projektId) },
+    ],
+  });
+
+  const co2 = useMemo(
+    () => (projekt.data ? beregnKrediteretCO2(projekt.data) : null),
+    [projekt.data],
+  );
+  const ver = useMemo(
+    () => beregnVerifikationsgrad(readings.data ?? []),
+    [readings.data],
+  );
+  const tilt = useMemo(
+    () => (projekt.data ? tiltagValidering(projekt.data) : null),
+    [projekt.data],
+  );
+
+  const isLoading = projekt.isLoading || readings.isLoading;
+  if (isLoading)
+    return (
+      <div className="p-6 space-y-3">
+        <Card className="p-8 h-40 animate-pulse">
+          <span />
+        </Card>
+      </div>
+    );
+  if (!projekt.data || !co2 || !tilt)
+    return (
+      <div className="p-6">
+        <Card className="p-6 text-center text-destructive">Kunne ikke hente projektdata.</Card>
+      </div>
+    );
+
+  const p = projekt.data;
+  const verificeretTotal = co2.krediteretTotal * ver.verifikationsgrad;
+  const verificeretPrHa = co2.krediteretTonPrHa * ver.verifikationsgrad;
+
+  async function bogfoer() {
+    if (!projekt.data || !tilt?.ok || co2?.arealTjek !== "ok") return;
+    setSaving(true);
+    try {
+      const snap = bygSnapshot({
+        projekt: projekt.data,
+        readings: readings.data ?? [],
+        transekterFoer: (transekter.data ?? []).filter((t) => t.fase === "foer"),
+        transekterEfter: (transekter.data ?? []).filter((t) => t.fase === "efter"),
+        groefter: groefter.data ?? [],
+      });
+      await saveSnapshot(snap);
+      await appendLedger(projektId, {
+        seq: Date.now(),
+        tidspunkt: new Date().toISOString(),
+        actor: "bruger",
+        event: "co2_bogfoert",
+        detail: `Verificeret ${verificeretTotal.toFixed(1)} t CO₂e/år (${(ver.verifikationsgrad * 100).toFixed(0)} %)`,
+        prevHash: "",
+        hash: "",
+      });
+      await qc.invalidateQueries({ queryKey: ["lavbund"] });
+      navigate({ to: "/app/lavbund/$projektId/revisionsspor", params: { projektId } });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
+      {/* Anvendelsesområde-banner — obligatorisk */}
+      <Card className="p-4 border-amber-300/60 bg-amber-50">
+        <div className="flex gap-3 items-start">
+          <Info className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-900">
+            <div className="font-semibold">Anvendelsesområde</div>
+            <p className="mt-1">
+              Prioritering under tilskudsordningerne og kommunens klimaregnskab. Metoden egner sig{" "}
+              <strong>ikke</strong> til effektberegning ved salg af CO₂-kvoter og afviger fra den
+              nationale opgørelse (jf. v12-vejledningen).
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {!tilt.ok && (
+        <Card className="p-4 border-destructive/40 bg-destructive/5">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm font-medium">{tilt.besked}</span>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="p-5">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Officielt krediteret (v12)
+          </div>
+          <div className="mt-2 text-3xl font-semibold tabular-nums">
+            {fmtTon(co2.krediteretTotal)}
+          </div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            {co2.krediteretTonPrHa.toFixed(1)} t/ha · areal {fmtHa(co2.arealSum)} /{" "}
+            {fmtHa(p.samletArealHa)}
+          </div>
+          {p.publiceretExAnteTonPrHa !== undefined && (
+            <div className="mt-3 text-xs text-muted-foreground">
+              Publiceret ex-ante (forundersøgelse):{" "}
+              <strong className="text-foreground">
+                {p.publiceretExAnteTonPrHa.toFixed(1)} t/ha
+              </strong>
+            </div>
+          )}
+          <div className="mt-3">
+            {co2.arealTjek === "ok" ? (
+              <Pill tone="success">
+                <CheckCircle2 className="h-3 w-3" /> Arealtjek: OK
+              </Pill>
+            ) : (
+              <Pill tone="danger">
+                <AlertTriangle className="h-3 w-3" /> Arealtjek: Fejl
+              </Pill>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Verificeret opnået (målt)
+          </div>
+          <div className="mt-2 text-3xl font-semibold tabular-nums text-primary">
+            {fmtTon(verificeretTotal)}
+          </div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            {verificeretPrHa.toFixed(1)} t/ha · verifikationsgrad{" "}
+            <strong className="text-foreground">
+              {(ver.verifikationsgrad * 100).toFixed(0)} %
+            </strong>{" "}
+            ({ver.antalMaalinger} målinger)
+          </div>
+          <div className="mt-3 text-xs text-muted-foreground">
+            Usikkerhedsbånd (±20 %):{" "}
+            <strong className="text-foreground">
+              ±{(verificeretTotal * 0.2).toFixed(1)} t CO₂e/år
+            </strong>
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader
+          title="Arealfordeling — målt afvandingsklasse"
+          subtitle="Andel af feltdata i hver klasse. Verifikationsgraden vægter våde klasser + halv Fugtig eng."
+        />
+        <div className="px-5 pb-5">
+          <div className="space-y-2">
+            {AFVANDINGSKLASSER.map((k) => {
+              const andel = ver.fordeling[k.navn] ?? 0;
+              return (
+                <div key={k.navn} className="flex items-center gap-3">
+                  <div className="text-xs w-32 truncate">{k.navn}</div>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${andel * 100}%` }}
+                    />
+                  </div>
+                  <div className="text-xs tabular-nums w-14 text-right">
+                    {(andel * 100).toFixed(0)} %
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Aktive tiltag" subtitle="Metoden forudsætter aktiv udtagning." />
+        <div className="px-5 pb-5 flex flex-wrap gap-2">
+          {(Object.keys(TILTAG_LABEL) as (keyof Tiltag)[]).map((k) => {
+            const on = p.tiltag[k];
+            return (
+              <span
+                key={k}
+                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
+                  on
+                    ? "bg-success/10 border-success/40 text-success"
+                    : "bg-muted/40 text-muted-foreground"
+                }`}
+              >
+                <Leaf className="h-3 w-3" />
+                {TILTAG_LABEL[k]}
+                {!on && " · inaktivt"}
+              </span>
+            );
+          })}
+        </div>
+      </Card>
+
+      {p.afvigelser.length > 0 && (
+        <Card>
+          <CardHeader
+            title="Afvigelser"
+            subtitle="Kun verificeret andel krediteres — åbne afvigelser reducerer opnået effekt."
+          />
+          <div className="px-5 pb-5 space-y-2">
+            {p.afvigelser.map((a) => (
+              <div
+                key={a.id}
+                className="rounded-xl border p-3 flex items-start gap-3 bg-muted/20"
+              >
+                <AlertTriangle
+                  className={`h-4 w-4 mt-0.5 ${a.aaben ? "text-warning" : "text-success"}`}
+                />
+                <div className="text-sm">
+                  <div className="font-medium">{a.beskrivelse}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Korrigerende handling: {a.korrigerendeHandling}
+                  </div>
+                </div>
+                <div className="ml-auto">
+                  {a.aaben ? <Pill tone="warning">Åben</Pill> : <Pill tone="success">Lukket</Pill>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={bogfoer}
+          disabled={!tilt.ok || co2.arealTjek !== "ok" || saving}
+          className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? "Bogfører…" : "Bogfør verificeret effekt"}
+        </button>
+      </div>
+    </main>
+  );
+}

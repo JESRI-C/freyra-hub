@@ -200,7 +200,8 @@ function Loaded({ projects }: { projects: LavbundsProjekt[] }) {
                   <tr key={p.id} className="border-t hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <Link
-                        to="/app/lavbund"
+                        to="/app/lavbund/$projektId/kort"
+                        params={{ projektId: p.id }}
                         className="font-medium hover:underline"
                       >
                         {p.navn}

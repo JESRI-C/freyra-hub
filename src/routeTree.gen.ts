@@ -56,6 +56,7 @@ import { Route as AppLedgerDocumentsRouteImport } from './routes/app.ledger.docu
 import { Route as AppLedgerCsrdRouteImport } from './routes/app.ledger.csrd'
 import { Route as AppLedgerCo2RouteImport } from './routes/app.ledger.co2'
 import { Route as AppLedgerAuditRouteImport } from './routes/app.ledger.audit'
+import { Route as AppLavbundProjektIdRouteImport } from './routes/app.lavbund.$projektId'
 import { Route as AppImpactVerificationRouteImport } from './routes/app.impact.verification'
 import { Route as AppImpactReportsRouteImport } from './routes/app.impact.reports'
 import { Route as AppImpactProjectsRouteImport } from './routes/app.impact.projects'
@@ -81,6 +82,11 @@ import { Route as AppConnectAlertsRouteImport } from './routes/app.connect.alert
 import { Route as AppConnectAddRouteImport } from './routes/app.connect.add'
 import { Route as AppProjectsMapSlugRouteImport } from './routes/app.projects.map.$slug'
 import { Route as AppProjectsGeometrySlugRouteImport } from './routes/app.projects.geometry.$slug'
+import { Route as AppLavbundProjektIdRevisionssporRouteImport } from './routes/app.lavbund.$projektId.revisionsspor'
+import { Route as AppLavbundProjektIdRapportRouteImport } from './routes/app.lavbund.$projektId.rapport'
+import { Route as AppLavbundProjektIdKortRouteImport } from './routes/app.lavbund.$projektId.kort'
+import { Route as AppLavbundProjektIdKlimaRouteImport } from './routes/app.lavbund.$projektId.klima'
+import { Route as AppLavbundProjektIdFosforRouteImport } from './routes/app.lavbund.$projektId.fosfor'
 import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
 import { Route as ApiPublicMonitoringEvaluateRouteImport } from './routes/api/public/monitoring.evaluate'
 
@@ -320,6 +326,11 @@ const AppLedgerAuditRoute = AppLedgerAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AppLedgerRoute,
 } as any)
+const AppLavbundProjektIdRoute = AppLavbundProjektIdRouteImport.update({
+  id: '/$projektId',
+  path: '/$projektId',
+  getParentRoute: () => AppLavbundRoute,
+} as any)
 const AppImpactVerificationRoute = AppImpactVerificationRouteImport.update({
   id: '/verification',
   path: '/verification',
@@ -446,6 +457,35 @@ const AppProjectsGeometrySlugRoute = AppProjectsGeometrySlugRouteImport.update({
   path: '/projects/geometry/$slug',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLavbundProjektIdRevisionssporRoute =
+  AppLavbundProjektIdRevisionssporRouteImport.update({
+    id: '/revisionsspor',
+    path: '/revisionsspor',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
+const AppLavbundProjektIdRapportRoute =
+  AppLavbundProjektIdRapportRouteImport.update({
+    id: '/rapport',
+    path: '/rapport',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
+const AppLavbundProjektIdKortRoute = AppLavbundProjektIdKortRouteImport.update({
+  id: '/kort',
+  path: '/kort',
+  getParentRoute: () => AppLavbundProjektIdRoute,
+} as any)
+const AppLavbundProjektIdKlimaRoute =
+  AppLavbundProjektIdKlimaRouteImport.update({
+    id: '/klima',
+    path: '/klima',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
+const AppLavbundProjektIdFosforRoute =
+  AppLavbundProjektIdFosforRouteImport.update({
+    id: '/fosfor',
+    path: '/fosfor',
+    getParentRoute: () => AppLavbundProjektIdRoute,
+  } as any)
 const AppConstructionProjectsSlugRoute =
   AppConstructionProjectsSlugRouteImport.update({
     id: '/construction/projects/$slug',
@@ -498,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/app/impact/projects': typeof AppImpactProjectsRoute
   '/app/impact/reports': typeof AppImpactReportsRoute
   '/app/impact/verification': typeof AppImpactVerificationRoute
+  '/app/lavbund/$projektId': typeof AppLavbundProjektIdRouteWithChildren
   '/app/ledger/audit': typeof AppLedgerAuditRoute
   '/app/ledger/co2': typeof AppLedgerCo2Route
   '/app/ledger/csrd': typeof AppLedgerCsrdRoute
@@ -532,6 +573,11 @@ export interface FileRoutesByFullPath {
   '/app/settings/': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
+  '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
+  '/app/lavbund/$projektId/kort': typeof AppLavbundProjektIdKortRoute
+  '/app/lavbund/$projektId/rapport': typeof AppLavbundProjektIdRapportRoute
+  '/app/lavbund/$projektId/revisionsspor': typeof AppLavbundProjektIdRevisionssporRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
@@ -567,6 +613,7 @@ export interface FileRoutesByTo {
   '/app/impact/projects': typeof AppImpactProjectsRoute
   '/app/impact/reports': typeof AppImpactReportsRoute
   '/app/impact/verification': typeof AppImpactVerificationRoute
+  '/app/lavbund/$projektId': typeof AppLavbundProjektIdRouteWithChildren
   '/app/ledger/audit': typeof AppLedgerAuditRoute
   '/app/ledger/co2': typeof AppLedgerCo2Route
   '/app/ledger/csrd': typeof AppLedgerCsrdRoute
@@ -601,6 +648,11 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
+  '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
+  '/app/lavbund/$projektId/kort': typeof AppLavbundProjektIdKortRoute
+  '/app/lavbund/$projektId/rapport': typeof AppLavbundProjektIdRapportRoute
+  '/app/lavbund/$projektId/revisionsspor': typeof AppLavbundProjektIdRevisionssporRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
@@ -644,6 +696,7 @@ export interface FileRoutesById {
   '/app/impact/projects': typeof AppImpactProjectsRoute
   '/app/impact/reports': typeof AppImpactReportsRoute
   '/app/impact/verification': typeof AppImpactVerificationRoute
+  '/app/lavbund/$projektId': typeof AppLavbundProjektIdRouteWithChildren
   '/app/ledger/audit': typeof AppLedgerAuditRoute
   '/app/ledger/co2': typeof AppLedgerCo2Route
   '/app/ledger/csrd': typeof AppLedgerCsrdRoute
@@ -678,6 +731,11 @@ export interface FileRoutesById {
   '/app/settings/': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
+  '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
+  '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
+  '/app/lavbund/$projektId/kort': typeof AppLavbundProjektIdKortRoute
+  '/app/lavbund/$projektId/rapport': typeof AppLavbundProjektIdRapportRoute
+  '/app/lavbund/$projektId/revisionsspor': typeof AppLavbundProjektIdRevisionssporRoute
   '/app/projects/geometry/$slug': typeof AppProjectsGeometrySlugRoute
   '/app/projects/map/$slug': typeof AppProjectsMapSlugRoute
 }
@@ -722,6 +780,7 @@ export interface FileRouteTypes {
     | '/app/impact/projects'
     | '/app/impact/reports'
     | '/app/impact/verification'
+    | '/app/lavbund/$projektId'
     | '/app/ledger/audit'
     | '/app/ledger/co2'
     | '/app/ledger/csrd'
@@ -756,6 +815,11 @@ export interface FileRouteTypes {
     | '/app/settings/'
     | '/api/public/monitoring/evaluate'
     | '/app/construction/projects/$slug'
+    | '/app/lavbund/$projektId/fosfor'
+    | '/app/lavbund/$projektId/klima'
+    | '/app/lavbund/$projektId/kort'
+    | '/app/lavbund/$projektId/rapport'
+    | '/app/lavbund/$projektId/revisionsspor'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -791,6 +855,7 @@ export interface FileRouteTypes {
     | '/app/impact/projects'
     | '/app/impact/reports'
     | '/app/impact/verification'
+    | '/app/lavbund/$projektId'
     | '/app/ledger/audit'
     | '/app/ledger/co2'
     | '/app/ledger/csrd'
@@ -825,6 +890,11 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/api/public/monitoring/evaluate'
     | '/app/construction/projects/$slug'
+    | '/app/lavbund/$projektId/fosfor'
+    | '/app/lavbund/$projektId/klima'
+    | '/app/lavbund/$projektId/kort'
+    | '/app/lavbund/$projektId/rapport'
+    | '/app/lavbund/$projektId/revisionsspor'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   id:
@@ -867,6 +937,7 @@ export interface FileRouteTypes {
     | '/app/impact/projects'
     | '/app/impact/reports'
     | '/app/impact/verification'
+    | '/app/lavbund/$projektId'
     | '/app/ledger/audit'
     | '/app/ledger/co2'
     | '/app/ledger/csrd'
@@ -901,6 +972,11 @@ export interface FileRouteTypes {
     | '/app/settings/'
     | '/api/public/monitoring/evaluate'
     | '/app/construction/projects/$slug'
+    | '/app/lavbund/$projektId/fosfor'
+    | '/app/lavbund/$projektId/klima'
+    | '/app/lavbund/$projektId/kort'
+    | '/app/lavbund/$projektId/rapport'
+    | '/app/lavbund/$projektId/revisionsspor'
     | '/app/projects/geometry/$slug'
     | '/app/projects/map/$slug'
   fileRoutesById: FileRoutesById
@@ -1244,6 +1320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLedgerAuditRouteImport
       parentRoute: typeof AppLedgerRoute
     }
+    '/app/lavbund/$projektId': {
+      id: '/app/lavbund/$projektId'
+      path: '/$projektId'
+      fullPath: '/app/lavbund/$projektId'
+      preLoaderRoute: typeof AppLavbundProjektIdRouteImport
+      parentRoute: typeof AppLavbundRoute
+    }
     '/app/impact/verification': {
       id: '/app/impact/verification'
       path: '/verification'
@@ -1419,6 +1502,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsGeometrySlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/lavbund/$projektId/revisionsspor': {
+      id: '/app/lavbund/$projektId/revisionsspor'
+      path: '/revisionsspor'
+      fullPath: '/app/lavbund/$projektId/revisionsspor'
+      preLoaderRoute: typeof AppLavbundProjektIdRevisionssporRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
+    '/app/lavbund/$projektId/rapport': {
+      id: '/app/lavbund/$projektId/rapport'
+      path: '/rapport'
+      fullPath: '/app/lavbund/$projektId/rapport'
+      preLoaderRoute: typeof AppLavbundProjektIdRapportRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
+    '/app/lavbund/$projektId/kort': {
+      id: '/app/lavbund/$projektId/kort'
+      path: '/kort'
+      fullPath: '/app/lavbund/$projektId/kort'
+      preLoaderRoute: typeof AppLavbundProjektIdKortRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
+    '/app/lavbund/$projektId/klima': {
+      id: '/app/lavbund/$projektId/klima'
+      path: '/klima'
+      fullPath: '/app/lavbund/$projektId/klima'
+      preLoaderRoute: typeof AppLavbundProjektIdKlimaRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
+    '/app/lavbund/$projektId/fosfor': {
+      id: '/app/lavbund/$projektId/fosfor'
+      path: '/fosfor'
+      fullPath: '/app/lavbund/$projektId/fosfor'
+      preLoaderRoute: typeof AppLavbundProjektIdFosforRouteImport
+      parentRoute: typeof AppLavbundProjektIdRoute
+    }
     '/app/construction/projects/$slug': {
       id: '/app/construction/projects/$slug'
       path: '/construction/projects/$slug'
@@ -1518,11 +1636,32 @@ const AppImpactRouteWithChildren = AppImpactRoute._addFileChildren(
   AppImpactRouteChildren,
 )
 
+interface AppLavbundProjektIdRouteChildren {
+  AppLavbundProjektIdFosforRoute: typeof AppLavbundProjektIdFosforRoute
+  AppLavbundProjektIdKlimaRoute: typeof AppLavbundProjektIdKlimaRoute
+  AppLavbundProjektIdKortRoute: typeof AppLavbundProjektIdKortRoute
+  AppLavbundProjektIdRapportRoute: typeof AppLavbundProjektIdRapportRoute
+  AppLavbundProjektIdRevisionssporRoute: typeof AppLavbundProjektIdRevisionssporRoute
+}
+
+const AppLavbundProjektIdRouteChildren: AppLavbundProjektIdRouteChildren = {
+  AppLavbundProjektIdFosforRoute: AppLavbundProjektIdFosforRoute,
+  AppLavbundProjektIdKlimaRoute: AppLavbundProjektIdKlimaRoute,
+  AppLavbundProjektIdKortRoute: AppLavbundProjektIdKortRoute,
+  AppLavbundProjektIdRapportRoute: AppLavbundProjektIdRapportRoute,
+  AppLavbundProjektIdRevisionssporRoute: AppLavbundProjektIdRevisionssporRoute,
+}
+
+const AppLavbundProjektIdRouteWithChildren =
+  AppLavbundProjektIdRoute._addFileChildren(AppLavbundProjektIdRouteChildren)
+
 interface AppLavbundRouteChildren {
+  AppLavbundProjektIdRoute: typeof AppLavbundProjektIdRouteWithChildren
   AppLavbundIndexRoute: typeof AppLavbundIndexRoute
 }
 
 const AppLavbundRouteChildren: AppLavbundRouteChildren = {
+  AppLavbundProjektIdRoute: AppLavbundProjektIdRouteWithChildren,
   AppLavbundIndexRoute: AppLavbundIndexRoute,
 }
 
