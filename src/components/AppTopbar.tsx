@@ -30,8 +30,8 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          <div className="relative hidden sm:block">
             <button
               onClick={() => setOpenRange((v) => !v)}
               className="flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-sm hover:bg-muted transition"
