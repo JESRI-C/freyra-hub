@@ -154,4 +154,44 @@ describe("baseline før/efter etablering (statens N/P-protokol-mønster)", () =>
     expect(med.verifikationsgrad).toBeCloseTo(1.0, 5); // kun efter-målinger, alle våde
     expect(med.antalMaalinger).toBe(2);
   });
+
+  it("skillet er LOKAL midnat — nattetimer på etableringsdagen er 'efter'", async () => {
+    const { splitVedEtablering } = await import("@/services/lavbundBeregning");
+    // En logger-måling kl. 00:30 lokal tid på selve etableringsdagen. Med et
+    // UTC-midnatsskille ville den (i UTC+1/+2) fejlklassificeres som baseline.
+    const paaDagen = new Date(2025, 5, 1, 0, 30).toISOString(); // 1. jun 2025 00:30 lokal
+    const foerDagen = new Date(2025, 4, 31, 23, 30).toISOString(); // 31. maj 23:30 lokal
+    const s = splitVedEtablering([r(paaDagen, 0.3), r(foerDagen, 1.2)], "2025-06-01");
+    expect(s.efter).toHaveLength(1);
+    expect(s.efter[0].tidspunkt).toBe(paaDagen);
+    expect(s.baseline).toHaveLength(1);
+  });
+
+  it("beregnMetodeStat opgør periode, kilder og baseline/efter i samme skille", async () => {
+    const { beregnMetodeStat } = await import("@/services/lavbundBeregning");
+    const readings = [
+      r("2025-01-01T12:00:00Z", 1.2),
+      r("2025-01-02T12:00:00Z", 1.0),
+      r("2025-06-01T12:00:00Z", 0.3),
+      { ...r("2025-06-02T12:00:00Z", 0.5), kilde: "hobo_logger" as const },
+    ];
+    const m = beregnMetodeStat(readings, "2025-03-01");
+    expect(m.antal).toBe(4);
+    expect(m.foersteTidspunkt).toBe("2025-01-01T12:00:00Z");
+    expect(m.senesteTidspunkt).toBe("2025-06-02T12:00:00Z");
+    expect(m.kilder).toEqual(
+      expect.arrayContaining([
+        { kilde: "manuel_pejling", antal: 3 },
+        { kilde: "hobo_logger", antal: 1 },
+      ]),
+    );
+    expect(m.baseline.antal).toBe(2);
+    expect(m.baseline.middelDybdeM).toBeCloseTo(1.1, 5);
+    expect(m.efter.antal).toBe(2);
+    expect(m.efter.middelDybdeM).toBeCloseTo(0.4, 5);
+    // Uden dato: alt er "efter"
+    const uden = beregnMetodeStat(readings);
+    expect(uden.baseline.antal).toBe(0);
+    expect(uden.efter.antal).toBe(4);
+  });
 });

@@ -73,16 +73,7 @@ const OVERLAY_DEFS: Record<
     format: "image/png",
     attribution: "© Danmarks Miljøportal",
   },
-  kulstof2022: {
-    label: KULSTOF2022_WMS.label,
-    description: KULSTOF2022_WMS.description,
-    url: KULSTOF2022_WMS.url,
-    layers: KULSTOF2022_WMS.layers,
-    opacity: KULSTOF2022_WMS.opacity,
-    transparent: true,
-    format: "image/png",
-    attribution: KULSTOF2022_WMS.attribution,
-  },
+  kulstof2022: { ...KULSTOF2022_WMS, transparent: true, format: "image/png" },
 };
 
 type OverlayKey = keyof typeof OVERLAY_DEFS;

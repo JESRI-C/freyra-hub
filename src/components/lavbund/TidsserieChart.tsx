@@ -45,6 +45,23 @@ export function TidsserieChart({
   }
   const maxD = Math.max(1.25, ...serie.map((s) => s.dybde)) * 1.1;
 
+  // Baseline-markering ankres på FAKTISKE kategorier: recharts kasserer
+  // reference-marks tavst når x-værdien ikke findes på bånd-aksen (fx en
+  // etableringsmåned uden målinger). Skraveringen dækker kun måneder helt
+  // før etableringen — etableringsmåneden selv kan rumme både før- og
+  // efter-målinger (måneds-granularitet) og skraveres derfor ikke.
+  let sidsteBaselineMaaned: string | undefined;
+  let foersteEfterMaaned: string | undefined;
+  if (etableringMaaned) {
+    for (const s of serie) {
+      if (s.maaned < etableringMaaned) sidsteBaselineMaaned = s.maaned;
+      else {
+        foersteEfterMaaned = s.maaned;
+        break;
+      }
+    }
+  }
+
   return (
     <div style={{ height }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -83,18 +100,18 @@ export function TidsserieChart({
             labelFormatter={(label: string) => fmtMaaned(label)}
             contentStyle={{ borderRadius: 10, fontSize: 12 }}
           />
-          {etableringMaaned && serie.some((s2) => s2.maaned < etableringMaaned) && (
+          {sidsteBaselineMaaned && (
             <ReferenceArea
               x1={serie[0].maaned}
-              x2={etableringMaaned}
+              x2={sidsteBaselineMaaned}
               fill="#b45309"
               fillOpacity={0.07}
               label={{ value: "Baseline (før)", position: "insideTopLeft", fontSize: 10, fill: "#b45309" }}
             />
           )}
-          {etableringMaaned && (
+          {sidsteBaselineMaaned && foersteEfterMaaned && (
             <ReferenceLine
-              x={etableringMaaned}
+              x={foersteEfterMaaned}
               stroke="#b45309"
               strokeWidth={1.5}
               strokeDasharray="4 3"
