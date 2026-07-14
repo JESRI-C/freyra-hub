@@ -66,11 +66,17 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
           </button>
           <button
-            className="h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
+            className="hidden sm:grid h-9 w-9 place-items-center rounded-xl border bg-card hover:bg-muted transition"
             title="Hjælp"
           >
             <HelpCircle className="h-4 w-4" />
           </button>
+
+          <div className="relative">
+            <button
+              onClick={() => setOpenUser((v) => !v)}
+              className="flex items-center gap-2 rounded-xl border bg-card pl-1 pr-2 sm:pr-3 py-1 hover:bg-muted transition"
+            >
 
           <div className="relative">
             <button
