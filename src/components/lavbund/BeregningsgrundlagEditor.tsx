@@ -163,6 +163,20 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
               />
             </label>
             <label className="space-y-1">
+              <span className="font-medium">Etableringsdato (vådlægning gennemført)</span>
+              <input
+                type="date"
+                className={inputCls}
+                value={draft.etableringsdato?.slice(0, 10) ?? ""}
+                onChange={(e) =>
+                  set("etableringsdato", e.target.value ? e.target.value : undefined)
+                }
+              />
+              <span className="block text-[10px] text-muted-foreground">
+                Målinger før datoen er baseline og tæller ikke i verifikationsgraden.
+              </span>
+            </label>
+            <label className="space-y-1">
               <span className="font-medium">Publiceret ex-ante (t/ha, valgfri)</span>
               <input
                 className={numCls}

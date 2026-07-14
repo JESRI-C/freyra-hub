@@ -70,8 +70,8 @@ function KlimaPage() {
     [projekt.data],
   );
   const ver = useMemo(
-    () => beregnVerifikationsgrad(readings.data ?? []),
-    [readings.data],
+    () => beregnVerifikationsgrad(readings.data ?? [], projekt.data?.etableringsdato),
+    [readings.data, projekt.data?.etableringsdato],
   );
   const tilt = useMemo(
     () => (projekt.data ? tiltagValidering(projekt.data) : null),
@@ -196,6 +196,12 @@ function KlimaPage() {
                 style={{ width: `${Math.min(100, opn.procent)}%` }}
               />
             </div>
+            {opn.procent > 100 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Målt effekt overstiger det krediterede — konsistent med at ex-ante-metoder
+                systematisk underestimerer (GEST/MoorFutures-data).
+              </p>
+            )}
           </Card>
         );
       })()}

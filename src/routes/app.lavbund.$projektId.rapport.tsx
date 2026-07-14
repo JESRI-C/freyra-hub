@@ -5,12 +5,13 @@ import { Download, Printer } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import {
   getGroefter,
+  getMaalepunkter,
   getProject,
   getReadings,
   getTransekter,
 } from "@/services/lavbundService";
 import { ledgerList, ledgerVerify } from "@/services/ledgerService";
-import { bygSnapshot, beregnOpnaaelse } from "@/services/lavbundBeregning";
+import { bygSnapshot, beregnOpnaaelse, splitVedEtablering } from "@/services/lavbundBeregning";
 import { AFVANDINGSKLASSER, FAKTOR_VERSIONER } from "@/data/lavbundFaktorer";
 import { FAKTOR_KILDER, FAKTOR_VERIFICERET_DATO } from "@/data/lavbundFaktorKilder";
 import type { Tiltag } from "@/types/lavbund";
@@ -19,6 +20,13 @@ export const Route = createFileRoute("/app/lavbund/$projektId/rapport")({
   head: () => ({ meta: [{ title: "Verifikationsrapport — LavbundsMRV" }] }),
   component: RapportPage,
 });
+
+const KILDE_LABEL: Record<string, string> = {
+  hobo_logger: "HOBO-logger (15-min serier)",
+  manuel_pejling: "Manuel pejling",
+  drone_dem: "Drone-DEM",
+  insar: "InSAR (satellit)",
+};
 
 const TILTAG_LABEL: Record<keyof Tiltag, string> = {
   draenAfbrydes: "Dræn afbrydes",
@@ -31,7 +39,7 @@ const TILTAG_LABEL: Record<keyof Tiltag, string> = {
 function RapportPage() {
   const { projektId } = Route.useParams();
 
-  const [projekt, readings, transekter, groefter, ledger, kaede] = useQueries({
+  const [projekt, readings, transekter, groefter, ledger, kaede, maalepunkter] = useQueries({
     queries: [
       { queryKey: ["lavbund", "project", projektId], queryFn: () => getProject(projektId) },
       { queryKey: ["lavbund", "readings", projektId], queryFn: () => getReadings(projektId) },
@@ -41,6 +49,10 @@ function RapportPage() {
       {
         queryKey: ["lavbund", "ledger-verify", projektId],
         queryFn: () => ledgerVerify("lavbund", projektId),
+      },
+      {
+        queryKey: ["lavbund", "maalepunkter", projektId],
+        queryFn: () => getMaalepunkter(projektId),
       },
     ],
   });
@@ -75,6 +87,30 @@ function RapportPage() {
       andel: (buckets.get(k.navn) ?? 0) / total,
     }));
   }, [readings.data]);
+
+  // Metode & datagrundlag — tæthed, kildefordeling, periode og baseline/efter.
+  const metode = useMemo(() => {
+    const rs = readings.data ?? [];
+    const kilder = new Map<string, number>();
+    for (const r of rs) kilder.set(r.kilde, (kilder.get(r.kilde) ?? 0) + 1);
+    const tider = rs
+      .map((r) => Date.parse(r.tidspunkt))
+      .filter((t) => !Number.isNaN(t))
+      .sort((a, b) => a - b);
+    const middel = (xs: { dybdeM: number }[]) =>
+      xs.length > 0 ? xs.reduce((s, r) => s + r.dybdeM, 0) / xs.length : null;
+    const { baseline, efter } = splitVedEtablering(rs, projekt.data?.etableringsdato);
+    return {
+      antalPunkter: (maalepunkter.data ?? []).length,
+      kilder,
+      foerste: tider.length > 0 ? tider[0] : null,
+      seneste: tider.length > 0 ? tider[tider.length - 1] : null,
+      baselineAntal: baseline.length,
+      baselineMiddel: middel(baseline),
+      efterAntal: efter.length,
+      efterMiddel: middel(efter),
+    };
+  }, [readings.data, maalepunkter.data, projekt.data?.etableringsdato]);
 
   if (projekt.isLoading || !projekt.data || !snap)
     return (
@@ -289,9 +325,65 @@ function RapportPage() {
           </div>
         </Section>
 
-        <Section title="6. Datagrundlag">
-          <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-            <li>{readings.data?.length ?? 0} vandstandsmålinger (HOBO + markpejling)</li>
+        <Section title="6. Metode & datagrundlag">
+          <dl className="grid grid-cols-2 gap-y-1 text-sm">
+            <dt className="text-muted-foreground">Målepunkter</dt>
+            <dd>
+              {metode.antalPunkter} stk.
+              {p.samletArealHa > 0 && (
+                <span className="text-muted-foreground">
+                  {" "}
+                  ({(metode.antalPunkter / p.samletArealHa).toLocaleString("da-DK", {
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  pr. ha)
+                </span>
+              )}
+            </dd>
+            <dt className="text-muted-foreground">Måleperiode</dt>
+            <dd>
+              {metode.foerste !== null && metode.seneste !== null
+                ? `${new Date(metode.foerste).toLocaleDateString("da-DK")} – ${new Date(
+                    metode.seneste,
+                  ).toLocaleDateString("da-DK")}`
+                : "Ingen målinger endnu"}
+            </dd>
+            {p.etableringsdato && (
+              <>
+                <dt className="text-muted-foreground">Etableringsdato</dt>
+                <dd>{new Date(p.etableringsdato).toLocaleDateString("da-DK")}</dd>
+                <dt className="text-muted-foreground">Baseline (før etablering)</dt>
+                <dd>
+                  {metode.baselineAntal} målinger
+                  {metode.baselineMiddel !== null &&
+                    ` · middel ${metode.baselineMiddel.toFixed(2)} m under terræn`}
+                </dd>
+                <dt className="text-muted-foreground">Efter etablering</dt>
+                <dd>
+                  {metode.efterAntal} målinger
+                  {metode.efterMiddel !== null &&
+                    ` · middel ${metode.efterMiddel.toFixed(2)} m under terræn`}
+                </dd>
+              </>
+            )}
+          </dl>
+          <div className="mt-3 text-sm">
+            <div className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
+              Målinger pr. kilde
+            </div>
+            <ul className="space-y-1">
+              {Array.from(metode.kilder.entries()).map(([kilde, antal]) => (
+                <li key={kilde} className="flex justify-between border-b py-1">
+                  <span>{KILDE_LABEL[kilde] ?? kilde}</span>
+                  <span className="tabular-nums">{antal}</span>
+                </li>
+              ))}
+              {metode.kilder.size === 0 && (
+                <li className="text-muted-foreground">Ingen målinger registreret.</li>
+              )}
+            </ul>
+          </div>
+          <ul className="mt-3 text-sm space-y-1 list-disc list-inside text-muted-foreground">
             <li>
               {(transekter.data ?? []).filter((t) => t.fase === "foer").length} FØR-transekter,{" "}
               {(transekter.data ?? []).filter((t) => t.fase === "efter").length} EFTER-transekter
@@ -299,6 +391,29 @@ function RapportPage() {
             <li>{groefter.data?.length ?? 0} grøfte-strækninger</li>
             <li>{ledger.data?.length ?? 0} ledger-poster</li>
           </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            <strong>Interpolation:</strong> Arealfordelingen pr. afvandingsklasse beregnes ud fra
+            punktmålingernes seneste dybde til vandspejl; hvert målepunkt repræsenterer sit
+            opland (nærmeste-punkt-princip). Vandstandsdybden (WTD) er den bærende
+            MRV-parameter, jf. IPCC 2013 Wetlands Supplement og GEST/VM0036, hvor WTD-klasser
+            anvendes som fallback-proxy for drivhusgasflux. Metoden er parallel til DCE's
+            W01-overvågningsdesign med før/efter-måling.
+          </p>
+        </Section>
+
+        <Section title="Metodisk kontekst">
+          <p className="text-sm text-muted-foreground">
+            Statens kreditering sker ex-ante ud fra kortlagt tørvejord og forventet
+            vandstandshævning. Empiriske eftermålinger på tyske MoorFutures-projekter og
+            GEST-baserede opgørelser viser, at ex-ante/proxy-metoder systematisk{" "}
+            <strong>underestimerer</strong> den faktiske klimaeffekt i langt de fleste
+            scenarier (~96–98 % af de undersøgte). Målt verifikation som i denne rapport vil
+            derfor typisk vise en effekt, der er lig med eller større end den krediterede —
+            aldrig et grundlag for at nedskrive den. Se{" "}
+            <span className="font-mono text-xs">docs/lavbund-mrv-positionering.md</span> for
+            kilder og regulatorisk kontekst (bl.a. VLP-ordningens ex-ante-fokus og
+            sørestaurerings-præcedensen for honorering af eftermåling).
+          </p>
         </Section>
 
         <Section title="7. Faktorversioner">

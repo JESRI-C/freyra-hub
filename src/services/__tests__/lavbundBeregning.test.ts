@@ -123,3 +123,35 @@ describe("beregnOpnaaelse — lovet vs. målt", () => {
     expect(beregnOpnaaelse({ samletArealHa: 0 }, 0, 0).procent).toBe(0);
   });
 });
+
+describe("baseline før/efter etablering (statens N/P-protokol-mønster)", () => {
+  const r = (t: string, d: number) =>
+    ({ maalepunktId: "MP", tidspunkt: t, dybdeM: d, kilde: "manuel_pejling" as const });
+
+  it("splitVedEtablering deler korrekt og er bagudkompatibel uden dato", async () => {
+    const { splitVedEtablering } = await import("@/services/lavbundBeregning");
+    const readings = [r("2025-01-15T00:00:00Z", 1.2), r("2025-06-15T00:00:00Z", 0.3)];
+    const s = splitVedEtablering(readings, "2025-03-01");
+    expect(s.baseline).toHaveLength(1);
+    expect(s.efter).toHaveLength(1);
+    const uden = splitVedEtablering(readings);
+    expect(uden.baseline).toHaveLength(0);
+    expect(uden.efter).toHaveLength(2);
+  });
+
+  it("verifikationsgraden tæller kun efter-målinger når dato er sat", async () => {
+    const { beregnVerifikationsgrad } = await import("@/services/lavbundBeregning");
+    // Tørre baseline-målinger (1,2 m = Mark) + våde efter-målinger (0,3 m = Våd eng)
+    const readings = [
+      r("2025-01-01T00:00:00Z", 1.2),
+      r("2025-01-02T00:00:00Z", 1.2),
+      r("2025-06-01T00:00:00Z", 0.3),
+      r("2025-06-02T00:00:00Z", 0.3),
+    ];
+    const uden = beregnVerifikationsgrad(readings);
+    const med = beregnVerifikationsgrad(readings, "2025-03-01");
+    expect(uden.verifikationsgrad).toBeCloseTo(0.5, 5); // halvdelen våd
+    expect(med.verifikationsgrad).toBeCloseTo(1.0, 5); // kun efter-målinger, alle våde
+    expect(med.antalMaalinger).toBe(2);
+  });
+});

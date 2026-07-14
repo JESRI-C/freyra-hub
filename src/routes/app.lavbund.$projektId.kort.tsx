@@ -17,6 +17,7 @@ import { ledgerAppend } from "@/services/ledgerService";
 import { normalizeHoboPayload } from "@/services/lavbundSmartConnect";
 import { AFVANDINGSKLASSER } from "@/data/lavbundFaktorer";
 import { LavbundFeltkort, KLASSE_FARVE } from "@/components/lavbund/LavbundFeltkort";
+import { KULSTOF2022_WMS } from "@/data/kulstof2022";
 import { TidsserieChart } from "@/components/lavbund/TidsserieChart";
 import type { Maalepunkt, Opmaalingsintensitet } from "@/types/lavbund";
 
@@ -38,6 +39,7 @@ function KortPage() {
   const { projektId } = Route.useParams();
   const [intensitet, setIntensitet] = useState<Opmaalingsintensitet>("standard");
   const [placing, setPlacing] = useState(false);
+  const [visKulstof, setVisKulstof] = useState(false);
   const qc = useQueryClient();
 
   const [projekt, maalepunkter, readings, linkedGeo] = useQueries({
@@ -227,8 +229,18 @@ function KortPage() {
             placing={placing}
             onPlace={placerMaalepunkt}
             height={440}
+            wmsOverlay={visKulstof ? KULSTOF2022_WMS : null}
           />
           <div className="mt-3 flex flex-wrap gap-2 items-center">
+            <label className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border cursor-pointer hover:bg-muted/40">
+              <input
+                type="checkbox"
+                checked={visKulstof}
+                onChange={(e) => setVisKulstof(e.target.checked)}
+                className="h-3 w-3 accent-primary"
+              />
+              {KULSTOF2022_WMS.label}
+            </label>
             {AFVANDINGSKLASSER.map((k) => (
               <span
                 key={k.navn}
@@ -263,7 +275,7 @@ function KortPage() {
           subtitle="HOBO-logger 15-min serier + periodiske markpejlinger. Grænsen for Våd eng: 0,50 m."
         />
         <div className="px-5 pb-5">
-          <TidsserieChart serie={tidsserie} height={260} />
+          <TidsserieChart serie={tidsserie} height={260} etableringMaaned={projekt.data?.etableringsdato?.slice(0, 7)} />
           {stats && (
             <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
               <StatBoks label="Årsmiddel" value={`${stats.aar.toFixed(2)} m`} />
