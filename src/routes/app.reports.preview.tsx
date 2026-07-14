@@ -1,8 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { FileText, Download, Send, RefreshCw, AlertTriangle, MessageSquare } from "lucide-react";
-import { Card, PageHeader, Bars } from "@/components/ui-bits";
-import { ReadinessScore, Section, Chip, MissingDataItem } from "@/components/reports/Primitives";
+import { Download, Send, RefreshCw, AlertTriangle, MessageSquare } from "lucide-react";
+import { Card, PageHeader } from "@/components/ui-bits";
+import { ReadinessScore, Chip } from "@/components/reports/Primitives";
+import {
+  ReportMasthead,
+  ReportSection,
+  ReportHero,
+  ReportKpi,
+  ReportBars,
+  ReportTable,
+  ReportKV,
+  ReportNote,
+  DOC_BLAA,
+  DOC_GROEN,
+} from "@/components/reports/ReportDoc";
 import { MISSING_DATA } from "@/lib/reports-data";
 
 export const Route = createFileRoute("/app/reports/preview")({
@@ -72,7 +84,7 @@ function Page() {
             </span>
             <Chip tone="success">Klarhed 82%</Chip>
           </div>
-          <div className="bg-card p-10 min-h-[800px]">
+          <div className="bg-card px-10 py-12 min-h-[800px]">
             <PreviewPage idx={page} />
           </div>
         </Card>
@@ -131,237 +143,250 @@ function Page() {
 function PreviewPage({ idx }: { idx: number }) {
   if (idx === 0)
     return (
-      <div className="space-y-6">
-        <div className="text-xs uppercase tracking-wider text-primary font-semibold">
-          GoFreyra · Naturimpact-rapport
-        </div>
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Skallebæk Biodiversity Pilot</h1>
-          <div className="text-lg text-muted-foreground mt-1">Naturimpact og ESG-status</div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 max-w-md text-sm">
-          <KV label="Periode" v="Q2 2026" />
-          <KV label="Målgruppe" v="Kunde" />
-          <KV label="Genereret" v="8. maj 2026" />
-          <KV label="Version" v="v1.4" />
-          <KV label="Sprog" v="Dansk" />
-          <KV label="Sider" v="22" />
-        </div>
-        <div className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-leaf/20 text-primary text-xs font-medium">
-          Klar til intern brug · 82%
-        </div>
-      </div>
+      <ReportMasthead
+        kicker="GoFreyra · Naturimpact-rapport"
+        title="Skallebæk Biodiversity Pilot"
+        subtitle="Naturimpact og ESG-status"
+        badge={<Chip tone="success">Klar til intern brug · 82%</Chip>}
+        meta={[
+          { label: "Periode", value: "Q2 2026" },
+          { label: "Målgruppe", value: "Kunde" },
+          { label: "Genereret", value: "8. maj 2026" },
+          { label: "Version", value: "v1.4" },
+          { label: "Sprog", value: "Dansk" },
+          { label: "Sider", value: "22" },
+        ]}
+      />
     );
   if (idx === 1)
     return (
-      <div className="space-y-4 max-w-2xl">
-        <h2 className="text-xl font-semibold">Executive summary</h2>
-        <p className="text-sm leading-relaxed text-foreground/90">
-          Skallebæk Biodiversity Pilot viser en positiv udvikling i naturtilstand og datadækning.
-          Datagrundlaget er stærkt på vandmålinger og satellitbaseret vegetationsanalyse, mens
-          feltverifikation fortsat bør styrkes før ekstern rapportering.
-        </p>
-        <p className="text-sm leading-relaxed text-foreground/90">
-          Vandkvaliteten i Zone A og B er stabil, NDVI er steget 6% siden baseline, og
-          biodiversitetsindekset peger på øget habitat-diversitet i vådområdet. Anbefalingen er at
-          prioritere feltregistrering i Zone C samt verificere droneoverflight Q2 før kunde- og
-          investordeling.
-        </p>
-      </div>
+      <ReportSection
+        title="Executive summary"
+        intro="Status for naturtilstand, datadækning og anbefalede handlinger — Q2 2026."
+      >
+        <div className="max-w-2xl space-y-4">
+          <p className="text-base leading-relaxed">
+            Skallebæk Biodiversity Pilot viser en <strong>positiv udvikling</strong> i
+            naturtilstand og datadækning. Datagrundlaget er stærkt på vandmålinger og
+            satellitbaseret vegetationsanalyse, mens feltverifikation fortsat bør styrkes før
+            ekstern rapportering.
+          </p>
+          <p className="text-sm leading-relaxed text-foreground/90">
+            Vandkvaliteten i Zone A og B er stabil, NDVI er steget 6 % siden baseline, og
+            biodiversitetsindekset peger på øget habitat-diversitet i vådområdet. Anbefalingen
+            er at prioritere feltregistrering i Zone C samt verificere droneoverflight Q2 før
+            kunde- og investordeling.
+          </p>
+        </div>
+      </ReportSection>
     );
   if (idx === 2)
     return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Nøgletal</h2>
-        <div className="grid grid-cols-3 gap-3 max-w-2xl">
-          {[
-            ["Biodiversitetsindeks", "0,71", "+0,06"],
-            ["CO₂e potentiale", "1.420 t/år", "+12%"],
-            ["Vandkvalitet", "94%", "+2%"],
-            ["Datakvalitet", "91%", "+3%"],
-            ["Rapportklarhed", "82%", "—"],
-            ["Verifikationsstatus", "DNV: aktiv", "OK"],
-          ].map(([l, v, d]) => (
-            <div key={l} className="rounded-xl border p-3">
-              <div className="text-xs text-muted-foreground">{l}</div>
-              <div className="text-xl font-semibold mt-1">{v}</div>
-              <div className="text-[11px] text-success mt-0.5">{d}</div>
-            </div>
-          ))}
+      <ReportSection
+        title="Nøgletal"
+        intro="Udvikling vs. forrige kvartal. Grøn delta = forbedring."
+      >
+        <div className="max-w-2xl space-y-5">
+          <ReportHero
+            label="Biodiversitetsindeks"
+            value="0,71"
+            tone="positive"
+            sub="+0,06 vs. Q1 2026 — øget habitat-diversitet i vådområdet"
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <ReportKpi label="CO₂e-potentiale" value="1.420 t/år" sub="+12 % vs. Q1" />
+            <ReportKpi label="Vandkvalitet" value="94 %" sub="+2 % vs. Q1" />
+            <ReportKpi label="Datakvalitet" value="91 %" sub="+3 % vs. Q1" />
+            <ReportKpi label="Rapportklarhed" value="82 %" sub="3 rettelser udestår" />
+            <ReportKpi label="Verifikation" value="DNV aktiv" sub="Signatur Q2 udestående" />
+            <ReportKpi label="Datadækning" value="4 af 5 zoner" sub="Zone C mangler felt" />
+          </div>
         </div>
-      </div>
+      </ReportSection>
     );
   if (idx === 3)
     return (
-      <div className="space-y-4 max-w-2xl">
-        <h2 className="text-xl font-semibold">Diagrammer</h2>
-        <div className="rounded-xl border p-4">
-          <div className="text-sm font-medium mb-2">CO₂e over tid</div>
-          <Bars
-            data={[
-              { label: "Q1", value: 1280 },
-              { label: "Q2", value: 1340 },
-              { label: "Q3", value: 1380 },
-              { label: "Q4", value: 1420 },
+      <div className="max-w-2xl space-y-8">
+        <ReportSection
+          title="CO₂e-potentiale pr. kvartal"
+          intro="t CO₂e/år, kvartalsvis opgørelse 2026."
+        >
+          <ReportBars
+            rows={[
+              { label: "Q1", andel: 1280 / 1420, vaerdi: "1.280 t", farve: DOC_BLAA },
+              { label: "Q2", andel: 1340 / 1420, vaerdi: "1.340 t", farve: DOC_BLAA },
+              { label: "Q3", andel: 1380 / 1420, vaerdi: "1.380 t", farve: DOC_BLAA },
+              { label: "Q4", andel: 1420 / 1420, vaerdi: "1.420 t", farve: DOC_BLAA },
             ]}
           />
-        </div>
-        <div className="rounded-xl border p-4">
-          <div className="text-sm font-medium mb-2">Biodiversitetsindeks</div>
-          <Bars
-            data={[
-              { label: "Q1", value: 62 },
-              { label: "Q2", value: 66 },
-              { label: "Q3", value: 69 },
-              { label: "Q4", value: 71 },
+        </ReportSection>
+        <ReportSection
+          title="Biodiversitetsindeks pr. kvartal"
+          intro="Indeks 0–1, højere er bedre."
+        >
+          <ReportBars
+            rows={[
+              { label: "Q1", andel: 0.62, vaerdi: "0,62", farve: DOC_GROEN },
+              { label: "Q2", andel: 0.66, vaerdi: "0,66", farve: DOC_GROEN },
+              { label: "Q3", andel: 0.69, vaerdi: "0,69", farve: DOC_GROEN },
+              { label: "Q4", andel: 0.71, vaerdi: "0,71", farve: DOC_GROEN },
             ]}
           />
-        </div>
-        <div className="rounded-xl border p-4">
-          <div className="text-sm font-medium mb-2">Datakvalitet pr. kilde</div>
-          <Bars
-            data={[
-              { label: "Sensor", value: 96 },
-              { label: "Satellit", value: 88 },
-              { label: "Drone", value: 71 },
-              { label: "Felt", value: 82 },
-              { label: "ERP", value: 94 },
+        </ReportSection>
+        <ReportSection
+          title="Datakvalitet pr. kilde"
+          intro="Andel godkendte målinger pr. datakilde."
+        >
+          <ReportBars
+            rows={[
+              { label: "Sensor", andel: 0.96, vaerdi: "96 %", farve: DOC_BLAA },
+              { label: "ERP", andel: 0.94, vaerdi: "94 %", farve: DOC_BLAA },
+              { label: "Satellit", andel: 0.88, vaerdi: "88 %", farve: DOC_BLAA },
+              { label: "Felt", andel: 0.82, vaerdi: "82 %", farve: DOC_BLAA },
+              { label: "Drone", andel: 0.71, vaerdi: "71 %", farve: DOC_BLAA },
             ]}
           />
-        </div>
+        </ReportSection>
       </div>
     );
   if (idx === 4)
     return (
-      <div className="space-y-3 max-w-2xl">
-        <h2 className="text-xl font-semibold">AI-anbefalinger</h2>
-        {[
-          {
-            p: "Høj",
-            t: "Verificér droneoverflight Q2",
-            e: "Hæver verifikationsscore med 8 point",
-            d: "DNV-signatur",
-            o: "Mikkel Holm",
-          },
-          {
-            p: "Høj",
-            t: "Tilføj feltobservationer i Zone C",
-            e: "Lukker biodiversitets-data-gap",
-            d: "Field-app uploads",
-            o: "Emma Larsen",
-          },
-          {
-            p: "Mellem",
-            t: "Korrigér Scope 3 leverandørmapping",
-            e: "Forbedrer Scope 3-aggregering",
-            d: "Scope 3 CSV",
-            o: "Emma Larsen",
-          },
-        ].map((r) => (
-          <div key={r.t} className="rounded-xl border p-4">
-            <div className="flex items-center gap-2">
-              <Chip tone="primary">{r.p}</Chip>
-              <div className="font-medium">{r.t}</div>
+      <ReportSection
+        title="AI-anbefalinger"
+        intro="Prioriterede handlinger genereret ud fra datahuller og verifikationskrav."
+      >
+        <div className="max-w-2xl space-y-2.5">
+          {[
+            {
+              p: "Høj",
+              t: "Verificér droneoverflight Q2",
+              e: "Hæver verifikationsscore med 8 point",
+              d: "DNV-signatur",
+              o: "Mikkel Holm",
+            },
+            {
+              p: "Høj",
+              t: "Tilføj feltobservationer i Zone C",
+              e: "Lukker biodiversitets-data-gap",
+              d: "Field-app uploads",
+              o: "Emma Larsen",
+            },
+            {
+              p: "Mellem",
+              t: "Korrigér Scope 3 leverandørmapping",
+              e: "Forbedrer Scope 3-aggregering",
+              d: "Scope 3 CSV",
+              o: "Emma Larsen",
+            },
+          ].map((r) => (
+            <div key={r.t} className="rounded-xl border px-4 py-3.5">
+              <div className="flex items-center gap-2">
+                <Chip tone={r.p === "Høj" ? "warning" : "muted"}>{r.p}</Chip>
+                <div className="font-medium text-sm">{r.t}</div>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3 text-xs mt-2.5 text-muted-foreground">
+                <span>
+                  <strong className="text-foreground">Effekt:</strong> {r.e}
+                </span>
+                <span>
+                  <strong className="text-foreground">Data:</strong> {r.d}
+                </span>
+                <span>
+                  <strong className="text-foreground">Ejer:</strong> {r.o}
+                </span>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-xs mt-2 text-muted-foreground">
-              <span>
-                <strong className="text-foreground">Effekt:</strong> {r.e}
-              </span>
-              <span>
-                <strong className="text-foreground">Data:</strong> {r.d}
-              </span>
-              <span>
-                <strong className="text-foreground">Ejer:</strong> {r.o}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </ReportSection>
     );
   if (idx === 5)
     return (
-      <div className="space-y-3 max-w-2xl">
-        <h2 className="text-xl font-semibold">Risiko & usikkerhed</h2>
-        <div className="rounded-xl border p-4 text-sm">
-          <div className="font-medium mb-2">Risikomatrix (3×3)</div>
-          <div className="grid grid-cols-3 gap-1">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((c) => (
-              <div
-                key={c}
-                className={`h-12 rounded ${c > 6 ? "bg-destructive/30" : c > 3 ? "bg-warning/30" : "bg-success/20"}`}
-              />
-            ))}
+      <div className="max-w-2xl space-y-6">
+        <ReportSection
+          title="Risiko & usikkerhed"
+          intro="Sandsynlighed (→) × konsekvens (↑). Ikoner og placering bærer alvoren — ikke farven alene."
+        >
+          <div className="grid grid-cols-[auto_1fr] gap-2 items-stretch">
+            <div className="flex flex-col justify-between py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span>Høj</span>
+              <span>Mellem</span>
+              <span>Lav</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { tone: "bg-warning/30", label: "" },
+                { tone: "bg-destructive/25", label: "Drone-EXIF" },
+                { tone: "bg-destructive/40", label: "" },
+                { tone: "bg-success/20", label: "" },
+                { tone: "bg-warning/30", label: "Zone C-felt" },
+                { tone: "bg-destructive/25", label: "" },
+                { tone: "bg-success/15", label: "" },
+                { tone: "bg-success/20", label: "Scope 3" },
+                { tone: "bg-warning/30", label: "" },
+              ].map((c, i) => (
+                <div
+                  key={i}
+                  className={`h-14 rounded-lg ${c.tone} grid place-items-center text-[10px] font-medium text-foreground/80 px-1 text-center`}
+                >
+                  {c.label}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="rounded-xl border p-4">
-          <div className="font-medium text-sm">Datahuller</div>
-          <ul className="text-xs mt-2 space-y-1 list-disc pl-5 text-muted-foreground">
-            <li>Feltverifikation Zone C</li>
-            <li>EXIF GPS på drone Q2</li>
-            <li>Scope 3 leverandørkategori</li>
-          </ul>
-        </div>
+          <div className="mt-1.5 ml-[3.2rem] flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span>Lav</span>
+            <span>Mellem</span>
+            <span>Høj</span>
+          </div>
+        </ReportSection>
+        <ReportNote title="Datahuller">
+          Feltverifikation Zone C · EXIF-GPS på drone Q2 · Scope 3-leverandørkategori. Hullerne
+          påvirker ekstern deling — se AI-anbefalinger for lukkende handlinger.
+        </ReportNote>
       </div>
     );
   if (idx === 6)
     return (
-      <div className="space-y-3 max-w-2xl">
-        <h2 className="text-xl font-semibold">Dokumentation</h2>
-        <div className="text-sm space-y-2">
-          <div className="rounded-xl border p-3">
-            <strong>Datakilder:</strong> SKB-WQ-01, SKB-SOIL-02, Sentinel-2 NDVI, Field App, ERP API
-          </div>
-          <div className="rounded-xl border p-3">
-            <strong>Audit trail:</strong> 248 events i ESG Ledger (Q2)
-          </div>
-          <div className="rounded-xl border p-3">
-            <strong>Verifikation:</strong> DNV — aktiv, signatur Q2 udestående
-          </div>
-          <div className="rounded-xl border p-3">
-            <strong>Metode:</strong> ESRS E4, OGC SensorThings, GHG Protocol
-          </div>
-          <div className="rounded-xl border p-3">
-            <strong>Bilag:</strong> Metodebilag, Datatabel, Emissionsfaktorer, Audit extract
-          </div>
+      <ReportSection
+        title="Dokumentation"
+        intro="Sporbarhed: kilder, metode og revisionsspor bag rapportens tal."
+      >
+        <div className="max-w-2xl">
+          <ReportKV
+            items={[
+              {
+                label: "Datakilder",
+                value: "SKB-WQ-01 · SKB-SOIL-02 · Sentinel-2 NDVI · Field App · ERP API",
+              },
+              { label: "Audit trail", value: "248 events i ESG Ledger (Q2)" },
+              { label: "Verifikation", value: "DNV — aktiv, signatur Q2 udestående" },
+              { label: "Metode", value: "ESRS E4 · OGC SensorThings · GHG Protocol" },
+              {
+                label: "Bilag",
+                value: "Metodebilag · Datatabel · Emissionsfaktorer · Audit extract",
+              },
+            ]}
+          />
         </div>
-      </div>
+      </ReportSection>
     );
   return (
-    <div className="space-y-3 max-w-2xl">
-      <h2 className="text-xl font-semibold">Næste handlinger</h2>
-      <table className="w-full text-sm border rounded-lg overflow-hidden">
-        <thead className="bg-muted/50 text-xs">
-          <tr>
-            <th className="px-3 py-2 text-left">Handling</th>
-            <th className="px-3 py-2 text-left">Frist</th>
-            <th className="px-3 py-2 text-left">Ejer</th>
-            <th className="px-3 py-2 text-left">Effekt</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {[
-            ["Feltobs. Zone C", "20. maj", "Emma Larsen", "+8% klarhed"],
+    <ReportSection
+      title="Næste handlinger"
+      intro="Handlinger der hæver rapportklarheden før ekstern deling."
+    >
+      <div className="max-w-2xl">
+        <ReportTable
+          head={["Handling", "Frist", "Ejer", "Effekt"]}
+          numericFra={4}
+          rows={[
+            ["Feltobs. Zone C", "20. maj", "Emma Larsen", "+8 % klarhed"],
             ["DNV-signatur Q2", "25. maj", "Jesper Riel", "Verifikation OK"],
             ["Scope 3 mapping", "30. maj", "Emma Larsen", "Scope 3 lukkes"],
-          ].map((r) => (
-            <tr key={r[0]}>
-              <td className="px-3 py-2">{r[0]}</td>
-              <td className="px-3 py-2">{r[1]}</td>
-              <td className="px-3 py-2">{r[2]}</td>
-              <td className="px-3 py-2 text-success">{r[3]}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function KV({ label, v }: { label: string; v: string }) {
-  return (
-    <div>
-      <div className="text-[11px] text-muted-foreground uppercase">{label}</div>
-      <div className="font-medium">{v}</div>
-    </div>
+          ]}
+        />
+      </div>
+    </ReportSection>
   );
 }
