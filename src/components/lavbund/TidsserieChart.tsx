@@ -13,6 +13,7 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts";
 
 const SERIE_BLAA = "#2563eb"; // valideret
@@ -29,7 +30,16 @@ function fmtMaaned(m: string): string {
   return `${navne[Number(md) - 1] ?? md} ${aar?.slice(2)}`;
 }
 
-export function TidsserieChart({ serie, height = 260 }: { serie: TidsseriePunkt[]; height?: number }) {
+export function TidsserieChart({
+  serie,
+  height = 260,
+  etableringMaaned,
+}: {
+  serie: TidsseriePunkt[];
+  height?: number;
+  /** "YYYY-MM" — måneder før markeres som baseline (førtilstand). */
+  etableringMaaned?: string;
+}) {
   if (serie.length === 0) {
     return <div className="text-sm text-muted-foreground p-6">Ingen målinger endnu.</div>;
   }
@@ -73,6 +83,24 @@ export function TidsserieChart({ serie, height = 260 }: { serie: TidsseriePunkt[
             labelFormatter={(label: string) => fmtMaaned(label)}
             contentStyle={{ borderRadius: 10, fontSize: 12 }}
           />
+          {etableringMaaned && serie.some((s2) => s2.maaned < etableringMaaned) && (
+            <ReferenceArea
+              x1={serie[0].maaned}
+              x2={etableringMaaned}
+              fill="#b45309"
+              fillOpacity={0.07}
+              label={{ value: "Baseline (før)", position: "insideTopLeft", fontSize: 10, fill: "#b45309" }}
+            />
+          )}
+          {etableringMaaned && (
+            <ReferenceLine
+              x={etableringMaaned}
+              stroke="#b45309"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              label={{ value: "Etablering", position: "top", fontSize: 10, fill: "#b45309" }}
+            />
+          )}
           <ReferenceLine
             y={0.5}
             stroke={GRAENSE_GROEN}

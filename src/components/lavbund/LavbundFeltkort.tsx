@@ -8,7 +8,7 @@
  * grid-position omkring kortets centrum, så kortet altid kan tegnes.
  */
 import { useEffect, useRef, useState } from "react";
-import type { Map as LeafletMap, CircleMarker, Polygon as LPolygon } from "leaflet";
+import type { Map as LeafletMap, CircleMarker, Polygon as LPolygon, TileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { klassificerDybde } from "@/services/lavbundBeregning";
 import type { Maalepunkt } from "@/types/lavbund";
@@ -23,6 +23,13 @@ export const KLASSE_FARVE: Record<string, string> = {
   Mark: "#b91c1c",
 };
 
+export interface FeltkortWmsOverlay {
+  url: string;
+  layers: string;
+  opacity: number;
+  attribution: string;
+}
+
 interface Props {
   maalepunkter: Maalepunkt[];
   senesteDybde: Map<string, number>;
@@ -32,6 +39,8 @@ interface Props {
   placing?: boolean;
   onPlace?: (pos: { lat: number; lng: number }) => void;
   height?: number;
+  /** Valgfrit WMS-lag (fx Kulstof2022) — fejler gracefully hvis endpointet ikke svarer. */
+  wmsOverlay?: FeltkortWmsOverlay | null;
 }
 
 /** Reel position eller syntetisk spredning omkring centrum ud fra grid-position. */
@@ -54,11 +63,13 @@ export function LavbundFeltkort({
   placing = false,
   onPlace,
   height = 420,
+  wmsOverlay = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<CircleMarker[]>([]);
   const polygonRef = useRef<LPolygon | null>(null);
+  const wmsRef = useRef<TileLayer | null>(null);
   const [ready, setReady] = useState(false);
   const placingRef = useRef(placing);
   const onPlaceRef = useRef(onPlace);
@@ -120,6 +131,35 @@ export function LavbundFeltkort({
       ).addTo(map);
     })();
   }, [polygon, ready]);
+
+  // ── WMS-overlay (fx Kulstof2022) ────────────────────────────────────────────
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    const map = mapRef.current;
+    let cancelled = false;
+    (async () => {
+      const L = await import("leaflet");
+      if (cancelled) return;
+      if (wmsRef.current) {
+        map.removeLayer(wmsRef.current);
+        wmsRef.current = null;
+      }
+      if (!wmsOverlay) return;
+      // Manglende/tavse tiles efterlader blot satellitkortet synligt.
+      wmsRef.current = L.tileLayer
+        .wms(wmsOverlay.url, {
+          layers: wmsOverlay.layers,
+          format: "image/png",
+          transparent: true,
+          opacity: wmsOverlay.opacity,
+          attribution: wmsOverlay.attribution,
+        })
+        .addTo(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [wmsOverlay, ready]);
 
   // ── Målepunkts-markører (genopbygges når data ændrer sig) ───────────────────
   useEffect(() => {

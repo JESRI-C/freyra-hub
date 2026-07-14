@@ -51,6 +51,10 @@ export interface LavbundsProjekt {
   navn: string;
   kommune: string;
   status: ProjektStatus;
+  /** Dato for gennemført vådlægning. Målinger FØR datoen er baseline
+   *  (førtilstand) og tæller ikke i verifikationsgraden — jf. statens
+   *  N/P-overvågningsprotokol (før/efter-måling). */
+  etableringsdato?: string;
   samletArealHa: number;
   arealFordeling: ArealFordeling[];
   tiltag: Tiltag;

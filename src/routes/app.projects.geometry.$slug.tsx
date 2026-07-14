@@ -13,6 +13,7 @@ import { parseProjectGeometry } from "@/services/geo-service";
 import { pickMarkblok, pickMatrikel, type PickedFeature } from "@/lib/geo-search.functions";
 import { AreaCadastrePanel } from "@/components/data-foundation/AreaCadastrePanel";
 import type { GeoJsonPolygon } from "@/services/zones-service";
+import { KULSTOF2022_WMS } from "@/data/kulstof2022";
 
 export const Route = createFileRoute("/app/projects/geometry/$slug")({
   head: () => ({ meta: [{ title: "Definér projektområde — GoFreyra" }] }),
@@ -36,7 +37,7 @@ const DAF_TOKEN = import.meta.env.VITE_DATAFORSYNINGEN_TOKEN as string | undefin
 
 // Kortlag der kan slås til/fra som visuel reference.
 const OVERLAY_DEFS: Record<
-  "cadastre" | "fieldBlocks" | "protectedNature",
+  "cadastre" | "fieldBlocks" | "protectedNature" | "kulstof2022",
   Omit<WmsOverlay, "id"> & { label: string; description: string; requiresToken?: boolean }
 > = {
   cadastre: {
@@ -72,6 +73,16 @@ const OVERLAY_DEFS: Record<
     format: "image/png",
     attribution: "© Danmarks Miljøportal",
   },
+  kulstof2022: {
+    label: KULSTOF2022_WMS.label,
+    description: KULSTOF2022_WMS.description,
+    url: KULSTOF2022_WMS.url,
+    layers: KULSTOF2022_WMS.layers,
+    opacity: KULSTOF2022_WMS.opacity,
+    transparent: true,
+    format: "image/png",
+    attribution: KULSTOF2022_WMS.attribution,
+  },
 };
 
 type OverlayKey = keyof typeof OVERLAY_DEFS;
@@ -86,6 +97,7 @@ function GeometryEditorPage() {
     cadastre: false,
     fieldBlocks: true,
     protectedNature: false,
+    kulstof2022: false,
   });
   const [center, setCenter] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [addressMarker, setAddressMarker] = useState<{ lat: number; lng: number; label: string } | null>(null);

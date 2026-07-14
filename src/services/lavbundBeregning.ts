@@ -80,9 +80,34 @@ export interface VerifikationsResultat {
 }
 
 /** Andel af readings i "våd" klasse + 0,5 × "Fugtig eng". */
+/**
+ * Del målinger i baseline (før etablering) og efter-målinger. Uden
+ * etableringsdato er alt "efter" (bagudkompatibelt).
+ */
+export function splitVedEtablering(
+  readings: VandstandsReading[],
+  etableringsdato?: string,
+): { baseline: VandstandsReading[]; efter: VandstandsReading[] } {
+  if (!etableringsdato) return { baseline: [], efter: readings };
+  const skille = Date.parse(etableringsdato);
+  if (Number.isNaN(skille)) return { baseline: [], efter: readings };
+  const baseline: VandstandsReading[] = [];
+  const efter: VandstandsReading[] = [];
+  for (const r of readings) {
+    (Date.parse(r.tidspunkt) < skille ? baseline : efter).push(r);
+  }
+  return { baseline, efter };
+}
+
 export function beregnVerifikationsgrad(
   readings: VandstandsReading[],
+  etableringsdato?: string,
 ): VerifikationsResultat {
+  // Baseline-målinger dokumenterer førtilstanden — de tæller ikke som opnået
+  // effekt (jf. statens N/P-protokol med før/efter-måling).
+  if (etableringsdato) {
+    readings = splitVedEtablering(readings, etableringsdato).efter;
+  }
   const fordeling: Record<string, number> = {};
   for (const k of AFVANDINGSKLASSER) fordeling[k.navn] = 0;
   if (readings.length === 0) {
@@ -207,7 +232,7 @@ export function bygSnapshot(input: {
   groefter: GroeftStraekning[];
 }): BeregningsSnapshot {
   const co2 = beregnKrediteretCO2(input.projekt);
-  const ver = beregnVerifikationsgrad(input.readings);
+  const ver = beregnVerifikationsgrad(input.readings, input.projekt.etableringsdato);
   const fos = beregnFosforBalance(
     input.transekterFoer,
     input.transekterEfter,
