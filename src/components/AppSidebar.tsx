@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -17,14 +17,15 @@ import {
   Users,
   FlaskConical,
   Droplets,
+  Menu,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import logoMark from "@/assets/gofreyra-logo.png";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 type SidebarItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
 type SidebarGroup = { label: string; items: SidebarItem[] };
 
-// ─── New project-centered navigation ──────────────────────────────────────────
 const GROUPS: SidebarGroup[] = [
   {
     label: "Arbejdsflow",
@@ -66,15 +67,15 @@ const GROUPS: SidebarGroup[] = [
   },
 ];
 
-export function AppSidebar() {
+function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { currentOrg: org, currentProject: project } = useAuth();
 
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="p-5 flex items-center gap-2.5 border-b border-sidebar-border">
         <img src={logoMark} alt="GoFreyra" className="h-9 w-9 object-contain" />
-        <div>
+        <div className="min-w-0">
           <div className="text-sm font-semibold tracking-tight">GoFreyra</div>
           <div className="text-[10px] uppercase tracking-wider text-sidebar-muted">
             Naturprojekt-platform
@@ -84,9 +85,10 @@ export function AppSidebar() {
 
       <Link
         to="/select"
+        onClick={onNavigate}
         className="mx-3 mt-3 rounded-xl bg-sidebar-accent/60 hover:bg-sidebar-accent transition border border-sidebar-border p-3 flex items-center gap-3"
       >
-        <div className="h-8 w-8 rounded-lg bg-leaf/30 text-leaf grid place-items-center text-xs font-semibold">
+        <div className="h-8 w-8 shrink-0 rounded-lg bg-leaf/30 text-leaf grid place-items-center text-xs font-semibold">
           {org?.name.slice(0, 2).toUpperCase() ?? "—"}
         </div>
         <div className="flex-1 min-w-0">
@@ -95,7 +97,7 @@ export function AppSidebar() {
           </div>
           <div className="text-sm font-medium truncate">{project?.name ?? "Intet projekt"}</div>
         </div>
-        <ChevronsUpDown className="h-4 w-4 text-sidebar-muted" />
+        <ChevronsUpDown className="h-4 w-4 shrink-0 text-sidebar-muted" />
       </Link>
 
       <nav className="flex-1 p-3 overflow-y-auto">
@@ -115,14 +117,15 @@ export function AppSidebar() {
                   <Link
                     key={item.to}
                     to={item.to}
+                    onClick={onNavigate}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${
                       active
                         ? "bg-leaf text-leaf-foreground font-medium shadow-soft"
                         : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
                   </Link>
                 );
               })}
@@ -140,6 +143,41 @@ export function AppSidebar() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+export function AppSidebar() {
+  return (
+    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border">
+      <SidebarBody />
     </aside>
+  );
+}
+
+export function MobileSidebarTrigger() {
+  const [open, setOpen] = useState(false);
+  const path = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    setOpen(false);
+  }, [path]);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          aria-label="Åbn menu"
+          className="md:hidden h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="left" className="p-0 w-72 max-w-[85vw] bg-sidebar border-sidebar-border">
+        <SheetTitle className="sr-only">Navigation</SheetTitle>
+        <SidebarBody onNavigate={() => setOpen(false)} />
+      </SheetContent>
+    </Sheet>
   );
 }
