@@ -14,13 +14,13 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
 
   return (
     <header className="sticky top-0 z-20 bg-background/85 backdrop-blur border-b">
-      <div className="flex items-center gap-4 px-6 py-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight truncate">{title}</h1>
-          {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
+      <div className="flex items-center gap-3 px-3 sm:px-6 py-3 min-w-0">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-base sm:text-lg font-semibold tracking-tight truncate">{title}</h1>
+          {subtitle && <p className="hidden sm:block text-xs text-muted-foreground truncate">{subtitle}</p>}
         </div>
 
-        <div className="hidden md:flex items-center gap-2 ml-6 flex-1 max-w-md">
+        <div className="hidden md:flex items-center gap-2 ml-2 flex-1 max-w-md">
           <div className="relative w-full">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
