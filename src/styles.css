@@ -128,10 +128,3 @@
     -webkit-font-smoothing: antialiased;
   }
 }
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-  }
-}
