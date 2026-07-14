@@ -77,12 +77,6 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
               onClick={() => setOpenUser((v) => !v)}
               className="flex items-center gap-2 rounded-xl border bg-card pl-1 pr-2 sm:pr-3 py-1 hover:bg-muted transition"
             >
-
-          <div className="relative">
-            <button
-              onClick={() => setOpenUser((v) => !v)}
-              className="flex items-center gap-2 rounded-xl border bg-card pl-1 pr-3 py-1 hover:bg-muted transition"
-            >
               <span className="h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center text-xs font-semibold">
                 {user?.initials}
               </span>
