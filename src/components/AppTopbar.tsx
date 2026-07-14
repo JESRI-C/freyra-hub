@@ -14,13 +14,13 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
 
   return (
     <header className="sticky top-0 z-20 bg-background/85 backdrop-blur border-b">
-      <div className="flex items-center gap-4 px-6 py-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight truncate">{title}</h1>
-          {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
+      <div className="flex items-center gap-3 px-3 sm:px-6 py-3 min-w-0">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-base sm:text-lg font-semibold tracking-tight truncate">{title}</h1>
+          {subtitle && <p className="hidden sm:block text-xs text-muted-foreground truncate">{subtitle}</p>}
         </div>
 
-        <div className="hidden md:flex items-center gap-2 ml-6 flex-1 max-w-md">
+        <div className="hidden md:flex items-center gap-2 ml-2 flex-1 max-w-md">
           <div className="relative w-full">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -30,8 +30,8 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          <div className="relative hidden sm:block">
             <button
               onClick={() => setOpenRange((v) => !v)}
               className="flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-sm hover:bg-muted transition"
@@ -66,7 +66,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
           </button>
           <button
-            className="h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
+            className="hidden sm:grid h-9 w-9 place-items-center rounded-xl border bg-card hover:bg-muted transition"
             title="Hjælp"
           >
             <HelpCircle className="h-4 w-4" />
@@ -75,7 +75,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
           <div className="relative">
             <button
               onClick={() => setOpenUser((v) => !v)}
-              className="flex items-center gap-2 rounded-xl border bg-card pl-1 pr-3 py-1 hover:bg-muted transition"
+              className="flex items-center gap-2 rounded-xl border bg-card pl-1 pr-2 sm:pr-3 py-1 hover:bg-muted transition"
             >
               <span className="h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center text-xs font-semibold">
                 {user?.initials}
