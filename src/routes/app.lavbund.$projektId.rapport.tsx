@@ -11,17 +11,22 @@ import {
   getTransekter,
 } from "@/services/lavbundService";
 import { ledgerList, ledgerVerify } from "@/services/ledgerService";
-import { bygSnapshot, beregnOpnaaelse, splitVedEtablering } from "@/services/lavbundBeregning";
+import {
+  bygSnapshot,
+  beregnOpnaaelse,
+  beregnVerifikationsgrad,
+  beregnMetodeStat,
+} from "@/services/lavbundBeregning";
 import { AFVANDINGSKLASSER, FAKTOR_VERSIONER } from "@/data/lavbundFaktorer";
 import { FAKTOR_KILDER, FAKTOR_VERIFICERET_DATO } from "@/data/lavbundFaktorKilder";
-import type { Tiltag } from "@/types/lavbund";
+import type { Tiltag, VandstandsReading } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId/rapport")({
   head: () => ({ meta: [{ title: "Verifikationsrapport — LavbundsMRV" }] }),
   component: RapportPage,
 });
 
-const KILDE_LABEL: Record<string, string> = {
+const KILDE_LABEL: Record<VandstandsReading["kilde"], string> = {
   hobo_logger: "HOBO-logger (15-min serier)",
   manuel_pejling: "Manuel pejling",
   drone_dem: "Drone-DEM",
@@ -50,8 +55,9 @@ function RapportPage() {
         queryKey: ["lavbund", "ledger-verify", projektId],
         queryFn: () => ledgerVerify("lavbund", projektId),
       },
+      // Samme nøgle som kort-siden, så cachen deles på tværs af faner.
       {
-        queryKey: ["lavbund", "maalepunkter", projektId],
+        queryKey: ["lavbund", "mp", projektId],
         queryFn: () => getMaalepunkter(projektId),
       },
     ],
@@ -68,51 +74,29 @@ function RapportPage() {
     });
   }, [projekt.data, readings.data, transekter.data, groefter.data]);
 
-  // Arealfordeling pr. klasse
-  const fordeling = useMemo(() => {
-    const buckets = new Map<string, number>();
-    for (const k of AFVANDINGSKLASSER) buckets.set(k.navn, 0);
-    for (const r of readings.data ?? []) {
-      // klassificerer via samme grænser
-      for (const k of AFVANDINGSKLASSER) {
-        if (r.dybdeM <= k.max) {
-          buckets.set(k.navn, (buckets.get(k.navn) ?? 0) + 1);
-          break;
-        }
-      }
-    }
-    const total = Array.from(buckets.values()).reduce((s, v) => s + v, 0) || 1;
-    return AFVANDINGSKLASSER.map((k) => ({
-      navn: k.navn,
-      andel: (buckets.get(k.navn) ?? 0) / total,
-    }));
-  }, [readings.data]);
+  // Arealfordeling pr. klasse — motorens beregning (ekskl. baseline), så
+  // afsnit 4 aldrig kan modsige verifikationsgraden i afsnit 3/Konklusion.
+  const ver = useMemo(
+    () => beregnVerifikationsgrad(readings.data ?? [], projekt.data?.etableringsdato),
+    [readings.data, projekt.data?.etableringsdato],
+  );
+  const fordeling = useMemo(
+    () =>
+      AFVANDINGSKLASSER.map((k) => ({ navn: k.navn, andel: ver.fordeling[k.navn] ?? 0 })),
+    [ver],
+  );
 
-  // Metode & datagrundlag — tæthed, kildefordeling, periode og baseline/efter.
-  const metode = useMemo(() => {
-    const rs = readings.data ?? [];
-    const kilder = new Map<string, number>();
-    for (const r of rs) kilder.set(r.kilde, (kilder.get(r.kilde) ?? 0) + 1);
-    const tider = rs
-      .map((r) => Date.parse(r.tidspunkt))
-      .filter((t) => !Number.isNaN(t))
-      .sort((a, b) => a - b);
-    const middel = (xs: { dybdeM: number }[]) =>
-      xs.length > 0 ? xs.reduce((s, r) => s + r.dybdeM, 0) / xs.length : null;
-    const { baseline, efter } = splitVedEtablering(rs, projekt.data?.etableringsdato);
-    return {
-      antalPunkter: (maalepunkter.data ?? []).length,
-      kilder,
-      foerste: tider.length > 0 ? tider[0] : null,
-      seneste: tider.length > 0 ? tider[tider.length - 1] : null,
-      baselineAntal: baseline.length,
-      baselineMiddel: middel(baseline),
-      efterAntal: efter.length,
-      efterMiddel: middel(efter),
-    };
-  }, [readings.data, maalepunkter.data, projekt.data?.etableringsdato]);
+  // Metode & datagrundlag — tæthed, kildefordeling, periode og baseline/efter
+  // (samme skille som motoren, jf. beregnMetodeStat).
+  const metode = useMemo(
+    () => beregnMetodeStat(readings.data ?? [], projekt.data?.etableringsdato),
+    [readings.data, projekt.data?.etableringsdato],
+  );
+  const antalPunkter = (maalepunkter.data ?? []).length;
 
-  if (projekt.isLoading || !projekt.data || !snap)
+  // Rapporten er et revisionsdokument — den må aldrig vise "0 målepunkter"
+  // eller tomme tællinger blot fordi en delforespørgsel stadig indlæser.
+  if (projekt.isLoading || readings.isLoading || maalepunkter.isLoading || !projekt.data || !snap)
     return (
       <div className="p-6">
         <Card className="p-8 h-40 animate-pulse">
@@ -203,7 +187,8 @@ function RapportPage() {
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">
                     Opnåelsesgrad: <strong>{opn.procent} %</strong> ·{" "}
-                    {(readings.data ?? []).length} målinger · verifikationsgrad{" "}
+                    {metode.efter.antal} målinger
+                    {metode.baseline.antal > 0 ? " (efter etablering)" : ""} · verifikationsgrad{" "}
                     {(snap.co2.verifikationsgrad * 100).toFixed(0)} %
                   </div>
                 </div>
@@ -295,6 +280,13 @@ function RapportPage() {
               </li>
             ))}
           </ul>
+          {metode.baseline.antal > 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Opgjort på {metode.efter.antal} målinger efter etableringsdatoen — samme grundlag
+              som verifikationsgraden. Baseline-målinger ({metode.baseline.antal}) er opgjort
+              separat i afsnit 6.
+            </p>
+          )}
         </Section>
 
         <Section title="5. Fosfor — brinkerosion og balance">
@@ -329,11 +321,11 @@ function RapportPage() {
           <dl className="grid grid-cols-2 gap-y-1 text-sm">
             <dt className="text-muted-foreground">Målepunkter</dt>
             <dd>
-              {metode.antalPunkter} stk.
+              {antalPunkter} stk.
               {p.samletArealHa > 0 && (
                 <span className="text-muted-foreground">
                   {" "}
-                  ({(metode.antalPunkter / p.samletArealHa).toLocaleString("da-DK", {
+                  ({(antalPunkter / p.samletArealHa).toLocaleString("da-DK", {
                     maximumFractionDigits: 2,
                   })}{" "}
                   pr. ha)
@@ -342,27 +334,31 @@ function RapportPage() {
             </dd>
             <dt className="text-muted-foreground">Måleperiode</dt>
             <dd>
-              {metode.foerste !== null && metode.seneste !== null
-                ? `${new Date(metode.foerste).toLocaleDateString("da-DK")} – ${new Date(
-                    metode.seneste,
+              {metode.foersteTidspunkt && metode.senesteTidspunkt
+                ? `${new Date(metode.foersteTidspunkt).toLocaleDateString("da-DK")} – ${new Date(
+                    metode.senesteTidspunkt,
                   ).toLocaleDateString("da-DK")}`
                 : "Ingen målinger endnu"}
             </dd>
             {p.etableringsdato && (
               <>
                 <dt className="text-muted-foreground">Etableringsdato</dt>
-                <dd>{new Date(p.etableringsdato).toLocaleDateString("da-DK")}</dd>
+                <dd>
+                  {/* Ren dato parses som UTC-midnat — formatér i UTC, ellers
+                      viser vestlige tidszoner dagen før. */}
+                  {new Date(p.etableringsdato).toLocaleDateString("da-DK", { timeZone: "UTC" })}
+                </dd>
                 <dt className="text-muted-foreground">Baseline (før etablering)</dt>
                 <dd>
-                  {metode.baselineAntal} målinger
-                  {metode.baselineMiddel !== null &&
-                    ` · middel ${metode.baselineMiddel.toFixed(2)} m under terræn`}
+                  {metode.baseline.antal} målinger
+                  {metode.baseline.middelDybdeM !== null &&
+                    ` · middel ${metode.baseline.middelDybdeM.toFixed(2)} m under terræn`}
                 </dd>
                 <dt className="text-muted-foreground">Efter etablering</dt>
                 <dd>
-                  {metode.efterAntal} målinger
-                  {metode.efterMiddel !== null &&
-                    ` · middel ${metode.efterMiddel.toFixed(2)} m under terræn`}
+                  {metode.efter.antal} målinger
+                  {metode.efter.middelDybdeM !== null &&
+                    ` · middel ${metode.efter.middelDybdeM.toFixed(2)} m under terræn`}
                 </dd>
               </>
             )}
@@ -372,13 +368,13 @@ function RapportPage() {
               Målinger pr. kilde
             </div>
             <ul className="space-y-1">
-              {Array.from(metode.kilder.entries()).map(([kilde, antal]) => (
+              {metode.kilder.map(({ kilde, antal }) => (
                 <li key={kilde} className="flex justify-between border-b py-1">
                   <span>{KILDE_LABEL[kilde] ?? kilde}</span>
                   <span className="tabular-nums">{antal}</span>
                 </li>
               ))}
-              {metode.kilder.size === 0 && (
+              {metode.kilder.length === 0 && (
                 <li className="text-muted-foreground">Ingen målinger registreret.</li>
               )}
             </ul>

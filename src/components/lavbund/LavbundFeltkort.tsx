@@ -9,6 +9,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap, CircleMarker, Polygon as LPolygon, TileLayer } from "leaflet";
+import type { WmsOverlay } from "@/components/maps/MapEditorMap";
 import "leaflet/dist/leaflet.css";
 import { klassificerDybde } from "@/services/lavbundBeregning";
 import type { Maalepunkt } from "@/types/lavbund";
@@ -23,12 +24,13 @@ export const KLASSE_FARVE: Record<string, string> = {
   Mark: "#b91c1c",
 };
 
-export interface FeltkortWmsOverlay {
-  url: string;
-  layers: string;
-  opacity: number;
-  attribution: string;
-}
+/**
+ * Samme feltnavne som MapEditorMaps WmsOverlay, men med opacity/attribution
+ * som krav — feltkortet tegner altid oven på satellitbaggrunden.
+ */
+export type FeltkortWmsOverlay = Required<
+  Pick<WmsOverlay, "url" | "layers" | "opacity" | "attribution">
+>;
 
 interface Props {
   maalepunkter: Maalepunkt[];
@@ -133,6 +135,12 @@ export function LavbundFeltkort({
   }, [polygon, ready]);
 
   // ── WMS-overlay (fx Kulstof2022) ────────────────────────────────────────────
+  // Afhængigheder på primitiverne (ikke objekt-identitet), så laget ikke
+  // rives ned og genopbygges hvis en kalder sender et nyt objekt pr. render.
+  const wmsUrl = wmsOverlay?.url;
+  const wmsLayers = wmsOverlay?.layers;
+  const wmsOpacity = wmsOverlay?.opacity;
+  const wmsAttribution = wmsOverlay?.attribution;
   useEffect(() => {
     if (!ready || !mapRef.current) return;
     const map = mapRef.current;
@@ -144,22 +152,22 @@ export function LavbundFeltkort({
         map.removeLayer(wmsRef.current);
         wmsRef.current = null;
       }
-      if (!wmsOverlay) return;
+      if (!wmsUrl || !wmsLayers) return;
       // Manglende/tavse tiles efterlader blot satellitkortet synligt.
       wmsRef.current = L.tileLayer
-        .wms(wmsOverlay.url, {
-          layers: wmsOverlay.layers,
+        .wms(wmsUrl, {
+          layers: wmsLayers,
           format: "image/png",
           transparent: true,
-          opacity: wmsOverlay.opacity,
-          attribution: wmsOverlay.attribution,
+          opacity: wmsOpacity,
+          attribution: wmsAttribution,
         })
         .addTo(map);
     })();
     return () => {
       cancelled = true;
     };
-  }, [wmsOverlay, ready]);
+  }, [wmsUrl, wmsLayers, wmsOpacity, wmsAttribution, ready]);
 
   // ── Målepunkts-markører (genopbygges når data ændrer sig) ───────────────────
   useEffect(() => {

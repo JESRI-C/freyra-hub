@@ -139,21 +139,29 @@ function KortPage() {
   }, [readings.data]);
 
   const stats = useMemo(() => {
-    if (tidsserie.length === 0) return null;
-    const values = tidsserie.map((t) => t.dybde);
-    const mid = values.reduce((s, v) => s + v, 0) / values.length;
-    const sommer = tidsserie.filter((t) => {
+    // Middelværdier opgøres kun over efter-perioden når etableringsdato er
+    // sat — baseline-måneder (førtilstand) må ikke trække tallene skævt i
+    // forhold til verifikationsgraden og rapportens efter-middel.
+    const etabMaaned = projekt.data?.etableringsdato?.slice(0, 7);
+    const grundlag = etabMaaned ? tidsserie.filter((t) => t.maaned >= etabMaaned) : tidsserie;
+    if (grundlag.length === 0) return null;
+    const avg = (a: { dybde: number }[]) =>
+      a.length ? a.reduce((s, x) => s + x.dybde, 0) / a.length : 0;
+    const sommer = grundlag.filter((t) => {
       const m = Number(t.maaned.slice(5, 7));
       return m >= 5 && m <= 9;
     });
-    const vinter = tidsserie.filter((t) => {
+    const vinter = grundlag.filter((t) => {
       const m = Number(t.maaned.slice(5, 7));
       return m === 11 || m === 12 || m === 1 || m === 2 || m === 3;
     });
-    const avg = (a: { dybde: number }[]) =>
-      a.length ? a.reduce((s, x) => s + x.dybde, 0) / a.length : 0;
-    return { aar: mid, sommer: avg(sommer), vinter: avg(vinter) };
-  }, [tidsserie]);
+    return {
+      aar: avg(grundlag),
+      sommer: avg(sommer),
+      vinter: avg(vinter),
+      efterEtablering: Boolean(etabMaaned && grundlag.length < tidsserie.length),
+    };
+  }, [tidsserie, projekt.data?.etableringsdato]);
 
   if (isError)
     return (
@@ -277,11 +285,19 @@ function KortPage() {
         <div className="px-5 pb-5">
           <TidsserieChart serie={tidsserie} height={260} etableringMaaned={projekt.data?.etableringsdato?.slice(0, 7)} />
           {stats && (
-            <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-              <StatBoks label="Årsmiddel" value={`${stats.aar.toFixed(2)} m`} />
-              <StatBoks label="Sommermiddel (maj–sep)" value={`${stats.sommer.toFixed(2)} m`} />
-              <StatBoks label="Vintermiddel (nov–mar)" value={`${stats.vinter.toFixed(2)} m`} />
-            </div>
+            <>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                <StatBoks label="Årsmiddel" value={`${stats.aar.toFixed(2)} m`} />
+                <StatBoks label="Sommermiddel (maj–sep)" value={`${stats.sommer.toFixed(2)} m`} />
+                <StatBoks label="Vintermiddel (nov–mar)" value={`${stats.vinter.toFixed(2)} m`} />
+              </div>
+              {stats.efterEtablering && (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Middelværdier er opgjort efter etableringsdatoen — baseline-måneder (skraveret
+                  i grafen) indgår ikke.
+                </p>
+              )}
+            </>
           )}
         </div>
       </Card>

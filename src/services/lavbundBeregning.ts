@@ -79,7 +79,22 @@ export interface VerifikationsResultat {
   antalMaalinger: number;
 }
 
-/** Andel af readings i "våd" klasse + 0,5 × "Fugtig eng". */
+/**
+ * Skilletidspunkt for etableringsdatoen ('YYYY-MM-DD') som LOKAL midnat.
+ * Date.parse på en ren dato giver UTC-midnat, men målingernes tidsstempler
+ * stammer fra danske lokaltider — UTC-skillet ville fejlklassificere
+ * nattetimerne på selve etableringsdagen som baseline.
+ */
+function etableringsSkille(etableringsdato?: string): number | null {
+  if (!etableringsdato) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(etableringsdato);
+  if (!m) {
+    const t = Date.parse(etableringsdato);
+    return Number.isNaN(t) ? null : t;
+  }
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
+}
+
 /**
  * Del målinger i baseline (før etablering) og efter-målinger. Uden
  * etableringsdato er alt "efter" (bagudkompatibelt).
@@ -88,9 +103,8 @@ export function splitVedEtablering(
   readings: VandstandsReading[],
   etableringsdato?: string,
 ): { baseline: VandstandsReading[]; efter: VandstandsReading[] } {
-  if (!etableringsdato) return { baseline: [], efter: readings };
-  const skille = Date.parse(etableringsdato);
-  if (Number.isNaN(skille)) return { baseline: [], efter: readings };
+  const skille = etableringsSkille(etableringsdato);
+  if (skille === null) return { baseline: [], efter: readings };
   const baseline: VandstandsReading[] = [];
   const efter: VandstandsReading[] = [];
   for (const r of readings) {
@@ -99,15 +113,14 @@ export function splitVedEtablering(
   return { baseline, efter };
 }
 
+/** Andel af readings i "våd" klasse + 0,5 × "Fugtig eng". */
 export function beregnVerifikationsgrad(
   readings: VandstandsReading[],
   etableringsdato?: string,
 ): VerifikationsResultat {
   // Baseline-målinger dokumenterer førtilstanden — de tæller ikke som opnået
   // effekt (jf. statens N/P-protokol med før/efter-måling).
-  if (etableringsdato) {
-    readings = splitVedEtablering(readings, etableringsdato).efter;
-  }
+  readings = splitVedEtablering(readings, etableringsdato).efter;
   const fordeling: Record<string, number> = {};
   for (const k of AFVANDINGSKLASSER) fordeling[k.navn] = 0;
   if (readings.length === 0) {
@@ -127,6 +140,65 @@ export function beregnVerifikationsgrad(
   // Normaliser fordeling til andele
   for (const key of Object.keys(fordeling)) fordeling[key] = fordeling[key] / n;
   return { verifikationsgrad: grad, fordeling, antalMaalinger: n };
+}
+
+export interface MetodeStat {
+  antal: number;
+  foersteTidspunkt: string | null;
+  senesteTidspunkt: string | null;
+  kilder: { kilde: VandstandsReading["kilde"]; antal: number }[];
+  baseline: { antal: number; middelDybdeM: number | null };
+  efter: { antal: number; middelDybdeM: number | null };
+}
+
+/**
+ * Metode- og datagrundlagsstatistik til rapporten: måleperiode, fordeling
+ * pr. kilde og baseline/efter-opgørelse — samme skille som
+ * splitVedEtablering, i én gennemgang.
+ */
+export function beregnMetodeStat(
+  readings: VandstandsReading[],
+  etableringsdato?: string,
+): MetodeStat {
+  const skille = etableringsSkille(etableringsdato);
+  const kilder = new Map<VandstandsReading["kilde"], number>();
+  let minT = Infinity;
+  let maxT = -Infinity;
+  let foerste: string | null = null;
+  let seneste: string | null = null;
+  let baselineN = 0;
+  let baselineSum = 0;
+  let efterN = 0;
+  let efterSum = 0;
+  for (const r of readings) {
+    kilder.set(r.kilde, (kilder.get(r.kilde) ?? 0) + 1);
+    const t = Date.parse(r.tidspunkt);
+    if (!Number.isNaN(t)) {
+      if (t < minT) {
+        minT = t;
+        foerste = r.tidspunkt;
+      }
+      if (t > maxT) {
+        maxT = t;
+        seneste = r.tidspunkt;
+      }
+    }
+    if (skille !== null && t < skille) {
+      baselineN += 1;
+      baselineSum += r.dybdeM;
+    } else {
+      efterN += 1;
+      efterSum += r.dybdeM;
+    }
+  }
+  return {
+    antal: readings.length,
+    foersteTidspunkt: foerste,
+    senesteTidspunkt: seneste,
+    kilder: Array.from(kilder, ([kilde, antal]) => ({ kilde, antal })),
+    baseline: { antal: baselineN, middelDybdeM: baselineN > 0 ? baselineSum / baselineN : null },
+    efter: { antal: efterN, middelDybdeM: efterN > 0 ? efterSum / efterN : null },
+  };
 }
 
 // ── Fosfor ────────────────────────────────────────────────────────────────
