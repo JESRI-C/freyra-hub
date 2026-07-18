@@ -73,6 +73,11 @@ function LoginPage() {
           setBusy(false);
           return;
         }
+        if (password !== confirmPassword) {
+          toast.error("De to adgangskoder er ikke ens. Prøv igen.");
+          setBusy(false);
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
