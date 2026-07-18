@@ -45,6 +45,7 @@ function LoginPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -69,6 +70,11 @@ function LoginPage() {
       } else if (mode === "signup") {
         if (password.length < 6) {
           toast.error("Adgangskoden skal være mindst 6 tegn lang.");
+          setBusy(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          toast.error("De to adgangskoder er ikke ens. Prøv igen.");
           setBusy(false);
           return;
         }
@@ -294,6 +300,24 @@ function LoginPage() {
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
+          </Field>
+        )}
+
+        {isSignup && (
+          <Field label="Bekræft adgangskode" icon={<Lock className="h-4 w-4" />}>
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Gentag adgangskoden"
+              autoComplete="new-password"
+            />
+            {confirmPassword && confirmPassword !== password && (
+              <p className="text-[11px] text-destructive mt-1.5">Adgangskoderne er ikke ens.</p>
+            )}
           </Field>
         )}
 
