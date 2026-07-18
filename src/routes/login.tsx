@@ -303,6 +303,24 @@ function LoginPage() {
           </Field>
         )}
 
+        {isSignup && (
+          <Field label="Bekræft adgangskode" icon={<Lock className="h-4 w-4" />}>
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Gentag adgangskoden"
+              autoComplete="new-password"
+            />
+            {confirmPassword && confirmPassword !== password && (
+              <p className="text-[11px] text-destructive mt-1.5">Adgangskoderne er ikke ens.</p>
+            )}
+          </Field>
+        )}
+
         <button
           type="submit"
           disabled={busy}
