@@ -390,6 +390,17 @@ function GeometryEditorPage() {
                 </dl>
                 <button
                   type="button"
+                  onClick={() => navigate({ to: "/app/projects/$slug", params: { slug } })}
+                  className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 shadow-sm"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Fortsæt til projekt
+                </button>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Området er gemt. Gå videre for at køre analyser og rapporter.
+                </p>
+                <button
+                  type="button"
                   onClick={() => {
                     if (confirm("Ryd projektgrænsen? Alle afledte beregninger vil kræve at der tegnes et nyt område.")) {
                       map.clearBoundary();
