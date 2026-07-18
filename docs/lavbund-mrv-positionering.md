@@ -78,7 +78,19 @@ i både geometri-editoren og lavbund-feltkortet (konfigurerbart via
 Kilder: MiljøGIS klimalavbund, https://miljoegis3.mim.dk ; Aarhus Universitet
 (Agroøkologi), Kulstof2022-dokumentation.
 
-## 6. Baseline-princippet (før/efter)
+## 6. Empirisk vandstands-emissionssammenhæng og dansk kritik af ex-ante
+
+- **Evans, C. D. m.fl. (2021):** "Overriding water table control on managed
+  peatland greenhouse gas emissions", *Nature* 593, 548–552
+  (DOI: 10.1038/s41586-021-03523-1). Vandstanden er den dominerende styring af
+  drivhusgasemission fra forvaltet tørvejord — **~3 t CO₂e/ha/år pr. 10 cm
+  ændring i vandstandsdybde**. Det er det direkte empiriske grundlag for at
+  bruge målt vandstand som verifikationsparameter.
+- **Klimarådet, analyse af kulstofrige lavbundsjorder:** rejser tvivl om, at
+  standardfaktorerne matcher jordernes faktiske dræningstilstand — dvs. en
+  dansk, politiknær anerkendelse af, at ex-ante-antagelser kræver måling.
+
+## 7. Baseline-princippet (før/efter)
 
 Statens N/P-overvågningsprotokoller bygger på før/efter-måling: målinger før
 projektets etablering dokumenterer førtilstanden og tæller ikke som opnået

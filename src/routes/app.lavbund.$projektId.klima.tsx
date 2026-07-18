@@ -16,12 +16,14 @@ import {
 import {
   beregnKrediteretCO2,
   beregnVerifikationsgrad,
+  beregnMetodeStat,
   beregnOpnaaelse,
   bygSnapshot,
   tiltagValidering,
 } from "@/services/lavbundBeregning";
 import { AFVANDINGSKLASSER } from "@/data/lavbundFaktorer";
 import { BeregningsgrundlagEditor } from "@/components/lavbund/BeregningsgrundlagEditor";
+import { JordprofilFigur } from "@/components/lavbund/JordprofilFigur";
 import type { Tiltag } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId/klima")({
@@ -73,6 +75,12 @@ function KlimaPage() {
     () => beregnVerifikationsgrad(readings.data ?? [], projekt.data?.etableringsdato),
     [readings.data, projekt.data?.etableringsdato],
   );
+  // Målt middelvandspejl (efter etablering) til jordprofil-figuren.
+  const metodeStat = useMemo(
+    () => beregnMetodeStat(readings.data ?? [], projekt.data?.etableringsdato),
+    [readings.data, projekt.data?.etableringsdato],
+  );
+  const maaltMiddelEfter = metodeStat.efter.middelDybdeM;
   const tilt = useMemo(
     () => (projekt.data ? tiltagValidering(projekt.data) : null),
     [projekt.data],
@@ -287,6 +295,22 @@ function KlimaPage() {
               );
             })}
           </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Hvorfor vandspejlet afgør det"
+          subtitle="Tørv over vandspejlet iltes og frigiver CO₂ — tørv under vandspejlet er beskyttet. Derfor er dybden til vandspejl den bærende MRV-parameter."
+        />
+        <div className="px-5 pb-5">
+          <JordprofilFigur foerM={p.vandspejlFoerM} efterM={maaltMiddelEfter} />
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            FØR er projektets registrerede førtilstand; MÅLT er middel af{" "}
+            {metodeStat.efter.antal} målinger
+            {p.etableringsdato ? " efter etableringsdatoen" : ""}. Jf. Evans m.fl. (2021,{" "}
+            <em>Nature</em>): ~3 t CO₂e/ha/år pr. 10 cm ændring i vandstandsdybde.
+          </p>
         </div>
       </Card>
 

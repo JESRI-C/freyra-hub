@@ -111,7 +111,97 @@ function LavbundIndexPage() {
       {q.isError && <ErrorState onRetry={() => q.refetch()} />}
       {q.data && q.data.length === 0 && <EmptyState onCreate={() => setShowCreate(true)} />}
       {q.data && q.data.length > 0 && <Loaded projects={q.data} />}
+
+      <Leverancemodel />
     </main>
+  );
+}
+
+/**
+ * Leverancemodellen og 24-måneders måleprogrammet — sådan sælges og leveres
+ * LavbundsMRV som kontraktforløb, ikke kun som software.
+ */
+function Leverancemodel() {
+  const trin = [
+    {
+      nr: "TRIN 1 · GOFREYRA",
+      titel: "Opsætning + første års MRV",
+      tekst: "Metode, målepunkter, drone/felt, referencemåling og konfigureret system.",
+    },
+    {
+      nr: "TRIN 2 · KOMMUNEN",
+      titel: "Løbende bogføring",
+      tekst:
+        "Kommunen bogfører selv sine projekter i systemet — den fysiske måling og verifikation leveres fortsat som ydelse.",
+    },
+    {
+      nr: "TRIN 3 · MYNDIGHED",
+      titel: "Årlig verifikation / stempel",
+      tekst:
+        "Kommunen fremlægger revisionssporet for DCE/SEGES eller anden myndighed til årlig godkendelse.",
+    },
+  ];
+  const faser = [
+    {
+      titel: "Måned 0–3 · Etablering",
+      punkter: [
+        "Gennemgang af projektdesign",
+        "Referencemåling + drone/RTK",
+        "Sensorplacering og installation",
+        "Brinketransekter, jord- og vandprøver",
+      ],
+    },
+    {
+      titel: "Måned 4–12 · Første måleår",
+      punkter: [
+        "Kontinuert vandstandsdata",
+        "Sæsonvalidering i felten",
+        "Fosforprøver + kvalitetskontrol",
+        "Midtvejsrapport og anbefalinger",
+      ],
+    },
+    {
+      titel: "Måned 13–24 · Verifikationsår",
+      punkter: [
+        "Anden sæsoncyklus",
+        "Bekræftelse af varig hydrologi",
+        "Fosfor før/efter-opgørelse",
+        "Slutrapport, oplæring og overdragelse",
+      ],
+    },
+  ];
+  return (
+    <Card className="p-5">
+      <div className="text-sm font-semibold">Leverancemodel & måleprogram</div>
+      <p className="mt-1 text-xs text-muted-foreground max-w-3xl">
+        LavbundsMRV erstatter ikke statens beregningsværktøjer — den <strong>operationaliserer</strong>{" "}
+        dem: kobler dem til to års feltmåling og dokumenterer, om de tilsigtede miljøforhold
+        reelt blev opnået. Kommunen ejer sine projektdata og kan eksportere dem i åbne formater.
+      </p>
+      <div className="mt-4 grid md:grid-cols-3 gap-3">
+        {trin.map((t) => (
+          <div key={t.nr} className="rounded-xl border p-4">
+            <div className="font-mono text-[10px] tracking-wider text-primary">{t.nr}</div>
+            <div className="mt-1 text-sm font-medium">{t.titel}</div>
+            <p className="mt-1 text-xs text-muted-foreground">{t.tekst}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 grid md:grid-cols-3 gap-3">
+        {faser.map((f) => (
+          <div key={f.titel} className="rounded-xl border p-4 border-t-2 border-t-primary/50">
+            <div className="text-xs font-semibold">{f.titel}</div>
+            <ul className="mt-2 space-y-1.5">
+              {f.punkter.map((pkt) => (
+                <li key={pkt} className="text-xs text-muted-foreground border-b border-border/60 pb-1.5 last:border-0">
+                  {pkt}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
