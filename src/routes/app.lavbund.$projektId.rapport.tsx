@@ -511,8 +511,38 @@ function RapportPage() {
             opland (nærmeste-punkt-princip). Vandstandsdybden (WTD) er den bærende
             MRV-parameter, jf. IPCC 2013 Wetlands Supplement og GEST/VM0036, hvor WTD-klasser
             anvendes som fallback-proxy for drivhusgasflux. Metoden er parallel til DCE's
-            W01-overvågningsdesign med før/efter-måling.
+            W01-overvågningsdesign med før/efter-måling. Sammenhængen mellem vandstand og
+            emission er empirisk kvantificeret af Evans m.fl. (2021, <em>Nature</em> 593):
+            ~3 t CO₂e/ha/år pr. 10 cm ændring i vandstandsdybde — og Klimarådets analyse af
+            kulstofrige lavbundsjorder understreger behovet for måling frem for
+            standardantagelser om dræningstilstand.
           </p>
+        </ReportSection>
+
+        <ReportSection
+          nr={6}
+          title="Afvigelser & korrigerende handlinger"
+          intro="Registrerede afvigelser nedskriver ikke det krediterede tal — de dokumenterer, hvor målt tilstand afviger fra det forudsatte, og hvilken korrigerende handling der er iværksat. Kun den verificerede andel indgår i den målte effekt."
+        >
+          {p.afvigelser.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Ingen registrerede afvigelser i denne periode.
+            </p>
+          ) : (
+            <ul className="space-y-2.5">
+              {p.afvigelser.map((a) => (
+                <li key={a.id} className="rounded-xl border px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-sm font-medium">{a.beskrivelse}</div>
+                    {a.aaben ? <Pill tone="warning">Åben</Pill> : <Pill tone="success">Lukket</Pill>}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Korrigerende handling: {a.korrigerendeHandling}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </ReportSection>
 
         <ReportNote title="Metodisk kontekst">
@@ -529,7 +559,7 @@ function RapportPage() {
         </ReportNote>
 
         <ReportSection
-          nr={6}
+          nr={7}
           title="Faktorgrundlag & verifikation"
           intro={`Alle faktorer er indlæst fra de officielle beregningsark og verificeres automatisk mod arkene ved hver release. Senest verificeret: ${FAKTOR_VERIFICERET_DATO}.`}
         >

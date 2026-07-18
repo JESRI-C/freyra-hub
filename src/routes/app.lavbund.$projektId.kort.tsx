@@ -16,10 +16,14 @@ import { getProjectById } from "@/services/projects-service";
 import { ledgerAppend } from "@/services/ledgerService";
 import { normalizeHoboPayload } from "@/services/lavbundSmartConnect";
 import { AFVANDINGSKLASSER } from "@/data/lavbundFaktorer";
-import { LavbundFeltkort, KLASSE_FARVE } from "@/components/lavbund/LavbundFeltkort";
+import {
+  LavbundFeltkort,
+  KLASSE_FARVE,
+  type PunktDokumentation,
+} from "@/components/lavbund/LavbundFeltkort";
 import { KULSTOF2022_WMS } from "@/data/kulstof2022";
 import { TidsserieChart } from "@/components/lavbund/TidsserieChart";
-import type { Maalepunkt, Opmaalingsintensitet } from "@/types/lavbund";
+import type { Maalepunkt, Opmaalingsintensitet, VandstandsReading } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId/kort")({
   head: () => ({ meta: [{ title: "Feltkort & tidsserie — LavbundsMRV" }] }),
@@ -40,6 +44,7 @@ function KortPage() {
   const [intensitet, setIntensitet] = useState<Opmaalingsintensitet>("standard");
   const [placing, setPlacing] = useState(false);
   const [visKulstof, setVisKulstof] = useState(false);
+  const [visVandstand, setVisVandstand] = useState(true);
   const qc = useQueryClient();
 
   const [projekt, maalepunkter, readings, linkedGeo] = useQueries({
@@ -109,6 +114,42 @@ function KortPage() {
     () => (maalepunkter.data ?? []).filter((m) => m.intensiteter.includes(intensitet)),
     [maalepunkter.data, intensitet],
   );
+
+  // Dokumentation pr. målepunkt til feltkortets popups: antal målinger,
+  // kilder og måleperiode — revisionsgrundlaget bag hvert punkt.
+  const dokumentation = useMemo(() => {
+    const KORT_KILDE: Record<VandstandsReading["kilde"], string> = {
+      hobo_logger: "HOBO-logger",
+      manuel_pejling: "manuel pejling",
+      drone_dem: "drone-DEM",
+      insar: "InSAR",
+    };
+    const pr = new Map<string, { kilder: Set<string>; min: string; max: string; n: number }>();
+    for (const r of readings.data ?? []) {
+      const e = pr.get(r.maalepunktId) ?? {
+        kilder: new Set<string>(),
+        min: r.tidspunkt,
+        max: r.tidspunkt,
+        n: 0,
+      };
+      e.kilder.add(KORT_KILDE[r.kilde] ?? r.kilde);
+      if (r.tidspunkt < e.min) e.min = r.tidspunkt;
+      if (r.tidspunkt > e.max) e.max = r.tidspunkt;
+      e.n += 1;
+      pr.set(r.maalepunktId, e);
+    }
+    const dok: Record<string, PunktDokumentation> = {};
+    for (const [id, e] of pr) {
+      dok[id] = {
+        antalMaalinger: e.n,
+        kilder: Array.from(e.kilder).join(" + "),
+        periode: `${new Date(e.min).toLocaleDateString("da-DK")} – ${new Date(
+          e.max,
+        ).toLocaleDateString("da-DK")}`,
+      };
+    }
+    return dok;
+  }, [readings.data]);
 
   // Seneste måling pr. målepunkt
   const senesteDybde = useMemo(() => {
@@ -238,8 +279,19 @@ function KortPage() {
             onPlace={placerMaalepunkt}
             height={440}
             wmsOverlay={visKulstof ? KULSTOF2022_WMS : null}
+            vandstandskort={visVandstand}
+            dokumentation={dokumentation}
           />
           <div className="mt-3 flex flex-wrap gap-2 items-center">
+            <label className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border cursor-pointer hover:bg-muted/40">
+              <input
+                type="checkbox"
+                checked={visVandstand}
+                onChange={(e) => setVisVandstand(e.target.checked)}
+                className="h-3 w-3 accent-primary"
+              />
+              Vandstandskort (interpoleret)
+            </label>
             <label className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border cursor-pointer hover:bg-muted/40">
               <input
                 type="checkbox"
@@ -274,6 +326,13 @@ function KortPage() {
               {placing ? "Annullér placering" : "Placér nyt målepunkt på kortet"}
             </button>
           </div>
+          {visVandstand && (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Vandstandskortet interpolerer punktmålingerne (nærmeste-punkt-princip, klippet til
+              projektområdet) og er retningsgivende — flere målepunkter giver et skarpere kort.
+              Klik på et punkt for dets dokumentation (målinger, kilder, periode, position).
+            </p>
+          )}
         </div>
       </Card>
 

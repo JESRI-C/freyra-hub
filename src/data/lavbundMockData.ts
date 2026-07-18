@@ -30,7 +30,7 @@ export const MOCK_PROJEKTER: LavbundsProjekt[] = [
       overrislingszoner: false,
       pumpedriftStopper: true,
     },
-    publiceretExAnteTonPrHa: 17.5,
+    publiceretExAnteTonPrHa: 17.3,
     vandspejlFoerM: 1.1,
     usageScope: "tilskudsordning_klimaregnskab",
     afvigelser: IGEN,
@@ -52,7 +52,7 @@ export const MOCK_PROJEKTER: LavbundsProjekt[] = [
       overrislingszoner: false,
       pumpedriftStopper: false,
     },
-    publiceretExAnteTonPrHa: 21.3,
+    publiceretExAnteTonPrHa: 25.8,
     vandspejlFoerM: 0.9,
     usageScope: "tilskudsordning_klimaregnskab",
     afvigelser: IGEN,
@@ -75,7 +75,7 @@ export const MOCK_PROJEKTER: LavbundsProjekt[] = [
       overrislingszoner: true,
       pumpedriftStopper: false,
     },
-    publiceretExAnteTonPrHa: 24.0,
+    publiceretExAnteTonPrHa: 13.0,
     vandspejlFoerM: 1.3,
     usageScope: "tilskudsordning_klimaregnskab",
     afvigelser: [
@@ -113,30 +113,56 @@ export const MOCK_PROJEKTER: LavbundsProjekt[] = [
 ];
 
 // ── Målepunkter og readings (24 mdr syntetiske data) ───────────────────────
+// Reelle projektcentre (WGS84) for referenceprojekterne, så feltkortet og det
+// interpolerede vandstandskort vises på det faktiske areal.
+const PROJEKT_CENTER: Record<string, { lat: number; lng: number }> = {
+  "petersminde-mose": { lat: 55.278, lng: 11.593 },
+  "haeggerup-mose": { lat: 55.331, lng: 11.667 },
+  ringfenner: { lat: 54.936, lng: 9.257 },
+  vorslunde: { lat: 55.848, lng: 9.093 },
+};
+// Deterministisk spredning omkring centret (kanal-loggere langs vandløbet,
+// markpejlinger ude i engen).
+const MP_OFFSET: { dLat: number; dLng: number }[] = [
+  { dLat: 0.0004, dLng: -0.0002 },
+  { dLat: -0.0012, dLng: 0.0006 },
+  { dLat: 0.0014, dLng: 0.0011 },
+  { dLat: -0.0006, dLng: -0.0024 },
+  { dLat: 0.0009, dLng: 0.0028 },
+];
+
 export const MOCK_MAALEPUNKTER: Maalepunkt[] = MOCK_PROJEKTER.flatMap((p, pi) =>
-  Array.from({ length: 5 }, (_, i) => ({
-    id: `${p.id}-mp-${i + 1}`,
-    projektId: p.id,
-    type: i < 3 ? ("kanal_logger" as const) : ("markpejling" as const),
-    position: { x: 20 + i * 15 + pi * 3, y: 25 + ((i * 17) % 40) },
-    intensiteter:
-      i === 0
-        ? (["minimal", "standard", "intensiv"] as Opmaalingsintensitet[])
-        : i < 3
-          ? (["standard", "intensiv"] as Opmaalingsintensitet[])
-          : (["intensiv"] as Opmaalingsintensitet[]),
-  })),
+  Array.from({ length: 5 }, (_, i) => {
+    const c = PROJEKT_CENTER[p.id];
+    const o = MP_OFFSET[i];
+    return {
+      id: `${p.id}-mp-${i + 1}`,
+      projektId: p.id,
+      type: i < 3 ? ("kanal_logger" as const) : ("markpejling" as const),
+      position: { x: 20 + i * 15 + pi * 3, y: 25 + ((i * 17) % 40) },
+      ...(c ? { lat: c.lat + o.dLat, lng: c.lng + o.dLng } : {}),
+      intensiteter:
+        i === 0
+          ? (["minimal", "standard", "intensiv"] as Opmaalingsintensitet[])
+          : i < 3
+            ? (["standard", "intensiv"] as Opmaalingsintensitet[])
+            : (["intensiv"] as Opmaalingsintensitet[]),
+    };
+  }),
 );
 
 function genererReadings(p: LavbundsProjekt, mps: Maalepunkt[]): VandstandsReading[] {
   const rows: VandstandsReading[] = [];
   const start = new Date();
   start.setMonth(start.getMonth() - 24);
-  for (const mp of mps) {
+  for (const [mi, mp] of mps.entries()) {
+    // Kanal-loggere står vådest (nær vandløbet); markpejlinger gradvist tørrere.
+    const gradient = mp.type === "kanal_logger" ? mi * 0.03 : 0.12 + mi * 0.07;
     for (let m = 0; m < 24; m++) {
       const rampe = Math.min(1, m / 6);
       const seson = Math.sin(((m % 12) / 12) * Math.PI * 2) * 0.11;
-      const dybde = p.vandspejlFoerM - (p.vandspejlFoerM - 0.35) * rampe + seson;
+      const dybde =
+        p.vandspejlFoerM - (p.vandspejlFoerM - (0.28 + gradient)) * rampe + seson;
       const d = new Date(start);
       d.setMonth(d.getMonth() + m);
       rows.push({

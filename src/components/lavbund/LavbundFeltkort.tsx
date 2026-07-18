@@ -8,10 +8,17 @@
  * grid-position omkring kortets centrum, så kortet altid kan tegnes.
  */
 import { useEffect, useRef, useState } from "react";
-import type { Map as LeafletMap, CircleMarker, Polygon as LPolygon, TileLayer } from "leaflet";
+import type {
+  Map as LeafletMap,
+  CircleMarker,
+  Polygon as LPolygon,
+  TileLayer,
+  ImageOverlay,
+} from "leaflet";
 import type { WmsOverlay } from "@/components/maps/MapEditorMap";
 import "leaflet/dist/leaflet.css";
 import { klassificerDybde } from "@/services/lavbundBeregning";
+import { bygVandstandsGrid } from "@/services/lavbundInterpolation";
 import type { Maalepunkt } from "@/types/lavbund";
 
 export const KLASSE_FARVE: Record<string, string> = {
@@ -32,6 +39,13 @@ export type FeltkortWmsOverlay = Required<
   Pick<WmsOverlay, "url" | "layers" | "opacity" | "attribution">
 >;
 
+/** Dokumentation pr. målepunkt — vises i punktets popup (revisionsgrundlag). */
+export interface PunktDokumentation {
+  antalMaalinger: number;
+  kilder: string;
+  periode: string;
+}
+
 interface Props {
   maalepunkter: Maalepunkt[];
   senesteDybde: Map<string, number>;
@@ -43,6 +57,10 @@ interface Props {
   height?: number;
   /** Valgfrit WMS-lag (fx Kulstof2022) — fejler gracefully hvis endpointet ikke svarer. */
   wmsOverlay?: FeltkortWmsOverlay | null;
+  /** Interpoleret vandstandskort (nærmeste-punkt) tegnet over satellitfoto. */
+  vandstandskort?: boolean;
+  /** Dokumentation pr. målepunkt-id — indgår i punktets popup. */
+  dokumentation?: Record<string, PunktDokumentation>;
 }
 
 /** Reel position eller syntetisk spredning omkring centrum ud fra grid-position. */
@@ -66,12 +84,15 @@ export function LavbundFeltkort({
   onPlace,
   height = 420,
   wmsOverlay = null,
+  vandstandskort = false,
+  dokumentation,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<CircleMarker[]>([]);
   const polygonRef = useRef<LPolygon | null>(null);
   const wmsRef = useRef<TileLayer | null>(null);
+  const gridRef = useRef<ImageOverlay | null>(null);
   const [ready, setReady] = useState(false);
   const placingRef = useRef(placing);
   const onPlaceRef = useRef(onPlace);
@@ -99,6 +120,8 @@ export function LavbundFeltkort({
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         { attribution: "Tiles © Esri — Esri, Maxar, Earthstar Geographics", maxZoom: 19 },
       ).addTo(map);
+      // Egen pane under markør-laget, så vandstandskortet aldrig dækker punkterne.
+      map.createPane("vandstand").style.zIndex = "350";
       map.on("click", (ev) => {
         if (!placingRef.current) return;
         const ll = (ev as unknown as { latlng: { lat: number; lng: number } }).latlng;
@@ -169,6 +192,59 @@ export function LavbundFeltkort({
     };
   }, [wmsUrl, wmsLayers, wmsOpacity, wmsAttribution, ready]);
 
+  // ── Interpoleret vandstandskort (nærmeste-punkt, klippet til polygon) ───────
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    const map = mapRef.current;
+    let cancelled = false;
+    (async () => {
+      const L = await import("leaflet");
+      if (cancelled) return;
+      if (gridRef.current) {
+        map.removeLayer(gridRef.current);
+        gridRef.current = null;
+      }
+      if (!vandstandskort) return;
+      const punkter = maalepunkter
+        .map((mp) => {
+          const dybde = senesteDybde.get(mp.id);
+          if (dybde === undefined) return null;
+          const pos = resolvePosition(mp, center);
+          return { lat: pos.lat, lng: pos.lng, dybdeM: dybde };
+        })
+        .filter((p): p is { lat: number; lng: number; dybdeM: number } => p !== null);
+      const grid = bygVandstandsGrid(punkter, {
+        polygonRing: polygon?.coordinates?.[0] ?? null,
+      });
+      if (!grid || cancelled) return;
+      // Tegn gridcellerne på et canvas og læg det som billed-overlay.
+      const canvas = document.createElement("canvas");
+      canvas.width = grid.cols;
+      canvas.height = grid.rows;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      for (let r = 0; r < grid.rows; r++) {
+        for (let c = 0; c < grid.cols; c++) {
+          const navn = grid.klasseNavne[r * grid.cols + c];
+          if (!navn) continue;
+          ctx.fillStyle = KLASSE_FARVE[navn] ?? "#94a3b8";
+          ctx.fillRect(c, r, 1, 1);
+        }
+      }
+      gridRef.current = L.imageOverlay(
+        canvas.toDataURL(),
+        [
+          [grid.bounds.syd, grid.bounds.vest],
+          [grid.bounds.nord, grid.bounds.oest],
+        ],
+        { opacity: 0.45, pane: "vandstand", interactive: false },
+      ).addTo(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [vandstandskort, maalepunkter, senesteDybde, polygon, center, ready]);
+
   // ── Målepunkts-markører (genopbygges når data ændrer sig) ───────────────────
   useEffect(() => {
     if (!ready || !mapRef.current) return;
@@ -197,14 +273,26 @@ export function LavbundFeltkort({
             `${mp.id} · ${dybde !== undefined ? `${dybde.toFixed(2)} m` : "ingen data"}`,
             { direction: "top", sticky: true },
           )
-          .bindPopup(
-            `<strong>${mp.id}</strong><br/>` +
+          .bindPopup(() => {
+            const dok = dokumentation?.[mp.id];
+            return (
+              `<strong>${mp.id}</strong><br/>` +
               `${mp.type === "kanal_logger" ? "Kanal-logger" : "Markpejling"}<br/>` +
               (dybde !== undefined
                 ? `Seneste: <strong>${dybde.toFixed(2)} m</strong> under terræn<br/>Klasse: <strong>${klasse?.navn}</strong>`
                 : "Ingen målinger endnu") +
-              (mp.lat != null ? "" : "<br/><em>Estimeret position — placér med klik</em>"),
-          )
+              (dok
+                ? `<hr style="margin:6px 0;border:none;border-top:1px solid #e5e7eb"/>` +
+                  `<span style="font-size:11px;color:#6b7280">Dokumentation</span><br/>` +
+                  `${dok.antalMaalinger} målinger · ${dok.kilder}<br/>` +
+                  `Periode: ${dok.periode}` +
+                  (mp.lat != null
+                    ? `<br/>Position: ${mp.lat.toFixed(5)}, ${mp.lng?.toFixed(5)} (WGS84)`
+                    : "")
+                : "") +
+              (mp.lat != null ? "" : "<br/><em>Estimeret position — placér med klik</em>")
+            );
+          })
           .addTo(map);
         markersRef.current.push(marker);
         bounds.push([pos.lat, pos.lng]);
