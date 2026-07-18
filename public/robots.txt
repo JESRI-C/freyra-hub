@@ -1,0 +1,10 @@
+# GoFreyra app (app.gofreyra.com)
+# Kun login-siden må indekseres — resten er beskyttet bag login
+# og skal ikke crawles.
+
+User-agent: *
+Allow: /login
+Allow: /reset-password
+Disallow: /
+
+Sitemap: https://app.gofreyra.com/sitemap.xml
