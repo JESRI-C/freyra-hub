@@ -129,18 +129,3 @@
   }
 }
 
-@utility input-base {
-  width: 100%;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-input);
-  background-color: var(--color-card);
-  padding: 0.625rem 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  outline: none;
-}
-@utility input-base {
-  &:focus {
-    box-shadow: 0 0 0 2px var(--color-ring);
-  }
-}
