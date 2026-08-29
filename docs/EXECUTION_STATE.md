@@ -15,6 +15,7 @@ Opdateret: 2026-08-29, første manuelle P0-cyklus.
 - Browser-smoke: `/` sender til `/login`, loginformularen renderes, og der er ingen browserfejl. En advarsel om flere GoTrue-klienter under samme storage key er registreret.
 - Begge sikrede endpoints returnerer 503 før databaseadgang, når deres nye dedikerede secrets mangler.
 - Verificerede checkpoints: `61bf18b` (runtime/npm/ledger), `106c825` (endpoint-sikkerhed/env/cutover) og `142b9f4` (P0-styringsbaseline). Featurebranchen er pushet til `origin/codex/gofreyra-p0`. Ingen PR, merge, deploy eller produktionsændring er udført.
+- Samme-chat-automationen `gofreyra-p0-90-min-cyklus` er aktiv og fortsætter hver 90. minut med én afgrænset P0-opgave, de dokumenterede gates og automatisk stop/pause efter bestået P0.
 
 ## Aktiv højeste opgave
 
@@ -31,7 +32,7 @@ Opdateret: 2026-08-29, første manuelle P0-cyklus.
 
 ## Næste handlinger
 
-1. Opret den godkendte 90-minutters arbejdscyklus i samme chat; provisionér derefter to stærke, uafhængige server-secrets i det relevante miljø og rotér eventuelle historiske credentials efter ejers bekræftelse.
+1. Lad næste 90-minutters arbejdscyklus fortsætte med `SEC-P0-01B`; provisionering af to stærke, uafhængige server-secrets og rotation af eventuelle historiske credentials kræver fortsat miljøejerens bekræftelse.
 2. Udfør `SEC-P0-01B`: beskyt naturpersistens og giv eksternt ingest eksplicit projekt-/tenant-scope.
 3. Få Supabase dev/test-adgang og udfør RLS-policyinventar samt negativ test med to organisationer.
 4. Konsolidér GoTrue-klientlaget, og fortsæt derefter med næste ublokerede opgave i `P0_BACKLOG.md`.
