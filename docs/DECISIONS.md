@@ -1,0 +1,31 @@
+# Beslutningslog
+
+Senest opdateret: 2026-08-29. Status `besluttet` er bindende for P0; `AFVENTER` må ikke behandles som implementeret.
+
+| ID      | Status    | Beslutning og begrundelse                                                                                                                                                                                                        |
+| ------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ADR-001 | besluttet | `freyra-hub` er eneste aktive produktrepository. Arbejdsbranch er `codex/gofreyra-p0`; ingen parallel platform eller merge til `main` uden godkendelse.                                                                          |
+| ADR-002 | besluttet | Bevar TanStack Start/React/Vite/Leaflet/Supabase. Masterpromptens forventning om Next.js er ikke den faktiske repository-tilstand og udløser ikke et stackskift.                                                                 |
+| ADR-003 | besluttet | Haderslev Vandløb Før/Efter er bindende P0-use case. Repositoryet har Skallebæk/Haderslev-referencer; navn, kunde og eventuelle vandløbsnavne fastlåses først mod projektmaster for at undgå dubletter.                          |
+| ADR-004 | besluttet | Supabase er system of record. Browserhandlinger bruger brugerens JWT og RLS; `service_role` må kun bruges i autentificerede, autoriserede og snævert afgrænsede serverflows.                                                     |
+| ADR-005 | besluttet | Publishable/anon-nøglen er offentlig identifikation, ikke endpoint-hemmelighed. Privilegerede ingest/cron-kald skal have særskilt serverhemmelighed eller bruger-/jobidentitet med scope.                                        |
+| ADR-006 | besluttet | Officielle geokilder implementeres som adaptere og katalogmetadata. MARS supplerer produktet; GoFreyra bygger ikke en ny national grunddatabase.                                                                                 |
+| ADR-007 | besluttet | Store drone- og geofiler ligger i objektstorage. Git indeholder kun kode, migrationer, dokumentation og små syntetiske fixtures.                                                                                                 |
+| ADR-008 | besluttet | Før/Efter-resultater og godkendte rapporter er versionsfaste snapshots. En ny kørsel skaber en ny version; ingen lydløs overskrivning.                                                                                           |
+| ADR-009 | besluttet | Automatisk fotogrammetri og blockchain/tokenisering er ikke P0. Fagligt uforsvarlige målinger fra RGB alene er forbudt.                                                                                                          |
+| ADR-010 | besluttet | Sikkerhed, tenant-isolation og reproducerbare gates blokerer ny P0-featureudvikling, indtil alvorlige fund er afgrænset og testet.                                                                                               |
+| ADR-011 | besluttet | Observations-ingest og monitoring-cron har hver sin uafhængige server-secret. Supabase publishable-, anon-, secret- og service-role keys afvises som endpoint-credentials.                                                       |
+| ADR-012 | besluttet | Den lokale/CI-buildvej er npm på Node 22 med en 4 GB heap. Lovable MCP-routegeneratoren kører kun i non-Windows dev, indtil upstream path-normalisering er verificeret; versionsstyrede ruter bevares.                           |
+| ADR-013 | besluttet | npm og `package-lock.json` er den kanoniske dependency-vej for P0. Den trackede `bun.lock` er legacy og ikke autoritativ; den må ikke bruges til installation eller opdateres, før en særskilt oprydningsbeslutning er godkendt. |
+
+## AFVENTER
+
+| ID      | Beslutning der mangler                                                       | Krævet evidens/ejer                                                  |
+| ------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| ADR-A01 | Endeligt kundenavn, projektnavn, lokalitet og vandløbsnavne                  | Verificeret projektmaster/kildemateriale; Jesper ved reel konflikt   |
+| ADR-A02 | Hvilken Supabase-instans er dev/test, og om `ikrmcetjutqcjtwfhzfv` må ændres | Connector-/dashboardadgang og miljøejer                              |
+| ADR-A03 | Rotation af eventuelle værdier, som kan have været i den trackede `.env`     | Git-historik/secret-ejer; værdier må ikke kopieres til dokumentation |
+| ADR-A04 | Endelig Storage bucket/path, retention og multipart/resumable strategi       | Live Storage-politikker og forventede filstørrelser                  |
+| ADR-A05 | MARS lag-id'er, CRS, licens/anvendelsesvilkår og snapshot/cache-regler       | Aktuel GetCapabilities og officiel dokumentation                     |
+| ADR-A06 | Godkendt P0-rapportskabelon, underskriverroller og release-statusser         | Kunde-/produktejer og repræsentativ rapportfixture                   |
+| ADR-A07 | Worker/runtime til eventuel tung geobehandling                               | Først når konkret P0-behandling kræver den; ellers P1                |

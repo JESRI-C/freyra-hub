@@ -1,0 +1,16 @@
+# GoFreyra run-log
+
+Én kompakt post pr. manuel eller planlagt cyklus. Resultater må kun opgraderes efter observeret sluttilstand.
+
+## 2026-08-27 til 2026-08-29 - manuel cyklus 001
+
+- **Udgangspunkt:** `JESRI-C/freyra-hub`, branch `codex/gofreyra-p0`, HEAD `03dca07` ved start. Ingen `AGENTS.md` fundet. Eksisterende ændringer er bevaret.
+- **Sandhed etableret:** Package scripts, runtime, auth/Supabase-klienter, offentlige serverruter, migrations/RLS, projektkort/GeoJSON, projektmedier, Før/Efter-komponent, målinger, kildeadaptere, rapportkode og tests er inspiceret statisk.
+- **Vigtigste fund:** Publishable nøgle beskytter service-role-ruter; natur-serverfunktion mangler verificeret auth/tenantkontrol; `project_members` kan self-inserte uden rollebegrænsning; migrationshistorikken rummer åbne policies; `.env` var tracket; live Supabase kunne ikke inspiceres; MARS, versionsfast Før/Efter og P0-rapport har dokumenterede huller.
+- **Implementeret:** `SEC-P0-01A` erstatter Supabase-nøgler som auth på observations-/monitoring-ruter med to uafhængige server-only secrets, timing-sikker sammenligning og eksplicit afvisning af publishable/anon/secret/service-role credentials. `.env` er fjernet fra tracking og ignoreres; `.env.example` indeholder kun tomme nøglepladsholdere. Ældre monitoring-dokumentation er rettet til samme kontrakt og blokerer deployment, indtil den faktiske cron-caller er verificeret og migreret.
+- **Reproducerbarhed:** `packageManager`/Node-engine og synkron npm-lock er fastlagt. En deterministisk mock-ledger-fejl med duplikerede sekvenser blev eksponeret ved baselinekørslen: samme sekvens/hash er nu idempotent, mens forskellig hash giver en eksplicit konflikt og bevarer den lagrede post. Lovable MCP-pluginet er afgrænset til understøttet non-Windows dev, og buildscriptet bruger 4 GB Node-heap.
+- **Runtime/gates:** Node 22.14/npm 10.9.2. Frisk `npm ci` exit 0. `npm run typecheck` exit 0. Målrettede endpoint-/ledger-tests 27/27 og samlet Vitest 193/193 består. `npm run build` exit 0. Ændrede TypeScript-filer lint 0; global lint er fortsat rød med 5.428 errors og 25 warnings. npm audit: 17 advisories (2 low, 5 moderate, 10 high).
+- **Browser/runtime-smoke:** `/` redirecter til `/login`; loginformularen renderes uden browserfejl. Browseren advarer om flere GoTrue-klienter med samme storage key. Begge sikrede endpoints returnerer 503 uden de nye secrets og rammer dermed ikke databasekoden.
+- **Styring:** Ni P0-styringsfiler er oprettet med verificeret baseline og `AFVENTER` for ukendt live-tilstand. `SEC-P0-01A` er lokalt verificeret; secret-provisionering/deployment er ikke udført.
+- **Git-checkpoint:** `61bf18b` indeholder runtime/npm/ledger, og `106c825` indeholder endpoint-sikkerhed/env/cutover. `origin/main` var fortsat identisk med startcommit ved sidste fetch. P0-dokumentationscommit og push **AFVENTER**. Ingen CI, merge, deploy, live Supabase-skrivning eller produktionsændring er udført.
+- **Næste:** `SEC-P0-01B` beskytter naturpersistens og projektscoper eksternt ingest. Derefter kræves Supabase dev/test-adgang til RLS-lockdown med to tenants; GoTrue-klienterne skal konsolideres.
