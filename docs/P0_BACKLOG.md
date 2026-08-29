@@ -11,7 +11,7 @@ Opdateret: 2026-08-29. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Afhængigheder:** Stærke uafhængige secrets skal provisioneres og tidligere credentials rotationsvurderes af miljøejer før deployment.
 - **Tests:** 20/20 endpointtests; runtime 503-smoke på begge ruter; `npm ci`; typecheck; 193/193 samlet Vitest; ændrede TypeScript-filer lint 0; `npm run build` exit 0.
 - **Status:** implementeret og lokalt verificeret; deployment/provisionering **AFVENTER**.
-- **Evidens/commit:** `106c825` — `src/lib/server-api-auth.server.ts`, de to public routes, `.env.example`, `.gitignore`, endpointtesten og cutover-dokumentation; push **AFVENTER**.
+- **Evidens/commit:** `106c825` — `src/lib/server-api-auth.server.ts`, de to public routes, `.env.example`, `.gitignore`, endpointtesten og cutover-dokumentation; pushet på `origin/codex/gofreyra-p0`.
 
 ## SEC-P0-01B - scope resterende service-role-flows
 
@@ -55,7 +55,7 @@ Opdateret: 2026-08-29. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Afhængigheder:** Filadgang til build/test-cache; `SEC-P0-01A` runtime/lock-ændringer.
 - **Tests:** `npm ci`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`; samme gate fra rent checkout/CI.
 - **Status:** frisk install, typecheck, 193 tests og build består; 3/3 direkte ledger-fallbacktests beviser eksakt idempotent retry samt konflikt ved ændret payload eller hash; ændrede TypeScript-filer har lint 0. Global lint/CI/audit-triage er **AFVENTER**.
-- **Evidens/commit:** `61bf18b`; Node 22.14/npm 10.9.2; global lint 5.428 errors/25 warnings; npm audit 17 advisories; build kræver den versionsstyrede 4 GB-wrapper og har kendte bundle-advarsler; push **AFVENTER**.
+- **Evidens/commit:** `61bf18b`; Node 22.14/npm 10.9.2; global lint 5.428 errors/25 warnings; npm audit 17 advisories; build kræver den versionsstyrede 4 GB-wrapper og har kendte bundle-advarsler; pushet på `origin/codex/gofreyra-p0`.
 
 ## GEO-P0-01 - GeoJSON-projektgrænse ende til ende
 
