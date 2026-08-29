@@ -1,23 +1,26 @@
 # Monitoring utilities — leveringsrapport
 
-Sidste opdatering: 2026-07-05 (Fase 3 audit mod testkrav)
+Leverance-snapshot: 2026-07-05 (Fase 3 audit mod testkrav).
+Dokumentationsreview: 2026-08-29. Live scheduler-status er ikke verificeret i
+dette review.
 
 ## Leverance-status
 
-| Fase | Titel | Status |
-| ---- | ----- | ------ |
-| D1 | Fundament (schema, storage, services) | Leveret |
-| D2 | Upload center UI | Leveret |
-| D3 | Datakvalitet + Alerts UI | Leveret |
-| D4 | Tilføj datakilde-wizard + oprydning | Leveret |
-| Fase 2 | Regel-motor + auto-eksekvering | Leveret |
-| Fase 3 | Live data i UI + pg_cron scheduling | Leveret |
-| Fase 3.1 | Sikkerheds-hardening af RLS (25 findings) | Leveret |
-| Fase 3.2 | Parser-tests + audit mod testkrav | Leveret |
+| Fase     | Titel                                     | Status                                           |
+| -------- | ----------------------------------------- | ------------------------------------------------ |
+| D1       | Fundament (schema, storage, services)     | Leveret                                          |
+| D2       | Upload center UI                          | Leveret                                          |
+| D3       | Datakvalitet + Alerts UI                  | Leveret                                          |
+| D4       | Tilføj datakilde-wizard + oprydning       | Leveret                                          |
+| Fase 2   | Regel-motor + auto-eksekvering            | Leveret                                          |
+| Fase 3   | Live data i UI + pg_cron scheduling       | Historisk leveret; live cron-status uverificeret |
+| Fase 3.1 | Sikkerheds-hardening af RLS (25 findings) | Leveret                                          |
+| Fase 3.2 | Parser-tests + audit mod testkrav         | Leveret                                          |
 
-## Aktive komponenter
+## Implementerede komponenter
 
 ### Motorer og orkestrering
+
 - `src/services/monitoring/quality-engine.ts` — 10 evaluators
   (out_of_range, missing_gps, invalid_date, duplicate, identical_repeat,
   spike, unit_mismatch, stale_data, outside_project, missing_value stub),
@@ -29,15 +32,40 @@ Sidste opdatering: 2026-07-05 (Fase 3 audit mod testkrav)
   dedup mod aktive alarmer og audit-log.
 
 ### Cron endpoint
+
 - `src/routes/api/public/monitoring/evaluate.ts` — POST endpoint
-  autentificeret med Supabase anon key i `apikey`-header (Lovable-standard).
-  Uden korrekt key returneres 401; uden konfigureret server-key 503.
-- pg_cron-job `monitoring-evaluate-15min` (aktiv, jobid 5) POST'er hvert
-  15. minut til
-  `https://project--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app/api/public/monitoring/evaluate`
-  med tom body — endpointet finder selv alle projekter med aktive regler.
+  autentificeret med den dedikerede server-secret
+  `MONITORING_CRON_API_SECRET` via `x-api-key` eller
+  `Authorization: Bearer <secret>`. Supabase publishable, anon, secret og
+  service-role keys afvises som endpoint-credentials. Uden korrekt credential
+  returneres 401; uden gyldig serverkonfiguration 503.
+- **Historisk og uverificeret snapshot (2026-07-05):** Rapporten registrerede
+  dengang jobnavnet `monitoring-evaluate-15min`, jobid `5`, en 15-minutters
+  schedule og URL'en
+  `https://project--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app/api/public/monitoring/evaluate`.
+  Ingen af disse live-oplysninger er genverificeret her, og kode- eller
+  dokumentændringen har ikke ændret et live cron-job.
+
+### Cutover-blokering før deployment
+
+Deployment/cutover er **blokeret**, indtil en operatør har:
+
+1. oprettet en ny, uafhængig `MONITORING_CRON_API_SECRET` i både server-runtime
+   og schedulerens secret store uden at logge værdien;
+2. identificeret og verificeret den aktuelle job-ID, jobname, schedule og
+   deployment-URL direkte i produktionsmiljøet;
+3. opdateret det verificerede job til `x-api-key` eller Bearer og fjernet
+   afhængigheden af Supabase keys samt legacy headers;
+4. kørt en autoriseret smoke-test og negative tests, som bekræfter 401 for den
+   gamle/manglende credential og 503 ved manglende server-secret;
+5. observeret mindst én planlagt, vellykket kørsel og registreret den
+   verificerede konfiguration samt rollback-procedure i run-loggen.
+
+Indtil alle fem punkter er dokumenteret, må rapporten ikke bruges som bevis for,
+at produktions-cron er aktiv eller korrekt migreret.
 
 ### UI
+
 - `/app/connect/quality`:
   - "Kør regler nu"-knap med toast + sidst-kørt info.
   - Real-time issue-liste erstatter tidligere hardkodede data-huller;
@@ -52,6 +80,7 @@ Sidste opdatering: 2026-07-05 (Fase 3 audit mod testkrav)
 ## Test-status
 
 Vitest: **83/83 passing** (13 test-filer). Nye i denne fase:
+
 - `src/services/monitoring/__tests__/engines.test.ts` — 12 unit-tests
   for kvalitets- og alarm-evaluators.
 - `src/services/monitoring/__tests__/upload-import.test.ts` — 7 tests
@@ -63,97 +92,104 @@ Vitest: **83/83 passing** (13 test-filer). Nye i denne fase:
 ### Testkrav-matrix (fra testplanen)
 
 Signaturer:
+
 - **A** = automatiseret test (vitest) findes og er grøn
 - **U** = manuelt verificerbart via UI (implementeret, ikke automatiseret)
 - **M** = mangler — enten ikke bygget eller kun stub
 
 #### Upload center
-| Krav | Status | Note |
-| ---- | ------ | ---- |
-| Upload JPEG | U | `parseImage` bruger `exifr` + `createImageBitmap` |
-| Upload HEIC | U | Browser-support afhænger af Safari; ingen konvertering |
-| Upload CSV | U/A | `parseCsv` (Papaparse), mapping-tests dækker |
-| Upload Excel | U | `parseExcel` (xlsx) |
-| Upload GeoJSON | A | `parseGeoJson` dækket af 3 tests |
-| Upload KML | U | `parseKml` via `@tmcw/togeojson` |
-| Upload GPX | U | `parseGpx` via `@tmcw/togeojson` |
-| Upload ugyldig fil | A | GeoJSON-parse-fejl testet |
-| Upload for stor fil | M | Ingen `MAX_FILE_SIZE` check i wizard |
-| Manglende metadata | A | `validateTabular` warnings |
-| Læs GPS fra billede | U | `parseImage` returnerer lat/lng når EXIF findes |
-| Map CSV-kolonner | A | `suggestMapping` testet |
-| Valider ugyldig dato | A | `validateTabular` |
-| Valider manglende GPS | A | `validateTabular` |
-| Importér gyldig fil | U | `uploadFile` → `uploads` + storage |
-| Import med advarsler | U | Vises i wizardens Preview-step |
-| Download fejlrapport | M | Ikke implementeret |
-| Audit-event efter import | U | `logAuditEvent("upload.imported")` kald findes |
+
+| Krav                     | Status | Note                                                   |
+| ------------------------ | ------ | ------------------------------------------------------ |
+| Upload JPEG              | U      | `parseImage` bruger `exifr` + `createImageBitmap`      |
+| Upload HEIC              | U      | Browser-support afhænger af Safari; ingen konvertering |
+| Upload CSV               | U/A    | `parseCsv` (Papaparse), mapping-tests dækker           |
+| Upload Excel             | U      | `parseExcel` (xlsx)                                    |
+| Upload GeoJSON           | A      | `parseGeoJson` dækket af 3 tests                       |
+| Upload KML               | U      | `parseKml` via `@tmcw/togeojson`                       |
+| Upload GPX               | U      | `parseGpx` via `@tmcw/togeojson`                       |
+| Upload ugyldig fil       | A      | GeoJSON-parse-fejl testet                              |
+| Upload for stor fil      | M      | Ingen `MAX_FILE_SIZE` check i wizard                   |
+| Manglende metadata       | A      | `validateTabular` warnings                             |
+| Læs GPS fra billede      | U      | `parseImage` returnerer lat/lng når EXIF findes        |
+| Map CSV-kolonner         | A      | `suggestMapping` testet                                |
+| Valider ugyldig dato     | A      | `validateTabular`                                      |
+| Valider manglende GPS    | A      | `validateTabular`                                      |
+| Importér gyldig fil      | U      | `uploadFile` → `uploads` + storage                     |
+| Import med advarsler     | U      | Vises i wizardens Preview-step                         |
+| Download fejlrapport     | M      | Ikke implementeret                                     |
+| Audit-event efter import | U      | `logAuditEvent("upload.imported")` kald findes         |
 
 #### Datakvalitet
-| Krav | Status | Note |
-| ---- | ------ | ---- |
-| Beregn kvalitet for datakilde | M | Kun issue-detektion, ingen aggregat-score |
-| Beregn kvalitet for zone | M | Samme |
-| Registrér manglende data | A | `stale_data` evaluator |
-| Registrér outlier | A | `spike` evaluator |
-| Registrér dublet | A | `duplicate` evaluator |
-| Godkend / Afvis data | U | "Løs"-knap på issue i `/app/connect/quality` |
-| Ekskludér data fra indikator | M | Ingen kobling til indikator-beregninger endnu |
-| Genaktiver data | M | Ingen re-open-knap på lukkede issues |
-| Konsekvens for indikator | M | Ikke visualiseret |
+
+| Krav                          | Status | Note                                          |
+| ----------------------------- | ------ | --------------------------------------------- |
+| Beregn kvalitet for datakilde | M      | Kun issue-detektion, ingen aggregat-score     |
+| Beregn kvalitet for zone      | M      | Samme                                         |
+| Registrér manglende data      | A      | `stale_data` evaluator                        |
+| Registrér outlier             | A      | `spike` evaluator                             |
+| Registrér dublet              | A      | `duplicate` evaluator                         |
+| Godkend / Afvis data          | U      | "Løs"-knap på issue i `/app/connect/quality`  |
+| Ekskludér data fra indikator  | M      | Ingen kobling til indikator-beregninger endnu |
+| Genaktiver data               | M      | Ingen re-open-knap på lukkede issues          |
+| Konsekvens for indikator      | M      | Ikke visualiseret                             |
 
 #### Alerts
-| Krav | Status | Note |
-| ---- | ------ | ---- |
-| Offline enhed | A | `device_offline` evaluator |
-| Lav datakvalitet | A | `low_data_quality` evaluator |
-| Afvigende måling | A | `data_anomaly` evaluator |
-| Tildel alert | M | UI-drawer viser assignee, men ingen tildel-action |
-| Opret handling fra alert | M | Manglende "→ action" knap |
-| Markér som løst | U | `resolveAlert` |
-| Genåbn alert | M | Ikke implementeret |
-| Ignorer med begrundelse | M | Ikke implementeret |
-| In-app notifikation | U | `NotificationCenter` viser nye alerts |
-| Rolle- og projektadgang | U | RLS via `is_project_member` (Fase 3.1) |
+
+| Krav                     | Status | Note                                              |
+| ------------------------ | ------ | ------------------------------------------------- |
+| Offline enhed            | A      | `device_offline` evaluator                        |
+| Lav datakvalitet         | A      | `low_data_quality` evaluator                      |
+| Afvigende måling         | A      | `data_anomaly` evaluator                          |
+| Tildel alert             | M      | UI-drawer viser assignee, men ingen tildel-action |
+| Opret handling fra alert | M      | Manglende "→ action" knap                         |
+| Markér som løst          | U      | `resolveAlert`                                    |
+| Genåbn alert             | M      | Ikke implementeret                                |
+| Ignorer med begrundelse  | M      | Ikke implementeret                                |
+| In-app notifikation      | U      | `NotificationCenter` viser nye alerts             |
+| Rolle- og projektadgang  | U      | RLS via `is_project_member` (Fase 3.1)            |
 
 #### Tilføj datakilde
-| Krav | Status | Note |
-| ---- | ------ | ---- |
-| Sensor-datakilde | U | Provider=`manual` i wizarden |
-| CSV-datakilde | U | Provider=`file` |
-| Satellit-datakilde | U | Provider=`sentinel_hub` |
-| API-datakilde | U | Provider=`webhook`/`api` |
-| Test API connection | M | Ingen test-knap i wizard |
-| Håndtér 401 | M | Ingen dedikeret fejl-branch |
-| Håndtér timeout | M | Ingen timeout-handler |
-| Valider datamapping | U | Delvist (wizardens felter valideres client-side) |
-| Aktivér datakilde | U | `createDataSource` sætter `is_active=true` |
-| Start første sync | M | Ingen kickoff — cron tager over ved næste tick |
-| Audit-event | U | `logAuditEvent("data_source.created")` |
-| Credentials usynlige i browser | U | `configuration` gemmes som JSON i DB; ikke logget i console. **Server-side masking endnu ikke implementeret** når det læses tilbage. |
+
+| Krav                           | Status | Note                                                                                                                                 |
+| ------------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Sensor-datakilde               | U      | Provider=`manual` i wizarden                                                                                                         |
+| CSV-datakilde                  | U      | Provider=`file`                                                                                                                      |
+| Satellit-datakilde             | U      | Provider=`sentinel_hub`                                                                                                              |
+| API-datakilde                  | U      | Provider=`webhook`/`api`                                                                                                             |
+| Test API connection            | M      | Ingen test-knap i wizard                                                                                                             |
+| Håndtér 401                    | M      | Ingen dedikeret fejl-branch                                                                                                          |
+| Håndtér timeout                | M      | Ingen timeout-handler                                                                                                                |
+| Valider datamapping            | U      | Delvist (wizardens felter valideres client-side)                                                                                     |
+| Aktivér datakilde              | U      | `createDataSource` sætter `is_active=true`                                                                                           |
+| Start første sync              | M      | Ingen kickoff — cron tager over ved næste tick                                                                                       |
+| Audit-event                    | U      | `logAuditEvent("data_source.created")`                                                                                               |
+| Credentials usynlige i browser | U      | `configuration` gemmes som JSON i DB; ikke logget i console. **Server-side masking endnu ikke implementeret** når det læses tilbage. |
 
 #### Layout
-| Krav | Status |
-| ---- | ------ |
-| Ingen global horisontal scroll desktop | U |
-| Upload center på tablet | U |
-| Upload via mobilkamera | M (native `<input type="file" accept="image/*" capture>` ikke sat) |
-| Alerts læsbare på mobil | U |
-| Wizard på mobil | U |
+
+| Krav                                   | Status                                                             |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| Ingen global horisontal scroll desktop | U                                                                  |
+| Upload center på tablet                | U                                                                  |
+| Upload via mobilkamera                 | M (native `<input type="file" accept="image/*" capture>` ikke sat) |
+| Alerts læsbare på mobil                | U                                                                  |
+| Wizard på mobil                        | U                                                                  |
 
 ### Test-typer
 
-| Type | Antal | Placering |
-| ---- | ----- | --------- |
-| Unit tests | 83 | `src/**/__tests__/*.test.ts` |
-| Integration tests (mocked supabase) | Delvis dækket via service-tests | `src/services/__tests__/` |
-| End-to-end tests | **0** | Ikke etableret — Playwright er kun installeret som ad hoc debug-værktøj |
+| Type                                | Antal                           | Placering                                                               |
+| ----------------------------------- | ------------------------------- | ----------------------------------------------------------------------- |
+| Unit tests                          | 83                              | `src/**/__tests__/*.test.ts`                                            |
+| Integration tests (mocked supabase) | Delvis dækket via service-tests | `src/services/__tests__/`                                               |
+| End-to-end tests                    | **0**                           | Ikke etableret — Playwright er kun installeret som ad hoc debug-værktøj |
 
 ## Leverance-inventar
 
 ### Filer ændret / oprettet (denne opgave, D1–Fase 3.2)
 
 Services (`src/services/monitoring/`):
+
 - `alert-engine.ts` — 6 evaluators + orchestrator
 - `alert-rules-service.ts` — CRUD + toggle
 - `alerts-service.ts` — list / resolve / acknowledge
@@ -166,12 +202,14 @@ Services (`src/services/monitoring/`):
 - `uploads-service.ts` — Storage upload, `uploads`-tabel
 
 Komponenter (`src/components/monitoring/`):
+
 - `UploadWizard.tsx` — 4-trins drawer (Klassificer → Validér → Preview → Importér)
 - `RuleDrawer.tsx` — form til både kvalitets- og alarm-regler
 - `NotificationCenter.tsx` — in-app notifikationsindbakke
 - `DeviceWizard.tsx`, `SpeciesRecognitionFlow.tsx` — tilstødende
 
 Ruter (`src/routes/`):
+
 - `app.connect.upload.tsx` — Upload center + live queue
 - `app.connect.quality.tsx` — Datakvalitet + live issues + kør-nu
 - `app.connect.alerts.tsx` — Alerts + live liste + kør-nu
@@ -179,83 +217,91 @@ Ruter (`src/routes/`):
 - `api/public/monitoring.evaluate.ts` — Cron-endpoint for engines
 
 Tests (`src/services/monitoring/__tests__/`):
+
 - `engines.test.ts` — 12 unit tests
 - `upload-import.test.ts` — 7 unit tests
 
 Docs (`docs/`):
+
 - `monitoring-utilities-audit.md` — indledende gap-analyse
 - `monitoring-utilities-implementation-plan.md` — fase-plan
 - `monitoring-utilities-test-plan.md` — testkrav
 - `monitoring-utilities-delivery-report.md` — dette dokument
 
 ### API-ruter oprettet
-| Rute | Metode | Auth | Formål |
-| ---- | ------ | ---- | ------ |
-| `/api/public/monitoring/evaluate` | POST | `apikey`-header (Supabase publishable) | Kører quality + alert engines for ét eller alle projekter. Kaldes af pg_cron hvert 15. minut. Body: `{}` eller `{"project_id":"..."}`. |
+
+| Rute                              | Metode | Auth                                                      | Formål                                                                                                                                                            |
+| --------------------------------- | ------ | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/public/monitoring/evaluate` | POST   | `MONITORING_CRON_API_SECRET` via `x-api-key` eller Bearer | Kører quality + alert engines for ét eller alle projekter. Body: `{}` eller `{"project_id":"..."}`. Live scheduler, interval og URL skal verificeres ved cutover. |
 
 ### Database-migrations (denne opgave)
-| Migration | Indhold |
-| --------- | ------- |
-| `20260705202010_…` | Kernetabeller: `data_sources`, `uploads`, `upload_import_jobs`, `audit_events`-udvidelse |
-| `20260705202357_…` | `data_quality_rules`, `data_quality_issues`, `data_quality_assessments` |
-| `20260705202816_…` | `alert_rules`, `monitoring_alerts`-udvidelse, `alert_comments` |
-| `20260705203315_…` | Storage-bucket `monitoring-uploads` + policies |
-| `20260705203715_…` | Foreign keys og indekser for engines |
-| `20260705203924_…` | `is_project_admin`, `is_org_member`, `has_org_role` helpers |
-| `20260705204207_…` | Realtime-publikation af `monitoring_alerts` |
-| `20260705210049_…` | Trigger: audit-event ved `uploads.status` skift |
-| `20260705210841_…` | Trigger: audit-event ved `data_sources` insert/update |
-| `20260705211130_…` | Trigger: dedup-index på `data_quality_issues` (open, per rule/entity) |
-| `20260705212224_…` | pg_cron job `monitoring-evaluate-15min` |
-| `20260705212244_…` | RLS-oprydning: fjern gamle `dev_*` policies på device-tabeller |
+
+| Migration          | Indhold                                                                                                                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20260705202010_…` | Kernetabeller: `data_sources`, `uploads`, `upload_import_jobs`, `audit_events`-udvidelse                                                                                                  |
+| `20260705202357_…` | `data_quality_rules`, `data_quality_issues`, `data_quality_assessments`                                                                                                                   |
+| `20260705202816_…` | `alert_rules`, `monitoring_alerts`-udvidelse, `alert_comments`                                                                                                                            |
+| `20260705203315_…` | Storage-bucket `monitoring-uploads` + policies                                                                                                                                            |
+| `20260705203715_…` | Foreign keys og indekser for engines                                                                                                                                                      |
+| `20260705203924_…` | `is_project_admin`, `is_org_member`, `has_org_role` helpers                                                                                                                               |
+| `20260705204207_…` | Realtime-publikation af `monitoring_alerts`                                                                                                                                               |
+| `20260705210049_…` | Trigger: audit-event ved `uploads.status` skift                                                                                                                                           |
+| `20260705210841_…` | Trigger: audit-event ved `data_sources` insert/update                                                                                                                                     |
+| `20260705211130_…` | Trigger: dedup-index på `data_quality_issues` (open, per rule/entity)                                                                                                                     |
+| `20260705212224_…` | Historisk migration for pg_cron-jobbet `monitoring-evaluate-15min`; nuværende live job-ID, URL, schedule og aktiv-status er uverificeret                                                  |
+| `20260705212244_…` | RLS-oprydning: fjern gamle `dev_*` policies på device-tabeller                                                                                                                            |
 | `20260705214909_…` | **Sikkerheds-hardening**: erstat public/anon-læs og `auth.uid() IS NOT NULL`-write på 22 tabeller med `is_project_member` / `has_org_role`; anti-eskalering på `organization_memberships` |
 
 ### Understøttede uploadtyper
-| Type | Parser | GPS | Preview |
-| ---- | ------ | --- | ------- |
-| CSV (`.csv`) | Papaparse | via mapping | headers + sample-rows + fejlliste |
-| Excel (`.xlsx`, `.xls`) | SheetJS | via mapping | første ark, headers + sample-rows |
-| GeoJSON (`.geojson`, `.json`) | native | fra geometri | feature-count pr. type + bbox |
-| KML (`.kml`) | `@tmcw/togeojson` | fra geometri | konverteret til GeoJSON-summary |
-| GPX (`.gpx`) | `@tmcw/togeojson` | fra geometri | konverteret til GeoJSON-summary |
-| Billeder (`.jpg`, `.jpeg`, `.png`, `.heic*`) | `exifr` + `createImageBitmap` | EXIF GPS når til stede | dimension + kamera + capture-tid |
+
+| Type                                         | Parser                        | GPS                    | Preview                           |
+| -------------------------------------------- | ----------------------------- | ---------------------- | --------------------------------- |
+| CSV (`.csv`)                                 | Papaparse                     | via mapping            | headers + sample-rows + fejlliste |
+| Excel (`.xlsx`, `.xls`)                      | SheetJS                       | via mapping            | første ark, headers + sample-rows |
+| GeoJSON (`.geojson`, `.json`)                | native                        | fra geometri           | feature-count pr. type + bbox     |
+| KML (`.kml`)                                 | `@tmcw/togeojson`             | fra geometri           | konverteret til GeoJSON-summary   |
+| GPX (`.gpx`)                                 | `@tmcw/togeojson`             | fra geometri           | konverteret til GeoJSON-summary   |
+| Billeder (`.jpg`, `.jpeg`, `.png`, `.heic*`) | `exifr` + `createImageBitmap` | EXIF GPS når til stede | dimension + kamera + capture-tid  |
 
 \* HEIC-preview afhænger af browser-support (primært Safari); ingen server-side konvertering.
 
 ### Implementerede datakvalitetsregler
-| `rule_type` | Beskrivelse | Konfig-nøgler |
-| ----------- | ----------- | ------------- |
-| `out_of_range` | Værdi udenfor min/max | `min`, `max` |
-| `missing_gps` | Måling uden lat/lng | (ingen) |
-| `invalid_date` | `measured_at` mangler eller kan ikke parses | (ingen) |
-| `duplicate` | Samme device+parameter+timestamp | `windowSeconds` |
-| `identical_repeat` | Samme værdi N gange i træk | `count` |
-| `spike` | Afvigelse > `zScoreThreshold` fra rolling mean | `zScoreThreshold`, `windowSize` |
-| `unit_mismatch` | `unit` ≠ forventet | `expectedUnit` |
-| `stale_data` | Ingen data i N minutter | `maxAgeMinutes` |
-| `outside_project` | GPS uden for bbox | `minLat`, `maxLat`, `minLng`, `maxLng` |
-| `missing_value` | (stub — kolonnen er NOT NULL i dag) | — |
+
+| `rule_type`        | Beskrivelse                                    | Konfig-nøgler                          |
+| ------------------ | ---------------------------------------------- | -------------------------------------- |
+| `out_of_range`     | Værdi udenfor min/max                          | `min`, `max`                           |
+| `missing_gps`      | Måling uden lat/lng                            | (ingen)                                |
+| `invalid_date`     | `measured_at` mangler eller kan ikke parses    | (ingen)                                |
+| `duplicate`        | Samme device+parameter+timestamp               | `windowSeconds`                        |
+| `identical_repeat` | Samme værdi N gange i træk                     | `count`                                |
+| `spike`            | Afvigelse > `zScoreThreshold` fra rolling mean | `zScoreThreshold`, `windowSize`        |
+| `unit_mismatch`    | `unit` ≠ forventet                             | `expectedUnit`                         |
+| `stale_data`       | Ingen data i N minutter                        | `maxAgeMinutes`                        |
+| `outside_project`  | GPS uden for bbox                              | `minLat`, `maxLat`, `minLng`, `maxLng` |
+| `missing_value`    | (stub — kolonnen er NOT NULL i dag)            | —                                      |
 
 ### Implementerede alarmregler
-| `trigger_type` | Beskrivelse | Konfig-nøgler |
-| -------------- | ----------- | ------------- |
-| `device_offline` | Enhed ikke set i N min | `thresholdMinutes` |
-| `low_battery` | `battery_level` under tærskel | `thresholdPercent` |
-| `missing_data` | Enhed sendte færre målinger end forventet | `expectedIntervalMinutes`, `windowMinutes` |
-| `low_data_quality` | Åbne issues over tærskel for enhed/regel | `maxOpenIssues` |
-| `critical_reading` | Måling over/under kritisk tærskel | `parameterKey`, `min`, `max` |
-| `data_anomaly` | Z-score afvigelse på device+parameter | `zScoreThreshold`, `windowSize` |
+
+| `trigger_type`     | Beskrivelse                               | Konfig-nøgler                              |
+| ------------------ | ----------------------------------------- | ------------------------------------------ |
+| `device_offline`   | Enhed ikke set i N min                    | `thresholdMinutes`                         |
+| `low_battery`      | `battery_level` under tærskel             | `thresholdPercent`                         |
+| `missing_data`     | Enhed sendte færre målinger end forventet | `expectedIntervalMinutes`, `windowMinutes` |
+| `low_data_quality` | Åbne issues over tærskel for enhed/regel  | `maxOpenIssues`                            |
+| `critical_reading` | Måling over/under kritisk tærskel         | `parameterKey`, `min`, `max`               |
+| `data_anomaly`     | Z-score afvigelse på device+parameter     | `zScoreThreshold`, `windowSize`            |
 
 Event-baserede triggere (`integration_failed`, `import_failed`, `action_overdue`, `manual`) er defineret i schemaet men fyres ikke af polling-motoren — de skal skydes fra de respektive services (se Anbefalet næste udviklingsspor).
 
 ### Klargjorte datakildetyper
-| Provider | Kategori | Kredit-håndtering | Status |
-| -------- | -------- | ----------------- | ------ |
-| `manual` | Manuel sensor / feltmåling | ingen | Klar |
-| `file` | CSV/Excel upload | ingen | Klar |
-| `webhook` | Ekstern push-integration | secret pr. datakilde (JSON) | Klar (ingen 401/timeout-branch) |
-| `api` | Poll af ekstern REST-API | credentials i `configuration.jsonb` | Klar (ingen test-connection knap) |
-| `sentinel_hub` | Satellit / NDVI-hentning | oauth-client i `configuration` | Klar (aktiveres af cron) |
+
+| Provider       | Kategori                   | Kredit-håndtering                   | Status                            |
+| -------------- | -------------------------- | ----------------------------------- | --------------------------------- |
+| `manual`       | Manuel sensor / feltmåling | ingen                               | Klar                              |
+| `file`         | CSV/Excel upload           | ingen                               | Klar                              |
+| `webhook`      | Ekstern push-integration   | secret pr. datakilde (JSON)         | Klar (ingen 401/timeout-branch)   |
+| `api`          | Poll af ekstern REST-API   | credentials i `configuration.jsonb` | Klar (ingen test-connection knap) |
+| `sentinel_hub` | Satellit / NDVI-hentning   | oauth-client i `configuration`      | Klar (aktiveres af cron)          |
 
 ### Kørte tests (Fase 3.2 kørsel)
 
@@ -266,6 +312,7 @@ Test Files  13 passed (13)
 ```
 
 Fordeling af de 83:
+
 - `monitoring/engines.test.ts` — 12
 - `monitoring/upload-import.test.ts` — 7
 - `services/audit-service.test.ts` — 6
@@ -314,9 +361,10 @@ Type-check: `tsgo --noEmit` → 0 fejl.
   men aggregeret dimension-score baseret på open/resolved issues er
   ikke afledt endnu.
 
-- **Cron-dedup**: pg_cron-jobbet POST'er hvert 15. minut. Endpointet
-  itererer alle projekter med aktive regler — der er ingen backoff hvis
-  et projekt fejler; det logges bare i responsens `results`.
+- **Cron-dedup**: Endpointet itererer alle projekter med aktive regler — der er
+  ingen backoff hvis et projekt fejler; det logges bare i responsens `results`.
+  Et 15-minutters pg_cron-job var angivet i leverance-snapshottet fra 2026-07-05,
+  men nuværende schedule og aktiv-status er ikke verificeret.
 
 ## Anbefalet næste udviklingsspor
 
@@ -338,31 +386,45 @@ Type-check: `tsgo --noEmit` → 0 fejl.
 ## Sådan kører du en manuel evaluering
 
 Via UI:
+
 - Gå til `/app/connect/quality` → "Kør regler nu".
 - Gå til `/app/connect/alerts` → "Kør alarmregler nu".
 
 Via HTTP (samme som cron):
+
 ```bash
 curl -X POST \
-  https://project--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app/api/public/monitoring/evaluate \
+  https://<verificeret-deployment-host>/api/public/monitoring/evaluate \
   -H "Content-Type: application/json" \
-  -H "apikey: <SUPABASE_PUBLISHABLE_KEY>" \
+  -H "x-api-key: $MONITORING_CRON_API_SECRET" \
   -d '{}'
 ```
+
+Alternativt kan credential sendes som
+`Authorization: Bearer $MONITORING_CRON_API_SECRET`. Brug kun en dedikeret
+server-secret; genbrug aldrig en Supabase API key. HTTP-kørslen må først bruges
+mod produktion, når cutover-blokeringen ovenfor er afklaret.
 
 Body understøtter `{"project_id":"..."}` for enkelt-projekt kørsler.
 
 ## Cron-administration
 
+Jobnavnet `monitoring-evaluate-15min`, jobid `5` og den tidligere konkrete URL
+er historiske oplysninger fra 2026-07-05 og må ikke anvendes som aktuelle
+driftsdata uden verifikation. Start med read-only discovery:
+
 ```sql
--- Se aktive jobs
-SELECT jobid, jobname, schedule, active FROM cron.job;
+-- Find aktuelle jobs; verificér ID, navn, schedule og command/URL manuelt.
+SELECT jobid, jobname, schedule, command, active
+FROM cron.job
+ORDER BY jobid;
 
--- Se seneste kørsler
+-- Se seneste kørsler efter at det aktuelle jobname er verificeret.
 SELECT * FROM cron.job_run_details
-WHERE jobname = 'monitoring-evaluate-15min'
+WHERE jobname = '<verificeret-jobname>'
 ORDER BY start_time DESC LIMIT 20;
-
--- Pause / genstart
-SELECT cron.unschedule('monitoring-evaluate-15min');
 ```
+
+Et job må ikke ændres, pauses eller fjernes ud fra de historiske identifikatorer
+alene. Følg cutover-checklisten, dokumentér det verificerede job og brug en
+separat, godkendt driftsændring til selve live-opdateringen.

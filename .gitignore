@@ -16,6 +16,11 @@ dist-ssr
 .nitro
 *.local
 
+# Local environment configuration must never be committed.
+.env
+.env.*
+!.env.example
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
