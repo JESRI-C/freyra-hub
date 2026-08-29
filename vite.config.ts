@@ -7,6 +7,12 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 
+// The MCP plugin generates development routes. Its current path-containment
+// check mixes slash styles on Windows, where the generated routes already live
+// in source control, so keep it to non-Windows development servers.
+const mcpDevPlugin = mcpPlugin();
+mcpDevPlugin.apply = "serve";
+
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 // @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
 export default defineConfig({
@@ -17,6 +23,6 @@ export default defineConfig({
     optimizeDeps: {
       include: ["leaflet"],
     },
-    plugins: [mcpPlugin()],
+    plugins: process.platform === "win32" ? [] : [mcpDevPlugin],
   },
 });

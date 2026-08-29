@@ -68,10 +68,7 @@ const projekter: LavbundsProjekt[] = MOCK_PROJEKTER.map((p) => ({ ...p }));
 export async function getProjects(): Promise<LavbundsProjekt[]> {
   const db = client();
   if (db) {
-    const { data, error } = await db
-      .from("lavbund_projekter")
-      .select("payload")
-      .order("id");
+    const { data, error } = await db.from("lavbund_projekter").select("payload").order("id");
     if (error && !isMissingTable(error)) throw new Error(error.message);
     if (!error && data && data.length > 0) {
       return (data as Array<{ payload: LavbundsProjekt }>).map((r) => ({ ...r.payload }));
@@ -139,7 +136,10 @@ export async function getLinkedProjectId(projektId: string): Promise<string | nu
  * Kobl (eller afkobl med null) lavbundsprojektet til et kerneprojekt, så
  * bogførte snapshots skubber verificeret CO₂ til projektets indicators.
  */
-export async function setLinkedProject(projektId: string, coreProjectId: string | null): Promise<void> {
+export async function setLinkedProject(
+  projektId: string,
+  coreProjectId: string | null,
+): Promise<void> {
   const db = client();
   if (!db) throw new Error("Kræver databaseforbindelse");
   // Sørg for at projektrækken findes (demo-projekter lever ellers kun i mock).
@@ -225,7 +225,15 @@ async function ensureProjectRow(projektId: string): Promise<boolean> {
   const projekt = await getProject(projektId);
   if (!projekt) return false;
   const { error } = await db.from("lavbund_projekter").upsert(
-    [{ id: projekt.id, navn: projekt.navn, status: projekt.status, payload: projekt, updated_at: new Date().toISOString() }],
+    [
+      {
+        id: projekt.id,
+        navn: projekt.navn,
+        status: projekt.status,
+        payload: projekt,
+        updated_at: new Date().toISOString(),
+      },
+    ],
     { onConflict: "id" },
   );
   return !error;
@@ -234,10 +242,9 @@ async function ensureProjectRow(projektId: string): Promise<boolean> {
 export async function saveMaalepunkt(m: Maalepunkt): Promise<Maalepunkt> {
   const db = client();
   if (db && (await ensureProjectRow(m.projektId))) {
-    const { error } = await db.from("lavbund_maalepunkter").upsert(
-      [{ id: m.id, projekt_id: m.projektId, payload: m }],
-      { onConflict: "id" },
-    );
+    const { error } = await db
+      .from("lavbund_maalepunkter")
+      .upsert([{ id: m.id, projekt_id: m.projektId, payload: m }], { onConflict: "id" });
     if (error && !isMissingTable(error)) throw new Error(error.message);
     if (!error) return m;
   }
@@ -245,11 +252,19 @@ export async function saveMaalepunkt(m: Maalepunkt): Promise<Maalepunkt> {
   return m;
 }
 
-export async function saveReading(projektId: string, r: VandstandsReading): Promise<VandstandsReading> {
+export async function saveReading(
+  projektId: string,
+  r: VandstandsReading,
+): Promise<VandstandsReading> {
   const db = client();
   if (db && (await ensureProjectRow(projektId))) {
     const { error } = await db.from("lavbund_readings").insert([
-      { projekt_id: projektId, maalepunkt_id: r.maalepunktId, tidspunkt: r.tidspunkt, payload: r },
+      {
+        projekt_id: projektId,
+        maalepunkt_id: r.maalepunktId,
+        tidspunkt: r.tidspunkt,
+        payload: r,
+      },
     ]);
     if (error && !isMissingTable(error)) throw new Error(error.message);
     if (!error) return r;
@@ -265,9 +280,9 @@ export async function replaceTransekter(projektId: string, list: Transekt[]): Pr
     const del = await db.from("lavbund_transekter").delete().eq("projekt_id", projektId);
     if (del.error && !isMissingTable(del.error)) throw new Error(del.error.message);
     if (!del.error && list.length > 0) {
-      const { error } = await db.from("lavbund_transekter").insert(
-        list.map((t) => ({ projekt_id: projektId, nr: t.nr, fase: t.fase, payload: t })),
-      );
+      const { error } = await db
+        .from("lavbund_transekter")
+        .insert(list.map((t) => ({ projekt_id: projektId, nr: t.nr, fase: t.fase, payload: t })));
       if (error) throw new Error(error.message);
     }
     if (!del.error) return;
@@ -286,9 +301,9 @@ export async function replaceGroefter(projektId: string, list: GroeftStraekning[
     const del = await db.from("lavbund_groefter").delete().eq("projekt_id", projektId);
     if (del.error && !isMissingTable(del.error)) throw new Error(del.error.message);
     if (!del.error && list.length > 0) {
-      const { error } = await db.from("lavbund_groefter").insert(
-        list.map((g) => ({ id: g.id, projekt_id: projektId, payload: g })),
-      );
+      const { error } = await db
+        .from("lavbund_groefter")
+        .insert(list.map((g) => ({ id: g.id, projekt_id: projektId, payload: g })));
       if (error) throw new Error(error.message);
     }
     if (!del.error) return;
@@ -327,7 +342,23 @@ export async function appendLedger(projektId: string, post: LedgerPost): Promise
     if (!error) return post;
   }
   if (!MOCK_LEDGER[projektId]) MOCK_LEDGER[projektId] = [];
+  const existing = MOCK_LEDGER[projektId].find((row) => row.seq === post.seq);
+  if (existing) {
+    const isExactRetry =
+      existing.seq === post.seq &&
+      existing.tidspunkt === post.tidspunkt &&
+      existing.actor === post.actor &&
+      existing.event === post.event &&
+      existing.detail === post.detail &&
+      existing.prevHash === post.prevHash &&
+      existing.hash === post.hash;
+    if (isExactRetry) return existing;
+    throw new Error(
+      `Ledger conflict for project "${projektId}" at seq ${post.seq}: existing post differs from incoming post.`,
+    );
+  }
   MOCK_LEDGER[projektId].push(post);
+  MOCK_LEDGER[projektId].sort((left, right) => left.seq - right.seq);
   return post;
 }
 
@@ -351,10 +382,11 @@ export async function getSnapshot(projektId: string): Promise<BeregningsSnapshot
 export async function saveSnapshot(s: BeregningsSnapshot): Promise<BeregningsSnapshot> {
   const db = client();
   if (db && (await ensureProjectRow(s.projektId))) {
-    const { error } = await db.from("lavbund_snapshots").upsert(
-      [{ projekt_id: s.projektId, payload: s, updated_at: new Date().toISOString() }],
-      { onConflict: "projekt_id" },
-    );
+    const { error } = await db
+      .from("lavbund_snapshots")
+      .upsert([{ projekt_id: s.projektId, payload: s, updated_at: new Date().toISOString() }], {
+        onConflict: "projekt_id",
+      });
     if (error && !isMissingTable(error)) throw new Error(error.message);
     if (!error) {
       await syncSnapshotToIndicators(s).catch(() => undefined); // best-effort
@@ -431,7 +463,8 @@ export async function getLavbundOverblik(): Promise<LavbundOverblik> {
     antalProjekter: projects.length,
     samletArealHa: Math.round(projects.reduce((s, p) => s + p.samletArealHa, 0) * 10) / 10,
     krediteretTotal:
-      Math.round(projects.reduce((s, p) => s + beregnKrediteretCO2(p).krediteretTotal, 0) * 10) / 10,
+      Math.round(projects.reduce((s, p) => s + beregnKrediteretCO2(p).krediteretTotal, 0) * 10) /
+      10,
     verificeretTotal: Math.round(verificeretTotal * 10) / 10,
   };
 }
