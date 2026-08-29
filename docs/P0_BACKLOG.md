@@ -20,9 +20,9 @@ Opdateret: 2026-08-29. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Scope:** Knyt observations-ingest til eksplicit projekt-/tenantidentitet eller separat scoped credential; autentificér og autorisér `fetchAndIngestNatureGeo`; bevar åbne geodata som read-only fallback uden privilegeret persistens.
 - **Acceptance criteria:** Credential A kan ikke skrive til projekt B; naturpersistens kræver aktivt medlemskab/rolle; ukendt projekt, URL-manipulation og cross-tenant-kald afvises før service-role-brug; afvisning efterlader ingen delvis skrivning.
 - **Afhængigheder:** Verificeret auth helper og adgang til Supabase dev/test med mindst to organisationer.
-- **Tests:** Negative integrationtests for projekt A/B og roller; serverfunktions-auth; audit-event; live dev/test-smoke.
-- **Status:** planlagt; live tenantverifikation **AFVENTER**.
-- **Evidens/commit:** Statisk fund i `src/lib/nature-geo.functions.ts`; globalt secret-scope i observationsruten; commit **AFVENTER**.
+- **Tests:** 37/37 målrettede natur-/JWT-/rolle-/cross-tenant-/no-write-/persistenstests; typecheck; ændrede TypeScript-filer lint 0; samlet Vitest 29 filer og 222/222 tests; produktionsbuild exit 0. Live dev/test-smoke **AFVENTER**.
+- **Status:** delvist implementeret og lokalt verificeret. Natur-serverfunktionen kræver verificeret JWT, eksplicit projektadgang og editor+/org-admin før service-role; lavere roller er read-only, og kun serverlagret centroid kan persisteres. Observations-ingest er stadig globalt scopet. Deploy er **NO-GO**, fordi `project_members` fortsat tillader self-insert, og effektiv live RLS/to-tenant-isolation ikke er verificeret.
+- **Evidens/commit:** `src/lib/nature-geo.functions.ts`, `src/lib/project-nature-access.server.ts`, de to nye auth-/autorisationstestfiler og servermiljøkontrakten; featurebranch-checkpoint oprettes i denne cyklus.
 
 ## SEC-P0-02 - RLS-lockdown og live tenantverifikation
 

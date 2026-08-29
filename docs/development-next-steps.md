@@ -149,7 +149,11 @@ Status after sprint 2 (feature/gofreyra-project-monitor-report-engine): Project 
 ```env
 # Required for Supabase connection
 VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+
+# Required by authenticated TanStack server functions
+SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=
 
 # Optional: Supabase service role key (server-side only, never expose to browser)
 SUPABASE_SERVICE_ROLE_KEY=
@@ -160,4 +164,4 @@ VITE_DMI_API_KEY=               # DMI Open Data — https://opendatadocs.dmi.gov
 VITE_DATAFORDELER_KEY=          # Datafordeler (DHM + Matrikel) — https://datafordeler.dk
 ```
 
-Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Cloudflare Pages → Settings → Environment Variables for production. Data Foundation connector keys are optional — the app displays preview data without them.
+Add both the browser `VITE_*` pair and the matching server aliases to the runtime environment. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only. Data Foundation connector keys are optional — the app displays preview data without them.

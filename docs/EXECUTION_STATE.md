@@ -1,6 +1,6 @@
 # GoFreyra execution state
 
-Opdateret: 2026-08-29, første manuelle P0-cyklus.
+Opdateret: 2026-08-29, anden manuelle P0-cyklus.
 
 ## Seneste verificerede checkpoint
 
@@ -10,8 +10,9 @@ Opdateret: 2026-08-29, første manuelle P0-cyklus.
 - Runtime er fastlåst til Node `>=22 <23` og npm 10.9.2; frisk `npm ci` består med den synkroniserede lockfil.
 - `npm run typecheck`: exit 0 efter alle ændringer.
 - Målrettet lint på alle ændrede TypeScript-filer: exit 0. Global `npm run lint`: exit 1 med 5.453 fund (5.428 errors, 25 warnings), hovedsageligt eksisterende Prettier-gæld.
-- Målrettede endpoint-/ledger-tests: 27/27 består. Hele Vitest-suiten: 27 filer og 193/193 tests består.
+- Målrettede natur-/JWT-/scope-tests: 37/37 består. Hele Vitest-suiten: 29 filer og 222/222 tests består.
 - `npm run build`: exit 0. Buildscriptet giver Node 4 GB heap; Windows-dev springer den fejlende Lovable MCP-routegenerator over, mens de versionsstyrede MCP-ruter bevares.
+- Natur-serverfunktionen bruger nu den eksisterende bearer-attacher og JWT-middleware, verificerer projektmedlem/org-admin før WFS/admin, reserverer persistens til editor+, bruger kun serverlagret centroid og registrerer den verificerede actor. Læserroller og manglende service-role er read-only.
 - Browser-smoke: `/` sender til `/login`, loginformularen renderes, og der er ingen browserfejl. En advarsel om flere GoTrue-klienter under samme storage key er registreret.
 - Begge sikrede endpoints returnerer 503 før databaseadgang, når deres nye dedikerede secrets mangler.
 - Verificerede checkpoints: `61bf18b` (runtime/npm/ledger), `106c825` (endpoint-sikkerhed/env/cutover) og `142b9f4` (P0-styringsbaseline). Featurebranchen er pushet til `origin/codex/gofreyra-p0`. Ingen PR, merge, deploy eller produktionsændring er udført.
@@ -19,12 +20,12 @@ Opdateret: 2026-08-29, første manuelle P0-cyklus.
 
 ## Aktiv højeste opgave
 
-`SEC-P0-01B`: autorisér og afgræns resterende privilegerede projektflows. `SEC-P0-01A` har lukket observations- og monitoring-endpoints, men natur-serverfunktionen og projektscope for eksternt ingest er endnu ikke færdigverificeret.
+`SEC-P0-01B`: autorisér og afgræns resterende privilegerede projektflows. Naturflowets applikationslag er lokalt implementeret og testet; observations-ingest mangler stadig credential-/projektscope, og live tenantgaten er ikke bestået.
 
 ## Aktive blokeringer
 
-1. Natur-geodata serverfunktionen har ikke verificeret brugerautentifikation/tenantautorisation før mulig service-role-persistens; et globalt ingest-secret er heller ikke projektspecifikt scope.
-2. Migrationshistorikken indeholder legacy åbne policies, og `project_members` tillader self-insert uden at begrænse rolle. Effektiv live RLS er ikke kendt.
+1. Observations-ingest bruger fortsat et globalt secret med caller-valgt `project_id`; `site_id`/`source_id` er heller ikke verificeret mod samme tenant.
+2. Migrationshistorikken indeholder legacy åbne policies, og `project_members` tillader self-insert uden at begrænse rolle. Det kan omgå app-lagets naturrollecheck; effektiv live RLS er ikke kendt, så deployment er **NO-GO**.
 3. Supabase-connectoren har ikke adgang til den konfigurerede instans `ikrmcetjutqcjtwfhzfv`; live schema, Storage, secret-provisionering og to-tenant-tests er blokeret.
 4. Der er to Supabase GoTrue-klienter under samme storage key; browseren advarer om mulig udefineret adfærd.
 5. Global lint er rød, og npm audit rapporterer 17 advisories (2 low, 5 moderate, 10 high). Buildet består, men store chunks og bundler-advarsler mangler triage.
@@ -32,8 +33,8 @@ Opdateret: 2026-08-29, første manuelle P0-cyklus.
 
 ## Næste handlinger
 
-1. Lad næste 90-minutters arbejdscyklus fortsætte med `SEC-P0-01B`; provisionering af to stærke, uafhængige server-secrets og rotation af eventuelle historiske credentials kræver fortsat miljøejerens bekræftelse.
-2. Udfør `SEC-P0-01B`: beskyt naturpersistens og giv eksternt ingest eksplicit projekt-/tenant-scope.
+1. Lad næste 90-minutters arbejdscyklus fortsætte med den resterende del af `SEC-P0-01B`; provisionering af secrets og rotation af eventuelle historiske credentials kræver fortsat miljøejerens bekræftelse.
+2. Giv observations-ingest eksplicit projekt-/tenant-/relation-scope og test credential A mod projekt B uden service-role-write ved afvisning.
 3. Få Supabase dev/test-adgang og udfør RLS-policyinventar samt negativ test med to organisationer.
 4. Konsolidér GoTrue-klientlaget, og fortsæt derefter med næste ublokerede opgave i `P0_BACKLOG.md`.
 
