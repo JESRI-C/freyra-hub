@@ -27,6 +27,7 @@ import { handleMonitoringEvaluatePost } from "@/routes/api/public/monitoring.eva
 import { handleObservationsPost } from "@/routes/api/public/observations";
 
 const PROJECT_ID = "00000000-0000-4000-8000-000000000001";
+const ORGANIZATION_ID = "00000000-0000-4000-8000-000000000099";
 const DEDICATED_SECRET = "dedicated-server-secret-for-tests";
 const PUBLIC_SUPABASE_KEY = "sb_publishable_public-test-key";
 const SECRET_SUPABASE_KEY = "sb_secret_backend-test-key";
@@ -90,13 +91,17 @@ const endpoints: EndpointCase[] = [
 beforeEach(() => {
   vi.clearAllMocks();
   for (const envName of AUTH_ENV_NAMES) vi.stubEnv(envName, "");
+  vi.stubEnv("OBSERVATIONS_INGEST_PROJECT_ID", PROJECT_ID);
 
   mocks.from.mockImplementation((table: string) => {
     if (table === "projects") {
       return {
         select: () => ({
           eq: () => ({
-            maybeSingle: async () => ({ data: { id: PROJECT_ID } }),
+            maybeSingle: async () => ({
+              data: { id: PROJECT_ID, organization_id: ORGANIZATION_ID },
+              error: null,
+            }),
           }),
         }),
       };

@@ -1,5 +1,6 @@
 // Public ingest-endpoint for observationer (sensor/MQTT-bro, feltapps, scripts).
 // Autentificeres med en dedikeret server-secret via `x-api-key` eller Bearer.
+// Secretet er bundet til ét serverkonfigureret projekt; body kan ikke udvide scope.
 // Efter insert genberegnes
 // projektets indicators automatisk, så dashboardet opdateres uden manuel kørsel.
 //
@@ -10,23 +11,44 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { requireDedicatedServerSecret } from "@/lib/server-api-auth.server";
 
+// Postgres accepts UUID/GUID values whose version nibble is 0 (used by the
+// existing deterministic fixtures). Zod's strict uuid validator does not.
+const PostgresIdInput = z.guid().transform((value) => value.toLowerCase());
+
 const ObservationInput = z.object({
   indicator_key: z.string().min(1).max(100),
   value: z.number().finite(),
   unit: z.string().max(50).optional(),
   observed_at: z.string().datetime({ offset: true }).optional(),
   observation_type: z.string().max(100).optional(),
-  site_id: z.string().uuid().optional(),
-  source_id: z.string().uuid().optional(),
+  site_id: PostgresIdInput.optional(),
+  source_id: PostgresIdInput.optional(),
   confidence: z.number().min(0).max(1).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const BodyInput = z.object({
-  project_id: z.string().uuid(),
+  project_id: PostgresIdInput,
   observations: z.array(ObservationInput).min(1).max(500).optional(),
   observation: ObservationInput.optional(),
 });
+
+const RELATION_LOOKUP_CHUNK_SIZE = 100;
+
+async function collectScopedIds(
+  ids: string[],
+  loadChunk: (
+    chunk: string[],
+  ) => PromiseLike<{ data: Array<{ id: string }> | null; error: unknown }>,
+): Promise<{ ids: Set<string>; failed: boolean }> {
+  const scopedIds = new Set<string>();
+  for (let offset = 0; offset < ids.length; offset += RELATION_LOOKUP_CHUNK_SIZE) {
+    const result = await loadChunk(ids.slice(offset, offset + RELATION_LOOKUP_CHUNK_SIZE));
+    if (result.error) return { ids: scopedIds, failed: true };
+    for (const row of result.data ?? []) scopedIds.add(row.id.toLowerCase());
+  }
+  return { ids: scopedIds, failed: false };
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -38,6 +60,15 @@ function jsonResponse(body: unknown, status = 200): Response {
 export async function handleObservationsPost({ request }: { request: Request }): Promise<Response> {
   const authError = await requireDedicatedServerSecret(request, "OBSERVATIONS_INGEST_API_SECRET");
   if (authError) return authError;
+
+  // Credentialets autoritative scope ligger server-side. Det forhindrer, at en
+  // legitim integration kan vælge et andet projekt i request-body.
+  const configuredProject = PostgresIdInput.safeParse(
+    process.env.OBSERVATIONS_INGEST_PROJECT_ID?.trim(),
+  );
+  if (!configuredProject.success) {
+    return jsonResponse({ error: "Ingest scope not configured" }, 503);
+  }
 
   let parsed: z.infer<typeof BodyInput>;
   try {
@@ -52,18 +83,64 @@ export async function handleObservationsPost({ request }: { request: Request }):
     return jsonResponse({ error: "No observations provided" }, 400);
   }
 
+  if (parsed.project_id !== configuredProject.data) {
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   // Verificér at projektet findes, så vi ikke opretter forældreløse rækker.
-  const { data: project } = await supabaseAdmin
+  const { data: project, error: projectError } = await supabaseAdmin
     .from("projects")
-    .select("id")
-    .eq("id", parsed.project_id)
+    .select("id, organization_id")
+    .eq("id", configuredProject.data)
     .maybeSingle();
-  if (!project) return jsonResponse({ error: "Unknown project_id" }, 404);
+  if (projectError) return jsonResponse({ error: "Project validation failed" }, 500);
+  if (!project?.organization_id) return jsonResponse({ error: "Unknown project_id" }, 404);
+
+  // observations har separate foreign keys, men de beviser ikke, at site/source
+  // tilhører samme projekt. Valider alle unikke relationer før bulk-insertet.
+  const siteIds = Array.from(
+    new Set(
+      observations.flatMap((observation) => (observation.site_id ? [observation.site_id] : [])),
+    ),
+  );
+  const sourceIds = Array.from(
+    new Set(
+      observations.flatMap((observation) => (observation.source_id ? [observation.source_id] : [])),
+    ),
+  );
+
+  const [sitesResult, sourcesResult] = await Promise.all([
+    collectScopedIds(siteIds, (chunk) =>
+      supabaseAdmin
+        .from("sites")
+        .select("id")
+        .eq("project_id", configuredProject.data)
+        .in("id", chunk),
+    ),
+    collectScopedIds(sourceIds, (chunk) =>
+      supabaseAdmin
+        .from("data_sources")
+        .select("id")
+        .eq("project_id", configuredProject.data)
+        .in("id", chunk),
+    ),
+  ]);
+
+  if (sitesResult.failed || sourcesResult.failed) {
+    return jsonResponse({ error: "Relation validation failed" }, 500);
+  }
+
+  const hasInvalidRelation =
+    siteIds.some((id) => !sitesResult.ids.has(id)) ||
+    sourceIds.some((id) => !sourcesResult.ids.has(id));
+  if (hasInvalidRelation) {
+    return jsonResponse({ error: "Invalid observation scope" }, 400);
+  }
 
   const rows = observations.map((o) => ({
-    project_id: parsed.project_id,
+    project_id: configuredProject.data,
     site_id: o.site_id ?? null,
     source_id: o.source_id ?? null,
     observation_type: o.observation_type ?? "ingest",
@@ -85,7 +162,7 @@ export async function handleObservationsPost({ request }: { request: Request }):
   try {
     const mod = await import("@/services/monitoring/indicator-aggregation-engine");
     type AggClient = import("@/services/monitoring/indicator-aggregation-engine").AggregationClient;
-    aggregation = await mod.runIndicatorAggregation(parsed.project_id, {
+    aggregation = await mod.runIndicatorAggregation(configuredProject.data, {
       client: supabaseAdmin as unknown as AggClient,
     });
   } catch (err) {
@@ -94,7 +171,7 @@ export async function handleObservationsPost({ request }: { request: Request }):
 
   return jsonResponse({
     inserted: rows.length,
-    project_id: parsed.project_id,
+    project_id: configuredProject.data,
     aggregation,
   });
 }

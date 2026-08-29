@@ -36,10 +36,12 @@ Appen bygges med Vite/TanStack Start; lokal URL fremgår af Vite-output. Kontrol
 Verificerede nøglenavne i kode/konfiguration omfatter:
 
 - Browser/brugerklient: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (legacy fallback `VITE_SUPABASE_ANON_KEY`).
-- Server: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OBSERVATIONS_INGEST_API_SECRET`, `MONITORING_CRON_API_SECRET`.
+- Server: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OBSERVATIONS_INGEST_API_SECRET`, `OBSERVATIONS_INGEST_PROJECT_ID`, `MONITORING_CRON_API_SECRET`.
 - Kilder: `ENABLE_LIVE_DATA`, `DMI_BASE_URL`, `DATAFORDELER_KEY`, `COPERNICUS_TOKEN` og deres dokumenterede Vite-fallbacks, hvor de stadig findes.
 
 Tilføj ikke værdier til dette dokument. En `VITE_*`-værdi er klientlæsbar og må aldrig anvendes som privilegeret endpoint-secret. Ingest/cron-secrets er uafhængige, server-only værdier; de må heller ikke genbruge Supabase secret/service-role keys.
+
+Provisionér observations-ingest som ét runtime-miljø, ét stærkt secret og ét eksisterende projekt-ID med organisation. Request-bodyens `project_id` er kun kompatibilitetsinput og må ikke være autoritativ. Hvis projektbindingen ændres, skal credentialet roteres samtidig; genbrug ikke samme secret til flere projekter. En flerprojekt-integration kræver en særskilt, godkendt credential-/integrationsmodel.
 
 Den konfigurerede Supabase `project_id` er `ikrmcetjutqcjtwfhzfv`, men instansens rolle som dev/test/prod er **AFVENTER**. Skriv ikke migrationer eller testdata, før målmiljø og mandat er bekræftet.
 

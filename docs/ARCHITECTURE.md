@@ -24,7 +24,7 @@ React/TanStack UI
   <- status, versionsreferencer, fejl og proveniens
 ```
 
-Browseren bruger en publishable Supabase-nøgle og brugerens session. `service_role` omgår RLS og må kun anvendes efter server-side autentifikation, autorisation og afgrænsning. Observations- og monitoring-ruterne kræver nu hver sin uafhængige server-secret; projektscope og natur-serverfunktionen udestår i `SEC-P0-01B`.
+Browseren bruger en publishable Supabase-nøgle og brugerens session. `service_role` omgår RLS og må kun anvendes efter server-side autentifikation, autorisation og afgrænsning. Observations- og monitoring-ruterne kræver hver sin uafhængige server-secret. Observations-secretet er desuden server-side bundet én-til-én til `OBSERVATIONS_INGEST_PROJECT_ID`; request-body kan ikke udvide scopet, og site- og datakilde-ID'er valideres mod samme projekt før bulk-insert. Natur-serverfunktionen er tilsvarende projekt- og rollebegrænset i applikationslaget. Databasehåndhævelse og live to-tenant-evidens udestår i `SEC-P0-02`.
 
 Der findes fortsat to browser-Supabase-klientlag. Browser-smoke reproducerer GoTrue-advarslen om flere klienter under samme storage key; `AUTH-P0-01` skal konsolidere sessionejerskabet.
 
@@ -67,7 +67,7 @@ Der findes klientbaseret PDF-generering med `jsPDF` og metadata i `documents`, m
 - Supabase `project_id` i repoet er `ikrmcetjutqcjtwfhzfv`; miljøets identitet og rolle som dev/test/prod er **AFVENTER**.
 - Dev/test/prod-adskillelse, Storage-buckets og deploypipeline er **AFVENTER** live verifikation.
 - Lokale værdier må kun ligge i ignorerede env-filer eller platformens secret store. Kun nøglenavne må dokumenteres eller versionsstyres.
-- Privilegerede ingest/cron-ruter bruger `OBSERVATIONS_INGEST_API_SECRET` og `MONITORING_CRON_API_SECRET`; de må ikke genbruge nogen Supabase API-nøgle.
+- Privilegerede ingest/cron-ruter bruger `OBSERVATIONS_INGEST_API_SECRET`, `OBSERVATIONS_INGEST_PROJECT_ID` og `MONITORING_CRON_API_SECRET`; secrets må ikke genbruge nogen Supabase API-nøgle. Den nuværende ingestmodel er ét runtime-miljø, ét credential og ét projekt.
 
 ## Sikkerhedsinvarianter
 

@@ -18,6 +18,7 @@ Senest opdateret: 2026-08-29. Status `besluttet` er bindende for P0; `AFVENTER` 
 | ADR-012 | besluttet | Den lokale/CI-buildvej er npm på Node 22 med en 4 GB heap. Lovable MCP-routegeneratoren kører kun i non-Windows dev, indtil upstream path-normalisering er verificeret; versionsstyrede ruter bevares.                                                                       |
 | ADR-013 | besluttet | npm og `package-lock.json` er den kanoniske dependency-vej for P0. Den trackede `bun.lock` er legacy og ikke autoritativ; den må ikke bruges til installation eller opdateres, før en særskilt oprydningsbeslutning er godkendt.                                             |
 | ADR-014 | besluttet | Browserudløst naturdata er projektbundet: verificeret JWT og eksplicit projekt-/organisationsrolle afgør adgang; kun editor+ eller org owner/admin med en gyldig serverlagret centroid må udløse `service_role`. Felt-/læser-/eksternroller får kun åbne WFS-data read-only. |
+| ADR-015 | besluttet | Observations-ingest bruger indtil videre en én-til-én-model: ét server-only credential og ét `OBSERVATIONS_INGEST_PROJECT_ID` pr. runtime. Bodyens projekt-ID er ikke autoritativt, og alle site-/datakilder valideres mod projektet før skrivning. Scopeskift kræver credentialrotation; flerprojektbrug kræver en særskilt integrationsmodel. |
 
 ## AFVENTER
 
