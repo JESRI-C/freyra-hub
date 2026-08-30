@@ -1,6 +1,6 @@
 # GoFreyra operations runbook
 
-Opdateret: 2026-08-29. Dette er den verificerede lokale baseline. Produktion er uden for mandatet.
+Opdateret: 2026-08-30. Dette er den verificerede lokale baseline. Produktion er uden for mandatet.
 
 ## 1. Før start
 
@@ -55,6 +55,14 @@ Den konfigurerede Supabase `project_id` er `ikrmcetjutqcjtwfhzfv`, men instansen
 
 Efter migration skal mindst to organisationer testes negativt for tabel- og Storage-adgang. Service-role-resultater er ikke RLS-evidens.
 
+### 4.1 Dronefotos
+
+- Brug monitoring-uploadet (`/app/connect/upload`) som indgang til dronefotos; skriv ikke nye dronefotos direkte til den generelle projektmedietabel.
+- Originalfilen og dens SHA-256 er autoritative. Bevar den versionerede rå EXIF/XMP-envelope og parserfejl sammen med normaliserede felter; kopier ikke kun de synlige GPS-felter.
+- Aktivér ikke automatisk et foto på kortet ved manglende/modstridende GPS, ukendt UTC eller parsefejl. Brug aldrig projektcentroid som erstatning.
+- Et EXIF-kamerapunkt er ikke et billed-footprint, en ortofoto-georeference eller dokumentation for fotogrammetrisk nøjagtighed.
+- Canonical routing til `drone_assets`, privat bucket/path, resumable/batchupload, idempotens, retention og live RLS-/Storage-tests er **AFVENTER**. Store uploads skal have en verificeret resumable strategi før kundedrift.
+
 ## 5. Kvalitetsgate
 
 Kør i denne rækkefølge og log kommando, dato, miljø, exit og commit:
@@ -66,7 +74,7 @@ npm test
 npm run build
 ```
 
-Kør desuden målrettede tests før hele suiten. Verificeret checkpoint: frisk `npm ci`, typecheck, 193/193 Vitest-tests og `npm run build` består. Buildscriptet giver Node 4 GB heap, fordi Nitro-bundlingen overstiger standardheapen. Ændrede TypeScript-filer har lint 0; global lint er fortsat rød med 5.428 errors/25 warnings og skal ned på 0 før P0-release.
+Kør desuden målrettede tests før hele suiten. Verificeret checkpoint 2026-08-30: frisk `npm ci` fra baseline, typecheck, 259/259 Vitest-tests og `npm run build` består. Buildscriptet giver Node 4 GB heap, fordi Nitro-bundlingen overstiger standardheapen. Ændrede TypeScript-filer har lint 0; senest observerede globale lintbaseline er fortsat rød med 5.407 errors/25 warnings og skal ned på 0 før P0-release.
 
 På Windows springes Lovable MCP-routegeneratoren over, fordi den aktuelle pakke sammenligner blandede slash-formater; de genererede MCP-ruter ligger allerede i Git. På andre platforme kører pluginet fortsat i dev, aldrig i produktionsbuild. Genaktivér ikke Windows-pluginet uden en verificeret upstream-fix.
 

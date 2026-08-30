@@ -1,6 +1,6 @@
 # Prioriteret P0-backlog
 
-Opdateret: 2026-08-29. Rækkefølgen er bindende, medmindre en opgave er dokumenteret blokeret. `AFVENTER` er ikke implementeret.
+Opdateret: 2026-08-30. Rækkefølgen er bindende, medmindre en opgave er dokumenteret blokeret. `AFVENTER` er ikke implementeret.
 
 ## SEC-P0-01A - public endpoint credential containment
 
@@ -75,9 +75,9 @@ Opdateret: 2026-08-29. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Scope:** Før/Efter survey rounds, versionsfaste aktiver/datasæt, obligatorisk foto-/droneproveniens, parring og godkendelse; swipe, side-by-side og opacity med synkroniseret udsnit.
 - **Acceptance criteria:** Brugeren vælger to rounds/datasæt, sammenligner dem og genfinder samme par/valg efter reload; par viser afstand, retning, tid, fotograf og reviewer; mindst 90 % af P0-fotopunkter er godkendte; fejlet behandling vises aldrig som klar.
 - **Afhængigheder:** Storage/metadata, tenant-RLS, repræsentativt P0-datasæt og projektgrænse.
-- **Tests:** Domain/unit, upload/persistence-integration, browser swipe/side-by-side/opacity, negative metadata- og cross-tenant-tests.
-- **Status:** planlagt; visuel swipe-komponent findes, domæneflow **AFVENTER**.
-- **Evidens/commit:** `BeforeAfterCompare.tsx`/`MediaLightbox.tsx`; ingen `survey_rounds` eller `photo_pairs` fundet; commit **AFVENTER**.
+- **Tests:** Domain/unit, upload/persistence-integration, browser swipe/side-by-side/opacity, negative metadata- og cross-tenant-tests. Den lokale drone-del har 32/32 målrettede upload-/metadata-tests, heraf 22 parser-/regressionstests med en reel minimal JPEG/EXIF-fixture; fuld suite 259/259.
+- **Status:** delvist implementeret lokalt. Dronefotos routes gennem uploadvalidering; originalens hash, rå EXIF/XMP, normaliserede geodata og QA ligger tabsfrit i `uploads.detected_metadata`, og syntetisk centroid bruges ikke. Survey rounds, fotopar, synkroniserede sammenligninger, reviewerflow, canonical `drone_assets`-routing, privat bucket, resumable batchupload, footprint/ortofoto og live tenantverifikation er **AFVENTER**.
+- **Evidens/commit:** `BeforeAfterCompare.tsx`/`MediaLightbox.tsx`; `drone-image-metadata.ts`, uploadservicen, UploadWizard og metadata-/regressionstests i cyklus 004. Ingen `survey_rounds` eller `photo_pairs` fundet; samlet checkpoint-commit oprettes på `codex/gofreyra-p0`.
 
 ## MEAS-P0-01 - persistente målinger og faglig validering
 

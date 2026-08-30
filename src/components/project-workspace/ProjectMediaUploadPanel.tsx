@@ -14,7 +14,6 @@ interface ProjectMediaUploadPanelProps {
 
 const CATEGORIES: MediaCategory[] = [
   "field_photo",
-  "drone_image",
   "before_after",
   "biodiversity_observation",
   "water_observation",
@@ -22,6 +21,8 @@ const CATEGORIES: MediaCategory[] = [
   "document_scan",
   "satellite_snapshot",
 ];
+
+const MAX_MEDIA_FILE_BYTES = 50 * 1024 * 1024;
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -40,7 +41,7 @@ export function ProjectMediaUploadPanel({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<MediaCategory>("field_photo");
   const [isReportReady, setIsReportReady] = useState(false);
-  const [useCentroid, setUseCentroid] = useState(!!projectCentroid);
+  const [useCentroid, setUseCentroid] = useState(false);
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
   const [tags, setTags] = useState("");
@@ -54,6 +55,21 @@ export function ProjectMediaUploadPanel({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     if (!file) return;
+
+    if (file.size > MAX_MEDIA_FILE_BYTES) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setErrorMsg("Filen er større end 50 MB.");
+      e.target.value = "";
+      return;
+    }
+    if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setErrorMsg(`Filtypen ${file.type || "ukendt"} understøttes ikke.`);
+      e.target.value = "";
+      return;
+    }
 
     setSelectedFile(file);
     setSuccessMsg(null);
@@ -154,6 +170,15 @@ export function ProjectMediaUploadPanel({
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <div className="text-sm font-semibold">Upload medie</div>
 
+      <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] text-sky-900">
+        Dronefotos importeres via{" "}
+        <a className="font-semibold underline" href="/app/connect/upload">
+          Uploadcenter
+        </a>
+        , hvor EXIF, XMP, GPS, UTC-tid, orientering, RTK-oplysninger og checksum bevares og
+        valideres.
+      </div>
+
       {/* Preview mode banner */}
       {!isSupabaseConfigured && (
         <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
@@ -188,7 +213,7 @@ export function ProjectMediaUploadPanel({
           <>
             <UploadCloud className="h-6 w-6 text-muted-foreground" />
             <p className="text-xs text-muted-foreground text-center">
-              Træk billeder hertil eller klik for at vælge
+              Klik for at vælge billede eller PDF
             </p>
             <p className="text-[10px] text-muted-foreground/60">JPG, PNG, TIFF, PDF · max 50 MB</p>
           </>

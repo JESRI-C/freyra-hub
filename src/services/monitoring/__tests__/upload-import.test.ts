@@ -1,10 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildImageDetectedMetadata,
+  parseImage,
   parseGeoJson,
   suggestMapping,
   validateTabular,
+  type ImagePreview,
   type TabularPreview,
 } from "@/services/monitoring/upload-import-service";
+import type { DroneImageMetadata } from "@/services/monitoring/drone-image-metadata";
 
 function makeFile(content: string, name: string, type = "application/json"): File {
   return new File([content], name, { type });
@@ -89,7 +93,15 @@ describe("parseGeoJson", () => {
           properties: {},
           geometry: {
             type: "Polygon",
-            coordinates: [[[10, 54], [11, 54], [11, 55], [10, 55], [10, 54]]],
+            coordinates: [
+              [
+                [10, 54],
+                [11, 54],
+                [11, 55],
+                [10, 55],
+                [10, 54],
+              ],
+            ],
           },
         },
       ],
@@ -119,5 +131,117 @@ describe("parseGeoJson", () => {
     const file = makeFile(JSON.stringify(collection), "x.geojson");
     const preview = await parseGeoJson(file);
     expect(preview.errors.some((e) => e.includes("uden geometri"))).toBe(true);
+  });
+});
+
+describe("drone image staging", () => {
+  const droneMetadata: DroneImageMetadata = {
+    schemaVersion: "drone-image-metadata/v1",
+    extractor: "exifr@7.1.3",
+    file: {
+      name: "DJI_0001.JPG",
+      sizeBytes: 42,
+      mimeType: "image/jpeg",
+      lastModified: 0,
+      sha256: "a".repeat(64),
+    },
+    raw: {
+      exif: { gps: { latitude: 55.245678, longitude: 9.487654 } },
+      xmpXml: "<x:xmpmeta />",
+      xmp: { GimbalYawDegree: 91.5 },
+      parseErrors: [],
+    },
+    capture: {
+      capturedAtUtc: "2026-08-28T12:05:06.000Z",
+      offset: "+02:00",
+      timezoneKnown: true,
+      source: "exif-offset",
+    },
+    position: {
+      latitude: 55.245678,
+      longitude: 9.487654,
+      source: "exif",
+      datum: "WGS-84",
+    },
+    altitude: { absoluteM: 82.5 },
+    orientation: {
+      gimbal: { yawDeg: 91.5, pitchDeg: -90, rollDeg: 0 },
+      viewDirectionDeg: 91.5,
+      reference: "vendor_reported",
+    },
+    camera: { make: "DJI", model: "Mavic 3 Enterprise", widthPx: 5280, heightPx: 3956 },
+    rtk: { flagRaw: "50" },
+    footprintReadiness: "needs_ground_elevation",
+    qa: { status: "ready", errors: [], warnings: [] },
+  };
+
+  it("maps the normalized metadata returned by the shared extractor", async () => {
+    const file = new File(["fixture"], "DJI_0001.JPG", { type: "image/jpeg" });
+    const preview = await parseImage(file, async () => droneMetadata);
+
+    expect(preview).toMatchObject({
+      latitude: 55.245678,
+      longitude: 9.487654,
+      altitudeM: 82.5,
+      directionDeg: 91.5,
+      capturedAt: "2026-08-28T12:05:06.000Z",
+      cameraMake: "DJI",
+      cameraModel: "Mavic 3 Enterprise",
+    });
+  });
+
+  it("persists checksum, raw evidence and readiness in the detected metadata envelope", () => {
+    const preview: ImagePreview = {
+      kind: "image",
+      width: 5280,
+      height: 3956,
+      latitude: 55.245678,
+      longitude: 9.487654,
+      altitudeM: 82.5,
+      directionDeg: 91.5,
+      capturedAt: "2026-08-28T12:05:06.000Z",
+      cameraMake: "DJI",
+      cameraModel: "Mavic 3 Enterprise",
+      droneMetadata,
+      errors: [],
+    };
+
+    const detected = buildImageDetectedMetadata(preview);
+
+    expect(detected).toMatchObject({
+      content_sha256: "a".repeat(64),
+      metadata_schema_version: "drone-image-metadata/v1",
+      metadata_status: "ready",
+      ready_for_camera_position: true,
+      latitude: 55.245678,
+      longitude: 9.487654,
+      drone_metadata: {
+        raw: {
+          exif: { gps: { latitude: 55.245678, longitude: 9.487654 } },
+          xmpXml: "<x:xmpmeta />",
+        },
+      },
+    });
+  });
+
+  it("never emits synthetic coordinates when the extractor has no position", () => {
+    const withoutPosition: DroneImageMetadata = {
+      ...droneMetadata,
+      position: undefined,
+      qa: {
+        status: "blocked",
+        errors: [{ code: "position_missing", message: "Mangler position" }],
+        warnings: [],
+      },
+    };
+    const detected = buildImageDetectedMetadata({
+      kind: "image",
+      droneMetadata: withoutPosition,
+      errors: ["Mangler position"],
+    });
+
+    expect(detected.ready_for_camera_position).toBe(false);
+    expect(detected).not.toHaveProperty("latitude");
+    expect(detected).not.toHaveProperty("longitude");
   });
 });

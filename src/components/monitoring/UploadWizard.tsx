@@ -4,7 +4,15 @@
 // flow inside the shared Drawer primitive so it can be triggered from
 // the Upload center, the Live-data toolbar, or the topbar.
 import { useCallback, useMemo, useState } from "react";
-import { UploadCloud, CheckCircle2, AlertTriangle, Loader2, FileText, Image as ImageIcon, MapPin } from "lucide-react";
+import {
+  UploadCloud,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+  FileText,
+  Image as ImageIcon,
+  MapPin,
+} from "lucide-react";
 import { Drawer } from "@/components/connect/Primitives";
 import {
   parseCsv,
@@ -13,6 +21,7 @@ import {
   parseKml,
   parseGpx,
   parseImage,
+  buildImageDetectedMetadata,
   suggestMapping,
   validateTabular,
   type ParsePreview,
@@ -26,6 +35,7 @@ import {
   MAX_UPLOAD_BYTES,
   type UploadType,
 } from "@/services/monitoring/uploads-service";
+import { isReadyForAutomaticCameraPosition } from "@/services/monitoring/drone-image-metadata";
 
 interface Props {
   open: boolean;
@@ -70,7 +80,8 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
       if (t === "geojson" || ext === "geojson" || ext === "json") return await parseGeoJson(f);
       if (t === "kml" || ext === "kml") return await parseKml(f);
       if (t === "gpx" || ext === "gpx") return await parseGpx(f);
-      if (t === "image" || t === "drone_photo" || f.type.startsWith("image/")) return await parseImage(f);
+      if (t === "image" || t === "drone_photo" || f.type.startsWith("image/"))
+        return await parseImage(f);
     } catch (err) {
       setError((err as Error).message);
       return null;
@@ -122,13 +133,7 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
         detected.polygons = preview.polygons;
         detected.bbox = preview.bbox;
       } else if (preview?.kind === "image") {
-        detected.width = preview.width;
-        detected.height = preview.height;
-        if (preview.latitude != null) detected.latitude = preview.latitude;
-        if (preview.longitude != null) detected.longitude = preview.longitude;
-        if (preview.capturedAt) detected.captured_at = preview.capturedAt;
-        if (preview.cameraMake) detected.camera_make = preview.cameraMake;
-        if (preview.cameraModel) detected.camera_model = preview.cameraModel;
+        Object.assign(detected, buildImageDetectedMetadata(preview));
       }
       await uploadFile({
         file,
@@ -231,8 +236,29 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
               onChange={(e) => setUploadType(e.target.value as UploadType)}
               className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
             >
-              {["image", "video", "audio", "csv", "excel", "geojson", "kml", "gpx", "pdf", "document", "drone_photo", "drone_video", "orthophoto", "sensor_data", "field_observation", "species_observation", "map_layer", "other"].map((t) => (
-                <option key={t} value={t}>{t}</option>
+              {[
+                "image",
+                "video",
+                "audio",
+                "csv",
+                "excel",
+                "geojson",
+                "kml",
+                "gpx",
+                "pdf",
+                "document",
+                "drone_photo",
+                "drone_video",
+                "orthophoto",
+                "sensor_data",
+                "field_observation",
+                "species_observation",
+                "map_layer",
+                "other",
+              ].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </div>
@@ -244,7 +270,9 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
           <div className="rounded-lg border bg-card p-3">
             <div className="text-sm font-semibold mb-2">Kolonnemapping</div>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              {(["timestamp", "value", "latitude", "longitude", "parameter", "device"] as const).map((k) => (
+              {(
+                ["timestamp", "value", "latitude", "longitude", "parameter", "device"] as const
+              ).map((k) => (
                 <label key={k} className="block">
                   <div className="text-muted-foreground mb-0.5 capitalize">{k}</div>
                   <select
@@ -258,7 +286,9 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
                   >
                     <option value="">— ingen —</option>
                     {preview.headers.map((h) => (
-                      <option key={h} value={h}>{h}</option>
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
                     ))}
                   </select>
                 </label>
@@ -272,10 +302,17 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <Stat label="Total" value={validation.totalRows} />
                 <Stat label="Valide" value={validation.validRows} tone="success" />
-                <Stat label="Ugyldige" value={validation.invalidRows} tone={validation.invalidRows > 0 ? "danger" : "muted"} />
+                <Stat
+                  label="Ugyldige"
+                  value={validation.invalidRows}
+                  tone={validation.invalidRows > 0 ? "danger" : "muted"}
+                />
               </div>
               {validation.warnings.map((w) => (
-                <div key={w} className="mt-2 text-xs text-warning-foreground flex items-start gap-1.5">
+                <div
+                  key={w}
+                  className="mt-2 text-xs text-warning-foreground flex items-start gap-1.5"
+                >
                   <AlertTriangle className="h-3 w-3 mt-0.5" /> {w}
                 </div>
               ))}
@@ -288,13 +325,17 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
           )}
 
           <div className="rounded-lg border bg-card p-3">
-            <div className="text-sm font-semibold mb-2">Preview (første {preview.sampleRows.length})</div>
+            <div className="text-sm font-semibold mb-2">
+              Preview (første {preview.sampleRows.length})
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b text-muted-foreground text-left">
                     {preview.headers.slice(0, 6).map((h) => (
-                      <th key={h} className="px-2 py-1">{h}</th>
+                      <th key={h} className="px-2 py-1">
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -302,7 +343,9 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
                   {preview.sampleRows.map((r, i) => (
                     <tr key={i} className="border-b">
                       {preview.headers.slice(0, 6).map((h) => (
-                        <td key={h} className="px-2 py-1 truncate max-w-[120px]">{String(r[h] ?? "")}</td>
+                        <td key={h} className="px-2 py-1 truncate max-w-[120px]">
+                          {String(r[h] ?? "")}
+                        </td>
                       ))}
                     </tr>
                   ))}
@@ -337,22 +380,79 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
 
       {preview?.kind === "image" && (
         <div className="rounded-lg border bg-card p-3 text-sm space-y-2">
-          <div className="font-semibold">Billed-metadata</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-semibold">Drone- og billedmetadata</div>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                preview.droneMetadata.qa.status === "ready"
+                  ? "bg-success/15 text-success"
+                  : preview.droneMetadata.qa.status === "blocked"
+                    ? "bg-destructive/15 text-destructive"
+                    : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {preview.droneMetadata.qa.status === "ready"
+                ? "Klar til kameraposition"
+                : preview.droneMetadata.qa.status === "blocked"
+                  ? "Position blokeret"
+                  : "Kræver kontrol"}
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <Stat label="Bredde" value={preview.width ?? "—"} />
             <Stat label="Højde" value={preview.height ?? "—"} />
-            <Stat label="GPS lat" value={preview.latitude != null ? preview.latitude.toFixed(5) : "—"} tone={preview.latitude != null ? "success" : "muted"} />
-            <Stat label="GPS lng" value={preview.longitude != null ? preview.longitude.toFixed(5) : "—"} tone={preview.longitude != null ? "success" : "muted"} />
+            <Stat
+              label="GPS lat"
+              value={preview.latitude != null ? preview.latitude.toFixed(5) : "—"}
+              tone={preview.latitude != null ? "success" : "muted"}
+            />
+            <Stat
+              label="GPS lng"
+              value={preview.longitude != null ? preview.longitude.toFixed(5) : "—"}
+              tone={preview.longitude != null ? "success" : "muted"}
+            />
+            <Stat
+              label="Absolut højde"
+              value={preview.altitudeM != null ? `${preview.altitudeM.toFixed(2)} m` : "—"}
+            />
+            <Stat
+              label="Synsretning"
+              value={preview.directionDeg != null ? `${preview.directionDeg.toFixed(1)}°` : "—"}
+            />
           </div>
-          {preview.capturedAt && <div className="text-xs text-muted-foreground">Taget: {new Date(preview.capturedAt).toLocaleString()}</div>}
-          {(preview.cameraMake || preview.cameraModel) && (
-            <div className="text-xs text-muted-foreground">Kamera: {preview.cameraMake} {preview.cameraModel}</div>
-          )}
-          {preview.latitude == null && (
-            <div className="text-xs text-warning-foreground flex items-start gap-1.5">
-              <AlertTriangle className="h-3 w-3 mt-0.5" /> Ingen GPS i EXIF — filen får ingen kortplacering før den tagges manuelt.
+          {preview.capturedAt && (
+            <div className="text-xs text-muted-foreground">
+              Taget: {new Date(preview.capturedAt).toLocaleString()}
             </div>
           )}
+          {(preview.cameraMake || preview.cameraModel) && (
+            <div className="text-xs text-muted-foreground">
+              Kamera: {preview.cameraMake} {preview.cameraModel}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <Stat label="Metadata" value={preview.droneMetadata.extractor} />
+            <Stat label="SHA-256" value={preview.droneMetadata.file.sha256.slice(0, 12)} />
+            <Stat label="RTK" value={preview.droneMetadata.rtk.flagRaw ?? "—"} />
+            <Stat label="Footprint" value={preview.droneMetadata.footprintReadiness} />
+          </div>
+          {preview.droneMetadata.qa.errors.map((issue) => (
+            <div key={issue.code} className="text-xs text-destructive flex items-start gap-1.5">
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" /> {issue.message}
+            </div>
+          ))}
+          {preview.droneMetadata.qa.warnings.map((issue) => (
+            <div key={issue.code} className="text-xs text-amber-800 flex items-start gap-1.5">
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" /> {issue.message}
+            </div>
+          ))}
+          {!isReadyForAutomaticCameraPosition(preview.droneMetadata) ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+              Originalfil og metadata kan lægges i valideringskøen, men aktivering på kortet er
+              blokeret, indtil position og UTC-tid er verificeret. Projektets centrum anvendes
+              aldrig automatisk.
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -368,7 +468,8 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
           <div>
             <div className="font-semibold">Fil uploadet</div>
             <div className="text-xs text-muted-foreground mt-1">
-              Filen ligger nu i upload-køen med status "Afventer validering". Åbn Upload center for at godkende og route til map/Ledger/DecisionsIQ.
+              Filen ligger nu i upload-køen med status "Afventer validering". Åbn Upload center for
+              at godkende og route til map/Ledger/DecisionsIQ.
             </div>
           </div>
         </div>
@@ -377,8 +478,21 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
   );
 }
 
-function Stat({ label, value, tone = "muted" }: { label: string; value: string | number; tone?: "muted" | "success" | "danger" }) {
-  const cls = tone === "success" ? "text-success" : tone === "danger" ? "text-destructive" : "text-foreground";
+function Stat({
+  label,
+  value,
+  tone = "muted",
+}: {
+  label: string;
+  value: string | number;
+  tone?: "muted" | "success" | "danger";
+}) {
+  const cls =
+    tone === "success"
+      ? "text-success"
+      : tone === "danger"
+        ? "text-destructive"
+        : "text-foreground";
   return (
     <div className="rounded-lg border bg-muted/30 p-2">
       <div className="text-[10px] text-muted-foreground">{label}</div>

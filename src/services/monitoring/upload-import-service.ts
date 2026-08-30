@@ -4,7 +4,11 @@
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { kml, gpx } from "@tmcw/togeojson";
-import exifr from "exifr";
+import {
+  extractDroneImageMetadata,
+  isReadyForAutomaticCameraPosition,
+  type DroneImageMetadata,
+} from "./drone-image-metadata";
 
 export interface TabularPreview {
   kind: "tabular";
@@ -32,9 +36,12 @@ export interface ImagePreview {
   height?: number;
   latitude?: number;
   longitude?: number;
+  altitudeM?: number;
+  directionDeg?: number;
   capturedAt?: string;
   cameraMake?: string;
   cameraModel?: string;
+  droneMetadata: DroneImageMetadata;
   errors: string[];
 }
 
@@ -58,7 +65,9 @@ export async function parseCsv(file: File): Promise<TabularPreview> {
           rows,
           totalRows: rows.length,
           sampleRows: rows.slice(0, SAMPLE_SIZE),
-          errors: (result.errors ?? []).slice(0, 20).map((e) => `${e.type}: ${e.message} (række ${e.row ?? "?"})`),
+          errors: (result.errors ?? [])
+            .slice(0, 20)
+            .map((e) => `${e.type}: ${e.message} (række ${e.row ?? "?"})`),
         });
       },
       error: (err) => reject(err),
@@ -122,31 +131,60 @@ export async function parseGpx(file: File): Promise<GeoPreview> {
   return summarizeGeo(collection);
 }
 
-export async function parseImage(file: File): Promise<ImagePreview> {
-  try {
-    const meta = await exifr.parse(file, { gps: true }).catch(() => null);
-    const bmp = await tryDecodeSize(file);
-    return {
-      kind: "image",
-      width: bmp?.width,
-      height: bmp?.height,
-      latitude: typeof meta?.latitude === "number" ? meta.latitude : undefined,
-      longitude: typeof meta?.longitude === "number" ? meta.longitude : undefined,
-      capturedAt: meta?.DateTimeOriginal ? new Date(meta.DateTimeOriginal).toISOString() : undefined,
-      cameraMake: typeof meta?.Make === "string" ? meta.Make : undefined,
-      cameraModel: typeof meta?.Model === "string" ? meta.Model : undefined,
-      errors: [],
-    };
-  } catch (err) {
-    return { kind: "image", errors: [(err as Error).message] };
-  }
+export async function parseImage(
+  file: File,
+  extractor: typeof extractDroneImageMetadata = extractDroneImageMetadata,
+): Promise<ImagePreview> {
+  const metadata = await extractor(file);
+  const bmp = await tryDecodeSize(file);
+  return {
+    kind: "image",
+    width: bmp?.width ?? metadata.camera.widthPx,
+    height: bmp?.height ?? metadata.camera.heightPx,
+    latitude: metadata.position?.latitude,
+    longitude: metadata.position?.longitude,
+    altitudeM: metadata.altitude.absoluteM ?? metadata.altitude.gpsM,
+    directionDeg: metadata.orientation.viewDirectionDeg,
+    capturedAt: metadata.capture.capturedAtUtc,
+    cameraMake: metadata.camera.make,
+    cameraModel: metadata.camera.model,
+    droneMetadata: metadata,
+    errors: metadata.qa.errors.map((issue) => issue.message),
+  };
+}
+
+/**
+ * Builds the versioned staging envelope persisted with the upload row. The
+ * full normalized/raw evidence remains nested while the fields used for list
+ * views and routing are duplicated at the top level deliberately.
+ */
+export function buildImageDetectedMetadata(preview: ImagePreview): Record<string, unknown> {
+  const detected: Record<string, unknown> = {
+    content_sha256: preview.droneMetadata.file.sha256,
+    metadata_schema_version: preview.droneMetadata.schemaVersion,
+    metadata_status: preview.droneMetadata.qa.status,
+    ready_for_camera_position: isReadyForAutomaticCameraPosition(preview.droneMetadata),
+    drone_metadata: preview.droneMetadata,
+  };
+  if (preview.width != null) detected.width = preview.width;
+  if (preview.height != null) detected.height = preview.height;
+  if (preview.latitude != null) detected.latitude = preview.latitude;
+  if (preview.longitude != null) detected.longitude = preview.longitude;
+  if (preview.capturedAt) detected.captured_at = preview.capturedAt;
+  if (preview.cameraMake) detected.camera_make = preview.cameraMake;
+  if (preview.cameraModel) detected.camera_model = preview.cameraModel;
+  if (preview.altitudeM != null) detected.altitude_m = preview.altitudeM;
+  if (preview.directionDeg != null) detected.direction_deg = preview.directionDeg;
+  return detected;
 }
 
 async function tryDecodeSize(file: File): Promise<{ width: number; height: number } | null> {
   if (typeof createImageBitmap !== "function") return null;
   try {
     const bmp = await createImageBitmap(file);
-    return { width: bmp.width, height: bmp.height };
+    const dimensions = { width: bmp.width, height: bmp.height };
+    bmp.close();
+    return dimensions;
   } catch {
     return null;
   }
@@ -171,7 +209,10 @@ function summarizeGeo(collection: GeoJSON.FeatureCollection): GeoPreview {
   let lines = 0;
   let polygons = 0;
   const errors: string[] = [];
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const f of features) {
     if (!f.geometry) {
       errors.push("Feature uden geometri sprunget over.");
@@ -193,7 +234,9 @@ function summarizeGeo(collection: GeoJSON.FeatureCollection): GeoPreview {
   return {
     kind: "geo",
     featureCount: features.length,
-    points, lines, polygons,
+    points,
+    lines,
+    polygons,
     geojson: collection,
     bbox,
     errors,
@@ -202,14 +245,20 @@ function summarizeGeo(collection: GeoJSON.FeatureCollection): GeoPreview {
 
 function flatten(g: GeoJSON.Geometry): [number, number][] {
   switch (g.type) {
-    case "Point": return [g.coordinates as [number, number]];
+    case "Point":
+      return [g.coordinates as [number, number]];
     case "MultiPoint":
-    case "LineString": return g.coordinates as [number, number][];
+    case "LineString":
+      return g.coordinates as [number, number][];
     case "MultiLineString":
-    case "Polygon": return (g.coordinates as [number, number][][]).flat();
-    case "MultiPolygon": return (g.coordinates as [number, number][][][]).flat(2);
-    case "GeometryCollection": return g.geometries.flatMap(flatten);
-    default: return [];
+    case "Polygon":
+      return (g.coordinates as [number, number][][]).flat();
+    case "MultiPolygon":
+      return (g.coordinates as [number, number][][][]).flat(2);
+    case "GeometryCollection":
+      return g.geometries.flatMap(flatten);
+    default:
+      return [];
   }
 }
 
@@ -231,7 +280,17 @@ export function suggestMapping(headers: string[]): ColumnMapping {
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const find = (needles: string[]) => headers.find((h) => needles.includes(norm(h)));
   return {
-    timestamp: find(["timestamp", "measuredat", "time", "date", "datetime", "tid", "tidspunkt", "målttidspunkt", "malttidspunkt"]),
+    timestamp: find([
+      "timestamp",
+      "measuredat",
+      "time",
+      "date",
+      "datetime",
+      "tid",
+      "tidspunkt",
+      "målttidspunkt",
+      "malttidspunkt",
+    ]),
     latitude: find(["lat", "latitude", "breddegrad"]),
     longitude: find(["lng", "lon", "long", "longitude", "længdegrad", "laengdegrad"]),
     value: find(["value", "reading", "measurement", "vaerdi", "værdi"]),
@@ -248,10 +307,14 @@ export interface ValidationSummary {
   errors: string[];
 }
 
-export function validateTabular(preview: TabularPreview, mapping: ColumnMapping): ValidationSummary {
+export function validateTabular(
+  preview: TabularPreview,
+  mapping: ColumnMapping,
+): ValidationSummary {
   const warnings: string[] = [];
   const errors: string[] = [];
-  if (!mapping.timestamp) warnings.push("Ingen tids-kolonne valgt — importerede rækker får uploadtidspunkt.");
+  if (!mapping.timestamp)
+    warnings.push("Ingen tids-kolonne valgt — importerede rækker får uploadtidspunkt.");
   if (!mapping.value) warnings.push("Ingen værdi-kolonne valgt — kun geografi importeres.");
   let valid = 0;
   let invalid = 0;
@@ -267,13 +330,19 @@ export function validateTabular(preview: TabularPreview, mapping: ColumnMapping)
     if (ok && mapping.latitude && mapping.longitude) {
       const lat = Number(row[mapping.latitude]);
       const lng = Number(row[mapping.longitude]);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        Math.abs(lat) > 90 ||
+        Math.abs(lng) > 180
+      ) {
         invalid++;
         ok = false;
       }
     }
     if (ok) valid++;
   }
-  if (invalid > 0) errors.push(`${invalid} af ${preview.totalRows} rækker har ugyldige tids- eller GPS-værdier.`);
+  if (invalid > 0)
+    errors.push(`${invalid} af ${preview.totalRows} rækker har ugyldige tids- eller GPS-værdier.`);
   return { totalRows: preview.totalRows, validRows: valid, invalidRows: invalid, warnings, errors };
 }
