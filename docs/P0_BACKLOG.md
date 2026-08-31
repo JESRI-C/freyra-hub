@@ -1,6 +1,6 @@
 # Prioriteret P0-backlog
 
-Opdateret: 2026-08-30. Rækkefølgen er bindende, medmindre en opgave er dokumenteret blokeret. `AFVENTER` er ikke implementeret.
+Opdateret: 2026-08-31. Rækkefølgen er bindende, medmindre en opgave er dokumenteret blokeret. `AFVENTER` er ikke implementeret.
 
 ## SEC-P0-01A - public endpoint credential containment
 
@@ -22,7 +22,7 @@ Opdateret: 2026-08-30. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Afhængigheder:** Verificeret auth helper og adgang til Supabase dev/test med mindst to organisationer.
 - **Tests:** 20/20 credentialtests, 12/12 observations-scope-/relations-/no-write-tests og 37/37 natur-/JWT-/rolle-/cross-tenant-/persistenstests; typecheck; ændrede TypeScript-filer lint 0; samlet Vitest 30 filer og 234/234 tests; produktionsbuild exit 0. Live dev/test-smoke **AFVENTER**.
 - **Status:** lokalt implementeret og verificeret i applikationslaget. Natur-serverfunktionen kræver verificeret JWT, eksplicit projektadgang og editor+/org-admin før service-role; lavere roller er read-only, og kun serverlagret centroid kan persisteres. Observations-ingest bruger ét serverkonfigureret projekt pr. credential; body-scope kan ikke udvides, og projekt/site/source valideres før en atomisk bulk-insert. Deploy er fortsat **NO-GO**, fordi `project_members` tillader self-insert, effektiv live RLS/to-tenant-isolation ikke er verificeret, og relationvalidering/insert endnu ikke er databaseatomisk.
-- **Evidens/commit:** `a13a1ae` for naturflowet samt denne cyklus' observationsroute, scope-test, env-/driftskontrakt og checkpoint på `codex/gofreyra-p0`.
+- **Evidens/commit:** `a13a1ae` for naturflowet og `29d0845` for den projektscopede observationsroute, scope-test, env-/driftskontrakt og checkpoint; begge er pushet til `origin/codex/gofreyra-p0`.
 
 ## SEC-P0-02 - RLS-lockdown og live tenantverifikation
 
@@ -54,7 +54,7 @@ Opdateret: 2026-08-30. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Acceptance criteria:** Frisk `npm ci`, typecheck, test og produktionsbuild kører deterministisk; testantal og resultater logges; nye/berørte filer har 0 lintfejl; global lint-baseline er synlig og P0-releasegaten er exit 0.
 - **Afhængigheder:** Filadgang til build/test-cache; `SEC-P0-01A` runtime/lock-ændringer.
 - **Tests:** `npm ci`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`; samme gate fra rent checkout/CI.
-- **Status:** frisk install, typecheck, 193 tests og build består; 3/3 direkte ledger-fallbacktests beviser eksakt idempotent retry samt konflikt ved ændret payload eller hash; ændrede TypeScript-filer har lint 0. Global lint/CI/audit-triage er **AFVENTER**.
+- **Status:** frisk install, typecheck, en ren solo-fuldkørsel med 308/308 tests og build består; 3/3 direkte ledger-fallbacktests beviser eksakt idempotent retry samt konflikt ved ændret payload eller hash; ændrede TypeScript-filer har lint 0. Global lint/CI/audit-triage er **AFVENTER**.
 - **Evidens/commit:** `61bf18b`; Node 22.14/npm 10.9.2; global lint 5.428 errors/25 warnings; npm audit 17 advisories; build kræver den versionsstyrede 4 GB-wrapper og har kendte bundle-advarsler; pushet på `origin/codex/gofreyra-p0`.
 
 ## GEO-P0-01 - GeoJSON-projektgrænse ende til ende
@@ -64,9 +64,9 @@ Opdateret: 2026-08-30. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Scope:** Verificér/importér GeoJSON Polygon/Feature, fejlbeskeder, CRS-antagelse, geometri/topologi, preview, gem/reload og version/proveniens; afklar lovede øvrige formater separat.
 - **Acceptance criteria:** Kendt gyldig fixture vises korrekt og bevarer koordinater/areal efter reload; ugyldig, forkert geometri og uafklaret CRS afvises uden delvis skrivning; ny grænse skaber versionsspor frem for lydløs overskrivning.
 - **Afhængigheder:** SEC-P0-02, verificeret schema og projektnavn.
-- **Tests:** Parser/unit-fixtures, persistence-integration, browserflow import/save/reload, polygon med >3 punkter og redigering.
-- **Status:** planlagt; eksisterende parser/kortkode er ikke end-to-end-verificeret.
-- **Evidens/commit:** `MapEditorMap`, `useMapEditor` og historisk kortaudit; `project_boundaries` ikke fundet; commit **AFVENTER**.
+- **Tests:** 8 filer og 68/68 pure/service-tests dækker lukning, WGS84-range, unikke/nabopunkter, self-intersection, nulareal, Polygon-huller, areal/centroid, unsupported typer, importfejl, persistence/no-write/clear/concurrency, seed-after-clear, edit-state guards og canonical/fail-closed eksport. RPC-observationer dækker seks GeoJSON-geometrityper, ugyldige nested koordinater og 200-cap. Browser import/edit/save/reload og live RLS er `AFVENTER`.
+- **Status:** delvist implementeret lokalt i cyklus 005. Alle boundary-skriveveje bruger én fail-closed validator; persistent Polygon kan redigeres med eksplicit Gem/Annuller og frosset lag under save; ugemte edits blokerer konfliktende boundary-operationer; clear nulstiller alle afledte felter uden seed-genoplivning; parallel skrivning i samme UI-instans afvises; servicekontrakten kontrollerer den returnerede DB-række. Projektfuldkort og Connect-eksport bruger canonical, verificerbar data, tavs preview-fallback er fjernet, RPC-geometri dybdevalideres, og 200 eller flere observationsfeatures afvises som mulig afkortning. Polygon-huller understøttes; MultiPolygon/FeatureCollection afvises tydeligt som boundary. Immutable revision, atomisk boundary+RPC-snapshot, metrics-friskhed mod boundary-version, cross-tab optimistic concurrency, read-after-write mod rigtig database, browserflow og tenant-RLS er `AFVENTER`.
+- **Evidens/commit:** `MapEditorMap`, `useMapEditor`, `geo-service`, `projects-service`, `geospatial-service`, eksportservices og nye geometri-/persistence-/eksporttests i cyklus 005. `project_boundaries` er ikke fundet; checkpoint-commit oprettes på `codex/gofreyra-p0`.
 
 ## BA-P0-01 - Før/Efter-runder og sammenligning
 
@@ -77,7 +77,7 @@ Opdateret: 2026-08-30. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Afhængigheder:** Storage/metadata, tenant-RLS, repræsentativt P0-datasæt og projektgrænse.
 - **Tests:** Domain/unit, upload/persistence-integration, browser swipe/side-by-side/opacity, negative metadata- og cross-tenant-tests. Den lokale drone-del har 32/32 målrettede upload-/metadata-tests, heraf 22 parser-/regressionstests med en reel minimal JPEG/EXIF-fixture; fuld suite 259/259.
 - **Status:** delvist implementeret lokalt. Dronefotos routes gennem uploadvalidering; originalens hash, rå EXIF/XMP, normaliserede geodata og QA ligger tabsfrit i `uploads.detected_metadata`, og syntetisk centroid bruges ikke. Survey rounds, fotopar, synkroniserede sammenligninger, reviewerflow, canonical `drone_assets`-routing, privat bucket, resumable batchupload, footprint/ortofoto og live tenantverifikation er **AFVENTER**.
-- **Evidens/commit:** `BeforeAfterCompare.tsx`/`MediaLightbox.tsx`; `drone-image-metadata.ts`, uploadservicen, UploadWizard og metadata-/regressionstests i cyklus 004. Ingen `survey_rounds` eller `photo_pairs` fundet; samlet checkpoint-commit oprettes på `codex/gofreyra-p0`.
+- **Evidens/commit:** `BeforeAfterCompare.tsx`/`MediaLightbox.tsx`; `drone-image-metadata.ts`, uploadservicen, UploadWizard og metadata-/regressionstests i cyklus 004. Dronecheckpoint `0f2afbd` er pushet til `origin/codex/gofreyra-p0`. Ingen `survey_rounds` eller `photo_pairs` er fundet.
 
 ## MEAS-P0-01 - persistente målinger og faglig validering
 

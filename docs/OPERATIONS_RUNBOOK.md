@@ -1,6 +1,6 @@
 # GoFreyra operations runbook
 
-Opdateret: 2026-08-30. Dette er den verificerede lokale baseline. Produktion er uden for mandatet.
+Opdateret: 2026-08-31. Dette er den verificerede lokale baseline. Produktion er uden for mandatet.
 
 ## 1. Før start
 
@@ -63,6 +63,18 @@ Efter migration skal mindst to organisationer testes negativt for tabel- og Stor
 - Et EXIF-kamerapunkt er ikke et billed-footprint, en ortofoto-georeference eller dokumentation for fotogrammetrisk nøjagtighed.
 - Canonical routing til `drone_assets`, privat bucket/path, resumable/batchupload, idempotens, retention og live RLS-/Storage-tests er **AFVENTER**. Store uploads skal have en verificeret resumable strategi før kundedrift.
 
+### 4.2 Projektgrænse og geodataeksport
+
+- `projects.geometry_polygon` er den aktuelle canonical boundary. Brug `persistProjectBoundary`/`clearProjectBoundary`; skriv ikke enkelte `geometry_*`-felter direkte fra UI.
+- Import accepterer højst 2 MiB og én GeoJSON `Polygon` eller `Feature<Polygon>` i WGS84 med højst 500 reelle vertices. Åbne, ikke-endelige/out-of-range, duplikerede, selvkrydsende eller arealløse ringe afvises før skrivning. Polygon-huller valideres og fratrækkes areal/centroid; MultiPolygon/FeatureCollection afvises tydeligt.
+- Kortredigering kræver eksplicit Gem/Annuller. Laget fryses under persistence, og en fejl må ikke vise succes eller fjerne brugerens mulighed for retry.
+- Canonical GeoJSON og den deraf afledte observations-CSV skal bruge den databaseverificerede eksportvej. Preview/seed, simulerede sensorer og tavs RPC-fallback må ikke kunne downloades gennem denne vej. Connect metrics-/zone-CSV er separate udtræk og må ikke antages at have samme garanti uden egen guard og provenance.
+- `get_project_geojson`-observationer dybdevalideres som Point, MultiPoint, LineString, MultiLineString, Polygon eller MultiPolygon med finite WGS84-koordinater og gyldige ringe. Ukendt geometri og 200 eller flere observationsfeatures stoppes; præcis 200 kan være RPC'ens cap og må ikke præsenteres som komplet eksport.
+- Seed-geometri må kun bruges i eksplicit preview/ukonfigureret miljø. En databaseprojekt-række med ryddet boundary skal forblive tom og må ikke genoplives fra seed.
+- Ugemte boundary-edits skal blokere tegning, upload, clear, projektskift og canonical download, indtil brugeren vælger Gem eller Annuller.
+- Lokal UI-lock beskytter én hook-instans, og servicekontrakten kontrollerer den returnerede database-række før success. Boundary-rækken og `get_project_geojson` læses endnu ikke som ét atomisk, versionsbundet snapshot. Det kræver database-/RPC-versionering sammen med cross-tab/-bruger konflikthåndtering, immutable revisioner og live read-after-write og er `AFVENTER`.
+- Boundary save/clear invaliderer projektmetrics, og manglende/ugyldigt `calculated_at` stoppes. Friskhed kan ikke sammenlignes med den aktuelle boundary, fordi schemaet mangler en fælles boundary-/source-version; en fuld stale-metrics-guard er `AFVENTER` schema-/RPC-versionering.
+
 ## 5. Kvalitetsgate
 
 Kør i denne rækkefølge og log kommando, dato, miljø, exit og commit:
@@ -74,7 +86,7 @@ npm test
 npm run build
 ```
 
-Kør desuden målrettede tests før hele suiten. Verificeret checkpoint 2026-08-30: frisk `npm ci` fra baseline, typecheck, 259/259 Vitest-tests og `npm run build` består. Buildscriptet giver Node 4 GB heap, fordi Nitro-bundlingen overstiger standardheapen. Ændrede TypeScript-filer har lint 0; senest observerede globale lintbaseline er fortsat rød med 5.407 errors/25 warnings og skal ned på 0 før P0-release.
+Kør desuden målrettede tests før hele suiten. Verificeret checkpoint 2026-08-31: frisk `npm ci` fra baseline, typecheck, 8 filer/68 målrettede geometri-/eksporttests, en ren solo-fuldkørsel med 37 filer/308 Vitest-tests og `npm run build` består. Buildscriptet giver Node 4 GB heap, fordi Nitro-bundlingen overstiger standardheapen. Ændrede TypeScript-filer har lint 0; senest observerede globale lintbaseline er fortsat rød med 5.407 errors/25 warnings og skal ned på 0 før P0-release.
 
 På Windows springes Lovable MCP-routegeneratoren over, fordi den aktuelle pakke sammenligner blandede slash-formater; de genererede MCP-ruter ligger allerede i Git. På andre platforme kører pluginet fortsat i dev, aldrig i produktionsbuild. Genaktivér ikke Windows-pluginet uden en verificeret upstream-fix.
 

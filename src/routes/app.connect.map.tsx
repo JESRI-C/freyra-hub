@@ -17,9 +17,9 @@ import { useMapEditor } from "@/hooks/useMapEditor";
 import { useNdvi } from "@/hooks/useNdvi";
 import { useFullAnalysis } from "@/hooks/useFullAnalysis";
 import { getProjects } from "@/services/projects-service";
+import { getProjectGeoJSON } from "@/services/geospatial-service";
 import { ZONE_TYPE_LABELS, type Zone, type ZoneType } from "@/services/zones-service";
 import {
-  buildProjectGeoJSON,
   buildMetricsCsv,
   buildZonesCsv,
   downloadGeoJSON,
@@ -40,8 +40,11 @@ function Page() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const projects = projectsQuery.data ?? [];
+  const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isExportingGeoJSON, setIsExportingGeoJSON] = useState(false);
+  const [geoJSONExportError, setGeoJSONExportError] = useState<string | null>(null);
+  const [boundaryEditActive, setBoundaryEditActive] = useState(false);
 
   const project = useMemo(() => {
     if (!projects.length) return null;
@@ -66,17 +69,27 @@ function Page() {
   const lng = project?.geometry_centroid_lng ?? null;
   const hasGeometry = !!project && lat != null && lng != null;
 
-  const handleExportGeoJSON = () => {
-    if (!project) return;
-    const gj = buildProjectGeoJSON({
-      project,
-      zones: map.zones,
-      sensors: map.sensors,
-      paragraph3Areas: map.paragraph3Areas,
-      watercourses: map.watercourseFeatures,
-      analysis: analysis.summary,
-    });
-    downloadGeoJSON(gj, project.slug ?? "projekt");
+  const handleExportGeoJSON = async () => {
+    if (!project || isExportingGeoJSON || map.isBoundaryBusy || boundaryEditActive) return;
+    setIsExportingGeoJSON(true);
+    setGeoJSONExportError(null);
+
+    try {
+      const geoJSON = await getProjectGeoJSON(project.id, project.name, {
+        polygon: project.geometry_polygon ?? null,
+        areaHa: project.geometry_area_ha,
+        source: project.geometry_source,
+        municipality: project.municipality,
+        status: project.status,
+      });
+      downloadGeoJSON(geoJSON, project.slug ?? "projekt");
+    } catch (error) {
+      setGeoJSONExportError(
+        error instanceof Error ? error.message : "GeoJSON-eksporten fejlede af en ukendt årsag.",
+      );
+    } finally {
+      setIsExportingGeoJSON(false);
+    }
   };
 
   const handleExportMetricsCsv = async () => {
@@ -113,6 +126,15 @@ function Page() {
           Projektgrænse gemt — areal og centroid er opdateret.
         </div>
       )}
+      {geoJSONExportError && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span className="flex-1 min-w-0">GeoJSON-eksport: {geoJSONExportError}</span>
+          <button onClick={() => setGeoJSONExportError(null)} aria-label="Luk eksportfejl">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-[260px_minmax(0,1fr)_300px] gap-4 min-w-0">
         {/* ── Left panel ───────────────────────────────────────────── */}
@@ -123,7 +145,7 @@ function Page() {
               value={project?.id ?? ""}
               onChange={(e) => setSelectedId(e.target.value)}
               className="w-full rounded-lg border bg-background px-2.5 py-2 text-sm"
-              disabled={!projects.length}
+              disabled={!projects.length || boundaryEditActive}
             >
               {!projects.length && <option value="">Indlæser…</option>}
               {projects.map((p) => (
@@ -174,7 +196,6 @@ function Page() {
 
         {/* ── Center: toolbar + map ────────────────────────────────── */}
         <div className="space-y-3 min-w-0">
-
           <div className="rounded-xl border bg-card overflow-hidden">
             {hasGeometry && project ? (
               <MapEditorMap
@@ -198,6 +219,8 @@ function Page() {
                 onBoundaryDrawn={map.handleBoundaryDrawn}
                 paragraph3Areas={map.paragraph3Areas}
                 watercourseFeatures={map.watercourseFeatures}
+                boundaryBusy={map.isBoundaryBusy}
+                onBoundaryEditStateChange={setBoundaryEditActive}
                 height={540}
               />
             ) : (
@@ -244,40 +267,48 @@ function Page() {
                 {analysis.isRunning ? analysis.stepLabel : "▶ Kør fuld analyse"}
               </button>
 
-              {analysis.error && (
-                <div className="text-xs text-destructive">{analysis.error}</div>
-              )}
+              {analysis.error && <div className="text-xs text-destructive">{analysis.error}</div>}
 
               {analysis.summary && (
                 <div className="space-y-2 text-sm">
                   <ResultRow label="NDVI" value={analysis.summary.ndviValue?.toFixed(2) ?? "—"} />
                   <ResultRow
                     label="Biodiversitet"
-                    value={analysis.summary.biodiversityScore != null
-                      ? `${analysis.summary.biodiversityScore}/100 · ${analysis.summary.biodiversityClass}`
-                      : "—"}
+                    value={
+                      analysis.summary.biodiversityScore != null
+                        ? `${analysis.summary.biodiversityScore}/100 · ${analysis.summary.biodiversityClass}`
+                        : "—"
+                    }
                   />
                   <ResultRow
                     label="§3-natur"
-                    value={analysis.summary.p3OverlapHa != null ? `${analysis.summary.p3OverlapHa} ha` : "—"}
+                    value={
+                      analysis.summary.p3OverlapHa != null
+                        ? `${analysis.summary.p3OverlapHa} ha`
+                        : "—"
+                    }
                   />
                   <ResultRow
                     label="Arter"
-                    value={analysis.summary.speciesCount != null
-                      ? `${analysis.summary.speciesCount} (${analysis.summary.redListedCount ?? 0} rødlistede)`
-                      : "—"}
+                    value={
+                      analysis.summary.speciesCount != null
+                        ? `${analysis.summary.speciesCount} (${analysis.summary.redListedCount ?? 0} rødlistede)`
+                        : "—"
+                    }
                   />
                   <ResultRow
                     label="CO₂-binding"
-                    value={analysis.summary.annualCO2 != null ? `${analysis.summary.annualCO2} t/år` : "—"}
+                    value={
+                      analysis.summary.annualCO2 != null
+                        ? `${analysis.summary.annualCO2} t/år`
+                        : "—"
+                    }
                   />
-                  <ResultRow
-                    label="Vandrisiko"
-                    value={analysis.summary.waterRisk ?? "—"}
-                  />
+                  <ResultRow label="Vandrisiko" value={analysis.summary.waterRisk ?? "—"} />
                   <div className="text-[11px] text-muted-foreground pt-1">
                     Gennemført på {analysis.durationS}s — gemt i databasen
-                    {analysis.stepsFailed.length > 0 && ` · ${analysis.stepsFailed.length} trin fejlede`}
+                    {analysis.stepsFailed.length > 0 &&
+                      ` · ${analysis.stepsFailed.length} trin fejlede`}
                   </div>
                 </div>
               )}
@@ -289,11 +320,15 @@ function Page() {
             <CardHeader title="Dataudtræk" subtitle="Download projektets data" />
             <div className="px-5 pb-5 space-y-2">
               <button
-                onClick={handleExportGeoJSON}
-                disabled={!project}
+                onClick={() => void handleExportGeoJSON()}
+                disabled={
+                  !project || isExportingGeoJSON || map.isBoundaryBusy || boundaryEditActive
+                }
                 className="w-full text-sm rounded-lg border px-3 py-2 hover:bg-muted text-left disabled:opacity-50"
               >
-                ⬇ GeoJSON — grænse, zoner, sensorer, §3, vandløb
+                {isExportingGeoJSON
+                  ? "Henter verificeret GeoJSON…"
+                  : "⬇ GeoJSON — verificeret projektdata"}
               </button>
               <button
                 onClick={handleExportMetricsCsv}
@@ -400,8 +435,7 @@ function ResultRow({ label, value }: { label: string; value: string }) {
 
 function CoverageBar({ label, value }: { label: string; value: number }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const tone =
-    pct >= 75 ? "bg-success" : pct >= 40 ? "bg-warning" : "bg-destructive";
+  const tone = pct >= 75 ? "bg-success" : pct >= 40 ? "bg-warning" : "bg-destructive";
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-1">
@@ -449,7 +483,8 @@ function NewZoneDialog({
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <div className="text-muted-foreground">
-            Beregnet areal: <span className="text-foreground font-medium">{areaHa.toFixed(2)} ha</span>
+            Beregnet areal:{" "}
+            <span className="text-foreground font-medium">{areaHa.toFixed(2)} ha</span>
           </div>
           <label className="block">
             <div className="text-xs text-muted-foreground mb-1">Navn</div>
@@ -468,16 +503,15 @@ function NewZoneDialog({
               className="w-full rounded-lg border bg-background px-2.5 py-2 text-sm"
             >
               {Object.entries(ZONE_TYPE_LABELS).map(([k, label]) => (
-                <option key={k} value={k}>{label}</option>
+                <option key={k} value={k}>
+                  {label}
+                </option>
               ))}
             </select>
           </label>
         </div>
         <DialogFooter>
-          <button
-            onClick={onCancel}
-            className="text-sm rounded-lg border px-3 py-2 hover:bg-muted"
-          >
+          <button onClick={onCancel} className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">
             Annullér
           </button>
           <button
@@ -530,7 +564,10 @@ function ZoneDetailDialog({
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <div className="text-muted-foreground">
-            Areal: <span className="text-foreground font-medium">{zone.area_ha?.toFixed(2) ?? "—"} ha</span>
+            Areal:{" "}
+            <span className="text-foreground font-medium">
+              {zone.area_ha?.toFixed(2) ?? "—"} ha
+            </span>
             <span className="mx-2">·</span>
             Oprettet: {new Date(zone.created_at).toLocaleDateString("da-DK")}
           </div>
@@ -550,7 +587,9 @@ function ZoneDetailDialog({
               className="w-full rounded-lg border bg-background px-2.5 py-2 text-sm"
             >
               {Object.entries(ZONE_TYPE_LABELS).map(([k, label]) => (
-                <option key={k} value={k}>{label}</option>
+                <option key={k} value={k}>
+                  {label}
+                </option>
               ))}
             </select>
           </label>
@@ -581,10 +620,7 @@ function ZoneDetailDialog({
               Slet zone
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="text-sm rounded-lg border px-3 py-2 hover:bg-muted"
-          >
+          <button onClick={onClose} className="text-sm rounded-lg border px-3 py-2 hover:bg-muted">
             Annullér
           </button>
           <button

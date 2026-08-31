@@ -16,14 +16,17 @@ const SQUARE = {
 
 describe("resolveProjectGeometry", () => {
   it("bruger DB-polygon når projektet har en gemt geometri", () => {
-    const geom = resolveProjectGeometry({
-      id: "p-1",
-      geometry_polygon: SQUARE,
-      geometry_centroid_lat: null,
-      geometry_centroid_lng: null,
-      geometry_area_ha: null,
-      geometry_source: "manual",
-    });
+    const geom = resolveProjectGeometry(
+      {
+        id: "p-1",
+        geometry_polygon: SQUARE,
+        geometry_centroid_lat: null,
+        geometry_centroid_lng: null,
+        geometry_area_ha: null,
+        geometry_source: "manual",
+      },
+      { allowSeedFallback: false },
+    );
     expect(geom.hasValidGeometry).toBe(true);
     expect(geom.polygon).not.toBeNull();
     expect(geom.geometrySource).toBe("manual");
@@ -32,44 +35,73 @@ describe("resolveProjectGeometry", () => {
   });
 
   it("bruger DB-centroid når kun centroid findes (ingen polygon)", () => {
-    const geom = resolveProjectGeometry({
-      id: "p-2",
-      geometry_polygon: null,
-      geometry_centroid_lat: 55.5,
-      geometry_centroid_lng: 9.7,
-      geometry_area_ha: 12,
-      geometry_source: "estimated",
-    });
+    const geom = resolveProjectGeometry(
+      {
+        id: "p-2",
+        geometry_polygon: null,
+        geometry_centroid_lat: 55.5,
+        geometry_centroid_lng: 9.7,
+        geometry_area_ha: 12,
+        geometry_source: "estimated",
+      },
+      { allowSeedFallback: false },
+    );
     expect(geom.hasValidGeometry).toBe(false); // ingen polygon
     expect(geom.centroid).toEqual({ lat: 55.5, lng: 9.7 });
     expect(geom.areaHa).toBe(12);
   });
 
-  it("falder tilbage til seed når projektet ingen DB-geometri har", () => {
+  it("falder kun tilbage til seed, når preview-caller tillader det eksplicit", () => {
     const seeded = getProjectGeometrySeed("1"); // Skallebæk har seed-polygon
-    const geom = resolveProjectGeometry({ id: "1", geometry_polygon: null });
+    const geom = resolveProjectGeometry(
+      { id: "1", geometry_polygon: null },
+      { allowSeedFallback: true },
+    );
     expect(geom).toEqual(seeded);
   });
 
+  it("holder en ryddet live-grænse tom, selv når projekt-id'et har seed-geometri", () => {
+    const geom = resolveProjectGeometry(
+      {
+        id: "1",
+        geometry_polygon: null,
+        geometry_centroid_lat: null,
+        geometry_centroid_lng: null,
+      },
+      { allowSeedFallback: false },
+    );
+
+    expect(geom.hasValidGeometry).toBe(false);
+    expect(geom.polygon).toBeNull();
+    expect(geom.centroid).toBeNull();
+    expect(geom.areaHa).toBeNull();
+    expect(geom.geometrySource).toBe("none");
+  });
+
   it("returnerer tom geometri for ukendt projekt uden DB-geometri", () => {
-    const geom = resolveProjectGeometry({ id: "findes-ikke" });
+    const geom = resolveProjectGeometry({ id: "findes-ikke" }, { allowSeedFallback: false });
     expect(geom.hasValidGeometry).toBe(false);
     expect(geom.polygon).toBeNull();
     expect(geom.centroid).toBeNull();
   });
 
   it("håndterer null/undefined projekt", () => {
-    expect(resolveProjectGeometry(null).hasValidGeometry).toBe(false);
-    expect(resolveProjectGeometry(undefined).hasValidGeometry).toBe(false);
+    expect(resolveProjectGeometry(null, { allowSeedFallback: false }).hasValidGeometry).toBe(false);
+    expect(resolveProjectGeometry(undefined, { allowSeedFallback: false }).hasValidGeometry).toBe(
+      false,
+    );
   });
 
   it("afviser ugyldig DB-polygon men beholder centroid", () => {
-    const geom = resolveProjectGeometry({
-      id: "p-3",
-      geometry_polygon: { type: "Ikke-en-polygon" },
-      geometry_centroid_lat: 56.0,
-      geometry_centroid_lng: 10.0,
-    });
+    const geom = resolveProjectGeometry(
+      {
+        id: "p-3",
+        geometry_polygon: { type: "Ikke-en-polygon" },
+        geometry_centroid_lat: 56.0,
+        geometry_centroid_lng: 10.0,
+      },
+      { allowSeedFallback: false },
+    );
     expect(geom.hasValidGeometry).toBe(false);
     expect(geom.centroid).toEqual({ lat: 56.0, lng: 10.0 });
   });

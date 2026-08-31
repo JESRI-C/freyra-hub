@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { getProjectBySlug } from "@/services/projects-service";
 import { resolveProjectGeometry } from "@/services/geo-service";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { getProjectSensors } from "@/services/iot-simulation-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
 import { getMapLayers, getProjectGeoJSON, getProjectMetrics } from "@/services/geospatial-service";
@@ -85,7 +86,9 @@ function GeoMapPage() {
 
   const projectId = project?.id ?? "";
   // DB-tegnet polygon vinder over seed-geometri; seed er kun fallback.
-  const geometry = resolveProjectGeometry(project);
+  const geometry = resolveProjectGeometry(project, {
+    allowSeedFallback: !isSupabaseConfigured,
+  });
   const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
 
   // Environmental context for DMI overlay
@@ -124,17 +127,26 @@ function GeoMapPage() {
     queryFn: getMapLayers,
   });
 
-  const { data: geoJSON = null } = useQuery({
-    queryKey: ["project-geojson", projectId],
-    queryFn: () => getProjectGeoJSON(projectId, project?.name ?? "Projekt"),
+  const geoJSONQuery = useQuery({
+    queryKey: ["project-geojson", projectId, project?.geometry_polygon],
+    queryFn: () =>
+      getProjectGeoJSON(projectId, project?.name ?? "Projekt", {
+        polygon: project?.geometry_polygon ?? null,
+        areaHa: project?.geometry_area_ha,
+        source: project?.geometry_source,
+        municipality: project?.municipality,
+        status: project?.status,
+      }),
     enabled: !!projectId,
   });
+  const geoJSON = geoJSONQuery.data ?? null;
 
-  const { data: metrics } = useQuery({
+  const metricsQuery = useQuery({
     queryKey: ["project-metrics", projectId],
     queryFn: () => getProjectMetrics(projectId),
     enabled: !!projectId,
   });
+  const metrics = metricsQuery.data;
 
   // Layer visibility state
   const [visibleSlugs, setVisibleSlugs] = useState<Set<string>>(
@@ -221,6 +233,14 @@ function GeoMapPage() {
 
           {/* Metrics */}
           {metrics && <ProjectMetricsPanel metrics={metrics} />}
+          {metricsQuery.isError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              Projektmålinger kunne ikke indlæses: {metricsQuery.error.message}
+            </div>
+          )}
 
           <NdviCard
             projectId={projectId}
@@ -239,24 +259,100 @@ function GeoMapPage() {
         {/* Right: Panels */}
         <div className="space-y-4">
           <LayerControlPanel
-            layers={mapLayers.length > 0 ? mapLayers : [
-              { id: "l1", name: "Projektområde", slug: "project_area", category: "nature", provider: null, layerType: "geojson", isActive: true, requiresApiKey: false, refreshInterval: null, status: "preview" },
-              { id: "l2", name: "Beskyttet natur (§3)", slug: "protected_nature", category: "nature", provider: "Miljøportal", layerType: "wfs", isActive: true, requiresApiKey: false, refreshInterval: "24h", status: "preview" },
-              { id: "l3", name: "Vandløb", slug: "watercourses", category: "water", provider: "Miljøportal", layerType: "wfs", isActive: true, requiresApiKey: false, refreshInterval: "24h", status: "preview" },
-              { id: "l4", name: "Jordbundstyper", slug: "soil_types", category: "terrain", provider: "GEUS", layerType: "wms", isActive: true, requiresApiKey: false, refreshInterval: "7d", status: "preview" },
-              { id: "l5", name: "Sentinel-2 NDVI", slug: "sentinel_ndvi", category: "satellite", provider: "Copernicus", layerType: "tile", isActive: false, requiresApiKey: true, refreshInterval: "5d", status: "preview" },
-              { id: "l6", name: "IoT Feltsensorer", slug: "sensors", category: "sensors", provider: "GoFreyra IoT", layerType: "sensor", isActive: true, requiresApiKey: false, refreshInterval: "realtime", status: "preview" },
-            ]}
+            layers={
+              mapLayers.length > 0
+                ? mapLayers
+                : [
+                    {
+                      id: "l1",
+                      name: "Projektområde",
+                      slug: "project_area",
+                      category: "nature",
+                      provider: null,
+                      layerType: "geojson",
+                      isActive: true,
+                      requiresApiKey: false,
+                      refreshInterval: null,
+                      status: "preview",
+                    },
+                    {
+                      id: "l2",
+                      name: "Beskyttet natur (§3)",
+                      slug: "protected_nature",
+                      category: "nature",
+                      provider: "Miljøportal",
+                      layerType: "wfs",
+                      isActive: true,
+                      requiresApiKey: false,
+                      refreshInterval: "24h",
+                      status: "preview",
+                    },
+                    {
+                      id: "l3",
+                      name: "Vandløb",
+                      slug: "watercourses",
+                      category: "water",
+                      provider: "Miljøportal",
+                      layerType: "wfs",
+                      isActive: true,
+                      requiresApiKey: false,
+                      refreshInterval: "24h",
+                      status: "preview",
+                    },
+                    {
+                      id: "l4",
+                      name: "Jordbundstyper",
+                      slug: "soil_types",
+                      category: "terrain",
+                      provider: "GEUS",
+                      layerType: "wms",
+                      isActive: true,
+                      requiresApiKey: false,
+                      refreshInterval: "7d",
+                      status: "preview",
+                    },
+                    {
+                      id: "l5",
+                      name: "Sentinel-2 NDVI",
+                      slug: "sentinel_ndvi",
+                      category: "satellite",
+                      provider: "Copernicus",
+                      layerType: "tile",
+                      isActive: false,
+                      requiresApiKey: true,
+                      refreshInterval: "5d",
+                      status: "preview",
+                    },
+                    {
+                      id: "l6",
+                      name: "IoT Feltsensorer",
+                      slug: "sensors",
+                      category: "sensors",
+                      provider: "GoFreyra IoT",
+                      layerType: "sensor",
+                      isActive: true,
+                      requiresApiKey: false,
+                      refreshInterval: "realtime",
+                      status: "preview",
+                    },
+                  ]
+            }
             visibleSlugs={visibleSlugs}
             onToggle={toggleLayer}
           />
 
           <ConnectorStatusPanel connectors={CONNECTOR_STATUS} />
 
-          <MapExportPanel
-            geoJSON={geoJSON}
-            projectName={project.name}
-          />
+          {geoJSONQuery.isError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              Eksport er deaktiveret: {geoJSONQuery.error.message}
+            </div>
+          )}
+
+          <MapExportPanel geoJSON={geoJSON} projectName={project.name} />
         </div>
       </div>
     </main>

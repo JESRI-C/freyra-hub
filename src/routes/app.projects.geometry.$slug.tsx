@@ -2,14 +2,30 @@ import { createFileRoute, notFound, Link, useNavigate } from "@tanstack/react-ro
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, MapPin, Upload, Pencil, CheckCircle2, AlertCircle, X, Layers, Grid3x3, LandPlot, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Upload,
+  Pencil,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Layers,
+  Grid3x3,
+  LandPlot,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui-bits";
 import { MapEditorMap, type WmsOverlay } from "@/components/maps/MapEditorMap";
 import { AddressSearch } from "@/components/maps/AddressSearch";
 import { useMapEditor } from "@/hooks/useMapEditor";
 import { getProjectBySlug } from "@/services/projects-service";
-import { parseProjectGeometry } from "@/services/geo-service";
+import {
+  getProjectGeometryUploadSizeError,
+  parseProjectGeometryDetailed,
+  validateProjectPolygon,
+} from "@/services/geo-service";
 import { pickMarkblok, pickMatrikel, type PickedFeature } from "@/lib/geo-search.functions";
 import { AreaCadastrePanel } from "@/components/data-foundation/AreaCadastrePanel";
 import type { GeoJsonPolygon } from "@/services/zones-service";
@@ -26,8 +42,12 @@ export const Route = createFileRoute("/app/projects/geometry/$slug")({
     return project;
   },
   component: GeometryEditorPage,
-  errorComponent: ({ error }) => <div className="p-6 text-sm text-destructive">{error.message}</div>,
-  notFoundComponent: () => <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>,
+  errorComponent: ({ error }) => (
+    <div className="p-6 text-sm text-destructive">{error.message}</div>
+  ),
+  notFoundComponent: () => (
+    <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>
+  ),
 });
 
 const DK_FALLBACK = { lat: 56.0, lng: 10.5 };
@@ -91,10 +111,16 @@ function GeometryEditorPage() {
     kulstof2022: false,
   });
   const [center, setCenter] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
-  const [addressMarker, setAddressMarker] = useState<{ lat: number; lng: number; label: string } | null>(null);
+  const [addressMarker, setAddressMarker] = useState<{
+    lat: number;
+    lng: number;
+    label: string;
+  } | null>(null);
   const [pickMode, setPickMode] = useState<PickMode>(null);
   const [pickedFeature, setPickedFeature] = useState<PickedFeature | null>(null);
   const [picking, setPicking] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [boundaryEditActive, setBoundaryEditActive] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
   // Fremhævet matrikel/markblok fra områdepanelet (vises som preview på kortet).
   const [highlightGeom, setHighlightGeom] = useState<GeoJsonPolygon | null>(null);
@@ -121,17 +147,28 @@ function GeometryEditorPage() {
 
   if (!project) return null;
 
-  const hasPolygon = project.geometry_polygon != null;
-  const lat = project.geometry_centroid_lat ?? DK_FALLBACK.lat;
-  const lng = project.geometry_centroid_lng ?? DK_FALLBACK.lng;
+  const persistedGeometryValidation = project.geometry_polygon
+    ? validateProjectPolygon(project.geometry_polygon)
+    : null;
+  const hasPolygon = persistedGeometryValidation?.valid === true;
+  const persistedGeometryError =
+    persistedGeometryValidation && !persistedGeometryValidation.valid
+      ? persistedGeometryValidation.error
+      : null;
+  const lat = hasPolygon ? (project.geometry_centroid_lat ?? DK_FALLBACK.lat) : DK_FALLBACK.lat;
+  const lng = hasPolygon ? (project.geometry_centroid_lng ?? DK_FALLBACK.lng) : DK_FALLBACK.lng;
+  const boundaryOperationBusy = map.isBoundaryBusy || picking || uploading;
+  const boundaryUiBusy = boundaryOperationBusy || boundaryEditActive;
 
   const activateDrawing = () => {
+    if (boundaryUiBusy) return;
     setPickMode(null);
     setPickedFeature(null);
     map.setDrawMode(map.drawMode === "boundary" ? "none" : "boundary");
   };
 
   const activatePick = (mode: PickMode) => {
+    if (boundaryUiBusy) return;
     map.setDrawMode("none");
     setPickedFeature(null);
     setPickError(null);
@@ -142,7 +179,7 @@ function GeometryEditorPage() {
   };
 
   const handleFeaturePick = async (ll: { lat: number; lng: number }) => {
-    if (!pickMode || picking) return;
+    if (!pickMode || boundaryUiBusy) return;
     setPicking(true);
     setPickError(null);
     try {
@@ -160,28 +197,65 @@ function GeometryEditorPage() {
     }
   };
 
-  const useFeatureAsBoundary = () => {
-    if (!pickedFeature) return;
-    map.handleBoundaryDrawn(pickedFeature.geometry as GeoJsonPolygon, pickedFeature.areaHa, pickedFeature.source);
+  const savePickedFeatureAsBoundary = async () => {
+    if (!pickedFeature || boundaryUiBusy) return;
+    const saved = await map.handleBoundaryDrawn(
+      pickedFeature.geometry as GeoJsonPolygon,
+      pickedFeature.areaHa,
+      pickedFeature.source,
+    );
+    if (!saved) return;
     toast.success(`${pickedFeature.label} valgt som projektgrænse`);
     setPickedFeature(null);
     setPickMode(null);
   };
 
   const handleFile = async (file: File) => {
+    if (boundaryUiBusy) {
+      setUploadError("En anden ændring af projektgrænsen er allerede i gang.");
+      return;
+    }
+    const sizeError = getProjectGeometryUploadSizeError(file.size);
+    if (sizeError) {
+      setUploadError(sizeError);
+      return;
+    }
+    setUploading(true);
+    map.setDrawMode("none");
+    setPickMode(null);
+    setPickedFeature(null);
     setUploadError(null);
     try {
       const text = await file.text();
-      const parsed = parseProjectGeometry(text, "uploaded");
+      const { geometry: parsed, error } = parseProjectGeometryDetailed(text, "uploaded");
       if (!parsed.hasValidGeometry || !parsed.polygon) {
-        setUploadError("Filen indeholder ikke en gyldig Polygon-geometri.");
+        setUploadError(error ?? "Filen indeholder ikke en gyldig Polygon-geometri.");
         return;
       }
-      map.handleBoundaryDrawn(parsed.polygon as GeoJsonPolygon, parsed.areaHa ?? 0, "uploaded");
+      const saved = await map.handleBoundaryDrawn(
+        parsed.polygon as GeoJsonPolygon,
+        parsed.areaHa ?? 0,
+        "uploaded",
+      );
+      if (!saved) return;
       toast.success("Projektområde uploadet");
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "Kunne ikke læse fil");
+    } finally {
+      setUploading(false);
     }
+  };
+
+  const confirmAndClearBoundary = async () => {
+    if (boundaryUiBusy) return;
+    if (
+      !confirm(
+        "Ryd projektgrænsen? Alle afledte beregninger vil kræve at der tegnes et nyt område.",
+      )
+    ) {
+      return;
+    }
+    if (await map.clearBoundary()) toast.success("Projektgrænse ryddet");
   };
 
   const toolButton = (active: boolean, disabled = false) =>
@@ -211,21 +285,27 @@ function GeometryEditorPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight truncate">{project.name}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Find området, vælg en matrikel eller markblok, eller tegn selv. Alle analyser baseres
-            på det gemte projektområde.
+            Find området, vælg en matrikel eller markblok, eller tegn selv. Alle analyser baseres på
+            det gemte projektområde.
           </p>
         </div>
       </div>
 
       {/* Feedback banners */}
       {map.lastError && (
-        <Banner tone="error" onClose={map.clearError}>{map.lastError}</Banner>
+        <Banner tone="error" onClose={map.clearError}>
+          {map.lastError}
+        </Banner>
       )}
       {uploadError && (
-        <Banner tone="error" onClose={() => setUploadError(null)}>{uploadError}</Banner>
+        <Banner tone="error" onClose={() => setUploadError(null)}>
+          {uploadError}
+        </Banner>
       )}
       {pickError && (
-        <Banner tone="error" onClose={() => setPickError(null)}>{pickError}</Banner>
+        <Banner tone="error" onClose={() => setPickError(null)}>
+          {pickError}
+        </Banner>
       )}
       {map.boundarySaved && (
         <Banner tone="success">
@@ -262,7 +342,8 @@ function GeometryEditorPage() {
             <button
               type="button"
               onClick={activateDrawing}
-              className={toolButton(map.drawMode === "boundary")}
+              disabled={boundaryUiBusy}
+              className={toolButton(map.drawMode === "boundary", boundaryUiBusy)}
             >
               <Pencil className="h-4 w-4" />
               {map.drawMode === "boundary" ? "Tegner … stop" : "Tegn manuelt"}
@@ -271,7 +352,8 @@ function GeometryEditorPage() {
             <button
               type="button"
               onClick={() => activatePick("matrikel")}
-              className={toolButton(pickMode === "matrikel")}
+              disabled={boundaryUiBusy}
+              className={toolButton(pickMode === "matrikel", boundaryUiBusy)}
               title="Kræver Datafordeler service-bruger på serveren"
             >
               <Grid3x3 className="h-4 w-4" />
@@ -281,7 +363,8 @@ function GeometryEditorPage() {
             <button
               type="button"
               onClick={() => activatePick("markblok")}
-              className={toolButton(pickMode === "markblok")}
+              disabled={boundaryUiBusy}
+              className={toolButton(pickMode === "markblok", boundaryUiBusy)}
             >
               <LandPlot className="h-4 w-4" />
               Vælg markblok
@@ -290,7 +373,8 @@ function GeometryEditorPage() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className={toolButton(false)}
+              disabled={boundaryUiBusy}
+              className={toolButton(false, boundaryUiBusy)}
             >
               <Upload className="h-4 w-4" />
               Upload GeoJSON
@@ -300,13 +384,17 @@ function GeometryEditorPage() {
               type="file"
               accept=".geojson,.json,application/geo+json,application/json"
               className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); e.target.value = ""; }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleFile(f);
+                e.target.value = "";
+              }}
             />
 
-            {(map.isSavingBoundary || picking) && (
+            {boundaryOperationBusy && (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                {picking ? "Henter valgt geometri …" : "Gemmer …"}
+                {picking ? "Henter valgt geometri …" : uploading ? "Læser fil …" : "Gemmer …"}
               </p>
             )}
           </Card>
@@ -316,13 +404,20 @@ function GeometryEditorPage() {
             <Card className="p-4 space-y-2 border-amber-300 bg-amber-50/40">
               <div className="text-sm font-semibold text-amber-900">{pickedFeature.label}</div>
               <dl className="text-xs space-y-0.5 text-amber-900/80">
-                <div className="flex justify-between"><dt>Areal</dt><dd>{pickedFeature.areaHa} ha</dd></div>
-                <div className="flex justify-between"><dt>Kilde</dt><dd className="truncate ml-2">{pickedFeature.attribution}</dd></div>
+                <div className="flex justify-between">
+                  <dt>Areal</dt>
+                  <dd>{pickedFeature.areaHa} ha</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt>Kilde</dt>
+                  <dd className="truncate ml-2">{pickedFeature.attribution}</dd>
+                </div>
               </dl>
               <p className="text-[10px] text-amber-900/70 italic">{pickedFeature.disclaimer}</p>
               <div className="flex gap-2 pt-1">
                 <button
-                  onClick={useFeatureAsBoundary}
+                  onClick={() => void savePickedFeatureAsBoundary()}
+                  disabled={boundaryUiBusy}
                   className="flex-1 text-xs px-2.5 py-1.5 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-700"
                 >
                   Brug som projektgrænse
@@ -339,7 +434,9 @@ function GeometryEditorPage() {
 
           {/* 3. Kortlag */}
           <Card className="p-4 space-y-2">
-            <SectionTitle n={3} icon={<Layers className="h-3.5 w-3.5" />}>Kortlag</SectionTitle>
+            <SectionTitle n={3} icon={<Layers className="h-3.5 w-3.5" />}>
+              Kortlag
+            </SectionTitle>
             {(Object.keys(OVERLAY_DEFS) as OverlayKey[]).map((key) => {
               const def = OVERLAY_DEFS[key];
               const missingToken = def.requiresToken && !DAF_TOKEN;
@@ -401,18 +498,28 @@ function GeometryEditorPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm("Ryd projektgrænsen? Alle afledte beregninger vil kræve at der tegnes et nyt område.")) {
-                      map.clearBoundary();
-                      toast.success("Projektgrænse ryddet");
-                    }
-                  }}
-                  disabled={map.isClearingBoundary}
+                  onClick={() => void confirmAndClearBoundary()}
+                  disabled={boundaryUiBusy || map.drawMode !== "none" || pickMode !== null}
                   className="mt-2 w-full text-xs px-2.5 py-1.5 rounded-md border border-destructive/40 text-destructive hover:bg-destructive/5 disabled:opacity-50"
                 >
                   {map.isClearingBoundary ? "Rydder …" : "Ryd projektgrænse"}
                 </button>
               </>
+            ) : persistedGeometryError ? (
+              <div role="alert" className="space-y-2 text-sm text-destructive">
+                <p>Den gemte projektgrænse er ugyldig: {persistedGeometryError}</p>
+                <p className="text-xs text-muted-foreground">
+                  Fortsæt og matrikelanalyse er blokeret, indtil grænsen er erstattet eller ryddet.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void confirmAndClearBoundary()}
+                  disabled={boundaryUiBusy}
+                  className="w-full text-xs px-2.5 py-1.5 rounded-md border border-destructive/40 text-destructive hover:bg-destructive/5 disabled:opacity-50"
+                >
+                  Ryd ugyldig projektgrænse
+                </button>
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">Intet område defineret endnu.</p>
             )}
@@ -437,20 +544,26 @@ function GeometryEditorPage() {
             lat={lat}
             lng={lng}
             areaHa={project.geometry_area_ha ?? undefined}
-            boundaryGeoJSON={project.geometry_polygon as GeoJsonPolygon | null}
+            boundaryGeoJSON={
+              persistedGeometryValidation?.valid ? persistedGeometryValidation.polygon : null
+            }
             showSensors={false}
             showParagraph3={false}
             showWatercourses={false}
             drawMode={map.drawMode}
             onDrawModeChange={map.setDrawMode}
             onBoundaryDrawn={map.handleBoundaryDrawn}
+            boundaryBusy={boundaryOperationBusy || pickMode !== null}
+            onBoundaryEditStateChange={setBoundaryEditActive}
             centerOverride={center}
             wmsOverlays={wmsOverlays}
             addressMarker={addressMarker}
             pickMode={pickMode}
             onFeaturePicked={handleFeaturePick}
             showCadastreParcels={enabled.cadastre}
-            previewPolygon={(pickedFeature?.geometry ?? highlightGeom ?? null) as GeoJsonPolygon | null}
+            previewPolygon={
+              (pickedFeature?.geometry ?? highlightGeom ?? null) as GeoJsonPolygon | null
+            }
             height={640}
           />
         </div>
@@ -461,7 +574,15 @@ function GeometryEditorPage() {
 
 // ─── UI-hjælpere ────────────────────────────────────────────────────────────
 
-function SectionTitle({ n, children, icon }: { n: number; children: React.ReactNode; icon?: React.ReactNode }) {
+function SectionTitle({
+  n,
+  children,
+  icon,
+}: {
+  n: number;
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-2 text-sm font-semibold">
       <span className="h-5 w-5 rounded-full bg-primary/10 text-primary text-[11px] flex items-center justify-center font-bold">
@@ -492,7 +613,9 @@ function Banner({
       <Icon className="h-4 w-4 shrink-0" />
       <span className="flex-1">{children}</span>
       {onClose && (
-        <button onClick={onClose} aria-label="Luk"><X className="h-4 w-4" /></button>
+        <button onClick={onClose} aria-label="Luk">
+          <X className="h-4 w-4" />
+        </button>
       )}
     </div>
   );
@@ -500,11 +623,17 @@ function Banner({
 
 function sourceLabel(src: string | null | undefined): string {
   switch (src) {
-    case "manual": return "Manuelt tegnet";
-    case "uploaded": return "GeoJSON-upload";
-    case "markblok": return "Markblok";
-    case "matrikel": return "Matrikel";
-    case "estimated": return "Estimeret";
-    default: return src ?? "—";
+    case "manual":
+      return "Manuelt tegnet";
+    case "uploaded":
+      return "GeoJSON-upload";
+    case "markblok":
+      return "Markblok";
+    case "matrikel":
+      return "Matrikel";
+    case "estimated":
+      return "Estimeret";
+    default:
+      return src ?? "—";
   }
 }
