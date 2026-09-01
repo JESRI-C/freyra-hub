@@ -4,4 +4,10 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  "env": {
+    "staging": {
+      "name": "gofreyra-p0-staging",
+      "workers_dev": true
+    }
+  }
 }

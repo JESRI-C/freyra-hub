@@ -48,9 +48,51 @@ export interface MediaServiceResult<T> {
 }
 
 const BUCKET = "project-media";
+const SIGNED_URL_TTL_SECONDS = 5 * 60;
+
+function getAuthorizedMediaPath(row: Record<string, unknown>): string | null {
+  const projectId = typeof row["project_id"] === "string" ? row["project_id"] : "";
+  const filePath = typeof row["file_path"] === "string" ? row["file_path"] : "";
+  const segments = filePath.split("/");
+
+  if (
+    !projectId ||
+    !filePath ||
+    filePath.startsWith("/") ||
+    filePath.includes("\\") ||
+    segments.some((segment) => !segment || segment === "." || segment === "..")
+  ) {
+    return null;
+  }
+
+  const hasLegacyProjectScope = segments[0] === projectId;
+  const hasCanonicalProjectScope =
+    segments[0] === "organizations" && segments[2] === "projects" && segments[3] === projectId;
+
+  return hasLegacyProjectScope || hasCanonicalProjectScope ? filePath : null;
+}
+
+async function createMediaSignedUrl(filePath: string): Promise<MediaServiceResult<string>> {
+  if (!isSupabaseConfigured || supabase === null) {
+    return { data: null, error: "Supabase ikke konfigureret" };
+  }
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
+
+  if (error || !data?.signedUrl) {
+    return {
+      data: null,
+      error: error?.message ?? "Storage returnerede ingen signeret URL",
+    };
+  }
+
+  return { data: data.signedUrl, error: null };
+}
 
 // Map a DB row (snake_case) to ProjectMediaItem (camelCase)
-function rowToMediaItem(row: Record<string, unknown>): ProjectMediaItem {
+function rowToMediaItem(row: Record<string, unknown>, signedUrl: string): ProjectMediaItem {
   const lat = row["lat"] as number | null | undefined;
   const lng = row["lng"] as number | null | undefined;
   const altitudeM = row["altitude_m"] as number | null | undefined;
@@ -73,8 +115,9 @@ function rowToMediaItem(row: Record<string, unknown>): ProjectMediaItem {
     description: row["description"] != null ? String(row["description"]) : undefined,
     category: row["category"] as MediaCategory,
     source: row["source"] as MediaSource,
-    url: String(row["url"]),
-    thumbnailUrl: row["thumbnail_url"] != null ? String(row["thumbnail_url"]) : undefined,
+    // Live media URLs are always short-lived and are never read from persisted
+    // `url`/`thumbnail_url` values. Those columns may contain legacy public URLs.
+    url: signedUrl,
     uploadedAt: String(row["uploaded_at"]),
     capturedAt: row["captured_at"] != null ? String(row["captured_at"]) : undefined,
     coordinates,
@@ -86,6 +129,20 @@ function rowToMediaItem(row: Record<string, unknown>): ProjectMediaItem {
     direction: (row["direction"] as number | null | undefined) ?? null,
     beforeMediaId: (row["before_media_id"] as string | null | undefined) ?? null,
   };
+}
+
+async function materializePrivateMedia(
+  row: Record<string, unknown>,
+): Promise<MediaServiceResult<ProjectMediaItem>> {
+  const filePath = getAuthorizedMediaPath(row);
+  if (!filePath) {
+    return { data: null, error: "Medierækken har en ugyldig eller forkert scoped Storage-sti" };
+  }
+
+  const signedUrl = await createMediaSignedUrl(filePath);
+  if (!signedUrl.data) return { data: null, error: signedUrl.error };
+
+  return { data: rowToMediaItem(row, signedUrl.data), error: null };
 }
 
 // List media for a project — falls back to seed data if Supabase not configured
@@ -107,7 +164,16 @@ export async function listProjectMedia(
   }
 
   const rows = (data ?? []) as Record<string, unknown>[];
-  return { data: rows.map(rowToMediaItem), error: null };
+  const materialized = await Promise.all(rows.map(materializePrivateMedia));
+  const signingFailure = materialized.find((result) => result.data === null);
+  if (signingFailure) {
+    return { data: null, error: signingFailure.error ?? "Kunne ikke signere projektmedie" };
+  }
+
+  return {
+    data: materialized.map((result) => result.data as ProjectMediaItem),
+    error: null,
+  };
 }
 
 // Upload a file to storage and insert a DB record
@@ -142,7 +208,7 @@ export async function uploadProjectMedia(
 
   // Upload file to storage
   const { error: storageError } = await supabase.storage.from(BUCKET).upload(filePath, input.file, {
-    cacheControl: "3600",
+    cacheControl: "300",
     upsert: false,
     contentType: input.file.type || undefined,
   });
@@ -150,9 +216,6 @@ export async function uploadProjectMedia(
   if (storageError) {
     return { data: null, error: storageError.message };
   }
-
-  // Get public URL
-  const publicUrl = getMediaPublicUrl(filePath) ?? "";
 
   // Insert DB record
   const insertPayload = {
@@ -162,7 +225,9 @@ export async function uploadProjectMedia(
     category: input.category,
     source: input.source,
     file_path: filePath,
-    url: publicUrl,
+    // `url` is kept only for compatibility with the current non-null schema.
+    // The live application ignores persisted URL fields and signs `file_path`.
+    url: "",
     thumbnail_url: null,
     captured_at: input.capturedAt ?? null,
     lat: input.coordinates?.lat ?? null,
@@ -182,13 +247,18 @@ export async function uploadProjectMedia(
     .select()
     .single();
 
-  if (insertError) {
-    // Best-effort cleanup of the uploaded file
-    await supabase.storage.from(BUCKET).remove([filePath]);
-    return { data: null, error: insertError.message };
+  if (insertError || !insertData) {
+    const { error: cleanupError } = await supabase.storage.from(BUCKET).remove([filePath]);
+    const insertMessage = insertError?.message ?? "Databasen returnerede ikke det oprettede medie";
+    return {
+      data: null,
+      error: cleanupError
+        ? `${insertMessage}; Storage-oprydning fejlede: ${cleanupError.message}`
+        : insertMessage,
+    };
   }
 
-  return { data: rowToMediaItem(insertData as Record<string, unknown>), error: null };
+  return materializePrivateMedia(insertData as Record<string, unknown>);
 }
 
 // Update metadata (title, description, isReportReady, tags)
@@ -213,41 +283,55 @@ export async function updateProjectMedia(
     .select()
     .single();
 
-  if (error) {
-    return { data: null, error: error.message };
+  if (error || !data) {
+    return {
+      data: null,
+      error: error?.message ?? "Databasen returnerede ikke det opdaterede medie",
+    };
   }
 
-  return { data: rowToMediaItem(data as Record<string, unknown>), error: null };
+  return materializePrivateMedia(data as Record<string, unknown>);
 }
 
 // Delete a media item (removes storage file + DB record)
-export async function deleteProjectMedia(
-  id: string,
-  filePath: string,
-): Promise<MediaServiceResult<void>> {
+export async function deleteProjectMedia(id: string): Promise<MediaServiceResult<void>> {
   if (!isSupabaseConfigured || supabase === null) {
     return { data: null, error: "Supabase ikke konfigureret" };
   }
 
-  // Delete DB record first
-  const { error: dbError } = await getDb()!.from("project_media").delete().eq("id", id);
+  // RLS authorizes this row lookup. Never trust a path supplied by a caller.
+  const { data: mediaRow, error: lookupError } = await getDb()!
+    .from("project_media")
+    .select("project_id,file_path")
+    .eq("id", id)
+    .single();
+
+  if (lookupError || !mediaRow) {
+    return { data: null, error: lookupError?.message ?? "Projektmediet blev ikke fundet" };
+  }
+
+  const filePath = getAuthorizedMediaPath(mediaRow);
+  if (!filePath) {
+    return { data: null, error: "Projektmediet har en ugyldig eller forkert scoped Storage-sti" };
+  }
+
+  // Remove the object while the metadata row still exists, so a project-aware
+  // Storage DELETE policy can authorize the operation.
+  const { error: storageError } = await supabase.storage.from(BUCKET).remove([filePath]);
+  if (storageError) {
+    return { data: null, error: storageError.message };
+  }
+
+  const { error: dbError } = await getDb()!
+    .from("project_media")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .single();
 
   if (dbError) {
     return { data: null, error: dbError.message };
   }
 
-  // Remove storage file (best-effort)
-  if (filePath) {
-    await supabase.storage.from(BUCKET).remove([filePath]);
-  }
-
   return { data: undefined, error: null };
-}
-
-// Get public URL for a storage path
-export function getMediaPublicUrl(filePath: string): string | null {
-  if (!isSupabaseConfigured || supabase === null) return null;
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
-  return data.publicUrl;
 }

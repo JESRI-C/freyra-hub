@@ -139,7 +139,9 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
         file,
         projectId,
         uploadType,
-        detectedMetadata: detected,
+        // Browser-derived preview/EXIF is untrusted user input. A backend
+        // extractor must populate detected_metadata before report use.
+        userMetadata: { client_preview: detected },
       });
       setStage("done");
       onImported?.();

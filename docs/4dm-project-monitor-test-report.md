@@ -8,13 +8,13 @@ Status: første 4DM-checkpoint, 2026-08-31. Resultater opdateres efter hver vert
 | ---------------- | ---------------------------------------------------------- | -------------------------------- |
 | Node/npm         | Node 22.14, npm 10.9.2, kanonisk npm-lock                  | Verificeret tidligere checkpoint |
 | Ren installation | `npm ci`, 823 pakker                                       | Verificeret tidligere checkpoint |
-| TypeScript       | `npm run typecheck`, exit 0                                | Verificeret efter 4DM-slice      |
+| TypeScript       | `npm run typecheck`, exit 0                                | Verificeret efter cyklus 009     |
 | Ændret lint      | 0 fejl, 2 kendte Fast Refresh-warnings                     | Verificeret efter 4DM-slice      |
 | Global lint      | 5.407 errors, 25 warnings ved seneste fulde kørsel         | Releasegate fejlet               |
-| Unit/service     | 8 målrettede filer: 68/68; ren solo-fuldkørsel: 308/308    | Verificeret efter 4DM-slice      |
-| Build            | `npm run build`, exit 0                                    | Verificeret efter 4DM-slice      |
-| Browser-E2E      | Ingen Playwright/Cypress-harness; lokal URL policyblokeret | **AFVENTER**                     |
-| RLS/Storage      | Ingen live to-tenant-test                                  | **AFVENTER**, deploy NO-GO       |
+| Unit/service     | Samlet Vitest: 43 filer/350 tests                          | Verificeret efter cyklus 009     |
+| Build            | `npm run build:staging`, exit 0; kun staging-ref i bundle  | Verificeret efter cyklus 009     |
+| Browser-smoke    | Login/signup render; unauth `/app` → `/login`; ren konsol  | Verificeret lokalt               |
+| RLS/Storage      | Transaktionel A/B SQL-test + anon PostgREST; fixtures væk  | Delvist; rigtig API **AFVENTER** |
 
 ## Observeret slice: canonical projektgrænse
 
@@ -67,7 +67,7 @@ Mock HTTP-fixtures dækker 200, tomt/malformed svar, paging, timeout, 401/403, 4
 
 ### RLS/Storage — releasekritisk
 
-To organisationer og mindst owner/editor/viewer testes via direkte Supabase-kald. Dæk CRUD, membership self-join, cross-project FK, objekt-list/read/write/delete, path spoofing og signed URLs. Service role tæller ikke som RLS-evidens. Miljøet er **AFVENTER**.
+En syntetisk A/B-SQL-test på staging har bevist eget project/media/Storage-read og afvist cross-tenant project/media-read/write, Storage-read og metrics-RPC; anon `projects`/`project_media` afvises med 401. Den fulde direkte Supabase-matrix med rigtige owner/editor/viewer-sessioner, Storage list/read/write/delete, path spoofing og signed URLs er **AFVENTER**.
 
 ### Browser-E2E — bindende rejser
 

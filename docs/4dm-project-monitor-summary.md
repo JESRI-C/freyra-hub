@@ -1,6 +1,6 @@
 # 4DM Project Monitor — arbejdscheckpoint
 
-Status: **4DM er ikke afsluttet**. Dette dokument opsummerer første auditerede og gateverificerede vertikale slice pr. 2026-08-31. Browser-, live Supabase-, RLS- og Storage-evidens er fortsat `AFVENTER`, og platformen er ikke deployklar.
+Status: **4DM er ikke afsluttet**. Dette dokument opsummerer det auditerede arbejdscheckpoint pr. 2026-08-31. Staging er migreret, tenanttestet og lokalt browser-smoketestet; rigtig Auth-/Storage API, den samlede kunderejse og produktion er fortsat `AFVENTER`, så platformen er ikke deployklar.
 
 ## 1. Hvad der allerede fandtes
 
@@ -58,7 +58,7 @@ Andre identificerede dubletter i connector-, WFS/STAC-, kort-, medie-, audit- og
 
 ## 7. Databaseændringer
 
-Der er **ingen** database- eller Storage-migrationer i dette checkpoint og ingen live Supabase-skrivninger. `projects.geometry_polygon` er fortsat canonical. En komplet løsning kræver senere immutable boundary-revision/version, optimistic concurrency og verificerede RLS-/Storage-policies; det må først ske efter live preflight og særskilt migrationsgate.
+Boundary-slicen tilføjede ingen nye 4DM-domæne- eller Storage-migrationer. Sikkerhedshardening blev derimod anvendt på staging i cyklus 009; produktion blev ikke ændret. `projects.geometry_polygon` er fortsat canonical. Immutable boundary-revision/version og optimistic concurrency kræver en senere særskilt migrationsgate.
 
 ## 8. Nye routes og komponenter
 
@@ -75,7 +75,7 @@ Nyt kode-modul: `src/services/map-export-service.ts`. Derudover er der tilføjet
 
 - Eksisterende Supabase/RPC-geodataeksport bruges kun, når databasekonfigurationen er til stede og svaret består strukturvalidering; live-fejl bliver synlige fejl, ikke seed-success.
 - MARS, WMS/WFS, STAC/COG, feltdata og rapportintegrationen er auditeret og har en målkontrakt i [4dm-project-monitor-integrations.md](./4dm-project-monitor-integrations.md), men live adapter-smokes er ikke bestået.
-- Supabase-sikkerhedsprincipperne har styret fail-closed persistence, men effektiv RLS/Storage er ukendt uden adgang til dev/test-instansen.
+- Staging-schema, private buckets og det afgrænsede SQL A/B-/anon-scope er verificeret. Rigtig Auth-/Storage API, hele rollematricen og produktion er ikke verificeret.
 
 ## 10. Testresultater
 
@@ -90,8 +90,8 @@ Den løbende evidens findes i [4dm-project-monitor-test-report.md](./4dm-project
 
 ## 11. Kendte begrænsninger
 
-- Browserflowet import → edit → save → reload → download er `AFVENTER`; den tilgængelige lokale browser-URL blev blokeret af værktøjets sikkerhedspolitik og tæller hverken som produktfejl eller bestået test.
-- Live Supabase-schema, RLS, Storage og to-tenant-isolation er `AFVENTER`; kendte legacy/self-insert policies gør deploy **NO-GO**.
+- Login- og signup-skærmen renderes i rigtig lokal browser, `/app` redirecter unauthenticated til login, og konsollen er ren. Den fulde import → edit → save → reload → download-rejse med en rigtig bruger er `AFVENTER`.
+- Staging-schemaet, private buckets og det testede A/B-tenant-scope er verificeret. Rigtig Auth-/Storage API, alle roller og `spatial_ref_sys`-beslutningen mangler; produktion er fortsat **NO-GO**.
 - Cross-tab/to-bruger optimistic concurrency og immutable boundary-revision mangler.
 - Boundary-rækken og RPC-feature-samlingen læses ikke som ét atomisk, versionsbundet snapshot; denne garanti kræver database-/RPC-versionering og er `AFVENTER`.
 - Metrics har ingen boundary-version eller anden sammenlignelig source-version i det aktuelle schema. Cache-invalidation og `calculated_at`-validering reducerer risikoen lokalt, men kan ikke bevise, at metrics svarer til den aktuelle boundary; fuld freshness-guard er `AFVENTER` schema-/RPC-versionering.
@@ -101,8 +101,8 @@ Den løbende evidens findes i [4dm-project-monitor-test-report.md](./4dm-project
 
 ## 12. Næste tekniske prioriteringer
 
-1. Få Supabase dev/test-adgang og luk `SEC-P0-02`: preflight migrationshistorik, self-insert/legacy policies, private buckets og negative to-tenant-tests.
-2. Hvis den blokering består, konsolidér auth/session-klientlaget efter backlogrækkefølgen.
+1. Luk resten af `SEC-P0-02`: rigtig Auth-session, Storage API upload/list/read/delete/signed-URL/revoke, alle roller og en ejerbeslutning om `spatial_ref_sys`.
+2. Kør clean lokal replay/62 pgTAP og DB-lint, når Docker/Podman er tilgængelig.
 3. Tilføj immutable boundary-revision/version og optimistic concurrency med sikker migration og live readback.
 4. Etablér canonical survey/flight/dataset/drone-asset-model og privat resumable Storage, så dronebilleder kan blive georefererede og reviewbare dataleverancer.
 5. Byg Før/Efter-parring, dokumenterede målinger/change events og review/action-flow efter [4dm-project-monitor-user-flow.md](./4dm-project-monitor-user-flow.md).

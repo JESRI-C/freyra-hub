@@ -86,7 +86,7 @@ Den faglige kontrakt for RGB-dronefotos, georefereringsniveauer, gentagelige sur
 | Reviewer               | Faglig beslutning på tildelte elementer; ingen ændring af originalinput.               |
 | Org admin/owner        | Medlemmer, roller, kilder og releasegodkendelse inden for organisationen.              |
 
-Effektiv live rolle-/RLS-adfærd er **AFVENTER** to-tenant-verifikation.
+Effektiv rolle-/RLS-adfærd er delvist verificeret på staging for det syntetiske A/B-scope; rigtig Auth, hele rollematricen og Storage API er **AFVENTER**.
 
 ## Tomme, fejl- og offline-tilstande
 

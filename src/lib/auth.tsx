@@ -1,6 +1,20 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  clearQueryCacheForAuthTransition,
+  clearQueryCacheForLogout,
+  type AuthUserId,
+} from "@/lib/auth-query-cache";
 
 export type AppUser = {
   id: string;
@@ -46,12 +60,14 @@ const AuthCtx = createContext<AuthState | null>(null);
 const KEY = "freyra-auth-selection-v1";
 
 function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("") || "??";
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase() ?? "")
+      .join("") || "??"
+  );
 }
 
 function statusLabel(raw: string | null | undefined): string {
@@ -63,12 +79,14 @@ function statusLabel(raw: string | null | undefined): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AppUser | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const activeUserIdRef = useRef<AuthUserId>(undefined);
 
   // Restore selected org/project from localStorage
   useEffect(() => {
@@ -79,7 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOrgId(s.orgId ?? null);
         setProjectId(s.projectId ?? null);
       }
-    } catch {}
+    } catch {
+      // Ignore malformed legacy selections; memberships are loaded from Supabase below.
+    }
   }, []);
 
   useEffect(() => {
@@ -87,8 +107,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(KEY, JSON.stringify({ orgId, projectId }));
   }, [orgId, projectId]);
 
+  const resetTenantState = useCallback(() => {
+    setUser(null);
+    setOrganizations([]);
+    setOrgId(null);
+    setProjectId(null);
+  }, []);
+
   const loadUserData = useCallback(async (currentSession: Session | null) => {
     if (!currentSession?.user) {
+      if (activeUserIdRef.current !== null) return;
       setUser(null);
       setOrganizations([]);
       return;
@@ -143,7 +171,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const orgs: Organization[] = [];
     for (const m of (memberships ?? []) as Array<{
       role: string;
-      organization: { id: string; name: string; type: string | null; country: string | null } | null;
+      organization: {
+        id: string;
+        name: string;
+        type: string | null;
+        country: string | null;
+      } | null;
     }>) {
       const o = m.organization;
       if (!o) continue;
@@ -163,6 +196,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const primaryRole = orgs[0]?.role ?? "Member";
 
+    // Discard results from an earlier account if auth changed while the
+    // profile, memberships, or projects were loading.
+    if (activeUserIdRef.current !== uid) return;
+
     setUser({
       id: uid,
       name: displayName,
@@ -180,27 +217,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const applySession = useCallback(
+    (nextSession: Session | null) => {
+      const nextUserId = nextSession?.user?.id ?? null;
+      const didChange = clearQueryCacheForAuthTransition(
+        queryClient,
+        activeUserIdRef.current,
+        nextUserId,
+      );
+
+      activeUserIdRef.current = nextUserId;
+      if (didChange) resetTenantState();
+      setSession(nextSession);
+
+      return loadUserData(nextSession);
+    },
+    [loadUserData, queryClient, resetTenantState],
+  );
+
   useEffect(() => {
     let mounted = true;
 
     // Subscribe first, then hydrate
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       if (!mounted) return;
-      setSession(s);
-      void loadUserData(s);
+      void applySession(s);
     });
 
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
-      setSession(data.session);
-      void loadUserData(data.session).finally(() => mounted && setLoading(false));
+      void applySession(data.session).finally(() => mounted && setLoading(false));
     });
 
     return () => {
       mounted = false;
+      activeUserIdRef.current = undefined;
       sub.subscription.unsubscribe();
     };
-  }, [loadUserData]);
+  }, [applySession]);
 
   const currentOrg = organizations.find((o) => o.id === orgId) ?? null;
   const currentProject = currentOrg?.projects.find((p) => p.id === projectId) ?? null;
@@ -217,15 +271,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentOrg,
         currentProject,
         logout: async () => {
-          await supabase.auth.signOut();
-          setOrgId(null);
-          setProjectId(null);
+          activeUserIdRef.current = null;
+          clearQueryCacheForLogout(queryClient);
+          resetTenantState();
+          setSession(null);
+
+          const { error } = await supabase.auth.signOut();
+          if (error) throw error;
         },
         selectOrg: (id) => {
+          if (!organizations.some((organization) => organization.id === id)) return;
           setOrgId(id);
           setProjectId(null);
         },
-        selectProject: (id) => setProjectId(id),
+        selectProject: (id) => {
+          if (!currentOrg?.projects.some((project) => project.id === id)) return;
+          setProjectId(id);
+        },
         refresh: () => loadUserData(session),
       }}
     >
@@ -246,6 +308,9 @@ export function useAuth() {
 export function getCurrentOrg(_orgId: string | null): Organization | null {
   return null;
 }
-export function getCurrentProject(_orgId: string | null, _projectId: string | null): OrgProject | null {
+export function getCurrentProject(
+  _orgId: string | null,
+  _projectId: string | null,
+): OrgProject | null {
   return null;
 }

@@ -1,17 +1,43 @@
 // Evidence Service
 
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { fetchEvidenceFilesByProject, fetchAllEvidenceFiles } from "@/lib/supabase/queries";
+import { SEED_EVIDENCE_FILES } from "@/data/platform-seed";
+import type { EvidenceFile } from "@/lib/supabase/types";
 
 interface UntypedQueryBuilder {
   insert(values: Record<string, unknown>): UntypedQueryBuilder;
   select(columns?: string): UntypedQueryBuilder;
   single(): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
 }
-interface UntypedDb { from(table: string): UntypedQueryBuilder; }
-function getDb(): UntypedDb | null { return supabase as unknown as UntypedDb | null; }
-import { fetchEvidenceFilesByProject, fetchAllEvidenceFiles } from "@/lib/supabase/queries";
-import { SEED_EVIDENCE_FILES } from "@/data/platform-seed";
-import type { EvidenceFile } from "@/lib/supabase/types";
+interface UntypedDb {
+  from(table: string): UntypedQueryBuilder;
+}
+function getDb(): UntypedDb | null {
+  return supabase as unknown as UntypedDb | null;
+}
+
+const EVIDENCE_BUCKET = "evidence-files";
+
+export function sanitizeEvidenceFileName(fileName: string): string {
+  const leafName = fileName.split(/[\\/]/).at(-1) ?? "";
+  const sanitized = leafName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^\.+/, "")
+    .replace(/_+/g, "_")
+    .slice(0, 180);
+
+  return sanitized || "evidence-file";
+}
+
+async function removeEvidenceObject(path: string): Promise<string | null> {
+  if (!supabase) return "Supabase ikke konfigureret";
+
+  const { error } = await supabase.storage.from(EVIDENCE_BUCKET).remove([path]);
+  return error?.message ?? null;
+}
 
 export async function getEvidenceFilesByProject(projectId: string): Promise<EvidenceFile[]> {
   if (!isSupabaseConfigured) {
@@ -52,21 +78,28 @@ export async function uploadEvidenceFile(input: {
   }
 
   // Real Supabase Storage upload
-  const path = `${input.projectId}/${Date.now()}_${input.file.name}`;
+  const safeName = sanitizeEvidenceFileName(input.file.name);
+  const path = `${input.projectId}/${Date.now()}_${safeName}`;
 
   const { error: uploadError } = await supabase.storage
-    .from("evidence-files")
-    .upload(path, input.file);
+    .from(EVIDENCE_BUCKET)
+    .upload(path, input.file, {
+      cacheControl: "300",
+      contentType: input.file.type || undefined,
+      upsert: false,
+    });
 
   if (uploadError) {
     console.error("Evidence upload failed:", uploadError);
     return null;
   }
 
-  const { data: urlData } = supabase.storage.from("evidence-files").getPublicUrl(path);
-
   const db = getDb();
-  if (!db) return null;
+  if (!db) {
+    const cleanupError = await removeEvidenceObject(path);
+    if (cleanupError) console.error("Evidence Storage cleanup failed:", cleanupError);
+    return null;
+  }
 
   const { data, error: insertError } = await db
     .from("evidence_files")
@@ -76,13 +109,20 @@ export async function uploadEvidenceFile(input: {
       title: input.title,
       evidence_type: input.evidenceType,
       file_type: input.file.type || null,
-      file_url: urlData.publicUrl,
+      // `file_url` stores the private object path. A signed URL must only be
+      // created on an authorized read when a UI actually needs to download it.
+      file_url: path,
     })
     .select()
     .single();
 
-  if (insertError) {
-    console.error("Evidence DB insert failed:", insertError);
+  if (insertError || !data) {
+    console.error(
+      "Evidence DB insert failed:",
+      insertError ?? { message: "Databasen returnerede ikke den oprettede evidensrække" },
+    );
+    const cleanupError = await removeEvidenceObject(path);
+    if (cleanupError) console.error("Evidence Storage cleanup failed:", cleanupError);
     return null;
   }
 

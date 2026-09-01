@@ -1,6 +1,6 @@
 # 4DM Project Monitor — datamodel og konsolideringsplan
 
-Status: auditbaseret målmodel, opdateret 2026-08-31. Ingen af de beskrevne migrationer er anvendt live.
+Status: auditbaseret målmodel, opdateret 2026-08-31. Ingen nye 4DM-domænemigrationer i denne målmodel er anvendt; sikkerhedshardening er kun anvendt på staging.
 
 ## Principper
 
@@ -46,7 +46,7 @@ Før 4DM-migrationer må følgende dokumenteres på en frisk lokal/dev database:
 6. composite projectrelationer eller constraints forhindrer cross-project references;
 7. GRANT og RLS testes separat med to organisationer og flere roller.
 
-Indtil dette er gjort, er live migration/deploy **NO-GO**.
+Nye 4DM-domænemigrationer samt hostet/produktionsdeploy er **NO-GO**, indtil hele gaten er bestået; cyklus 009's afgrænsede staging-sikkerhedsmigration er dokumenteret separat.
 
 ## Geometri
 
@@ -74,4 +74,4 @@ Flyvningen får phase/round, ekstern mission-id, sensor/kamera, CRS/GSD, PostGIS
 
 ## Storage
 
-Kun en delvis uploader-baseret policy er fundet; bucket-oprettelse og komplette policies for media, drone, evidence og documents er ikke verificeret. Canonical private paths skal være organisation-/projektbaserede og leveres via signed URL. Teammedlem, outsider, path spoofing, list/read/write/delete og URL-expiry testes live. Alt dette er **AFVENTER** miljøadgang.
+Staging har tre private buckets og delvist SQL-verificeret Storage-RLS. Den endelige drone-/documents-bucket- og pathkontrakt, rigtig Storage API list/read/write/delete, path spoofing og URL-expiry er fortsat **AFVENTER**.

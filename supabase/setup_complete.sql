@@ -356,83 +356,13 @@ create table if not exists calculated_metrics (
   properties      jsonb default '{}'
 );
 
--- SQL functions
-create or replace function get_project_geojson(input_project_id uuid)
-returns jsonb language sql stable as $$
-  with
-  proj as (select id, name from projects where id = input_project_id),
-  areas as (
-    select json_build_object(
-      'type','Feature','id',pa.id,
-      'geometry', coalesce(st_asgeojson(pa.geom)::jsonb, pa.geojson),
-      'properties', json_build_object('feature_class','project_area','name',pa.name,'area_type',pa.area_type,'area_ha',pa.area_ha)
-    ) as feature
-    from project_areas pa
-    where pa.project_id = input_project_id and (pa.geom is not null or pa.geojson is not null)
-  ),
-  obs as (
-    select json_build_object(
-      'type','Feature','id',go.id,
-      'geometry', coalesce(st_asgeojson(go.geom)::jsonb, go.geojson),
-      'properties', json_build_object('feature_class','observation','observation_type',go.observation_type,'value',go.value,'unit',go.unit,'observed_at',go.observed_at)
-    ) as feature
-    from geo_observations go
-    where go.project_id = input_project_id and (go.geom is not null or go.geojson is not null)
-    limit 200
-  ),
-  all_features as (select feature from areas union all select feature from obs)
-  select json_build_object(
-    'type','FeatureCollection','project_id',input_project_id,
-    'project_name',(select name from proj),
-    'generated_at',now(),
-    'features',coalesce(json_agg(feature),'[]'::json)
-  )::jsonb from all_features
-$$;
+-- Project RPC definitions deliberately live only in numbered migrations.
+-- Re-running this legacy bootstrap file must not replace the authorization,
+-- fixed search_path or execute grants from the hardening migration.
 
-create or replace function get_project_metrics(input_project_id uuid)
-returns jsonb language sql stable as $$
-  with
-  proj as (select geometry_area_ha from projects where id = input_project_id),
-  obs_count as (select count(*) as cnt from geo_observations where project_id = input_project_id),
-  latest_ndvi as (select value from calculated_metrics where project_id = input_project_id and metric_key='ndvi_mean' order by calculated_at desc limit 1),
-  overlap_ha as (select value from calculated_metrics where project_id = input_project_id and metric_key='protected_nature_overlap_ha' order by calculated_at desc limit 1),
-  watercourse_dist as (select value from calculated_metrics where project_id = input_project_id and metric_key='nearest_watercourse_distance_m' order by calculated_at desc limit 1),
-  completeness as (select value from calculated_metrics where project_id = input_project_id and metric_key='data_completeness_score' order by calculated_at desc limit 1)
-  select json_build_object(
-    'project_id', input_project_id,
-    'total_area_ha', coalesce((select geometry_area_ha from proj),0),
-    'protected_nature_overlap_ha', (select value from overlap_ha),
-    'observation_count', (select cnt from obs_count),
-    'nearest_watercourse_distance_m', (select value from watercourse_dist),
-    'latest_ndvi', (select value from latest_ndvi),
-    'data_completeness_score', (select value from completeness),
-    'calculated_at', now()
-  )::jsonb
-$$;
-
--- ─── RLS: Åbn alle tabeller for dev ──────────────────────────────────────────
-do $$
-declare
-  tbl text;
-  tbls text[] := array[
-    'organizations','projects','sites','data_sources','sensors','observations',
-    'indicators','reports','evidence_files','audit_events','actions','impact_units',
-    'construction_projects','nature_contexts','runoff_profiles','environmental_risks',
-    'mitigation_measures','authority_submissions','connector_fetch_logs','project_media',
-    'map_layers','project_areas','geo_features','geo_observations','calculated_metrics'
-  ];
-begin
-  foreach tbl in array tbls loop
-    begin
-      execute format('alter table %I enable row level security', tbl);
-    exception when others then null;
-    end;
-    begin
-      execute format('create policy "dev_all" on %I for all using (true) with check (true)', tbl);
-    exception when duplicate_object then null;
-    end;
-  end loop;
-end $$;
+-- Security invariant: this legacy bootstrap script must never create permissive
+-- development policies. Authoritative RLS lives in numbered migrations, and
+-- local development must exercise the same tenant boundary.
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- SEED DATA

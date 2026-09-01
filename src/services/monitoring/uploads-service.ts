@@ -9,6 +9,7 @@ export type UploadUpdate = Database["public"]["Tables"]["uploads"]["Update"];
 
 export const UPLOAD_BUCKET = "monitoring-uploads";
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
+export const SIGNED_UPLOAD_URL_TTL_SECONDS = 300;
 
 export type UploadType =
   | "image"
@@ -32,30 +33,58 @@ export type UploadType =
   | "other";
 
 const EXT_TO_TYPE: Record<string, UploadType> = {
-  jpg: "image", jpeg: "image", png: "image", heic: "image", webp: "image",
-  mp4: "video", mov: "video", avi: "video", webm: "video",
-  wav: "audio", mp3: "audio", m4a: "audio", flac: "audio", ogg: "audio",
+  jpg: "image",
+  jpeg: "image",
+  png: "image",
+  heic: "image",
+  webp: "image",
+  mp4: "video",
+  mov: "video",
+  avi: "video",
+  webm: "video",
+  wav: "audio",
+  mp3: "audio",
+  m4a: "audio",
+  flac: "audio",
+  ogg: "audio",
   csv: "csv",
-  xls: "excel", xlsx: "excel",
-  json: "geojson", geojson: "geojson",
+  xls: "excel",
+  xlsx: "excel",
+  json: "geojson",
+  geojson: "geojson",
   kml: "kml",
   gpx: "gpx",
   pdf: "pdf",
-  doc: "document", docx: "document", txt: "document", md: "document",
-  zip: "archive", tar: "archive", gz: "archive",
-  tif: "orthophoto", tiff: "orthophoto",
+  doc: "document",
+  docx: "document",
+  txt: "document",
+  md: "document",
+  zip: "archive",
+  tar: "archive",
+  gz: "archive",
+  tif: "orthophoto",
+  tiff: "orthophoto",
 };
 
 const ALLOWED_MIME_PREFIXES = [
-  "image/", "video/", "audio/",
-  "application/pdf", "application/json", "application/geo+json",
-  "application/vnd.google-earth.kml+xml", "application/gpx+xml",
+  "image/",
+  "video/",
+  "audio/",
+  "application/pdf",
+  "application/json",
+  "application/geo+json",
+  "application/vnd.google-earth.kml+xml",
+  "application/gpx+xml",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
-  "application/zip", "application/x-zip-compressed",
-  "text/csv", "text/plain", "text/xml", "application/xml",
+  "application/zip",
+  "application/x-zip-compressed",
+  "text/csv",
+  "text/plain",
+  "text/xml",
+  "application/xml",
 ];
 
 export function detectUploadType(fileName: string, mime: string): UploadType {
@@ -90,7 +119,6 @@ export async function uploadFile(params: {
   zoneId?: string | null;
   uploadType?: UploadType;
   userMetadata?: Record<string, unknown>;
-  detectedMetadata?: Record<string, unknown>;
 }): Promise<Upload> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const { data: auth } = await supabase.auth.getUser();
@@ -124,26 +152,34 @@ export async function uploadFile(params: {
     file_size: params.file.size,
     storage_path: path,
     upload_type: uploadType,
-    status: "awaiting_validation",
-    detected_metadata: (params.detectedMetadata ?? {}) as never,
     user_metadata: (params.userMetadata ?? {}) as never,
   };
-  const { data, error } = await supabase.from("uploads").insert(insert as never).select("*").single();
+  const { data, error } = await supabase
+    .from("uploads")
+    .insert(insert as never)
+    .select("*")
+    .single();
   if (error) {
     // Roll back the storage object so we don't leak orphans.
-    await supabase.storage.from(UPLOAD_BUCKET).remove([path]).catch(() => undefined);
+    let cleanupFailure: unknown = null;
+    try {
+      const { error: cleanupError } = await supabase.storage.from(UPLOAD_BUCKET).remove([path]);
+      cleanupFailure = cleanupError;
+    } catch (caught) {
+      cleanupFailure = caught;
+    }
+    if (cleanupFailure) {
+      const cleanupMessage =
+        cleanupFailure instanceof Error
+          ? cleanupFailure.message
+          : ((cleanupFailure as { message?: string }).message ?? String(cleanupFailure));
+      throw new Error(
+        `Uploadmetadata kunne ikke gemmes (${error.message}), og Storage-oprydning fejlede for ${path}: ${cleanupMessage}`,
+      );
+    }
     throw error;
   }
   const row = data as Upload;
-  await logAuditEvent({
-    projectId: row.project_id,
-    eventType: "upload_created",
-    entityType: "upload",
-    entityId: row.id,
-    title: `Fil uploadet: ${row.original_file_name}`,
-    description: `${uploadType} · ${Math.round(row.file_size / 1024)} KB`,
-    afterData: { id: row.id, upload_type: uploadType, mime, size: row.file_size },
-  });
   return row;
 }
 
@@ -169,7 +205,12 @@ export async function getUpload(id: string): Promise<Upload | null> {
   return (data as Upload | null) ?? null;
 }
 
-export async function updateUpload(id: string, patch: UploadUpdate): Promise<Upload> {
+export type UploadUserUpdate = Pick<
+  UploadUpdate,
+  "project_id" | "organization_id" | "zone_id" | "user_metadata"
+>;
+
+export async function updateUpload(id: string, patch: UploadUserUpdate): Promise<Upload> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const { data, error } = await supabase
     .from("uploads")
@@ -181,13 +222,11 @@ export async function updateUpload(id: string, patch: UploadUpdate): Promise<Upl
   return data as Upload;
 }
 
-export async function setUploadStatus(id: string, status: string, patch: Partial<UploadUpdate> = {}): Promise<Upload> {
-  return updateUpload(id, { status, ...patch } as UploadUpdate);
-}
-
-export async function createSignedUrl(storagePath: string, expiresIn = 60 * 60): Promise<string> {
+export async function createSignedUrl(storagePath: string): Promise<string> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.storage.from(UPLOAD_BUCKET).createSignedUrl(storagePath, expiresIn);
+  const { data, error } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .createSignedUrl(storagePath, SIGNED_UPLOAD_URL_TTL_SECONDS);
   if (error) throw error;
   return data.signedUrl;
 }
@@ -196,8 +235,12 @@ export async function deleteUpload(id: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const existing = await getUpload(id);
   if (!existing) return;
-  await supabase.storage.from(UPLOAD_BUCKET).remove([existing.storage_path]).catch(() => undefined);
-  const { error } = await supabase.from("uploads").delete().eq("id", id);
+  const { error: storageError } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .remove([existing.storage_path]);
+  if (storageError) throw storageError;
+
+  const { error } = await supabase.from("uploads").delete().eq("id", id).select("id").single();
   if (error) throw error;
   await logAuditEvent({
     projectId: existing.project_id,

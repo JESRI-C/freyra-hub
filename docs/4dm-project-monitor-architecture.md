@@ -47,7 +47,7 @@ Stacken forbliver TanStack Start/Router/Query, React, TypeScript, Vite, Leaflet/
 - Parsefejl, ukendt UTC, modstridende GPS, manglende georeference eller uafklaret CRS må ikke føre til `ready`.
 - Originalfiler er immutable. Afledte assets har egen checksum, metodeversion og parent-reference.
 - Store filer kræver resumable transport, ægte progress, retry og resume. Den nuværende standard-upload med høj filgrænse er ikke en produktionsklar storfilstrategi.
-- Bucket/path, effektiv Storage-RLS, retention og resumable endpoint er **AFVENTER** live dev/test.
+- Tre private staging-buckets og det afgrænsede `storage.objects`-SQL-scope er verificeret; canonical drone-/document-paths, rigtig Storage API, upload-intent, retention og resumable endpoint er **AFVENTER**.
 
 ## Proveniensminimum
 

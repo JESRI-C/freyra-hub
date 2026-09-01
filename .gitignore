@@ -23,7 +23,12 @@ dist-ssr
 
 # Wrangler / Cloudflare
 .wrangler/
-.dev.vars
+.dev.vars*
+!.dev.vars.example
+
+# Supabase CLI machine-local state
+supabase/.temp/
+supabase/.branches/
 
 # Editor directories and files
 .vscode/*

@@ -1,20 +1,24 @@
 name: Supabase Migrations
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'supabase/migrations/**'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Skriv DEPLOY for at bekræfte den manuelle produktionsmigration"
+        required: true
+        type: string
 
 jobs:
   migrate:
     name: Run database migrations
+    if: ${{ inputs.confirmation == 'DEPLOY' }}
     runs-on: ubuntu-latest
+    environment: production
 
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
     steps:
       - name: Checkout
@@ -23,10 +27,13 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.116.0
 
       - name: Link project
-        run: supabase link --project-ref ikrmcetjutqcjtwfhzfv --password "$SUPABASE_DB_PASSWORD"
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Preview migrations
+        run: supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
 
       - name: Push migrations
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
