@@ -143,6 +143,7 @@ Aktuel kode kan generere en `jsPDF`-blob og en `documents`-række. Det er ikke d
 - **Sandbox read-denied:** Genkør den samme nødvendige, ikke-destruktive gate med korrekt godkendelse. Ændr ikke kode for at skjule miljøfejlen.
 - **Supabase mangler:** Kontrollér kun nøglenavne/presence. Seed-fallback og statisk SQL-inspektion kan ikke verificere auth/RLS/persistence. Ved `permission denied` på målprojektet må et andet synligt projekt ikke bruges som substitut; markér live evidens `AFVENTER`.
 - **RLS-fejl:** Reproducer med bruger-JWT og en anden tenant; brug aldrig service role som workaround.
+- **Project create + `RETURNING` 42501:** Kontroller først, om kaldet bruger `.insert(...).select(...)`. Den aktuelle `projects_read` validerer via en separat genlæsning af projekt-ID'et, som ikke ser den nye række i samme Postgres command snapshot. Bevar policyen; brug den versionsstyrede kendt-UUID/plain-insert-vej og en separat efterfølgende RLS-read/selection. En policyudvidelse kræver ny tenanttrusselsmodel og negative rolletests.
 - **Uploadmetadata fejler efter Storage-upload:** Kontrollér først den rapporterede metadatafejl. Hvis rollback også fejler, behold den synlige object path og cleanupfejl til manuel, autoriseret reconciliation; skjul ikke fejlen, og forsøg ikke en bred bucket-oprydning.
 - **Kildedata mangler:** Kontrollér katalogstatus, URL, capabilities, CRS, timeout og vilkår; markér `AFVENTER` frem for at opfinde data.
 - **Rapport afviger:** Sammenlign inputversioner, manifest/checksum og metodeversion; overskriv aldrig en godkendt rapport.

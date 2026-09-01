@@ -9,6 +9,12 @@ import { Leaf, FolderOpen, AlertCircle, BarChart2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
 import { useAuth } from "@/lib/auth";
+import {
+  canCreateProject,
+  insertProjectWithoutRepresentation,
+  projectCreateErrorMessage,
+  type ProjectsInsertClient,
+} from "@/lib/project-create";
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
@@ -16,7 +22,6 @@ export const Route = createFileRoute("/app/projects/")({
   head: () => ({ meta: [{ title: "Projektoversigt — GoFreyra" }] }),
   component: ProjectsIndexPage,
 });
-
 
 const STATUS_FILTERS = ["Alle", "Under verifikation", "Verificeret", "Afsluttet"];
 
@@ -50,8 +55,9 @@ const FORM_DEFAULTS: CreateProjectForm = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProjectsIndexPage() {
-  const { currentOrg, selectProject, refresh } = useAuth();
+  const { currentOrg, refresh } = useAuth();
   const orgId = currentOrg?.id ?? "";
+  const canCreate = canCreateProject(currentOrg?.role);
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("Alle");
@@ -66,7 +72,6 @@ function ProjectsIndexPage() {
     queryKey: ["nature-project-summaries", orgId],
     queryFn: () => getAllNatureProjectSummaries(orgId),
   });
-
 
   // Prepend any locally created projects so they appear immediately
   const summaries = useMemo(
@@ -139,31 +144,26 @@ function ProjectsIndexPage() {
       setFormError("Ingen organisation valgt. Gå tilbage til Vælg arbejdsplads.");
       return;
     }
+    if (!canCreate) {
+      setFormError(
+        "Du har ikke rettighed til at oprette projekter i denne organisation. Kontakt en ejer eller administrator.",
+      );
+      return;
+    }
     setSubmitting(true);
     setFormError(null);
 
     const now = new Date().toISOString();
 
+    let inserted: { id: string; slug: null };
     try {
       if (!isSupabaseConfigured || !supabase) {
         throw new Error("Backend er ikke konfigureret.");
       }
 
-      const db = supabase as unknown as {
-        from: (t: string) => {
-          insert: (v: Record<string, unknown>) => {
-            select: (cols: string) => {
-              single: () => Promise<{
-                data: { id: string; slug: string | null } | null;
-                error: { message: string } | null;
-              }>;
-            };
-          };
-        };
-      };
-      const { data: inserted, error } = await db
-        .from("projects")
-        .insert({
+      inserted = await insertProjectWithoutRepresentation(
+        supabase as unknown as ProjectsInsertClient,
+        {
           organization_id: orgId,
           name: form.name.trim(),
           description: form.description.trim() || null,
@@ -171,56 +171,68 @@ function ProjectsIndexPage() {
           location_name: form.location.trim() || null,
           status: form.status,
           country: "Denmark",
-        })
-        .select("id, slug")
-        .single();
-      if (error) throw new Error(error.message);
-      if (!inserted) throw new Error("Ingen data returneret");
-      const newId = inserted.id;
-      const newSlug = inserted.slug ?? newId;
-
-      // Optimistic local summary so it appears instantly on return
-      const newSummary: NatureProjectSummary = {
-        project: {
-          id: newId,
-          organization_id: orgId,
-          name: form.name.trim(),
-          slug: inserted.slug,
-          project_type: form.projectType,
-          location_name: form.location.trim() || null,
-          municipality: null,
-          country: "Denmark",
-          status: form.status,
-          start_date: null,
-          end_date: null,
-          description: form.description.trim() || null,
-          created_at: now,
-          geometry_polygon: null,
-          geometry_centroid_lat: null,
-          geometry_centroid_lng: null,
-          geometry_area_ha: null,
-          geometry_source: "none",
         },
-        indicators: [],
-        activeDataSources: 0,
-        openActions: 0,
-        latestAuditEvent: null,
-        latestReport: null,
-      };
-
-      setLocalSummaries((prev) => [newSummary, ...prev]);
-      selectProject(newId);
-      await refresh();
-      closeModal();
-      showToast("Projekt oprettet");
-      navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
+      );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Kunne ikke oprette projekt";
       console.error("Kunne ikke oprette projekt:", err);
-      setFormError(msg);
-    } finally {
+      setFormError(projectCreateErrorMessage(err));
       setSubmitting(false);
+      return;
     }
+
+    const newId = inserted.id;
+    const newSlug = inserted.slug ?? newId;
+
+    // Optimistic local summary so it appears instantly on return
+    const newSummary: NatureProjectSummary = {
+      project: {
+        id: newId,
+        organization_id: orgId,
+        name: form.name.trim(),
+        slug: inserted.slug,
+        project_type: form.projectType,
+        location_name: form.location.trim() || null,
+        municipality: null,
+        country: "Denmark",
+        status: form.status,
+        start_date: null,
+        end_date: null,
+        description: form.description.trim() || null,
+        created_at: now,
+        geometry_polygon: null,
+        geometry_centroid_lat: null,
+        geometry_centroid_lng: null,
+        geometry_area_ha: null,
+        geometry_source: "none",
+      },
+      indicators: [],
+      activeDataSources: 0,
+      openActions: 0,
+      latestAuditEvent: null,
+      latestReport: null,
+    };
+
+    setLocalSummaries((prev) => [newSummary, ...prev]);
+    closeModal();
+    showToast("Projekt oprettet");
+
+    // The insert is committed at this point. A refresh failure must not be
+    // presented as a failed create, because retrying would create a duplicate.
+    try {
+      const { projectSelected } = await refresh({ selectProjectId: newId });
+      if (!projectSelected) {
+        showToast("Projektet er oprettet. Genindlæs siden for at opdatere projektvalget.");
+      }
+    } catch (refreshError) {
+      console.error(
+        "Projektet blev oprettet, men projektlisten kunne ikke opdateres:",
+        refreshError,
+      );
+      showToast("Projektet er oprettet. Genindlæs siden for at opdatere projektlisten.");
+    }
+
+    setSubmitting(false);
+    navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
   }
 
   return (
@@ -232,8 +244,14 @@ function ProjectsIndexPage() {
           <div className="flex items-center gap-2">
             <Pill tone="info">{summaries.length} projekter</Pill>
             <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+              onClick={() => canCreate && setShowCreateModal(true)}
+              disabled={!canCreate}
+              title={
+                canCreate
+                  ? "Opret et projekt"
+                  : "Kun ejer, administrator eller redaktør kan oprette projekter"
+              }
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               <Plus className="h-4 w-4" />
               Opret projekt
@@ -318,19 +336,22 @@ function ProjectsIndexPage() {
             {openActionsOnly && (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-1">
                 Kun med åbne handlinger
-                <button onClick={() => setOpenActionsOnly(false)}><X className="h-3 w-3" /></button>
+                <button onClick={() => setOpenActionsOnly(false)}>
+                  <X className="h-3 w-3" />
+                </button>
               </span>
             )}
             {highReadinessOnly && (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-1">
                 Rapportklarhed ≥ 80%
-                <button onClick={() => setHighReadinessOnly(false)}><X className="h-3 w-3" /></button>
+                <button onClick={() => setHighReadinessOnly(false)}>
+                  <X className="h-3 w-3" />
+                </button>
               </span>
             )}
           </div>
         )}
       </Card>
-
 
       {/* Result count */}
       <div className="text-sm text-muted-foreground">
@@ -467,7 +488,7 @@ function ProjectsIndexPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || !form.name.trim()}
+                  disabled={submitting || !form.name.trim() || !canCreate}
                   className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
                   {submitting ? "Opretter…" : "Opret projekt"}
