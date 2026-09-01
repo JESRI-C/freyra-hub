@@ -102,6 +102,8 @@ npm run build
 
 Kør desuden målrettede tests før hele suiten. Verificeret worktree 2026-09-01, cyklus 010: 9/9 målrettede auth-/logintests; typecheck; en fuld serial kørsel med 45 filer/359 Vitest-tests; `build:staging`; staging-ref-/secret-leak-preflight; Wrangler dry-run og hosted anonym Worker-smoke består. De tidligere transaktionelle DB-dry-run-, live tenant A/B SQL- og anonyme PostgREST-gates består fortsat fra cyklus 009. Buildscriptet giver Node 4 GB heap, fordi Nitro-bundlingen overstiger standardheapen. Seneste globale lint er fortsat rød med 5.155 errors/23 warnings og skal ned på 0 før P0-release.
 
+`.github/workflows/ci.yml` er den ikke-deployende app-CI. Den har kun `contents: read`, persisterer ikke checkout-credentials, modtager ingen secrets og må ikke kalde Supabase, Wrangler eller deploy. Den kører ved pull request, accepteret push til `main` eller manuel dispatch med Node 22.14.0 og npm-lockfilen: ren install, typecheck, `verify:faktorer`, serial Vitest og normal build. Global lint er fortsat en synlig releaseblokering og må ikke tilføjes som `continue-on-error`; workflowkilden og lokale ækvivalente gates er ikke det samme som en bestået hosted Linux-kørsel.
+
 Ved Supabase-/RLS-ændringer skal app-gaten suppleres i denne rækkefølge på en disponibel, entydigt lokal stack:
 
 ```powershell

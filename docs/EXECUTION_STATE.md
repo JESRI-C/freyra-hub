@@ -1,11 +1,14 @@
 # GoFreyra execution state
 
-Opdateret: 2026-09-01, brugerbestilt P0-cyklus 010.
+Opdateret: 2026-09-01, heartbeat P0-cyklus 011.
 
 ## Seneste verificerede checkpoint
 
 - Repository/remote: `JESRI-C/freyra-hub`; branch `codex/gofreyra-p0`.
-- Baseline HEAD for cyklus 010 er `adeb22d`; loginrettelsen er pushet som `94b37f1` på samme featurebranch.
+- Baseline HEAD for cyklus 011 er `5c5fb14`; frisk fetch viste `HEAD...origin/codex/gofreyra-p0` `0/0` før ændringen.
+- En secretsfri og ikke-deployende P0 app-gate findes nu i `.github/workflows/ci.yml`. Den kører kun ved pull request, accepteret push til `main` eller manuel dispatch; checkout-credentials persisteres ikke, jobtokenet har kun `contents: read`, og workflowet bruger ingen repository-secrets, Supabase, Wrangler eller deploykommandoer.
+- CI-lanen fastlåser Node 22.14.0/npm-lockvejen og kører `npm ci --no-audit --no-fund`, typecheck, checksum-/faktorverifikation, serial Vitest og normal build. En kildekontrakttest afviser deploy-/secret-/featurebranch-trigger-regressioner.
+- Cyklus 011-gates: CI-kontrakt 3/3 PASS; typecheck PASS; `verify:faktorer` PASS; fuld serial Vitest 46 filer/362 tests PASS; ESLint og Prettier på nye filer PASS; YAML parse PASS; normal `npm run build` PASS med kendte bundler-advarsler. Første hosted Linux/GitHub-kørsel er **AFVENTER** PR eller særskilt manuel dispatch; ingen workflowrun, deploy eller anden ekstern ændring blev udløst.
 - Supabase-authbootstrap er rettet, så `onAuthStateChange`-callbacken forbliver synkron og databasekald først køres deferred og generation-guarded. Seneste identitet vinder, stale jobs kan ikke ændre tenantstate/loading, og same-user token-events genindlæser ikke profil, medlemskab og projekter.
 - Password-login navigerer ikke længere før AuthProvider har hydreret den verificerede bruger. Authbootstrap-fejl er synlige og kan retries, aktiv manuel refresh afmonterer ikke appen, og `next` accepterer kun en sikker same-origin relativ sti.
 - Cyklus 010-gates: 9/9 nye auth-/loginregressionstests PASS; typecheck PASS; fuld serial Vitest 45 filer/359 tests PASS; målrettet ESLint 0 errors med tre kendte Fast Refresh-warnings; `build:staging` og Wrangler dry-run PASS.
