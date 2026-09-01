@@ -1,6 +1,6 @@
 # GoFreyra operations runbook
 
-Opdateret: 2026-08-31. Dette er den verificerede lokale baseline. Produktion er uden for mandatet.
+Opdateret: 2026-09-01. Dette er den verificerede staging-/lokalbaseline. Produktion er uden for mandatet.
 
 ## 1. Før start
 
@@ -43,11 +43,13 @@ Tilføj ikke værdier til dette dokument. En `VITE_*`-værdi er klientlæsbar og
 
 `src/lib/supabase/client.ts` er den eneste canonical browser-Supabase-/GoTrue-klient. Den genererede integrationsmodulvej er kun en fail-fast compatibility Proxy til samme instans; opret ikke en ny klient dér eller i en service. `VITE_SUPABASE_PUBLISHABLE_KEY` har prioritet, mens tom/manglende publishable falder tilbage til `VITE_SUPABASE_ANON_KEY`. Serverens `SUPABASE_*`-værdier må aldrig bruges som browserfallback. Auth persistence, auto-refresh og `detectSessionInUrl` er kun aktive, når modulet evalueres i browseren, og er deaktiverede ved SSR-evaluering.
 
+`onAuthStateChange`-callbacken skal være synkron. Start aldrig nye Supabase-queries med `await` inde i callbacken; planlæg tenantbootstrap efter callbacken og generation-guard den mod identitetsskift, logout og unmount. Same-user token-events må kun opdatere sessionen. Password-login navigerer først, når AuthProvider har hydreret brugeren; bootstrapfejl skal vises med retry, og `next` må kun være en valideret same-origin relativ sti.
+
 Denne singleton løser ikke SSR-autorisation. Eksisterende route-loaders bruger fortsat en global publishable/anon-klient uden den aktuelle requests bruger-JWT. Behandl derfor autentificeret initial navigation og RLS-resultater fra loaders som **AFVENTER**, indtil der findes en request-scoped serverklient, og browser-/serverflowet er verificeret med en godkendt dev/test-bruger.
 
 Provisionér observations-ingest som ét runtime-miljø, ét stærkt secret og ét eksisterende projekt-ID med organisation. Request-bodyens `project_id` er kun kompatibilitetsinput og må ikke være autoritativ. Hvis projektbindingen ændres, skal credentialet roteres samtidig; genbrug ikke samme secret til flere projekter. En flerprojekt-integration kræver en særskilt, godkendt credential-/integrationsmodel.
 
-`xdvqdzdpyceojbdknofi` er den brugerautoriserede P0-staging. Lovable-/produktionsref `ikrmcetjutqcjtwfhzfv` er ikke staging og må ikke ændres gennem denne lane. Brug kun `npm run build:staging` og `npm run preview:staging`; preflighten kræver eksakt staging-ref for browser og server og afviser fremmede Supabase-refs i buildet. `.env.staging.local` og genererede `.dev.vars.staging` er lokale/ignorerede og må aldrig committes. Cloudflare-hosting kræver særskilte staging-bindings/secrets; en lokal `.dev.vars` følger ikke med et deploy.
+`xdvqdzdpyceojbdknofi` er den brugerautoriserede P0-staging. Lovable-/produktionsref `ikrmcetjutqcjtwfhzfv` er ikke staging og må ikke ændres gennem denne lane. Brug `npm run build:staging` og `npm run preview:staging`; preflighten kræver eksakt staging-ref for browser og server og afviser fremmede Supabase-refs i buildet. `.env.staging.local` og genererede `.dev.vars.staging` er lokale/ignorerede og må aldrig committes. Cloudflare-hosting kræver særskilte staging-bindings/secrets; en lokal `.dev.vars` følger ikke med et deploy. Et særskilt brugerautoriseret hosted staging-deploy køres fra `.output/server` med den genererede `wrangler.json`, eksplicit `--env staging --keep-vars --strict` og en bestået `--dry-run`; en generisk/default Worker må aldrig bruges.
 
 ## 4. Migrationer og Storage
 
@@ -98,7 +100,7 @@ npm test
 npm run build
 ```
 
-Kør desuden målrettede tests før hele suiten. Verificeret worktree 2026-08-31, cyklus 009: typecheck; en fuld direkte kørsel med 43 filer/350 Vitest-tests; `build:staging`; staging-ref-/secret-leak-preflight; transaktionel DB-dry-run; live tenant A/B SQL-smoke; anonym PostgREST-smoke; og lokal Worker-browser-smoke består. Buildscriptet giver Node 4 GB heap, fordi Nitro-bundlingen overstiger standardheapen. Seneste globale lint er fortsat rød med 5.155 errors/23 warnings og skal ned på 0 før P0-release.
+Kør desuden målrettede tests før hele suiten. Verificeret worktree 2026-09-01, cyklus 010: 9/9 målrettede auth-/logintests; typecheck; en fuld serial kørsel med 45 filer/359 Vitest-tests; `build:staging`; staging-ref-/secret-leak-preflight; Wrangler dry-run og hosted anonym Worker-smoke består. De tidligere transaktionelle DB-dry-run-, live tenant A/B SQL- og anonyme PostgREST-gates består fortsat fra cyklus 009. Buildscriptet giver Node 4 GB heap, fordi Nitro-bundlingen overstiger standardheapen. Seneste globale lint er fortsat rød med 5.155 errors/23 warnings og skal ned på 0 før P0-release.
 
 Ved Supabase-/RLS-ændringer skal app-gaten suppleres i denne rækkefølge på en disponibel, entydigt lokal stack:
 

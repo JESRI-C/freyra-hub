@@ -1,11 +1,15 @@
 # GoFreyra execution state
 
-Opdateret: 2026-08-31, brugerbestilt P0-cyklus 009.
+Opdateret: 2026-09-01, brugerbestilt P0-cyklus 010.
 
 ## Seneste verificerede checkpoint
 
 - Repository/remote: `JESRI-C/freyra-hub`; branch `codex/gofreyra-p0`.
-- Baseline HEAD for cyklus 009 er `777b05b`; cyklus 006-009 samles i det aktuelle checkpoint oven på samme upstream-commit.
+- Baseline HEAD for cyklus 010 er `adeb22d`; loginrettelsen er pushet som `94b37f1` på samme featurebranch.
+- Supabase-authbootstrap er rettet, så `onAuthStateChange`-callbacken forbliver synkron og databasekald først køres deferred og generation-guarded. Seneste identitet vinder, stale jobs kan ikke ændre tenantstate/loading, og same-user token-events genindlæser ikke profil, medlemskab og projekter.
+- Password-login navigerer ikke længere før AuthProvider har hydreret den verificerede bruger. Authbootstrap-fejl er synlige og kan retries, aktiv manuel refresh afmonterer ikke appen, og `next` accepterer kun en sikker same-origin relativ sti.
+- Cyklus 010-gates: 9/9 nye auth-/loginregressionstests PASS; typecheck PASS; fuld serial Vitest 45 filer/359 tests PASS; målrettet ESLint 0 errors med tre kendte Fast Refresh-warnings; `build:staging` og Wrangler dry-run PASS.
+- Commit `94b37f1` er pushet til `origin/codex/gofreyra-p0` og deployet kun til Cloudflare Worker `gofreyra-p0-staging`, version `fbc38ac0-935b-43ff-8917-5a071b02e131`. Hosted `/login` har korrekt titel/indhold og 0 konsollogs; anonym `/app` redirecter til `/login`. Produktion, Simply, custom domain, Supabase-schema og secrets er ikke ændret.
 - Faktisk stack og centrale auth-, API-, migrations-, kort-, upload-, Før/Efter-, målings-, kilde- og rapportveje er statisk auditeret.
 - Runtime er fastlåst til Node `>=22 <23` og npm 10.9.2; frisk `npm ci` består med den synkroniserede lockfil.
 - `npm run typecheck`: exit 0 efter cyklus 008-ændringerne.
@@ -40,7 +44,7 @@ Opdateret: 2026-08-31, brugerbestilt P0-cyklus 009.
 1. Den scoped observationsvalidering og efterfølgende insert er ikke én database-transaktion; schemaet mangler composite relation constraints. Endelig TOCTOU-lukning kræver sikker migration/RPC og live preflight i `SEC-P0-02`.
 2. Legacy åbne policies og `project_members` self-insert er lukket på staging og negativt SQL-testet. Frisk lokal reset/62 pgTAP-cases og rigtig Auth/PostgREST/Storage API-accept mangler fortsat, så produktion er **NO-GO**.
 3. `xdvqdzdpyceojbdknofi` er brugerautoriseret staging og må anvendes til test. Lovable-/produktionsinstansen `ikrmcetjutqcjtwfhzfv` er fortsat read-only/uden connectoradgang og er ikke ændret.
-4. Den canonical browserklient og fraværet af duplicate-GoTrue-advarsel er lokalt verificeret, men login/reset/logout/refresh/account-switch er **AFVENTER** en dev/test-bruger og adgang til det korrekte projekt. Eksisterende SSR route-loaders bruger desuden fortsat en global publishable/anon-klient uden request-scoped bruger-JWT; autentificeret initial navigation og RLS-samspil kræver derfor også en eksplicit serverklientkontrakt.
+4. Den canonical browserklient, authbootstrap-race-/deadlockrettelsen og hosted anonym staging-smoke er verificeret, men credential-båret login/reset/logout/refresh/account-switch er fortsat **AFVENTER** brugerens staging-smoke. Signup-/bekræftelseslinks kræver desuden korrekt Supabase Auth Site URL/redirect-allowlist; Worker-deployet ændrer ikke dette. Eksisterende SSR route-loaders bruger fortsat en global publishable/anon-klient uden request-scoped bruger-JWT; autentificeret initial navigation og RLS-samspil kræver derfor også en eksplicit serverklientkontrakt.
 5. Global lint er rød, og npm audit rapporterer 17 advisories (2 low, 5 moderate, 10 high). Buildet består, men store chunks og bundler-advarsler mangler triage.
 6. Endeligt Haderslev/Skallebæk-projektnavn og reelt P0-datasæt er **AFVENTER** projektmaster.
 7. Uploadkøen er endnu ikke routet til den kanoniske `drone_assets`-model og en verificeret privat projekt-/flight-bucket. Resumable batchupload, idempotent duplikathåndtering og live RLS-/Storage-tests er **AFVENTER**.
@@ -55,7 +59,7 @@ Opdateret: 2026-08-31, brugerbestilt P0-cyklus 009.
 
 ## Næste handlinger
 
-1. Start den lokale Worker-preview med `npm run preview:staging` (der er ikke deployet en hostet staging-app), opret en godkendt testkonto, og kør login/logout/refresh, projektoprettelse samt rigtig Storage-upload/download/delete; følg logs og ryd kun eksplicitte testfixtures.
+1. Åbn `https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/login`, lav en credential-båret login/logout/refresh-smoke og verificér token → profil → medlemskab → `/select` eller valgt projekt uden bounce. Test derefter projektoprettelse samt rigtig Storage-upload/download/delete; følg logs og ryd kun eksplicitte testfixtures.
 2. Afgør håndteringen af `public.spatial_ref_sys`; kør derefter security advisor igen. Flyt ikke PostGIS-extensionen uden en særskilt kompatibilitetsmigration.
 3. Kør `supabase start`, frisk `db reset`, den versionsstyrede pgTAP-suite og DB-lint i en disponibel lokal Docker/Podman-stack; fejlret, indtil replay og alle 62 cases er grønne.
 4. Luk det resterende TOCTOU-gap i observations-ingest med databaseatomisk relationvalidering.
