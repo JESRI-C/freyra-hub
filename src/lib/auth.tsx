@@ -15,6 +15,10 @@ import {
   clearQueryCacheForLogout,
   type AuthUserId,
 } from "@/lib/auth-query-cache";
+import {
+  createDeferredLatestTask,
+  shouldBootstrapAuthSession,
+} from "@/lib/auth-session-bootstrap";
 
 export type AppUser = {
   id: string;
@@ -43,6 +47,8 @@ export type Organization = {
 
 type AuthState = {
   loading: boolean;
+  refreshing: boolean;
+  authError: string | null;
   session: Session | null;
   user: AppUser | null;
   organizations: Organization[];
@@ -58,6 +64,7 @@ type AuthState = {
 
 const AuthCtx = createContext<AuthState | null>(null);
 const KEY = "freyra-auth-selection-v1";
+type AuthBootstrapRequest = { session: Session | null; revision: number };
 
 function initials(name: string) {
   return (
@@ -81,12 +88,16 @@ function statusLabel(raw: string | null | undefined): string {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AppUser | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const activeUserIdRef = useRef<AuthUserId>(undefined);
+  const authRevisionRef = useRef(0);
+  const refreshGenerationRef = useRef(0);
 
   // Restore selected org/project from localStorage
   useEffect(() => {
@@ -114,9 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProjectId(null);
   }, []);
 
-  const loadUserData = useCallback(async (currentSession: Session | null) => {
+  const loadUserData = useCallback(async (
+    currentSession: Session | null,
+    isCurrent: () => boolean,
+  ) => {
     if (!currentSession?.user) {
-      if (activeUserIdRef.current !== null) return;
+      if (!isCurrent() || activeUserIdRef.current !== null) return;
       setUser(null);
       setOrganizations([]);
       return;
@@ -125,17 +139,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const uid = currentSession.user.id;
 
     // Profile
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id, email, full_name, avatar_url")
       .eq("id", uid)
       .maybeSingle();
+    if (profileError) throw profileError;
 
     // Memberships + organizations
-    const { data: memberships } = await supabase
+    const { data: memberships, error: membershipsError } = await supabase
       .from("organization_memberships")
       .select("role, organization:organizations(id, name, type, country)")
       .eq("user_id", uid);
+    if (membershipsError) throw membershipsError;
 
     const orgIds = (memberships ?? [])
       .map((m) => (m.organization as { id?: string } | null)?.id)
@@ -144,10 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Projects for those orgs
     const projectsByOrg: Record<string, OrgProject[]> = {};
     if (orgIds.length > 0) {
-      const { data: projects } = await supabase
+      const { data: projects, error: projectsError } = await supabase
         .from("projects")
         .select("id, name, slug, status, location_name, municipality, organization_id")
         .in("organization_id", orgIds);
+      if (projectsError) throw projectsError;
       for (const p of (projects ?? []) as Array<{
         id: string;
         name: string;
@@ -198,7 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Discard results from an earlier account if auth changed while the
     // profile, memberships, or projects were loading.
-    if (activeUserIdRef.current !== uid) return;
+    if (!isCurrent() || activeUserIdRef.current !== uid) return;
 
     setUser({
       id: uid,
@@ -218,7 +235,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applySession = useCallback(
-    (nextSession: Session | null) => {
+    (nextSession: Session | null, isCurrent: () => boolean) => {
+      if (!isCurrent()) return Promise.resolve();
       const nextUserId = nextSession?.user?.id ?? null;
       const didChange = clearQueryCacheForAuthTransition(
         queryClient,
@@ -230,7 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (didChange) resetTenantState();
       setSession(nextSession);
 
-      return loadUserData(nextSession);
+      return loadUserData(nextSession, isCurrent);
     },
     [loadUserData, queryClient, resetTenantState],
   );
@@ -238,23 +256,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Subscribe first, then hydrate
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (!mounted) return;
-      void applySession(s);
+    const bootstrap = createDeferredLatestTask<AuthBootstrapRequest>({
+      run: (request, isLatestScheduledTask) =>
+        applySession(
+          request.session,
+          () =>
+            isLatestScheduledTask() && authRevisionRef.current === request.revision,
+        ),
+      onPendingChange: (pending) => {
+        if (!mounted) return;
+        if (pending) setAuthError(null);
+        setLoading(pending);
+      },
+      onError: (error) => {
+        if (!mounted) return;
+        activeUserIdRef.current = undefined;
+        resetTenantState();
+        setAuthError("Vi kunne ikke indlæse din konto og organisationer. Prøv igen.");
+        console.error("Auth bootstrap failed", error);
+      },
     });
 
-    supabase.auth.getSession().then(({ data }) => {
+    // Supabase auth callbacks must stay synchronous. Any async Supabase query
+    // started inside this callback can deadlock the auth client, so defer the
+    // profile and tenant bootstrap until after the callback returns.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       if (!mounted) return;
-      void applySession(data.session).finally(() => mounted && setLoading(false));
+      const nextUserId = s?.user?.id ?? null;
+
+      // Token refresh and repeated same-user events only update the session;
+      // tenant data already belongs to this identity and must not flash-load.
+      if (!shouldBootstrapAuthSession(activeUserIdRef.current, nextUserId)) {
+        setSession(s);
+        return;
+      }
+
+      refreshGenerationRef.current += 1;
+      setRefreshing(false);
+      const revision = ++authRevisionRef.current;
+      bootstrap.schedule({ session: s, revision });
     });
 
     return () => {
       mounted = false;
+      bootstrap.cancel();
       activeUserIdRef.current = undefined;
       sub.subscription.unsubscribe();
     };
-  }, [applySession]);
+  }, [applySession, resetTenantState]);
 
   const currentOrg = organizations.find((o) => o.id === orgId) ?? null;
   const currentProject = currentOrg?.projects.find((p) => p.id === projectId) ?? null;
@@ -263,6 +312,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthCtx.Provider
       value={{
         loading,
+        refreshing,
+        authError,
         session,
         user,
         organizations,
@@ -271,7 +322,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentOrg,
         currentProject,
         logout: async () => {
+          authRevisionRef.current += 1;
+          refreshGenerationRef.current += 1;
           activeUserIdRef.current = null;
+          setRefreshing(false);
+          setAuthError(null);
           clearQueryCacheForLogout(queryClient);
           resetTenantState();
           setSession(null);
@@ -288,7 +343,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!currentOrg?.projects.some((project) => project.id === id)) return;
           setProjectId(id);
         },
-        refresh: () => loadUserData(session),
+        refresh: async () => {
+          const authRevision = authRevisionRef.current;
+          const refreshGeneration = ++refreshGenerationRef.current;
+          const isCurrent = () =>
+            authRevisionRef.current === authRevision &&
+            refreshGenerationRef.current === refreshGeneration;
+
+          setRefreshing(true);
+          setAuthError(null);
+          try {
+            await applySession(session, isCurrent);
+          } catch (error) {
+            if (!isCurrent()) return;
+            activeUserIdRef.current = undefined;
+            resetTenantState();
+            setAuthError("Vi kunne ikke indlæse din konto og organisationer. Prøv igen.");
+            throw error;
+          } finally {
+            if (isCurrent()) setRefreshing(false);
+          }
+        },
       }}
     >
       {children}

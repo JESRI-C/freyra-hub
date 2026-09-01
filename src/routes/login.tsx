@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Lock, Mail, Loader2, Eye, EyeOff, ArrowLeft, CheckCircle2, Info, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { resolveLoginDestination, safeLoginNext } from "@/lib/login-flow";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import logoMark from "@/assets/gofreyra-logo.png";
@@ -15,14 +16,6 @@ export const Route = createFileRoute("/login")({
 });
 
 type Mode = "signin" | "signup" | "forgot";
-
-// Accept only same-origin relative paths so an attacker cannot redirect
-// through login to an external URL.
-function safeNext(next: string | undefined): string | null {
-  if (!next) return null;
-  if (!next.startsWith("/") || next.startsWith("//")) return null;
-  return next;
-}
 
 // Oversæt engelske Supabase-fejlbeskeder til klar dansk
 function translateError(message: string): string {
@@ -38,10 +31,11 @@ function translateError(message: string): string {
 }
 
 function LoginPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshing, authError, refresh } = useAuth();
   const navigate = useNavigate();
   const { next } = Route.useSearch();
-  const nextPath = safeNext(next);
+  const nextPath = safeLoginNext(next);
+  const destination = resolveLoginDestination({ loading, hasUser: !!user, next });
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,10 +46,7 @@ function LoginPage() {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
 
-  if (!loading && user) {
-    if (nextPath) return <Navigate to={nextPath} />;
-    return <Navigate to="/select" />;
-  }
+  if (destination) return <Navigate to={destination} />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,8 +56,6 @@ function LoginPage() {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
         toast.success("Du er logget ind");
-        if (nextPath) window.location.href = nextPath;
-        else navigate({ to: "/select" });
       } else if (mode === "signup") {
         if (password.length < 6) {
           toast.error("Adgangskoden skal være mindst 6 tegn lang.");
@@ -321,12 +310,29 @@ function LoginPage() {
           </Field>
         )}
 
+        {authError && mode === "signin" && (
+          <div
+            role="alert"
+            className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          >
+            <p>{authError}</p>
+            <button
+              type="button"
+              disabled={loading || refreshing}
+              onClick={() => void refresh().catch(() => undefined)}
+              className="mt-2 font-medium underline underline-offset-2 disabled:opacity-60"
+            >
+              Prøv igen
+            </button>
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || loading || refreshing}
           className="w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-medium shadow-soft hover:opacity-95 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
-          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          {(busy || loading || refreshing) && <Loader2 className="h-4 w-4 animate-spin" />}
           {isForgot ? "Send nulstillingslink" : isSignup ? "Opret konto" : "Log ind"}
         </button>
 
@@ -344,7 +350,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={handleGoogle}
-              disabled={busy}
+              disabled={busy || loading || refreshing}
               className="w-full rounded-xl border border-input bg-card py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <svg className="h-4 w-4" viewBox="0 0 48 48" aria-hidden="true">
