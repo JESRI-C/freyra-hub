@@ -3400,10 +3400,13 @@ export type Database = {
           file_size: number
           id: string
           import_result: Json
+          intent_expires_at: string | null
+          intent_request_id: string | null
           mime_type: string
           organization_id: string | null
           original_file_name: string
           project_id: string | null
+          received_at: string | null
           source_reference: string | null
           status: string
           storage_path: string
@@ -3421,10 +3424,13 @@ export type Database = {
           file_size: number
           id?: string
           import_result?: Json
+          intent_expires_at?: string | null
+          intent_request_id?: string | null
           mime_type: string
           organization_id?: string | null
           original_file_name: string
           project_id?: string | null
+          received_at?: string | null
           source_reference?: string | null
           status?: string
           storage_path: string
@@ -3442,10 +3448,13 @@ export type Database = {
           file_size?: number
           id?: string
           import_result?: Json
+          intent_expires_at?: string | null
+          intent_request_id?: string | null
           mime_type?: string
           organization_id?: string | null
           original_file_name?: string
           project_id?: string | null
+          received_at?: string | null
           source_reference?: string | null
           status?: string
           storage_path?: string
@@ -3519,6 +3528,39 @@ export type Database = {
       }
     }
     Functions: {
+      cancel_upload_intent: {
+        Args: { p_upload_id: string }
+        Returns: {
+          status: string
+          storage_path: string
+          upload_id: string
+        }[]
+      }
+      create_upload_intent: {
+        Args: {
+          p_file_size: number
+          p_client_request_id: string
+          p_mime_type: string
+          p_original_file_name: string
+          p_project_id: string
+          p_upload_type?: string
+          p_user_metadata?: Json
+          p_zone_id?: string
+        }
+        Returns: {
+          intent_expires_at: string
+          storage_path: string
+          upload_id: string
+        }[]
+      }
+      finalize_upload_intent: {
+        Args: { p_upload_id: string }
+        Returns: {
+          status: string
+          storage_path: string
+          upload_id: string
+        }[]
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined

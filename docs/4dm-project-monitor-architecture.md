@@ -1,6 +1,10 @@
 # 4DM Project Monitor — målarkitektur
 
-Status: styrende arbejdsarkitektur, opdateret 2026-08-31. Den beskriver retningen for P0 og ændrer ikke i sig selv live schema eller drift.
+Status: styrende arbejdsarkitektur, opdateret 2026-09-02. Den beskriver retningen for P0 og ændrer ikke i sig selv live schema eller drift.
+
+## Cyklus 013-addendum
+
+Den eksisterende app har nu kildetestet projektbundet BEFORE-batch og en intent → eksakt TUS-path → server-finalize/cancel-protokol. Serveren binder actor/tenant/projekt/zone/fil, mens browsermetadata forbliver ubetroet. UI-pause/reload-resume, server-side metadataekstraktion, canonical survey/flight/`drone_assets`, orphan-reconciliation og live Auth/Storage/TUS er fortsat **AFVENTER**. Ældre gap-tekst nedenfor om helt manglende intent/resumable transport læses som checkpointet før denne slice.
 
 ## Formål og afgrænsning
 

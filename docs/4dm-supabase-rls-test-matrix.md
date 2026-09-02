@@ -1,6 +1,10 @@
 # 4DM Supabase RLS-testmatrix
 
-Dato: 2026-08-31
+Dato: 2026-09-02
+
+## Cyklus 013-addendum
+
+Den versionsstyrede pgTAP-fil har nu `plan(83)` og 83 tekstuelt matchede assertions, inkl. intent, direct-insert-afvisning, eksakt path, idempotens, immutable scope, finalize/cancel, draft/legacy-read, udløb, membership-revoke og zoneproveniens. Fuld app-/kildesuite består med 51 filer/397 tests. pgTAP, frisk replay, DB-lint og rigtig Auth/Storage/TUS er ikke kørt uden Docker/Podman og står **AFVENTER**. Ældre 62-case-tabeller nedenfor er præ-slice-checkpointet.
 
 ## Status og evidensniveau
 
@@ -97,18 +101,18 @@ Normal organization/project creator-bootstrap kontrolleres statisk, mens signup-
 
 ## Struktur- og granttests
 
-| ID     | Test                            | Forventning                                                                                                                | Status       |
-| ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| DB-001 | Ren `supabase db reset --local` | Alle migrations og data-only seed anvendes uden fejl                                                                       | **AFVENTER** |
-| DB-002 | `supabase db lint --local`      | Ingen error-level database findings                                                                                        | **AFVENTER** |
+| ID     | Test                            | Forventning                                                                                                                | Status                                                                                                                                 |
+| ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| DB-001 | Ren `supabase db reset --local` | Alle migrations og data-only seed anvendes uden fejl                                                                       | **AFVENTER**                                                                                                                           |
+| DB-002 | `supabase db lint --local`      | Ingen error-level database findings                                                                                        | **AFVENTER**                                                                                                                           |
 | DB-003 | RLS-introspektion               | RLS enabled; ingen legacy `dev_*`, public `USING(true)` eller skjulte OR-bypasses                                          | **DELVIST STAGING** — 61 app-tabeller med RLS og 0 `dev_*`; fuld policykombination/lokal replay og `spatial_ref_sys`-afklaring mangler |
-| DB-004 | Grants til `anon`/PUBLIC        | Ingen tenanttabel- eller privat object-adgang                                                                              | **DELVIST STAGING** — anon `projects`/`project_media` = 401; `spatial_ref_sys` = 200; fuld grantmatrix mangler |
-| DB-005 | Policy pr. operation            | SELECT/INSERT/UPDATE/DELETE har korrekt rolle, `USING` og `WITH CHECK`                                                     | **AFVENTER** |
-| DB-006 | Function inventory              | Definer/invoker, owner, execute og `search_path` matcher designet                                                          | **AFVENTER** |
-| DB-007 | Views                           | Eventuelle views er security-invoker eller ikke eksponeret                                                                 | **AFVENTER** |
-| DB-009 | Bucketdefinitioner              | Alle tre private; monitoring 200 MiB + allowlist, project-media 50 MiB + image/PDF; evidence bevarer eksisterende kontrakt | **PASS staging-katalog / API AFVENTER** |
-| DB-011 | Upload column grants/audit      | Kun whitelisted inputkolonner; afledt metadata backend-ejet; upload-created audit præcis én gang                           | **AFVENTER** |
-| DB-010 | Creator-bootstrap               | Orgcreator bliver owner og projektcreator admin i samme transaktion uden direkte trigger-execute                           | **AFVENTER** |
+| DB-004 | Grants til `anon`/PUBLIC        | Ingen tenanttabel- eller privat object-adgang                                                                              | **DELVIST STAGING** — anon `projects`/`project_media` = 401; `spatial_ref_sys` = 200; fuld grantmatrix mangler                         |
+| DB-005 | Policy pr. operation            | SELECT/INSERT/UPDATE/DELETE har korrekt rolle, `USING` og `WITH CHECK`                                                     | **AFVENTER**                                                                                                                           |
+| DB-006 | Function inventory              | Definer/invoker, owner, execute og `search_path` matcher designet                                                          | **AFVENTER**                                                                                                                           |
+| DB-007 | Views                           | Eventuelle views er security-invoker eller ikke eksponeret                                                                 | **AFVENTER**                                                                                                                           |
+| DB-009 | Bucketdefinitioner              | Alle tre private; monitoring 200 MiB + allowlist, project-media 50 MiB + image/PDF; evidence bevarer eksisterende kontrakt | **PASS staging-katalog / API AFVENTER**                                                                                                |
+| DB-011 | Upload column grants/audit      | Kun whitelisted inputkolonner; afledt metadata backend-ejet; upload-created audit præcis én gang                           | **AFVENTER**                                                                                                                           |
+| DB-010 | Creator-bootstrap               | Orgcreator bliver owner og projektcreator admin i samme transaktion uden direkte trigger-execute                           | **AFVENTER**                                                                                                                           |
 
 ## Positive adgangstests
 

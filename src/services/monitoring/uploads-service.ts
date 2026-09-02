@@ -1,7 +1,8 @@
 // Uploads service — CRUD, signed URLs and upload-type classification.
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { supabase, isSupabaseConfigured, requireSupabaseUrl } from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { logAuditEvent } from "./audit-service";
+import { uploadWithTus } from "./resumable-upload-service";
 
 export type Upload = Database["public"]["Tables"]["uploads"]["Row"];
 export type UploadInsert = Database["public"]["Tables"]["uploads"]["Insert"];
@@ -10,6 +11,7 @@ export type UploadUpdate = Database["public"]["Tables"]["uploads"]["Update"];
 export const UPLOAD_BUCKET = "monitoring-uploads";
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
 export const SIGNED_UPLOAD_URL_TTL_SECONDS = 300;
+export const MAX_UPLOAD_USER_METADATA_BYTES = 1024 * 1024;
 
 export type UploadType =
   | "image"
@@ -109,78 +111,241 @@ export function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 180);
 }
 
-/**
- * Uploads a file to the monitoring bucket under the user's folder and inserts
- * a matching row in public.uploads. Returns the created upload row.
- */
-export async function uploadFile(params: {
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  dng: "image/x-adobe-dng",
+  webp: "image/webp",
+  heic: "image/heic",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+  csv: "text/csv",
+  json: "application/json",
+  geojson: "application/geo+json",
+  kml: "application/vnd.google-earth.kml+xml",
+  gpx: "application/gpx+xml",
+  pdf: "application/pdf",
+};
+
+export function resolveUploadMime(file: Pick<File, "name" | "type">): string {
+  const declared = file.type.trim().toLowerCase();
+  if (declared) return declared;
+  const extension = file.name.toLowerCase().split(".").pop() ?? "";
+  return EXTENSION_MIME_TYPES[extension] ?? "application/octet-stream";
+}
+
+export interface UploadIntent {
+  uploadId: string;
+  storagePath: string;
+  intentExpiresAt: string;
+}
+
+export function createUploadRequestId(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  // RFC 4122 v4 fallback for older embedded browsers. This is an idempotency
+  // key, not a security token; the server still issues the storage identity.
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = character === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+interface UploadRpcError {
+  code?: string;
+  message: string;
+}
+
+async function callUploadRpc<T>(
+  functionName: "create_upload_intent" | "finalize_upload_intent" | "cancel_upload_intent",
+  args: Record<string, unknown>,
+): Promise<{ data: T[] | null; error: UploadRpcError | null }> {
+  if (!supabase) throw new Error("Supabase not configured");
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    name: string,
+    parameters: Record<string, unknown>,
+  ) => Promise<{ data: T[] | null; error: UploadRpcError | null }>;
+  return rpc(functionName, args);
+}
+
+export class UploadTransferError extends Error {
+  constructor(
+    message: string,
+    public readonly intent: UploadIntent,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "UploadTransferError";
+  }
+}
+
+export async function createUploadIntent(params: {
   file: File;
   projectId: string | null;
   zoneId?: string | null;
   uploadType?: UploadType;
   userMetadata?: Record<string, unknown>;
+  clientRequestId?: string;
+}): Promise<UploadIntent> {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  if (!params.projectId) throw new Error("Vælg et projekt før upload.");
+  if (params.file.size <= 0 || params.file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(
+      `Filen er tom eller for stor. Maks ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`,
+    );
+  }
+  const mime = resolveUploadMime(params.file);
+  if (!isMimeAllowed(mime)) throw new Error(`Filtypen ${mime} understøttes ikke.`);
+  const userMetadata = params.userMetadata ?? {};
+  const metadataBytes = new TextEncoder().encode(JSON.stringify(userMetadata)).byteLength;
+  if (metadataBytes > MAX_UPLOAD_USER_METADATA_BYTES) {
+    throw new Error("Billedmetadata fylder mere end 1 MB og skal reduceres før upload.");
+  }
+
+  const { data, error } = await callUploadRpc<{
+    upload_id: string;
+    storage_path: string;
+    intent_expires_at: string;
+  }>("create_upload_intent", {
+    p_project_id: params.projectId,
+    p_original_file_name: params.file.name,
+    p_mime_type: mime,
+    p_file_size: params.file.size,
+    p_client_request_id: params.clientRequestId ?? createUploadRequestId(),
+    p_zone_id: params.zoneId ?? undefined,
+    p_upload_type: params.uploadType ?? detectUploadType(params.file.name, mime),
+    p_user_metadata: userMetadata,
+  });
+  if (error) throw error;
+  const row = data?.[0];
+  if (!row?.upload_id || !row.storage_path || !row.intent_expires_at) {
+    throw new Error("Databasen returnerede ikke et gyldigt upload-intent.");
+  }
+  return {
+    uploadId: row.upload_id,
+    storagePath: row.storage_path,
+    intentExpiresAt: row.intent_expires_at,
+  };
+}
+
+/**
+ * Uploads a file to the monitoring bucket under the user's folder and inserts
+ * a matching row in public.uploads. Returns the created upload row.
+ */
+export async function uploadFileResumable(params: {
+  file: File;
+  projectId: string | null;
+  zoneId?: string | null;
+  uploadType?: UploadType;
+  userMetadata?: Record<string, unknown>;
+  onProgress?: (percentage: number, bytesUploaded: number, bytesTotal: number) => void;
+  signal?: AbortSignal;
+  resumeIntent?: UploadIntent;
+  clientRequestId?: string;
 }): Promise<Upload> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth.user;
-  if (!user) throw new Error("Not authenticated");
-
-  if (params.file.size > MAX_UPLOAD_BYTES) {
-    throw new Error(`Filen er for stor. Maks ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`);
+  // Re-issue the same idempotent database request on every attempt. This both
+  // recovers a lost create-RPC response and proves that current file/scope
+  // parameters still match the immutable intent before any TUS bytes move.
+  const intent = await createUploadIntent(params);
+  if (
+    params.resumeIntent &&
+    (params.resumeIntent.uploadId !== intent.uploadId ||
+      params.resumeIntent.storagePath !== intent.storagePath)
+  ) {
+    throw new UploadTransferError(
+      "Upload-intent matcher ikke den oprindelige fil og projektkontekst.",
+      intent,
+    );
   }
-  const mime = params.file.type || "application/octet-stream";
-  if (!isMimeAllowed(mime)) {
-    throw new Error(`Filtypen ${mime || "ukendt"} understøttes ikke.`);
-  }
 
-  const uploadType = params.uploadType ?? detectUploadType(params.file.name, mime);
-  const safe = sanitizeFileName(params.file.name);
-  const path = `${user.id}/${Date.now()}-${safe}`;
-
-  const { error: upErr } = await supabase.storage
-    .from(UPLOAD_BUCKET)
-    .upload(path, params.file, { contentType: mime, upsert: false });
-  if (upErr) throw upErr;
-
-  const insert: UploadInsert = {
-    project_id: params.projectId,
-    zone_id: params.zoneId ?? null,
-    uploaded_by: user.id,
-    file_name: safe,
-    original_file_name: params.file.name,
-    mime_type: mime,
-    file_size: params.file.size,
-    storage_path: path,
-    upload_type: uploadType,
-    user_metadata: (params.userMetadata ?? {}) as never,
-  };
-  const { data, error } = await supabase
-    .from("uploads")
-    .insert(insert as never)
-    .select("*")
-    .single();
-  if (error) {
-    // Roll back the storage object so we don't leak orphans.
-    let cleanupFailure: unknown = null;
-    try {
-      const { error: cleanupError } = await supabase.storage.from(UPLOAD_BUCKET).remove([path]);
-      cleanupFailure = cleanupError;
-    } catch (caught) {
-      cleanupFailure = caught;
-    }
-    if (cleanupFailure) {
-      const cleanupMessage =
-        cleanupFailure instanceof Error
-          ? cleanupFailure.message
-          : ((cleanupFailure as { message?: string }).message ?? String(cleanupFailure));
-      throw new Error(
-        `Uploadmetadata kunne ikke gemmes (${error.message}), og Storage-oprydning fejlede for ${path}: ${cleanupMessage}`,
+  if (params.resumeIntent) {
+    const recovered = await finalizeIntent(intent);
+    if (recovered.row) return recovered.row;
+    const objectMissing =
+      recovered.error?.code === "55000" &&
+      recovered.error.message.toLowerCase().includes("object not found");
+    if (!objectMissing) {
+      throw new UploadTransferError(
+        `Upload-intent kunne ikke genoptages: ${recovered.error?.message ?? "ukendt fejl"}`,
+        intent,
+        { cause: recovered.error ?? undefined },
       );
     }
-    throw error;
   }
-  const row = data as Upload;
-  return row;
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (sessionError || !accessToken) {
+    throw new UploadTransferError("Upload kræver en aktiv session.", intent, {
+      cause: sessionError ?? undefined,
+    });
+  }
+  const mime = resolveUploadMime(params.file);
+
+  try {
+    await uploadWithTus({
+      file: params.file,
+      projectUrl: requireSupabaseUrl(),
+      accessToken,
+      bucketName: UPLOAD_BUCKET,
+      objectName: intent.storagePath,
+      contentType: mime,
+      onProgress: params.onProgress,
+      signal: params.signal,
+    });
+  } catch (error) {
+    throw new UploadTransferError(
+      error instanceof Error ? error.message : "Den resumérbare upload fejlede.",
+      intent,
+      { cause: error },
+    );
+  }
+
+  const finalized = await finalizeIntent(intent);
+  if (finalized.error) {
+    throw new UploadTransferError(
+      `Filen er overført, men modtagelsen kunne ikke verificeres: ${finalized.error.message}`,
+      intent,
+      { cause: finalized.error },
+    );
+  }
+  if (!finalized.row)
+    throw new UploadTransferError("Den modtagne upload kunne ikke genlæses.", intent);
+  return finalized.row;
+}
+
+export const uploadFile = uploadFileResumable;
+
+export async function cancelUploadIntent(uploadId: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const { data, error } = await callUploadRpc<{
+    upload_id: string;
+    storage_path: string;
+    status: string;
+  }>("cancel_upload_intent", { p_upload_id: uploadId });
+  if (error) throw error;
+  if (data?.[0]?.status !== "archived") throw new Error("Upload-intent blev ikke annulleret.");
+}
+
+async function finalizeIntent(
+  intent: UploadIntent,
+): Promise<{ row?: Upload; error?: UploadRpcError }> {
+  const { data, error } = await callUploadRpc<{
+    upload_id: string;
+    storage_path: string;
+    status: string;
+  }>("finalize_upload_intent", { p_upload_id: intent.uploadId });
+  if (error) return { error };
+  if (!data?.[0]?.upload_id || !data[0].storage_path || !data[0].status) {
+    return { error: { message: "Databasen bekræftede ikke den modtagne upload." } };
+  }
+  const row = await getUpload(intent.uploadId);
+  return row ? { row } : { error: { message: "Den modtagne upload kunne ikke genlæses." } };
 }
 
 export async function listUploads(params: {
@@ -254,7 +419,7 @@ export async function deleteUpload(id: string): Promise<void> {
 
 export function uploadStatusLabel(status: string): string {
   const map: Record<string, string> = {
-    draft: "Kladde",
+    draft: "Overførsel ikke afsluttet",
     awaiting_validation: "Afventer validering",
     validating: "Valideres",
     ready: "Klar til import",

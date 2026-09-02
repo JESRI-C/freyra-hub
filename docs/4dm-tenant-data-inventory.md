@@ -1,6 +1,10 @@
 # 4DM tenant-data-inventar
 
-Dato: 2026-08-31
+Dato: 2026-09-02
+
+## Cyklus 013-addendum
+
+Nye monitoring uploads er i forward migrationskilden ikke længere caller-insertede rækker/paths: `create_upload_intent` binder actor, organisation, projekt, zone og fil til én eksakt, kortlivet draft, som kun må TUS-uploades uden upsert og først bliver modtaget ved server-finalize. Browserens metadata forbliver ubetroet `user_metadata.client_preview`. Staging har ikke denne migration endnu; 83-case pgTAP, rigtig Auth/Storage/TUS, serverekstraktor og orphan-reconciliation er **AFVENTER**. De ældre “resterende Storage-gab”-linjer nedenfor beskriver præ-slice-checkpointet.
 
 Status: Repositoryets samlede migrationskæde og de relevante TypeScript-services er auditeret statisk. Hardening-migrationen `20260831064838_harden_4dm_tenant_isolation.sql` er anvendt på staging `xdvqdzdpyceojbdknofi`, men ikke i produktion. Katalogassertions, anon PostgREST og en transaktionel A/B-tenanttest er bestået. Clean lokal replay, rigtig Auth-/Storage API og hele rollematricen er **AFVENTER**.
 

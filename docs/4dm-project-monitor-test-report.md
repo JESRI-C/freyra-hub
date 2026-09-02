@@ -1,20 +1,24 @@
 # 4DM Project Monitor — teststrategi og løbende rapport
 
-Status: første 4DM-checkpoint, 2026-08-31. Resultater opdateres efter hver vertikal slice. Dette er ikke en P0-godkendelse.
+Status: løbende 4DM-checkpoint, opdateret 2026-09-02. Resultater opdateres efter hver vertikal slice. Dette er ikke en P0-godkendelse.
+
+## Cyklus 013-addendum
+
+Fuld serial Vitest består med 51 filer/397 tests, typecheck består, målrettet ESLint på 14 berørte TypeScript-filer har 0 fund, normalt produktionsbuild består, og `git diff --check` består. Testene dækker bl.a. 120-fils batch, concurrency=2, intent-idempotens/scope, low-level TUS-resume/abort-races og finalize-recovery. Den ændrede lockfil er ikke genverificeret med frisk `npm ci`. Forward migration, 83-case pgTAP, DB-lint, UI-pause/reload-resume og rigtig Auth/Storage/TUS/browser-E2E er **AFVENTER**.
 
 ## Verificeret baseline
 
-| Gate             | Observeret resultat                                        | Status                           |
-| ---------------- | ---------------------------------------------------------- | -------------------------------- |
-| Node/npm         | Node 22.14, npm 10.9.2, kanonisk npm-lock                  | Verificeret tidligere checkpoint |
-| Ren installation | `npm ci`, 823 pakker                                       | Verificeret tidligere checkpoint |
-| TypeScript       | `npm run typecheck`, exit 0                                | Verificeret efter cyklus 009     |
-| Ændret lint      | 0 fejl, 2 kendte Fast Refresh-warnings                     | Verificeret efter 4DM-slice      |
-| Global lint      | 5.407 errors, 25 warnings ved seneste fulde kørsel         | Releasegate fejlet               |
-| Unit/service     | Samlet Vitest: 43 filer/350 tests                          | Verificeret efter cyklus 009     |
-| Build            | `npm run build:staging`, exit 0; kun staging-ref i bundle  | Verificeret efter cyklus 009     |
-| Browser-smoke    | Login/signup render; unauth `/app` → `/login`; ren konsol  | Verificeret lokalt               |
-| RLS/Storage      | Transaktionel A/B SQL-test + anon PostgREST; fixtures væk  | Delvist; rigtig API **AFVENTER** |
+| Gate             | Observeret resultat                                       | Status                           |
+| ---------------- | --------------------------------------------------------- | -------------------------------- |
+| Node/npm         | Node 22.14, npm 10.9.2, kanonisk npm-lock                 | Verificeret tidligere checkpoint |
+| Ren installation | `npm ci`, 823 pakker                                      | Verificeret tidligere checkpoint |
+| TypeScript       | `npm run typecheck`, exit 0                               | Verificeret efter cyklus 009     |
+| Ændret lint      | 0 fejl, 2 kendte Fast Refresh-warnings                    | Verificeret efter 4DM-slice      |
+| Global lint      | 5.407 errors, 25 warnings ved seneste fulde kørsel        | Releasegate fejlet               |
+| Unit/service     | Samlet Vitest: 43 filer/350 tests                         | Verificeret efter cyklus 009     |
+| Build            | `npm run build:staging`, exit 0; kun staging-ref i bundle | Verificeret efter cyklus 009     |
+| Browser-smoke    | Login/signup render; unauth `/app` → `/login`; ren konsol | Verificeret lokalt               |
+| RLS/Storage      | Transaktionel A/B SQL-test + anon PostgREST; fixtures væk | Delvist; rigtig API **AFVENTER** |
 
 ## Observeret slice: canonical projektgrænse
 

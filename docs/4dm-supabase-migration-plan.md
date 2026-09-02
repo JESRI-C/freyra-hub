@@ -1,26 +1,30 @@
 # 4DM Supabase-migrationsplan
 
-Dato: 2026-08-31
+Dato: 2026-09-02
+
+## Cyklus 013-addendum
+
+`20260901163924_upload_intents_resumable_storage.sql` er næste forward migration og er kun i kilden. Den indfører idempotent server-intent, eksakt TUS-path/finalize/cancel, immutable scope, draft-/legacy-adgang og zoneproveniens. Kildesuiten er grøn med 51 filer/397 tests; pgTAP-planen er 83 assertions. Frisk replay, DB-lint, pgTAP, live Auth/Storage/TUS og orphan-reconciliation er **AFVENTER**, og migrationen må ikke anvendes på staging/produktion uden separat mandat og preflight.
 
 ## Aktuel migrationsstatus
 
-| Element                                          | Status                                                                                              |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Supabase CLI                                     | 2.116.0, pinnet i `devDependencies` og lockfile                                                     |
-| `20260831064838_harden_4dm_tenant_isolation.sql` | Anvendt atomisk og registreret på staging `xdvqdzdpyceojbdknofi`; ikke anvendt i produktion          |
-| Målrettede kilde-/servicetests                   | Bestået; indgår i samlet Vitest                                                                      |
-| Samlet Vitest                                    | 43 filer, 350/350 bestået                                                                            |
-| Typecheck/staging-build                          | Bestået; staging-build indeholder kun den autoriserede staging-ref                                   |
-| Lint                                             | Changed test: 0 fejl; fuld lint: 394 filer, 5.164 fejl/23 advarsler/fatal 0                         |
-| pgTAP                                            | Testfil med `plan(62)` og 62 assertions skrevet; **ikke kørt**                                      |
-| Lokal database                                   | **AFVENTER**; Docker/Podman `NOT_FOUND`                                                             |
-| Clean reset/lint                                 | **AFVENTER**; reset gav `LegacyLocalDbRunningError`, lint `ECONNREFUSED 127.0.0.1:54322`            |
-| Auth/PostgREST/RPC/Storage                       | SQL A/B-tenanttest og anon PostgREST-smoke bestået; rigtig Auth-/Storage API-rejse **AFVENTER**      |
-| Lovable-/produktionstarget                       | `ikrmcetjutqcjtwfhzfv` utilgængelig via connector; ikke ændret                                      |
-| Staging                                          | `xdvqdzdpyceojbdknofi` brugerautoriseret, aktiv, migreret og katalog-/tenanttestet                   |
-| Produktion                                       | Ikke rørt; ingen migration eller deploy                                                             |
-| Git                                              | Leverancen samles i cyklus 009-checkpoint og pushes kun til `codex/gofreyra-p0`                      |
-| Genererede typer                                 | Må først regenereres efter bestået lokal schema-replay                                              |
+| Element                                          | Status                                                                                          |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Supabase CLI                                     | 2.116.0, pinnet i `devDependencies` og lockfile                                                 |
+| `20260831064838_harden_4dm_tenant_isolation.sql` | Anvendt atomisk og registreret på staging `xdvqdzdpyceojbdknofi`; ikke anvendt i produktion     |
+| Målrettede kilde-/servicetests                   | Bestået; indgår i samlet Vitest                                                                 |
+| Samlet Vitest                                    | 43 filer, 350/350 bestået                                                                       |
+| Typecheck/staging-build                          | Bestået; staging-build indeholder kun den autoriserede staging-ref                              |
+| Lint                                             | Changed test: 0 fejl; fuld lint: 394 filer, 5.164 fejl/23 advarsler/fatal 0                     |
+| pgTAP                                            | Testfil med `plan(62)` og 62 assertions skrevet; **ikke kørt**                                  |
+| Lokal database                                   | **AFVENTER**; Docker/Podman `NOT_FOUND`                                                         |
+| Clean reset/lint                                 | **AFVENTER**; reset gav `LegacyLocalDbRunningError`, lint `ECONNREFUSED 127.0.0.1:54322`        |
+| Auth/PostgREST/RPC/Storage                       | SQL A/B-tenanttest og anon PostgREST-smoke bestået; rigtig Auth-/Storage API-rejse **AFVENTER** |
+| Lovable-/produktionstarget                       | `ikrmcetjutqcjtwfhzfv` utilgængelig via connector; ikke ændret                                  |
+| Staging                                          | `xdvqdzdpyceojbdknofi` brugerautoriseret, aktiv, migreret og katalog-/tenanttestet              |
+| Produktion                                       | Ikke rørt; ingen migration eller deploy                                                         |
+| Git                                              | Leverancen samles i cyklus 009-checkpoint og pushes kun til `codex/gofreyra-p0`                 |
+| Genererede typer                                 | Må først regenereres efter bestået lokal schema-replay                                          |
 
 Staging-databasemigrationen og den transaktionelle A/B-test er runtime-evidens for den testede SQL-flade, men erstatter ikke clean lokal replay, de 62 pgTAP-cases eller en rigtig Auth-/Storage API-rejse.
 

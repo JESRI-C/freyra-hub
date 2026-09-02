@@ -1,6 +1,10 @@
 # 4DM Supabase RLS-verifikation
 
-Dato: 2026-08-31
+Dato: 2026-09-02
+
+## Cyklus 013-addendum
+
+App-/kildegates er nu 51 filer/397 Vitest-tests, grøn typecheck og grøn produktionsbuild. Den nye upload-intent-forward migration og 83-case pgTAP-kilde er statisk dækket, men ikke replayet eller runtime-kørt. Staging kører fortsat kun den tidligere hardening-baseline. Derfor er rigtig Auth/Storage/TUS, signed URL/revoke, orphan-reconciliation og hele rollematricen fortsat **AFVENTER**; ældre afsnit nedenfor med `plan(62)` og manglende intent er præ-slice-evidens.
 
 ## 1. Testet miljø
 
@@ -138,10 +142,10 @@ Den afsluttende review fandt desuden P0-blokeringer, som ikke er løst: Storage 
 
 ## 10. Migrationer
 
-| Migration                                        | Status                             | Bemærkning                                      |
-| ------------------------------------------------ | ---------------------------------- | ----------------------------------------------- |
-| Eksisterende historik                            | Statisk auditeret                  | Ikke replayet lokalt                            |
-| `006_project_media.sql`                          | Lokalt rettet                      | `project_id uuid`; remote historik **AFVENTER** |
+| Migration                                        | Status                                            | Bemærkning                                                                               |
+| ------------------------------------------------ | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Eksisterende historik                            | Statisk auditeret                                 | Ikke replayet lokalt                                                                     |
+| `006_project_media.sql`                          | Lokalt rettet                                     | `project_id uuid`; remote historik **AFVENTER**                                          |
 | `20260831064838_harden_4dm_tenant_isolation.sql` | Anvendt/registreret på staging; ikke i produktion | Katalog + SQL A/B + anon PostgREST delvist grøn; lokal replay og rigtig API **AFVENTER** |
 
 Migrationen samles i cyklus 009-checkpointet til push på `codex/gofreyra-p0`; det er ikke en produktionsgodkendelse.

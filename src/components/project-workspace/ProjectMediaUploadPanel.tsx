@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
-import { UploadCloud, Info, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { UploadCloud, Info, Loader2, CheckCircle, XCircle, Images } from "lucide-react";
 import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
 import type { MediaCategory, ProjectMediaItem } from "@/lib/platform/media-types";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { uploadProjectMedia } from "@/services/project-media-service";
+import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
 import exifr from "exifr";
 
 interface ProjectMediaUploadPanelProps {
@@ -49,6 +50,7 @@ export function ProjectMediaUploadPanel({
   const [isUploading, setIsUploading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [beforeBatchOpen, setBeforeBatchOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -171,13 +173,26 @@ export function ProjectMediaUploadPanel({
       <div className="text-sm font-semibold">Upload medie</div>
 
       <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] text-sky-900">
-        Dronefotos importeres via{" "}
-        <a className="font-semibold underline" href="/app/connect/upload">
-          Uploadcenter
-        </a>
-        , hvor EXIF, XMP, GPS, UTC-tid, orientering, RTK-oplysninger og checksum bevares og
-        valideres.
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span>
+            Har du en samlet FØR-flyvning, kan originale dronefotos importeres direkte til dette
+            projekt med EXIF/XMP-, GPS-, UTC- og checksumkontrol.
+          </span>
+          <button
+            type="button"
+            onClick={() => setBeforeBatchOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-sky-900 px-2.5 py-1.5 font-semibold text-white"
+          >
+            <Images className="h-3.5 w-3.5" /> Importer FØR-dronefotos
+          </button>
+        </div>
       </div>
+
+      <DroneBeforeBatchWizard
+        open={beforeBatchOpen}
+        onClose={() => setBeforeBatchOpen(false)}
+        projectId={projectId}
+      />
 
       {/* Preview mode banner */}
       {!isSupabaseConfigured && (

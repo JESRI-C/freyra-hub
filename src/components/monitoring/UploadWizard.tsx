@@ -31,9 +31,14 @@ import {
 import {
   detectUploadType,
   isMimeAllowed,
+  resolveUploadMime,
   uploadFile,
+  createUploadRequestId,
+  cancelUploadIntent,
   MAX_UPLOAD_BYTES,
+  type UploadIntent,
   type UploadType,
+  UploadTransferError,
 } from "@/services/monitoring/uploads-service";
 import { isReadyForAutomaticCameraPosition } from "@/services/monitoring/drone-image-metadata";
 
@@ -55,8 +60,10 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
   const [stage, setStage] = useState<Stage>("select");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resumeIntent, setResumeIntent] = useState<UploadIntent | undefined>();
+  const [clientRequestId, setClientRequestId] = useState(() => createUploadRequestId());
 
-  const reset = useCallback(() => {
+  const clearState = useCallback(() => {
     setFile(null);
     setUploadType("other");
     setPreview(null);
@@ -65,11 +72,30 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
     setStage("select");
     setError(null);
     setBusy(false);
+    setResumeIntent(undefined);
+    setClientRequestId(createUploadRequestId());
   }, []);
 
+  const reset = useCallback(async (): Promise<boolean> => {
+    if (resumeIntent) {
+      try {
+        await cancelUploadIntent(resumeIntent.uploadId);
+      } catch (cancelError) {
+        setError(
+          `Upload-intent kunne ikke lukkes: ${cancelError instanceof Error ? cancelError.message : String(cancelError)}`,
+        );
+        return false;
+      }
+    }
+    clearState();
+    return true;
+  }, [clearState, resumeIntent]);
+
   const handleClose = () => {
-    reset();
-    onClose();
+    if (stage === "importing") return;
+    void reset().then((cleared) => {
+      if (cleared) onClose();
+    });
   };
 
   const parse = useCallback(async (f: File, t: UploadType) => {
@@ -80,7 +106,12 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
       if (t === "geojson" || ext === "geojson" || ext === "json") return await parseGeoJson(f);
       if (t === "kml" || ext === "kml") return await parseKml(f);
       if (t === "gpx" || ext === "gpx") return await parseGpx(f);
-      if (t === "image" || t === "drone_photo" || f.type.startsWith("image/"))
+      if (
+        t === "image" ||
+        t === "drone_photo" ||
+        t === "orthophoto" ||
+        resolveUploadMime(f).startsWith("image/")
+      )
         return await parseImage(f);
     } catch (err) {
       setError((err as Error).message);
@@ -91,11 +122,13 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
 
   const handleFile = async (f: File) => {
     setError(null);
+    setResumeIntent(undefined);
+    setClientRequestId(createUploadRequestId());
     if (f.size > MAX_UPLOAD_BYTES) {
       setError(`Filen er for stor. Maks ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`);
       return;
     }
-    const mime = f.type || "application/octet-stream";
+    const mime = resolveUploadMime(f);
     if (!isMimeAllowed(mime)) {
       setError(`Filtypen ${mime} understøttes ikke.`);
       return;
@@ -142,21 +175,25 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
         // Browser-derived preview/EXIF is untrusted user input. A backend
         // extractor must populate detected_metadata before report use.
         userMetadata: { client_preview: detected },
+        resumeIntent,
+        clientRequestId,
       });
+      setResumeIntent(undefined);
       setStage("done");
       onImported?.();
     } catch (err) {
+      if (err instanceof UploadTransferError) setResumeIntent(err.intent);
       setError((err as Error).message);
       setStage("error");
     }
   };
 
   const canImport = useMemo(() => {
-    if (!file || !preview) return false;
+    if (!projectId || !file || !preview) return false;
     if (preview.kind === "tabular") return preview.totalRows > 0;
     if (preview.kind === "geo") return preview.featureCount > 0;
     return true;
-  }, [file, preview]);
+  }, [file, preview, projectId]);
 
   return (
     <Drawer
@@ -166,7 +203,11 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
       subtitle="Klassificér → validér → preview → importer"
       footer={
         <>
-          <button onClick={handleClose} className="text-xs rounded-lg border bg-card px-3 py-1.5">
+          <button
+            onClick={handleClose}
+            disabled={stage === "importing"}
+            className="text-xs rounded-lg border bg-card px-3 py-1.5 disabled:opacity-40"
+          >
             Luk
           </button>
           {stage !== "done" && stage !== "importing" && (
@@ -179,13 +220,21 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
             </button>
           )}
           {stage === "done" && (
-            <button onClick={reset} className="text-xs rounded-lg border bg-card px-3 py-1.5">
+            <button
+              onClick={() => void reset()}
+              className="text-xs rounded-lg border bg-card px-3 py-1.5"
+            >
               Ny fil
             </button>
           )}
         </>
       }
     >
+      {!projectId && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Vælg et projekt før upload. Uafgrænsede filer gemmes ikke i P0-flowet.
+        </div>
+      )}
       {stage === "select" && !file && (
         <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 cursor-pointer hover:bg-muted/30">
           <UploadCloud className="h-8 w-8 text-muted-foreground" />
@@ -235,6 +284,7 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
             <div className="text-[11px] text-muted-foreground mb-1">Klassificér som</div>
             <select
               value={uploadType}
+              disabled={Boolean(resumeIntent)}
               onChange={(e) => setUploadType(e.target.value as UploadType)}
               className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
             >
@@ -279,6 +329,7 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
                   <div className="text-muted-foreground mb-0.5 capitalize">{k}</div>
                   <select
                     value={mapping[k] ?? ""}
+                    disabled={Boolean(resumeIntent)}
                     onChange={(e) => {
                       const next = { ...mapping, [k]: e.target.value || undefined };
                       setMapping(next);

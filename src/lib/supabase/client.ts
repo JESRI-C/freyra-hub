@@ -37,4 +37,9 @@ export function requireSupabaseClient(): SupabaseClient<Database> {
   );
 }
 
+export function requireSupabaseUrl(): string {
+  if (supabaseUrl) return supabaseUrl;
+  throw new Error("Missing browser Supabase environment variable: VITE_SUPABASE_URL.");
+}
+
 export const supabase = browserClient;

@@ -8,7 +8,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(62);
+select plan(83);
 
 -- Stable, synthetic identities. Inserting auth users also exercises the real
 -- signup trigger, but none of its personal organizations are used below.
@@ -76,6 +76,14 @@ insert into public.projects (id, organization_id, name, slug, status)
 values
   ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', '4DM project A', '4dm-tenant-test-a', 'active'),
   ('b2000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', '4DM project B', '4dm-tenant-test-b', 'active');
+
+insert into public.monitoring_zones (id, project_id, name, zone_type)
+values (
+  'a6100000-0000-4000-8000-000000000001',
+  'a2000000-0000-4000-8000-000000000001',
+  'A watercourse reach',
+  'watercourse'
+);
 
 insert into public.project_members (project_id, user_id, role)
 values
@@ -223,6 +231,17 @@ values
     'organizations/b0000000-0000-4000-8000-000000000001/projects/b2000000-0000-4000-8000-000000000001/drone/b-private.tif',
     'b1000000-0000-4000-8000-000000000001'
   );
+
+insert into storage.objects (bucket_id, name, owner_id, metadata)
+values (
+  'monitoring-uploads',
+  'a1000000-0000-4000-8000-000000000001/projects/a2000000-0000-4000-8000-000000000001/drone/a-project.tif',
+  'a1000000-0000-4000-8000-000000000001',
+  '{"size":1024,"mimetype":"image/tiff"}'::jsonb
+);
+update public.uploads
+set received_at = created_at
+where id = 'a5000000-0000-4000-8000-000000000002';
 
 -- A administrator.
 set local role authenticated;
@@ -619,6 +638,17 @@ select is_empty(
   'A viewer cannot update project A geometry'
 );
 
+select is(
+  (
+    select count(*)
+    from storage.objects object
+    where object.bucket_id = 'monitoring-uploads'
+      and object.name like '%/a-project.tif'
+  ),
+  1::bigint,
+  'project reader retains access to a pre-intent legacy object that actually exists'
+);
+
 -- A field worker can capture observations/evidence, but cannot edit reports or
 -- project configuration.
 select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
@@ -658,42 +688,30 @@ select is_empty(
 
 select lives_ok(
   $$
-    insert into public.uploads (
-      id,
-      project_id,
-      uploaded_by,
-      file_name,
-      original_file_name,
-      mime_type,
-      file_size,
-      storage_path,
-      upload_type
-    ) values (
-      'a5000000-0000-4000-8000-000000000003',
-      'a2000000-0000-4000-8000-000000000001',
-      'a1000000-0000-4000-8000-000000000004',
-      'field-audit.tif',
-      'field-audit.tif',
-      'image/tiff',
-      1024,
-      'a1000000-0000-4000-8000-000000000004/staging/field-audit.tif',
-      'orthophoto'
+    select * from public.create_upload_intent(
+      p_project_id => 'a2000000-0000-4000-8000-000000000001',
+      p_original_file_name => 'field-audit.tif',
+      p_mime_type => 'image/tiff',
+      p_file_size => 1024,
+      p_client_request_id => 'a9000000-0000-4000-8000-000000000001',
+      p_upload_type => 'orthophoto'
     )
   $$,
-  'A field worker can stage project A upload metadata'
+  'A field worker can request a server-issued project A upload intent'
 );
 
 select is(
   (
     select count(*)
     from public.audit_events event
+    join public.uploads upload on upload.id = event.entity_id
     where event.entity_type = 'upload'
-      and event.entity_id = 'a5000000-0000-4000-8000-000000000003'
-      and event.event_type = 'upload_created'
+      and upload.original_file_name = 'field-audit.tif'
+      and event.event_type = 'upload_intent_created'
       and event.actor = 'a1000000-0000-4000-8000-000000000004'
   ),
   1::bigint,
-  'field upload creation is audited by the database trigger'
+  'field upload intent creation is audited without claiming bytes were received'
 );
 
 select lives_ok(
@@ -786,9 +804,9 @@ select throws_ok(
       'a1000000-0000-4000-8000-000000000001/staging/a-unscoped.tif'
     )
   $$,
-  '23514',
+  '42501',
   null,
-  'B admin cannot alias an A-owned monitoring object through upload metadata'
+  'B admin cannot bypass upload intents to alias an A-owned monitoring object'
 );
 
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000001', true);
@@ -863,6 +881,315 @@ select throws_ok(
   '23503',
   null,
   'A admin cannot reference a project B area from project A metrics'
+);
+
+-- A project contributor can only upload to a short-lived path issued by the
+-- database. Prefix-only objects and cross-project intents remain denied.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
+select throws_ok(
+  $$
+    insert into public.uploads (
+      project_id, uploaded_by, file_name, original_file_name,
+      mime_type, file_size, storage_path, upload_type
+    ) values (
+      'a2000000-0000-4000-8000-000000000001',
+      'a1000000-0000-4000-8000-000000000004',
+      'direct.jpg', 'direct.jpg', 'image/jpeg', 1024,
+      'a1000000-0000-4000-8000-000000000004/intents/direct/direct.jpg',
+      'drone_photo'
+    )
+  $$,
+  '42501',
+  null,
+  'authenticated clients cannot mint upload intents with direct table inserts'
+);
+
+select lives_ok(
+  $$
+    select * from public.create_upload_intent(
+      p_project_id => 'a2000000-0000-4000-8000-000000000001',
+      p_original_file_name => 'field-before-001.jpg',
+      p_mime_type => 'image/jpeg',
+      p_file_size => 1024,
+      p_client_request_id => 'a9000000-0000-4000-8000-000000000002',
+      p_zone_id => 'a6100000-0000-4000-8000-000000000001',
+      p_upload_type => 'drone_photo',
+      p_user_metadata => '{"intake":{"phase":"BEFORE"}}'::jsonb
+    )
+  $$,
+  'A field contributor can request a project A upload intent'
+);
+
+select is(
+  (
+    select count(*)
+    from public.uploads upload
+    where upload.original_file_name = 'field-before-001.jpg'
+      and upload.project_id = 'a2000000-0000-4000-8000-000000000001'
+      and upload.uploaded_by = 'a1000000-0000-4000-8000-000000000004'
+      and upload.status = 'draft'
+      and upload.intent_expires_at > now()
+      and upload.storage_path like 'a1000000-0000-4000-8000-000000000004/intents/%/field-before-001.jpg'
+  ),
+  1::bigint,
+  'server-issued intent binds one expiring draft path to actor and project'
+);
+
+select lives_ok(
+  $$
+    select * from public.create_upload_intent(
+      p_project_id => 'a2000000-0000-4000-8000-000000000001',
+      p_original_file_name => 'field-before-001.jpg',
+      p_mime_type => 'image/jpeg',
+      p_file_size => 1024,
+      p_client_request_id => 'a9000000-0000-4000-8000-000000000002',
+      p_zone_id => 'a6100000-0000-4000-8000-000000000001',
+      p_upload_type => 'drone_photo',
+      p_user_metadata => '{"intake":{"phase":"BEFORE"}}'::jsonb
+    )
+  $$,
+  'retrying a committed create request returns the existing intent'
+);
+
+select is(
+  (
+    select count(*)
+    from public.uploads upload
+    where upload.uploaded_by = 'a1000000-0000-4000-8000-000000000004'
+      and upload.intent_request_id = 'a9000000-0000-4000-8000-000000000002'
+  ),
+  1::bigint,
+  'one idempotency key can create only one upload row'
+);
+
+select is(
+  (
+    select count(*)
+    from public.audit_events event
+    join public.uploads upload on upload.id = event.entity_id
+    where upload.intent_request_id = 'a9000000-0000-4000-8000-000000000002'
+      and event.event_type = 'upload_received'
+  ),
+  0::bigint,
+  'an intent without completed bytes never emits an upload-received audit event'
+);
+
+select throws_ok(
+  $$
+    update public.uploads
+    set zone_id = 'a6000000-0000-4000-8000-000000000099'
+    where intent_request_id = 'a9000000-0000-4000-8000-000000000002'
+  $$,
+  '23514',
+  null,
+  'browser cannot reassign the project or zone scope of an issued intent'
+);
+
+select throws_ok(
+  $$
+    insert into storage.objects (bucket_id, name, owner_id, metadata)
+    values (
+      'monitoring-uploads',
+      'a1000000-0000-4000-8000-000000000004/arbitrary/no-intent.jpg',
+      'a1000000-0000-4000-8000-000000000004',
+      '{"size":1024,"mimetype":"image/jpeg"}'::jsonb
+    )
+  $$,
+  '42501',
+  null,
+  'same-user prefix without an exact upload intent is denied'
+);
+
+select lives_ok(
+  $$
+    insert into storage.objects (bucket_id, name, owner_id, metadata)
+    select
+      'monitoring-uploads',
+      upload.storage_path,
+      'a1000000-0000-4000-8000-000000000004',
+      '{"size":1024,"mimetype":"image/jpeg"}'::jsonb
+    from public.uploads upload
+    where upload.original_file_name = 'field-before-001.jpg'
+  $$,
+  'exact non-expired intent authorizes one immutable monitoring object'
+);
+
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+
+select is(
+  (
+    select count(*)
+    from storage.objects object
+    where object.bucket_id = 'monitoring-uploads'
+      and object.name like '%/field-before-001.jpg'
+  ),
+  0::bigint,
+  'project readers cannot read draft upload bytes before trusted finalization'
+);
+
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
+reset role;
+alter table public.uploads disable trigger upload_intent_scope_immutable;
+update public.uploads
+set intent_expires_at = now() - interval '1 minute'
+where intent_request_id = 'a9000000-0000-4000-8000-000000000002';
+alter table public.uploads enable trigger upload_intent_scope_immutable;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
+select is(
+  (
+    select count(*)
+    from storage.objects object
+    where object.bucket_id = 'monitoring-uploads'
+      and object.name like '%/field-before-001.jpg'
+  ),
+  0::bigint,
+  'uploader cannot read draft bytes after the upload intent expires'
+);
+
+reset role;
+alter table public.uploads disable trigger upload_intent_scope_immutable;
+update public.uploads
+set intent_expires_at = now() + interval '24 hours'
+where intent_request_id = 'a9000000-0000-4000-8000-000000000002';
+alter table public.uploads enable trigger upload_intent_scope_immutable;
+delete from public.project_members
+where project_id = 'a2000000-0000-4000-8000-000000000001'
+  and user_id = 'a1000000-0000-4000-8000-000000000004';
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
+select is(
+  (
+    select count(*)
+    from storage.objects object
+    where object.bucket_id = 'monitoring-uploads'
+      and object.name like '%/field-before-001.jpg'
+  ),
+  0::bigint,
+  'uploader cannot read draft bytes after project contribution access is revoked'
+);
+
+reset role;
+insert into public.project_members (project_id, user_id, role)
+values (
+  'a2000000-0000-4000-8000-000000000001',
+  'a1000000-0000-4000-8000-000000000004',
+  'field'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
+select lives_ok(
+  $$
+    select * from public.finalize_upload_intent(
+      (select id from public.uploads where original_file_name = 'field-before-001.jpg')
+    )
+  $$,
+  'owner can finalize only after matching Storage object exists'
+);
+
+select is(
+  (
+    select status
+    from public.uploads
+    where original_file_name = 'field-before-001.jpg'
+  ),
+  'awaiting_validation',
+  'trusted finalizer queues the original for backend validation'
+);
+
+select lives_ok(
+  $$
+    select * from public.finalize_upload_intent(
+      (select id from public.uploads where original_file_name = 'field-before-001.jpg')
+    )
+  $$,
+  'finalize is idempotent after a committed response is lost'
+);
+
+reset role;
+select throws_ok(
+  $$
+    delete from public.monitoring_zones
+    where id = 'a6100000-0000-4000-8000-000000000001'
+  $$,
+  '23503',
+  null,
+  'a referenced evidence zone must be archived instead of silently detached'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
+select throws_ok(
+  $$
+    select * from public.create_upload_intent(
+      p_project_id => 'b2000000-0000-4000-8000-000000000001',
+      p_original_file_name => 'cross-tenant.jpg',
+      p_mime_type => 'image/jpeg',
+      p_file_size => 1024,
+      p_client_request_id => 'a9000000-0000-4000-8000-000000000003'
+    )
+  $$,
+  '42501',
+  null,
+  'A field contributor cannot mint a tenant B upload intent'
+);
+
+select lives_ok(
+  $$
+    select * from public.create_upload_intent(
+      p_project_id => 'a2000000-0000-4000-8000-000000000001',
+      p_original_file_name => 'field-before-cancelled.jpg',
+      p_mime_type => 'image/jpeg',
+      p_file_size => 1024,
+      p_client_request_id => 'a9000000-0000-4000-8000-000000000004'
+    )
+  $$,
+  'A field contributor can request a second upload intent'
+);
+
+select lives_ok(
+  $$
+    select * from public.cancel_upload_intent(
+      (select id from public.uploads where original_file_name = 'field-before-cancelled.jpg')
+    )
+  $$,
+  'owner can cancel their own pending intent'
+);
+
+select throws_ok(
+  $$
+    insert into storage.objects (bucket_id, name, owner_id, metadata)
+    select
+      'monitoring-uploads',
+      upload.storage_path,
+      'a1000000-0000-4000-8000-000000000004',
+      '{"size":1024,"mimetype":"image/jpeg"}'::jsonb
+    from public.uploads upload
+    where upload.original_file_name = 'field-before-cancelled.jpg'
+  $$,
+  '42501',
+  null,
+  'cancelled intent cannot authorize a later Storage completion'
 );
 
 -- RPC execution is not available to anon, regardless of guessed UUID.
