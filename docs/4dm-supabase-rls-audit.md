@@ -2,9 +2,9 @@
 
 Dato: 2026-09-02
 
-## Cyklus 013-addendum
+## Cyklus 014-addendum
 
-Forward migrationen `20260901163924_upload_intents_resumable_storage.sql` lukker i kilden det tidligere direkte Storage-insertgab med en idempotent, kortlivet, eksakt pending-row-bundet upload-intent; direct `authenticated` upload-row insert og Storage upsert/rename afvises. Finalize verificerer eksakt object owner/størrelse/MIME, draftadgang bortfalder ved udløb eller mistet membership, og pgTAP-kilden er udvidet til 83 assertions. Migrationen er ikke anvendt på staging/produktion, pgTAP er ikke kørt, og orphan-reconciliation samt rigtig Auth/Storage/TUS forbliver **AFVENTER**. Ældre fundtekst nedenfor om manglende intent beskriver præ-slice-checkpointet.
+Forward migrationskilden har nu også en privat orphan-cleanup-ledger og to `service_role`-begrænsede RPC'er med atomisk lease, opaque token, stale-token-afvisning og retry-sikker completion. Browserroller kan ikke eksekvere cleanup, ikke-modtagne orphan-intent-rows kan ikke slettes, og sletning sker alene via den autoriserede servers Storage API mod den claim-ID-bundne intent-path — aldrig ved SQL-skrivning i `storage.objects`; modtagne uploads beholder normal manage-delete. pgTAP-kilden er udvidet til 105 assertions, og app-suiten består med 54 filer/412 tests. Migrationerne er ikke anvendt live; pgTAP/DB-lint, scheduler og rigtig Auth/Storage/TUS forbliver **AFVENTER**. Ældre fundtekst nedenfor beskriver præ-slice-checkpointet.
 
 ## Konklusion
 

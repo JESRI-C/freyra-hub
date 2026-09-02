@@ -2,9 +2,9 @@
 
 Dato: 2026-09-02
 
-## Cyklus 013-addendum
+## Cyklus 014-addendum
 
-App-/kildegates er nu 51 filer/397 Vitest-tests, grøn typecheck og grøn produktionsbuild. Den nye upload-intent-forward migration og 83-case pgTAP-kilde er statisk dækket, men ikke replayet eller runtime-kørt. Staging kører fortsat kun den tidligere hardening-baseline. Derfor er rigtig Auth/Storage/TUS, signed URL/revoke, orphan-reconciliation og hele rollematricen fortsat **AFVENTER**; ældre afsnit nedenfor med `plan(62)` og manglende intent er præ-slice-evidens.
+App-/kildegates er nu 54 filer/412 Vitest-tests efter frisk `npm ci`, med grøn typecheck, målrettet ESLint og produktionsbuild. Upload-intent- og orphan-reconciliation-migrationerne samt `plan(105)` er statisk dækket; cleanup-RPC'erne er kun eksekverbare for `service_role`, ikke-modtagne orphan-intent-rows kan ikke slettes, modtagne uploads beholder normal manage-delete, og serveren bruger Storage API med en claim-ID-bundet path. Staging kører fortsat kun den tidligere hardening-baseline. Frisk replay, pgTAP, DB-lint, scheduler, rigtig Auth/Storage/TUS, signed URL/revoke og hele rollematricen er **AFVENTER**; ældre afsnit nedenfor er præ-slice-evidens.
 
 ## 1. Testet miljø
 

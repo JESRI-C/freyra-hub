@@ -2,9 +2,9 @@
 
 Status: løbende 4DM-checkpoint, opdateret 2026-09-02. Resultater opdateres efter hver vertikal slice. Dette er ikke en P0-godkendelse.
 
-## Cyklus 013-addendum
+## Cyklus 014-addendum
 
-Fuld serial Vitest består med 51 filer/397 tests, typecheck består, målrettet ESLint på 14 berørte TypeScript-filer har 0 fund, normalt produktionsbuild består, og `git diff --check` består. Testene dækker bl.a. 120-fils batch, concurrency=2, intent-idempotens/scope, low-level TUS-resume/abort-races og finalize-recovery. Den ændrede lockfil er ikke genverificeret med frisk `npm ci`. Forward migration, 83-case pgTAP, DB-lint, UI-pause/reload-resume og rigtig Auth/Storage/TUS/browser-E2E er **AFVENTER**.
+Efter frisk `npm ci` består fuld serial Vitest med 54 filer/412 tests, typecheck, målrettet ESLint og normalt produktionsbuild. Nye tests dækker præcis Storage-sletning, mismatched/unsafe path fail-closed, generisk route-logning uden credentials, per-item isolation og den 105-case migrationskontrakt med orphan-retention og bevaret manage-delete for modtagne uploads. pgTAP-runtime, DB-lint, frisk database-replay, scheduler, UI-pause/reload-resume og rigtig Auth/Storage/TUS/browser-E2E er **AFVENTER**, fordi lokal Postgres på `127.0.0.1:54322` ikke er tilgængelig og live miljøer ikke er ændret.
 
 ## Verificeret baseline
 

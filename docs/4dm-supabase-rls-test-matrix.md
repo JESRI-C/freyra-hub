@@ -2,9 +2,9 @@
 
 Dato: 2026-09-02
 
-## Cyklus 013-addendum
+## Cyklus 014-addendum
 
-Den versionsstyrede pgTAP-fil har nu `plan(83)` og 83 tekstuelt matchede assertions, inkl. intent, direct-insert-afvisning, eksakt path, idempotens, immutable scope, finalize/cancel, draft/legacy-read, udløb, membership-revoke og zoneproveniens. Fuld app-/kildesuite består med 51 filer/397 tests. pgTAP, frisk replay, DB-lint og rigtig Auth/Storage/TUS er ikke kørt uden Docker/Podman og står **AFVENTER**. Ældre 62-case-tabeller nedenfor er præ-slice-checkpointet.
+Den versionsstyrede pgTAP-fil har nu `plan(105)`: de 22 nye assertions dækker service-role-only cleanup, browserafvisning, præcist kandidatvalg, atomisk lease, stale-token-afvisning, failure-release/reclaim, terminal success, bevaret orphan-auditrow og normal manage-delete for modtagne uploads. Fuld app-/kildesuite består efter frisk installation med 54 filer/412 tests. pgTAP, frisk replay, DB-lint, scheduler og rigtig Auth/Storage/TUS er ikke kørt uden Docker/Podman og står **AFVENTER**. Ældre 62-/83-case-tabeller nedenfor er præ-slice-checkpointet.
 
 ## Status og evidensniveau
 

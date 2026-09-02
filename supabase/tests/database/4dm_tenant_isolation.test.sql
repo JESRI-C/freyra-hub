@@ -8,7 +8,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(83);
+select plan(105);
 
 -- Stable, synthetic identities. Inserting auth users also exercises the real
 -- signup trigger, but none of its personal organizations are used below.
@@ -1190,6 +1190,259 @@ select throws_ok(
   '42501',
   null,
   'cancelled intent cannot authorize a later Storage completion'
+);
+
+-- A trusted server worker claims exact orphan paths in short transactions and
+-- deletes bytes through the Storage API outside PostgreSQL. Private leases
+-- make concurrent work non-blocking, retryable and safe from stale workers.
+select lives_ok(
+  $$
+    select * from public.create_upload_intent(
+      p_project_id => 'a2000000-0000-4000-8000-000000000001',
+      p_original_file_name => 'field-before-expired.jpg',
+      p_mime_type => 'image/jpeg',
+      p_file_size => 1024,
+      p_client_request_id => 'a9000000-0000-4000-8000-000000000005'
+    )
+  $$,
+  'A field contributor can request an intent that will later expire'
+);
+
+reset role;
+alter table public.uploads disable trigger upload_intent_scope_immutable;
+update public.uploads
+set intent_expires_at = now() - interval '1 minute'
+where intent_request_id = 'a9000000-0000-4000-8000-000000000005';
+alter table public.uploads enable trigger upload_intent_scope_immutable;
+
+create temporary table orphan_cleanup_claims (
+  upload_id uuid,
+  storage_path text,
+  claim_token uuid
+) on commit drop;
+create temporary table orphan_cleanup_retry_claims (
+  upload_id uuid,
+  storage_path text,
+  claim_token uuid
+) on commit drop;
+grant select, insert on table orphan_cleanup_claims to service_role;
+grant select, insert on table orphan_cleanup_retry_claims to service_role;
+
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.claim_upload_intent_orphans(integer,integer)',
+    'EXECUTE'
+  ),
+  'authenticated cannot execute orphan-claim RPC'
+);
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.claim_upload_intent_orphans(integer,integer)',
+    'EXECUTE'
+  ),
+  'service_role can execute orphan-claim RPC'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.complete_upload_intent_orphan_cleanup(uuid,uuid,text)',
+    'EXECUTE'
+  ),
+  'authenticated cannot execute orphan-completion RPC'
+);
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.complete_upload_intent_orphan_cleanup(uuid,uuid,text)',
+    'EXECUTE'
+  ),
+  'service_role can execute orphan-completion RPC'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+select throws_ok(
+  $$ select * from public.claim_upload_intent_orphans(10, 300) $$,
+  '42501',
+  null,
+  'browser roles cannot invoke trusted orphan reconciliation'
+);
+
+reset role;
+set local role service_role;
+select lives_ok(
+  $$
+    insert into orphan_cleanup_claims (upload_id, storage_path, claim_token)
+    select upload_id, storage_path, claim_token
+    from public.claim_upload_intent_orphans(10, 300)
+  $$,
+  'service worker can atomically claim cancelled and expired intents'
+);
+
+reset role;
+select is(
+  (select count(*) from orphan_cleanup_claims),
+  2::bigint,
+  'one claim returns the cancelled and expired unreceived paths only'
+);
+select is(
+  (
+    select status
+    from public.uploads
+    where intent_request_id = 'a9000000-0000-4000-8000-000000000005'
+  ),
+  'archived',
+  'claiming an expired draft closes it before Storage deletion'
+);
+
+set local role service_role;
+select is(
+  (select count(*) from public.claim_upload_intent_orphans(10, 300)),
+  0::bigint,
+  'active leases cannot be issued to a second worker'
+);
+select throws_ok(
+  $$
+    select public.complete_upload_intent_orphan_cleanup(
+      (select upload_id from orphan_cleanup_claims limit 1),
+      'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      null
+    )
+  $$,
+  '55000',
+  null,
+  'a stale worker token cannot complete a newer claim'
+);
+select is(
+  (
+    select public.complete_upload_intent_orphan_cleanup(
+      claim.upload_id,
+      claim.claim_token,
+      'simulated storage timeout'
+    )
+    from orphan_cleanup_claims claim
+    where claim.storage_path like '%/field-before-cancelled.jpg'
+  ),
+  false,
+  'a Storage failure releases the claim for retry'
+);
+
+reset role;
+select ok(
+  (
+    select lease.last_error = 'simulated storage timeout'
+      and lease.claim_token is null
+      and lease.claimed_at is null
+      and lease.completed_at is null
+      and lease.attempts = 1
+    from private.upload_intent_orphan_cleanup_leases lease
+    join public.uploads upload on upload.id = lease.upload_id
+    where upload.intent_request_id = 'a9000000-0000-4000-8000-000000000004'
+  ),
+  'failed cleanup records bounded private evidence and becomes claimable again'
+);
+
+set local role service_role;
+select lives_ok(
+  $$
+    insert into orphan_cleanup_retry_claims (upload_id, storage_path, claim_token)
+    select upload_id, storage_path, claim_token
+    from public.claim_upload_intent_orphans(10, 300)
+  $$,
+  'a failed cleanup can be reclaimed without waiting for the old lease'
+);
+
+reset role;
+select ok(
+  (select count(*) = 1 from orphan_cleanup_retry_claims)
+  and (
+    select lease.attempts = 2
+    from private.upload_intent_orphan_cleanup_leases lease
+    join orphan_cleanup_retry_claims claim on claim.upload_id = lease.upload_id
+  ),
+  'retry issues one new token and increments the private attempt counter'
+);
+
+set local role service_role;
+select is(
+  (
+    select public.complete_upload_intent_orphan_cleanup(
+      claim.upload_id,
+      claim.claim_token,
+      null
+    )
+    from orphan_cleanup_retry_claims claim
+  ),
+  true,
+  'successful Storage deletion completes the retried claim'
+);
+select lives_ok(
+  $$
+    select public.complete_upload_intent_orphan_cleanup(
+      claim.upload_id,
+      claim.claim_token,
+      null
+    )
+    from orphan_cleanup_claims claim
+    where claim.storage_path like '%/field-before-expired.jpg'
+  $$,
+  'the other exact orphan path can be completed independently'
+);
+
+reset role;
+select ok(
+  (
+    select count(*) = 2
+    from private.upload_intent_orphan_cleanup_leases lease
+    where lease.completed_at is not null
+      and lease.claim_token is null
+      and lease.claimed_at is null
+  ),
+  'completed cleanup leases retain private evidence without an active token'
+);
+
+set local role service_role;
+select is(
+  (select count(*) from public.claim_upload_intent_orphans(10, 300)),
+  0::bigint,
+  'successfully reconciled upload intents are never reissued'
+);
+select throws_ok(
+  $$
+    delete from public.uploads
+    where intent_request_id = 'a9000000-0000-4000-8000-000000000004'
+  $$,
+  '23514',
+  null,
+  'even a privileged worker cannot erase a retained upload-intent audit row'
+);
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select lives_ok(
+  $$
+    delete from public.uploads
+    where intent_request_id = 'a9000000-0000-4000-8000-000000000002'
+      and received_at is not null
+  $$,
+  'project managers retain normal metadata delete for received uploads'
+);
+reset role;
+select is(
+  (
+    select count(*)
+    from public.uploads
+    where intent_request_id = 'a9000000-0000-4000-8000-000000000002'
+  ),
+  0::bigint,
+  'received upload metadata delete removes the intended row'
 );
 
 -- RPC execution is not available to anon, regardless of guessed UUID.

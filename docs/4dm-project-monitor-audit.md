@@ -2,9 +2,9 @@
 
 Status: aktiv implementeringsaudit, opdateret 2026-09-02. Dette dokument beskriver observeret repository-tilstand. Filtilstedeværelse er ikke det samme som bestået brugeradfærd, og seed/preview er ikke live-evidens.
 
-## Cyklus 013-addendum
+## Cyklus 014-addendum
 
-Den konkrete FØR-modtagelse er nu implementeret i kilden som en projektbundet batch på højst 200 filer med to samtidige jobs, stabil rækkefølge/request-ID og serverudstedt intent før eksakt 6 MiB TUS-upload/finalize. Browserens hash/EXIF/XMP/GPS/UTC gemmes kun som ubetroet `user_metadata.client_preview`. Der er ingen UI-pause eller reload-resume endnu. Migrationen er ikke anvendt live; serverekstraktor, canonical `drone_assets`, orphan-reconciliation og rigtig Auth/Storage/TUS er **AFVENTER**. De ældre gap-rækker nedenfor beskriver præ-slice-checkpointet, hvor intent/batch/TUS endnu manglede.
+FØR-batchens efterladte, ikke-modtagne Storage-objekter har nu en afgrænset kildeløsning: kun annullerede eller udløbne intents leases atomisk, og en hemmelighedsbeskyttet serverroute sletter præcis den registrerede path via Storage API med retry-sikker kvittering. Migrationen og scheduler er ikke anvendt live; pgTAP/DB-lint, serverekstraktor, canonical `drone_assets`, UI-pause/reload-resume og rigtig Auth/Storage/TUS er **AFVENTER**. De ældre gap-rækker nedenfor beskriver præ-slice-checkpointet.
 
 ## Konklusion
 

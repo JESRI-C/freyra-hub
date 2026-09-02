@@ -2,9 +2,9 @@
 
 Dato: 2026-09-02
 
-## Cyklus 013-addendum
+## Cyklus 014-addendum
 
-`20260901163924_upload_intents_resumable_storage.sql` er næste forward migration og er kun i kilden. Den indfører idempotent server-intent, eksakt TUS-path/finalize/cancel, immutable scope, draft-/legacy-adgang og zoneproveniens. Kildesuiten er grøn med 51 filer/397 tests; pgTAP-planen er 83 assertions. Frisk replay, DB-lint, pgTAP, live Auth/Storage/TUS og orphan-reconciliation er **AFVENTER**, og migrationen må ikke anvendes på staging/produktion uden separat mandat og preflight.
+De næste forward migrations er `20260901163924_upload_intents_resumable_storage.sql` og `20260902153933_reconcile_upload_intent_orphans.sql`; begge findes kun i kilden. Den nye migration tilføjer en privat lease-ledger, service-role-only claim/complete-RPC'er og en retention-guard for ikke-modtagne orphan-intent-rows, men skriver aldrig til `storage.objects`; den autoriserede appservice udfører den eksakte sletning via Storage API, mens modtagne uploads beholder normal manage-delete. Kildesuiten er grøn med 54 filer/412 tests, og pgTAP-planen er 105 assertions. Frisk replay, DB-lint, pgTAP, scheduler og live Auth/Storage/TUS er **AFVENTER**, og migrationerne må ikke anvendes på staging/produktion uden separat mandat og preflight.
 
 ## Aktuel migrationsstatus
 

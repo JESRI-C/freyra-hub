@@ -105,10 +105,14 @@ describe("4DM Supabase tenant hardening migration", () => {
     const uploadIntentIndex = migrationPaths.findIndex((migrationPath) =>
       migrationPath.includes("upload_intents_resumable_storage.sql"),
     );
+    const orphanReconciliationIndex = migrationPaths.findIndex((migrationPath) =>
+      migrationPath.includes("reconcile_upload_intent_orphans.sql"),
+    );
     expect(hardeningIndex).toBeGreaterThanOrEqual(0);
     expect(validationIndex).toBeGreaterThan(hardeningIndex);
     expect(uploadIntentIndex).toBeGreaterThan(validationIndex);
-    expect(migrationPaths.at(-1)).toContain("upload_intents_resumable_storage.sql");
+    expect(orphanReconciliationIndex).toBeGreaterThan(uploadIntentIndex);
+    expect(migrationPaths.at(-1)).toContain("reconcile_upload_intent_orphans.sql");
   });
 
   it("removes every known legacy/open policy from every affected table", () => {
