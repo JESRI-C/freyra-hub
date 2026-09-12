@@ -177,3 +177,11 @@
 - **Hosted smoke:** Loginformularen renderede på den nye Worker-version. Anonym navigation til `/app` og til en direkte projektrute endte på `/login`. Ingen credential blev læst eller indtastet; den rigtige login/create/boundary/TUS-rejse er derfor fortsat **AFVENTER** brugerens egen loginhandling.
 - **DB-testgrænse:** Den versionsstyrede pgTAP-kilde er nu `plan(107)`, men de 107 cases er ikke runtime-kørt her. Cyklus 014's `plan(105)` og 54 filer/412 tests samt cyklus 015's udsagn om endnu ikke anvendte forward migrationer er historisk korrekte for deres daværende checkpoints, men er afløst af ovenstående aktuelle evidens.
 - **AFVENTER/NO-GO:** Cleanup-Workerens `SUPABASE_SERVICE_ROLE_KEY`/`MONITORING_CRON_API_SECRET`, scheduler, rigtig credential-båret browserrejse og faktisk TUS POST/PATCH/finalize/Storage/cleanup er ikke verificeret. P0 og produktion er fortsat **NO-GO**.
+
+## 2026-09-12 - atomisk organisations-/projektvalg, P0-cyklus 017
+
+- **Observeret kundestop:** På `/select` kunne et klik på et eksisterende projekt i en anden organisation kalde `selectOrg` og derefter validere `selectProject` mod den forrige `currentOrg`. Projektvalget kunne dermed ignoreres lydløst.
+- **Rettelse og sikkerhedsgrænse:** `selectProject` finder nu projektet i den allerede indlæste, autoriserede organisationsliste og opdaterer både `orgId` og `projectId`. Et projekt-ID, der ikke findes i brugerens medlemskaber, ændrer ingen state. Uafhængigt review: APPROVE.
+- **Gates:** 14 målrettede auth-/selection-tests PASS; typecheck PASS; målrettet ESLint 0 errors/3 kendte Fast Refresh-warnings; fuld serial Vitest 55 filer/421 tests PASS; `git diff --check` PASS; staging-build/ref-/bundle-preflight PASS; Wrangler `--strict --dry-run` PASS.
+- **Commit/push/deploy:** Commit `fd48949` blev pushet til `origin/codex/gofreyra-p0` og udgivet til den navngivne staging-Worker som version `842dbf65-3e99-4fd1-83f5-62360268181d`. Produktion, `app.gofreyra.com`, Simply og custom domain blev ikke ændret.
+- **Hosted smoke:** Den nye version renderede login korrekt, og anonym `/app` endte på `/login`. Browseren havde fortsat ingen aktiv bruger-session; credential-båret login, organisations-/projektvalg, boundary-readback og rigtig TUS/finalize/persistence er derfor **AFVENTER** brugerens egen loginhandling.
