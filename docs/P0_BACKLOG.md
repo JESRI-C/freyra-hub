@@ -73,6 +73,17 @@ Opdateret: 2026-09-12. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Status:** delvist implementeret. Den aktuelle browserrejse beviser manuel boundary-persistence og den efterfølgende projektbundne FØR-CTA. Immutable revision, atomisk boundary+RPC-snapshot, metrics-friskhed mod boundary-version og cross-tab/to-bruger optimistic concurrency er `AFVENTER`.
 - **Evidens/commit:** `MapEditorMap`, `useMapEditor`, `geo-service`, `projects-service`, `geospatial-service`, eksportservices og nye geometri-/persistence-/eksporttests i cyklus 005. `project_boundaries` er ikke fundet; checkpoint-commit oprettes på `codex/gofreyra-p0`.
 
+## GEO-P0-02 - officiel vandløbsstreng og konkret projektstrækning
+
+- **Prioritet:** P0 / 6b.
+- **Brugerproblem:** Dronefotos og Før/Efter-observationer kan ikke forbindes fagligt, hvis projektet kun har en arealgrænse og ingen kildebelagt vandløbsakse eller entydig delstrækning.
+- **Scope:** Søg og preview en allowlistet officiel navngivet vandløbsgeometri; gem den separat fra projektets Polygon med kilde-ID, URL, hentetid, CRS, geometrihash og faglig caveat; vælg eller klip derefter den konkrete projektstrækning og dokumentér fra-/til-stationering samt kommunal regulativ-/as-built-kilde.
+- **Acceptance criteria:** Autoriseret editor kan gemme og genfinde én aktiv kildeverificeret streng efter reload; viewer kan ikke skrive; manipuleret URL, ID, provenance eller geometri afvises; den konkrete projektstrækning kan afgrænses reproducerbart uden at overskrive projektgrænsen; samtidige første writes kan ikke skabe dubletter.
+- **Afhængigheder:** SEC-P0-02, kommunalt regulativ/kontrol- eller as-built-opmåling og sikker schema-/RPC-migration for atomisk unik aktiv strækning.
+- **Tests:** Cyklus 019: 2 filer/18 tests dækker allowlist, bounded parsing/streaming, auth-rækkefølge, viewer write-denial, officiel server-genhentning, insert/update/load, falsk URL/hash/proveniens, dubletter og upstream-geometriændring. Typecheck PASS, fuld Vitest 57 filer/440 tests PASS, staging-build og Wrangler dry-run PASS. Credential-båret save/reload samt databasepostflight PASS for Bykær Bæk.
+- **Status:** delvist implementeret. Hele Bykær Bæks officielle stednavnegeometri er gemt på staging som en RLS-beskyttet `monitoring_zones`-`MultiLineString`, separat fra `projects.geometry_polygon`, med 8 delstrækninger, 308 punkter, 4.471 m og fuld provenance. Præcis delstrækningsudvælgelse/klipning, stationering, kommunal as-built-reference og DB-atomisk uniqueness er **AFVENTER**.
+- **Evidens/commit:** Appcommit `d66e2d7`, staging-Worker `94063d2d-a77d-4b5d-bfb8-9a32dbe94319`, projekt `90e964d6-040b-4286-b57f-6786531931b3`, kilde-ID `1233766a-1fdb-6b98-e053-d480220a5a3f`, gemt række `c9af4f49-6680-4467-a1c7-59a95e245ff0`. Produktion er uændret.
+
 ## BA-P0-01 - Før/Efter-runder og sammenligning
 
 - **Prioritet:** P0 / 7.

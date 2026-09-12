@@ -89,6 +89,14 @@ Security advisor viser fortsat de kendte PostGIS-/`spatial_ref_sys`-fund, leaked
 - Lokal UI-lock beskytter én hook-instans, og servicekontrakten kontrollerer den returnerede database-række før success. Boundary-rækken og `get_project_geojson` læses endnu ikke som ét atomisk, versionsbundet snapshot. Det kræver database-/RPC-versionering sammen med cross-tab/-bruger konflikthåndtering, immutable revisioner og live read-after-write og er `AFVENTER`.
 - Boundary save/clear invaliderer projektmetrics, og manglende/ugyldigt `calculated_at` stoppes. Friskhed kan ikke sammenlignes med den aktuelle boundary, fordi schemaet mangler en fælles boundary-/source-version; en fuld stale-metrics-guard er `AFVENTER` schema-/RPC-versionering.
 
+### 4.3 Officiel vandløbsstreng
+
+- Vandløbsaksen er en separat projektressource i `monitoring_zones` med `zone_type=watercourse`; skriv aldrig en `LineString` eller `MultiLineString` til `projects.geometry_polygon` eller de Polygon-begrænsede projektområder.
+- Browseren må kun sende en bounded søgetekst eller et valideret Dataforsyningen-UUID. Serveren genhenter geometrien fra det faste allowlistede HTTPS-endpoint før save; klientleveret geometri, kilde-URL, hash eller provenance må ikke persisteres som officiel sandhed.
+- Ved load kræves provenance-schema `gofreyra.watercourse-reach-source/v1`, korrekt kilde, EPSG:4326, UUID-afledt URL og matchende SHA-256. Kilden genhentes og geometrien sammenlignes; mismatch eller upstream-fejl skal fejle lukket frem for at vise rækken som verificeret.
+- Hele den navngivne stednavnegeometri er kun kortreference. Før dronefotos, Før/Efter-målinger eller rapport kobles juridisk til strækningen, skal den konkrete delstrækning vælges/klippes og forsynes med fra-/til-stationering samt kommunalt regulativ eller seneste kontrol-/as-built-opmåling.
+- Applikationslaget tillader én aktiv vandløbsreference og afviser eksisterende dubletter. Atomisk beskyttelse mod to samtidige første writes kræver en særskilt, RLS-testet unik constraint eller RPC og er **AFVENTER**.
+
 ## 5. Kvalitetsgate
 
 Kør i denne rækkefølge og log kommando, dato, miljø, exit og commit:
@@ -100,7 +108,7 @@ npm test
 npm run build
 ```
 
-Kør desuden målrettede tests før hele suiten. Verificeret worktree 2026-09-12, cyklus 018: typecheck PASS; målrettet ESLint/Prettier PASS; målrettet migrations-/uploadsuite 33/33 PASS; fuld Vitest 55 filer/422 tests PASS; `git diff --check` PASS. Commit `0560571` er pushet. Cyklus 017 er fortsat seneste app-build/deploy-checkpoint: staging-build, Wrangler dry-run og Worker-version `842dbf65-3e99-4fd1-83f5-62360268181d` består. Cyklus 018 ændrer kun SQL-migration/tests og krævede derfor ikke nyt Worker-bundle. Migrationskilden har pgTAP `plan(107)`, men de 107 cases er ikke runtime-kørt; lokal replay/pgTAP/DB-lint forbliver blokeret uden lokal Postgres på `127.0.0.1:54322`. Seneste globale lint er fortsat rød med 5.155 errors/23 warnings og skal ned på 0 før P0-release.
+Kør desuden målrettede tests før hele suiten. Verificeret worktree 2026-09-12, cyklus 019: typecheck PASS; målrettet vandløbssuite 2 filer/18 tests PASS; målrettet ESLint 0 errors/2 kendte Fast Refresh-warnings; fuld Vitest 57 filer/440 tests PASS; `git diff --check` PASS; staging-build og Wrangler `--strict --dry-run` PASS. Appcommit `d66e2d7` er udgivet som staging-Worker-version `94063d2d-a77d-4b5d-bfb8-9a32dbe94319`. Migrationskilden har pgTAP `plan(107)`, men de 107 cases er ikke runtime-kørt; lokal replay/pgTAP/DB-lint forbliver blokeret uden lokal Postgres på `127.0.0.1:54322`. Seneste globale lint er fortsat rød med 5.155 errors/23 warnings og skal ned på 0 før P0-release.
 
 `.github/workflows/ci.yml` er den ikke-deployende app-CI. Den har kun `contents: read`, persisterer ikke checkout-credentials, modtager ingen secrets og må ikke kalde Supabase, Wrangler eller deploy. Den kører ved pull request, accepteret push til `main` eller manuel dispatch med Node 22.14.0 og npm-lockfilen: ren install, typecheck, `verify:faktorer`, serial Vitest og normal build. Global lint er fortsat en synlig releaseblokering og må ikke tilføjes som `continue-on-error`; workflowkilden og lokale ækvivalente gates er ikke det samme som en bestået hosted Linux-kørsel.
 
