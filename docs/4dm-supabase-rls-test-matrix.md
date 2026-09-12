@@ -62,6 +62,7 @@ Auth-brugerne skal oprettes via lokal Auth Admin API. Testdata er syntetiske og 
 | STO-003 | Upload persisterer kun path, `upsert: false`                               | Bestået  | Ingen signed URL lagres                                                                     |
 | STO-004 | Delete bruger DB-rækkens autoriserede path                                 | Bestået  | Manipuleret caller-path ignoreres                                                           |
 | STO-005 | Evidence sanitiserer navn, gemmer privat path og rydder op ved DB-fejl     | Bestået  | Kompensationsflow med mocked Supabase                                                       |
+| STO-006 | Evidence-download bruger eksakt RLS-række/path og 300 s download-URL        | Bestået  | Mocked servicecases; rigtig credential-/Storage-runtime er fortsat **AFVENTER**              |
 | MON-001 | Monitoring rollback-fejl er synlig                                         | Bestået  | Dobbeltfejl efterlades ikke som tavs succes                                                 |
 | MON-002 | Monitoring signed URL har fast 300 s TTL                                   | Bestået  | Caller kan ikke vælge en længere levetid                                                    |
 | MON-003 | Monitoring delete stopper ved Storage-fejl                                 | Bestået  | Metadata og audit ændres ikke efter afvist object-delete                                    |
@@ -180,7 +181,7 @@ Normal organization/project creator-bootstrap kontrolleres statisk, mens signup-
 | URL-002    | A forsøger at signere B-media                                        | Afvist uden public fallback                                                   | **AFVENTER**       |
 | URL-003    | Medlemskab fjernes efter signering                                   | Nye signeringer afvises; eksisterende bearer-link virker op til 300 s         | **AFVENTER / GAP** |
 | URL-004    | Udløbet signed URL                                                   | Download afvises                                                              | **AFVENTER**       |
-| URL-005    | Evidence-download                                                    | Skal ske via eksplicit signed flow; service mangler endnu dette flow          | **AFVENTER / GAP** |
+| URL-005    | Evidence-download                                                    | Eksakt evidence-/project-RLS-opslag, valideret DB-path og 300 s download-URL  | **PASS kilde / AFVENTER live** |
 
 ## Eksport- og cachetests
 

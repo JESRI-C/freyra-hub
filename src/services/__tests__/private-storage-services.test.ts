@@ -29,11 +29,20 @@ import {
   type MediaServiceResult,
   uploadProjectMedia,
 } from "@/services/project-media-service";
-import { sanitizeEvidenceFileName, uploadEvidenceFile } from "@/services/evidence-service";
+import {
+  getEvidenceDownloadUrl,
+  isEvidenceDownloadAvailable,
+  sanitizeEvidenceFileName,
+  uploadEvidenceFile,
+} from "@/services/evidence-service";
 
 const PROJECT_ID = "a0000000-0000-4000-8000-000000000001";
 const MEDIA_ID = "b0000000-0000-4000-8000-000000000002";
+const EVIDENCE_ID = "d0000000-0000-4000-8000-000000000004";
+const OTHER_PROJECT_ID = "c0000000-0000-4000-8000-000000000003";
+const ORGANIZATION_ID = "e0000000-0000-4000-8000-000000000005";
 const MEDIA_PATH = `${PROJECT_ID}/1777777777000_feltfoto.jpg`;
+const EVIDENCE_PATH = `${PROJECT_ID}/1777777777000_feltrapport.pdf`;
 
 type DbResult = {
   data: Record<string, unknown> | Record<string, unknown>[] | null;
@@ -255,5 +264,181 @@ describe("private evidence uploads", () => {
     expect(sanitizeEvidenceFileName("folder\\rapport 2026?.pdf")).toBe("rapport_2026_.pdf");
     expect(sanitizeEvidenceFileName("../.env")).toBe("env");
     expect(sanitizeEvidenceFileName("...")).toBe("evidence-file");
+  });
+});
+
+describe("private evidence downloads", () => {
+  it("slår rækken op med id og projekt før et fast 300-sekunders link signeres", async () => {
+    const builder = createQueryBuilder({
+      singleResults: [
+        {
+          data: { id: EVIDENCE_ID, project_id: PROJECT_ID, file_url: EVIDENCE_PATH },
+          error: null,
+        },
+      ],
+    });
+    mocks.dbFrom.mockReturnValue(builder);
+    mocks.createSignedUrl.mockResolvedValue({
+      data: { signedUrl: "https://storage.example/signed/feltrapport.pdf?token=short-lived" },
+      error: null,
+    });
+
+    const result = await getEvidenceDownloadUrl({
+      evidenceId: EVIDENCE_ID,
+      projectId: PROJECT_ID,
+    });
+
+    expect(mocks.dbFrom).toHaveBeenCalledWith("evidence_files");
+    expect(builder.select).toHaveBeenCalledWith("id,project_id,file_url");
+    expect(builder.eq).toHaveBeenNthCalledWith(1, "id", EVIDENCE_ID);
+    expect(builder.eq).toHaveBeenNthCalledWith(2, "project_id", PROJECT_ID);
+    expect(mocks.storageFrom).toHaveBeenCalledWith("evidence-files");
+    expect(mocks.createSignedUrl).toHaveBeenCalledWith(EVIDENCE_PATH, 300, { download: true });
+    expect(result).toEqual({
+      data: "https://storage.example/signed/feltrapport.pdf?token=short-lived",
+      error: null,
+    });
+  });
+
+  it("stopper før Storage, når RLS-opslaget ikke giver præcis den anmodede række", async () => {
+    const deniedBuilder = createQueryBuilder({
+      singleResults: [{ data: null, error: { message: "0 rows" } }],
+    });
+    mocks.dbFrom.mockReturnValueOnce(deniedBuilder);
+
+    await expect(
+      getEvidenceDownloadUrl({ evidenceId: EVIDENCE_ID, projectId: PROJECT_ID }),
+    ).resolves.toEqual({
+      data: null,
+      error: "Dokumentationen blev ikke fundet, eller du har ikke adgang til den.",
+    });
+    expect(mocks.storageFrom).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    mocks.storageFrom.mockReturnValue({ createSignedUrl: mocks.createSignedUrl });
+    const mismatchBuilder = createQueryBuilder({
+      singleResults: [
+        {
+          data: { id: EVIDENCE_ID, project_id: OTHER_PROJECT_ID, file_url: EVIDENCE_PATH },
+          error: null,
+        },
+      ],
+    });
+    mocks.dbFrom.mockReturnValue(mismatchBuilder);
+
+    const mismatch = await getEvidenceDownloadUrl({
+      evidenceId: EVIDENCE_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(mismatch.data).toBeNull();
+    expect(mocks.storageFrom).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["offentlig URL", "https://public.example/feltrapport.pdf"],
+    ["absolut sti", `/evidence-files/${EVIDENCE_PATH}`],
+    ["fremmed projekt", `${OTHER_PROJECT_ID}/feltrapport.pdf`],
+    ["traversal", `${PROJECT_ID}/../hemmelig.pdf`],
+    ["backslash", `${PROJECT_ID}\\hemmelig.pdf`],
+    ["tomt segment", `${PROJECT_ID}//feltrapport.pdf`],
+    [
+      "forkert canonical projekt",
+      `organizations/${PROJECT_ID}/projects/${OTHER_PROJECT_ID}/evidence/fil.pdf`,
+    ],
+    ["for kort canonical sti", `organizations/${ORGANIZATION_ID}/projects/${PROJECT_ID}/fil.pdf`],
+  ])("afviser %s før Storage", async (_case, fileUrl) => {
+    const builder = createQueryBuilder({
+      singleResults: [
+        {
+          data: { id: EVIDENCE_ID, project_id: PROJECT_ID, file_url: fileUrl },
+          error: null,
+        },
+      ],
+    });
+    mocks.dbFrom.mockReturnValue(builder);
+
+    const result = await getEvidenceDownloadUrl({
+      evidenceId: EVIDENCE_ID,
+      projectId: PROJECT_ID,
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toContain("Storage-sti");
+    expect(mocks.storageFrom).not.toHaveBeenCalled();
+  });
+
+  it("accepterer den dokumenterede canonical organisations-/projektsti", async () => {
+    const canonicalPath = `organizations/${ORGANIZATION_ID}/projects/${PROJECT_ID}/evidence/${EVIDENCE_ID}/feltrapport.pdf`;
+    const builder = createQueryBuilder({
+      singleResults: [
+        {
+          data: { id: EVIDENCE_ID, project_id: PROJECT_ID, file_url: canonicalPath },
+          error: null,
+        },
+      ],
+    });
+    mocks.dbFrom.mockReturnValue(builder);
+
+    const result = await getEvidenceDownloadUrl({
+      evidenceId: EVIDENCE_ID,
+      projectId: PROJECT_ID,
+    });
+
+    expect(mocks.createSignedUrl).toHaveBeenCalledWith(canonicalPath, 300, { download: true });
+    expect(result.error).toBeNull();
+  });
+
+  it("fejler lukket ved Storage-fejl eller tom signer-URL", async () => {
+    const row = { id: EVIDENCE_ID, project_id: PROJECT_ID, file_url: EVIDENCE_PATH };
+    const errorBuilder = createQueryBuilder({
+      singleResults: [{ data: row, error: null }],
+    });
+    mocks.dbFrom.mockReturnValueOnce(errorBuilder);
+    mocks.createSignedUrl.mockResolvedValueOnce({
+      data: null,
+      error: { message: "intern Storage-detalje" },
+    });
+
+    await expect(
+      getEvidenceDownloadUrl({ evidenceId: EVIDENCE_ID, projectId: PROJECT_ID }),
+    ).resolves.toEqual({ data: null, error: "Kunne ikke oprette et sikkert downloadlink." });
+
+    const emptyBuilder = createQueryBuilder({
+      singleResults: [{ data: row, error: null }],
+    });
+    mocks.dbFrom.mockReturnValueOnce(emptyBuilder);
+    mocks.createSignedUrl.mockResolvedValueOnce({ data: {}, error: null });
+
+    await expect(
+      getEvidenceDownloadUrl({ evidenceId: EVIDENCE_ID, projectId: PROJECT_ID }),
+    ).resolves.toEqual({ data: null, error: "Kunne ikke oprette et sikkert downloadlink." });
+  });
+
+  it("afviser ugyldige ids uden database- eller Storage-kald", async () => {
+    await expect(
+      getEvidenceDownloadUrl({ evidenceId: "../../fil", projectId: PROJECT_ID }),
+    ).resolves.toEqual({ data: null, error: "Ugyldig dokumentationsreference." });
+    expect(mocks.dbFrom).not.toHaveBeenCalled();
+    expect(mocks.storageFrom).not.toHaveBeenCalled();
+  });
+
+  it("skjuler download-affordance for metadata uden en sikker privat reference", () => {
+    expect(
+      isEvidenceDownloadAvailable({
+        id: EVIDENCE_ID,
+        project_id: PROJECT_ID,
+        file_url: EVIDENCE_PATH,
+      }),
+    ).toBe(true);
+    expect(
+      isEvidenceDownloadAvailable({ id: EVIDENCE_ID, project_id: PROJECT_ID, file_url: null }),
+    ).toBe(false);
+    expect(
+      isEvidenceDownloadAvailable({
+        id: "preview-evidence",
+        project_id: PROJECT_ID,
+        file_url: EVIDENCE_PATH,
+      }),
+    ).toBe(false);
   });
 });
