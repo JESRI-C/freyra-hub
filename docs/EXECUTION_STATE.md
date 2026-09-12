@@ -1,9 +1,12 @@
 # GoFreyra execution state
 
-Opdateret: 2026-09-02, heartbeat P0-cyklus 014.
+Opdateret: 2026-09-12, brugerbestilt staging-udgivelse / heartbeat P0-cyklus 015.
 
 ## Seneste verificerede checkpoint
 
+- Branch `codex/gofreyra-p0` var ren og synkroniseret med `origin` (`0/0`) på commit `adcb03e` efter frisk fetch. Node 22.14.0/npm 10.9.2, typecheck, målrettet genkørsel og fuld serial Vitest med 54 filer/412 tests, `build:staging`, staging-ref-/secret-scan og Wrangler 4.90.0 dry-run bestod. En første fuld testsuite ramte kun en kendt 5-sekunders cold-import-timeout; den isolerede test bestod 8/8, og hele suiten bestod derefter med 15-sekunders test-timeout.
+- Den validerede app-pakke fra `adcb03e` er udgivet kun til Cloudflare Worker `gofreyra-p0-staging`, version `51381b65-7bfb-499d-ae4c-d3175827adcf`, på `https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev`. Hosted `/login` svarer 200 og renderes komplet; anonym `/app` ender på `/login`; browserkonsollen viste 0 warnings/errors.
+- De to upload-intent-/orphan-migrationer er fortsat ikke anvendt på staging. Workerens eksisterende secretliste indeholder kun `SUPABASE_URL` og `SUPABASE_PUBLISHABLE_KEY`; derfor fejler den nye reconciliation-route forventet lukket med HTTP 503. `SUPABASE_SERVICE_ROLE_KEY`, `MONITORING_CRON_API_SECRET`, observations-ingest-bindinger, scheduler, produktion, Simply og `app.gofreyra.com` er ikke ændret. Dette er en staging-udgivelse, ikke en P0- eller produktionsrelease.
 - Repository/remote: `JESRI-C/freyra-hub`; branch `codex/gofreyra-p0`.
 - Baseline HEAD for cyklus 014 er `7a7ca84`; branch og `origin/codex/gofreyra-p0` var synkroniserede (`0/0`), og worktree var ren før ændringen.
 - Betroet orphan-reconciliation er implementeret i kilden for annullerede eller udløbne, ikke-modtagne upload-intents. En `service_role`-eksklusiv RPC tager højst 100 korte `FOR UPDATE SKIP LOCKED`-claims med opaque lease-token; den dedikeret secret-beskyttede serverroute sletter kun den eksakte, validerede `monitoring-uploads`-path via Supabase Storage API og kvitterer success eller en saniteret fejl i en privat cleanup-ledger. Udløbne drafts arkiveres før sletning, stale workers kan ikke afslutte et nyere claim, og SQL ændrer aldrig `storage.objects`.
