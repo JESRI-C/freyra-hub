@@ -364,8 +364,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProjectId(null);
         },
         selectProject: (id) => {
-          if (!currentOrg?.projects.some((project) => project.id === id)) return;
-          setProjectId(id);
+          const selection = findAuthorizedProjectSelection(organizations, id);
+          if (!selection) return;
+          setOrgId(selection.orgId);
+          setProjectId(selection.projectId);
         },
         refresh: async (options) => {
           const authRevision = authRevisionRef.current;
