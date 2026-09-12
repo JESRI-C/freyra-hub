@@ -1,8 +1,12 @@
 # 4DM Project Monitor — teststrategi og løbende rapport
 
-Status: løbende 4DM-checkpoint, opdateret 2026-09-02. Resultater opdateres efter hver vertikal slice. Dette er ikke en P0-godkendelse.
+Status: løbende 4DM-checkpoint, opdateret 2026-09-12. Resultater opdateres efter hver vertikal slice. Dette er ikke en P0-godkendelse.
 
-## Cyklus 014-addendum
+## Cyklus 016-addendum — aktuelt checkpoint
+
+Den aktuelle kilde består fuld Vitest med **55 filer/420 tests**, typecheck, målrettet ESLint, `build:staging` og Wrangler dry-run. pgTAP-kilden deklarerer `plan(107)`, men er ikke runtime-kørt. Staginghistorikken stopper ved `20260912110614`, mens live schema-postflight er hærdet; `20260912112500_upload_intent_forward_reconciliation.sql` er source-only og **AFVENTER** særskilt migrationsmandat. Credential-båret Auth/Storage/TUS/browser-E2E er ikke bestået eller påstået. Produktion er urørt.
+
+## Cyklus 014-addendum — historisk checkpoint
 
 Efter frisk `npm ci` består fuld serial Vitest med 54 filer/412 tests, typecheck, målrettet ESLint og normalt produktionsbuild. Nye tests dækker præcis Storage-sletning, mismatched/unsafe path fail-closed, generisk route-logning uden credentials, per-item isolation og den 105-case migrationskontrakt med orphan-retention og bevaret manage-delete for modtagne uploads. pgTAP-runtime, DB-lint, frisk database-replay, scheduler, UI-pause/reload-resume og rigtig Auth/Storage/TUS/browser-E2E er **AFVENTER**, fordi lokal Postgres på `127.0.0.1:54322` ikke er tilgængelig og live miljøer ikke er ændret.
 
@@ -12,13 +16,14 @@ Efter frisk `npm ci` består fuld serial Vitest med 54 filer/412 tests, typechec
 | ---------------- | --------------------------------------------------------- | -------------------------------- |
 | Node/npm         | Node 22.14, npm 10.9.2, kanonisk npm-lock                 | Verificeret tidligere checkpoint |
 | Ren installation | `npm ci`, 823 pakker                                      | Verificeret tidligere checkpoint |
-| TypeScript       | `npm run typecheck`, exit 0                               | Verificeret efter cyklus 009     |
-| Ændret lint      | 0 fejl, 2 kendte Fast Refresh-warnings                    | Verificeret efter 4DM-slice      |
+| TypeScript       | `npm run typecheck`, exit 0                               | Verificeret aktuelt              |
+| Målrettet lint   | ESLint på berørte filer, exit 0                           | Verificeret aktuelt              |
 | Global lint      | 5.407 errors, 25 warnings ved seneste fulde kørsel        | Releasegate fejlet               |
-| Unit/service     | Samlet Vitest: 43 filer/350 tests                         | Verificeret efter cyklus 009     |
-| Build            | `npm run build:staging`, exit 0; kun staging-ref i bundle | Verificeret efter cyklus 009     |
-| Browser-smoke    | Login/signup render; unauth `/app` → `/login`; ren konsol | Verificeret lokalt               |
-| RLS/Storage      | Transaktionel A/B SQL-test + anon PostgREST; fixtures væk | Delvist; rigtig API **AFVENTER** |
+| Unit/service     | Samlet Vitest: 55 filer/420 tests                         | Verificeret aktuelt              |
+| Build            | `npm run build:staging`, exit 0                           | Verificeret aktuelt              |
+| Wrangler         | Staging Worker dry-run, exit 0                            | Verificeret aktuelt              |
+| Browser-smoke    | Historisk unauthenticated smoke; ingen credential-båret TUS/E2E | Credential-båret flow **AFVENTER** |
+| RLS/Storage      | Live schema-postflight hærdet; historik gennem `20260912110614` | Credential-båret API/TUS **AFVENTER** |
 
 ## Observeret slice: canonical projektgrænse
 

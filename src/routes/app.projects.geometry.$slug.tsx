@@ -33,6 +33,9 @@ import { KULSTOF2022_WMS } from "@/data/kulstof2022";
 
 export const Route = createFileRoute("/app/projects/geometry/$slug")({
   head: () => ({ meta: [{ title: "Definér projektområde — GoFreyra" }] }),
+  // Geometry editing needs the browser user's Supabase session for every
+  // project read/write, so this authenticated route must stay client-rendered.
+  ssr: false,
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     const project = await queryClient.ensureQueryData({
       queryKey: ["project-by-slug", slug],

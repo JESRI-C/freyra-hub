@@ -104,7 +104,10 @@ function isClaim(value: unknown): value is UploadOrphanClaim {
 
 function isExactIntentStoragePath(storagePath: string, uploadId: string): boolean {
   const match = EXACT_INTENT_PATH_PATTERN.exec(storagePath);
-  return match?.[1]?.toLowerCase() === uploadId.toLowerCase();
+  const leafName = storagePath.slice(storagePath.lastIndexOf("/") + 1);
+  return (
+    leafName !== "." && leafName !== ".." && match?.[1]?.toLowerCase() === uploadId.toLowerCase()
+  );
 }
 
 async function acknowledgeClaim(

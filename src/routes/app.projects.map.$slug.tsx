@@ -22,6 +22,9 @@ import type { ConnectorStatusItem } from "@/components/maps/ConnectorStatusPanel
 
 export const Route = createFileRoute("/app/projects/map/$slug")({
   head: () => ({ meta: [{ title: "Geodata-kort — GoFreyra" }] }),
+  // The project and map queries need the browser-persisted Supabase session.
+  // Server rendering would run them without the user's JWT and can false-404.
+  ssr: false,
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     const project = await queryClient.ensureQueryData({
       queryKey: ["project-by-slug", slug],

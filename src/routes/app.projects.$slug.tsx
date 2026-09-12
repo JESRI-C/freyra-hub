@@ -3,7 +3,17 @@ import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-quer
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity, MapPin } from "lucide-react";
+import {
+  ShieldCheck,
+  RefreshCw,
+  Eye,
+  FileText,
+  AlertTriangle,
+  Activity,
+  MapPin,
+  Images,
+  CheckCircle2,
+} from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
@@ -60,7 +70,7 @@ import {
   formatLastSync,
 } from "@/services/data-sources-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
-import { resolveProjectGeometry } from "@/services/geo-service";
+import { resolveProjectGeometry, validateProjectPolygon } from "@/services/geo-service";
 import { ProjectEnvironmentalDashboard } from "@/components/data-foundation/ProjectEnvironmentalDashboard";
 import type { Action } from "@/lib/supabase/types";
 
@@ -85,6 +95,10 @@ function AuditIcon({ name }: { name: string }) {
 
 export const Route = createFileRoute("/app/projects/$slug")({
   head: () => ({ meta: [{ title: "Projekt — GoFreyra" }] }),
+  // Project reads depend on the browser-persisted Supabase session. Rendering
+  // this route on the server would execute all suspense queries without the
+  // user's JWT and can turn a valid deep-link into a false RLS 404.
+  ssr: false,
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     const project = await queryClient.ensureQueryData({
       queryKey: ["project-by-slug", slug],
@@ -183,7 +197,7 @@ function ProjectDetailPage() {
 
   // A project has "real" geometry only when a polygon has been drawn or uploaded —
   // a centroid alone (from location name) is not enough to run area-based analyses.
-  const hasRealGeometry = project?.geometry_polygon != null;
+  const hasRealGeometry = validateProjectPolygon(project?.geometry_polygon).valid;
 
   // Async media state
   const [mediaItems, setMediaItems] = useState<
@@ -214,6 +228,24 @@ function ProjectDetailPage() {
   useEffect(() => {
     setLocalActions(actions);
   }, [actions]);
+
+  const [selectedIndicator, setSelectedIndicator] = useState<(typeof indicators)[number] | null>(
+    null,
+  );
+  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
+  const [actionFilterSite, setActionFilterSite] = useState<string>("");
+  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
+  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
+  const filteredActions = localActions.filter((a) => {
+    if (actionFilterSite && a.site_id !== actionFilterSite) return false;
+    if (actionFilterStatus && a.status !== actionFilterStatus) return false;
+    if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
+    return true;
+  });
+  const openIndicator = (ind: (typeof indicators)[number]) => {
+    setSelectedIndicator(ind);
+    setIndicatorDetailOpen(true);
+  };
 
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
@@ -273,25 +305,14 @@ function ProjectDetailPage() {
     sensors,
   });
 
-  const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors);
+  const nextAction = getRecommendedNextAction(
+    project,
+    indicators,
+    localActions,
+    mediaItems,
+    sensors,
+  );
   const sensorActions = suggestSensorActions(sensors);
-
-  const [selectedIndicator, setSelectedIndicator] = useState<typeof indicators[number] | null>(null);
-  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
-  const [actionFilterSite, setActionFilterSite] = useState<string>("");
-  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
-  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
-  const filteredActions = localActions.filter((a) => {
-    if (actionFilterSite && a.site_id !== actionFilterSite) return false;
-    if (actionFilterStatus && a.status !== actionFilterStatus) return false;
-    if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
-    return true;
-  });
-  const openIndicator = (ind: typeof indicators[number]) => {
-    setSelectedIndicator(ind);
-    setIndicatorDetailOpen(true);
-  };
-
 
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
@@ -309,6 +330,12 @@ function ProjectDetailPage() {
             {active === "overblik" && (
               <div className="space-y-5">
                 {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
+                <DroneBeforeIntakeCard
+                  slug={slug}
+                  projectId={projectId}
+                  organizationId={project.organization_id}
+                  hasRealGeometry={hasRealGeometry}
+                />
                 {/* Recommended next action */}
                 <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
                   <Activity className="h-5 w-5 text-primary shrink-0" />
@@ -324,7 +351,6 @@ function ProjectDetailPage() {
                     <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
                   ))}
                 </div>
-
 
                 {/* Recent observations */}
                 {observations.length > 0 && (
@@ -385,12 +411,10 @@ function ProjectDetailPage() {
             {/* ── Sites ──────────────────────────────────────────────────── */}
             {active === "sites" && <SitesPanel projectId={projectId} sites={sites} />}
 
-
             {/* ── Datakilder ─────────────────────────────────────────────── */}
             {active === "datakilder" && (
               <DataSourcesPanel projectId={projectId} sites={sites} dataSources={dataSources} />
             )}
-
 
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
@@ -431,9 +455,7 @@ function ProjectDetailPage() {
                     <CardHeader
                       title="Sensor-anbefalinger"
                       subtitle="Automatisk afledt fra IoT-feltdata"
-                      action={
-                        <Pill tone="warning">{sensorActions.length} forslag</Pill>
-                      }
+                      action={<Pill tone="warning">{sensorActions.length} forslag</Pill>}
                     />
                     <div className="px-5 pb-3 divide-y">
                       {sensorActions.map((sa, i) => (
@@ -491,7 +513,9 @@ function ProjectDetailPage() {
                     >
                       <option value="">Alle sites</option>
                       {sites.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
                       ))}
                     </select>
                     <select
@@ -530,7 +554,9 @@ function ProjectDetailPage() {
 
                   <div className="px-5 pb-3">
                     {filteredActions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Ingen handlinger matcher filter</p>
+                      <p className="text-sm text-muted-foreground py-4">
+                        Ingen handlinger matcher filter
+                      </p>
                     ) : (
                       filteredActions.map((action) => (
                         <ActionItem
@@ -545,7 +571,9 @@ function ProjectDetailPage() {
                             if (actualImpact) {
                               try {
                                 await completeAction(id, projectId, actualImpact);
-                                await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+                                await queryClient.invalidateQueries({
+                                  queryKey: ["actions", projectId],
+                                });
                                 toast.success("Handling afsluttet");
                               } catch (e) {
                                 toast.error((e as Error).message);
@@ -866,7 +894,9 @@ function CreateActionForm({
             >
               <option value="">Intet site</option>
               {sites.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
               ))}
             </select>
             <input
@@ -884,7 +914,9 @@ function CreateActionForm({
           >
             <option value="">Ingen tilknyttet indikator</option>
             {indicators.map((i) => (
-              <option key={i.id} value={i.id}>{i.label}</option>
+              <option key={i.id} value={i.id}>
+                {i.label}
+              </option>
             ))}
           </select>
           <input
@@ -969,6 +1001,77 @@ function GeometryRequiredBanner({
   );
 }
 
+function DroneBeforeIntakeCard({
+  slug,
+  projectId,
+  organizationId,
+  hasRealGeometry,
+}: {
+  slug: string;
+  projectId: string;
+  organizationId: string | null;
+  hasRealGeometry: boolean;
+}) {
+  const { orgId, selectOrg } = useAuth();
+
+  return (
+    <Card className="border-primary/25 bg-primary/5 p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <Images className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold">Start vandløbets FØR-dokumentation</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Bind projektområdet og de originale dronebilleder sammen, før grødeskæringen
+              dokumenteres.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${
+                  hasRealGeometry
+                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    : "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+                }`}
+              >
+                {hasRealGeometry && <CheckCircle2 className="h-3.5 w-3.5" />}
+                1. Projektområde {hasRealGeometry ? "gemt" : "mangler"}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-muted-foreground">
+                2. Upload FØR-dronefotos
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {hasRealGeometry ? (
+          <Link
+            to="/app/connect/upload"
+            search={{ project: projectId } as never}
+            onClick={() => {
+              if (organizationId && organizationId !== orgId) selectOrg(organizationId);
+            }}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            <Images className="h-4 w-4" />
+            Upload FØR-dronefotos
+          </Link>
+        ) : (
+          <Link
+            to="/app/projects/geometry/$slug"
+            params={{ slug }}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-background px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10"
+          >
+            <MapPin className="h-4 w-4" />
+            Definér område først
+          </Link>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // ─── Dokumentation Tab ────────────────────────────────────────────────────────
 
 function DokumentationTab({
@@ -1038,7 +1141,10 @@ function DokumentationTab({
           </div>
         </Card>
         <Card>
-          <CardHeader title="Dokumentationsscore" subtitle="Hvor komplet er projektets dokumentation" />
+          <CardHeader
+            title="Dokumentationsscore"
+            subtitle="Hvor komplet er projektets dokumentation"
+          />
           <div className="px-5 pb-5">
             <DocumentationScore score={score} />
           </div>
@@ -1074,10 +1180,6 @@ function RollerTab({ projectId }: { projectId: string }) {
   });
   const permissions = permissionsFor(role ?? null);
   return (
-    <ProjectMembersPanel
-      projectId={projectId}
-      currentUserId={userId}
-      permissions={permissions}
-    />
+    <ProjectMembersPanel projectId={projectId} currentUserId={userId} permissions={permissions} />
   );
 }

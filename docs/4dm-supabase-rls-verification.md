@@ -1,22 +1,26 @@
 # 4DM Supabase RLS-verifikation
 
-Dato: 2026-09-02
+Dato: 2026-09-12
 
-## Cyklus 014-addendum
+## Cyklus 016-addendum — aktuelt checkpoint
+
+Den aktuelle kilde består fuld Vitest med **55 filer/420 tests** samt typecheck, målrettet ESLint, `build:staging` og Wrangler dry-run. Database-testfilen deklarerer `plan(107)`, men pgTAP er **ikke runtime-kørt**. Staging `xdvqdzdpyceojbdknofi` har registreret migrationshistorik til og med `20260912110614`; live schema-postflight viser den tilsigtede hærdede upload-intent-/claim-/cleanup-tilstand. `20260912112500_upload_intent_forward_reconciliation.sql` er fortsat kun i kilden og **AFVENTER** særskilt migrationsmandat. Credential-båret Auth/Storage/TUS/browser-E2E er ikke bestået eller påstået. Produktion er ikke ændret.
+
+## Cyklus 014-addendum — historisk checkpoint
 
 App-/kildegates er nu 54 filer/412 Vitest-tests efter frisk `npm ci`, med grøn typecheck, målrettet ESLint og produktionsbuild. Upload-intent- og orphan-reconciliation-migrationerne samt `plan(105)` er statisk dækket; cleanup-RPC'erne er kun eksekverbare for `service_role`, ikke-modtagne orphan-intent-rows kan ikke slettes, modtagne uploads beholder normal manage-delete, og serveren bruger Storage API med en claim-ID-bundet path. Staging kører fortsat kun den tidligere hardening-baseline. Frisk replay, pgTAP, DB-lint, scheduler, rigtig Auth/Storage/TUS, signed URL/revoke og hele rollematricen er **AFVENTER**; ældre afsnit nedenfor er præ-slice-evidens.
 
 ## 1. Testet miljø
 
-Repositoryets working tree er statisk auditeret; 43 filer/350 Vitest-tests, typecheck og staging-build er grønne. Supabase CLI 2.116.0 er installeret/pinnet lokalt. Docker/Podman er `NOT_FOUND`; reset gav `LegacyLocalDbRunningError`, og pgTAP/database-lint gav `ECONNREFUSED 127.0.0.1:54322`.
+Repositoryets aktuelle working tree er statisk auditeret; 55 filer/420 Vitest-tests, typecheck, målrettet ESLint, staging-build og Wrangler dry-run er grønne. Supabase CLI 2.116.0 er installeret/pinnet lokalt. Database-testkilden har `plan(107)`, men clean replay, pgTAP-runtime og database-lint er fortsat **AFVENTER**.
 
-Staging `xdvqdzdpyceojbdknofi` er brugerautoriseret, aktiv og atomisk migreret. Katalogassertions, en transaktionel A/B-tenanttest og anon PostgREST-smoke er bestået; fixtures blev rullet tilbage. Rigtig Auth-/Storage API-adfærd er fortsat **AFVENTER**. Lovable-/produktionsinstansen `ikrmcetjutqcjtwfhzfv` er ikke ændret, og der er ikke deployet en hostet app.
+Staging `xdvqdzdpyceojbdknofi` er brugerautoriseret og aktiv. Den registrerede historik stopper ved `20260912110614`, og live schema-postflight er hærdet; `20260912112500_upload_intent_forward_reconciliation.sql` er source-only og **AFVENTER**. Tidligere katalogassertions, transaktionel A/B-tenanttest og anon PostgREST-smoke er bevaret som historisk evidens; credential-båret Auth/Storage/TUS/browser-E2E er fortsat **AFVENTER**. Lovable-/produktionsinstansen `ikrmcetjutqcjtwfhzfv` er ikke ændret.
 
 ## 2. Miljøklassifikation
 
 - Lokal kode: auditeret, unit-/kildetestet og staging-bygget.
 - Lokal Supabase: clean replay/pgTAP **AFVENTER**, fordi container-runtime mangler.
-- Staging: `xdvqdzdpyceojbdknofi`, migreret og delvist runtime-verificeret.
+- Staging: `xdvqdzdpyceojbdknofi`, registreret til og med `20260912110614` og hærdet i live schema-postflight; `20260912112500` er source-only.
 - Produktion/Lovable: ikke ændret.
 
 ## 3. Testede tabeller
@@ -142,11 +146,13 @@ Den afsluttende review fandt desuden P0-blokeringer, som ikke er løst: Storage 
 
 ## 10. Migrationer
 
-| Migration                                        | Status                                            | Bemærkning                                                                               |
-| ------------------------------------------------ | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Eksisterende historik                            | Statisk auditeret                                 | Ikke replayet lokalt                                                                     |
-| `006_project_media.sql`                          | Lokalt rettet                                     | `project_id uuid`; remote historik **AFVENTER**                                          |
-| `20260831064838_harden_4dm_tenant_isolation.sql` | Anvendt/registreret på staging; ikke i produktion | Katalog + SQL A/B + anon PostgREST delvist grøn; lokal replay og rigtig API **AFVENTER** |
+| Migration/versionshistorik                                           | Status                                    | Bemærkning                                                                                         |
+| -------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Eksisterende historik                                                | Statisk auditeret                         | Ikke replayet lokalt                                                                               |
+| `006_project_media.sql`                                              | Lokalt rettet                             | `project_id uuid`; remote historik **AFVENTER**                                                    |
+| `20260831172610`, `20260831172839`                                   | Registreret på staging                    | Hærdningsbaseline; produktion urørt                                                                |
+| `20260901163924`, `20260902153933`, `20260912110614`                 | Registreret på staging                    | Upload-intent/orphan/claim-kæde; live schema-postflight er hærdet                                 |
+| `20260912112500_upload_intent_forward_reconciliation.sql`            | Source-only, **AFVENTER**                 | Må ikke beskrives som anvendt uden særskilt live-migrationsmandat                                  |
 
 Migrationen samles i cyklus 009-checkpointet til push på `codex/gofreyra-p0`; det er ikke en produktionsgodkendelse.
 
@@ -160,29 +166,30 @@ pgTAP-planen indeholder positive A- og B-project reads/writes, project-area, upl
 
 Runtime-status: **DELVIST VERIFICERET på staging** — cross-tenant project/project_media-read/write, Storage-read og metrics-RPC blev afvist; resten af den negative matrix og rigtig Auth/Storage API er **AFVENTER**.
 
-PgTAP-filen har samlet `plan(62)` og 62 assertions. Ud over de tidligere tenant-, rolle-, Storage-, RPC-, provenance- og revocation-cases kontrollerer fire nye assertions monitoring-bucketens 200 MiB/MIME-allowlist og project-media-bucketens 50 MiB/image-PDF-kontrakt. Ingen assertion er runtime-kørt.
+PgTAP-filen har aktuelt samlet `plan(107)` og 107 assertions. De er kildeverificerede, men ingen af de 107 assertions er runtime-kørt i dette checkpoint.
 
-Det beviser kun intent, indtil `supabase test db` har kørt og rapporteret 62/62.
+Det beviser kun intent, indtil `supabase test db` har kørt og rapporteret 107/107.
 
 ## 13. Testresultater
 
 | Gate                                | Resultat                         | Evidens                                                          |
 | ----------------------------------- | -------------------------------- | ---------------------------------------------------------------- |
 | Målrettet hardening + app + Storage | Bestået                          | Indgår i samlet Vitest                                           |
-| Samlet Vitest                       | 43 filer, 350/350 bestået        | Lokal fuld suite                                                 |
+| Samlet Vitest                       | 55 filer, 420/420 bestået        | Lokal fuld suite                                                 |
 | TypeScript                          | Bestået                          | Lokal typecheck                                                  |
-| Staging-build                       | Bestået                          | Kun autoriseret staging-ref; kendte Vite/Nitro-warnings          |
-| Changed-test ESLint                 | 0 fejl                           | Den ændrede statiske migrationstest                              |
+| Staging-build                       | Bestået                          | `build:staging`                                                  |
+| Målrettet ESLint                    | Bestået                          | Berørte filer                                                    |
+| Wrangler dry-run                    | Bestået                          | Staging Worker dry-run                                           |
 | Fuld lint                           | Fejlet: 5.164 fejl, 23 advarsler | 394 filer; fatal 0; repositoryets samlede lint-gate              |
 | Supabase CLI                        | 2.116.0                          | Pinnet package/lockfile                                          |
 | Docker/local start                  | Fejlet/blokeret                  | Docker og Podman `NOT_FOUND`                                     |
 | `db reset --local`                  | **AFVENTER**                     | `LegacyLocalDbRunningError`                                      |
 | `db lint --local`                   | **AFVENTER**                     | `ECONNREFUSED 127.0.0.1:54322`                                   |
-| pgTAP `plan(62)`                    | **AFVENTER**                     | `ECONNREFUSED 127.0.0.1:54322`; 62 assertions skrevet, ikke kørt |
+| pgTAP `plan(107)`                   | **AFVENTER**                     | 107 assertions skrevet, ikke runtime-kørt                        |
 | Auth/PostgREST/RPC A/B              | Delvist verificeret              | Syntetisk SQL A/B + anon 401; rigtig Auth-session **AFVENTER**   |
 | Storage A/B                         | Delvist verificeret              | SQL object-read afgrænset; rigtig Storage API **AFVENTER**       |
 | Lovable-/produktionstarget          | Ikke kørt/ændret                 | Connector utilgængelig                                           |
-| Staging                             | Migreret og delvist verificeret  | Katalog + SQL A/B + anon; ingen hostet app                       |
+| Staging                             | Hærdet schema-postflight         | Historik stopper ved `20260912110614`; `20260912112500` source-only |
 | Produktion                          | Ikke kørt                        | Ingen adgang eller ændringer                                     |
 
 De grønne kilde-, unit-, typecheck- og buildgates kan ikke erstatte database-/RLS-gaten. Den fulde lint-gate er fortsat rød og er registreret separat fra den grønne changed-test ESLint-gate med 0 fejl.
@@ -198,7 +205,7 @@ De grønne kilde-, unit-, typecheck- og buildgates kan ikke erstatte database-/R
 
 ## 15. Om P0 kan fortsætte til survey- og dronekæden
 
-Nej. Survey → drone flight → imagery dataset → før/efter-analyse → report må først være næste vertikale leverance, når clean local reset, 62/62 pgTAP, A/B-tenanttests, upload-intent/evidence-kontrakt/orphan-reconciliation, Storage-isolation, RPC/export og service-role-grænsen er dokumenteret bestået.
+Nej. Survey → drone flight → imagery dataset → før/efter-analyse → report må først være næste vertikale leverance, når clean local reset, 107/107 pgTAP, credential-bårne A/B-tenanttests, Storage/TUS-isolation, RPC/export og service-role-grænsen er dokumenteret bestået.
 
 ## Kildegrundlag
 

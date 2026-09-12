@@ -20,10 +20,12 @@ export function resolveConnectProject<T extends ProjectSelection>(
   requestedProjectId: unknown,
   currentProjectId: string | null | undefined,
 ): T | null {
-  return (
-    findConnectProjectById(projects, requestedProjectId) ??
-    findConnectProjectById(projects, currentProjectId) ??
-    projects[0] ??
-    null
-  );
+  // An explicit URL selection is a scoped instruction. If it is not present
+  // in the active organisation, fail closed instead of silently attaching an
+  // upload or measurement to another persisted/default project.
+  if (typeof requestedProjectId === "string" && requestedProjectId.length > 0) {
+    return findConnectProjectById(projects, requestedProjectId);
+  }
+
+  return findConnectProjectById(projects, currentProjectId) ?? projects[0] ?? null;
 }

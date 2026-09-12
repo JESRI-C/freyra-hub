@@ -1,16 +1,20 @@
 # 4DM Supabase RLS-testmatrix
 
-Dato: 2026-09-02
+Dato: 2026-09-12
 
-## Cyklus 014-addendum
+## Cyklus 016-addendum — aktuelt checkpoint
+
+Den aktuelle kildesuite består med 55 filer/420 Vitest-tests; typecheck, målrettet ESLint, `build:staging` og Wrangler dry-run er grønne. Den versionsstyrede databaseplan er nu `plan(107)`, men de 107 pgTAP-assertions, frisk lokal replay og DB-lint er ikke runtime-kørt og står **AFVENTER**. På den isolerede staging `xdvqdzdpyceojbdknofi` stopper den registrerede migrationshistorik ved `20260912110614`; live schema-postflight viser den hærdede upload-intent-/cleanup-kontrakt, private lease-ledger og `service_role`-begrænsede cleanup-RPC'er. `20260912112500_upload_intent_forward_reconciliation.sql` findes kun i kilden og er **AFVENTER** særskilt migrationsmandat. Rigtig credential-båret Auth/Storage/TUS/browseraccept er ikke bestået, og produktion er ikke ændret.
+
+## Cyklus 014-addendum — historisk
 
 Den versionsstyrede pgTAP-fil har nu `plan(105)`: de 22 nye assertions dækker service-role-only cleanup, browserafvisning, præcist kandidatvalg, atomisk lease, stale-token-afvisning, failure-release/reclaim, terminal success, bevaret orphan-auditrow og normal manage-delete for modtagne uploads. Fuld app-/kildesuite består efter frisk installation med 54 filer/412 tests. pgTAP, frisk replay, DB-lint, scheduler og rigtig Auth/Storage/TUS er ikke kørt uden Docker/Podman og står **AFVENTER**. Ældre 62-/83-case-tabeller nedenfor er præ-slice-checkpointet.
 
 ## Status og evidensniveau
 
-Hardening er dækket af grønne statiske/unit-tests og er anvendt på staging `xdvqdzdpyceojbdknofi`. Hele suiten bestod med 43 filer/350 tests; typecheck og staging-build bestod, og buildet indeholder kun staging-ref.
+Hardening og upload-intent-/cleanup-kontrakten er dækket af grønne statiske/unit-tests og anvendt på staging `xdvqdzdpyceojbdknofi` gennem den registrerede version `20260912110614`. Den aktuelle suite består med 55 filer/420 tests; typecheck, målrettet ESLint, staging-build og Wrangler dry-run består.
 
-En transaktionel stagingtest som `authenticated` beviste eget project/media/Storage-read samt cross-tenant project/media/Storage-read, write og metrics-RPC-afvisning; fixtures blev rullet tilbage. Anon PostgREST afviser `projects` og `project_media` med 401. En rigtig Auth-/Storage API-rejse, alle roller og `supabase/tests/database/4dm_tenant_isolation.test.sql` med `plan(62)` er fortsat **AFVENTER**, fordi Docker/Podman ikke er tilgængelig. Produktion er ikke testet eller ændret.
+En transaktionel stagingtest som `authenticated` beviste eget project/media/Storage-read samt cross-tenant project/media/Storage-read, write og metrics-RPC-afvisning; fixtures blev rullet tilbage. Seneste upload-postflight viste 0 uploads og 0 Storage-objekter, og et tomt cleanup-claim returnerede 0 efter `42702`-korrektionen. En rigtig credential-båret Auth-/Storage API-/TUS-rejse, alle roller og `supabase/tests/database/4dm_tenant_isolation.test.sql` med `plan(107)` er fortsat **AFVENTER**. Produktion er ikke testet eller ændret.
 
 Supabase CLI-version: **2.116.0**.
 

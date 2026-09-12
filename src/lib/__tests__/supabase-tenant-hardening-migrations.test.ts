@@ -108,11 +108,19 @@ describe("4DM Supabase tenant hardening migration", () => {
     const orphanReconciliationIndex = migrationPaths.findIndex((migrationPath) =>
       migrationPath.includes("reconcile_upload_intent_orphans.sql"),
     );
+    const orphanClaimConflictFixIndex = migrationPaths.findIndex((migrationPath) =>
+      migrationPath.includes("fix_upload_orphan_claim_conflict.sql"),
+    );
+    const uploadIntentForwardReconciliationIndex = migrationPaths.findIndex((migrationPath) =>
+      migrationPath.includes("upload_intent_forward_reconciliation.sql"),
+    );
     expect(hardeningIndex).toBeGreaterThanOrEqual(0);
     expect(validationIndex).toBeGreaterThan(hardeningIndex);
     expect(uploadIntentIndex).toBeGreaterThan(validationIndex);
     expect(orphanReconciliationIndex).toBeGreaterThan(uploadIntentIndex);
-    expect(migrationPaths.at(-1)).toContain("reconcile_upload_intent_orphans.sql");
+    expect(orphanClaimConflictFixIndex).toBeGreaterThan(orphanReconciliationIndex);
+    expect(uploadIntentForwardReconciliationIndex).toBeGreaterThan(orphanClaimConflictFixIndex);
+    expect(migrationPaths.at(-1)).toContain("upload_intent_forward_reconciliation.sql");
   });
 
   it("removes every known legacy/open policy from every affected table", () => {

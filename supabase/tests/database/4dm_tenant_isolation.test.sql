@@ -8,7 +8,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(105);
+select plan(107);
 
 -- Stable, synthetic identities. Inserting auth users also exercises the real
 -- signup trigger, but none of its personal organizations are used below.
@@ -1123,6 +1123,17 @@ select lives_ok(
   'finalize is idempotent after a committed response is lost'
 );
 
+select throws_ok(
+  $$
+    select * from public.cancel_upload_intent(
+      (select id from public.uploads where original_file_name = 'field-before-001.jpg')
+    )
+  $$,
+  '55000',
+  null,
+  'a received upload is not a cancellable pending intent'
+);
+
 reset role;
 select throws_ok(
   $$
@@ -1289,6 +1300,17 @@ select is(
   2::bigint,
   'one claim returns the cancelled and expired unreceived paths only'
 );
+select ok(
+  (
+    select count(*) = 2
+      and pg_catalog.bool_and(
+        lease.lease_expires_at = lease.claimed_at + interval '300 seconds'
+      )
+    from private.upload_intent_orphan_cleanup_leases lease
+    join orphan_cleanup_claims claim on claim.upload_id = lease.upload_id
+  ),
+  'each orphan claim persists the exact expiry issued with its token'
+);
 select is(
   (
     select status
@@ -1301,9 +1323,9 @@ select is(
 
 set local role service_role;
 select is(
-  (select count(*) from public.claim_upload_intent_orphans(10, 300)),
+  (select count(*) from public.claim_upload_intent_orphans(10, 30)),
   0::bigint,
-  'active leases cannot be issued to a second worker'
+  'a second worker cannot shorten an active persisted lease'
 );
 select throws_ok(
   $$
@@ -1337,6 +1359,7 @@ select ok(
     select lease.last_error = 'simulated storage timeout'
       and lease.claim_token is null
       and lease.claimed_at is null
+      and lease.lease_expires_at is null
       and lease.completed_at is null
       and lease.attempts = 1
     from private.upload_intent_orphan_cleanup_leases lease
@@ -1401,6 +1424,7 @@ select ok(
     where lease.completed_at is not null
       and lease.claim_token is null
       and lease.claimed_at is null
+      and lease.lease_expires_at is null
   ),
   'completed cleanup leases retain private evidence without an active token'
 );

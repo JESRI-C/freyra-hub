@@ -1,12 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  Cpu,
-  Database,
-  Plug,
-  Activity,
-  Map,
-} from "lucide-react";
+import { LayoutDashboard, Cpu, Database, Plug, Activity, Map, Images } from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
 import { ConnectTopbar } from "@/components/connect/ConnectTopbar";
 
@@ -31,6 +24,7 @@ const TABS = [
   { to: "/app/connect/integrations", label: "Integrationer", icon: Plug },
   { to: "/app/connect/live", label: "Live data", icon: Activity },
   { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
+  { to: "/app/connect/upload", label: "Upload", icon: Images },
 ];
 
 function ConnectLayout() {
@@ -52,6 +46,7 @@ function ConnectLayout() {
                 <Link
                   key={t.to}
                   to={t.to as never}
+                  search={(previous) => previous as never}
                   className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${
                     active
                       ? "border-primary text-foreground font-medium"

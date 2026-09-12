@@ -1,14 +1,18 @@
 # 4DM tenant-data-inventar
 
-Dato: 2026-09-02
+Dato: 2026-09-12
 
-## Cyklus 014-addendum
+## Cyklus 016-addendum — aktuelt checkpoint
+
+Staging `xdvqdzdpyceojbdknofi` har registreret migrationshistorik gennem `20260912110614`, og live schema-postflight viser den tilsigtede hærdede upload-intent-/claim-/cleanup-tilstand. `20260912112500_upload_intent_forward_reconciliation.sql` er source-only og **AFVENTER** særskilt live-migrationsmandat. Kilden består 55 filer/420 Vitest-tests samt typecheck, målrettet ESLint, `build:staging` og Wrangler dry-run. pgTAP-planen er 107 assertions, men er ikke runtime-kørt; credential-båret Auth/Storage/TUS/browser-E2E er fortsat **AFVENTER**. Produktion er urørt.
+
+## Cyklus 014-addendum — historisk checkpoint
 
 Upload-intents har nu både eksakt TUS/finalize-kontrakt og en kildetestet orphan-reconciliation: kun annullerede eller udløbne, ikke-modtagne intents kan leases, den autoriserede server sletter kun den claim-ID-bundne path via Storage API, fejl frigiver jobbet sikkert til retry, og orphan-intent-/ledger-audit kan ikke slettes; modtagne uploads beholder normal manage-delete. Den versionsstyrede pgTAP-plan er 105 assertions, og app-suiten er 54 filer/412 tests. Staging har ikke forward migrationerne; pgTAP-runtime, DB-lint, scheduler, rigtig Auth/Storage/TUS og serverekstraktor er **AFVENTER**. Ældre inventar- og gaplinjer nedenfor beskriver præ-slice-checkpointet.
 
-Status: Repositoryets samlede migrationskæde og de relevante TypeScript-services er auditeret statisk. Hardening-migrationen `20260831064838_harden_4dm_tenant_isolation.sql` er anvendt på staging `xdvqdzdpyceojbdknofi`, men ikke i produktion. Katalogassertions, anon PostgREST og en transaktionel A/B-tenanttest er bestået. Clean lokal replay, rigtig Auth-/Storage API og hele rollematricen er **AFVENTER**.
+Status: Repositoryets samlede migrationskæde og de relevante TypeScript-services er auditeret statisk. Staginghistorikken stopper ved `20260912110614`, og live schema-postflight er hærdet; `20260912112500` er alene kilde og **AFVENTER**. Tidligere katalogassertions, anon PostgREST og transaktionel A/B-tenanttest er bevaret som historisk evidens. Clean lokal replay, credential-båret Auth/Storage/TUS og hele rollematricen er **AFVENTER**. Produktion er ikke ændret.
 
-Supabase CLI **2.116.0** er pinnet i repository og lockfile. Den endelige lokale verifikation gav 43 filer/350 tests, grøn typecheck og staging-build. Lokal reset stoppede med `LegacyLocalDbRunningError`, og pgTAP/database-lint gav `ECONNREFUSED 127.0.0.1:54322`; Docker/Podman er ikke tilgængelig. Stagingtesten er runtime-bevis for det testede A/B-scope, men ikke for alle tabeller, roller og API-flader.
+Supabase CLI **2.116.0** er pinnet i repository og lockfile. Den aktuelle lokale verifikation gav 55 filer/420 tests samt grøn typecheck, målrettet ESLint, staging-build og Wrangler dry-run. Database-testfilen har `plan(107)`, men pgTAP/database-lint/clean replay er ikke runtime-kørt. Live staging-postflight er runtime-evidens for den observerede schemaflade, men ikke for credential-båret TUS/browser eller alle tabeller, roller og API-flader.
 
 ## Evidensnøgle
 
@@ -133,7 +137,7 @@ Resterende Storage-gab:
 
 ## Domænegab efter adgangsgaten
 
-`survey`, `imagery_dataset` og `field_visit` findes endnu ikke som selvstændige tabeller. Modellering af survey → drone flight → imagery dataset → før/efter-analyse → rapport skal afvente, at local reset, 62 pgTAP-assertions, upload-intent/evidence-kontrakt/orphan-reconciliation, A/B-Auth/PostgREST/Storage og RPC-gates er dokumenteret bestået.
+`survey`, `imagery_dataset` og `field_visit` findes endnu ikke som selvstændige tabeller. Modellering af survey → drone flight → imagery dataset → før/efter-analyse → rapport skal afvente, at local reset, 107 pgTAP-assertions og credential-bårne A/B-Auth/PostgREST/Storage/TUS- og RPC-gates er dokumenteret bestået.
 
 ## Kilder
 

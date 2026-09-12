@@ -55,7 +55,9 @@ describe("monitoring upload-intent migration", () => {
     expect(sql).toContain("private.can_contribute_project(upload.project_id)");
     expect(sql).toContain("upload.intent_request_id is null");
     expect(sql).toContain("upload.received_at is not null");
-    expect(sql).toContain("upload.status not in ('draft', 'archived')");
+    expect(sql).toContain(
+      "upload.status not in ('draft', 'archived') and upload.received_at is not null",
+    );
     expect(sql).not.toContain("split_part(_object_name, '/', 1) = auth.uid()::text and not exists");
     expect(sql).toContain("create or replace function private.reject_upload_intent_scope_change");
     expect(sql).toContain("new.zone_id is distinct from old.zone_id");
@@ -79,6 +81,8 @@ describe("monitoring upload-intent migration", () => {
       "existing_intent.status <> 'draft' and existing_intent.received_at is null",
     );
     expect(sql).toContain("create or replace function public.cancel_upload_intent");
+    expect(sql).toContain("if intent.intent_request_id is null");
+    expect(sql).toContain("or intent.received_at is not null");
     expect(sql).toContain("set status = 'archived'");
   });
 });

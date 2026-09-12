@@ -1,8 +1,12 @@
 # 4DM Supabase-migrationsplan
 
-Dato: 2026-09-02
+Dato: 2026-09-12
 
-## Cyklus 014-addendum
+## Cyklus 016-addendum — aktuelt checkpoint
+
+Staging `xdvqdzdpyceojbdknofi` har registreret migrationerne `20260831172610`, `20260831172839`, `20260901163924`, `20260902153933` og `20260912110614`; live schema-postflight matcher den tilsigtede hærdede upload-intent-/claim-/cleanup-tilstand. `20260912112500_upload_intent_forward_reconciliation.sql` er fortsat kun i kilden og **AFVENTER** et separat live-migrationsmandat. Fuld Vitest er grøn med 55 filer/420 tests, og typecheck, målrettet ESLint, `build:staging` samt Wrangler dry-run består. pgTAP-kilden deklarerer `plan(107)`, men er ikke runtime-kørt. Credential-båret Auth/Storage/TUS/browser-E2E er **AFVENTER**, og produktion er urørt.
+
+## Cyklus 014-addendum — historisk checkpoint
 
 De næste forward migrations er `20260901163924_upload_intents_resumable_storage.sql` og `20260902153933_reconcile_upload_intent_orphans.sql`; begge findes kun i kilden. Den nye migration tilføjer en privat lease-ledger, service-role-only claim/complete-RPC'er og en retention-guard for ikke-modtagne orphan-intent-rows, men skriver aldrig til `storage.objects`; den autoriserede appservice udfører den eksakte sletning via Storage API, mens modtagne uploads beholder normal manage-delete. Kildesuiten er grøn med 54 filer/412 tests, og pgTAP-planen er 105 assertions. Frisk replay, DB-lint, pgTAP, scheduler og live Auth/Storage/TUS er **AFVENTER**, og migrationerne må ikke anvendes på staging/produktion uden separat mandat og preflight.
 
@@ -11,22 +15,22 @@ De næste forward migrations er `20260901163924_upload_intents_resumable_storage
 | Element                                          | Status                                                                                          |
 | ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
 | Supabase CLI                                     | 2.116.0, pinnet i `devDependencies` og lockfile                                                 |
-| `20260831064838_harden_4dm_tenant_isolation.sql` | Anvendt atomisk og registreret på staging `xdvqdzdpyceojbdknofi`; ikke anvendt i produktion     |
+| Staging migrationshistorik                       | Registreret gennem `20260912110614`; live schema-postflight er hærdet                           |
+| `20260912112500_upload_intent_forward_reconciliation.sql` | Source-only; **AFVENTER** særskilt live-migrationsmandat                              |
 | Målrettede kilde-/servicetests                   | Bestået; indgår i samlet Vitest                                                                 |
-| Samlet Vitest                                    | 43 filer, 350/350 bestået                                                                       |
-| Typecheck/staging-build                          | Bestået; staging-build indeholder kun den autoriserede staging-ref                              |
-| Lint                                             | Changed test: 0 fejl; fuld lint: 394 filer, 5.164 fejl/23 advarsler/fatal 0                     |
-| pgTAP                                            | Testfil med `plan(62)` og 62 assertions skrevet; **ikke kørt**                                  |
+| Samlet Vitest                                    | 55 filer, 420/420 bestået                                                                       |
+| Typecheck/målrettet ESLint/staging-build/Wrangler dry-run | Bestået                                                                               |
+| pgTAP                                            | Testfil med `plan(107)` og 107 assertions skrevet; **ikke runtime-kørt**                        |
 | Lokal database                                   | **AFVENTER**; Docker/Podman `NOT_FOUND`                                                         |
 | Clean reset/lint                                 | **AFVENTER**; reset gav `LegacyLocalDbRunningError`, lint `ECONNREFUSED 127.0.0.1:54322`        |
-| Auth/PostgREST/RPC/Storage                       | SQL A/B-tenanttest og anon PostgREST-smoke bestået; rigtig Auth-/Storage API-rejse **AFVENTER** |
+| Auth/PostgREST/RPC/Storage/TUS                   | Historisk SQL A/B og anon-smoke bevaret; credential-båret API-/TUS-rejse **AFVENTER**           |
 | Lovable-/produktionstarget                       | `ikrmcetjutqcjtwfhzfv` utilgængelig via connector; ikke ændret                                  |
-| Staging                                          | `xdvqdzdpyceojbdknofi` brugerautoriseret, aktiv, migreret og katalog-/tenanttestet              |
+| Staging                                          | Aktiv; historik gennem `20260912110614`, live schema-postflight hærdet                          |
 | Produktion                                       | Ikke rørt; ingen migration eller deploy                                                         |
 | Git                                              | Leverancen samles i cyklus 009-checkpoint og pushes kun til `codex/gofreyra-p0`                 |
 | Genererede typer                                 | Må først regenereres efter bestået lokal schema-replay                                          |
 
-Staging-databasemigrationen og den transaktionelle A/B-test er runtime-evidens for den testede SQL-flade, men erstatter ikke clean lokal replay, de 62 pgTAP-cases eller en rigtig Auth-/Storage API-rejse.
+Live schema-postflight og den historiske transaktionelle A/B-test er runtime-evidens for de testede SQL-flader, men erstatter ikke clean lokal replay, de 107 pgTAP-cases eller en credential-båret Auth-/Storage/TUS-rejse. `20260912112500` må ikke behandles som anvendt alene fordi live schema allerede matcher det tilsigtede postflight-resultat.
 
 ## Forudsætninger
 
@@ -92,7 +96,7 @@ Kør derefter i denne rækkefølge:
 1. `npm.cmd run supabase:start`
 2. `npm.cmd run supabase:reset:local`
 3. `npm.cmd run supabase:lint:db`
-4. `npm.cmd run supabase:test:db` — forvent præcis 62 pgTAP-assertions
+4. `npm.cmd run supabase:test:db` — forvent præcis 107 pgTAP-assertions
 5. policy-, grant-, owner-, trigger-, function- og bucket-inventory fra den lokale database
 6. lokale Auth/PostgREST/RPC/Storage-integrationstests med to tenants
 7. reset én gang til fra tom database for at bevise reproducerbarhed

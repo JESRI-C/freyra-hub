@@ -124,6 +124,38 @@ describe("upload-intent orphan reconciliation", () => {
     expect(result).toMatchObject({ claimed: 3, deleted: 1, failed: 2 });
   });
 
+  it("refuses dot-only object leaf names", async () => {
+    const setup = setupClient([
+      {
+        upload_id: UPLOAD_ONE,
+        storage_path: `${USER_ID}/intents/${UPLOAD_ONE}/.`,
+        claim_token: TOKEN_ONE,
+      },
+      {
+        upload_id: UPLOAD_TWO,
+        storage_path: `${USER_ID}/intents/${UPLOAD_TWO}/..`,
+        claim_token: TOKEN_TWO,
+      },
+    ]);
+
+    const result = await reconcileUploadIntentOrphans({ client: setup.client });
+
+    expect(setup.remove).not.toHaveBeenCalled();
+    expect(setup.completions).toEqual([
+      {
+        p_upload_id: UPLOAD_ONE,
+        p_claim_token: TOKEN_ONE,
+        p_error: "Invalid exact intent storage path returned by database",
+      },
+      {
+        p_upload_id: UPLOAD_TWO,
+        p_claim_token: TOKEN_TWO,
+        p_error: "Invalid exact intent storage path returned by database",
+      },
+    ]);
+    expect(result).toMatchObject({ claimed: 2, deleted: 0, failed: 2 });
+  });
+
   it("keeps processing after a completion acknowledgement fails", async () => {
     const setup = setupClient([
       { upload_id: UPLOAD_ONE, storage_path: PATH_ONE, claim_token: TOKEN_ONE },

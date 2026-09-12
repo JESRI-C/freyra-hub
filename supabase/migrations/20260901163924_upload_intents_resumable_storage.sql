@@ -397,6 +397,7 @@ as $$
           )
           or (
             upload.status not in ('draft', 'archived')
+            and upload.received_at is not null
             and (
               (upload.project_id is not null and private.can_read_project(upload.project_id))
               or (
@@ -601,8 +602,10 @@ begin
   if not found then
     raise exception 'Upload intent not found' using errcode = '42501';
   end if;
-  if intent.status <> 'draft' then
-    raise exception 'Only pending upload intents can be cancelled' using errcode = '55000';
+  if intent.intent_request_id is null
+     or intent.received_at is not null
+     or intent.status <> 'draft' then
+    raise exception 'Only pending, unreceived upload intents can be cancelled' using errcode = '55000';
   end if;
 
   update public.uploads upload

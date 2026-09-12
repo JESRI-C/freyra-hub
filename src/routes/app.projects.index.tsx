@@ -26,6 +26,7 @@ export const Route = createFileRoute("/app/projects/")({
 const STATUS_FILTERS = ["Alle", "Under verifikation", "Verificeret", "Afsluttet"];
 
 const PROJECT_TYPES = [
+  "Vandløbsmonitorering",
   "Naturgenopretning",
   "Biodiversitet",
   "Kystbeskyttelse",

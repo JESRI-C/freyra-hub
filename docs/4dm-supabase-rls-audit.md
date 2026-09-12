@@ -1,16 +1,20 @@
 # 4DM Supabase- og RLS-audit
 
-Dato: 2026-09-02
+Dato: 2026-09-12
 
-## Cyklus 014-addendum
+## Cyklus 016-addendum — aktuelt checkpoint
+
+Den aktuelle kildesuite består med 55 filer/420 Vitest-tests; typecheck, målrettet ESLint, `build:staging` og Wrangler dry-run er grønne. pgTAP-kilden er `plan(107)`, men frisk replay, DB-lint og alle 107 databaseassertions er fortsat **AFVENTER** runtime. Staging `xdvqdzdpyceojbdknofi` har registreret migrationerne gennem `20260912110614`; live schema-postflight bekræfter den hærdede upload-intent-/cleanup-kontrakt, privat lease-ledger og cleanup-RPC'er kun for `service_role`. Den idempotente `20260912112500_upload_intent_forward_reconciliation.sql` er source-only og **AFVENTER** separat migrationsmandat. Rigtig credential-båret Auth/Storage/TUS/browseraccept og scheduler er ikke bestået. Produktion er ikke ændret.
+
+## Cyklus 014-addendum — historisk
 
 Forward migrationskilden har nu også en privat orphan-cleanup-ledger og to `service_role`-begrænsede RPC'er med atomisk lease, opaque token, stale-token-afvisning og retry-sikker completion. Browserroller kan ikke eksekvere cleanup, ikke-modtagne orphan-intent-rows kan ikke slettes, og sletning sker alene via den autoriserede servers Storage API mod den claim-ID-bundne intent-path — aldrig ved SQL-skrivning i `storage.objects`; modtagne uploads beholder normal manage-delete. pgTAP-kilden er udvidet til 105 assertions, og app-suiten består med 54 filer/412 tests. Migrationerne er ikke anvendt live; pgTAP/DB-lint, scheduler og rigtig Auth/Storage/TUS forbliver **AFVENTER**. Ældre fundtekst nedenfor beskriver præ-slice-checkpointet.
 
 ## Konklusion
 
-Checkpointets migrationskæde havde kritiske tenantbrud: åbne legacy-policies, vilkårlig self-enrolment som projekt-admin, owner-eskalering, flytbare tenantnøgler og manglende privat Storage-kontrakt. De kendte fund er adresseret af `20260831064838_harden_4dm_tenant_isolation.sql`, seed/setup-oprydning og private Storage-services. Hardening er anvendt på den brugerautoriserede staging-instans og er ikke anvendt i produktion. Den sidste reviewrunde fandt samtidig P0-blokerende restarbejde omkring upload-intents, evidence-kontrakten, orphan-reconciliation og bearer-link-revocation.
+Checkpointets kritiske tenantfund er adresseret i kilden og anvendt på den brugerautoriserede staging. Den registrerede live historik stopper ved `20260912110614`, og postflight viser den forventede hærdede schema-/granttilstand. `20260912112500` er en source-only, idempotent fremadrettet reconciliation og er endnu ikke anvendt. Ingen af disse ændringer er anvendt i produktion.
 
-Det er endnu ikke en fuldt bestået sikkerhedsgate. En transaktionel A/B-test på staging beviste own-read og cross-tenant read/write/RPC/Storage-afvisning, mens anon PostgREST afviser private applikationstabeller. En rigtig Auth-session, Storage API-rejse, clean lokal replay og pgTAP-testens 62 assertions mangler fortsat. `public.spatial_ref_sys` er anonymt læsbar uden RLS og kræver en eksplicit ejerbeslutning. Produktion er ikke ændret.
+Det er endnu ikke en fuldt bestået sikkerhedsgate. Transaktionel A/B-evidens, live katalogpostflight og et tomt cleanup-claim er bestået på staging, men en rigtig credential-båret Auth-/Storage API-/TUS-rejse, clean lokal replay, DB-lint og pgTAP-testens 107 assertions mangler fortsat. `public.spatial_ref_sys` kræver stadig en eksplicit ejerbeslutning. Produktion er ikke ændret.
 
 ## Auditeret grundlag
 
@@ -18,8 +22,8 @@ Det er endnu ikke en fuldt bestået sikkerhedsgate. En transaktionel A/B-test p�
 - browser-, server-, auth-, projekt-, upload-, media- og evidence-services
 - SQL-funktioner, triggers, grants, RLS- og `storage.objects`-policies
 - pgTAP-planen i `supabase/tests/database/4dm_tenant_isolation.test.sql`
-- Vitest-kilde-/servicetests; endelig genkørsel gav 5 filer/37 tests og hele suiten 42 filer/345 tests bestået
-- TypeScript og produktionsbuild bestod; buildet havde kendte Vite/Nitro-warnings. Changed-test ESLint havde 0 fejl, mens fuld lint fortsat fejlede for 394 filer med 5.164 fejl/23 advarsler/fatal 0
+- Vitest-kilde-/servicetests; den aktuelle fulde serie gav 55 filer/420 tests bestået
+- TypeScript, målrettet ESLint, `build:staging` og Wrangler dry-run bestod; credential-båret browser/TUS er fortsat **AFVENTER**
 - Supabase CLI 2.116.0; lokal stack kunne ikke startes uden Docker/Podman
 
 Auditten skelner mellem checkpointets fund, den lokale rettelse og runtime-evidens. En policy i en fil beviser ikke den effektive policy i en database.
@@ -28,11 +32,11 @@ Auditten skelner mellem checkpointets fund, den lokale rettelse og runtime-evide
 
 | Miljø                      | Evidens                                                                                                           | Status                       |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| Repository/working tree    | Statisk audit, 43 filer/350 Vitest-tests, typecheck og staging-build                                              | Verificeret til checkpoint   |
+| Repository/working tree    | Statisk audit, 55 filer/420 Vitest-tests, typecheck, målrettet ESLint, staging-build og Wrangler dry-run          | Verificeret til checkpoint   |
 | Lokal Supabase             | Docker/Podman mangler; reset gav `LegacyLocalDbRunningError`, og pgTAP/db lint gav `ECONNREFUSED 127.0.0.1:54322` | **AFVENTER**                 |
 | Auth/PostgREST/RPC/Storage | SQL A/B-tenanttest + anon PostgREST-smoke; rigtig Auth-/Storage API-session mangler                               | Delvist verificeret          |
 | Lovable-/produktionstarget | `ikrmcetjutqcjtwfhzfv` er ikke ændret                                                                             | Ikke rørt                    |
-| Staging                    | `xdvqdzdpyceojbdknofi`, aktiv, migreret, private buckets og transaktionelt tenanttestet                           | Verificeret for testet scope |
+| Staging                    | `xdvqdzdpyceojbdknofi`; migrationshistorik gennem `20260912110614`, hærdet schema-postflight og tenanttest       | Verificeret for testet scope |
 | Produktion                 | Ingen migration, read/write, secretændring eller deploy                                                           | Ikke rørt                    |
 
 ## Kritiske checkpoint-fund og lokal behandling

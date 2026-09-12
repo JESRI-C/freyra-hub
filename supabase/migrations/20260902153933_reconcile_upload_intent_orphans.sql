@@ -9,18 +9,35 @@ create table if not exists private.upload_intent_orphan_cleanup_leases (
     references public.uploads(id) on delete restrict,
   claim_token uuid,
   claimed_at timestamptz,
+  lease_expires_at timestamptz,
   attempts integer not null default 0,
   completed_at timestamptz,
   last_error text,
   updated_at timestamptz not null default pg_catalog.now(),
   constraint upload_intent_orphan_cleanup_attempts_nonnegative
     check (attempts >= 0),
-  constraint upload_intent_orphan_cleanup_claim_pair
-    check ((claim_token is null) = (claimed_at is null)),
+  constraint upload_intent_orphan_cleanup_claim_state
+    check (
+      (
+        claim_token is null
+        and claimed_at is null
+        and lease_expires_at is null
+      )
+      or (
+        claim_token is not null
+        and claimed_at is not null
+        and lease_expires_at is not null
+        and lease_expires_at > claimed_at
+      )
+    ),
   constraint upload_intent_orphan_cleanup_completed_unclaimed
     check (
       completed_at is null
-      or (claim_token is null and claimed_at is null)
+      or (
+        claim_token is null
+        and claimed_at is null
+        and lease_expires_at is null
+      )
     ),
   constraint upload_intent_orphan_cleanup_error_length
     check (last_error is null or pg_catalog.length(last_error) <= 1000)
@@ -75,7 +92,7 @@ create policy uploads_delete on public.uploads
   );
 
 create index if not exists upload_intent_orphan_cleanup_available_idx
-  on private.upload_intent_orphan_cleanup_leases (claimed_at, upload_id)
+  on private.upload_intent_orphan_cleanup_leases (lease_expires_at, upload_id)
   where completed_at is null;
 
 create index if not exists uploads_orphan_cleanup_candidates_idx
@@ -135,9 +152,8 @@ begin
         or (
           lease.completed_at is null
           and (
-            lease.claimed_at is null
-            or lease.claimed_at <= pg_catalog.now()
-              - pg_catalog.make_interval(secs => bounded_lease_seconds)
+            lease.lease_expires_at is null
+            or lease.lease_expires_at <= pg_catalog.now()
           )
         )
       )
@@ -150,6 +166,7 @@ begin
       upload_id,
       claim_token,
       claimed_at,
+      lease_expires_at,
       attempts,
       completed_at,
       last_error,
@@ -159,22 +176,23 @@ begin
       candidate.id,
       pg_catalog.gen_random_uuid(),
       pg_catalog.now(),
+      pg_catalog.now() + pg_catalog.make_interval(secs => bounded_lease_seconds),
       1,
       null,
       null,
       pg_catalog.now()
     from candidates candidate
-    on conflict (upload_id) do update
+    on conflict on constraint upload_intent_orphan_cleanup_leases_pkey do update
     set claim_token = excluded.claim_token,
         claimed_at = excluded.claimed_at,
+        lease_expires_at = excluded.lease_expires_at,
         attempts = lease.attempts + 1,
         last_error = null,
         updated_at = pg_catalog.now()
     where lease.completed_at is null
       and (
-        lease.claimed_at is null
-        or lease.claimed_at <= pg_catalog.now()
-          - pg_catalog.make_interval(secs => bounded_lease_seconds)
+        lease.lease_expires_at is null
+        or lease.lease_expires_at <= pg_catalog.now()
       )
     returning lease.upload_id, lease.claim_token
   ),
@@ -223,6 +241,7 @@ begin
   update private.upload_intent_orphan_cleanup_leases lease
   set claim_token = null,
       claimed_at = null,
+      lease_expires_at = null,
       completed_at = case
         when p_error is null then pg_catalog.now()
         else null
