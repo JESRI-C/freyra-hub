@@ -531,7 +531,7 @@ begin
 
   update public.uploads upload
   set status = 'awaiting_validation',
-      received_at = pg_catalog.coalesce(upload.received_at, pg_catalog.now()),
+      received_at = coalesce(upload.received_at, pg_catalog.now()),
       updated_at = pg_catalog.now()
   where upload.id = intent.id
   returning upload.id, upload.storage_path, upload.status

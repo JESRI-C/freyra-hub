@@ -7,6 +7,14 @@ const migrationPath = resolve(
   "supabase/migrations/20260901163924_upload_intents_resumable_storage.sql",
 );
 const sql = readFileSync(migrationPath, "utf8").toLowerCase().replace(/\s+/g, " ").trim();
+const finalizeFixPath = resolve(
+  process.cwd(),
+  "supabase/migrations/20260912132006_fix_finalize_upload_intent_coalesce.sql",
+);
+const finalizeFixSql = readFileSync(finalizeFixPath, "utf8")
+  .toLowerCase()
+  .replace(/\s+/g, " ")
+  .trim();
 
 describe("monitoring upload-intent migration", () => {
   it("makes the server the only issuer of expiring upload paths", () => {
@@ -73,9 +81,8 @@ describe("monitoring upload-intent migration", () => {
     expect(sql).toContain("object_size_text::bigint <> intent.file_size");
     expect(sql).toContain("object_mime_type <> pg_catalog.lower(intent.mime_type)");
     expect(sql).toContain("set status = 'awaiting_validation'");
-    expect(sql).toContain(
-      "received_at = pg_catalog.coalesce(upload.received_at, pg_catalog.now())",
-    );
+    expect(sql).toContain("received_at = coalesce(upload.received_at, pg_catalog.now())");
+    expect(sql).not.toContain("pg_catalog.coalesce");
     expect(sql).toContain("if intent.received_at is not null then");
     expect(sql).toContain(
       "existing_intent.status <> 'draft' and existing_intent.received_at is null",
@@ -84,5 +91,21 @@ describe("monitoring upload-intent migration", () => {
     expect(sql).toContain("if intent.intent_request_id is null");
     expect(sql).toContain("or intent.received_at is not null");
     expect(sql).toContain("set status = 'archived'");
+  });
+
+  it("repairs finalization on databases that already applied the original function", () => {
+    expect(finalizeFixSql).toContain(
+      "create or replace function public.finalize_upload_intent(p_upload_id uuid)",
+    );
+    expect(finalizeFixSql).toContain(
+      "received_at = coalesce(upload.received_at, pg_catalog.now())",
+    );
+    expect(finalizeFixSql).not.toContain("pg_catalog.coalesce");
+    expect(finalizeFixSql).toContain(
+      "revoke all on function public.finalize_upload_intent(uuid) from public, anon",
+    );
+    expect(finalizeFixSql).toContain(
+      "grant execute on function public.finalize_upload_intent(uuid) to authenticated",
+    );
   });
 });
