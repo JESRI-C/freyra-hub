@@ -90,12 +90,18 @@ Geografiske underområder af et projekt.
 | description | text | |
 | status | text | active / inactive / archived |
 | color | text | UI-farve |
-| geometry | jsonb | GeoJSON Polygon/MultiPolygon |
+| geometry | jsonb | GeoJSON Polygon/MultiPolygon; `watercourse` må bruge LineString/MultiLineString |
 | area_m2, area_hectares | double | |
 | centroid_lat, centroid_lng | double | |
 | source_type | text | manual / cadastre / field_block / imported |
 | source_metadata | jsonb | |
 | tags | text[] | |
+
+En officiel projektbundet vandløbsstreng gemmes som en aktiv `watercourse`-zone, ikke som
+projektets Polygon-grænse. `source_metadata` skal som minimum bevare kildesystem, kilde-ID,
+kilde-URL, hentetidspunkt, CRS, kildeversion/-ændringstid, bbox, længde og SHA-256 for den
+normaliserede geometri. Strengen er kort- og monitoreringsreference; kommunalt regulativ samt
+seneste kontrol-/as-built-opmåling er fortsat facit for juridisk stationering og skikkelse.
 
 ## Fase B (planlagt)
 

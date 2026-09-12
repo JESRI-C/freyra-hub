@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, Link, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -14,6 +14,8 @@ import {
   Grid3x3,
   LandPlot,
   Loader2,
+  Search,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui-bits";
@@ -30,6 +32,16 @@ import { pickMarkblok, pickMatrikel, type PickedFeature } from "@/lib/geo-search
 import { AreaCadastrePanel } from "@/components/data-foundation/AreaCadastrePanel";
 import type { GeoJsonPolygon } from "@/services/zones-service";
 import { KULSTOF2022_WMS } from "@/data/kulstof2022";
+import {
+  getSavedOfficialWatercourseReach,
+  previewOfficialWatercourseReach,
+  saveOfficialWatercourseReach,
+  searchOfficialWatercourseReaches,
+} from "@/lib/watercourse-reach.functions";
+import type {
+  OfficialWatercourseGeometry,
+  OfficialWatercourseSuggestion,
+} from "@/services/geospatial/official-watercourse-source";
 
 export const Route = createFileRoute("/app/projects/geometry/$slug")({
   head: () => ({ meta: [{ title: "Definér projektområde — GoFreyra" }] }),
@@ -105,6 +117,7 @@ type PickMode = "markblok" | "matrikel" | null;
 function GeometryEditorPage() {
   const { slug } = Route.useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [enabled, setEnabled] = useState<Record<OverlayKey, boolean>>({
@@ -133,9 +146,44 @@ function GeometryEditorPage() {
     queryFn: () => getProjectBySlug(slug),
   });
 
+  const suggestedWatercourseName = (project?.location_name || project?.name || "")
+    .split(/[–—]/, 1)[0]
+    .trim();
+  const [watercourseQuery, setWatercourseQuery] = useState(suggestedWatercourseName);
+  const [watercourseResults, setWatercourseResults] = useState<OfficialWatercourseSuggestion[]>([]);
+  const [watercoursePreview, setWatercoursePreview] = useState<OfficialWatercourseGeometry | null>(
+    null,
+  );
+  const [watercourseError, setWatercourseError] = useState<string | null>(null);
+  const [watercourseOperation, setWatercourseOperation] = useState<
+    "search" | "preview" | "save" | null
+  >(null);
+
   const map = useMapEditor(project, null);
   const pickMarkblokFn = useServerFn(pickMarkblok);
   const pickMatrikelFn = useServerFn(pickMatrikel);
+  const searchWatercoursesFn = useServerFn(searchOfficialWatercourseReaches);
+  const previewWatercourseFn = useServerFn(previewOfficialWatercourseReach);
+  const saveWatercourseFn = useServerFn(saveOfficialWatercourseReach);
+  const loadWatercourseFn = useServerFn(getSavedOfficialWatercourseReach);
+
+  const savedWatercourseQuery = useQuery({
+    queryKey: ["official-watercourse-reach", project?.id],
+    queryFn: () => loadWatercourseFn({ data: { projectId: project!.id } }),
+    enabled: !!project?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const activeWatercourse = watercoursePreview ?? savedWatercourseQuery.data ?? null;
+  const watercourseMapFeatures = useMemo(
+    () =>
+      activeWatercourse?.geometry.coordinates.map((coordinates, index) => ({
+        id: `${activeWatercourse.id}-${index}`,
+        name: activeWatercourse.name,
+        coordinates,
+      })) ?? [],
+    [activeWatercourse],
+  );
 
   const wmsOverlays = useMemo<WmsOverlay[]>(
     () =>
@@ -261,6 +309,67 @@ function GeometryEditorPage() {
     if (await map.clearBoundary()) toast.success("Projektgrænse ryddet");
   };
 
+  const handleWatercourseSearch = async () => {
+    const query = watercourseQuery.trim();
+    if (query.length < 2 || watercourseOperation) return;
+    setWatercourseOperation("search");
+    setWatercourseError(null);
+    setWatercourseResults([]);
+    try {
+      const results = await searchWatercoursesFn({
+        data: { projectId: project.id, query },
+      });
+      setWatercourseResults(results);
+      if (results.length === 0) setWatercourseError("Ingen navngivne vandløb matchede søgningen.");
+    } catch (error) {
+      setWatercourseError(
+        error instanceof Error ? error.message : "Kunne ikke søge efter vandløbsstrenge.",
+      );
+    } finally {
+      setWatercourseOperation(null);
+    }
+  };
+
+  const handleWatercoursePreview = async (suggestion: OfficialWatercourseSuggestion) => {
+    if (watercourseOperation) return;
+    setWatercourseOperation("preview");
+    setWatercourseError(null);
+    try {
+      const reach = await previewWatercourseFn({
+        data: { projectId: project.id, watercourseId: suggestion.id },
+      });
+      setWatercoursePreview({ ...reach, municipalities: suggestion.municipalities });
+      setWatercourseResults([]);
+      setCenter({ lat: reach.center.lat, lng: reach.center.lng, zoom: 13 });
+    } catch (error) {
+      setWatercourseError(
+        error instanceof Error ? error.message : "Kunne ikke hente vandløbets geometri.",
+      );
+    } finally {
+      setWatercourseOperation(null);
+    }
+  };
+
+  const handleWatercourseSave = async () => {
+    if (!watercoursePreview || watercourseOperation) return;
+    setWatercourseOperation("save");
+    setWatercourseError(null);
+    try {
+      const saved = await saveWatercourseFn({
+        data: { projectId: project.id, watercourseId: watercoursePreview.id },
+      });
+      queryClient.setQueryData(["official-watercourse-reach", project.id], saved);
+      setWatercoursePreview(null);
+      toast.success("Vandløbsstrengen er gemt på projektet");
+    } catch (error) {
+      setWatercourseError(
+        error instanceof Error ? error.message : "Kunne ikke gemme vandløbsstrengen.",
+      );
+    } finally {
+      setWatercourseOperation(null);
+    }
+  };
+
   const toolButton = (active: boolean, disabled = false) =>
     `w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition ${
       disabled
@@ -308,6 +417,11 @@ function GeometryEditorPage() {
       {pickError && (
         <Banner tone="error" onClose={() => setPickError(null)}>
           {pickError}
+        </Banner>
+      )}
+      {watercourseError && (
+        <Banner tone="error" onClose={() => setWatercourseError(null)}>
+          {watercourseError}
         </Banner>
       )}
       {map.boundarySaved && (
@@ -473,9 +587,133 @@ function GeometryEditorPage() {
             })}
           </Card>
 
-          {/* 4. Aktuelt område */}
+          {/* 4. Officiel vandløbsstreng — separat fra projektgrænsen */}
+          <Card className="p-4 space-y-3">
+            <SectionTitle n={4}>Vandløbsstreng</SectionTitle>
+            <p className="text-[11px] text-muted-foreground">
+              Find en navngivet, officiel linje fra Dataforsyningen. Strengen gemmes som
+              monitoreringsreference og ændrer ikke projektgrænsen.
+            </p>
+            <form
+              className="flex gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleWatercourseSearch();
+              }}
+            >
+              <input
+                value={watercourseQuery}
+                onChange={(event) => setWatercourseQuery(event.target.value)}
+                placeholder="Fx Bykær Bæk"
+                aria-label="Vandløbsnavn"
+                className="min-w-0 flex-1 rounded-lg border bg-background px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <button
+                type="submit"
+                disabled={watercourseQuery.trim().length < 2 || watercourseOperation !== null}
+                className="inline-flex items-center justify-center rounded-lg border px-2.5 text-primary hover:bg-primary/5 disabled:opacity-50"
+                aria-label="Søg efter vandløb"
+              >
+                {watercourseOperation === "search" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </button>
+            </form>
+
+            {watercourseResults.length > 0 && (
+              <div className="space-y-1.5" aria-label="Vandløbsresultater">
+                {watercourseResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    onClick={() => void handleWatercoursePreview(result)}
+                    disabled={watercourseOperation !== null}
+                    className="w-full rounded-lg border p-2.5 text-left text-xs hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50"
+                  >
+                    <span className="block font-medium text-foreground">{result.name}</span>
+                    <span className="block text-muted-foreground">
+                      {result.municipalities.join(", ") || "Kommune ikke angivet"} ·{" "}
+                      {result.nameStatus}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {watercourseOperation === "preview" && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Henter officiel geometri …
+              </p>
+            )}
+
+            {activeWatercourse && (
+              <div className="space-y-2 rounded-lg border border-blue-300 bg-blue-50/60 p-3 text-xs text-blue-950 dark:bg-blue-950/20 dark:text-blue-100">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-semibold">{activeWatercourse.name}</div>
+                    <div className="text-blue-800/80 dark:text-blue-200/80">
+                      {(activeWatercourse.lengthM / 1000).toFixed(2)} km ·{" "}
+                      {activeWatercourse.segmentCount} delstrækninger ·{" "}
+                      {activeWatercourse.vertexCount} punkter
+                    </div>
+                    {activeWatercourse.municipalities.length > 0 && (
+                      <div className="text-blue-800/80 dark:text-blue-200/80">
+                        {activeWatercourse.municipalities.join(", ")}
+                      </div>
+                    )}
+                  </div>
+                  <a
+                    href={activeWatercourse.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Åbn kilden"
+                    className="text-blue-700 hover:text-blue-900 dark:text-blue-300"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+                <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
+                  {activeWatercourse.disclaimer}
+                </p>
+                {watercoursePreview ? (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleWatercourseSave()}
+                      disabled={watercourseOperation !== null}
+                      className="flex-1 rounded-md bg-blue-700 px-2.5 py-1.5 font-medium text-white hover:bg-blue-800 disabled:opacity-50"
+                    >
+                      {watercourseOperation === "save" ? "Gemmer …" : "Gem på projektet"}
+                    </button>
+                    {savedWatercourseQuery.data && (
+                      <button
+                        type="button"
+                        onClick={() => setWatercoursePreview(null)}
+                        disabled={watercourseOperation !== null}
+                        className="rounded-md border border-blue-300 px-2.5 py-1.5"
+                      >
+                        Brug gemt
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="font-medium text-emerald-700 dark:text-emerald-400">
+                    Gemt på projektet · kilde-ID {activeWatercourse.id}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {savedWatercourseQuery.isError && (
+              <p className="text-xs text-destructive">Kunne ikke læse en gemt vandløbsstreng.</p>
+            )}
+          </Card>
+
+          {/* 5. Aktuelt område */}
           <Card className="p-4 space-y-1.5">
-            <SectionTitle n={4}>Aktuelt projektområde</SectionTitle>
+            <SectionTitle n={5}>Aktuelt projektområde</SectionTitle>
             {hasPolygon ? (
               <>
                 <div className="text-lg font-semibold">
@@ -552,7 +790,9 @@ function GeometryEditorPage() {
             }
             showSensors={false}
             showParagraph3={false}
-            showWatercourses={false}
+            showWatercourses={activeWatercourse !== null}
+            watercourseFeatures={watercourseMapFeatures}
+            fitWatercourses
             drawMode={map.drawMode}
             onDrawModeChange={map.setDrawMode}
             onBoundaryDrawn={map.handleBoundaryDrawn}

@@ -51,6 +51,8 @@ export interface MapEditorMapProps {
   ndviValue?: number | null;
   paragraph3Areas?: Array<{ id: string; natureType: string; geojson: GeoJsonPolygon | null }>;
   watercourseFeatures?: Array<{ id: string; name?: string; coordinates: number[][] }>;
+  /** Zoom to a newly loaded official watercourse without treating it as a boundary. */
+  fitWatercourses?: boolean;
   drawMode?: DrawMode;
   onDrawModeChange?: (mode: DrawMode) => void;
   onZoneCreated?: (geojson: GeoJsonPolygon, areaHa: number) => void;
@@ -178,6 +180,7 @@ export function MapEditorMap({
   ndviValue,
   paragraph3Areas = [],
   watercourseFeatures = [],
+  fitWatercourses = false,
   drawMode: drawModeProp,
   onDrawModeChange,
   onZoneCreated,
@@ -745,6 +748,8 @@ export function MapEditorMap({
       layersRef.current.wl = group;
       watercourseFeatures.forEach((wc) => {
         if (wc.coordinates.length < 2) return;
+        const popup = document.createElement("span");
+        popup.textContent = wc.name ?? "Vandløb";
         L.polyline(
           wc.coordinates.map((c) => [c[1], c[0]] as [number, number]),
           {
@@ -753,11 +758,15 @@ export function MapEditorMap({
             opacity: 0.85,
           },
         )
-          .bindPopup(wc.name ?? "Vandløb")
+          .bindPopup(popup)
           .addTo(group);
       });
+      if (fitWatercourses && group.getLayers().length > 0) {
+        const bounds = group.getBounds();
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+      }
     })();
-  }, [showWatercourses, watercourseFeatures, ready]);
+  }, [showWatercourses, watercourseFeatures, fitWatercourses, ready]);
 
   // ── NDVI overlay ──────────────────────────────────────────────────────────────
   useEffect(() => {
