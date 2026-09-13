@@ -3561,6 +3561,10 @@ export type Database = {
           upload_id: string
         }[]
       }
+      ingest_observations_atomic: {
+        Args: { p_observations: Json; p_project_id: string }
+        Returns: number
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined

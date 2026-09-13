@@ -33,28 +33,26 @@ const BodyInput = z.object({
   observation: ObservationInput.optional(),
 });
 
-const RELATION_LOOKUP_CHUNK_SIZE = 100;
-
-async function collectScopedIds(
-  ids: string[],
-  loadChunk: (
-    chunk: string[],
-  ) => PromiseLike<{ data: Array<{ id: string }> | null; error: unknown }>,
-): Promise<{ ids: Set<string>; failed: boolean }> {
-  const scopedIds = new Set<string>();
-  for (let offset = 0; offset < ids.length; offset += RELATION_LOOKUP_CHUNK_SIZE) {
-    const result = await loadChunk(ids.slice(offset, offset + RELATION_LOOKUP_CHUNK_SIZE));
-    if (result.error) return { ids: scopedIds, failed: true };
-    for (const row of result.data ?? []) scopedIds.add(row.id.toLowerCase());
-  }
-  return { ids: scopedIds, failed: false };
-}
-
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function atomicIngestErrorResponse(error: { code?: string | null }): Response {
+  switch (error.code) {
+    case "22023":
+      return jsonResponse({ error: "Invalid payload" }, 400);
+    case "P0002":
+      return jsonResponse({ error: "Unknown project_id" }, 404);
+    case "23503":
+    case "23514":
+      return jsonResponse({ error: "Invalid observation scope" }, 400);
+    default:
+      // Do not expose database/provider details from this public endpoint.
+      return jsonResponse({ error: "Insert failed" }, 500);
+  }
 }
 
 export async function handleObservationsPost({ request }: { request: Request }): Promise<Response> {
@@ -89,58 +87,7 @@ export async function handleObservationsPost({ request }: { request: Request }):
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Verificér at projektet findes, så vi ikke opretter forældreløse rækker.
-  const { data: project, error: projectError } = await supabaseAdmin
-    .from("projects")
-    .select("id, organization_id")
-    .eq("id", configuredProject.data)
-    .maybeSingle();
-  if (projectError) return jsonResponse({ error: "Project validation failed" }, 500);
-  if (!project?.organization_id) return jsonResponse({ error: "Unknown project_id" }, 404);
-
-  // observations har separate foreign keys, men de beviser ikke, at site/source
-  // tilhører samme projekt. Valider alle unikke relationer før bulk-insertet.
-  const siteIds = Array.from(
-    new Set(
-      observations.flatMap((observation) => (observation.site_id ? [observation.site_id] : [])),
-    ),
-  );
-  const sourceIds = Array.from(
-    new Set(
-      observations.flatMap((observation) => (observation.source_id ? [observation.source_id] : [])),
-    ),
-  );
-
-  const [sitesResult, sourcesResult] = await Promise.all([
-    collectScopedIds(siteIds, (chunk) =>
-      supabaseAdmin
-        .from("sites")
-        .select("id")
-        .eq("project_id", configuredProject.data)
-        .in("id", chunk),
-    ),
-    collectScopedIds(sourceIds, (chunk) =>
-      supabaseAdmin
-        .from("data_sources")
-        .select("id")
-        .eq("project_id", configuredProject.data)
-        .in("id", chunk),
-    ),
-  ]);
-
-  if (sitesResult.failed || sourcesResult.failed) {
-    return jsonResponse({ error: "Relation validation failed" }, 500);
-  }
-
-  const hasInvalidRelation =
-    siteIds.some((id) => !sitesResult.ids.has(id)) ||
-    sourceIds.some((id) => !sourcesResult.ids.has(id));
-  if (hasInvalidRelation) {
-    return jsonResponse({ error: "Invalid observation scope" }, 400);
-  }
-
   const rows = observations.map((o) => ({
-    project_id: configuredProject.data,
     site_id: o.site_id ?? null,
     source_id: o.source_id ?? null,
     observation_type: o.observation_type ?? "ingest",
@@ -152,9 +99,21 @@ export async function handleObservationsPost({ request }: { request: Request }):
     metadata: (o.metadata ?? {}) as never,
   }));
 
-  const { error: insertError } = await supabaseAdmin.from("observations").insert(rows as never);
-  if (insertError) {
-    return jsonResponse({ error: "Insert failed", detail: insertError.message }, 500);
+  let ingestResult: Awaited<ReturnType<typeof supabaseAdmin.rpc>>;
+  try {
+    ingestResult = await supabaseAdmin.rpc("ingest_observations_atomic", {
+      p_project_id: configuredProject.data,
+      p_observations: rows,
+    });
+  } catch {
+    return jsonResponse({ error: "Insert failed" }, 500);
+  }
+
+  if (ingestResult.error) {
+    return atomicIngestErrorResponse(ingestResult.error);
+  }
+  if (!Number.isSafeInteger(ingestResult.data) || ingestResult.data !== rows.length) {
+    return jsonResponse({ error: "Insert failed" }, 500);
   }
 
   // Genberegn indicators med det samme (best-effort — insert er allerede ok).
@@ -170,7 +129,7 @@ export async function handleObservationsPost({ request }: { request: Request }):
   }
 
   return jsonResponse({
-    inserted: rows.length,
+    inserted: ingestResult.data,
     project_id: configuredProject.data,
     aggregation,
   });

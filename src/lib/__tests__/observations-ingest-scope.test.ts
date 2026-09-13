@@ -2,19 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
-  insertedRows: [] as Array<Record<string, unknown>>,
-  insertError: null as { message: string } | null,
-  relationError: null as { message: string } | null,
-  projectOrganizationId: "11000000-0000-0000-0000-000000000001" as string | null,
-  siteLookupChunks: [] as string[][],
-  sourceLookupChunks: [] as string[][],
-  relationEqCalls: [] as Array<{ table: string; column: string; projectId: string }>,
-  relationInCalls: [] as Array<{ table: string; column: string; ids: string[] }>,
+  rpc: vi.fn(),
   runIndicatorAggregation: vi.fn(),
 }));
 
 vi.mock("@/integrations/supabase/client.server", () => ({
-  supabaseAdmin: { from: mocks.from },
+  supabaseAdmin: { from: mocks.from, rpc: mocks.rpc },
 }));
 
 vi.mock("@/services/monitoring/indicator-aggregation-engine", () => ({
@@ -25,7 +18,6 @@ import { handleObservationsPost } from "@/routes/api/public/observations";
 
 const PROJECT_A = "a0000000-0000-0000-0000-000000000001";
 const PROJECT_B = "b0000000-0000-0000-0000-000000000002";
-const ORGANIZATION_A = "c1000000-0000-0000-0000-000000000001";
 const SITE_A = "d0000000-0000-0000-0000-000000000101";
 const SITE_B = "d0000000-0000-0000-0000-000000000102";
 const SOURCE_A = "e0000000-0000-0000-0000-000000000201";
@@ -57,74 +49,18 @@ function batchRequestFor(projectId: string, observations: Array<Record<string, u
   });
 }
 
+function rejectRpc(code: string, message: string): void {
+  mocks.rpc.mockResolvedValueOnce({
+    data: null,
+    error: { code, message, details: null, hint: null },
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.insertedRows.length = 0;
-  mocks.insertError = null;
-  mocks.relationError = null;
-  mocks.projectOrganizationId = ORGANIZATION_A;
-  mocks.siteLookupChunks.length = 0;
-  mocks.sourceLookupChunks.length = 0;
-  mocks.relationEqCalls.length = 0;
-  mocks.relationInCalls.length = 0;
   vi.stubEnv("OBSERVATIONS_INGEST_API_SECRET", DEDICATED_SECRET);
   vi.stubEnv("OBSERVATIONS_INGEST_PROJECT_ID", PROJECT_A);
-
-  mocks.from.mockImplementation((table: string) => {
-    if (table === "projects") {
-      return {
-        select: () => ({
-          eq: (_column: string, projectId: string) => ({
-            maybeSingle: async () => ({
-              data:
-                projectId === PROJECT_A
-                  ? { id: PROJECT_A, organization_id: mocks.projectOrganizationId }
-                  : null,
-              error: null,
-            }),
-          }),
-        }),
-      };
-    }
-
-    if (table === "sites" || table === "data_sources") {
-      const validId = table === "sites" ? SITE_A : SOURCE_A;
-      return {
-        select: () => ({
-          eq: (column: string, projectId: string) => {
-            mocks.relationEqCalls.push({ table, column, projectId });
-            return {
-              in: async (idColumn: string, ids: string[]) => {
-                mocks.relationInCalls.push({ table, column: idColumn, ids });
-                return {
-                  data: (() => {
-                    (table === "sites" ? mocks.siteLookupChunks : mocks.sourceLookupChunks).push(
-                      ids,
-                    );
-                    return projectId === PROJECT_A && ids.includes(validId)
-                      ? [{ id: validId }]
-                      : [];
-                  })(),
-                  error: mocks.relationError,
-                };
-              },
-            };
-          },
-        }),
-      };
-    }
-
-    if (table === "observations") {
-      return {
-        insert: async (rows: Array<Record<string, unknown>>) => {
-          mocks.insertedRows.push(...rows);
-          return { error: mocks.insertError };
-        },
-      };
-    }
-
-    throw new Error(`Unexpected table in test: ${table}`);
-  });
+  mocks.rpc.mockResolvedValue({ data: 1, error: null });
   mocks.runIndicatorAggregation.mockResolvedValue({ updated: 1 });
 });
 
@@ -142,6 +78,7 @@ describe("observations ingest project scope", () => {
 
       expect(response.status).toBe(503);
       await expect(response.json()).resolves.toEqual({ error: "Ingest scope not configured" });
+      expect(mocks.rpc).not.toHaveBeenCalled();
       expect(mocks.from).not.toHaveBeenCalled();
     },
   );
@@ -151,39 +88,56 @@ describe("observations ingest project scope", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: "Forbidden" });
+    expect(mocks.rpc).not.toHaveBeenCalled();
     expect(mocks.from).not.toHaveBeenCalled();
     expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
   });
 
-  it("inserts observations only when site and source belong to the scoped project", async () => {
+  it("sends one sanitized batch to the atomic RPC and aggregates only after success", async () => {
+    const observedAt = "2026-08-29T10:15:00+02:00";
     const response = await handleObservationsPost({
       request: requestFor(PROJECT_A, {
         indicator_key: "water_level",
         value: 1.25,
+        unit: "m",
+        observed_at: observedAt,
         site_id: SITE_A,
         source_id: SOURCE_A,
+        confidence: 0.95,
+        metadata: { device: "sensor-a" },
+        project_id: PROJECT_B,
+        unsupported_field: "must be stripped",
       }),
     });
 
     expect(response.status).toBe(200);
-    expect(mocks.insertedRows).toHaveLength(1);
-    expect(mocks.insertedRows[0]).toMatchObject({
+    await expect(response.json()).resolves.toEqual({
+      inserted: 1,
       project_id: PROJECT_A,
-      site_id: SITE_A,
-      source_id: SOURCE_A,
+      aggregation: { updated: 1 },
     });
-    expect(mocks.relationEqCalls).toEqual([
-      { table: "sites", column: "project_id", projectId: PROJECT_A },
-      { table: "data_sources", column: "project_id", projectId: PROJECT_A },
-    ]);
-    expect(mocks.relationInCalls).toEqual([
-      { table: "sites", column: "id", ids: [SITE_A] },
-      { table: "data_sources", column: "id", ids: [SOURCE_A] },
-    ]);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    expect(mocks.rpc).toHaveBeenCalledWith("ingest_observations_atomic", {
+      p_project_id: PROJECT_A,
+      p_observations: [
+        {
+          site_id: SITE_A,
+          source_id: SOURCE_A,
+          observation_type: "ingest",
+          indicator_key: "water_level",
+          value: 1.25,
+          unit: "m",
+          confidence: 0.95,
+          observed_at: observedAt,
+          metadata: { device: "sensor-a" },
+        },
+      ],
+    });
+    expect(mocks.from).not.toHaveBeenCalled();
     expect(mocks.runIndicatorAggregation).toHaveBeenCalledWith(PROJECT_A, expect.any(Object));
   });
 
-  it("normalizes uppercase Postgres GUIDs before lookup and insert", async () => {
+  it("normalizes uppercase Postgres GUIDs before the RPC call", async () => {
     vi.stubEnv("OBSERVATIONS_INGEST_PROJECT_ID", PROJECT_A.toUpperCase());
 
     const response = await handleObservationsPost({
@@ -196,27 +150,41 @@ describe("observations ingest project scope", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(mocks.insertedRows[0]).toMatchObject({
-      project_id: PROJECT_A,
-      site_id: SITE_A,
-      source_id: SOURCE_A,
-    });
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      "ingest_observations_atomic",
+      expect.objectContaining({
+        p_project_id: PROJECT_A,
+        p_observations: [expect.objectContaining({ site_id: SITE_A, source_id: SOURCE_A })],
+      }),
+    );
   });
 
-  it("fails closed when the scoped project has no tenant organization", async () => {
-    mocks.projectOrganizationId = null;
+  it("maps an unknown or tenantless project from the RPC to a safe 404", async () => {
+    rejectRpc("P0002", "database detail that must not escape");
 
     const response = await handleObservationsPost({ request: requestFor(PROJECT_A) });
 
     expect(response.status).toBe(404);
-    expect(mocks.from).not.toHaveBeenCalledWith("observations");
+    await expect(response.json()).resolves.toEqual({ error: "Unknown project_id" });
+    expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
+  });
+
+  it("maps a late foreign-key scope rejection to a safe 400", async () => {
+    rejectRpc("23503", "foreign-key diagnostic that must not escape");
+
+    const response = await handleObservationsPost({ request: requestFor(PROJECT_A) });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid observation scope" });
     expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
   });
 
   it.each([
     ["site", { site_id: SITE_B }],
     ["source", { source_id: SOURCE_B }],
-  ])("rejects a cross-project %s relation without inserting", async (_label, relation) => {
+  ])("maps a cross-project %s relation to a safe 400", async (_label, relation) => {
+    rejectRpc("23514", "relation database detail that must not escape");
+
     const response = await handleObservationsPost({
       request: requestFor(PROJECT_A, {
         indicator_key: "water_level",
@@ -227,58 +195,95 @@ describe("observations ingest project scope", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Invalid observation scope" });
-    expect(mocks.insertedRows).toHaveLength(0);
-    expect(mocks.from).not.toHaveBeenCalledWith("observations");
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
     expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
   });
 
-  it("fails without inserting when relation validation cannot be completed", async () => {
-    mocks.relationError = { message: "relation lookup failed" };
+  it("maps a database-rejected batch shape to the public payload error", async () => {
+    rejectRpc("22023", "database detail that must not escape");
 
-    const response = await handleObservationsPost({
-      request: requestFor(PROJECT_A, {
-        indicator_key: "water_level",
-        value: 1.25,
-        site_id: SITE_A,
-      }),
-    });
+    const response = await handleObservationsPost({ request: requestFor(PROJECT_A) });
 
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "Relation validation failed" });
-    expect(mocks.insertedRows).toHaveLength(0);
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid payload" });
     expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
   });
 
-  it("rejects a mixed batch atomically and deduplicates relation lookups", async () => {
+  it("passes a mixed batch to exactly one RPC and never aggregates when it is rejected", async () => {
+    rejectRpc("23514", "mixed relation scope");
+    const observations = [
+      { indicator_key: "water_level", value: 1.25, site_id: SITE_A },
+      { indicator_key: "water_level", value: 1.5, site_id: SITE_A },
+      { indicator_key: "water_level", value: 1.75, site_id: SITE_B },
+    ];
+
     const response = await handleObservationsPost({
-      request: batchRequestFor(PROJECT_A, [
-        { indicator_key: "water_level", value: 1.25, site_id: SITE_A },
-        { indicator_key: "water_level", value: 1.5, site_id: SITE_A },
-        { indicator_key: "water_level", value: 1.75, site_id: SITE_B },
-      ]),
+      request: batchRequestFor(PROJECT_A, observations),
     });
 
     expect(response.status).toBe(400);
-    expect(mocks.siteLookupChunks).toEqual([[SITE_A, SITE_B]]);
-    expect(mocks.insertedRows).toHaveLength(0);
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    const rpcArgs = mocks.rpc.mock.calls[0]?.[1] as { p_observations: unknown[] };
+    expect(rpcArgs.p_observations).toHaveLength(3);
+    expect(mocks.from).not.toHaveBeenCalled();
     expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
   });
 
-  it("skips relation lookups when IDs are omitted", async () => {
+  it("uses explicit null relations when site and source are omitted", async () => {
     const response = await handleObservationsPost({ request: requestFor(PROJECT_A) });
 
     expect(response.status).toBe(200);
-    expect(mocks.from).not.toHaveBeenCalledWith("sites");
-    expect(mocks.from).not.toHaveBeenCalledWith("data_sources");
-    expect(mocks.insertedRows[0]).toMatchObject({ site_id: null, source_id: null });
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      "ingest_observations_atomic",
+      expect.objectContaining({
+        p_observations: [expect.objectContaining({ site_id: null, source_id: null })],
+      }),
+    );
   });
 
-  it("does not aggregate after a failed insert", async () => {
-    mocks.insertError = { message: "insert failed" };
+  it("fails closed without aggregation when the RPC returns an unexpected database error", async () => {
+    rejectRpc("XX000", "secret provider diagnostic");
 
     const response = await handleObservationsPost({ request: requestFor(PROJECT_A) });
 
     expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: "Insert failed" });
     expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
+  });
+
+  it("fails closed without leaking details when the RPC throws", async () => {
+    mocks.rpc.mockRejectedValueOnce(new Error("secret transport diagnostic"));
+
+    const response = await handleObservationsPost({ request: requestFor(PROJECT_A) });
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: "Insert failed" });
+    expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
+  });
+
+  it.each([null, 0, 2, 1.5, "1"])(
+    "rejects an impossible inserted count %j without aggregation",
+    async (data) => {
+      mocks.rpc.mockResolvedValueOnce({ data, error: null });
+
+      const response = await handleObservationsPost({ request: requestFor(PROJECT_A) });
+
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({ error: "Insert failed" });
+      expect(mocks.runIndicatorAggregation).not.toHaveBeenCalled();
+    },
+  );
+
+  it("preserves best-effort aggregation after a committed atomic ingest", async () => {
+    mocks.runIndicatorAggregation.mockRejectedValueOnce(new Error("aggregation unavailable"));
+
+    const response = await handleObservationsPost({ request: requestFor(PROJECT_A) });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      inserted: 1,
+      project_id: PROJECT_A,
+      aggregation: { error: "aggregation unavailable" },
+    });
   });
 });

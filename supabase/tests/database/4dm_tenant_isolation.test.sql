@@ -8,7 +8,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(113);
+select plan(128);
 
 -- Stable, synthetic identities. Inserting auth users also exercises the real
 -- signup trigger, but none of its personal organizations are used below.
@@ -94,7 +94,14 @@ values
   ('b2000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', 'admin');
 
 insert into public.sites (id, project_id, name)
-values ('b6000000-0000-4000-8000-000000000001', 'b2000000-0000-4000-8000-000000000001', 'B private site');
+values
+  ('a6200000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'A observation site'),
+  ('b6000000-0000-4000-8000-000000000001', 'b2000000-0000-4000-8000-000000000001', 'B private site');
+
+insert into public.data_sources (id, project_id, name, source_type)
+values
+  ('a6300000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000001', 'A observation source', 'sensor'),
+  ('b6300000-0000-4000-8000-000000000001', 'b2000000-0000-4000-8000-000000000001', 'B private source', 'sensor');
 
 insert into public.actions (id, project_id, title)
 values
@@ -1576,6 +1583,206 @@ select is(
   0::bigint,
   'received upload metadata delete removes the intended row'
 );
+
+-- Observations ingest is one service-role-only database transaction. The RPC
+-- locks the configured tenant and every referenced site/source before its one
+-- batch insert, while browser roles retain only their explicit table policies.
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.ingest_observations_atomic(uuid,jsonb)',
+    'EXECUTE'
+  ),
+  'anon cannot execute the atomic observations ingest RPC'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.ingest_observations_atomic(uuid,jsonb)',
+    'EXECUTE'
+  ),
+  'authenticated cannot execute the atomic observations ingest RPC'
+);
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.ingest_observations_atomic(uuid,jsonb)',
+    'EXECUTE'
+  ),
+  'service_role can execute the atomic observations ingest RPC'
+);
+select ok(
+  (
+    select not proc.prosecdef
+      and exists (
+        select 1
+        from pg_catalog.unnest(proc.proconfig) as config_setting(value)
+        where pg_catalog.replace(
+          pg_catalog.split_part(config_setting.value, '=', 2),
+          '"',
+          ''
+        ) = ''
+          and pg_catalog.split_part(config_setting.value, '=', 1) = 'search_path'
+      )
+    from pg_catalog.pg_proc as proc
+    where proc.oid = 'public.ingest_observations_atomic(uuid,jsonb)'::regprocedure
+  ),
+  'atomic observations ingest is SECURITY INVOKER with an empty search_path'
+);
+
+set local role service_role;
+select is(
+  public.ingest_observations_atomic(
+    'a2000000-0000-4000-8000-000000000001',
+    pg_catalog.jsonb_build_array(
+      pg_catalog.jsonb_build_object(
+        'indicator_key', 'atomic_valid_a',
+        'value', 1.25,
+        'site_id', 'a6200000-0000-4000-8000-000000000001',
+        'source_id', 'a6300000-0000-4000-8000-000000000001',
+        'confidence', 0.9,
+        'metadata', pg_catalog.jsonb_build_object('origin', 'pgtap')
+      ),
+      pg_catalog.jsonb_build_object(
+        'indicator_key', 'atomic_valid_b',
+        'value', 2.5,
+        'unit', 'm',
+        'observed_at', '2026-09-13T12:34:56Z'
+      )
+    )
+  ),
+  2,
+  'service role inserts one valid scoped observation batch'
+);
+reset role;
+
+select is(
+  (
+    select count(*)
+    from public.observations
+    where indicator_key in ('atomic_valid_a', 'atomic_valid_b')
+  ),
+  2::bigint,
+  'the complete valid batch is persisted'
+);
+select ok(
+  exists (
+    select 1
+    from public.observations
+    where project_id = 'a2000000-0000-4000-8000-000000000001'
+      and site_id = 'a6200000-0000-4000-8000-000000000001'
+      and source_id = 'a6300000-0000-4000-8000-000000000001'
+      and indicator_key = 'atomic_valid_a'
+      and observation_type = 'ingest'
+      and observed_at is not null
+      and metadata = '{"origin":"pgtap"}'::jsonb
+  ),
+  'the RPC owns project scope and applies deterministic defaults'
+);
+
+set local role service_role;
+select throws_ok(
+  $$
+    select public.ingest_observations_atomic(
+      'a2000000-0000-4000-8000-000000000001',
+      '[{"indicator_key":"atomic_unsupported","value":1,"project_id":"b2000000-0000-4000-8000-000000000001"}]'::jsonb
+    )
+  $$,
+  '22023',
+  null,
+  'a per-item project override is rejected as an unsupported field'
+);
+select throws_ok(
+  $$
+    select public.ingest_observations_atomic(
+      'a2000000-0000-4000-8000-000000000001',
+      (
+        select pg_catalog.jsonb_agg(
+          pg_catalog.jsonb_build_object('indicator_key', 'atomic_limit', 'value', generated.number)
+        )
+        from pg_catalog.generate_series(1, 501) as generated(number)
+      )
+    )
+  $$,
+  '22023',
+  null,
+  'a batch larger than 500 observations is rejected'
+);
+select throws_ok(
+  $$
+    select public.ingest_observations_atomic(
+      'a2000000-0000-4000-8000-000000000001',
+      '[
+        {"indicator_key":"atomic_site_valid","value":1,"site_id":"a6200000-0000-4000-8000-000000000001"},
+        {"indicator_key":"atomic_site_invalid","value":2,"site_id":"b6000000-0000-4000-8000-000000000001"}
+      ]'::jsonb
+    )
+  $$,
+  '23514',
+  null,
+  'a mixed batch cannot reference a site from another project'
+);
+reset role;
+select is(
+  (
+    select count(*)
+    from public.observations
+    where indicator_key like 'atomic_site_%'
+  ),
+  0::bigint,
+  'a mixed cross-project site batch leaves no partial rows'
+);
+
+set local role service_role;
+select throws_ok(
+  $$
+    select public.ingest_observations_atomic(
+      'a2000000-0000-4000-8000-000000000001',
+      '[
+        {"indicator_key":"atomic_source_valid","value":1,"source_id":"a6300000-0000-4000-8000-000000000001"},
+        {"indicator_key":"atomic_source_invalid","value":2,"source_id":"b6300000-0000-4000-8000-000000000001"}
+      ]'::jsonb
+    )
+  $$,
+  '23514',
+  null,
+  'a mixed batch cannot reference a source from another project'
+);
+reset role;
+select is(
+  (
+    select count(*)
+    from public.observations
+    where indicator_key like 'atomic_source_%'
+  ),
+  0::bigint,
+  'a mixed cross-project source batch leaves no partial rows'
+);
+
+set local role service_role;
+select throws_ok(
+  $$
+    select public.ingest_observations_atomic(
+      'c2000000-0000-4000-8000-000000000099',
+      '[{"indicator_key":"atomic_unknown_project","value":1}]'::jsonb
+    )
+  $$,
+  'P0002',
+  null,
+  'an unknown configured project is rejected with a stable not-found state'
+);
+select throws_ok(
+  $$
+    select public.ingest_observations_atomic(
+      'a2000000-0000-4000-8000-000000000001',
+      '[{"indicator_key":"atomic_bad_time","value":1,"observed_at":"yesterday"}]'::jsonb
+    )
+  $$,
+  '22023',
+  null,
+  'a non-ISO observation timestamp is rejected before insertion'
+);
+reset role;
 
 -- RPC execution is not available to anon, regardless of guessed UUID.
 reset role;

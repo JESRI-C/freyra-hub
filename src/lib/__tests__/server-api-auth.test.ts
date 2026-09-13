@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
+  rpc: vi.fn(),
   runQualityEvaluation: vi.fn(),
   runAlertEvaluation: vi.fn(),
   runIndicatorAggregation: vi.fn(),
 }));
 
 vi.mock("@/integrations/supabase/client.server", () => ({
-  supabaseAdmin: { from: mocks.from },
+  supabaseAdmin: { from: mocks.from, rpc: mocks.rpc },
 }));
 
 vi.mock("@/services/monitoring/quality-engine", () => ({
@@ -92,6 +93,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   for (const envName of AUTH_ENV_NAMES) vi.stubEnv(envName, "");
   vi.stubEnv("OBSERVATIONS_INGEST_PROJECT_ID", PROJECT_ID);
+  mocks.rpc.mockResolvedValue({ data: 1, error: null });
 
   mocks.from.mockImplementation((table: string) => {
     if (table === "projects") {
@@ -131,6 +133,7 @@ describe.each(endpoints)("$name endpoint authentication", (endpoint) => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({ error: "Server secret not configured" });
     expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it("returns 401 when the credential is missing or wrong", async () => {
@@ -144,6 +147,7 @@ describe.each(endpoints)("$name endpoint authentication", (endpoint) => {
     expect(missing.status).toBe(401);
     expect(wrong.status).toBe(401);
     expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it("explicitly rejects a public Supabase key", async () => {
@@ -156,6 +160,7 @@ describe.each(endpoints)("$name endpoint authentication", (endpoint) => {
 
     expect(response.status).toBe(401);
     expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -171,6 +176,7 @@ describe.each(endpoints)("$name endpoint authentication", (endpoint) => {
 
     expect(response.status).toBe(401);
     expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -185,6 +191,7 @@ describe.each(endpoints)("$name endpoint authentication", (endpoint) => {
 
     expect(response.status).toBe(503);
     expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it("does not accept the legacy apikey header", async () => {
@@ -196,6 +203,7 @@ describe.each(endpoints)("$name endpoint authentication", (endpoint) => {
 
     expect(response.status).toBe(401);
     expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it.each([
