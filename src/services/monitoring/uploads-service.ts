@@ -13,6 +13,8 @@ export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
 export const SIGNED_UPLOAD_URL_TTL_SECONDS = 300;
 export const MAX_UPLOAD_USER_METADATA_BYTES = 1024 * 1024;
 
+const POSTGRES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export type UploadType =
   | "image"
   | "video"
@@ -159,6 +161,19 @@ export function createUploadRequestId(): string {
 interface UploadRpcError {
   code?: string;
   message: string;
+}
+
+interface UploadDownloadQueryBuilder {
+  select(columns: string): UploadDownloadQueryBuilder;
+  eq(column: string, value: string): UploadDownloadQueryBuilder;
+  maybeSingle(): Promise<{
+    data: Record<string, unknown> | null;
+    error: { message: string } | null;
+  }>;
+}
+
+interface UploadDownloadDb {
+  from(table: "uploads"): UploadDownloadQueryBuilder;
 }
 
 async function callUploadRpc<T>(
@@ -387,13 +402,84 @@ export async function updateUpload(id: string, patch: UploadUserUpdate): Promise
   return data as Upload;
 }
 
-export async function createSignedUrl(storagePath: string): Promise<string> {
+function getAuthorizedUploadPath(row: Record<string, unknown>): string | null {
+  const uploadId = typeof row["id"] === "string" ? row["id"] : "";
+  const uploadedBy = typeof row["uploaded_by"] === "string" ? row["uploaded_by"] : "";
+  const rawPath = typeof row["storage_path"] === "string" ? row["storage_path"] : "";
+  const path = rawPath.trim();
+  if (
+    !POSTGRES_UUID.test(uploadId) ||
+    !POSTGRES_UUID.test(uploadedBy) ||
+    !path ||
+    path !== rawPath ||
+    path.length > 1024 ||
+    path.startsWith("/") ||
+    path.startsWith("//") ||
+    path.includes("\\") ||
+    /^[a-z][a-z0-9+.-]*:/i.test(path)
+  ) {
+    return null;
+  }
+
+  const segments = path.split("/");
+  if (
+    segments.length < 2 ||
+    segments[0] !== uploadedBy ||
+    segments.some(
+      (segment) =>
+        !segment || segment === "." || segment === ".." || !/^[a-zA-Z0-9._-]+$/.test(segment),
+    ) ||
+    (segments[1] === "intents" &&
+      (segments.length !== 4 || segments[2]?.toLowerCase() !== uploadId.toLowerCase()))
+  ) {
+    return null;
+  }
+
+  return path;
+}
+
+/**
+ * Creates a short-lived URL only after the current user's RLS-scoped upload
+ * lookup proves that the object belongs to the requested project. The caller
+ * can identify the row, but the private Storage path always comes from it.
+ */
+export async function getUploadDownloadUrl(input: {
+  uploadId: string;
+  projectId: string;
+}): Promise<string> {
+  if (!POSTGRES_UUID.test(input.uploadId) || !POSTGRES_UUID.test(input.projectId)) {
+    throw new Error("Ugyldig uploadreference.");
+  }
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.storage
-    .from(UPLOAD_BUCKET)
-    .createSignedUrl(storagePath, SIGNED_UPLOAD_URL_TTL_SECONDS);
-  if (error) throw error;
-  return data.signedUrl;
+
+  const uploadId = input.uploadId.toLowerCase();
+  const projectId = input.projectId.toLowerCase();
+  const db = supabase as unknown as UploadDownloadDb;
+  const { data: row, error: readError } = await db
+    .from("uploads")
+    .select("id, project_id, uploaded_by, storage_path")
+    .eq("id", uploadId)
+    .eq("project_id", projectId)
+    .maybeSingle();
+
+  if (readError || !row || row["id"] !== uploadId || row["project_id"] !== projectId) {
+    throw new Error("Uploaden blev ikke fundet, eller du har ikke adgang til den.");
+  }
+
+  const storagePath = getAuthorizedUploadPath(row);
+  if (!storagePath) {
+    throw new Error("Uploaden har en ugyldig eller forkert afgrænset Storage-sti.");
+  }
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(UPLOAD_BUCKET)
+      .createSignedUrl(storagePath, SIGNED_UPLOAD_URL_TTL_SECONDS, { download: true });
+    if (error || !data?.signedUrl) throw new Error("Storage signing failed");
+    return data.signedUrl;
+  } catch {
+    throw new Error("Kunne ikke oprette et sikkert downloadlink.");
+  }
 }
 
 export async function deleteUpload(id: string): Promise<void> {

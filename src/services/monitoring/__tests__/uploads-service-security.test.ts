@@ -31,8 +31,8 @@ vi.mock("@/services/monitoring/audit-service", () => ({
 }));
 
 import {
-  createSignedUrl,
   deleteUpload,
+  getUploadDownloadUrl,
   SIGNED_UPLOAD_URL_TTL_SECONDS,
   uploadFile,
   UploadTransferError,
@@ -41,7 +41,7 @@ import {
 
 const UPLOAD_ID = "a5000000-0000-4000-8000-000000000001";
 const USER_ID = "a1000000-0000-4000-8000-000000000001";
-const STORAGE_PATH = `${USER_ID}/staging/drone.tif`;
+const STORAGE_PATH = `${USER_ID}/intents/${UPLOAD_ID}/drone.tif`;
 
 const uploadRow = {
   id: UPLOAD_ID,
@@ -65,7 +65,12 @@ const uploadRow = {
   updated_at: "2026-08-31T10:00:00.000Z",
 };
 
-function getQuery(result = { data: uploadRow, error: null }) {
+function getQuery(
+  result: {
+    data: Record<string, unknown> | null;
+    error: { message: string } | null;
+  } = { data: uploadRow, error: null },
+) {
   const query = {
     select: vi.fn(),
     eq: vi.fn(),
@@ -360,14 +365,153 @@ describe("monitoring upload creation", () => {
     );
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
+});
 
-  it("issues monitoring download links with a fixed five-minute lifetime", async () => {
-    await expect(createSignedUrl(STORAGE_PATH)).resolves.toBe(
-      "https://storage.example/short-lived",
+describe("monitoring upload download", () => {
+  it("derives a five-minute download URL from the exact RLS-scoped upload row", async () => {
+    const query = getQuery();
+    mocks.dbFrom.mockReturnValue(query);
+
+    await expect(
+      getUploadDownloadUrl({ uploadId: UPLOAD_ID, projectId: uploadRow.project_id }),
+    ).resolves.toBe("https://storage.example/short-lived");
+
+    expect(mocks.dbFrom).toHaveBeenCalledWith("uploads");
+    expect(query.select).toHaveBeenCalledWith("id, project_id, uploaded_by, storage_path");
+    expect(query.eq).toHaveBeenNthCalledWith(1, "id", UPLOAD_ID);
+    expect(query.eq).toHaveBeenNthCalledWith(2, "project_id", uploadRow.project_id);
+    expect(query.maybeSingle).toHaveBeenCalledOnce();
+    expect(mocks.storageFrom).toHaveBeenCalledWith(UPLOAD_BUCKET);
+    expect(SIGNED_UPLOAD_URL_TTL_SECONDS).toBe(300);
+    expect(mocks.createSignedUrl).toHaveBeenCalledWith(STORAGE_PATH, 300, { download: true });
+  });
+
+  it("normalizes valid uppercase identifiers before the exact database lookup", async () => {
+    const query = getQuery();
+    mocks.dbFrom.mockReturnValue(query);
+
+    await expect(
+      getUploadDownloadUrl({
+        uploadId: UPLOAD_ID.toUpperCase(),
+        projectId: uploadRow.project_id.toUpperCase(),
+      }),
+    ).resolves.toBe("https://storage.example/short-lived");
+
+    expect(query.eq).toHaveBeenNthCalledWith(1, "id", UPLOAD_ID);
+    expect(query.eq).toHaveBeenNthCalledWith(2, "project_id", uploadRow.project_id);
+  });
+
+  it("supports a safe legacy uploader-prefixed database path", async () => {
+    const legacyPath = `${USER_ID}/staging/drone.tif`;
+    mocks.dbFrom.mockReturnValue(
+      getQuery({ data: { ...uploadRow, storage_path: legacyPath }, error: null }),
     );
 
-    expect(SIGNED_UPLOAD_URL_TTL_SECONDS).toBe(300);
-    expect(mocks.createSignedUrl).toHaveBeenCalledWith(STORAGE_PATH, 300);
+    await expect(
+      getUploadDownloadUrl({ uploadId: UPLOAD_ID, projectId: uploadRow.project_id }),
+    ).resolves.toBe("https://storage.example/short-lived");
+
+    expect(mocks.createSignedUrl).toHaveBeenCalledWith(legacyPath, 300, { download: true });
+  });
+
+  it.each([
+    ["upload-id", "not-a-uuid", uploadRow.project_id],
+    ["project-id", UPLOAD_ID, "not-a-uuid"],
+  ])("rejects an invalid %s before querying data", async (_label, uploadId, projectId) => {
+    await expect(getUploadDownloadUrl({ uploadId, projectId })).rejects.toThrow(
+      "Ugyldig uploadreference",
+    );
+
+    expect(mocks.dbFrom).not.toHaveBeenCalled();
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["an RLS-hidden row", { data: null, error: null }],
+    ["a database error", { data: null, error: { message: "permission denied" } }],
+    [
+      "a mismatched project row",
+      {
+        data: { ...uploadRow, project_id: "b2000000-0000-4000-8000-000000000002" },
+        error: null,
+      },
+    ],
+    [
+      "a mismatched upload row",
+      {
+        data: { ...uploadRow, id: "b5000000-0000-4000-8000-000000000002" },
+        error: null,
+      },
+    ],
+  ])("does not sign %s", async (_label, result) => {
+    mocks.dbFrom.mockReturnValue(getQuery(result));
+
+    await expect(
+      getUploadDownloadUrl({ uploadId: UPLOAD_ID, projectId: uploadRow.project_id }),
+    ).rejects.toThrow("blev ikke fundet, eller du har ikke adgang");
+
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["another uploader", `b1000000-0000-4000-8000-000000000002/staging/drone.tif`],
+    ["path traversal", `${USER_ID}/../drone.tif`],
+    [
+      "a mismatched canonical intent",
+      `${USER_ID}/intents/b5000000-0000-4000-8000-000000000002/drone.tif`,
+    ],
+    ["encoded traversal", `${USER_ID}/%2e%2e/drone.tif`],
+    ["a backslash", `${USER_ID}\\staging\\drone.tif`],
+    ["an absolute path", `/${USER_ID}/staging/drone.tif`],
+    ["an empty segment", `${USER_ID}//drone.tif`],
+    ["a query delimiter", `${USER_ID}/staging/drone.tif?download=1`],
+    ["a fragment delimiter", `${USER_ID}/staging/drone.tif#fragment`],
+    ["a control character", `${USER_ID}/staging/drone\u0000.tif`],
+  ])("rejects %s in the persisted Storage path", async (_label, storagePath) => {
+    mocks.dbFrom.mockReturnValue(
+      getQuery({ data: { ...uploadRow, storage_path: storagePath }, error: null }),
+    );
+
+    await expect(
+      getUploadDownloadUrl({ uploadId: UPLOAD_ID, projectId: uploadRow.project_id }),
+    ).rejects.toThrow("ugyldig eller forkert afgrænset Storage-sti");
+
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a non-string uploader", { ...uploadRow, uploaded_by: null }],
+    ["a non-string path", { ...uploadRow, storage_path: null }],
+    ["a malformed row id", { ...uploadRow, id: null }],
+  ])("rejects %s before Storage", async (_label, row) => {
+    mocks.dbFrom.mockReturnValue(getQuery({ data: row, error: null }));
+
+    await expect(
+      getUploadDownloadUrl({ uploadId: UPLOAD_ID, projectId: uploadRow.project_id }),
+    ).rejects.toThrow();
+
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["Storage refuses signing", { data: null, error: { message: "Storage RLS denied" } }],
+    ["Storage omits the URL", { data: {}, error: null }],
+  ])("fails closed when %s", async (_label, result) => {
+    mocks.dbFrom.mockReturnValue(getQuery());
+    mocks.createSignedUrl.mockResolvedValue(result);
+
+    await expect(
+      getUploadDownloadUrl({ uploadId: UPLOAD_ID, projectId: uploadRow.project_id }),
+    ).rejects.toThrow("Kunne ikke oprette et sikkert downloadlink");
+  });
+
+  it("fails closed when Storage rejects the signing request", async () => {
+    mocks.dbFrom.mockReturnValue(getQuery());
+    mocks.createSignedUrl.mockRejectedValue(new Error("network failed"));
+
+    await expect(
+      getUploadDownloadUrl({ uploadId: UPLOAD_ID, projectId: uploadRow.project_id }),
+    ).rejects.toThrow("Kunne ikke oprette et sikkert downloadlink");
   });
 });
 
