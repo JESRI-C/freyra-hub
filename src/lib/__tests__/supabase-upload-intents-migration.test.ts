@@ -15,6 +15,14 @@ const finalizeFixSql = readFileSync(finalizeFixPath, "utf8")
   .toLowerCase()
   .replace(/\s+/g, " ")
   .trim();
+const membershipFixPath = resolve(
+  process.cwd(),
+  "supabase/migrations/20260913102814_enforce_upload_rpc_membership.sql",
+);
+const membershipFixSql = readFileSync(membershipFixPath, "utf8")
+  .toLowerCase()
+  .replace(/\s+/g, " ")
+  .trim();
 
 describe("monitoring upload-intent migration", () => {
   it("makes the server the only issuer of expiring upload paths", () => {
@@ -107,5 +115,47 @@ describe("monitoring upload-intent migration", () => {
     expect(finalizeFixSql).toContain(
       "grant execute on function public.finalize_upload_intent(uuid) to authenticated",
     );
+  });
+
+  it("requires current project contribution before privileged upload RPC output or mutation", () => {
+    const finalizeStart = membershipFixSql.indexOf(
+      "create or replace function public.finalize_upload_intent(p_upload_id uuid)",
+    );
+    const cancelStart = membershipFixSql.indexOf(
+      "create or replace function public.cancel_upload_intent(p_upload_id uuid)",
+    );
+
+    expect(finalizeStart).toBeGreaterThanOrEqual(0);
+    expect(cancelStart).toBeGreaterThan(finalizeStart);
+
+    const finalizeFunction = membershipFixSql.slice(finalizeStart, cancelStart);
+    const cancelFunction = membershipFixSql.slice(cancelStart);
+    const membershipGuard =
+      "if intent.project_id is null or not private.can_contribute_project(intent.project_id) then";
+
+    expect(finalizeFunction).toContain("security definer set search_path = ''");
+    expect(finalizeFunction.indexOf(membershipGuard)).toBeGreaterThan(
+      finalizeFunction.indexOf("if not found then"),
+    );
+    expect(finalizeFunction.indexOf(membershipGuard)).toBeLessThan(
+      finalizeFunction.indexOf("if intent.received_at is not null then"),
+    );
+
+    expect(cancelFunction).toContain("security definer set search_path = ''");
+    expect(cancelFunction.indexOf(membershipGuard)).toBeGreaterThan(
+      cancelFunction.indexOf("if not found then"),
+    );
+    expect(cancelFunction.indexOf(membershipGuard)).toBeLessThan(
+      cancelFunction.indexOf("if intent.intent_request_id is null"),
+    );
+
+    for (const signature of ["finalize_upload_intent(uuid)", "cancel_upload_intent(uuid)"]) {
+      expect(membershipFixSql).toContain(
+        `revoke all on function public.${signature} from public, anon, authenticated`,
+      );
+      expect(membershipFixSql).toContain(
+        `grant execute on function public.${signature} to authenticated`,
+      );
+    }
   });
 });

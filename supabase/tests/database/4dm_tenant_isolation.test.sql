@@ -8,7 +8,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(107);
+select plan(113);
 
 -- Stable, synthetic identities. Inserting auth users also exercises the real
 -- signup trigger, but none of its personal organizations are used below.
@@ -1123,6 +1123,58 @@ select lives_ok(
   'finalize is idempotent after a committed response is lost'
 );
 
+select set_config(
+  'test.finalized_upload_id',
+  (select id::text from public.uploads where original_file_name = 'field-before-001.jpg'),
+  true
+);
+reset role;
+delete from public.project_members
+where project_id = 'a2000000-0000-4000-8000-000000000001'
+  and user_id = 'a1000000-0000-4000-8000-000000000004';
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
+select throws_ok(
+  $$
+    select * from public.finalize_upload_intent(
+      current_setting('test.finalized_upload_id')::uuid
+    )
+  $$,
+  '42501',
+  null,
+  'former contributor cannot probe an already received upload through idempotent finalize'
+);
+
+reset role;
+select is(
+  (select status from public.uploads where id = current_setting('test.finalized_upload_id')::uuid),
+  'awaiting_validation',
+  'denied former-contributor finalize leaves the received upload status unchanged'
+);
+select is(
+  (
+    select count(*)
+    from public.audit_events event
+    where event.entity_id = current_setting('test.finalized_upload_id')::uuid
+      and event.event_type = 'upload_received'
+  ),
+  1::bigint,
+  'denied former-contributor finalize emits no duplicate received audit event'
+);
+insert into public.project_members (project_id, user_id, role)
+values (
+  'a2000000-0000-4000-8000-000000000001',
+  'a1000000-0000-4000-8000-000000000004',
+  'field'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
 select throws_ok(
   $$
     select * from public.cancel_upload_intent(
@@ -1177,6 +1229,62 @@ select lives_ok(
   $$,
   'A field contributor can request a second upload intent'
 );
+
+select set_config(
+  'test.pending_cancel_upload_id',
+  (select id::text from public.uploads where original_file_name = 'field-before-cancelled.jpg'),
+  true
+);
+reset role;
+delete from public.project_members
+where project_id = 'a2000000-0000-4000-8000-000000000001'
+  and user_id = 'a1000000-0000-4000-8000-000000000004';
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+
+select throws_ok(
+  $$
+    select * from public.cancel_upload_intent(
+      current_setting('test.pending_cancel_upload_id')::uuid
+    )
+  $$,
+  '42501',
+  null,
+  'former contributor cannot archive a pending upload intent'
+);
+
+reset role;
+select is(
+  (
+    select status
+    from public.uploads
+    where id = current_setting('test.pending_cancel_upload_id')::uuid
+  ),
+  'draft',
+  'denied former-contributor cancellation leaves the pending intent unchanged'
+);
+select is(
+  (
+    select count(*)
+    from public.audit_events event
+    where event.entity_id = current_setting('test.pending_cancel_upload_id')::uuid
+      and event.event_type = 'upload_cancelled'
+  ),
+  0::bigint,
+  'denied former-contributor cancellation emits no cancellation audit event'
+);
+insert into public.project_members (project_id, user_id, role)
+values (
+  'a2000000-0000-4000-8000-000000000001',
+  'a1000000-0000-4000-8000-000000000004',
+  'field'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"a1000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
 
 select lives_ok(
   $$
