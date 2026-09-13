@@ -1,13 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Images, MapPin, Plus, ShieldAlert, UploadCloud } from "lucide-react";
+import {
+  Download,
+  FileText,
+  Images,
+  Loader2,
+  MapPin,
+  Plus,
+  ShieldAlert,
+  UploadCloud,
+} from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { Chip, Section } from "@/components/connect/Primitives";
 import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
 import { UploadWizard } from "@/components/monitoring/UploadWizard";
 import { useConnectContext } from "@/lib/connect-context";
-import { listUploads, uploadStatusLabel } from "@/services/monitoring/uploads-service";
+import {
+  getUploadDownloadUrl,
+  isUploadDownloadAvailable,
+  listUploads,
+  uploadStatusLabel,
+} from "@/services/monitoring/uploads-service";
 import { parseDroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 
 export const Route = createFileRoute("/app/connect/upload")({
@@ -18,6 +32,8 @@ function Page() {
   const { project, projectId } = useConnectContext();
   const [genericWizardOpen, setGenericWizardOpen] = useState(false);
   const [beforeBatchOpen, setBeforeBatchOpen] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
 
   const uploadsQuery = useQuery({
     queryKey: ["monitoring-uploads", projectId],
@@ -34,6 +50,34 @@ function Page() {
       ["awaiting_validation", "validating"].includes(upload.status) ||
       (upload.status === "draft" && Boolean(upload.received_at)),
   ).length;
+
+  const handleDownload = async (uploadId: string) => {
+    if (!projectId) return;
+    setDownloadingId(uploadId);
+    setDownloadErrors((current) => {
+      const next = { ...current };
+      delete next[uploadId];
+      return next;
+    });
+
+    try {
+      const signedUrl = await getUploadDownloadUrl({ uploadId, projectId });
+      const link = document.createElement("a");
+      link.href = signedUrl;
+      link.download = "";
+      link.referrerPolicy = "no-referrer";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      setDownloadErrors((current) => ({
+        ...current,
+        [uploadId]: "Downloadlinket kunne ikke oprettes. Kontrollér din adgang, og prøv igen.",
+      }));
+    } finally {
+      setDownloadingId((current) => (current === uploadId ? null : current));
+    }
+  };
 
   return (
     <main className="mx-auto w-full max-w-[1500px] space-y-4 p-6">
@@ -125,6 +169,7 @@ function Page() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Kameraposition</th>
                   <th className="px-4 py-3">Tidspunkt</th>
+                  <th className="px-4 py-3 text-right">Original</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -132,6 +177,7 @@ function Page() {
                   const pointResult = projectId
                     ? parseDroneUploadMapPoint(upload, projectId)
                     : { reason: "wrong_project" as const };
+                  const downloadAvailable = isUploadDownloadAvailable(upload);
                   return (
                     <tr key={upload.id}>
                       <td className="px-4 py-3 font-medium">
@@ -174,12 +220,42 @@ function Page() {
                           <>Intent oprettet {new Date(upload.created_at).toLocaleString()}</>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-right text-xs">
+                        <button
+                          type="button"
+                          onClick={() => void handleDownload(upload.id)}
+                          disabled={!downloadAvailable || downloadingId !== null}
+                          aria-label={`Hent originalfilen ${upload.original_file_name}`}
+                          aria-busy={downloadingId === upload.id}
+                          title={
+                            downloadAvailable
+                              ? "Opret et sikkert downloadlink, som udløber efter fem minutter"
+                              : "Filen kan først hentes, når overførslen er modtaget og afsluttet"
+                          }
+                          className="ml-auto inline-flex items-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {downloadingId === upload.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5" />
+                          )}
+                          Hent
+                        </button>
+                        {downloadErrors[upload.id] && (
+                          <p
+                            className="mt-1 max-w-56 text-left text-[11px] text-red-700"
+                            role="alert"
+                          >
+                            {downloadErrors[upload.id]}
+                          </p>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
                 {!uploadsQuery.isLoading && uploads.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
                       {projectId
                         ? "Ingen uploads endnu. Start med en enkelt fil eller en samlet FØR-runde."
                         : "Ingen projektkø kan vises uden et valgt projekt."}

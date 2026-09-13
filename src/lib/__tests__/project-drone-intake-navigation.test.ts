@@ -19,6 +19,10 @@ const projectsIndexRoute = readFileSync(
   resolve(process.cwd(), "src/routes/app.projects.index.tsx"),
   "utf8",
 );
+const uploadRoute = readFileSync(
+  resolve(process.cwd(), "src/routes/app.connect.upload.tsx"),
+  "utf8",
+);
 
 describe("project-bound drone intake navigation", () => {
   it("exposes the upload center in the Connect tab navigation", () => {
@@ -42,5 +46,12 @@ describe("project-bound drone intake navigation", () => {
       expect(routeSource).toContain("ssr: false,");
       expect(routeSource).not.toContain('if (typeof window === "undefined") return null;');
     }
+  });
+
+  it("offers only project-scoped, finalized monitoring upload downloads", () => {
+    expect(uploadRoute).toContain("isUploadDownloadAvailable(upload)");
+    expect(uploadRoute).toContain("getUploadDownloadUrl({ uploadId, projectId })");
+    expect(uploadRoute).toContain('link.referrerPolicy = "no-referrer"');
+    expect(uploadRoute).not.toContain("upload.storage_path");
   });
 });

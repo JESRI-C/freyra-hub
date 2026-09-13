@@ -176,6 +176,39 @@ interface UploadDownloadDb {
   from(table: "uploads"): UploadDownloadQueryBuilder;
 }
 
+const DOWNLOADABLE_UPLOAD_STATUSES = new Set([
+  "awaiting_validation",
+  "validating",
+  "ready",
+  "importing",
+  "imported",
+  "imported_with_warnings",
+  "rejected",
+  "failed",
+]);
+
+/**
+ * Mirrors the finalized object states accepted by the private Storage read
+ * policy. Pending canonical intents and archived rows must never expose a
+ * download action, even when their metadata row is visible through RLS.
+ */
+export function isUploadDownloadAvailable(upload: {
+  status: unknown;
+  intent_request_id: unknown;
+  received_at: unknown;
+}): boolean {
+  if (
+    typeof upload.received_at !== "string" ||
+    upload.received_at.trim().length === 0 ||
+    !Number.isFinite(Date.parse(upload.received_at))
+  ) {
+    return false;
+  }
+  if (typeof upload.status !== "string" || upload.status === "archived") return false;
+  if (upload.status === "draft") return upload.intent_request_id === null;
+  return DOWNLOADABLE_UPLOAD_STATUSES.has(upload.status);
+}
+
 async function callUploadRpc<T>(
   functionName: "create_upload_intent" | "finalize_upload_intent" | "cancel_upload_intent",
   args: Record<string, unknown>,
@@ -457,13 +490,23 @@ export async function getUploadDownloadUrl(input: {
   const db = supabase as unknown as UploadDownloadDb;
   const { data: row, error: readError } = await db
     .from("uploads")
-    .select("id, project_id, uploaded_by, storage_path")
+    .select("id, project_id, uploaded_by, storage_path, status, intent_request_id, received_at")
     .eq("id", uploadId)
     .eq("project_id", projectId)
     .maybeSingle();
 
   if (readError || !row || row["id"] !== uploadId || row["project_id"] !== projectId) {
     throw new Error("Uploaden blev ikke fundet, eller du har ikke adgang til den.");
+  }
+
+  if (
+    !isUploadDownloadAvailable({
+      status: row["status"],
+      intent_request_id: row["intent_request_id"],
+      received_at: row["received_at"],
+    })
+  ) {
+    throw new Error("Filen er ikke modtaget eller er ikke tilgængelig til download.");
   }
 
   const storagePath = getAuthorizedUploadPath(row);

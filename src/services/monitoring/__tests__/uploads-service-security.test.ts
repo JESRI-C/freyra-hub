@@ -33,6 +33,7 @@ vi.mock("@/services/monitoring/audit-service", () => ({
 import {
   deleteUpload,
   getUploadDownloadUrl,
+  isUploadDownloadAvailable,
   SIGNED_UPLOAD_URL_TTL_SECONDS,
   uploadFile,
   UploadTransferError,
@@ -56,6 +57,9 @@ const uploadRow = {
   storage_path: STORAGE_PATH,
   upload_type: "orthophoto",
   status: "ready",
+  intent_expires_at: null,
+  intent_request_id: "a9000000-0000-4000-8000-000000000001",
+  received_at: "2026-08-31T10:05:00.000Z",
   detected_metadata: {},
   user_metadata: {},
   validation_result: {},
@@ -377,7 +381,9 @@ describe("monitoring upload download", () => {
     ).resolves.toBe("https://storage.example/short-lived");
 
     expect(mocks.dbFrom).toHaveBeenCalledWith("uploads");
-    expect(query.select).toHaveBeenCalledWith("id, project_id, uploaded_by, storage_path");
+    expect(query.select).toHaveBeenCalledWith(
+      "id, project_id, uploaded_by, storage_path, status, intent_request_id, received_at",
+    );
     expect(query.eq).toHaveBeenNthCalledWith(1, "id", UPLOAD_ID);
     expect(query.eq).toHaveBeenNthCalledWith(2, "project_id", uploadRow.project_id);
     expect(query.maybeSingle).toHaveBeenCalledOnce();
@@ -404,7 +410,15 @@ describe("monitoring upload download", () => {
   it("supports a safe legacy uploader-prefixed database path", async () => {
     const legacyPath = `${USER_ID}/staging/drone.tif`;
     mocks.dbFrom.mockReturnValue(
-      getQuery({ data: { ...uploadRow, storage_path: legacyPath }, error: null }),
+      getQuery({
+        data: {
+          ...uploadRow,
+          storage_path: legacyPath,
+          status: "draft",
+          intent_request_id: null,
+        },
+        error: null,
+      }),
     );
 
     await expect(
@@ -412,6 +426,53 @@ describe("monitoring upload download", () => {
     ).resolves.toBe("https://storage.example/short-lived");
 
     expect(mocks.createSignedUrl).toHaveBeenCalledWith(legacyPath, 300, { download: true });
+  });
+
+  it.each([
+    ["a pending upload intent", { ...uploadRow, status: "draft", received_at: null }],
+    [
+      "an unfinalized canonical draft even if it has a received timestamp",
+      { ...uploadRow, status: "draft" },
+    ],
+    ["an archived upload", { ...uploadRow, status: "archived" }],
+  ])("does not sign %s", async (_label, row) => {
+    mocks.dbFrom.mockReturnValue(getQuery({ data: row, error: null }));
+
+    await expect(
+      getUploadDownloadUrl({ uploadId: UPLOAD_ID, projectId: uploadRow.project_id }),
+    ).rejects.toThrow("ikke modtaget eller er ikke tilgængelig til download");
+
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it("matches the persisted Storage read states before exposing a download action", () => {
+    for (const status of [
+      "awaiting_validation",
+      "validating",
+      "ready",
+      "importing",
+      "imported",
+      "imported_with_warnings",
+      "rejected",
+      "failed",
+    ]) {
+      expect(isUploadDownloadAvailable({ ...uploadRow, status }), status).toBe(true);
+    }
+    expect(
+      isUploadDownloadAvailable({
+        ...uploadRow,
+        status: "draft",
+        intent_request_id: null,
+      }),
+    ).toBe(true);
+    expect(isUploadDownloadAvailable({ ...uploadRow, received_at: null })).toBe(false);
+    expect(isUploadDownloadAvailable({ ...uploadRow, received_at: "   " })).toBe(false);
+    expect(isUploadDownloadAvailable({ ...uploadRow, received_at: "not-a-timestamp" })).toBe(false);
+    expect(isUploadDownloadAvailable({ ...uploadRow, status: "draft" })).toBe(false);
+    expect(isUploadDownloadAvailable({ ...uploadRow, status: "archived" })).toBe(false);
+    expect(isUploadDownloadAvailable({ ...uploadRow, status: "future_unknown_status" })).toBe(
+      false,
+    );
   });
 
   it.each([
