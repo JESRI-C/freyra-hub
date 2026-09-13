@@ -19,6 +19,7 @@ import type { Zone, ZoneType, GeoJsonPolygon } from "@/services/zones-service";
 import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS, calculatePolygonArea } from "@/services/zones-service";
 import type { IoTSensor } from "@/services/iot-simulation-service";
 import { MAX_PROJECT_POLYGON_VERTICES, validateProjectPolygon } from "@/services/geo-service";
+import type { DroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,9 @@ export interface MapEditorMapProps {
   boundaryGeoJSON?: GeoJsonPolygon | null;
   zones?: Zone[];
   sensors?: IoTSensor[];
+  droneUploadPoints?: DroneUploadMapPoint[];
   showSensors?: boolean;
+  showDroneUploads?: boolean;
   showParagraph3?: boolean;
   showWatercourses?: boolean;
   showNdviOverlay?: boolean;
@@ -162,10 +165,60 @@ export function polygonPerimeterM(latLngs: [number, number][]): number {
   return Math.round(total);
 }
 
+function appendDronePopupRow(container: HTMLElement, label: string, value: string): void {
+  const row = document.createElement("div");
+  const labelNode = document.createElement("span");
+  const valueNode = document.createElement("span");
+  labelNode.textContent = `${label}: `;
+  labelNode.style.fontWeight = "600";
+  valueNode.textContent = value;
+  row.append(labelNode, valueNode);
+  container.append(row);
+}
+
+/** Build the popup entirely with text nodes so upload-controlled metadata is never parsed as HTML. */
+function buildDroneUploadPopup(point: DroneUploadMapPoint): HTMLElement {
+  const popup = document.createElement("div");
+  popup.style.minWidth = "220px";
+
+  const title = document.createElement("strong");
+  title.textContent = point.fileName;
+  popup.append(title);
+
+  const warning = document.createElement("div");
+  warning.textContent = "Ubekræftet kameraposition";
+  warning.style.color = "#b45309";
+  warning.style.fontWeight = "600";
+  warning.style.margin = "4px 0";
+  popup.append(warning);
+
+  appendDronePopupRow(popup, "Optaget", new Date(point.capturedAt).toLocaleString("da-DK"));
+  appendDronePopupRow(
+    popup,
+    "Position",
+    `${point.coordinates.lat.toFixed(6)}, ${point.coordinates.lng.toFixed(6)}`,
+  );
+  if (point.altitudeM != null) {
+    appendDronePopupRow(popup, "Højde", `${point.altitudeM.toFixed(1)} m`);
+  }
+  if (point.directionDeg != null) {
+    appendDronePopupRow(popup, "Retning", `${point.directionDeg.toFixed(0)}°`);
+  }
+  if (point.cameraLabel) appendDronePopupRow(popup, "Kamera", point.cameraLabel);
+
+  const limitation = document.createElement("div");
+  limitation.textContent = "Kun til orientering – ikke footprint eller rapportbevis.";
+  limitation.style.marginTop = "6px";
+  limitation.style.fontSize = "11px";
+  limitation.style.color = "#6b7280";
+  popup.append(limitation);
+  return popup;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function MapEditorMap({
-  projectId: _projectId,
+  projectId,
   projectName,
   lat,
   lng,
@@ -173,7 +226,9 @@ export function MapEditorMap({
   boundaryGeoJSON,
   zones = [],
   sensors = [],
+  droneUploadPoints = [],
   showSensors = true,
+  showDroneUploads = true,
   showParagraph3 = true,
   showWatercourses = true,
   showNdviOverlay = false,
@@ -209,6 +264,7 @@ export function MapEditorMap({
     wl: import("leaflet").FeatureGroup | null;
     ndvi: import("leaflet").GeoJSON | null;
     sensors: import("leaflet").FeatureGroup | null;
+    droneUploads: import("leaflet").FeatureGroup | null;
     drawn: import("leaflet").FeatureGroup | null;
     activeDrawer: {
       disable: () => void;
@@ -229,6 +285,7 @@ export function MapEditorMap({
     wl: null,
     ndvi: null,
     sensors: null,
+    droneUploads: null,
     drawn: null,
     activeDrawer: null,
     editHandler: null,
@@ -822,6 +879,66 @@ export function MapEditorMap({
       });
     })();
   }, [showSensors, sensors, ready]);
+
+  // ── Rå dronefoto-positioner ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    const layers = layersRef.current;
+
+    if (layers.droneUploads) {
+      map.removeLayer(layers.droneUploads);
+      layers.droneUploads = null;
+    }
+    if (!showDroneUploads || droneUploadPoints.length === 0) return;
+
+    let disposed = false;
+    let nextGroup: import("leaflet").FeatureGroup | null = null;
+
+    void (async () => {
+      const L = await import("leaflet");
+      if (disposed || mapRef.current !== map) return;
+
+      const normalizedProjectId = projectId.toLowerCase();
+      const group = new L.FeatureGroup();
+      droneUploadPoints.forEach((point) => {
+        const { lat: pointLat, lng: pointLng } = point.coordinates;
+        if (
+          point.projectId.toLowerCase() !== normalizedProjectId ||
+          point.positionTrust !== "raw_unvalidated" ||
+          !Number.isFinite(pointLat) ||
+          !Number.isFinite(pointLng) ||
+          Math.abs(pointLat) > 90 ||
+          Math.abs(pointLng) > 180
+        ) {
+          return;
+        }
+
+        L.circleMarker([pointLat, pointLng], {
+          radius: 7,
+          color: "#ffffff",
+          weight: 2,
+          fillColor: "#f59e0b",
+          fillOpacity: 0.95,
+        })
+          .bindPopup(buildDroneUploadPopup(point))
+          .addTo(group);
+      });
+
+      if (disposed || mapRef.current !== map || group.getLayers().length === 0) return;
+      group.addTo(map);
+      nextGroup = group;
+      layers.droneUploads = group;
+    })();
+
+    return () => {
+      disposed = true;
+      if (nextGroup && layers.droneUploads === nextGroup) {
+        if (map.hasLayer(nextGroup)) map.removeLayer(nextGroup);
+        layers.droneUploads = null;
+      }
+    };
+  }, [droneUploadPoints, projectId, ready, showDroneUploads]);
 
   // ── Center override (from address search) ─────────────────────────────────────
   useEffect(() => {

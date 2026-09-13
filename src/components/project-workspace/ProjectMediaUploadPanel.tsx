@@ -11,6 +11,7 @@ interface ProjectMediaUploadPanelProps {
   projectId: string;
   projectCentroid?: { lat: number; lng: number };
   onUploadComplete?: (item: ProjectMediaItem) => void;
+  onDroneBatchImported?: () => void;
 }
 
 const CATEGORIES: MediaCategory[] = [
@@ -35,6 +36,7 @@ export function ProjectMediaUploadPanel({
   projectId,
   projectCentroid,
   onUploadComplete,
+  onDroneBatchImported,
 }: ProjectMediaUploadPanelProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -192,6 +194,7 @@ export function ProjectMediaUploadPanel({
         open={beforeBatchOpen}
         onClose={() => setBeforeBatchOpen(false)}
         projectId={projectId}
+        onImported={onDroneBatchImported}
       />
 
       {/* Preview mode banner */}

@@ -91,12 +91,12 @@ Opdateret: 2026-09-13. Rækkefølgen er bindende, medmindre en opgave er dokumen
 
 - **Prioritet:** P0 / 7.
 - **Brugerproblem:** Et simpelt billed-swipe uden survey-, dataset- og fotoparversioner dokumenterer ikke kundesagen.
-- **Scope:** Før/Efter survey rounds, versionsfaste aktiver/datasæt, obligatorisk foto-/droneproveniens, parring og godkendelse; swipe, side-by-side og opacity med synkroniseret udsnit.
-- **Acceptance criteria:** Brugeren vælger to rounds/datasæt, sammenligner dem og genfinder samme par/valg efter reload; par viser afstand, retning, tid, fotograf og reviewer; mindst 90 % af P0-fotopunkter er godkendte; fejlet behandling vises aldrig som klar.
+- **Scope:** Før/Efter survey rounds, versionsfaste aktiver/datasæt, obligatorisk foto-/droneproveniens, parring og godkendelse; swipe, side-by-side og opacity med synkroniseret udsnit. Hvert canonical foto får en sporbar, konservativ RGB-analyse af synligt plantedække, billedkvalitet og art-/habitatkandidater med confidence, model-/prompt-/metodeversion, inputhash og menneskelig review. Offentlig natur-/arts-/vandløbskontekst gemmes som særskilt kildebelagt kontekst og må ikke præsenteres som billedfund.
+- **Acceptance criteria:** Brugeren vælger to rounds/datasæt, sammenligner dem og genfinder samme par/valg efter reload; par viser afstand, retning, tid, fotograf og reviewer; mindst 90 % af P0-fotopunkter er godkendte; fejlet behandling vises aldrig som klar. En FØR-runde kan færdiggøres og rapporteres før AFTER findes. Artskandidater er reviewkrævende og må aldrig automatisk blive sikre artsfund; usynlig biomasse, dybde, årsag og økologiske indeks udledes ikke fra almindelige RGB-fotos.
 - **Afhængigheder:** Storage/metadata, tenant-RLS, repræsentativt P0-datasæt og projektgrænse.
-- **Tests:** Domain/unit, upload/persistence-integration, browser swipe/side-by-side/opacity, negative metadata- og cross-tenant-tests. Den lokale drone-del har 32/32 målrettede upload-/metadata-tests, heraf 22 parser-/regressionstests med en reel minimal JPEG/EXIF-fixture; fuld suite 259/259.
-- **Status:** delvist implementeret. Én lille syntetisk DJI FØR-JPEG bestod rigtig credential-båret intent/TUS/finalize og UI-reload på staging; hash, GPS og UTC blev bevaret som ubetroet browserpreview, og uploadet nåede korrekt `awaiting_validation`. Dette verificerer ikke batch med 120 billeder, aktiv pause/reload-resume, server-side metadataekstraktion, canonical `drone_assets`, survey rounds, fotopar, reviewerflow, footprint/ortofoto eller cleanup.
-- **Evidens/commit:** Upload `13b16848-a2c5-480f-b3f2-f0468bc53c08`, `secure_receipt_chain_ok = true`, UI-reload PASS og fremmed-tenant `0/0/0/0` på staging. Finalize-rettelsen er commit `0560571`; de tidligere drone-/uploadkomponenter er hostet på Worker-version `842dbf65-3e99-4fd1-83f5-62360268181d`. Ingen `survey_rounds` eller `photo_pairs` er fundet.
+- **Tests:** Domain/unit, upload/persistence-integration, browser swipe/side-by-side/opacity, negative metadata- og cross-tenant-tests. Cyklus 023 tilføjer 14/14 dronekort-servicecases for projektscope, eksakt FØR-kontrakt, rå metadata, legacy-status, interne mismatch, manglende position og et komplet 120-punktsdatasæt; sammen med navigationstesten er den målrettede gate 2 filer/17 tests. Per-billede analyse kræver desuden schema-/outputvalidering, størrelsesgrænser, hash/proveniens, modelstub, reviewertransitioner og tenantnegative tests.
+- **Status:** delvist implementeret. Én lille syntetisk DJI FØR-JPEG bestod rigtig credential-båret intent/TUS/finalize og UI-reload på staging; hash, GPS og UTC blev bevaret som ubetroet browserpreview, og uploadet nåede korrekt `awaiting_validation`. Komplette browser-preview-positioner vises nu som eksplicit ubekræftede FØR-kamerapunkter på begge projektkort uden centroidfallback; kilden håndterer 120 punkter uden truncering og blander ikke AFTER ind i FØR-statistikken. Dette verificerer ikke rigtig 120-fils browserupload, aktiv pause/reload-resume, server-side metadataekstraktion, canonical `drone_assets`, survey rounds, billedanalyse, menneskelig artsreview, fotopar, footprint/ortofoto eller cleanup.
+- **Evidens/commit:** Upload `13b16848-a2c5-480f-b3f2-f0468bc53c08`, `secure_receipt_chain_ok = true`, UI-reload PASS og fremmed-tenant `0/0/0/0` på staging. Finalize-rettelsen er commit `0560571`; cyklus 023's kortkilde og servicegates er lokalt verificeret, men ikke live browserverificeret eller deployet ved dette checkpoint. Ingen `survey_rounds`, `photo_pairs` eller canonical analyseresultater er fundet.
 
 ## MEAS-P0-01 - persistente målinger og faglig validering
 
@@ -117,18 +117,18 @@ Opdateret: 2026-09-13. Rækkefølgen er bindende, medmindre en opgave er dokumen
 - **Acceptance criteria:** Valgt P0-lag vises i projektkortet med ejer, endpoint/type, lag-id, CRS, vilkår, upstream/hentet tidspunkt og begrænsninger; mocktests og én live dev/test-smoke består; kildefejl er synlig.
 - **Afhængigheder:** Officielle capabilities/vilkår, netværksadgang og konkret Haderslev-lagbehov.
 - **Tests:** Capabilities/parser mocks, WMS URL/render-fejl, WFS transform, timeout og live smoke uden kundedata.
-- **Status:** planlagt; MARS-integration er ikke fundet.
+- **Status:** planlagt; MARS-integration er ikke fundet. Officielle MARS WMS/WFS-kilder og GBIF/Danmarks Arealinformation er identificeret som mulig projektkontekst, men hverken adapter, lagvalg, licens-/proveniensaccept eller live smoke er implementeret. Offentlig forekomst-/lagdata er kontekst og ikke bevis for en art i et dronefoto.
 - **Evidens/commit:** Officielle endpoints er registreret i `DATA_SOURCE_CATALOG.md`; lag/licens/CRS og commit **AFVENTER**.
 
 ## REPORT-P0-01 - reproducerbar rapport og manifest
 
 - **Prioritet:** P0 / 10.
 - **Brugerproblem:** Den eksisterende simple PDF kan ikke dokumentere en versionsfast Før/Efter-leverance eller genskabes efter senere projektændringer.
-- **Scope:** Deterministisk P0-skabelon med projektkort, Før/Efter, fotos, datakilder, metoder, målinger, usikkerheder, QA, audit og manifest; Storage-aktiv, checksum, snapshot/version og godkendelse.
-- **Acceptance criteria:** Komplet fixture genererer læsbar PDF uden klip/tomme opdigtede sektioner; manglende obligatoriske data giver tydelig fejl; godkendt PDF/hash ændres ikke; ny generering skaber ny version; snapshot kan reproduceres og downloades med manifest.
+- **Scope:** Deterministisk P0-skabelon med en selvstændig FØR-baseline samt senere Før/Efter-leverance: projektkort, fotos, datakilder, analyser, metoder, målinger, usikkerheder, QA, audit og manifest; Storage-aktiv, checksum, snapshot/version og godkendelse.
+- **Acceptance criteria:** En komplet, reviewet FØR-fixture kan generere en læsbar baseline-PDF før AFTER findes; en komplet Før/Efter-fixture kan senere generere sammenligningen uden at omskrive den godkendte baseline. Ingen rapport må medtage ubekræftede browserpunkter eller artskandidater som validerede fund. Manglende obligatoriske data giver tydelig fejl; godkendt PDF/hash ændres ikke; ny generering skaber ny version; snapshot kan reproduceres og downloades med manifest.
 - **Afhængigheder:** Alle foregående datadomæner, rapportskabelon og Storage/RLS.
 - **Tests:** Unit for snapshot/layoutdata, PDF-/checksum-integration, golden/snapshot, browser generate/download/approve/re-generate og mobil/desktop læsbarhed.
-- **Status:** planlagt; grundlæggende `jsPDF`-generering findes, P0-versionering **AFVENTER**.
+- **Status:** planlagt; grundlæggende `jsPDF`-generering findes. Selvstændig FØR-baseline, analyseresultater/review, kildeadskillelse og P0-versionering er **AFVENTER**.
 - **Evidens/commit:** `documents-service.ts` og rapportkode auditeret; ingen `report_versions` fundet; commit **AFVENTER**.
 
 Backloggen opdeles i mindre vertikale opgaver før implementering. Nye punkter placeres efter sikkerheds- og dataintegritetsgates og må ikke skjule ovenstående P0-huller.

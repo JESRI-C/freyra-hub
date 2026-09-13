@@ -58,6 +58,7 @@ import { getEvidenceFilesByProject } from "@/services/evidence-service";
 import { getObservationsByProject, observationTypeLabel } from "@/services/observations-service";
 import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/report-engine";
 import { listProjectMedia } from "@/services/project-media-service";
+import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
 import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
@@ -219,6 +220,13 @@ function ProjectDetailPage() {
       cancelled = true;
     };
   }, [projectId]);
+
+  const droneUploadsQuery = useQuery({
+    queryKey: ["drone-upload-map-overview", projectId],
+    queryFn: () => getDroneUploadMapOverview(projectId),
+    enabled: !!projectId,
+  });
+  const droneUploadOverview = droneUploadsQuery.data;
 
   // Local action state (optimistic UI)
   const [localActions, setLocalActions] = useState<Action[]>(actions);
@@ -659,6 +667,7 @@ function ProjectDetailPage() {
                     projectId={projectId}
                     projectCentroid={geometry.centroid ?? undefined}
                     onUploadComplete={(item) => setMediaItems((prev) => [item, ...prev])}
+                    onDroneBatchImported={() => void droneUploadsQuery.refetch()}
                   />
                 </div>
               </div>
@@ -745,6 +754,7 @@ function ProjectDetailPage() {
                   projectId={projectId}
                   height={500}
                   mediaItems={mediaItems}
+                  droneUploadPoints={droneUploadOverview?.points ?? []}
                   sensors={sensors}
                   dmiData={
                     environmentalCtx?.liveData?.weather

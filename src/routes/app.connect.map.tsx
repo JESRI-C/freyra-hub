@@ -18,6 +18,10 @@ import { useNdvi } from "@/hooks/useNdvi";
 import { useFullAnalysis } from "@/hooks/useFullAnalysis";
 import { getProjects } from "@/services/projects-service";
 import { getProjectGeoJSON } from "@/services/geospatial-service";
+import {
+  getDroneUploadMapOverview,
+  type DroneUploadMapPoint,
+} from "@/services/monitoring/drone-upload-map-service";
 import { ZONE_TYPE_LABELS, type Zone, type ZoneType } from "@/services/zones-service";
 import {
   buildMetricsCsv,
@@ -32,6 +36,7 @@ export const Route = createFileRoute("/app/connect/map")({
 });
 
 const SKALLEBAEK_SLUG = "skallebaek-biodiversity-pilot";
+const NO_DRONE_UPLOAD_POINTS: DroneUploadMapPoint[] = [];
 
 function Page() {
   const projectsQuery = useQuery({
@@ -45,6 +50,7 @@ function Page() {
   const [isExportingGeoJSON, setIsExportingGeoJSON] = useState(false);
   const [geoJSONExportError, setGeoJSONExportError] = useState<string | null>(null);
   const [boundaryEditActive, setBoundaryEditActive] = useState(false);
+  const [showDroneUploads, setShowDroneUploads] = useState(true);
 
   const project = useMemo(() => {
     if (!projects.length) return null;
@@ -55,6 +61,15 @@ function Page() {
       projects[0]
     );
   }, [projects, selectedId]);
+
+  const droneUploadMapQuery = useQuery({
+    queryKey: ["drone-upload-map-overview", project?.id],
+    queryFn: () => getDroneUploadMapOverview(project!.id),
+    enabled: Boolean(project?.id),
+    staleTime: 30_000,
+  });
+  const droneUploadOverview = droneUploadMapQuery.data;
+  const droneUploadPoints = droneUploadOverview?.points ?? NO_DRONE_UPLOAD_POINTS;
 
   const { ndvi } = useNdvi(
     project?.id ?? "",
@@ -189,6 +204,41 @@ function Page() {
               checked={map.showNdviOverlay}
               onChange={map.setShowNdviOverlay}
             />
+            <LayerToggle
+              label={`Dronefotos (${droneUploadOverview?.mappableUploads ?? 0})`}
+              checked={showDroneUploads}
+              onChange={setShowDroneUploads}
+            />
+            <div className="text-[11px] text-muted-foreground space-y-1" aria-live="polite">
+              {droneUploadMapQuery.isLoading ? (
+                <div>Henter dronefoto-positioner…</div>
+              ) : droneUploadMapQuery.isError ? (
+                <div className="space-y-1">
+                  <div className="text-destructive">Dronefotos kunne ikke hentes.</div>
+                  <button
+                    type="button"
+                    className="underline underline-offset-2"
+                    onClick={() => void droneUploadMapQuery.refetch()}
+                  >
+                    Prøv igen
+                  </button>
+                </div>
+              ) : droneUploadOverview?.receivedDroneUploads ? (
+                <>
+                  <div>
+                    {droneUploadOverview.mappableUploads} GPS-punkt
+                    {droneUploadOverview.mappableUploads === 1 ? "" : "er"} ·{" "}
+                    {droneUploadOverview.missingCameraPosition} uden brugbar position
+                  </div>
+                  <div className="text-amber-700 dark:text-amber-400">
+                    {droneUploadOverview.unvalidatedCameraPositions} viste browserpunkter er
+                    ubekræftede og kun til orientering.
+                  </div>
+                </>
+              ) : (
+                <div>Ingen modtagne dronefotos i projektet.</div>
+              )}
+            </div>
           </Card>
 
           <SpeciesIdentifier project={project} />
@@ -199,6 +249,7 @@ function Page() {
           <div className="rounded-xl border bg-card overflow-hidden">
             {hasGeometry && project ? (
               <MapEditorMap
+                key={project.id}
                 projectId={project.id}
                 projectName={project.name}
                 lat={lat!}
@@ -207,7 +258,9 @@ function Page() {
                 boundaryGeoJSON={project.geometry_polygon as never}
                 zones={map.zones}
                 sensors={map.sensors}
+                droneUploadPoints={droneUploadPoints}
                 showSensors={map.showSensors}
+                showDroneUploads={showDroneUploads}
                 showParagraph3={map.showParagraph3}
                 showWatercourses={map.showWatercourses}
                 showNdviOverlay={map.showNdviOverlay}

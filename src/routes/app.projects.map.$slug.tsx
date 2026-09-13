@@ -1,7 +1,7 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, Images, MapPin, ShieldAlert } from "lucide-react";
 import { getProjectBySlug } from "@/services/projects-service";
 import { resolveProjectGeometry } from "@/services/geo-service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -9,6 +9,7 @@ import { getProjectSensors } from "@/services/iot-simulation-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
 import { getMapLayers, getProjectGeoJSON, getProjectMetrics } from "@/services/geospatial-service";
 import { fetchAndIngestNatureGeo } from "@/lib/nature-geo.functions";
+import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
 import { LayerControlPanel } from "@/components/maps/LayerControlPanel";
 import { ProjectMetricsPanel } from "@/components/maps/ProjectMetricsPanel";
@@ -151,6 +152,13 @@ function GeoMapPage() {
   });
   const metrics = metricsQuery.data;
 
+  const droneUploadsQuery = useQuery({
+    queryKey: ["drone-upload-map-overview", projectId],
+    queryFn: () => getDroneUploadMapOverview(projectId),
+    enabled: !!projectId,
+  });
+  const droneUploadOverview = droneUploadsQuery.data;
+
   // Layer visibility state
   const [visibleSlugs, setVisibleSlugs] = useState<Set<string>>(
     () => new Set(mapLayers.filter((l) => l.isActive).map((l) => l.slug)),
@@ -213,6 +221,7 @@ function GeoMapPage() {
               projectName={project.name}
               projectId={projectId}
               height={540}
+              droneUploadPoints={droneUploadOverview?.points ?? []}
               sensors={visibleSlugs.has("sensors") ? sensors : []}
               paragraph3GeoJSON={
                 visibleSlugs.has("protected_nature") ? (natureGeo?.paragraph3 ?? null) : null
@@ -233,6 +242,42 @@ function GeoMapPage() {
               }
             />
           </div>
+
+          {droneUploadsQuery.isError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              Dronefoto-positioner kunne ikke indlæses: {droneUploadsQuery.error.message}
+            </div>
+          )}
+
+          {droneUploadOverview && droneUploadOverview.receivedDroneUploads > 0 && (
+            <div className="flex flex-col gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-950 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-2">
+                <Images className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <div className="font-medium">
+                    {droneUploadOverview.mappableUploads} af{" "}
+                    {droneUploadOverview.receivedDroneUploads} FØR-dronefotos har en GPS-kandidat på
+                    kortet
+                  </div>
+                  <div className="mt-0.5 flex items-start gap-1 text-xs text-violet-800">
+                    <ShieldAlert className="mt-0.5 h-3 w-3 shrink-0" />
+                    Positionerne er browseraflæste og behandles som ubekræftede i kortlaget. De
+                    bruges ikke som footprint, artsbevis eller rapportgrundlag endnu.
+                  </div>
+                </div>
+              </div>
+              <Link
+                to="/app/connect/upload"
+                search={{ project: projectId } as never}
+                className="shrink-0 text-xs font-semibold text-violet-800 hover:underline"
+              >
+                Se uploadkø →
+              </Link>
+            </div>
+          )}
 
           {/* Metrics */}
           {metrics && <ProjectMetricsPanel metrics={metrics} />}

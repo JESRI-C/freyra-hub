@@ -1,13 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Images, Plus, UploadCloud } from "lucide-react";
+import { FileText, Images, MapPin, Plus, ShieldAlert, UploadCloud } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { Chip, Section } from "@/components/connect/Primitives";
 import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
 import { UploadWizard } from "@/components/monitoring/UploadWizard";
 import { useConnectContext } from "@/lib/connect-context";
 import { listUploads, uploadStatusLabel } from "@/services/monitoring/uploads-service";
+import { parseDroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 
 export const Route = createFileRoute("/app/connect/upload")({
   component: Page,
@@ -60,6 +61,15 @@ function Page() {
             <Chip tone="primary">{uploads.length} filer</Chip>
             {pendingTransfer > 0 && <Chip tone="muted">{pendingTransfer} ikke modtaget</Chip>}
             <Chip tone="muted">{awaitingValidation} afventer validering</Chip>
+            {project?.slug && (
+              <Link
+                to="/app/projects/map/$slug"
+                params={{ slug: project.slug }}
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-xs"
+              >
+                <MapPin className="h-3.5 w-3.5" /> Se fotopunkter
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => setGenericWizardOpen(true)}
@@ -113,41 +123,63 @@ function Page() {
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Størrelse</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Kameraposition</th>
                   <th className="px-4 py-3">Tidspunkt</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {uploads.map((upload) => (
-                  <tr key={upload.id}>
-                    <td className="px-4 py-3 font-medium">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                        {upload.original_file_name}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <Chip>{upload.upload_type}</Chip>
-                    </td>
-                    <td className="px-4 py-3 text-xs">{Math.round(upload.file_size / 1024)} KB</td>
-                    <td className="px-4 py-3 text-xs">
-                      <Chip tone={upload.status === "imported" ? "primary" : "muted"}>
-                        {upload.status === "draft" && upload.received_at
-                          ? "Historisk fil · afventer validering"
-                          : uploadStatusLabel(upload.status)}
-                      </Chip>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {upload.received_at ? (
-                        <>Modtaget {new Date(upload.received_at).toLocaleString()}</>
-                      ) : (
-                        <>Intent oprettet {new Date(upload.created_at).toLocaleString()}</>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {uploads.map((upload) => {
+                  const pointResult = projectId
+                    ? parseDroneUploadMapPoint(upload, projectId)
+                    : { reason: "wrong_project" as const };
+                  return (
+                    <tr key={upload.id}>
+                      <td className="px-4 py-3 font-medium">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                          {upload.original_file_name}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        <Chip>{upload.upload_type}</Chip>
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {Math.round(upload.file_size / 1024)} KB
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        <Chip tone={upload.status === "imported" ? "primary" : "muted"}>
+                          {upload.status === "draft" && upload.received_at
+                            ? "Historisk fil · afventer validering"
+                            : uploadStatusLabel(upload.status)}
+                        </Chip>
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {"point" in pointResult ? (
+                          <span className="inline-flex items-center gap-1 text-violet-700">
+                            <MapPin className="h-3.5 w-3.5" /> GPS-kandidat
+                            <span title="Browseraflæst og ubekræftet">
+                              <ShieldAlert className="h-3 w-3" />
+                            </span>
+                          </span>
+                        ) : upload.upload_type === "drone_photo" ? (
+                          <span className="text-muted-foreground">Ikke kortklar</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {upload.received_at ? (
+                          <>Modtaget {new Date(upload.received_at).toLocaleString()}</>
+                        ) : (
+                          <>Intent oprettet {new Date(upload.created_at).toLocaleString()}</>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {!uploadsQuery.isLoading && uploads.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                       {projectId
                         ? "Ingen uploads endnu. Start med en enkelt fil eller en samlet FØR-runde."
                         : "Ingen projektkø kan vises uden et valgt projekt."}
