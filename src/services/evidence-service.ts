@@ -29,11 +29,13 @@ export interface EvidenceServiceResult<T> {
 
 function getAuthorizedEvidencePath(row: Record<string, unknown>): string | null {
   const projectId = typeof row["project_id"] === "string" ? row["project_id"] : "";
-  const filePath = typeof row["file_url"] === "string" ? row["file_url"].trim() : "";
+  const rawFilePath = typeof row["file_url"] === "string" ? row["file_url"] : "";
+  const filePath = rawFilePath.trim();
 
   if (
     !POSTGRES_UUID.test(projectId) ||
     !filePath ||
+    filePath !== rawFilePath ||
     filePath.length > 1024 ||
     filePath.startsWith("/") ||
     filePath.startsWith("//") ||
@@ -44,7 +46,14 @@ function getAuthorizedEvidencePath(row: Record<string, unknown>): string | null 
   }
 
   const segments = filePath.split("/");
-  if (segments.some((segment) => !segment || segment === "." || segment === "..")) return null;
+  if (
+    segments.some(
+      (segment) =>
+        !segment || segment === "." || segment === ".." || !/^[a-zA-Z0-9._-]+$/.test(segment),
+    )
+  ) {
+    return null;
+  }
 
   const hasLegacyProjectScope = segments.length >= 2 && segments[0] === projectId;
   const hasCanonicalProjectScope =
@@ -123,12 +132,21 @@ export async function getEvidenceDownloadUrl(input: {
   const db = getDb();
   if (!db) return { data: null, error: "Sikker download er ikke tilgængelig." };
 
-  const { data: row, error: readError } = await db
-    .from("evidence_files")
-    .select("id,project_id,file_url")
-    .eq("id", input.evidenceId)
-    .eq("project_id", input.projectId)
-    .single();
+  let row: Record<string, unknown> | null = null;
+  let readError: { message: string } | null = null;
+  try {
+    ({ data: row, error: readError } = await db
+      .from("evidence_files")
+      .select("id,project_id,file_url")
+      .eq("id", input.evidenceId)
+      .eq("project_id", input.projectId)
+      .single());
+  } catch {
+    return {
+      data: null,
+      error: "Dokumentationen blev ikke fundet, eller du har ikke adgang til den.",
+    };
+  }
 
   if (
     readError ||
@@ -150,15 +168,19 @@ export async function getEvidenceDownloadUrl(input: {
     };
   }
 
-  const { data, error } = await supabase.storage
-    .from(EVIDENCE_BUCKET)
-    .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS, { download: true });
+  try {
+    const { data, error } = await supabase.storage
+      .from(EVIDENCE_BUCKET)
+      .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS, { download: true });
 
-  if (error || !data?.signedUrl) {
+    if (error || !data?.signedUrl) {
+      return { data: null, error: "Kunne ikke oprette et sikkert downloadlink." };
+    }
+
+    return { data: data.signedUrl, error: null };
+  } catch {
     return { data: null, error: "Kunne ikke oprette et sikkert downloadlink." };
   }
-
-  return { data: data.signedUrl, error: null };
 }
 
 export async function uploadEvidenceFile(input: {

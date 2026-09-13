@@ -43,6 +43,30 @@ const OTHER_PROJECT_ID = "c0000000-0000-4000-8000-000000000003";
 const ORGANIZATION_ID = "e0000000-0000-4000-8000-000000000005";
 const MEDIA_PATH = `${PROJECT_ID}/1777777777000_feltfoto.jpg`;
 const EVIDENCE_PATH = `${PROJECT_ID}/1777777777000_feltrapport.pdf`;
+const UNSAFE_EVIDENCE_PATH_CASES: Array<[string, string]> = [
+  ["offentlig URL", "https://public.example/feltrapport.pdf"],
+  ["absolut sti", `/evidence-files/${EVIDENCE_PATH}`],
+  ["fremmed projekt", `${OTHER_PROJECT_ID}/feltrapport.pdf`],
+  ["traversal", `${PROJECT_ID}/../hemmelig.pdf`],
+  ["procentkodet traversal", `${PROJECT_ID}/%2e%2e/hemmelig.pdf`],
+  ["procentkodet skråstreg", `${PROJECT_ID}/rapporter%2Fhemmelig.pdf`],
+  ["procentkodet backslash", `${PROJECT_ID}/rapporter%5Chemmelig.pdf`],
+  ["backslash", `${PROJECT_ID}\\hemmelig.pdf`],
+  ["indledende whitespace", ` ${PROJECT_ID}/feltrapport.pdf`],
+  ["afsluttende whitespace", `${PROJECT_ID}/feltrapport.pdf `],
+  ["whitespace i segment", `${PROJECT_ID}/felt rapport.pdf`],
+  ["querytegn", `${PROJECT_ID}/feltrapport.pdf?download=1`],
+  ["fragment", `${PROJECT_ID}/feltrapport.pdf#version`],
+  ["kontroltegn", `${PROJECT_ID}/felt\u0000rapport.pdf`],
+  ["carriage return", `${PROJECT_ID}/felt\rrapport.pdf`],
+  ["linjeskift", `${PROJECT_ID}/felt\nrapport.pdf`],
+  ["tomt segment", `${PROJECT_ID}//feltrapport.pdf`],
+  [
+    "forkert canonical projekt",
+    `organizations/${PROJECT_ID}/projects/${OTHER_PROJECT_ID}/evidence/fil.pdf`,
+  ],
+  ["for kort canonical sti", `organizations/${ORGANIZATION_ID}/projects/${PROJECT_ID}/fil.pdf`],
+];
 
 type DbResult = {
   data: Record<string, unknown> | Record<string, unknown>[] | null;
@@ -334,19 +358,7 @@ describe("private evidence downloads", () => {
     expect(mocks.storageFrom).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["offentlig URL", "https://public.example/feltrapport.pdf"],
-    ["absolut sti", `/evidence-files/${EVIDENCE_PATH}`],
-    ["fremmed projekt", `${OTHER_PROJECT_ID}/feltrapport.pdf`],
-    ["traversal", `${PROJECT_ID}/../hemmelig.pdf`],
-    ["backslash", `${PROJECT_ID}\\hemmelig.pdf`],
-    ["tomt segment", `${PROJECT_ID}//feltrapport.pdf`],
-    [
-      "forkert canonical projekt",
-      `organizations/${PROJECT_ID}/projects/${OTHER_PROJECT_ID}/evidence/fil.pdf`,
-    ],
-    ["for kort canonical sti", `organizations/${ORGANIZATION_ID}/projects/${PROJECT_ID}/fil.pdf`],
-  ])("afviser %s før Storage", async (_case, fileUrl) => {
+  it.each(UNSAFE_EVIDENCE_PATH_CASES)("afviser %s før Storage", async (_case, fileUrl) => {
     const builder = createQueryBuilder({
       singleResults: [
         {
@@ -414,6 +426,37 @@ describe("private evidence downloads", () => {
     ).resolves.toEqual({ data: null, error: "Kunne ikke oprette et sikkert downloadlink." });
   });
 
+  it("fejler lukket ved afviste database- og Storage-promises", async () => {
+    const rejectedReadBuilder = createQueryBuilder({
+      singleResults: [{ data: null, error: null }],
+    });
+    rejectedReadBuilder.single.mockRejectedValueOnce(new Error("intern database-detalje"));
+    mocks.dbFrom.mockReturnValueOnce(rejectedReadBuilder);
+
+    await expect(
+      getEvidenceDownloadUrl({ evidenceId: EVIDENCE_ID, projectId: PROJECT_ID }),
+    ).resolves.toEqual({
+      data: null,
+      error: "Dokumentationen blev ikke fundet, eller du har ikke adgang til den.",
+    });
+    expect(mocks.storageFrom).not.toHaveBeenCalled();
+
+    const rejectedStorageBuilder = createQueryBuilder({
+      singleResults: [
+        {
+          data: { id: EVIDENCE_ID, project_id: PROJECT_ID, file_url: EVIDENCE_PATH },
+          error: null,
+        },
+      ],
+    });
+    mocks.dbFrom.mockReturnValueOnce(rejectedStorageBuilder);
+    mocks.createSignedUrl.mockRejectedValueOnce(new Error("intern Storage-detalje"));
+
+    await expect(
+      getEvidenceDownloadUrl({ evidenceId: EVIDENCE_ID, projectId: PROJECT_ID }),
+    ).resolves.toEqual({ data: null, error: "Kunne ikke oprette et sikkert downloadlink." });
+  });
+
   it("afviser ugyldige ids uden database- eller Storage-kald", async () => {
     await expect(
       getEvidenceDownloadUrl({ evidenceId: "../../fil", projectId: PROJECT_ID }),
@@ -438,6 +481,16 @@ describe("private evidence downloads", () => {
         id: "preview-evidence",
         project_id: PROJECT_ID,
         file_url: EVIDENCE_PATH,
+      }),
+    ).toBe(false);
+  });
+
+  it.each(UNSAFE_EVIDENCE_PATH_CASES)("skjuler download-affordance for %s", (_case, fileUrl) => {
+    expect(
+      isEvidenceDownloadAvailable({
+        id: EVIDENCE_ID,
+        project_id: PROJECT_ID,
+        file_url: fileUrl,
       }),
     ).toBe(false);
   });
