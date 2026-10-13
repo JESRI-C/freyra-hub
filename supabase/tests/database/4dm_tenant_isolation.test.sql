@@ -7,6 +7,12 @@
 
 begin;
 
+-- Metadata-only fixtures in this disposable local transaction have no real
+-- Storage bytes. Modern Storage protects direct SQL DELETE before row policies
+-- can run; allow it only here so the denied/allowed DELETE cases exercise RLS.
+-- SET LOCAL is rolled back with every fixture and never changes hosted settings.
+set local storage.allow_delete_query = 'true';
+
 create extension if not exists pgtap with schema extensions;
 select plan(128);
 

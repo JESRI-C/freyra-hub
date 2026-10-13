@@ -4,6 +4,30 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(19);
 
+-- Versions columns can exist before Storage enables duplicate historical names.
+-- An unconditional unique(bucket_id,name) index still makes the history fixture
+-- impossible; a partial current-object index does not. Never alter Storage schema
+-- merely to make this local test claim a version-history capability.
+create function pg_temp.storage_history_fixture_supported() returns boolean
+language sql stable as $history_support$
+  select (select count(*) from pg_catalog.pg_attribute
+      where attrelid = 'storage.objects'::regclass and not attisdropped
+        and attname in ('archived_at', 'is_delete_marker', 'version')) = 3
+    and not exists (
+      select 1 from pg_catalog.pg_index object_index
+      where object_index.indrelid = 'storage.objects'::regclass
+        and object_index.indisunique
+        and object_index.indpred is null
+        and object_index.indnkeyatts = 2
+        and (select array_agg(attribute.attname::text order by attribute.attname)
+          from unnest(object_index.indkey) with ordinality as index_key(attnum, key_order)
+          join pg_catalog.pg_attribute attribute
+            on attribute.attrelid = object_index.indrelid and attribute.attnum = index_key.attnum
+          where index_key.key_order <= object_index.indnkeyatts
+        ) = array['bucket_id','name']::text[]
+    )
+$history_support$;
+
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
  ('00000000-0000-0000-0000-000000000000', 'da100000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'original-field@example.test', '', now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
@@ -30,9 +54,7 @@ values ('da300000-0000-4000-8000-000000000001', 'da200000-0000-4000-8000-0000000
 -- from accidentally passing the regression merely because current was inserted first.
 do $history_setup$
 begin
-  if (select count(*) from pg_catalog.pg_attribute
-      where attrelid = 'storage.objects'::regclass and not attisdropped
-        and attname in ('archived_at', 'is_delete_marker', 'version')) = 3 then
+  if pg_temp.storage_history_fixture_supported() then
     execute $sql$
       insert into storage.objects (id, bucket_id, name, owner_id, metadata, version, archived_at, is_delete_marker)
       values ('da500000-0000-4000-8000-000000000002', 'monitoring-uploads',
@@ -60,6 +82,8 @@ select ok(has_table_privilege('service_role', 'storage.objects', 'SELECT')
 -- The guarded EXECUTEs are parsed only on a version-aware Storage schema.
 -- Legacy local schemas produce exactly two TAP skips, without pretending that
 -- historical-version/delete-marker behavior has been executed.
+-- Schemas with version columns but an unconditional unique name get one history
+-- skip; delete-marker rejection is still exercised on the real current object.
 create function pg_temp.assert_original_storage_versions() returns setof text
 language plpgsql as $version_tests$
 begin
@@ -70,15 +94,19 @@ begin
     return;
   end if;
 
-  return next is(
-    public.prepare_drone_original_validation(
-      'da200000-0000-4000-8000-000000000001',
-      'da300000-0000-4000-8000-000000000001',
-      'da100000-0000-4000-8000-000000000001'
-    ) #>> '{object,id}',
-    'da500000-0000-4000-8000-000000000001',
-    'archived historical version is ignored; only the current original is prepared'
-  );
+  if pg_temp.storage_history_fixture_supported() then
+    return next is(
+      public.prepare_drone_original_validation(
+        'da200000-0000-4000-8000-000000000001',
+        'da300000-0000-4000-8000-000000000001',
+        'da100000-0000-4000-8000-000000000001'
+      ) #>> '{object,id}',
+      'da500000-0000-4000-8000-000000000001',
+      'archived historical version is ignored; only the current original is prepared'
+    );
+  else
+    return query select * from skip('Local Storage unique name index does not support historical duplicates', 1);
+  end if;
 
   execute $sql$ update storage.objects set is_delete_marker = true
     where id = 'da500000-0000-4000-8000-000000000001' $sql$;
@@ -106,7 +134,9 @@ select object.id as object_id, to_jsonb(object) ->> 'version' as object_version,
    'object', jsonb_build_object('id', object.id, 'version', to_jsonb(object) ->> 'version', 'updated_at', object.updated_at, 'owner_id', object.owner_id, 'size', 10, 'mimetype', 'image/jpeg')),
  'status', 'rejected', 'jpegStructure', null, 'metadata', null, 'cameraPositionEligible', false, 'pixelDecoded', false, 'georeferenced', false, 'reportEligible', false,
  'errors', jsonb_build_array(jsonb_build_object('code', 'JPEG_STRUCTURE_INVALID', 'message', 'Synthetic rejected file')), 'warnings', '[]'::jsonb) as result
-from public.uploads upload join storage.objects object on object.name = upload.storage_path where upload.id = 'da300000-0000-4000-8000-000000000001';
+from public.uploads upload join storage.objects object on object.name = upload.storage_path
+where upload.id = 'da300000-0000-4000-8000-000000000001'
+  and object.id = 'da500000-0000-4000-8000-000000000001';
 grant select on original_case to service_role;
 set local role service_role;
 select is(public.prepare_drone_original_validation('da200000-0000-4000-8000-000000000001', 'da300000-0000-4000-8000-000000000001', 'da100000-0000-4000-8000-000000000001') #>> '{object,id}',
