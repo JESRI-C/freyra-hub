@@ -7,6 +7,11 @@
   },
   "sideEffects": false,
   "type": "module",
+  "overrides": {
+    "seroval": "1.6.3",
+    "proxy-addr": "2.0.8",
+    "shell-quote": "1.11.0"
+  },
   "scripts": {
     "dev": "vite dev",
     "dev:staging": "npm run preflight:staging && vite dev --mode staging",
