@@ -1,0 +1,229 @@
+{
+  "schema": "gofreyra.hosted-qa/v2",
+  "kind": "ai-auth-boundaries",
+  "startedAt": "2026-10-13T18:15:16.827Z",
+  "firstStartedAt": "2026-10-13T18:15:16.838Z",
+  "attempt": 1,
+  "outcome": "passed",
+  "synthetic": true,
+  "municipalAcceptance": false,
+  "supabaseRef": "xdvqdzdpyceojbdknofi",
+  "projectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+  "requests": {},
+  "checks": {
+    "ordinary-staging-identities": {
+      "ordinaryAuth": true,
+      "stagingIssuerVerified": true,
+      "syntheticProjectVerified": true
+    },
+    "ai-test-scope": {
+      "actualServerFnHttp": true,
+      "plannedAnonymousRequests": 4,
+      "plannedIntentionallyInvalidBearerRequests": 4,
+      "authenticatedAiRequests": 0,
+      "positiveHostedAiGenerationTested": false,
+      "liveAiProviderActivationVerified": false,
+      "aiProviderKeyConfigurationInspected": false,
+      "liveAiProviderSpendAuthorized": false,
+      "dbProjectBindingClaimed": false,
+      "professionalApprovalClaimed": false,
+      "expectedNoMutationEvidenceScope": "Bounded synthetic canonical graph and derived-record counts",
+      "sdkPositiveGenerationEvidence": "Local mocked unit tests only; not a hosted positive claim"
+    },
+    "synthetic-state-before": {
+      "graph": {
+        "project_media": {
+          "count": 1,
+          "sha256": "518631d36552fefa9b870ab3db9484a68e5c572828fc05c8cd79d3c0f54551f4"
+        },
+        "project_media_upload_origins": {
+          "count": 2,
+          "sha256": "2ba41d2f7ca60d661fdd4919ca61427e8a3122a858693f1454816b73ddba4a2d"
+        },
+        "project_media_promotion_requests": {
+          "count": 3,
+          "sha256": "4241e0c7f97cd218e60c179dcc94fd109cdf6cf94eb7e3d0a70ad2641906462f"
+        },
+        "audit_events": {
+          "count": 9,
+          "sha256": "05cba1e4f46e1ee993243606f6037e9ad4d5c285f97cc5732d95f0d5197d0c72"
+        },
+        "project_baseline_snapshots": {
+          "count": 2,
+          "sha256": "92b2bc0cca9a63ac040a68062d23d31ea78af16b33a8ea4f451d02a73299e804"
+        },
+        "verification_plan_versions": {
+          "count": 2,
+          "sha256": "67d00846ceb18778f0d94f78786206a51271056429bd2404bcaf9d7e36a65871"
+        }
+      },
+      "derived": {
+        "drone_assets": 0,
+        "observations": 0,
+        "reports": 0
+      },
+      "flights": 0
+    },
+    "valid-bounded-negative-request-inputs": {
+      "functions": [
+        "generateModuleInsight",
+        "generateReportDraft",
+        "askDecisionsAssistant",
+        "identifySpeciesFromImage"
+      ],
+      "inputClassification": "Schema-valid synthetic input, not an intentional Zod failure",
+      "fixtureSource": "src/services/monitoring/__tests__/drone-original-validation.fixtures.ts:originalJpeg",
+      "jpegFixtureBytes": 137,
+      "jpegFixtureSha256": "d7e98b662c74dcc8fd2a62381df06a4baf558919188bea95c09f06ee8da7a737",
+      "inlineImageTransportOnly": true,
+      "imagePixelOrProjectVerificationClaimed": false
+    },
+    "generateModuleInsight-anonymous-denied": {
+      "denied": true,
+      "authorizationError": true,
+      "serverFunction": "generateModuleInsight",
+      "credentialMode": "anonymous",
+      "boundedValidInput": true,
+      "genericCode": "SERVER_AUTHORIZATION_DENIED",
+      "actualHttpStatus": null,
+      "httpStatusLimitation": "Shared callFunction does not retain HTTP status on decoded server errors"
+    },
+    "generateModuleInsight-invalid-bearer-denied": {
+      "denied": true,
+      "authorizationError": true,
+      "serverFunction": "generateModuleInsight",
+      "credentialMode": "invalid-bearer",
+      "boundedValidInput": true,
+      "genericCode": "SERVER_AUTHORIZATION_DENIED",
+      "actualHttpStatus": null,
+      "httpStatusLimitation": "Shared callFunction does not retain HTTP status on decoded server errors"
+    },
+    "generateReportDraft-anonymous-denied": {
+      "denied": true,
+      "authorizationError": true,
+      "serverFunction": "generateReportDraft",
+      "credentialMode": "anonymous",
+      "boundedValidInput": true,
+      "genericCode": "SERVER_AUTHORIZATION_DENIED",
+      "actualHttpStatus": null,
+      "httpStatusLimitation": "Shared callFunction does not retain HTTP status on decoded server errors"
+    },
+    "generateReportDraft-invalid-bearer-denied": {
+      "denied": true,
+      "authorizationError": true,
+      "serverFunction": "generateReportDraft",
+      "credentialMode": "invalid-bearer",
+      "boundedValidInput": true,
+      "genericCode": "SERVER_AUTHORIZATION_DENIED",
+      "actualHttpStatus": null,
+      "httpStatusLimitation": "Shared callFunction does not retain HTTP status on decoded server errors"
+    },
+    "askDecisionsAssistant-anonymous-denied": {
+      "denied": true,
+      "authorizationError": true,
+      "serverFunction": "askDecisionsAssistant",
+      "credentialMode": "anonymous",
+      "boundedValidInput": true,
+      "genericCode": "SERVER_AUTHORIZATION_DENIED",
+      "actualHttpStatus": null,
+      "httpStatusLimitation": "Shared callFunction does not retain HTTP status on decoded server errors"
+    },
+    "askDecisionsAssistant-invalid-bearer-denied": {
+      "denied": true,
+      "authorizationError": true,
+      "serverFunction": "askDecisionsAssistant",
+      "credentialMode": "invalid-bearer",
+      "boundedValidInput": true,
+      "genericCode": "SERVER_AUTHORIZATION_DENIED",
+      "actualHttpStatus": null,
+      "httpStatusLimitation": "Shared callFunction does not retain HTTP status on decoded server errors"
+    },
+    "identifySpeciesFromImage-anonymous-denied": {
+      "denied": true,
+      "authorizationError": true,
+      "serverFunction": "identifySpeciesFromImage",
+      "credentialMode": "anonymous",
+      "boundedValidInput": true,
+      "genericCode": "SERVER_AUTHORIZATION_DENIED",
+      "actualHttpStatus": null,
+      "httpStatusLimitation": "Shared callFunction does not retain HTTP status on decoded server errors"
+    },
+    "identifySpeciesFromImage-invalid-bearer-denied": {
+      "denied": true,
+      "authorizationError": true,
+      "serverFunction": "identifySpeciesFromImage",
+      "credentialMode": "invalid-bearer",
+      "boundedValidInput": true,
+      "genericCode": "SERVER_AUTHORIZATION_DENIED",
+      "actualHttpStatus": null,
+      "httpStatusLimitation": "Shared callFunction does not retain HTTP status on decoded server errors"
+    },
+    "synthetic-state-preserved": {
+      "beforeSha256": "6bf43f66316e76dad8801398037af2fb70c9e8bc99c9c1e75d1886e281368c93",
+      "afterSha256": "6bf43f66316e76dad8801398037af2fb70c9e8bc99c9c1e75d1886e281368c93",
+      "canonicalGraphUnchanged": true,
+      "derivedCountsUnchanged": true,
+      "flightCountUnchanged": true,
+      "membershipMutationsPerformed": false,
+      "storageMutationsPerformed": false,
+      "allDatabaseMutationClaimed": false
+    },
+    "hosted-evidence-limitations": {
+      "tested": "Actual deployed serverFn authorization denial for all four AI functions",
+      "completedDeniedRequests": 8,
+      "positiveAiBehaviour": "Not tested on the hosted provider",
+      "inputBinding": "Caller-supplied synthetic values; not DB/project-bound input",
+      "municipalAcceptance": false,
+      "professionalApproval": false,
+      "rateOrConcurrencyControlAcceptance": false
+    }
+  },
+  "audit": {
+    "expectedAppBuildSourceSha": "c0a20a79f09fdbeba4bd7b1205871bca3b2d6f9e",
+    "expectedRepositorySha": "c0a20a79f09fdbeba4bd7b1205871bca3b2d6f9e",
+    "expectedWorkerDeploymentId": "86824008-1926-417d-8e4a-fbbe8968ec36",
+    "expectedDeploymentMetadataSha256": "73f8f2f7afdca8b7a4ca83dcd30f5fc27a29fa7be586bc31297864e348682962",
+    "rootReportedCi": {
+      "runId": 38442953665,
+      "sourceSha": "c0a20a79f09fdbeba4bd7b1205871bca3b2d6f9e",
+      "conclusion": "success",
+      "unitTestFiles": 101,
+      "unitTests": 1243,
+      "sqlFiles": 6,
+      "sqlAssertions": 325
+    },
+    "rootReportedStagingMigrationApply": true,
+    "rootReportedWorkerDeployment": true,
+    "appBuildEquivalentToRepositoryAccordingToRoot": true,
+    "verificationSource": "Root-written public expected-deployment metadata records true CI, scoped staging migration apply and Worker deployment; script hashes local built manifests only",
+    "functionIds": {
+      "generateModuleInsight": "6437db5eb2e97b23d6d7821ee622164dbc022556d99fe817563a26126465a866",
+      "generateReportDraft": "8aa8010aaf56fdcaa359555557b90b62338deea1e83c022580fe31b838fbc10b",
+      "askDecisionsAssistant": "460cea03b794c837f0e55f9306d70d9f73fce177238a30a874416b8dd924fabb",
+      "identifySpeciesFromImage": "fb7d410b4493659e026d20867febf847a470e60ef694bcf92921b3a5756b614b"
+    },
+    "builtManifestFiles": [
+      {
+        "name": "server-Dwwe2wQZ.mjs",
+        "sha256": "210c3fafbccde009bb1ded8947b3660d7cd83c092152e91168a182d53b5e3887"
+      }
+    ],
+    "requiresVerifiedCiAndStagingDeployment": true
+  },
+  "updatedAt": "2026-10-13T18:15:19.546Z",
+  "scope": {
+    "actualServerFnHttp": true,
+    "plannedAnonymousRequests": 4,
+    "plannedIntentionallyInvalidBearerRequests": 4,
+    "authenticatedAiRequests": 0,
+    "positiveHostedAiGenerationTested": false,
+    "liveAiProviderActivationVerified": false,
+    "aiProviderKeyConfigurationInspected": false,
+    "liveAiProviderSpendAuthorized": false,
+    "dbProjectBindingClaimed": false,
+    "professionalApprovalClaimed": false,
+    "expectedNoMutationEvidenceScope": "Bounded synthetic canonical graph and derived-record counts",
+    "sdkPositiveGenerationEvidence": "Local mocked unit tests only; not a hosted positive claim"
+  },
+  "completedAt": "2026-10-13T18:15:19.546Z"
+}
