@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
 import { useAuth } from "@/lib/auth";
+import { isDemoDataEnabled } from "@/lib/data-mode";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
 import { getAllOpenActions } from "@/services/actions-service";
 import { getAllReports } from "@/services/reports-service";
@@ -423,15 +424,18 @@ function KpiMini({ label, value }: { label: string; value: string }) {
 
 function LavbundTile() {
   const { currentOrg } = useAuth();
+  const organizationId = currentOrg?.id;
   const { data, error } = useQuery({
-    queryKey: ["lavbund", "overblik", currentOrg?.id],
+    queryKey: ["lavbund", "overblik", organizationId],
     queryFn: async () => {
       const { getLavbundOverblik } = await import("@/services/lavbundService");
-      return getLavbundOverblik();
+      return getLavbundOverblik(organizationId);
     },
     staleTime: 5 * 60 * 1000,
+    enabled: isDemoDataEnabled || Boolean(organizationId),
   });
 
+  if (!isDemoDataEnabled && !organizationId) return null;
   if (error) {
     return (
       <Card>

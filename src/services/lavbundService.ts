@@ -426,14 +426,58 @@ export interface LavbundOverblik {
   verificeretTotal: number | null;
 }
 
-/** Samlet lavbund-status til app-overblikket (kredit fra v12, verificeret fra snapshots). */
-export async function getLavbundOverblik(): Promise<LavbundOverblik> {
+/** Resolve organization membership through the actual linked core-project FK. */
+async function getOrganizationLavbundProjects(organizationId: string): Promise<LavbundsProjekt[]> {
+  const db = client();
+  if (!db) throw new Error("Kræver databaseforbindelse");
+  const { data, error } = await db
+    .from("lavbund_projekter")
+    .select(
+      "id, payload, linked_project_id, core_project:projects!linked_project_id!inner(id, organization_id)",
+    )
+    .eq("core_project.organization_id", organizationId)
+    .order("id");
+  if (error) throw error;
+
+  const projects: LavbundsProjekt[] = [];
+  for (const row of (data ?? []) as Array<{
+    id: string;
+    payload: LavbundsProjekt;
+    linked_project_id: string | null;
+    core_project: { id: string; organization_id: string | null } | null;
+  }>) {
+    // Never infer an organization from the editable payload or municipality.
+    if (
+      !row.linked_project_id ||
+      !row.core_project ||
+      row.core_project.id !== row.linked_project_id ||
+      row.core_project.organization_id !== organizationId
+    )
+      continue;
+    if (!row.payload || row.payload.id !== row.id) {
+      throw new Error("Lavbundsprojektets gemte datagrundlag matcher ikke projektets ID.");
+    }
+    projects.push({ ...row.payload });
+  }
+  return projects;
+}
+
+/** Selected organization only; offline demo keeps its separate sample portfolio. */
+export async function getLavbundOverblik(organizationId?: string): Promise<LavbundOverblik> {
+  if (!isDemoDataEnabled && !organizationId) {
+    throw new Error("Vælg en organisation, før du åbner lavbundsoversigten.");
+  }
   const { beregnKrediteretCO2 } = await import("@/services/lavbundBeregning");
-  const projects = await getProjects();
+  const projects = isDemoDataEnabled
+    ? await getProjects()
+    : await getOrganizationLavbundProjects(organizationId!);
   let verificeretTotal = 0;
   let missingSnapshot = false;
   for (const p of projects) {
     const snap = await getSnapshot(p.id);
+    if (snap && snap.projektId !== p.id) {
+      throw new Error("Lavbundsprojektets snapshot matcher ikke projektets ID.");
+    }
     if (snap) verificeretTotal += snap.co2.verificeretTotal;
     else missingSnapshot = true;
   }

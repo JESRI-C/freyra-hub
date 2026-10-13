@@ -94,6 +94,14 @@ const PROJECT: LavbundsProjekt = {
   usageScope: "tilskudsordning_klimaregnskab",
   afvigelser: [],
 };
+const ORGANIZATION_A = "organization-a";
+const ORGANIZATION_B = "organization-b";
+const BOUND_PROJECT = {
+  id: PROJECT.id,
+  payload: PROJECT,
+  linked_project_id: "core-project-a",
+  core_project: { id: "core-project-a", organization_id: ORGANIZATION_A },
+};
 const MAALPUNKT: Maalepunkt = {
   id: "customer-point",
   projektId: PROJECT.id,
@@ -227,7 +235,7 @@ describe("lavbund customer data integrity", () => {
   });
 
   it("reports a genuine empty overview without the sample project totals", async () => {
-    await expect(getLavbundOverblik()).resolves.toEqual({
+    await expect(getLavbundOverblik(ORGANIZATION_A)).resolves.toEqual({
       antalProjekter: 0,
       samletArealHa: 0,
       krediteretTotal: 0,
@@ -239,18 +247,18 @@ describe("lavbund customer data integrity", () => {
     const error = { code: "42501", message: "Snapshot unavailable" };
     db.state.response.mockImplementation((table) =>
       table === "lavbund_projekter"
-        ? { data: [{ payload: PROJECT }], error: null }
+        ? { data: [BOUND_PROJECT], error: null }
         : { data: null, error },
     );
-    await expect(getLavbundOverblik()).rejects.toBe(error);
+    await expect(getLavbundOverblik(ORGANIZATION_A)).rejects.toBe(error);
   });
 
   it("keeps the verified total unknown if any customer project lacks a snapshot", async () => {
     db.state.response.mockImplementation((table) => ({
-      data: table === "lavbund_projekter" ? [{ payload: PROJECT }] : null,
+      data: table === "lavbund_projekter" ? [BOUND_PROJECT] : null,
       error: null,
     }));
-    const overview = await getLavbundOverblik();
+    const overview = await getLavbundOverblik(ORGANIZATION_A);
     expect(overview.antalProjekter).toBe(1);
     expect(overview.samletArealHa).toBe(10);
     expect(overview.verificeretTotal).toBeNull();
@@ -260,10 +268,88 @@ describe("lavbund customer data integrity", () => {
     db.state.response.mockImplementation((table) => ({
       data:
         table === "lavbund_projekter"
-          ? [{ payload: PROJECT }]
+          ? [BOUND_PROJECT]
           : { payload: { ...SNAPSHOT, co2: { ...SNAPSHOT.co2, verificeretTotal: 0 } } },
       error: null,
     }));
-    expect((await getLavbundOverblik()).verificeretTotal).toBe(0);
+    expect((await getLavbundOverblik(ORGANIZATION_A)).verificeretTotal).toBe(0);
+  });
+
+  it("requires the selected organization before any customer overview query", async () => {
+    await expect(getLavbundOverblik()).rejects.toThrow("Vælg en organisation");
+    await expect(getLavbundOverblik("")).rejects.toThrow("Vælg en organisation");
+    expect(db.from).not.toHaveBeenCalled();
+  });
+
+  it("keeps two RLS-readable organizations separate and excludes unlinked projects", async () => {
+    const projectB = {
+      ...PROJECT,
+      id: "2",
+      samletArealHa: 25,
+      kommune: PROJECT.kommune,
+      arealFordeling: PROJECT.arealFordeling.map((area) => ({ ...area, hektar: 25 })),
+    };
+    const rows = [
+      BOUND_PROJECT,
+      {
+        id: projectB.id,
+        payload: projectB,
+        linked_project_id: "core-project-b",
+        core_project: { id: "core-project-b", organization_id: ORGANIZATION_B },
+      },
+      {
+        id: "unlinked",
+        payload: { ...PROJECT, id: "unlinked", samletArealHa: 500 },
+        linked_project_id: null,
+        core_project: null,
+      },
+    ];
+    db.state.response.mockImplementation((table) => ({
+      data: table === "lavbund_projekter" ? rows : null,
+      error: null,
+    }));
+
+    const overviewA = await getLavbundOverblik(ORGANIZATION_A);
+    expect(overviewA).toMatchObject({ antalProjekter: 1, samletArealHa: 10 });
+    const projectQueryA = db.from.mock.results[0].value.select.mock.results[0].value;
+    expect(db.from.mock.results[0].value.select).toHaveBeenCalledWith(
+      "id, payload, linked_project_id, core_project:projects!linked_project_id!inner(id, organization_id)",
+    );
+    expect(projectQueryA.eq).toHaveBeenCalledWith("core_project.organization_id", ORGANIZATION_A);
+    const snapshotQueryA = db.from.mock.results[1].value.select.mock.results[0].value;
+    expect(snapshotQueryA.eq).toHaveBeenCalledExactlyOnceWith("projekt_id", PROJECT.id);
+
+    db.from.mockClear();
+    const overviewB = await getLavbundOverblik(ORGANIZATION_B);
+    expect(overviewB).toMatchObject({ antalProjekter: 1, samletArealHa: 25 });
+    const snapshotQueryB = db.from.mock.results[1].value.select.mock.results[0].value;
+    expect(snapshotQueryB.eq).toHaveBeenCalledExactlyOnceWith("projekt_id", projectB.id);
+    expect(overviewA.krediteretTotal).not.toBe(overviewB.krediteretTotal);
+  });
+
+  it("preserves scoped project source failures instead of returning another organization or demo", async () => {
+    const error = { code: "PGRST205", message: "relationship source unavailable" };
+    db.state.response.mockReturnValue({ data: null, error });
+    await expect(getLavbundOverblik(ORGANIZATION_A)).rejects.toBe(error);
+  });
+
+  it("rejects same-organization payload identity mismatch before reading any snapshot", async () => {
+    db.state.response.mockReturnValue({
+      data: [{ ...BOUND_PROJECT, payload: { ...PROJECT, id: "other-project" } }],
+      error: null,
+    });
+    await expect(getLavbundOverblik(ORGANIZATION_A)).rejects.toThrow("datagrundlag matcher ikke");
+    expect(db.from).toHaveBeenCalledExactlyOnceWith("lavbund_projekter");
+  });
+
+  it("does not sum a snapshot payload belonging to a different project", async () => {
+    db.state.response.mockImplementation((table) => ({
+      data:
+        table === "lavbund_projekter"
+          ? [BOUND_PROJECT]
+          : { payload: { ...SNAPSHOT, projektId: "other-project" } },
+      error: null,
+    }));
+    await expect(getLavbundOverblik(ORGANIZATION_A)).rejects.toThrow("snapshot matcher ikke");
   });
 });
