@@ -47,10 +47,7 @@ export function ConnectorStatusPanel({ connectors, className }: ConnectorStatusP
 
   return (
     <Card className={className}>
-      <CardHeader
-        title="Connector-status"
-        subtitle={`${liveCount} af ${connectors.length} live`}
-      />
+      <CardHeader title="Connector-status" subtitle={`${liveCount} af ${connectors.length} live`} />
       <div className="px-5 pb-4 divide-y">
         {connectors.map((c) => (
           <div key={c.slug} className="py-3 flex items-start gap-3">
@@ -60,7 +57,9 @@ export function ConnectorStatusPanel({ connectors, className }: ConnectorStatusP
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate">{c.name}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{c.provider}</div>
-              {c.note && <div className="text-xs text-muted-foreground italic mt-0.5">{c.note}</div>}
+              {c.note && (
+                <div className="text-xs text-muted-foreground italic mt-0.5">{c.note}</div>
+              )}
             </div>
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[c.status]}`}

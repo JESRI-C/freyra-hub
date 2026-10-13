@@ -12,23 +12,23 @@ De næste forward migrations er `20260901163924_upload_intents_resumable_storage
 
 ## Aktuel migrationsstatus
 
-| Element                                          | Status                                                                                          |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| Supabase CLI                                     | 2.116.0, pinnet i `devDependencies` og lockfile                                                 |
-| Staging migrationshistorik                       | Registreret gennem `20260912110614`; live schema-postflight er hærdet                           |
-| `20260912112500_upload_intent_forward_reconciliation.sql` | Source-only; **AFVENTER** særskilt live-migrationsmandat                              |
-| Målrettede kilde-/servicetests                   | Bestået; indgår i samlet Vitest                                                                 |
-| Samlet Vitest                                    | 55 filer, 420/420 bestået                                                                       |
-| Typecheck/målrettet ESLint/staging-build/Wrangler dry-run | Bestået                                                                               |
-| pgTAP                                            | Testfil med `plan(107)` og 107 assertions skrevet; **ikke runtime-kørt**                        |
-| Lokal database                                   | **AFVENTER**; Docker/Podman `NOT_FOUND`                                                         |
-| Clean reset/lint                                 | **AFVENTER**; reset gav `LegacyLocalDbRunningError`, lint `ECONNREFUSED 127.0.0.1:54322`        |
-| Auth/PostgREST/RPC/Storage/TUS                   | Historisk SQL A/B og anon-smoke bevaret; credential-båret API-/TUS-rejse **AFVENTER**           |
-| Lovable-/produktionstarget                       | `ikrmcetjutqcjtwfhzfv` utilgængelig via connector; ikke ændret                                  |
-| Staging                                          | Aktiv; historik gennem `20260912110614`, live schema-postflight hærdet                          |
-| Produktion                                       | Ikke rørt; ingen migration eller deploy                                                         |
-| Git                                              | Leverancen samles i cyklus 009-checkpoint og pushes kun til `codex/gofreyra-p0`                 |
-| Genererede typer                                 | Må først regenereres efter bestået lokal schema-replay                                          |
+| Element                                                   | Status                                                                                   |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Supabase CLI                                              | 2.116.0, pinnet i `devDependencies` og lockfile                                          |
+| Staging migrationshistorik                                | Registreret gennem `20260912110614`; live schema-postflight er hærdet                    |
+| `20260912112500_upload_intent_forward_reconciliation.sql` | Source-only; **AFVENTER** særskilt live-migrationsmandat                                 |
+| Målrettede kilde-/servicetests                            | Bestået; indgår i samlet Vitest                                                          |
+| Samlet Vitest                                             | 55 filer, 420/420 bestået                                                                |
+| Typecheck/målrettet ESLint/staging-build/Wrangler dry-run | Bestået                                                                                  |
+| pgTAP                                                     | Testfil med `plan(107)` og 107 assertions skrevet; **ikke runtime-kørt**                 |
+| Lokal database                                            | **AFVENTER**; Docker/Podman `NOT_FOUND`                                                  |
+| Clean reset/lint                                          | **AFVENTER**; reset gav `LegacyLocalDbRunningError`, lint `ECONNREFUSED 127.0.0.1:54322` |
+| Auth/PostgREST/RPC/Storage/TUS                            | Historisk SQL A/B og anon-smoke bevaret; credential-båret API-/TUS-rejse **AFVENTER**    |
+| Lovable-/produktionstarget                                | `ikrmcetjutqcjtwfhzfv` utilgængelig via connector; ikke ændret                           |
+| Staging                                                   | Aktiv; historik gennem `20260912110614`, live schema-postflight hærdet                   |
+| Produktion                                                | Ikke rørt; ingen migration eller deploy                                                  |
+| Git                                                       | Leverancen samles i cyklus 009-checkpoint og pushes kun til `codex/gofreyra-p0`          |
+| Genererede typer                                          | Må først regenereres efter bestået lokal schema-replay                                   |
 
 Live schema-postflight og den historiske transaktionelle A/B-test er runtime-evidens for de testede SQL-flader, men erstatter ikke clean lokal replay, de 107 pgTAP-cases eller en credential-båret Auth-/Storage/TUS-rejse. `20260912112500` må ikke behandles som anvendt alene fordi live schema allerede matcher det tilsigtede postflight-resultat.
 

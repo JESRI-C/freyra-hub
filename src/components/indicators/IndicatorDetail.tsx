@@ -124,7 +124,9 @@ export function IndicatorDetail({
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">Aktuel værdi</div>
-                <div className={`text-2xl font-bold tabular-nums ${indicatorStatusColor(indicator)}`}>
+                <div
+                  className={`text-2xl font-bold tabular-nums ${indicatorStatusColor(indicator)}`}
+                >
                   {formatIndicatorValue(indicator)}
                 </div>
               </div>
@@ -150,7 +152,9 @@ export function IndicatorDetail({
                   key={p}
                   onClick={() => setPeriod(p)}
                   className={`px-3 py-1 text-xs rounded-md ${
-                    period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                    period === p
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   {p === "all" ? "Alle" : p}
@@ -184,7 +188,12 @@ export function IndicatorDetail({
                         y={indicator.threshold_warning}
                         stroke="#f59e0b"
                         strokeDasharray="4 3"
-                        label={{ value: "Advarsel", fontSize: 10, fill: "#f59e0b", position: "right" }}
+                        label={{
+                          value: "Advarsel",
+                          fontSize: 10,
+                          fill: "#f59e0b",
+                          position: "right",
+                        }}
                       />
                     )}
                     {indicator.threshold_critical != null && (
@@ -192,7 +201,12 @@ export function IndicatorDetail({
                         y={indicator.threshold_critical}
                         stroke="#dc2626"
                         strokeDasharray="4 3"
-                        label={{ value: "Kritisk", fontSize: 10, fill: "#dc2626", position: "right" }}
+                        label={{
+                          value: "Kritisk",
+                          fontSize: 10,
+                          fill: "#dc2626",
+                          position: "right",
+                        }}
                       />
                     )}
                     <Line
@@ -225,9 +239,7 @@ export function IndicatorDetail({
                 </Button>
               </div>
               {!isSupabaseConfigured && (
-                <p className="text-xs text-muted-foreground">
-                  Kræver tilkoblet database.
-                </p>
+                <p className="text-xs text-muted-foreground">Kræver tilkoblet database.</p>
               )}
             </div>
 
@@ -238,17 +250,26 @@ export function IndicatorDetail({
                   Seneste målinger
                 </div>
                 <div className="divide-y max-h-56 overflow-y-auto">
-                  {[...measurements].reverse().slice(0, 20).map((m) => (
-                    <div key={m.id} className="px-3 py-2 flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {new Date(m.measured_at).toLocaleString("da-DK")}
-                      </span>
-                      <span className="font-medium tabular-nums">
-                        {m.value}{m.unit ?? ""}
-                        {m.source && <span className="ml-2 text-xs text-muted-foreground">· {m.source}</span>}
-                      </span>
-                    </div>
-                  ))}
+                  {[...measurements]
+                    .reverse()
+                    .slice(0, 20)
+                    .map((m) => (
+                      <div
+                        key={m.id}
+                        className="px-3 py-2 flex items-center justify-between text-sm"
+                      >
+                        <span className="text-muted-foreground">
+                          {new Date(m.measured_at).toLocaleString("da-DK")}
+                        </span>
+                        <span className="font-medium tabular-nums">
+                          {m.value}
+                          {m.unit ?? ""}
+                          {m.source && (
+                            <span className="ml-2 text-xs text-muted-foreground">· {m.source}</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}

@@ -1,10 +1,4 @@
-import {
-  createFileRoute,
-  Link,
-  Outlet,
-  useRouterState,
-  Navigate,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Map, Leaf, Droplets, BookCheck, FileText, ArrowLeft, Link2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,8 +17,18 @@ export const Route = createFileRoute("/app/lavbund/$projektId")({
 const TABS = [
   { to: "/app/lavbund/$projektId/kort", suffix: "kort", label: "Feltkort & tidsserie", icon: Map },
   { to: "/app/lavbund/$projektId/klima", suffix: "klima", label: "Klima · CO₂", icon: Leaf },
-  { to: "/app/lavbund/$projektId/fosfor", suffix: "fosfor", label: "Fosfor · brinkerosion", icon: Droplets },
-  { to: "/app/lavbund/$projektId/revisionsspor", suffix: "revisionsspor", label: "Revisionsspor", icon: BookCheck },
+  {
+    to: "/app/lavbund/$projektId/fosfor",
+    suffix: "fosfor",
+    label: "Fosfor · brinkerosion",
+    icon: Droplets,
+  },
+  {
+    to: "/app/lavbund/$projektId/revisionsspor",
+    suffix: "revisionsspor",
+    label: "Revisionsspor",
+    icon: BookCheck,
+  },
   { to: "/app/lavbund/$projektId/rapport", suffix: "rapport", label: "Rapport", icon: FileText },
 ] as const;
 
@@ -141,9 +145,7 @@ function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
       });
       await qc.invalidateQueries({ queryKey: ["lavbund", "linked", projektId] });
       toast.success(
-        coreId
-          ? "Koblet — næste bogføring opdaterer projektets CO₂-indicator"
-          : "Kobling fjernet",
+        coreId ? "Koblet — næste bogføring opdaterer projektets CO₂-indicator" : "Kobling fjernet",
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Kunne ikke opdatere kobling");

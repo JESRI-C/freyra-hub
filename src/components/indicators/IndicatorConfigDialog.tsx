@@ -1,10 +1,22 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { saveIndicatorConfig } from "@/services/indicators-service";
 import { toast } from "sonner";
 import type { Indicator } from "@/lib/supabase/types";
@@ -74,12 +86,18 @@ export function IndicatorConfigDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Enhed</Label>
-              <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="%, /100, t CO₂e" />
+              <Input
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder="%, /100, t CO₂e"
+              />
             </div>
             <div>
               <Label>Grænseretning</Label>
               <Select value={direction} onValueChange={(v) => setDirection(v as "above" | "below")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="above">Alarmér når værdi er OVER grænse</SelectItem>
                   <SelectItem value="below">Alarmér når værdi er UNDER grænse</SelectItem>
@@ -102,7 +120,9 @@ export function IndicatorConfigDialog({
           </p>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Annullér</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Annullér
+          </Button>
           <Button onClick={handleSave} disabled={saving || !label.trim()}>
             {saving ? "Gemmer…" : "Gem"}
           </Button>

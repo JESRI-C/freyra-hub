@@ -106,7 +106,10 @@ export function DeviceWizard({ open, projectId, onClose, onCreated }: Props) {
         <div className="px-5 py-2 border-b bg-muted/30">
           <div className="flex gap-1">
             {STEPS.map((_, i) => (
-              <div key={i} className={`h-1 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`} />
+              <div
+                key={i}
+                className={`h-1 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`}
+              />
             ))}
           </div>
         </div>
@@ -129,32 +132,66 @@ export function DeviceWizard({ open, projectId, onClose, onCreated }: Props) {
 
           {step === 1 && (
             <div className="space-y-3">
-              <Field label="Navn *" value={form.name} onChange={(v) => set("name", v)} placeholder="fx SKB-WQ-01" />
-              <Field label="Producent" value={form.manufacturer} onChange={(v) => set("manufacturer", v)} />
+              <Field
+                label="Navn *"
+                value={form.name}
+                onChange={(v) => set("name", v)}
+                placeholder="fx SKB-WQ-01"
+              />
+              <Field
+                label="Producent"
+                value={form.manufacturer}
+                onChange={(v) => set("manufacturer", v)}
+              />
               <Field label="Model" value={form.model} onChange={(v) => set("model", v)} />
-              <Field label="Serienummer" value={form.serial_number} onChange={(v) => set("serial_number", v)} />
+              <Field
+                label="Serienummer"
+                value={form.serial_number}
+                onChange={(v) => set("serial_number", v)}
+              />
             </div>
           )}
 
           {step === 2 && (
             <div className="space-y-3">
               <label className="block text-xs font-medium">Forbindelse</label>
-              <select className="w-full text-sm rounded-lg border bg-background px-3 py-2" value={form.connectivity_type} onChange={(e) => set("connectivity_type", e.target.value)}>
+              <select
+                className="w-full text-sm rounded-lg border bg-background px-3 py-2"
+                value={form.connectivity_type}
+                onChange={(e) => set("connectivity_type", e.target.value)}
+              >
                 {CONNECTIVITY.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Bredde­grad" value={form.latitude} onChange={(v) => set("latitude", v)} placeholder="55.6761" />
-                <Field label="Længde­grad" value={form.longitude} onChange={(v) => set("longitude", v)} placeholder="12.5683" />
+                <Field
+                  label="Bredde­grad"
+                  value={form.latitude}
+                  onChange={(v) => set("latitude", v)}
+                  placeholder="55.6761"
+                />
+                <Field
+                  label="Længde­grad"
+                  value={form.longitude}
+                  onChange={(v) => set("longitude", v)}
+                  placeholder="12.5683"
+                />
               </div>
-              <p className="text-xs text-muted-foreground">Koordinater kan sættes senere via kortet.</p>
+              <p className="text-xs text-muted-foreground">
+                Koordinater kan sættes senere via kortet.
+              </p>
             </div>
           )}
 
           {step === 3 && (
             <div className="text-sm text-muted-foreground space-y-2">
-              <p>Parametre (fx pH, temperatur, turbiditet) tilføjes fra enhedens detaljevisning efter oprettelse.</p>
+              <p>
+                Parametre (fx pH, temperatur, turbiditet) tilføjes fra enhedens detaljevisning efter
+                oprettelse.
+              </p>
               <p>Dette gør det muligt at binde parametre til fysiske sensor-kanaler bagefter.</p>
             </div>
           )}
@@ -180,7 +217,14 @@ export function DeviceWizard({ open, projectId, onClose, onCreated }: Props) {
               <Row k="Producent / model" v={`${form.manufacturer || "—"} / ${form.model || "—"}`} />
               <Row k="Serienummer" v={form.serial_number || "—"} />
               <Row k="Forbindelse" v={form.connectivity_type} />
-              <Row k="Position" v={form.latitude && form.longitude ? `${form.latitude}, ${form.longitude}` : "Sættes senere"} />
+              <Row
+                k="Position"
+                v={
+                  form.latitude && form.longitude
+                    ? `${form.latitude}, ${form.longitude}`
+                    : "Sættes senere"
+                }
+              />
               <Row k="Interval" v={`${form.expected_interval_minutes} min`} />
               {error && <div className="text-xs text-destructive">{error}</div>}
             </div>
@@ -218,7 +262,17 @@ export function DeviceWizard({ open, projectId, onClose, onCreated }: Props) {
   );
 }
 
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
   return (
     <div>
       <label className="block text-xs font-medium mb-1">{label}</label>

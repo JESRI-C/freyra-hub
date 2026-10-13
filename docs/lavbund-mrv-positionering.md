@@ -38,7 +38,7 @@ Types) ex-ante-opgørelser mod målte fluxe viser, at proxy-metoderne
 scenarier** (bl.a. tyske MoorFutures-projekter).
 
 - Konsekvens for produktet: målt verifikation vil typisk vise en
-  opnåelsesgrad ≥ 100 % — den er et *opgraderings*-argument, aldrig et
+  opnåelsesgrad ≥ 100 % — den er et _opgraderings_-argument, aldrig et
   nedskrivningsgrundlag. UI'et forklarer dette eksplicit, når opnåelsesgraden
   overstiger 100 % (klima-siden) og i rapportens afsnit "Metodisk kontekst".
 
@@ -81,7 +81,7 @@ Kilder: MiljøGIS klimalavbund, https://miljoegis3.mim.dk ; Aarhus Universitet
 ## 6. Empirisk vandstands-emissionssammenhæng og dansk kritik af ex-ante
 
 - **Evans, C. D. m.fl. (2021):** "Overriding water table control on managed
-  peatland greenhouse gas emissions", *Nature* 593, 548–552
+  peatland greenhouse gas emissions", _Nature_ 593, 548–552
   (DOI: 10.1038/s41586-021-03523-1). Vandstanden er den dominerende styring af
   drivhusgasemission fra forvaltet tørvejord — **~3 t CO₂e/ha/år pr. 10 cm
   ændring i vandstandsdybde**. Det er det direkte empiriske grundlag for at

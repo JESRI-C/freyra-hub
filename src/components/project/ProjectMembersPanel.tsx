@@ -21,7 +21,14 @@ interface Props {
   permissions: ProjectPermissions;
 }
 
-const ALL_ROLES: ProjectRole[] = ["admin", "project_manager", "editor", "field", "viewer", "external"];
+const ALL_ROLES: ProjectRole[] = [
+  "admin",
+  "project_manager",
+  "editor",
+  "field",
+  "viewer",
+  "external",
+];
 
 export function ProjectMembersPanel({ projectId, currentUserId, permissions }: Props) {
   const qc = useQueryClient();
@@ -123,7 +130,11 @@ export function ProjectMembersPanel({ projectId, currentUserId, permissions }: P
               disabled={!inviteUserId.trim() || add.isPending}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
-              {add.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              {add.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
               Tilføj
             </button>
           </div>
@@ -162,7 +173,9 @@ export function ProjectMembersPanel({ projectId, currentUserId, permissions }: P
                 {permissions.canManage && !isSelf ? (
                   <select
                     value={m.role}
-                    onChange={(e) => changeRole.mutate({ id: m.id, role: e.target.value as ProjectRole })}
+                    onChange={(e) =>
+                      changeRole.mutate({ id: m.id, role: e.target.value as ProjectRole })
+                    }
                     className="px-2 py-1 text-xs rounded border bg-background"
                   >
                     {ALL_ROLES.map((r) => (

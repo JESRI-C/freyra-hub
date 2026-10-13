@@ -12,17 +12,17 @@ Efter frisk `npm ci` består fuld serial Vitest med 54 filer/412 tests, typechec
 
 ## Verificeret baseline
 
-| Gate             | Observeret resultat                                       | Status                           |
-| ---------------- | --------------------------------------------------------- | -------------------------------- |
-| Node/npm         | Node 22.14, npm 10.9.2, kanonisk npm-lock                 | Verificeret tidligere checkpoint |
-| Ren installation | `npm ci`, 823 pakker                                      | Verificeret tidligere checkpoint |
-| TypeScript       | `npm run typecheck`, exit 0                               | Verificeret aktuelt              |
-| Målrettet lint   | ESLint på berørte filer, exit 0                           | Verificeret aktuelt              |
-| Global lint      | 5.407 errors, 25 warnings ved seneste fulde kørsel        | Releasegate fejlet               |
-| Unit/service     | Samlet Vitest: 55 filer/420 tests                         | Verificeret aktuelt              |
-| Build            | `npm run build:staging`, exit 0                           | Verificeret aktuelt              |
-| Wrangler         | Staging Worker dry-run, exit 0                            | Verificeret aktuelt              |
-| Browser-smoke    | Historisk unauthenticated smoke; ingen credential-båret TUS/E2E | Credential-båret flow **AFVENTER** |
+| Gate             | Observeret resultat                                             | Status                                |
+| ---------------- | --------------------------------------------------------------- | ------------------------------------- |
+| Node/npm         | Node 22.14, npm 10.9.2, kanonisk npm-lock                       | Verificeret tidligere checkpoint      |
+| Ren installation | `npm ci`, 823 pakker                                            | Verificeret tidligere checkpoint      |
+| TypeScript       | `npm run typecheck`, exit 0                                     | Verificeret aktuelt                   |
+| Målrettet lint   | ESLint på berørte filer, exit 0                                 | Verificeret aktuelt                   |
+| Global lint      | 5.407 errors, 25 warnings ved seneste fulde kørsel              | Releasegate fejlet                    |
+| Unit/service     | Samlet Vitest: 55 filer/420 tests                               | Verificeret aktuelt                   |
+| Build            | `npm run build:staging`, exit 0                                 | Verificeret aktuelt                   |
+| Wrangler         | Staging Worker dry-run, exit 0                                  | Verificeret aktuelt                   |
+| Browser-smoke    | Historisk unauthenticated smoke; ingen credential-båret TUS/E2E | Credential-båret flow **AFVENTER**    |
 | RLS/Storage      | Live schema-postflight hærdet; historik gennem `20260912110614` | Credential-båret API/TUS **AFVENTER** |
 
 ## Observeret slice: canonical projektgrænse

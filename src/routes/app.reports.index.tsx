@@ -144,10 +144,18 @@ function Page() {
         module="Reports"
         tone="action"
         cacheKey={`reports:${reports.length}`}
-        context={`Antal rapporter i datalaget: ${reports.length}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Status-fordeling: ${Object.entries(reports.reduce<Record<string, number>>((acc, r) => { const s = r.status ?? "ukendt"; acc[s] = (acc[s] ?? 0) + 1; return acc; }, {})).map(([k, v]) => `${k}: ${v}`).join(", ")}. Seneste rapporter: ${RECENT_REPORTS.slice(0, 3).map((r) => r.name).join("; ")}.`}
+        context={`Antal rapporter i datalaget: ${reports.length}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Status-fordeling: ${Object.entries(
+          reports.reduce<Record<string, number>>((acc, r) => {
+            const s = r.status ?? "ukendt";
+            acc[s] = (acc[s] ?? 0) + 1;
+            return acc;
+          }, {}),
+        )
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(", ")}. Seneste rapporter: ${RECENT_REPORTS.slice(0, 3)
+          .map((r) => r.name)
+          .join("; ")}.`}
       />
-
-
 
       <PageHeader
         title="Report Engine"
@@ -221,21 +229,26 @@ function Page() {
 
         <Section title="Hurtige handlinger" subtitle="Genveje til typiske rapporter">
           <div className="grid grid-cols-2 gap-2">
-            {([
-              ["Opret ledelsesrapport", Briefcase],
-              ["Generér CO₂-bilag", BarChart3],
-              ["Byg investorrapport", Building],
-              ["Eksportér revisorpakke", FileCheck],
-              ["Lav projektfakta", Leaf],
-              ["Send rapport til review", Send],
-            ] as const).map(([label, Icon]) => (
+            {(
+              [
+                ["Opret ledelsesrapport", Briefcase],
+                ["Generér CO₂-bilag", BarChart3],
+                ["Byg investorrapport", Building],
+                ["Eksportér revisorpakke", FileCheck],
+                ["Lav projektfakta", Leaf],
+                ["Send rapport til review", Send],
+              ] as const
+            ).map(([label, Icon]) => (
               <Link
                 key={label}
                 to="/app/reports/new"
                 className="rounded-lg border bg-card p-3 text-left text-sm hover:bg-muted transition flex items-start gap-2"
               >
                 <div className="h-8 w-8 rounded-lg bg-leaf/20 text-primary grid place-items-center">
-                  {(() => { const I = Icon as LucideIcon; return <I className="h-4 w-4" />; })()}
+                  {(() => {
+                    const I = Icon as LucideIcon;
+                    return <I className="h-4 w-4" />;
+                  })()}
                 </div>
                 <span className="flex-1">{label}</span>
               </Link>

@@ -22,8 +22,8 @@ const IdentifyInput = z.object({
 export interface IdentifiedSpecies {
   scientificName: string;
   danishName: string;
-  group: string;        // Fugle, Pattedyr, Padder, Planter, Insekter, Svampe …
-  confidence: number;   // 0-1
+  group: string; // Fugle, Pattedyr, Padder, Planter, Insekter, Svampe …
+  confidence: number; // 0-1
   notes?: string;
 }
 
@@ -38,17 +38,22 @@ const SYSTEM_PROMPT =
   "Du er en dansk biolog og naturkonsulent specialiseret i artsbestemmelse. " +
   "Du analyserer feltbilleder fra danske naturprojekter og identificerer arter. " +
   "Returnér KUN gyldig JSON — ingen markdown, ingen forklarende tekst udenom. " +
-  "Format: {\"species\":[{\"scientificName\":\"...\",\"danishName\":\"...\",\"group\":\"...\",\"confidence\":0.0,\"notes\":\"...\"}]}. " +
+  'Format: {"species":[{"scientificName":"...","danishName":"...","group":"...","confidence":0.0,"notes":"..."}]}. ' +
   "group skal være én af: Fugle, Pattedyr, Padder, Krybdyr, Fisk, Insekter, Planter, Svampe, Laver, Andet. " +
   "confidence er 0-1. Identificér op til 5 arter, mest sikre først. " +
-  "Hvis intet levende kan identificeres, returnér {\"species\":[]}.";
+  'Hvis intet levende kan identificeres, returnér {"species":[]}.';
 
 export const identifySpeciesFromImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => IdentifyInput.parse(input))
   .handler(async ({ data }): Promise<SpeciesIdResult> => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) {
-      return { species: [], rawText: "", error: true, message: "LOVABLE_API_KEY mangler — aktivér Lovable AI." };
+      return {
+        species: [],
+        rawText: "",
+        error: true,
+        message: "LOVABLE_API_KEY mangler — aktivér Lovable AI.",
+      };
     }
 
     const gateway = createLovableAiGatewayProvider(key);
@@ -114,7 +119,8 @@ function parseSpeciesJson(text: string): IdentifiedSpecies[] {
         scientificName: String(s["scientificName"] ?? "").trim(),
         danishName: String(s["danishName"] ?? s["scientificName"] ?? "Ukendt").trim(),
         group: String(s["group"] ?? "Andet").trim(),
-        confidence: typeof s["confidence"] === "number" ? Math.max(0, Math.min(1, s["confidence"])) : 0.5,
+        confidence:
+          typeof s["confidence"] === "number" ? Math.max(0, Math.min(1, s["confidence"])) : 0.5,
         notes: s["notes"] ? String(s["notes"]).trim() : undefined,
       }))
       .filter((s) => s.scientificName.length > 0);

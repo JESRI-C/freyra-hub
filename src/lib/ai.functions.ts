@@ -54,7 +54,11 @@ export const generateModuleInsight = createServerFn({ method: "POST" })
       const isRate = /429/.test(message);
       const isCredit = /402/.test(message);
       return {
-        headline: isCredit ? "AI-credits opbrugt" : isRate ? "Kortvarig grænse nået" : "AI utilgængelig",
+        headline: isCredit
+          ? "AI-credits opbrugt"
+          : isRate
+            ? "Kortvarig grænse nået"
+            : "AI utilgængelig",
         body: isCredit
           ? "Tilføj credits under Settings → Workspace → Usage for at fortsætte."
           : isRate

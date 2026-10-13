@@ -124,8 +124,7 @@ export const STRATEGIC_SECTIONS = [
   {
     id: "conversion",
     title: "Arealkonvertering & projektforløb",
-    description:
-      "Fra polygon og baseline til lodsejeraftale, tilladelser og monitoreringsplan.",
+    description: "Fra polygon og baseline til lodsejeraftale, tilladelser og monitoreringsplan.",
     href: "/app/projects",
   },
   {
@@ -138,22 +137,19 @@ export const STRATEGIC_SECTIONS = [
   {
     id: "landowner",
     title: "Lodsejerøkonomi & kommunikation",
-    description:
-      "Briefs, kompensationsmodeller og dialogforløb for lodsejere og naboer.",
+    description: "Briefs, kompensationsmodeller og dialogforløb for lodsejere og naboer.",
     href: "/app/decisions/risk",
   },
   {
     id: "audit",
     title: "Dokumentation & audit trail",
-    description:
-      "Sporbar dokumentation fra datapunkt til rapport — klar til myndighed og revisor.",
+    description: "Sporbar dokumentation fra datapunkt til rapport — klar til myndighed og revisor.",
     href: "/app/ledger/audit",
   },
   {
     id: "public",
     title: "Offentlige impact-sider",
-    description:
-      "Borgerrettet formidling af naturprojekters effekt med metode og kilder synlige.",
+    description: "Borgerrettet formidling af naturprojekters effekt med metode og kilder synlige.",
     href: "/app/impact/reports",
   },
 ];
@@ -353,15 +349,29 @@ export const ONBOARDING_STEPS = [
   { id: 3, label: "Tegn projektområde eller upload polygon", done: true, href: "/app/connect/map" },
   { id: 4, label: "Tilføj datakilder & felt-protokol", done: true, href: "/app/connect/sources" },
   { id: 5, label: "Validér datakvalitet og metode", done: false, href: "/app/connect/quality" },
-  { id: 6, label: "Gennemgå anbefalinger i Project Intelligence", done: false, href: "/app/decisions" },
-  { id: 7, label: "Byg første rapport eller lodsejer-brief", done: false, href: "/app/reports/builder" },
+  {
+    id: 6,
+    label: "Gennemgå anbefalinger i Project Intelligence",
+    done: false,
+    href: "/app/decisions",
+  },
+  {
+    id: 7,
+    label: "Byg første rapport eller lodsejer-brief",
+    done: false,
+    href: "/app/reports/builder",
+  },
 ];
 
 export const AI_SUMMARY =
   "Skallebæk Naturprojekt har stærkt datagrundlag på vand og satellitbaseret vegetationsanalyse, men feltverifikation og lodsejerdialog i Zone C skal lukkes før Green Tripart-indmelding og ekstern rapportering.";
 
 export const NEXT_RECOMMENDED_ACTIONS = [
-  { title: "Validér vandsensor Zone 3", module: "Monitoring & Field Data", href: "/app/connect/quality" },
+  {
+    title: "Validér vandsensor Zone 3",
+    module: "Monitoring & Field Data",
+    href: "/app/connect/quality",
+  },
   {
     title: "Færdiggør lodsejer-brief for Zone C",
     module: "Report Engine",
@@ -372,6 +382,9 @@ export const NEXT_RECOMMENDED_ACTIONS = [
     module: "Documentation & Audit",
     href: "/app/ledger/csrd",
   },
-  { title: "Generér kommunalt beslutningsnotat", module: "Report Engine", href: "/app/reports/builder" },
+  {
+    title: "Generér kommunalt beslutningsnotat",
+    module: "Report Engine",
+    href: "/app/reports/builder",
+  },
 ];
-

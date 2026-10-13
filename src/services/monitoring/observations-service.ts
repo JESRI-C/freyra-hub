@@ -5,9 +5,16 @@ import type { Database } from "@/integrations/supabase/types";
 export type FieldObservation = Database["public"]["Tables"]["field_observations"]["Row"];
 export type FieldObservationInsert = Database["public"]["Tables"]["field_observations"]["Insert"];
 
-export async function listObservations(projectId: string, opts?: { limit?: number }): Promise<FieldObservation[]> {
+export async function listObservations(
+  projectId: string,
+  opts?: { limit?: number },
+): Promise<FieldObservation[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  let q = supabase.from("field_observations").select("*").eq("project_id", projectId).order("observed_at", { ascending: false });
+  let q = supabase
+    .from("field_observations")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("observed_at", { ascending: false });
   if (opts?.limit) q = q.limit(opts.limit);
   const { data, error } = await q;
   if (error) throw error;
@@ -16,7 +23,11 @@ export async function listObservations(projectId: string, opts?: { limit?: numbe
 
 export async function createObservation(input: FieldObservationInsert): Promise<FieldObservation> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.from("field_observations").insert(input as never).select("*").single();
+  const { data, error } = await supabase
+    .from("field_observations")
+    .insert(input as never)
+    .select("*")
+    .single();
   if (error) throw error;
   return data as FieldObservation;
 }

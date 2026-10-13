@@ -31,7 +31,10 @@ describe("toFeatureCollection", () => {
       { id: "a", properties: { navn: "Engen" }, geometry: POINT },
       { id: "b", properties: {}, geometry: null }, // uden geometri — filtreres fra
     ];
-    const fc = toFeatureCollection(raw, { idPrefix: "p3_eng", extraProperties: { natureType: "Eng" } });
+    const fc = toFeatureCollection(raw, {
+      idPrefix: "p3_eng",
+      extraProperties: { natureType: "Eng" },
+    });
     expect(fc.type).toBe("FeatureCollection");
     expect(fc.features).toHaveLength(1);
     expect(fc.features[0].id).toBe("p3_eng:a");
@@ -41,10 +44,10 @@ describe("toFeatureCollection", () => {
 
 describe("buildGeoFeatureRows", () => {
   it("mapper features til geo_features-rækker med dedupe-nøgle", () => {
-    const fc = toFeatureCollection(
-      [{ id: "x1", properties: { navn: "Åen" }, geometry: POINT }],
-      { idPrefix: "vandloeb", extraProperties: { natureType: "Vandløb" } },
-    );
+    const fc = toFeatureCollection([{ id: "x1", properties: { navn: "Åen" }, geometry: POINT }], {
+      idPrefix: "vandloeb",
+      extraProperties: { natureType: "Vandløb" },
+    });
     const rows = buildGeoFeatureRows("layer-uuid", fc, "watercourse");
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -104,6 +107,8 @@ describe("isOpenDataLiveEnabled", () => {
     expect(isOpenDataLiveEnabled({ ENABLE_LIVE_DATA: "0" })).toBe(false);
     expect(isOpenDataLiveEnabled({ ENABLE_LIVE_DATA: "off" })).toBe(false);
     // ENABLE_LIVE_DATA har forrang over VITE_-varianten
-    expect(isOpenDataLiveEnabled({ ENABLE_LIVE_DATA: "true", VITE_ENABLE_LIVE_DATA: "false" })).toBe(true);
+    expect(
+      isOpenDataLiveEnabled({ ENABLE_LIVE_DATA: "true", VITE_ENABLE_LIVE_DATA: "false" }),
+    ).toBe(true);
   });
 });

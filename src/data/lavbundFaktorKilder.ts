@@ -21,7 +21,8 @@ export const FAKTOR_KILDER: FaktorKilde[] = [
     udgiver: referencer.co2.udgiver,
     fil: `docs/kilder/lavbund/${referencer.co2.kilde}`,
     sha256: referencer.co2.sha256,
-    anvendtTil: "CO₂-faktorer (t CO₂/ha/år) pr. kulstofklasse × arealanvendelse · buffer = halv effekt",
+    anvendtTil:
+      "CO₂-faktorer (t CO₂/ha/år) pr. kulstofklasse × arealanvendelse · buffer = halv effekt",
   },
   {
     navn: "Regneark til bestemmelse af fosforbalance ved brinkerosion",
@@ -29,7 +30,8 @@ export const FAKTOR_KILDER: FaktorKilde[] = [
     udgiver: referencer.fosfor.udgiver,
     fil: `docs/kilder/lavbund/${referencer.fosfor.kilde}`,
     sha256: referencer.fosfor.sha256,
-    anvendtTil: "Brinkerosionsrater (Tabel 2), hældnings- og vegetationskorrektion (Tabel 3-4), fosforindhold pr. georegion (Tabel 5)",
+    anvendtTil:
+      "Brinkerosionsrater (Tabel 2), hældnings- og vegetationskorrektion (Tabel 3-4), fosforindhold pr. georegion (Tabel 5)",
   },
 ];
 

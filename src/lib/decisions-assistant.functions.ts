@@ -63,10 +63,15 @@ export const askDecisionsAssistant = createServerFn({ method: "POST" })
     const context =
       `Projekt: ${data.projectName}\n` +
       `Indikatorer: ${data.indicators.map((i) => `${i.key}=${i.value ?? "n/a"}`).join(", ") || "ingen"}\n` +
-      `Åbne handlinger (${data.actions.length}): ${data.actions
-        .slice(0, 10)
-        .map((a) => `${a.title} [${a.priority ?? "?"}/${a.status ?? "?"}${a.due_date ? `, frist ${a.due_date}` : ""}]`)
-        .join("; ") || "ingen"}\n` +
+      `Åbne handlinger (${data.actions.length}): ${
+        data.actions
+          .slice(0, 10)
+          .map(
+            (a) =>
+              `${a.title} [${a.priority ?? "?"}/${a.status ?? "?"}${a.due_date ? `, frist ${a.due_date}` : ""}]`,
+          )
+          .join("; ") || "ingen"
+      }\n` +
       `Sensorer (${data.sensors.length}): ${
         data.sensors
           .slice(0, 12)

@@ -32,9 +32,7 @@ export const Route = createFileRoute("/app/overview")({
   component: DashboardPage,
 });
 
-
 // ─── Static structure copy (module map & workflow) ───────────────────────────
-
 
 const WORKFLOW_STEPS = [
   "Project intake",
@@ -107,10 +105,7 @@ function DashboardPage() {
 
   const kpis = useMemo(() => {
     const activeProjects = summaries.filter((s) => s.project.status !== "Afsluttet").length;
-    const totalHa = summaries.reduce(
-      (a, s) => a + (Number(s.project.geometry_area_ha) || 0),
-      0,
-    );
+    const totalHa = summaries.reduce((a, s) => a + (Number(s.project.geometry_area_ha) || 0), 0);
     const readinessVals = summaries
       .flatMap((s) => s.indicators)
       .filter((i) => i.key === "report_readiness" && i.value !== null)
@@ -124,12 +119,36 @@ function DashboardPage() {
       (r) => r.status === "Publiceret" || r.status === "Offentliggjort",
     ).length;
     return [
-      { label: "Aktive naturprojekter", value: String(activeProjects), hint: `${summaries.length} i alt` },
-      { label: "Hektar under forvaltning", value: totalHa > 0 ? totalHa.toFixed(1) : "—", hint: "Fra projektarealer" },
-      { label: "Rapportparathed", value: avgReadiness !== null ? `${avgReadiness}%` : "—", hint: "Gennemsnit på tværs" },
-      { label: "Åbne handlinger", value: String(openActions.length), hint: "På tværs af projekter" },
-      { label: "Aktive datakilder", value: String(dataSourceTotal), hint: "Sensorer · satellit · felt" },
-      { label: "Rapporter i alt", value: String(allReports.length), hint: `${publishedReports} publiceret` },
+      {
+        label: "Aktive naturprojekter",
+        value: String(activeProjects),
+        hint: `${summaries.length} i alt`,
+      },
+      {
+        label: "Hektar under forvaltning",
+        value: totalHa > 0 ? totalHa.toFixed(1) : "—",
+        hint: "Fra projektarealer",
+      },
+      {
+        label: "Rapportparathed",
+        value: avgReadiness !== null ? `${avgReadiness}%` : "—",
+        hint: "Gennemsnit på tværs",
+      },
+      {
+        label: "Åbne handlinger",
+        value: String(openActions.length),
+        hint: "På tværs af projekter",
+      },
+      {
+        label: "Aktive datakilder",
+        value: String(dataSourceTotal),
+        hint: "Sensorer · satellit · felt",
+      },
+      {
+        label: "Rapporter i alt",
+        value: String(allReports.length),
+        hint: `${publishedReports} publiceret`,
+      },
     ];
   }, [summaries, openActions, allReports]);
 
@@ -219,10 +238,7 @@ function DashboardPage() {
       <div className="grid lg:grid-cols-3 gap-5">
         {/* 3. Critical actions */}
         <Card className="lg:col-span-2">
-          <CardHeader
-            title="Kritiske handlinger"
-            subtitle="Hvad kræver din opmærksomhed nu"
-          />
+          <CardHeader title="Kritiske handlinger" subtitle="Hvad kræver din opmærksomhed nu" />
           <ul className="px-5 pb-5 divide-y">
             {criticalActions.length === 0 && (
               <li className="py-6 text-sm text-muted-foreground text-center">
@@ -326,14 +342,8 @@ function DashboardPage() {
                   label="Rapportparathed"
                   value={p.readiness !== null ? `${p.readiness}%` : "—"}
                 />
-                <KpiMini
-                  label="Datakvalitet"
-                  value={p.quality !== null ? `${p.quality}%` : "—"}
-                />
-                <KpiMini
-                  label="Biodiversitet"
-                  value={p.bio !== null ? String(p.bio) : "—"}
-                />
+                <KpiMini label="Datakvalitet" value={p.quality !== null ? `${p.quality}%` : "—"} />
+                <KpiMini label="Biodiversitet" value={p.bio !== null ? String(p.bio) : "—"} />
                 <KpiMini label="Åbne handlinger" value={String(p.openActions)} />
               </div>
             </Link>
@@ -443,19 +453,25 @@ function LavbundTile() {
           <div className="text-lg font-semibold tabular-nums mt-0.5">{data.antalProjekter}</div>
         </div>
         <div className="rounded-xl border p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Samlet areal</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+            Samlet areal
+          </div>
           <div className="text-lg font-semibold tabular-nums mt-0.5">
             {data.samletArealHa.toLocaleString("da-DK")} ha
           </div>
         </div>
         <div className="rounded-xl border p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Krediteret (v12)</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+            Krediteret (v12)
+          </div>
           <div className="text-lg font-semibold tabular-nums mt-0.5">
             {data.krediteretTotal.toLocaleString("da-DK")} t CO₂e/år
           </div>
         </div>
         <div className="rounded-xl border p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Verificeret (bogført)</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+            Verificeret (bogført)
+          </div>
           <div className="text-lg font-semibold tabular-nums mt-0.5 text-primary">
             {data.verificeretTotal.toLocaleString("da-DK")} t CO₂e/år
           </div>

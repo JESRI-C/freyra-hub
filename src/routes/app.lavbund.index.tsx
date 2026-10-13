@@ -5,10 +5,7 @@ import { toast } from "sonner";
 import { AlertTriangle, FolderOpen, Leaf, MapPin, Plus, X } from "lucide-react";
 import { Card, PageHeader, Pill, StatCard } from "@/components/ui-bits";
 import { getProjects, saveProject } from "@/services/lavbundService";
-import {
-  beregnKrediteretCO2,
-  tiltagValidering,
-} from "@/services/lavbundBeregning";
+import { beregnKrediteretCO2, tiltagValidering } from "@/services/lavbundBeregning";
 import type { LavbundsProjekt, ProjektStatus } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/")({
@@ -24,10 +21,7 @@ const STATUS_LABEL: Record<ProjektStatus, string> = {
   overdraget: "Overdraget",
 };
 
-const STATUS_TONE: Record<
-  ProjektStatus,
-  "default" | "success" | "warning" | "info"
-> = {
+const STATUS_TONE: Record<ProjektStatus, "default" | "success" | "warning" | "info"> = {
   planlagt: "default",
   etablering: "info",
   maaling: "warning",
@@ -174,9 +168,10 @@ function Leverancemodel() {
     <Card className="p-5">
       <div className="text-sm font-semibold">Leverancemodel & måleprogram</div>
       <p className="mt-1 text-xs text-muted-foreground max-w-3xl">
-        LavbundsMRV erstatter ikke statens beregningsværktøjer — den <strong>operationaliserer</strong>{" "}
-        dem: kobler dem til to års feltmåling og dokumenterer, om de tilsigtede miljøforhold
-        reelt blev opnået. Kommunen ejer sine projektdata og kan eksportere dem i åbne formater.
+        LavbundsMRV erstatter ikke statens beregningsværktøjer — den{" "}
+        <strong>operationaliserer</strong> dem: kobler dem til to års feltmåling og dokumenterer, om
+        de tilsigtede miljøforhold reelt blev opnået. Kommunen ejer sine projektdata og kan
+        eksportere dem i åbne formater.
       </p>
       <div className="mt-4 grid md:grid-cols-3 gap-3">
         {trin.map((t) => (
@@ -193,7 +188,10 @@ function Leverancemodel() {
             <div className="text-xs font-semibold">{f.titel}</div>
             <ul className="mt-2 space-y-1.5">
               {f.punkter.map((pkt) => (
-                <li key={pkt} className="text-xs text-muted-foreground border-b border-border/60 pb-1.5 last:border-0">
+                <li
+                  key={pkt}
+                  className="text-xs text-muted-foreground border-b border-border/60 pb-1.5 last:border-0"
+                >
                   {pkt}
                 </li>
               ))}
@@ -263,7 +261,11 @@ function CreateProjectDialog({ onClose }: { onClose: () => void }) {
       <form onSubmit={submit} className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="font-semibold text-sm">Nyt lavbundsprojekt</div>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -311,7 +313,11 @@ function CreateProjectDialog({ onClose }: { onClose: () => void }) {
           Arealfordeling på kulstofklasser, tiltag og vandspejl justeres bagefter i klima-fanen.
         </p>
         <div className="flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-muted/40">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border px-3 py-1.5 text-sm hover:bg-muted/40"
+          >
             Annuller
           </button>
           <button
@@ -377,10 +383,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 function Loaded({ projects }: { projects: LavbundsProjekt[] }) {
   const totalArea = projects.reduce((s, p) => s + p.samletArealHa, 0);
-  const totalKrediteret = projects.reduce(
-    (s, p) => s + beregnKrediteretCO2(p).krediteretTotal,
-    0,
-  );
+  const totalKrediteret = projects.reduce((s, p) => s + beregnKrediteretCO2(p).krediteretTotal, 0);
 
   return (
     <>
@@ -413,9 +416,7 @@ function Loaded({ projects }: { projects: LavbundsProjekt[] }) {
                 <th className="text-left px-4 py-3 font-medium">Kommune</th>
                 <th className="text-right px-4 py-3 font-medium">Areal</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="text-right px-4 py-3 font-medium">
-                  Krediteret t CO₂e/år
-                </th>
+                <th className="text-right px-4 py-3 font-medium">Krediteret t CO₂e/år</th>
                 <th className="text-left px-4 py-3 font-medium">Bemærkning</th>
               </tr>
             </thead>
@@ -436,9 +437,7 @@ function Loaded({ projects }: { projects: LavbundsProjekt[] }) {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{p.kommune}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {fmtHa(p.samletArealHa)}
-                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">{fmtHa(p.samletArealHa)}</td>
                     <td className="px-4 py-3">
                       <Pill tone={STATUS_TONE[p.status]}>{STATUS_LABEL[p.status]}</Pill>
                     </td>
@@ -457,9 +456,7 @@ function Loaded({ projects }: { projects: LavbundsProjekt[] }) {
                           </Pill>
                         )}
                         {!tilt.ok && <Pill tone="danger">Ingen tiltag</Pill>}
-                        {aabne === 0 && tilt.ok && (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        {aabne === 0 && tilt.ok && <span className="text-muted-foreground">—</span>}
                       </div>
                     </td>
                   </tr>
@@ -471,9 +468,9 @@ function Loaded({ projects }: { projects: LavbundsProjekt[] }) {
       </Card>
 
       <div className="text-xs text-muted-foreground italic px-1">
-        Anvendelsesområde: prioritering under tilskudsordninger og kommunens
-        klimaregnskab. Metoden egner sig ikke til effektberegning ved salg af
-        CO₂-kvoter og afviger fra den nationale opgørelse (jf. v12-vejledningen).
+        Anvendelsesområde: prioritering under tilskudsordninger og kommunens klimaregnskab. Metoden
+        egner sig ikke til effektberegning ved salg af CO₂-kvoter og afviger fra den nationale
+        opgørelse (jf. v12-vejledningen).
       </div>
     </>
   );

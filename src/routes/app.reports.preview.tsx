@@ -166,16 +166,15 @@ function PreviewPage({ idx }: { idx: number }) {
       >
         <div className="max-w-2xl space-y-4">
           <p className="text-base leading-relaxed">
-            Skallebæk Biodiversity Pilot viser en <strong>positiv udvikling</strong> i
-            naturtilstand og datadækning. Datagrundlaget er stærkt på vandmålinger og
-            satellitbaseret vegetationsanalyse, mens feltverifikation fortsat bør styrkes før
-            ekstern rapportering.
+            Skallebæk Biodiversity Pilot viser en <strong>positiv udvikling</strong> i naturtilstand
+            og datadækning. Datagrundlaget er stærkt på vandmålinger og satellitbaseret
+            vegetationsanalyse, mens feltverifikation fortsat bør styrkes før ekstern rapportering.
           </p>
           <p className="text-sm leading-relaxed text-foreground/90">
             Vandkvaliteten i Zone A og B er stabil, NDVI er steget 6 % siden baseline, og
-            biodiversitetsindekset peger på øget habitat-diversitet i vådområdet. Anbefalingen
-            er at prioritere feltregistrering i Zone C samt verificere droneoverflight Q2 før
-            kunde- og investordeling.
+            biodiversitetsindekset peger på øget habitat-diversitet i vådområdet. Anbefalingen er at
+            prioritere feltregistrering i Zone C samt verificere droneoverflight Q2 før kunde- og
+            investordeling.
           </p>
         </div>
       </ReportSection>

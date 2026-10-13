@@ -2,7 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ShieldCheck, TrendingUp, TrendingDown, Sparkles, ArrowRight, Plus, PlayCircle, Loader2 } from "lucide-react";
+import {
+  ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  Sparkles,
+  ArrowRight,
+  Plus,
+  PlayCircle,
+  Loader2,
+} from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 import {
@@ -15,10 +24,14 @@ import {
 import { QUALITY_DIMENSIONS, VALIDATION_RULES, DATA_SOURCES } from "@/lib/connect-data";
 import { RuleDrawer } from "@/components/monitoring/RuleDrawer";
 import { useConnectContext } from "@/lib/connect-context";
-import { listRules, toggleRule, listIssues, resolveIssue, summarizeIssues } from "@/services/monitoring/quality-rules-service";
+import {
+  listRules,
+  toggleRule,
+  listIssues,
+  resolveIssue,
+  summarizeIssues,
+} from "@/services/monitoring/quality-rules-service";
 import { runQualityEvaluation } from "@/services/monitoring/quality-engine";
-
-
 
 export const Route = createFileRoute("/app/connect/quality")({
   component: Page,
@@ -59,7 +72,11 @@ function Page() {
   const { projectId } = useConnectContext();
   const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
   const [running, setRunning] = useState(false);
-  const [lastRun, setLastRun] = useState<{ inserted: number; detected: number; ranAt: string } | null>(null);
+  const [lastRun, setLastRun] = useState<{
+    inserted: number;
+    detected: number;
+    ranAt: string;
+  } | null>(null);
   const rulesQuery = useQuery({
     queryKey: ["quality-rules", projectId],
     queryFn: () => listRules(projectId),
@@ -70,7 +87,6 @@ function Page() {
     enabled: !!projectId,
   });
   const issueSummary = summarizeIssues(issuesQuery.data ?? []);
-
 
   async function handleRunNow() {
     if (!projectId) {
@@ -85,7 +101,6 @@ function Page() {
         `Regler kørt: ${res.detected} fund, ${res.inserted} nye issues, ${res.skippedDuplicates} eksisterende`,
       );
       await issuesQuery.refetch();
-
     } catch (e) {
       toast.error(`Fejl under kørsel: ${(e as Error).message}`);
     } finally {
@@ -106,7 +121,11 @@ function Page() {
             disabled={running}
             className="text-xs rounded-lg border px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
           >
-            {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />}
+            {running ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <PlayCircle className="h-3.5 w-3.5" />
+            )}
             Kør regler nu
           </button>
           <button
@@ -120,14 +139,16 @@ function Page() {
 
       {lastRun && (
         <div className="text-xs text-muted-foreground">
-          Senest kørt {new Date(lastRun.ranAt).toLocaleTimeString()} — {lastRun.detected} fund, {lastRun.inserted} nye issues.
+          Senest kørt {new Date(lastRun.ranAt).toLocaleTimeString()} — {lastRun.detected} fund,{" "}
+          {lastRun.inserted} nye issues.
         </div>
       )}
 
-
       <Section
         title="Aktive kvalitetsregler"
-        subtitle={rulesQuery.isLoading ? "Henter…" : `${rulesQuery.data?.length ?? 0} regler kører nu`}
+        subtitle={
+          rulesQuery.isLoading ? "Henter…" : `${rulesQuery.data?.length ?? 0} regler kører nu`
+        }
       >
         <Card>
           <div className="overflow-x-auto">
@@ -144,14 +165,20 @@ function Page() {
                 {(rulesQuery.data ?? []).map((r) => (
                   <tr key={r.id}>
                     <td className="px-4 py-3 font-medium">{r.name}</td>
-                    <td className="px-4 py-3 text-xs"><Chip>{r.rule_type}</Chip></td>
+                    <td className="px-4 py-3 text-xs">
+                      <Chip>{r.rule_type}</Chip>
+                    </td>
                     <td className="px-4 py-3 text-xs">{r.severity}</td>
                     <td className="px-4 py-3 text-xs">
                       <label className="inline-flex items-center gap-1.5 cursor-pointer">
                         <input
                           type="checkbox"
                           defaultChecked={r.is_active}
-                          onChange={(e) => { void toggleRule(r.id, e.target.checked).then(() => rulesQuery.refetch()); }}
+                          onChange={(e) => {
+                            void toggleRule(r.id, e.target.checked).then(() =>
+                              rulesQuery.refetch(),
+                            );
+                          }}
                         />
                         {r.is_active ? "Aktiv" : "Inaktiv"}
                       </label>
@@ -159,7 +186,11 @@ function Page() {
                   </tr>
                 ))}
                 {!rulesQuery.isLoading && (rulesQuery.data ?? []).length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">Ingen kvalitetsregler endnu — opret én for at aktivere kontrolrummet.</td></tr>
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                      Ingen kvalitetsregler endnu — opret én for at aktivere kontrolrummet.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -181,7 +212,6 @@ function Page() {
         cacheKey={`quality:${QUALITY_DIMENSIONS.length}:${VALIDATION_RULES.length}`}
         context={`Samlet kvalitet: 91%. Dimensioner: ${QUALITY_DIMENSIONS.map((q) => `${q.name}=${q.score}%`).join(", ")}. Antal valideringsregler: ${VALIDATION_RULES.length}. Datakilder under monitorering: ${DATA_SOURCES.length}.`}
       />
-
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <ConnectionHealthCard
@@ -332,8 +362,19 @@ function Page() {
               .filter((i) => i.status === "open")
               .slice(0, 8)
               .map((i) => (
-                <li key={i.id} className="flex items-start gap-2 p-2.5 rounded-lg border bg-muted/30">
-                  <span className={i.severity === "critical" || i.severity === "high" ? "text-destructive" : "text-amber-500"}>●</span>
+                <li
+                  key={i.id}
+                  className="flex items-start gap-2 p-2.5 rounded-lg border bg-muted/30"
+                >
+                  <span
+                    className={
+                      i.severity === "critical" || i.severity === "high"
+                        ? "text-destructive"
+                        : "text-amber-500"
+                    }
+                  >
+                    ●
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="truncate">{i.description ?? i.issue_type}</div>
                     <div className="text-[11px] text-muted-foreground">
@@ -344,7 +385,10 @@ function Page() {
                     className="text-[11px] rounded border px-2 py-0.5 hover:bg-muted"
                     onClick={async () => {
                       try {
-                        await resolveIssue(i.id, { status: "resolved", note: "Løst fra kvalitetsoversigt" });
+                        await resolveIssue(i.id, {
+                          status: "resolved",
+                          note: "Løst fra kvalitetsoversigt",
+                        });
                         await issuesQuery.refetch();
                       } catch (e) {
                         console.error(e);
@@ -355,14 +399,14 @@ function Page() {
                   </button>
                 </li>
               ))}
-            {!issuesQuery.isLoading && (issuesQuery.data ?? []).filter((i) => i.status === "open").length === 0 && (
-              <li className="p-3 text-center text-xs text-muted-foreground rounded-lg border border-dashed">
-                Ingen åbne issues — kør reglerne for at scanne data.
-              </li>
-            )}
+            {!issuesQuery.isLoading &&
+              (issuesQuery.data ?? []).filter((i) => i.status === "open").length === 0 && (
+                <li className="p-3 text-center text-xs text-muted-foreground rounded-lg border border-dashed">
+                  Ingen åbne issues — kør reglerne for at scanne data.
+                </li>
+              )}
           </ul>
         </Section>
-
       </div>
 
       <Section

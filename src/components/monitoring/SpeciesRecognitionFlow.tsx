@@ -135,7 +135,9 @@ export function SpeciesRecognitionFlow({ projectId, onSaved }: Props) {
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <div className="text-sm font-medium">{s.danishName}</div>
-                        <div className="text-xs text-muted-foreground italic">{s.scientificName}</div>
+                        <div className="text-xs text-muted-foreground italic">
+                          {s.scientificName}
+                        </div>
                       </div>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted">
                         {Math.round(s.confidence * 100)}%

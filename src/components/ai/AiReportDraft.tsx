@@ -147,8 +147,7 @@ function Section({
   tone?: "success" | "warning";
   children: React.ReactNode;
 }) {
-  const dot =
-    tone === "success" ? "bg-success" : tone === "warning" ? "bg-warning" : "bg-primary";
+  const dot = tone === "success" ? "bg-success" : tone === "warning" ? "bg-warning" : "bg-primary";
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="flex items-center gap-2 mb-2">

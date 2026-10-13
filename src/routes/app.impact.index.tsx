@@ -98,10 +98,13 @@ function OverviewPage() {
       <AiInsightBanner
         module="Impact Exchange"
         tone="insight"
-        context={`Antal projekter i markedet: ${PROJECTS.length}. Verificerede: ${PROJECTS.filter((p) => p.verification === "Verificeret").length}. Featured: ${PROJECTS.slice(0, 4).map((p) => p.title).join(", ")}. Kategorier: ${CATEGORIES.join(", ")}.`}
+        context={`Antal projekter i markedet: ${PROJECTS.length}. Verificerede: ${PROJECTS.filter((p) => p.verification === "Verificeret").length}. Featured: ${PROJECTS.slice(
+          0,
+          4,
+        )
+          .map((p) => p.title)
+          .join(", ")}. Kategorier: ${CATEGORIES.join(", ")}.`}
       />
-
-
 
       <div className="flex flex-wrap gap-2">
         <FilterPill label="Projekttype" />

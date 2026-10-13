@@ -9,7 +9,9 @@ function db() {
   return supabase as unknown as {
     from: (t: string) => {
       insert: (v: Record<string, unknown>) => {
-        select: (c: string) => { single: () => Promise<{ data: DataSource | null; error: { message: string } | null }> };
+        select: (c: string) => {
+          single: () => Promise<{ data: DataSource | null; error: { message: string } | null }>;
+        };
       };
       update: (v: Record<string, unknown>) => {
         eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
@@ -24,11 +26,23 @@ function db() {
 // ─── Type catalogue & validation ──────────────────────────────────────────────
 
 export const DATA_SOURCE_TYPES = [
-  { id: "file_upload", label: "Fil-upload", description: "CSV, Excel eller GeoJSON manuelt indlæst" },
-  { id: "api_endpoint", label: "API-endpoint", description: "Ekstern REST/JSON-tjeneste (fx Miljøportalen, DMI)" },
+  {
+    id: "file_upload",
+    label: "Fil-upload",
+    description: "CSV, Excel eller GeoJSON manuelt indlæst",
+  },
+  {
+    id: "api_endpoint",
+    label: "API-endpoint",
+    description: "Ekstern REST/JSON-tjeneste (fx Miljøportalen, DMI)",
+  },
   { id: "satellite", label: "Satellit", description: "Sentinel-2 / Landsat billedserie" },
   { id: "iot_sensor", label: "IoT-sensor", description: "Feltmåler der sender data løbende" },
-  { id: "manual", label: "Manuel registrering", description: "Feltbesøg og notater indtastet af holdet" },
+  {
+    id: "manual",
+    label: "Manuel registrering",
+    description: "Feltbesøg og notater indtastet af holdet",
+  },
 ] as const;
 
 export type DataSourceType = (typeof DATA_SOURCE_TYPES)[number]["id"];
@@ -46,16 +60,22 @@ const fileUploadConfig = z.object({
   frequency: z.enum(["once", "weekly", "monthly"]).default("once"),
 });
 
-const apiEndpointConfig = z.object({
-  provider: z.string().trim().min(2, "Angiv udbyder").max(80),
-  url: z.string().trim().url("Skal være en gyldig URL").startsWith("https://", "Kun HTTPS er tilladt"),
-  auth_type: z.enum(["none", "api_key", "bearer"]).default("none"),
-  api_key_ref: z.string().trim().max(120).optional().default(""),
-  refresh_interval_minutes: z.coerce.number().int().min(5).max(10080).default(1440),
-}).refine(
-  (v) => v.auth_type === "none" || v.api_key_ref.length > 0,
-  { message: "Angiv reference til API-nøgle (secret-navn)", path: ["api_key_ref"] },
-);
+const apiEndpointConfig = z
+  .object({
+    provider: z.string().trim().min(2, "Angiv udbyder").max(80),
+    url: z
+      .string()
+      .trim()
+      .url("Skal være en gyldig URL")
+      .startsWith("https://", "Kun HTTPS er tilladt"),
+    auth_type: z.enum(["none", "api_key", "bearer"]).default("none"),
+    api_key_ref: z.string().trim().max(120).optional().default(""),
+    refresh_interval_minutes: z.coerce.number().int().min(5).max(10080).default(1440),
+  })
+  .refine((v) => v.auth_type === "none" || v.api_key_ref.length > 0, {
+    message: "Angiv reference til API-nøgle (secret-navn)",
+    path: ["api_key_ref"],
+  });
 
 const satelliteConfig = z.object({
   provider: z.enum(["sentinel-2", "landsat-8", "landsat-9"], { message: "Vælg satellit-udbyder" }),
@@ -102,9 +122,10 @@ export function validateDataSource(sourceType: DataSourceType, base: unknown, co
   return {
     ok: baseParse.success && configParse.success,
     errors,
-    data: baseParse.success && configParse.success
-      ? { base: baseParse.data, config: configParse.data as Record<string, unknown> }
-      : null,
+    data:
+      baseParse.success && configParse.success
+        ? { base: baseParse.data, config: configParse.data as Record<string, unknown> }
+        : null,
   };
 }
 
@@ -140,7 +161,10 @@ export async function testDataSourceConfig(
       : { ok: false, message: "Mangler device-ID" };
   }
   if (sourceType === "satellite") {
-    return { ok: true, message: "Satellit-konfiguration gemt — første revisit hentes af scheduler" };
+    return {
+      ok: true,
+      message: "Satellit-konfiguration gemt — første revisit hentes af scheduler",
+    };
   }
   return { ok: true, message: "Manuel kilde klar — feltdata indtastes af holdet" };
 }
@@ -159,19 +183,23 @@ export async function createDataSource(input: {
   last_sync_status?: string | null;
   last_sync_message?: string | null;
 }): Promise<DataSource> {
-  const { data, error } = await db().from("data_sources").insert({
-    project_id: input.project_id,
-    site_id: input.site_id,
-    name: input.name,
-    source_type: input.source_type,
-    provider: input.provider ?? null,
-    description: input.description ?? null,
-    config: input.config,
-    status: input.status,
-    last_sync_status: input.last_sync_status ?? null,
-    last_sync_message: input.last_sync_message ?? null,
-    last_sync_at: input.status === "online" ? new Date().toISOString() : null,
-  }).select("*").single();
+  const { data, error } = await db()
+    .from("data_sources")
+    .insert({
+      project_id: input.project_id,
+      site_id: input.site_id,
+      name: input.name,
+      source_type: input.source_type,
+      provider: input.provider ?? null,
+      description: input.description ?? null,
+      config: input.config,
+      status: input.status,
+      last_sync_status: input.last_sync_status ?? null,
+      last_sync_message: input.last_sync_message ?? null,
+      last_sync_at: input.status === "online" ? new Date().toISOString() : null,
+    })
+    .select("*")
+    .single();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Ingen data returneret");
   void logAuditEvent({

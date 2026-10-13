@@ -262,7 +262,10 @@ function EditProjectDialog({
       <div className="bg-card rounded-2xl shadow-xl border w-full max-w-lg max-h-[90vh] overflow-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-card">
           <h2 className="font-semibold text-base">Rediger projekt</h2>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center">
+          <button
+            onClick={onClose}
+            className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -285,16 +288,28 @@ function EditProjectDialog({
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Projekttype">
-              <select value={projectType} onChange={(e) => setProjectType(e.target.value)} className="input-base">
+              <select
+                value={projectType}
+                onChange={(e) => setProjectType(e.target.value)}
+                className="input-base"
+              >
                 {PROJECT_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field label="Status">
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="input-base">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="input-base"
+              >
                 {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
             </Field>
@@ -331,11 +346,17 @@ function EditProjectDialog({
           </div>
 
           {err && (
-            <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{err}</div>
+            <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+              {err}
+            </div>
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="rounded-xl border px-4 py-2 text-sm hover:bg-muted">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border px-4 py-2 text-sm hover:bg-muted"
+            >
               Annuller
             </button>
             <button
@@ -364,7 +385,15 @@ function EditProjectDialog({
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium">

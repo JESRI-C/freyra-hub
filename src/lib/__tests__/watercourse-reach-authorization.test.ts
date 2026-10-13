@@ -323,13 +323,10 @@ describe("official watercourse reach persistence", () => {
       created_by: USER_ID,
       geometry: REACH.geometry,
     });
-    const insertedRow = insertQuery.insert.mock.calls[0]?.[0] as unknown as Record<
-      string,
-      unknown
-    >;
-    expect(
-      (insertedRow["source_metadata"] as Record<string, unknown>)["geometry_sha256"],
-    ).toMatch(/^[0-9a-f]{64}$/);
+    const insertedRow = insertQuery.insert.mock.calls[0]?.[0] as unknown as Record<string, unknown>;
+    expect((insertedRow["source_metadata"] as Record<string, unknown>)["geometry_sha256"]).toMatch(
+      /^[0-9a-f]{64}$/,
+    );
   });
 
   it("updates the one active project reach instead of creating another", async () => {

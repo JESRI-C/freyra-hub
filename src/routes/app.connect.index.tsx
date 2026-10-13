@@ -77,28 +77,33 @@ function Page() {
   const { data: openIssues = [] } = useQuery({
     queryKey: ["quality-issues-open", projectId],
     queryFn: () =>
-      projectId
-        ? listIssues({ projectId, status: "open" })
-        : Promise.resolve<QualityIssue[]>([]),
+      projectId ? listIssues({ projectId, status: "open" }) : Promise.resolve<QualityIssue[]>([]),
   });
 
   const deviceKpis = computeDeviceKpis(devices);
-  const activeSources = dataSources.filter((s) => s.status === "active" || s.status === "online").length;
+  const activeSources = dataSources.filter(
+    (s) => s.status === "active" || s.status === "online",
+  ).length;
   const totalDataPoints = devices.length + dataSources.length;
   const qualityScore =
     totalDataPoints > 0
-      ? Math.max(0, Math.min(100, Math.round(100 - (openIssues.length / Math.max(1, totalDataPoints)) * 100)))
+      ? Math.max(
+          0,
+          Math.min(100, Math.round(100 - (openIssues.length / Math.max(1, totalDataPoints)) * 100)),
+        )
       : null;
-  const lastSync = devices
-    .map((d) => d.last_seen_at)
-    .filter((t): t is string => !!t)
-    .sort()
-    .at(-1) ??
+  const lastSync =
+    devices
+      .map((d) => d.last_seen_at)
+      .filter((t): t is string => !!t)
+      .sort()
+      .at(-1) ??
     dataSources
       .map((s) => s.last_sync_at)
       .filter((t): t is string => !!t)
       .sort()
-      .at(-1) ?? null;
+      .at(-1) ??
+    null;
   const hasAnyData = devices.length > 0 || dataSources.length > 0;
   return (
     <main className="p-4 sm:p-6 w-full min-w-0 space-y-4">
@@ -130,8 +135,8 @@ function Page() {
               <div className="font-medium">Ingen enheder eller datakilder endnu</div>
               <p className="text-muted-foreground text-xs mt-1">
                 KPI&apos;erne nedenfor viser live-tal fra dine enheder, datakilder og
-                kvalitets-issues, så snart de første er oprettet. Start med
-                &quot;Tilføj enhed&quot; eller aktivér en datakilde.
+                kvalitets-issues, så snart de første er oprettet. Start med &quot;Tilføj enhed&quot;
+                eller aktivér en datakilde.
               </p>
             </div>
           </div>
@@ -159,13 +164,21 @@ function Page() {
         <ConnectionHealthCard
           label="Kræver handling"
           value={devices.length > 0 ? String(deviceKpis.attention) : "—"}
-          sub={openIssues.length > 0 ? `${openIssues.length} åbne kvalitets-issues` : "Ingen åbne issues"}
+          sub={
+            openIssues.length > 0
+              ? `${openIssues.length} åbne kvalitets-issues`
+              : "Ingen åbne issues"
+          }
           icon={<AlertTriangle className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Offline"
           value={devices.length > 0 ? String(deviceKpis.offline) : "—"}
-          sub={deviceKpis.lowBattery > 0 ? `${deviceKpis.lowBattery} med lavt batteri` : "Ingen data endnu"}
+          sub={
+            deviceKpis.lowBattery > 0
+              ? `${deviceKpis.lowBattery} med lavt batteri`
+              : "Ingen data endnu"
+          }
           icon={<WifiOff className="h-5 w-5" />}
         />
         <ConnectionHealthCard
@@ -177,7 +190,16 @@ function Page() {
         <ConnectionHealthCard
           label="Seneste sync"
           value={relativeTime(lastSync)}
-          sub={lastSync ? new Date(lastSync).toLocaleString("da-DK", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "Ingen data endnu"}
+          sub={
+            lastSync
+              ? new Date(lastSync).toLocaleString("da-DK", {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "Ingen data endnu"
+          }
           icon={<Clock className="h-5 w-5" />}
         />
       </div>

@@ -77,17 +77,34 @@ function Page() {
       {!projectId && (
         <Card className="p-4 flex items-start gap-3 border-warning/40 bg-warning/5">
           <Info className="h-4 w-4 text-warning mt-0.5" />
-          <div className="text-sm">
-            Vælg et projekt i topbaren for at se og oprette enheder.
-          </div>
+          <div className="text-sm">Vælg et projekt i topbaren for at se og oprette enheder.</div>
         </Card>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <ConnectionHealthCard label="Enheder" value={String(kpis.total)} icon={<Cpu className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Online" value={String(kpis.online)} tone="success" icon={<Wifi className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Kræver opmærksomhed" value={String(kpis.attention)} tone="warning" icon={<BatteryLow className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Offline" value={String(kpis.offline)} tone="danger" icon={<WifiOff className="h-5 w-5" />} />
+        <ConnectionHealthCard
+          label="Enheder"
+          value={String(kpis.total)}
+          icon={<Cpu className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Online"
+          value={String(kpis.online)}
+          tone="success"
+          icon={<Wifi className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Kræver opmærksomhed"
+          value={String(kpis.attention)}
+          tone="warning"
+          icon={<BatteryLow className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Offline"
+          value={String(kpis.offline)}
+          tone="danger"
+          icon={<WifiOff className="h-5 w-5" />}
+        />
       </div>
 
       <Card className="p-4">
@@ -107,7 +124,9 @@ function Page() {
               key={k}
               onClick={() => setFilter(k)}
               className={`text-xs px-3 py-1.5 rounded-lg border transition ${
-                filter === k ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"
+                filter === k
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card hover:bg-muted"
               }`}
             >
               {l}
@@ -188,7 +207,11 @@ function Page() {
       <Section title="Om denne visning" subtitle="Fase B — første version af enhedsregistret">
         <div className="text-sm text-muted-foreground space-y-1">
           <p>Enheder oprettes nu direkte i databasen med RLS efter projektmedlemsskab.</p>
-          <p>Status beregnes ud fra <code>last_seen_at</code> og <code>expected_interval_minutes</code>. Målehistorik, batterikurve og vedligeholdelseslog kommer i næste iteration.</p>
+          <p>
+            Status beregnes ud fra <code>last_seen_at</code> og{" "}
+            <code>expected_interval_minutes</code>. Målehistorik, batterikurve og
+            vedligeholdelseslog kommer i næste iteration.
+          </p>
         </div>
       </Section>
 

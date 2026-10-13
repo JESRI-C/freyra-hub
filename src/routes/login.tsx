@@ -1,6 +1,16 @@
 import { createFileRoute, useNavigate, Navigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lock, Mail, Loader2, Eye, EyeOff, ArrowLeft, CheckCircle2, Info, User } from "lucide-react";
+import {
+  Lock,
+  Mail,
+  Loader2,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  CheckCircle2,
+  Info,
+  User,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { resolveLoginDestination, safeLoginNext } from "@/lib/login-flow";
@@ -20,12 +30,17 @@ type Mode = "signin" | "signup" | "forgot";
 // Oversæt engelske Supabase-fejlbeskeder til klar dansk
 function translateError(message: string): string {
   const m = message.toLowerCase();
-  if (m.includes("invalid login credentials")) return "Forkert email eller adgangskode. Tjek at du har skrevet begge korrekt.";
-  if (m.includes("email not confirmed")) return "Din email er ikke bekræftet endnu. Tjek din indbakke (og spam) for bekræftelsesmailen.";
-  if (m.includes("user already registered")) return "Der findes allerede en konto med denne email. Prøv at logge ind i stedet.";
-  if (m.includes("password should be at least")) return "Adgangskoden skal være mindst 6 tegn lang.";
+  if (m.includes("invalid login credentials"))
+    return "Forkert email eller adgangskode. Tjek at du har skrevet begge korrekt.";
+  if (m.includes("email not confirmed"))
+    return "Din email er ikke bekræftet endnu. Tjek din indbakke (og spam) for bekræftelsesmailen.";
+  if (m.includes("user already registered"))
+    return "Der findes allerede en konto med denne email. Prøv at logge ind i stedet.";
+  if (m.includes("password should be at least"))
+    return "Adgangskoden skal være mindst 6 tegn lang.";
   if (m.includes("unable to validate email")) return "Ugyldig email-adresse.";
-  if (m.includes("rate limit") || m.includes("too many")) return "For mange forsøg. Vent et par minutter og prøv igen.";
+  if (m.includes("rate limit") || m.includes("too many"))
+    return "For mange forsøg. Vent et par minutter og prøv igen.";
   if (m.includes("network")) return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
   return message;
 }
@@ -133,8 +148,9 @@ function LoginPage() {
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Tjek din email</h2>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-              Vi har sendt en bekræftelsesmail til <strong className="text-foreground">{email}</strong>.
-              Klik på linket i mailen for at aktivere din konto og komme i gang.
+              Vi har sendt en bekræftelsesmail til{" "}
+              <strong className="text-foreground">{email}</strong>. Klik på linket i mailen for at
+              aktivere din konto og komme i gang.
             </p>
           </div>
           <div className="rounded-xl border border-border bg-muted/30 p-4 text-left text-xs text-muted-foreground space-y-2">
@@ -177,8 +193,9 @@ function LoginPage() {
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Nulstillingslink sendt</h2>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-              Hvis <strong className="text-foreground">{email}</strong> er tilknyttet en konto, har vi sendt et link
-              til at nulstille din adgangskode. Tjek din indbakke — og evt. spam-mappen.
+              Hvis <strong className="text-foreground">{email}</strong> er tilknyttet en konto, har
+              vi sendt et link til at nulstille din adgangskode. Tjek din indbakke — og evt.
+              spam-mappen.
             </p>
           </div>
           <button
@@ -237,7 +254,9 @@ function LoginPage() {
         <Field
           label="Email"
           icon={<Mail className="h-4 w-4" />}
-          hint={isSignup ? "Vi bruger din arbejdsemail til bekræftelse og notifikationer." : undefined}
+          hint={
+            isSignup ? "Vi bruger din arbejdsemail til bekræftelse og notifikationer." : undefined
+          }
         >
           <input
             type="email"
@@ -268,7 +287,11 @@ function LoginPage() {
               </div>
             }
             icon={<Lock className="h-4 w-4" />}
-            hint={isSignup ? "Mindst 6 tegn. Brug gerne en kombination af bogstaver, tal og symboler." : undefined}
+            hint={
+              isSignup
+                ? "Mindst 6 tegn. Brug gerne en kombination af bogstaver, tal og symboler."
+                : undefined
+            }
           >
             <input
               type={showPassword ? "text" : "password"}
@@ -354,10 +377,22 @@ function LoginPage() {
               className="w-full rounded-xl border border-input bg-card py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <svg className="h-4 w-4" viewBox="0 0 48 48" aria-hidden="true">
-                <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z" />
-                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
-                <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.6 39.6 16.2 44 24 44z" />
-                <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.2 5.2C41 35 44 30 44 24c0-1.3-.1-2.3-.4-3.5z" />
+                <path
+                  fill="#FFC107"
+                  d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"
+                />
+                <path
+                  fill="#FF3D00"
+                  d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
+                />
+                <path
+                  fill="#4CAF50"
+                  d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.6 39.6 16.2 44 24 44z"
+                />
+                <path
+                  fill="#1976D2"
+                  d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.2 5.2C41 35 44 30 44 24c0-1.3-.1-2.3-.4-3.5z"
+                />
               </svg>
               Google
             </button>
@@ -400,8 +435,8 @@ function LoginPage() {
 
         {isSignup && (
           <p className="text-[11px] text-muted-foreground text-center leading-relaxed pt-1">
-            Ved at oprette en konto accepterer du vores vilkår og databehandling.
-            Dine data behandles fortroligt og deles ikke uden dit samtykke.
+            Ved at oprette en konto accepterer du vores vilkår og databehandling. Dine data
+            behandles fortroligt og deles ikke uden dit samtykke.
           </p>
         )}
       </form>
@@ -436,7 +471,13 @@ function Field({
   );
 }
 
-function SplitShell({ children, stats }: { children: React.ReactNode; stats: { k: string; v: string }[] }) {
+function SplitShell({
+  children,
+  stats,
+}: {
+  children: React.ReactNode;
+  stats: { k: string; v: string }[];
+}) {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="hidden lg:flex relative overflow-hidden bg-sidebar text-sidebar-foreground p-12 flex-col justify-between">
@@ -457,16 +498,18 @@ function SplitShell({ children, stats }: { children: React.ReactNode; stats: { k
 
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-semibold leading-tight">
-            Mål, dokumentér og handl på{" "}
-            <span className="text-leaf">verificeret naturkapital</span>.
+            Mål, dokumentér og handl på <span className="text-leaf">verificeret naturkapital</span>.
           </h1>
           <p className="text-sidebar-muted leading-relaxed">
-            Saml naturprojekter, arealdata, målinger, rapportering og dokumentation i
-            én platform — bygget til den grønne arealomlægning.
+            Saml naturprojekter, arealdata, målinger, rapportering og dokumentation i én platform —
+            bygget til den grønne arealomlægning.
           </p>
           <div className="grid grid-cols-3 gap-3 pt-4">
             {stats.map((x) => (
-              <div key={x.v} className="rounded-xl bg-sidebar-accent/60 p-4 border border-sidebar-border">
+              <div
+                key={x.v}
+                className="rounded-xl bg-sidebar-accent/60 p-4 border border-sidebar-border"
+              >
                 <div className="text-xl font-semibold text-leaf leading-tight">{x.k}</div>
                 <div className="text-xs text-sidebar-muted mt-1 leading-snug">{x.v}</div>
               </div>
@@ -479,9 +522,7 @@ function SplitShell({ children, stats }: { children: React.ReactNode; stats: { k
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
-        {children}
-      </div>
+      <div className="flex items-center justify-center p-6 sm:p-12 bg-background">{children}</div>
     </div>
   );
 }

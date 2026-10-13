@@ -30,7 +30,9 @@ export interface NatureFeatureCollection {
 export function featureExternalId(feature: RawWfsFeature, prefix: string, index: number): string {
   if (feature.id != null && String(feature.id).length > 0) return `${prefix}:${feature.id}`;
   const objectId =
-    feature.properties?.["objekt_id"] ?? feature.properties?.["gml_id"] ?? feature.properties?.["fid"];
+    feature.properties?.["objekt_id"] ??
+    feature.properties?.["gml_id"] ??
+    feature.properties?.["fid"];
   if (objectId != null) return `${prefix}:${objectId}`;
   return `${prefix}:idx-${index}`;
 }
@@ -47,7 +49,10 @@ export function toFeatureCollection(
       .map((f, i) => ({
         type: "Feature" as const,
         id: featureExternalId(f, opts.idPrefix, i),
-        properties: { ...(f.properties ?? {}), ...(opts.extraProperties ?? {}) } as Record<string, Json>,
+        properties: { ...(f.properties ?? {}), ...(opts.extraProperties ?? {}) } as Record<
+          string,
+          Json
+        >,
         geometry: f.geometry as { type: string; coordinates: GeoCoordinates },
       })),
   };
@@ -63,7 +68,11 @@ export interface GeoFeatureRow {
 }
 
 /** Map en FeatureCollection til geo_features-rækker for et givet lag. */
-export function buildGeoFeatureRows(layerId: string, fc: NatureFeatureCollection, featureType: string): GeoFeatureRow[] {
+export function buildGeoFeatureRows(
+  layerId: string,
+  fc: NatureFeatureCollection,
+  featureType: string,
+): GeoFeatureRow[] {
   return fc.features.map((f) => ({
     layer_id: layerId,
     external_id: f.id,
