@@ -74,6 +74,11 @@ jobs:
         with:
           version: 2.116.0
 
+      - name: Setup Node for database lint classification
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+
       - name: Start disposable local stack
         run: supabase start --exclude studio,imgproxy,edge-runtime,logflare,vector,supavisor
 
@@ -84,7 +89,42 @@ jobs:
         run: supabase test db --local supabase/tests/database
 
       - name: Check database functions
-        run: supabase db lint --local --schema public,storage --level error --fail-on error
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          command -v psql
+          mkdir -p tmp/database-lint
+          supabase db lint --local --schema public,private,storage --level error --fail-on none > tmp/database-lint/raw-lint.json
+          psql --host=127.0.0.1 --port=54322 --dbname=postgres --username=postgres --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align <<'SQL' > tmp/database-lint/function-ownership.json
+          SELECT COALESCE(jsonb_agg(jsonb_build_object(
+            'qualifiedName', namespace.nspname || '.' || routine.proname,
+            'oid', routine.oid::text,
+            'identityArguments', pg_catalog.pg_get_function_identity_arguments(routine.oid),
+            'extensionName', extension.extname,
+            'dependencyType', dependency.deptype::text,
+            'dependencyRefClass', CASE WHEN dependency.refclassid = 'pg_catalog.pg_extension'::regclass THEN 'pg_extension' ELSE NULL END
+          ) ORDER BY namespace.nspname, routine.proname, routine.oid), '[]'::jsonb)
+          FROM pg_catalog.pg_proc routine
+          JOIN pg_catalog.pg_namespace namespace ON namespace.oid = routine.pronamespace
+          LEFT JOIN pg_catalog.pg_depend dependency
+            ON dependency.classid = 'pg_catalog.pg_proc'::regclass
+            AND dependency.objid = routine.oid
+            AND dependency.deptype = 'e'
+            AND dependency.refclassid = 'pg_catalog.pg_extension'::regclass
+          LEFT JOIN pg_catalog.pg_extension extension ON extension.oid = dependency.refobjid
+          WHERE namespace.nspname IN ('public', 'private', 'storage');
+          SQL
+          node scripts/check-database-lint.mjs tmp/database-lint/raw-lint.json tmp/database-lint/function-ownership.json > tmp/database-lint/classification.json
+
+      - name: Preserve local database lint evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-database-lint-evidence
+          path: tmp/database-lint/*.json
+          if-no-files-found: ignore
+          retention-days: 35
 
       - name: Stop disposable local stack
         if: always()

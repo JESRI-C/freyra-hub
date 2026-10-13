@@ -40,9 +40,26 @@ describe("P0 app-gates workflow", () => {
     expect(workflow).toContain("supabase db reset --local --no-seed");
     expect(workflow).toContain("supabase test db --local supabase/tests/database");
     expect(workflow).toContain(
-      "supabase db lint --local --schema public,storage --level error --fail-on error",
+      "supabase db lint --local --schema public,private,storage --level error --fail-on none",
     );
     expect(workflow).not.toMatch(/--(?:linked|db-url)\b/);
     expect(workflow).toContain("if: always()\n        run: supabase stop --no-backup");
+  });
+
+  it("classifies lint only against the same local database and preserves evidence", () => {
+    expect(workflow).toContain("set -euo pipefail");
+    expect(workflow).toContain(
+      "--host=127.0.0.1 --port=54322 --dbname=postgres --username=postgres",
+    );
+    expect(workflow).toContain("--no-psqlrc --set=ON_ERROR_STOP=1");
+    expect(workflow).toContain("FROM pg_catalog.pg_proc routine");
+    expect(workflow).toContain("dependency.classid = 'pg_catalog.pg_proc'::regclass");
+    expect(workflow).toContain("dependency.deptype = 'e'");
+    expect(workflow).toContain("dependency.refclassid = 'pg_catalog.pg_extension'::regclass");
+    expect(workflow).toContain("LEFT JOIN pg_catalog.pg_extension");
+    expect(workflow).toContain("WHERE namespace.nspname IN ('public', 'private', 'storage')");
+    expect(workflow).toContain("node scripts/check-database-lint.mjs");
+    expect(workflow).toContain("uses: actions/upload-artifact@v4");
+    expect(workflow).not.toMatch(/continue-on-error|\|\|\s*true/);
   });
 });
