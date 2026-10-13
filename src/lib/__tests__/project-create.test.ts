@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   ProjectCreateRequestError,
+  ProjectCreateConfirmationError,
   canCreateProject,
   insertProjectWithoutRepresentation,
   projectCreateErrorMessage,
@@ -29,44 +30,111 @@ describe("project creation access", () => {
 });
 
 describe("insertProjectWithoutRepresentation", () => {
-  it("inserts the current tenant with a known id and does not request RETURNING data", async () => {
-    const insert = vi.fn().mockResolvedValue({ error: null });
-    const client = {
-      from: vi.fn().mockReturnValue({ insert }),
-    } as unknown as ProjectsInsertClient;
+  const id = "10000000-0000-4000-8000-000000000001";
 
-    await expect(
-      insertProjectWithoutRepresentation(
-        client,
-        INPUT,
-        () => "10000000-0000-4000-8000-000000000001",
-      ),
-    ).resolves.toEqual({ id: "10000000-0000-4000-8000-000000000001", slug: null });
+  function setup() {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const maybeSingle = vi.fn().mockResolvedValue({ data: { id, slug: null }, error: null });
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
+    const select = vi.fn().mockReturnValue({ eq });
+    const client = {
+      from: vi.fn().mockReturnValue({ insert, select }),
+    } satisfies ProjectsInsertClient;
+    return { client, insert, select, eq, maybeSingle };
+  }
+
+  it("commits the insert without RETURNING before confirming the known id in a separate request", async () => {
+    const { client, insert, select, eq, maybeSingle } = setup();
+    let acknowledgeInsert!: (result: { error: null }) => void;
+    insert.mockImplementationOnce(
+      () =>
+        new Promise<{ error: null }>((resolve) => {
+          acknowledgeInsert = resolve;
+        }),
+    );
+    const creating = insertProjectWithoutRepresentation(client, INPUT, () => id);
+
+    expect(select).not.toHaveBeenCalled();
+    expect(maybeSingle).not.toHaveBeenCalled();
+    acknowledgeInsert({ error: null });
+    await expect(creating).resolves.toEqual({ id, slug: null });
 
     expect(client.from).toHaveBeenCalledWith("projects");
     expect(insert).toHaveBeenCalledWith({
-      id: "10000000-0000-4000-8000-000000000001",
       ...INPUT,
+      id,
+    });
+    expect(client.from).toHaveBeenCalledTimes(2);
+    expect(select).toHaveBeenCalledExactlyOnceWith("id, slug");
+    expect(eq).toHaveBeenCalledExactlyOnceWith("id", id);
+  });
+
+  it("returns the persisted slug rather than assuming the submitted/default slug", async () => {
+    const { client, maybeSingle } = setup();
+    maybeSingle.mockResolvedValueOnce({ data: { id, slug: "stored-slug" }, error: null });
+    await expect(insertProjectWithoutRepresentation(client, INPUT, () => id)).resolves.toEqual({
+      id,
+      slug: "stored-slug",
     });
   });
 
   it("preserves the Postgres error code for safe user-facing mapping", async () => {
-    const client = {
-      from: () => ({
-        insert: () =>
-          Promise.resolve({
-            error: {
-              code: "42501",
-              message: 'new row violates row-level security policy for table "projects"',
-            },
-          }),
-      }),
-    } satisfies ProjectsInsertClient;
+    const { client, insert, select } = setup();
+    insert.mockResolvedValueOnce({
+      error: {
+        code: "42501",
+        message: 'new row violates row-level security policy for table "projects"',
+      },
+    });
 
     await expect(insertProjectWithoutRepresentation(client, INPUT)).rejects.toMatchObject({
       name: "ProjectCreateRequestError",
       code: "42501",
     });
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it.each([null, { id: "different-project", slug: null }])(
+    "does not fabricate a persisted project when confirmation returns %j",
+    async (data) => {
+      const { client, insert, maybeSingle } = setup();
+      maybeSingle.mockResolvedValueOnce({ data, error: null });
+      await expect(
+        insertProjectWithoutRepresentation(client, INPUT, () => id),
+      ).rejects.toMatchObject({
+        name: "ProjectCreateConfirmationError",
+        projectId: id,
+      });
+      expect(insert).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(["database", "network"])(
+    "retains the committed id and original %s error when confirmation fails",
+    async (kind) => {
+      const { client, insert, maybeSingle } = setup();
+      const failure = { code: "42501", message: "read unavailable" };
+      if (kind === "database") maybeSingle.mockResolvedValueOnce({ data: null, error: failure });
+      else maybeSingle.mockRejectedValueOnce(failure);
+      await expect(
+        insertProjectWithoutRepresentation(client, INPUT, () => id),
+      ).rejects.toMatchObject({
+        name: "ProjectCreateConfirmationError",
+        projectId: id,
+        cause: failure,
+      });
+      expect(insert).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("does not let an extra runtime field override the generated id", async () => {
+    const { client, insert } = setup();
+    await insertProjectWithoutRepresentation(
+      client,
+      { ...INPUT, ...{ id: "client-id" } },
+      () => id,
+    );
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ id }));
   });
 });
 
@@ -86,5 +154,16 @@ describe("projectCreateErrorMessage", () => {
 
   it("uses a neutral retry message for unexpected failures", () => {
     expect(projectCreateErrorMessage(new Error("network detail"))).toContain("Prøv igen");
+  });
+
+  it("distinguishes a committed project from a failed create and avoids duplicate-retry advice", () => {
+    const id = "10000000-0000-4000-8000-000000000001";
+    const message = projectCreateErrorMessage(
+      new ProjectCreateConfirmationError(id, new Error("network")),
+    );
+    expect(message).toContain("Projektet er gemt");
+    expect(message).toContain(id);
+    expect(message).toContain("Opret ikke projektet igen");
+    expect(message).not.toContain("Prøv igen");
   });
 });

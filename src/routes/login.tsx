@@ -132,9 +132,9 @@ function LoginPage() {
   };
 
   const stats = [
-    { k: "120+", v: "Datakilder" },
-    { k: "Metodeklar", v: "Biodiversitet med kontekst" },
-    { k: "Rapportklar", v: "Til kommune, fond og ESG" },
+    { k: "Datagrundlag", v: "Kilder, datoer og datamangler" },
+    { k: "Dronebilleder", v: "Originaler og dokumentation" },
+    { k: "Rapportering", v: "Konklusioner med kildegrundlag" },
   ];
 
   // Success-visning efter signup — brugeren skal bekræfte via email

@@ -422,14 +422,27 @@ function KpiMini({ label, value }: { label: string; value: string }) {
 // ─── LavbundsMRV-status på forsiden ───────────────────────────────────────────
 
 function LavbundTile() {
-  const { data } = useQuery({
-    queryKey: ["lavbund", "overblik"],
+  const { currentOrg } = useAuth();
+  const { data, error } = useQuery({
+    queryKey: ["lavbund", "overblik", currentOrg?.id],
     queryFn: async () => {
       const { getLavbundOverblik } = await import("@/services/lavbundService");
       return getLavbundOverblik();
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader title="LavbundsMRV" subtitle="Datagrundlag kunne ikke hentes" />
+        <div role="alert" className="px-5 pb-5 text-sm text-destructive">
+          Lavbundsdata kunne ikke hentes. Kontrollér forbindelsen og modulets datagrundlag, før du
+          bruger tallene.
+        </div>
+      </Card>
+    );
+  }
 
   if (!data || data.antalProjekter === 0) return null;
 
@@ -472,8 +485,12 @@ function LavbundTile() {
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
             Verificeret (bogført)
           </div>
-          <div className="text-lg font-semibold tabular-nums mt-0.5 text-primary">
-            {data.verificeretTotal.toLocaleString("da-DK")} t CO₂e/år
+          <div
+            className={`text-lg font-semibold tabular-nums mt-0.5 ${data.verificeretTotal === null ? "text-muted-foreground" : "text-primary"}`}
+          >
+            {data.verificeretTotal !== null
+              ? `${data.verificeretTotal.toLocaleString("da-DK")} t CO₂e/år`
+              : "—"}
           </div>
         </div>
       </div>

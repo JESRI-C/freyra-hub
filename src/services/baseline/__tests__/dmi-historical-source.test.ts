@@ -220,19 +220,27 @@ describe("official historical DMI source", () => {
     expect(payload(result).series).toEqual([]);
   });
 
-  it.each([429, 503])("preserves HTTP %s as a source failure", async (status) => {
-    const result = await fetchDmiHistoricalSource(input, {
-      fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(new Response("failure", { status })),
-    });
-    expect(result).toMatchObject({
-      mode: "error",
-      status: "failed",
-      payload: null,
-      payloadSha256: null,
-      error: { code: `HTTP_${status}` },
-      coverage: { temporal: "unknown", returnedCount: null },
-    });
-  });
+  it.each([301, 302, 307, 308, 429, 503])(
+    "preserves HTTP %s as a source failure",
+    async (status) => {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response("failure", { status }));
+      const result = await fetchDmiHistoricalSource(input, {
+        fetchImpl,
+      });
+      expect(result).toMatchObject({
+        mode: "error",
+        status: "failed",
+        payload: null,
+        payloadSha256: null,
+        error: { code: `HTTP_${status}` },
+        coverage: { temporal: "unknown", returnedCount: null },
+      });
+      expect(fetchImpl).toHaveBeenCalledOnce();
+      expect(fetchImpl.mock.calls[0][1]?.redirect).toBe("manual");
+    },
+  );
 
   it.each([{}, { type: "FeatureCollection", features: [{}] }])(
     "fails safely on malformed source data",

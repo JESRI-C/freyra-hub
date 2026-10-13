@@ -70,13 +70,18 @@ export async function downloadCanonicalDroneOriginal(
   try {
     response = await (options.fetch ?? fetch)(url.toString(), {
       signal: AbortSignal.timeout(20_000),
-      redirect: "error",
+      // Workers supports follow/manual. Manual keeps signed URLs on their
+      // validated origin; reject every redirect response below.
+      redirect: "manual",
       cache: "no-store",
     });
   } catch {
     throw new Error("Originalfilens private download fejlede eller overskred 20 sekunder.");
   }
-  if (!response.ok || !response.body) throw new Error("Den private originalfil kunne ikke hentes.");
+  if (!response.ok || !response.body) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error("Den private originalfil kunne ikke hentes.");
+  }
   const declaredLength = response.headers.get("content-length");
   if (
     declaredLength !== null &&

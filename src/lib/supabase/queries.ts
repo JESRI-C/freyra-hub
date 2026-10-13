@@ -2,6 +2,10 @@
 // Service layer wraps these with fallback-to-seed-data logic.
 
 import { supabase } from "./client";
+import {
+  ProjectCreateConfirmationError,
+  type ProjectCreateDatabaseError,
+} from "@/lib/project-create";
 import type {
   Project,
   Indicator,
@@ -403,10 +407,27 @@ export async function insertProject(input: {
   start_date?: string;
 }): Promise<Project> {
   if (!supabase) throw new Error("Supabase not configured");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).from("projects").insert(input).select().single();
+  const id = crypto.randomUUID();
+  const projectWriter = supabase as unknown as {
+    from: (table: "projects") => {
+      insert: (
+        row: typeof input & { id: string },
+      ) => PromiseLike<{ error: ProjectCreateDatabaseError | null }>;
+    };
+  };
+  // INSERT ... RETURNING cannot re-read the new row through our STABLE RLS
+  // helper in the same statement. Confirm it after the insert has committed.
+  const { error } = await projectWriter.from("projects").insert({ ...input, id });
   if (error) throw error;
-  return data as Project;
+  try {
+    const project = await fetchProjectById(id);
+    if (!project || project.id !== id) {
+      throw new Error("Databasen bekræftede ikke det gemte projekt.");
+    }
+    return project;
+  } catch (confirmationError) {
+    throw new ProjectCreateConfirmationError(id, confirmationError);
+  }
 }
 
 export async function updateProject(

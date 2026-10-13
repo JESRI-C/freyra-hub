@@ -1,7 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 
-// Uden Supabase skal skrive-vejene falde tilbage til mock-lageret, så
-// UI-flowet (registrér pejling, redigér transekter) virker offline/dev.
+// Skrive-vejene bruger kun det lokale lager i eksplicit offline-demo.
+vi.mock("@/lib/data-mode", () => ({
+  isDemoDataEnabled: true,
+  requireCustomerDatabase: vi.fn(() => {
+    throw new Error("Offline-demo må ikke kræve kundedatabase");
+  }),
+}));
 vi.mock("@/lib/supabase/client", () => ({
   supabase: null,
   isSupabaseConfigured: false,
@@ -19,7 +24,7 @@ import {
 } from "@/services/lavbundService";
 import type { Transekt } from "@/types/lavbund";
 
-describe("lavbund skrive-veje (mock-fallback)", () => {
+describe("lavbund skrive-veje (eksplicit offline-demo)", () => {
   it("saveMaalepunkt + saveReading kan registreres og læses tilbage", async () => {
     const projects = await getProjects();
     const projektId = projects[0].id;
@@ -75,7 +80,7 @@ describe("lavbund skrive-veje (mock-fallback)", () => {
   });
 });
 
-describe("getLavbundOverblik (mock-fallback)", () => {
+describe("getLavbundOverblik (eksplicit offline-demo)", () => {
   it("summerer projekter, areal og krediteret CO2", async () => {
     const { getLavbundOverblik } = await import("@/services/lavbundService");
     const o = await getLavbundOverblik();

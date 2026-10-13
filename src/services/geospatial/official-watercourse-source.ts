@@ -310,6 +310,11 @@ async function fetchJson(url: string, fetchImpl: typeof fetch = fetch): Promise<
       signal: controller.signal,
       headers: { Accept: "application/json" },
     });
+    if (response.status === 410) {
+      throw new OfficialWatercourseSourceError(
+        "Dataforsyningens tidligere stednavne-API er lukket (HTTP 410). Nye officielle vandløbsreferencer kræver adgang til Datafordeleren med API-nøgle eller OAuth.",
+      );
+    }
     if (!response.ok) {
       throw new OfficialWatercourseSourceError(
         `Dataforsyningen svarede med HTTP ${response.status}.`,

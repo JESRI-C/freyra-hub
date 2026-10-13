@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   OfficialWatercourseSourceError,
   buildOfficialWatercourseGeometryUrl,
   buildOfficialWatercourseSearchUrl,
+  fetchOfficialWatercourse,
   parseOfficialWatercourseGeometry,
   parseOfficialWatercourseSuggestions,
   searchOfficialWatercourses,
@@ -41,6 +42,28 @@ describe("official watercourse endpoint allowlist", () => {
       searchOfficialWatercourses("Bykær Bæk", oversizedFetch as typeof fetch),
     ).rejects.toThrow("Dataforsyningens svar er for stort");
   });
+
+  it.each(["name", "geometry"] as const)(
+    "explains a retired %s endpoint without retrying or substituting a reference",
+    async (kind) => {
+      const retiredFetch = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response("", { status: 410 }));
+      const request =
+        kind === "name"
+          ? searchOfficialWatercourses("Byskov Bæk", retiredFetch)
+          : fetchOfficialWatercourse(BYKAER_ID, retiredFetch);
+
+      await expect(request).rejects.toThrow(
+        "Dataforsyningens tidligere stednavne-API er lukket (HTTP 410). Nye officielle vandløbsreferencer kræver adgang til Datafordeleren med API-nøgle eller OAuth.",
+      );
+      expect(retiredFetch).toHaveBeenCalledTimes(1);
+      const url = new URL(String(retiredFetch.mock.calls[0][0]));
+      expect(url.hostname).toBe("api.dataforsyningen.dk");
+      expect(url.pathname).toBe(kind === "name" ? "/stednavne2" : `/steder/${BYKAER_ID}`);
+      if (kind === "name") expect(url.searchParams.get("q")).toBe("Byskov Bæk");
+    },
+  );
 });
 
 describe("parseOfficialWatercourseSuggestions", () => {

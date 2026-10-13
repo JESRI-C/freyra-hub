@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bits";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import {
   canCreateProject,
   insertProjectWithoutRepresentation,
+  ProjectCreateConfirmationError,
   projectCreateErrorMessage,
   type ProjectsInsertClient,
 } from "@/lib/project-create";
@@ -65,7 +66,9 @@ function ProjectsIndexPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<CreateProjectForm>(FORM_DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
+  const submissionGuard = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [storedProjectId, setStoredProjectId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
@@ -134,12 +137,17 @@ function ProjectsIndexPage() {
 
   function closeModal() {
     setShowCreateModal(false);
-    setForm(FORM_DEFAULTS);
-    setFormError(null);
+    // A committed project awaiting confirmation remains recoverable if the
+    // dialog is closed and reopened; it must not become a fresh create.
+    if (!storedProjectId) {
+      setForm(FORM_DEFAULTS);
+      setFormError(null);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submissionGuard.current || storedProjectId) return;
     if (!form.name.trim()) return;
     if (!orgId) {
       setFormError("Ingen organisation valgt. Gå tilbage til Vælg arbejdsplads.");
@@ -151,12 +159,13 @@ function ProjectsIndexPage() {
       );
       return;
     }
+    submissionGuard.current = true;
     setSubmitting(true);
     setFormError(null);
 
     const now = new Date().toISOString();
 
-    let inserted: { id: string; slug: null };
+    let inserted: { id: string; slug: string | null };
     try {
       if (!isSupabaseConfigured || !supabase) {
         throw new Error("Backend er ikke konfigureret.");
@@ -176,7 +185,9 @@ function ProjectsIndexPage() {
       );
     } catch (err) {
       console.error("Kunne ikke oprette projekt:", err);
+      if (err instanceof ProjectCreateConfirmationError) setStoredProjectId(err.projectId);
       setFormError(projectCreateErrorMessage(err));
+      submissionGuard.current = err instanceof ProjectCreateConfirmationError;
       setSubmitting(false);
       return;
     }
@@ -232,6 +243,7 @@ function ProjectsIndexPage() {
       showToast("Projektet er oprettet. Genindlæs siden for at opdatere projektlisten.");
     }
 
+    submissionGuard.current = false;
     setSubmitting(false);
     navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
   }
@@ -473,8 +485,22 @@ function ProjectsIndexPage() {
               </div>
 
               {formError && (
-                <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                <div
+                  role="alert"
+                  className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2"
+                >
                   {formError}
+                  {storedProjectId && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate({ to: "/app/projects/$slug", params: { slug: storedProjectId } })
+                      }
+                      className="block mt-2 underline"
+                    >
+                      Åbn gemt projekt
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -489,7 +515,9 @@ function ProjectsIndexPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || !form.name.trim() || !canCreate}
+                  disabled={
+                    submitting || Boolean(storedProjectId) || !form.name.trim() || !canCreate
+                  }
                   className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
                   {submitting ? "Opretter…" : "Opret projekt"}

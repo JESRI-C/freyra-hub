@@ -65,7 +65,7 @@ describe("official Sentinel-2 L2A candidate catalogue", () => {
     const source = await fetchSentinelSceneSource(INPUT, { fetchImpl, now: NOW });
     const [url, init] = fetchImpl.mock.calls[0];
     expect(url).toBe(SENTINEL_STAC_SEARCH);
-    expect(init).toMatchObject({ method: "POST", redirect: "error" });
+    expect(init).toMatchObject({ method: "POST", redirect: "manual" });
     const body = JSON.parse(init!.body as string);
     expect(body).toMatchObject({
       collections: [SENTINEL_L2A_COLLECTION],
@@ -312,6 +312,28 @@ describe("official Sentinel-2 L2A candidate catalogue", () => {
       error: { code: "HTTP_503" },
     });
   });
+
+  it.each([301, 302, 307, 308])(
+    "rejects HTTP %s redirects without following a new source",
+    async (status) => {
+      const cancel = vi.fn();
+      const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(new ReadableStream({ cancel }), {
+          status,
+          headers: { location: "https://foreign.invalid/scene" },
+        }),
+      );
+      const source = await fetchSentinelSceneSource(INPUT, { fetchImpl, now: NOW });
+      expect(source).toMatchObject({
+        status: "failed",
+        payload: null,
+        error: { code: `HTTP_${status}` },
+      });
+      expect(fetchImpl).toHaveBeenCalledOnce();
+      expect(fetchImpl.mock.calls[0][1]?.redirect).toBe("manual");
+      expect(cancel).toHaveBeenCalledOnce();
+    },
+  );
 
   it("bounds a stalled fetch and a stalled body stream with the same deadline", async () => {
     const fetchImpl = vi

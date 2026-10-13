@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/data-mode", () => ({
+  isDemoDataEnabled: true,
+  requireCustomerDatabase: vi.fn(() => {
+    throw new Error("Offline-demo må ikke kræve kundedatabase");
+  }),
+}));
+
 vi.mock("@/lib/supabase/client", () => ({
   supabase: null,
   isSupabaseConfigured: false,
@@ -21,7 +28,7 @@ function ledgerPost(hash: string): LedgerPost {
   };
 }
 
-describe("lavbund ledger fallback conflicts", () => {
+describe("lavbund ledger conflicts in explicit offline demo", () => {
   it("treats an identical post as an idempotent retry", async () => {
     const projectId = `ledger-idempotent-${crypto.randomUUID()}`;
     const original = ledgerPost("same-hash");

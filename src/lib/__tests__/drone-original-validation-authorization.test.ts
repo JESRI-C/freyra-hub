@@ -160,7 +160,7 @@ describe("bounded private original download", () => {
       fixture.prepared.upload.storage_path,
       60,
     );
-    expect(fetcher.mock.calls[0][1]).toMatchObject({ redirect: "error", cache: "no-store" });
+    expect(fetcher.mock.calls[0][1]).toMatchObject({ redirect: "manual", cache: "no-store" });
     expect(fetcher.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
   });
 
@@ -178,6 +178,27 @@ describe("bounded private original download", () => {
         }),
       ).rejects.toThrow("kanoniske originalfil");
       expect(fetcher).not.toHaveBeenCalled();
+    }
+  });
+
+  it("rejects redirects without following the signed URL or leaking its token", async () => {
+    for (const status of [301, 302, 303, 307, 308]) {
+      const fixture = downloadCase();
+      const cancel = vi.fn();
+      const response = new Response(new ReadableStream({ cancel }), {
+        status,
+        headers: { location: "https://foreign.invalid/?token=private-test-token" },
+      });
+      const fetcher = vi.fn<typeof fetch>().mockResolvedValue(response);
+      await expect(
+        downloadCanonicalDroneOriginal(fixture.client, fixture.prepared, {
+          supabaseUrl: origin,
+          fetch: fetcher,
+        }),
+      ).rejects.toThrow("Den private originalfil kunne ikke hentes.");
+      expect(fetcher).toHaveBeenCalledOnce();
+      expect(fetcher.mock.calls[0][1]?.redirect).toBe("manual");
+      expect(cancel).toHaveBeenCalledOnce();
     }
   });
 

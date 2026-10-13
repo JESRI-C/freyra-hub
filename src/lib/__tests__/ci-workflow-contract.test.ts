@@ -1,11 +1,40 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parseConfigFileTextToJson } from "typescript";
 import { describe, expect, it } from "vitest";
 
 const workflow = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8").replace(
   /\r\n/g,
   "\n",
 );
+
+interface WranglerEnvironmentContract {
+  name?: string;
+  secrets?: { required?: string[] };
+  vars?: Record<string, unknown>;
+}
+
+// Parse only the checked-in config; JSONC formatting permits comments/trailing commas.
+const parsedConfig = parseConfigFileTextToJson(
+  "wrangler.jsonc",
+  readFileSync(resolve(process.cwd(), "wrangler.jsonc"), "utf8"),
+);
+if (parsedConfig.error) throw new Error("Staging Wrangler configuration is invalid JSONC");
+const wranglerConfig = parsedConfig.config as WranglerEnvironmentContract & {
+  env: Record<string, WranglerEnvironmentContract>;
+};
+
+const wranglerSchema = JSON.parse(
+  readFileSync(resolve(process.cwd(), "node_modules/wrangler/config-schema.json"), "utf8"),
+) as {
+  definitions: {
+    RawEnvironment: {
+      properties: {
+        secrets: { properties: { required: { type: string; items: { type: string } } } };
+      };
+    };
+  };
+};
 
 describe("P0 app-gates workflow", () => {
   it("cannot deploy or receive repository secrets", () => {
@@ -61,5 +90,39 @@ describe("P0 app-gates workflow", () => {
     expect(workflow).toContain("node scripts/check-database-lint.mjs");
     expect(workflow).toContain("uses: actions/upload-artifact@v4");
     expect(workflow).not.toMatch(/continue-on-error|\|\|\s*true/);
+  });
+});
+
+describe("P0 staging deploy configuration", () => {
+  it("requires caller-auth and original/baseline writer bindings in the named staging environment", () => {
+    expect(wranglerConfig.env.staging.name).toBe("gofreyra-p0-staging");
+    expect(wranglerConfig.env.staging.secrets?.required).toEqual([
+      "SUPABASE_URL",
+      "SUPABASE_PUBLISHABLE_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+    ]);
+    // Secrets are non-inheritable; moving this to the default environment loses the safeguard.
+    expect(wranglerConfig.secrets).toBeUndefined();
+    // Cron/ingest are separate gates and are not needed for this writer deployment.
+    expect(wranglerConfig.env.staging.secrets?.required).not.toContain(
+      "OBSERVATIONS_INGEST_API_SECRET",
+    );
+    expect(wranglerConfig.env.staging.secrets?.required).not.toContain(
+      "MONITORING_CRON_API_SECRET",
+    );
+  });
+
+  it("keeps the privileged binding out of plaintext/browser variables", () => {
+    for (const config of [wranglerConfig, wranglerConfig.env.staging]) {
+      expect(config.vars ?? {}).not.toHaveProperty("SUPABASE_SERVICE_ROLE_KEY");
+      expect(config.vars ?? {}).not.toHaveProperty("VITE_SUPABASE_SERVICE_ROLE_KEY");
+    }
+  });
+
+  it("uses the installed Wrangler schema's supported named-environment secret declaration", () => {
+    const required =
+      wranglerSchema.definitions.RawEnvironment.properties.secrets.properties.required;
+    expect(required.type).toBe("array");
+    expect(required.items.type).toBe("string");
   });
 });

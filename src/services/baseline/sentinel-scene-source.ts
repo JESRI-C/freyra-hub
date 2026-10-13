@@ -187,7 +187,7 @@ async function readBoundedPage(
     const response = await withAbort(
       fetchImpl(request.url, {
         method: request.method,
-        redirect: "error",
+        redirect: "manual",
         signal: controller.signal,
         headers: {
           Accept: "application/geo+json, application/json",
@@ -197,11 +197,13 @@ async function readBoundedPage(
       }),
       controller.signal,
     );
-    if (!response.ok)
+    if (!response.ok) {
+      void response.body?.cancel().catch(() => undefined);
       throw new CatalogError(
         `HTTP_${response.status}`,
         `Copernicus STAC svarede med HTTP ${response.status}.`,
       );
+    }
     const size = Number(response.headers.get("content-length"));
     if (Number.isFinite(size) && size > MAX_PAGE_BYTES)
       throw new CatalogError(

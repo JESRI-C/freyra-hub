@@ -342,11 +342,13 @@ export async function fetchDmiHistoricalSource(
       if (totalController.signal.aborted) controller.abort();
       try {
         const response = await withAbort(
-          fetchImpl(url, { signal: controller.signal, redirect: "error" }),
+          fetchImpl(url, { signal: controller.signal, redirect: "manual" }),
           controller.signal,
         );
-        if (!response.ok)
+        if (!response.ok) {
+          void response.body?.cancel().catch(() => undefined);
           throw new SourceError(`HTTP_${response.status}`, `DMI svarede HTTP ${response.status}.`);
+        }
         const responseJson = await readJson(response, controller.signal);
         const page = Page.parse(responseJson);
         queries.push({ url, sha256: await hash(responseJson) });
