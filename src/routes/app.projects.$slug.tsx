@@ -3,6 +3,7 @@ import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-quer
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled } from "@/lib/data-mode";
 import {
   ShieldCheck,
   RefreshCw,
@@ -17,6 +18,7 @@ import {
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
+import { PublicBaselinePanel } from "@/components/project/PublicBaselinePanel";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
 import { IndicatorDetail } from "@/components/indicators/IndicatorDetail";
 import { SitesPanel } from "@/components/project/SitesPanel";
@@ -115,6 +117,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
 });
 
 const TABS = [
+  { id: "grundlag", label: "Grundlag" },
   { id: "overblik", label: "Overblik" },
   { id: "sites", label: "Sites" },
   { id: "datakilder", label: "Datakilder" },
@@ -200,26 +203,18 @@ function ProjectDetailPage() {
   // a centroid alone (from location name) is not enough to run area-based analyses.
   const hasRealGeometry = validateProjectPolygon(project?.geometry_polygon).valid;
 
-  // Async media state
-  const [mediaItems, setMediaItems] = useState<
-    import("@/lib/platform/media-types").ProjectMediaItem[]
-  >([]);
-  const [mediaLoading, setMediaLoading] = useState(true);
-
-  useEffect(() => {
-    if (!projectId) return;
-    let cancelled = false;
-    setMediaLoading(true);
-    listProjectMedia(projectId).then((result) => {
-      if (!cancelled) {
-        setMediaItems(result.data ?? []);
-        setMediaLoading(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId]);
+  const {
+    data: mediaItems,
+    error: mediaError,
+    isFetching: mediaLoading,
+  } = useSuspenseQuery({
+    queryKey: ["project-media", projectId],
+    queryFn: async () => {
+      const result = await listProjectMedia(projectId);
+      if (result.error) throw new Error("Projektets medier kunne ikke hentes. Prøv igen senere.");
+      return result.data ?? [];
+    },
+  });
 
   const droneUploadsQuery = useQuery({
     queryKey: ["drone-upload-map-overview", projectId],
@@ -255,6 +250,8 @@ function ProjectDetailPage() {
     setIndicatorDetailOpen(true);
   };
 
+  // A failed background media refresh must not feed stale/empty evidence to the report preview.
+  if (mediaError) throw mediaError;
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
   }
@@ -296,8 +293,9 @@ function ProjectDetailPage() {
     }
   };
 
-  // IoT sensors — generated deterministically from project id + centroid
-  const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
+  // Generated sensor readings are available only in explicit offline demo.
+  const sensors =
+    isDemoDataEnabled && geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
 
   // Report preview
   const reportPreview = generateProjectReportPreview({
@@ -335,6 +333,7 @@ function ProjectDetailPage() {
         {(active) => (
           <>
             {/* ── Overblik ─────────────────────────────────────────────────── */}
+            {active === "grundlag" && <PublicBaselinePanel key={project.id} project={project} />}
             {active === "overblik" && (
               <div className="space-y-5">
                 {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
@@ -666,7 +665,9 @@ function ProjectDetailPage() {
                   <ProjectMediaUploadPanel
                     projectId={projectId}
                     projectCentroid={geometry.centroid ?? undefined}
-                    onUploadComplete={(item) => setMediaItems((prev) => [item, ...prev])}
+                    onUploadComplete={() =>
+                      void queryClient.invalidateQueries({ queryKey: ["project-media", projectId] })
+                    }
                     onDroneBatchImported={() => void droneUploadsQuery.refetch()}
                   />
                 </div>
@@ -774,7 +775,11 @@ function ProjectDetailPage() {
                   <Card className="py-10 text-center">
                     <CardHeader
                       title="Ingen sensorer"
-                      subtitle="Tilknyt en projektgeometri for at aktivere IoT-sensorlaget"
+                      subtitle={
+                        isDemoDataEnabled
+                          ? "Tilknyt en projektgeometri for at se eksempelsensorer"
+                          : "Der er ingen tilknyttede sensorer i denne visning."
+                      }
                     />
                   </Card>
                 )}
@@ -992,8 +997,8 @@ function GeometryRequiredBanner({
           <div className="text-sm font-semibold">Projektområde mangler</div>
           <p className="text-sm text-muted-foreground mt-1">
             {variant === "detailed"
-              ? "For at beregne NDVI, biodiversitet og miljøpåvirkning skal projektets afgrænsning defineres. Tegn polygonen på kortet, eller upload en GeoJSON-fil — beregningerne aktiveres straks efter."
-              : "Definér projektets afgrænsning før beregninger kan køre."}
+              ? "Afgræns projektet på kortet eller med GeoJSON. Hent derefter offentlige data under Grundlag og kontrollér dækning og kvalitet før analyse."
+              : "Definér projektets afgrænsning som grundlag for kildehentning og verifikation."}
           </p>
           <div className="mt-3">
             <Link

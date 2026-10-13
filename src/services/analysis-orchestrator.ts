@@ -13,9 +13,15 @@
  */
 
 import { runProjectNdvi, type NdviEngineResult } from "@/services/satellite/ndvi-engine";
-import { runBiodiversityAnalysis, type BiodiversityEngineResult } from "@/services/nature/biodiversity-engine";
+import {
+  runBiodiversityAnalysis,
+  type BiodiversityEngineResult,
+} from "@/services/nature/biodiversity-engine";
 import { runCarbonAnalysis, type CarbonEngineResult } from "@/services/nature/carbon-engine";
-import { runWaterQualityAnalysis, type WaterQualityResult } from "@/services/nature/water-quality-engine";
+import {
+  runWaterQualityAnalysis,
+  type WaterQualityResult,
+} from "@/services/nature/water-quality-engine";
 import { logAuditEvent } from "@/services/audit-service";
 import type { Project } from "@/lib/supabase/types";
 
@@ -72,16 +78,18 @@ export async function runFullAnalysis(
   let ndvi: NdviEngineResult | null = null;
   try {
     ndvi = await runProjectNdvi(project.id, lat, lng);
-    if (ndvi.error && ndvi.ndvi === null) stepsFailed.push("ndvi");
+    if (ndvi.reportEligible !== true) stepsFailed.push("ndvi");
   } catch {
     stepsFailed.push("ndvi");
   }
-  const ndviValue = ndvi?.ndvi ?? null;
+  const ndviValue = ndvi?.reportEligible === true ? ndvi.ndvi : null;
 
   // 2+3. Biodiversitet (henter selv §3 + arter)
   onProgress?.("biodiversity");
   let biodiversity: BiodiversityEngineResult | null = null;
   try {
+    if (ndvi?.reportEligible !== true)
+      throw new Error("Projektets datagrundlag er ikke valideret.");
     biodiversity = await runBiodiversityAnalysis(project.id, lat, lng, areaHa, ndviValue);
   } catch {
     stepsFailed.push("biodiversity");
@@ -91,8 +99,16 @@ export async function runFullAnalysis(
   onProgress?.("carbon");
   let carbon: CarbonEngineResult | null = null;
   try {
+    if (ndvi?.reportEligible !== true)
+      throw new Error("Projektets datagrundlag er ikke valideret.");
     carbon = await runCarbonAnalysis(
-      project.id, lat, lng, areaHa, project.project_type, ndviValue, project.start_date,
+      project.id,
+      lat,
+      lng,
+      areaHa,
+      project.project_type,
+      ndviValue,
+      project.start_date,
     );
   } catch {
     stepsFailed.push("carbon");
@@ -102,6 +118,8 @@ export async function runFullAnalysis(
   onProgress?.("water");
   let water: WaterQualityResult | null = null;
   try {
+    if (ndvi?.reportEligible !== true)
+      throw new Error("Projektets datagrundlag er ikke valideret.");
     water = await runWaterQualityAnalysis(project.id, lat, lng, project.project_type, ndviValue);
   } catch {
     stepsFailed.push("water");
@@ -115,21 +133,29 @@ export async function runFullAnalysis(
   void logAuditEvent({
     project_id: project.id,
     event_type: "analysis_run",
-    title: `Fuld miljøanalyse gennemført (${stepsCompleted}/4 trin)`,
+    title:
+      stepsFailed.length > 0
+        ? `Miljøanalyse afventer valideret datagrundlag (${stepsCompleted}/4 trin)`
+        : "Miljøanalyse gennemført (4/4 trin)",
     description: [
       ndviValue != null ? `NDVI ${ndviValue.toFixed(2)}` : null,
       biodiversity ? `Biodiversitet ${biodiversity.score.total}/100` : null,
       carbon ? `CO₂ ${carbon.estimate.annualSequestration} t/år` : null,
       water ? `Vandrisiko: ${water.risk.overall}` : null,
       `${(durationMs / 1000).toFixed(1)}s`,
-    ].filter(Boolean).join(" · "),
+    ]
+      .filter(Boolean)
+      .join(" · "),
     actor: "Analysemotor",
     source: "automated",
   });
 
   return {
     projectId: project.id,
-    ndvi, biodiversity, carbon, water,
+    ndvi,
+    biodiversity,
+    carbon,
+    water,
     startedAt: new Date(start).toISOString(),
     completedAt,
     durationMs,
@@ -141,7 +167,7 @@ export async function runFullAnalysis(
 /** Komprimerer fuldt resultat til fladt UI-venligt format. */
 export function summarizeAnalysis(result: FullAnalysisResult): AnalysisSummary {
   return {
-    ndviValue: result.ndvi?.ndvi ?? null,
+    ndviValue: result.ndvi?.reportEligible === true ? result.ndvi.ndvi : null,
     biodiversityScore: result.biodiversity?.score.total ?? null,
     biodiversityClass: result.biodiversity?.score.classification ?? null,
     annualCO2: result.carbon?.estimate.annualSequestration ?? null,

@@ -1,6 +1,7 @@
 // Indicators Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import {
   fetchIndicatorsByProject,
   fetchIndicator,
@@ -14,31 +15,19 @@ import { createAction } from "@/services/actions-service";
 import { SEED_INDICATORS } from "@/data/platform-seed";
 import type { Indicator, IndicatorMeasurement } from "@/lib/supabase/types";
 
-function isMissingTable(err: unknown): boolean {
-  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
-}
-
 export async function getIndicatorsByProject(projectId: string): Promise<Indicator[]> {
   const fallback = () => SEED_INDICATORS.filter((i) => i.project_id === projectId);
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchIndicatorsByProject(projectId);
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  if (isDemoDataEnabled) return fallback();
+  requireCustomerDatabase();
+  return fetchIndicatorsByProject(projectId);
 }
 
 export async function getIndicator(projectId: string, key: string): Promise<Indicator | null> {
   const fallback = () =>
     SEED_INDICATORS.find((i) => i.project_id === projectId && i.key === key) ?? null;
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchIndicator(projectId, key);
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  if (isDemoDataEnabled) return fallback();
+  requireCustomerDatabase();
+  return fetchIndicator(projectId, key);
 }
 
 // ─── Write ────────────────────────────────────────────────────────────────────
@@ -59,9 +48,8 @@ export async function saveIndicator(input: {
     project_id: input.project_id,
     event_type: "data_update",
     title: `Indikator opdateret: ${input.label}`,
-    description: input.value !== undefined
-      ? `Ny værdi: ${input.value}${input.unit ?? ""}`
-      : undefined,
+    description:
+      input.value !== undefined ? `Ny værdi: ${input.value}${input.unit ?? ""}` : undefined,
     actor: "System",
     source: "automated",
   });
@@ -133,15 +121,9 @@ export async function getMeasurements(
 ): Promise<IndicatorMeasurement[]> {
   const days = period === "30d" ? 30 : period === "90d" ? 90 : period === "12m" ? 365 : 365;
   const fallback = () => seedMeasurements(indicator, days);
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    const rows = await fetchMeasurementsForIndicator(indicator.id, periodToSince(period));
-    if (rows.length === 0) return fallback();
-    return rows;
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  if (isDemoDataEnabled) return fallback();
+  requireCustomerDatabase();
+  return fetchMeasurementsForIndicator(indicator.id, periodToSince(period));
 }
 
 export async function recordMeasurement(input: {
@@ -223,10 +205,7 @@ export async function recordMeasurement(input: {
   }
 }
 
-export function evaluateStatus(
-  indicator: Indicator,
-  value: number,
-): "ok" | "warning" | "critical" {
+export function evaluateStatus(indicator: Indicator, value: number): "ok" | "warning" | "critical" {
   const dir = indicator.threshold_direction ?? "above";
   const warn = indicator.threshold_warning ?? null;
   const crit = indicator.threshold_critical ?? null;

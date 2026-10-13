@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import {
   Download,
@@ -23,6 +24,15 @@ import {
   uploadStatusLabel,
 } from "@/services/monitoring/uploads-service";
 import { parseDroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
+import { validateDroneOriginal } from "@/lib/drone-original-validation.functions";
+import {
+  checkOriginalsSequentially,
+  isOriginalCheckComplete,
+  originalCheckAvailability,
+  originalCheckStatusLabel,
+  storedOriginalCheckState,
+  type OriginalCheckState,
+} from "@/components/monitoring/drone-original-check-helpers";
 
 export const Route = createFileRoute("/app/connect/upload")({
   component: Page,
@@ -34,6 +44,10 @@ function Page() {
   const [beforeBatchOpen, setBeforeBatchOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
+  const [originalChecks, setOriginalChecks] = useState<Record<string, OriginalCheckState>>({});
+  const [checkingOriginalId, setCheckingOriginalId] = useState<string | null>(null);
+  const originalCheckBusy = useRef(false);
+  const validateOriginal = useServerFn(validateDroneOriginal);
 
   const uploadsQuery = useQuery({
     queryKey: ["monitoring-uploads", projectId],
@@ -47,9 +61,30 @@ function Page() {
   ).length;
   const awaitingValidation = uploads.filter(
     (upload) =>
-      ["awaiting_validation", "validating"].includes(upload.status) ||
-      (upload.status === "draft" && Boolean(upload.received_at)),
+      !isOriginalCheckComplete(originalChecks[upload.id] ?? storedOriginalCheckState(upload)) &&
+      (["awaiting_validation", "validating"].includes(upload.status) ||
+        (upload.status === "draft" && Boolean(upload.received_at))),
   ).length;
+
+  const handleOriginalCheck = async (uploadId: string) => {
+    if (!projectId || originalCheckBusy.current) return;
+    const upload = uploads.find((candidate) => candidate.id === uploadId);
+    if (!upload || !originalCheckAvailability(upload, projectId).eligible) return;
+    originalCheckBusy.current = true;
+    setCheckingOriginalId(uploadId);
+    try {
+      await checkOriginalsSequentially(
+        [{ key: uploadId, upload }],
+        projectId,
+        (input) => validateOriginal({ data: input }),
+        (key, state) => setOriginalChecks((current) => ({ ...current, [key]: state })),
+      );
+      await uploadsQuery.refetch();
+    } finally {
+      originalCheckBusy.current = false;
+      setCheckingOriginalId(null);
+    }
+  };
 
   const handleDownload = async (uploadId: string) => {
     if (!projectId) return;
@@ -167,6 +202,7 @@ function Page() {
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Størrelse</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Originalkontrol</th>
                   <th className="px-4 py-3">Kameraposition</th>
                   <th className="px-4 py-3">Tidspunkt</th>
                   <th className="px-4 py-3 text-right">Original</th>
@@ -178,6 +214,20 @@ function Page() {
                     ? parseDroneUploadMapPoint(upload, projectId)
                     : { reason: "wrong_project" as const };
                   const downloadAvailable = isUploadDownloadAvailable(upload);
+                  const admission = projectId
+                    ? originalCheckAvailability(upload, projectId)
+                    : { eligible: false, reason: "Vælg først et projekt." };
+                  const originalCheck =
+                    originalChecks[upload.id] ??
+                    storedOriginalCheckState(upload) ??
+                    (upload.upload_type === "drone_photo"
+                      ? {
+                          status: admission.eligible
+                            ? ("queued" as const)
+                            : ("unprocessed" as const),
+                          error: admission.reason ?? undefined,
+                        }
+                      : null);
                   return (
                     <tr key={upload.id}>
                       <td className="px-4 py-3 font-medium">
@@ -200,7 +250,50 @@ function Page() {
                         </Chip>
                       </td>
                       <td className="px-4 py-3 text-xs">
-                        {"point" in pointResult ? (
+                        {originalCheck ? (
+                          <div className="max-w-64 space-y-1">
+                            <div className="text-muted-foreground">
+                              {originalCheckStatusLabel(originalCheck)}
+                            </div>
+                            {admission.eligible && !isOriginalCheckComplete(originalCheck) && (
+                              <button
+                                type="button"
+                                onClick={() => void handleOriginalCheck(upload.id)}
+                                disabled={checkingOriginalId !== null}
+                                aria-busy={checkingOriginalId === upload.id}
+                                className="inline-flex items-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 disabled:opacity-40"
+                              >
+                                {checkingOriginalId === upload.id && (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                )}
+                                {originalCheck.status === "failed"
+                                  ? "Prøv originalkontrol igen"
+                                  : "Kontrollér original"}
+                              </button>
+                            )}
+                            {originalCheck.error && (
+                              <p className="text-[11px] text-amber-900" role="alert">
+                                {originalCheck.error}
+                              </p>
+                            )}
+                            {isOriginalCheckComplete(originalCheck) && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Ingen georeferering eller rapportgodkendelse.
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {isOriginalCheckComplete(originalCheck) ? (
+                          <span className="text-muted-foreground">
+                            {originalCheck?.cameraPositionEligible
+                              ? "Kameradata serverlæst · ikke et footprint"
+                              : "Kræver geografisk gennemgang"}
+                          </span>
+                        ) : "point" in pointResult ? (
                           <span className="inline-flex items-center gap-1 text-violet-700">
                             <MapPin className="h-3.5 w-3.5" /> GPS-kandidat
                             <span title="Browseraflæst og ubekræftet">
@@ -255,7 +348,7 @@ function Page() {
                 })}
                 {!uploadsQuery.isLoading && uploads.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">
                       {projectId
                         ? "Ingen uploads endnu. Start med en enkelt fil eller en samlet FØR-runde."
                         : "Ingen projektkø kan vises uden et valgt projekt."}

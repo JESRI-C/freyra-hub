@@ -123,6 +123,12 @@ describe("4DM Supabase tenant hardening migration", () => {
     const atomicObservationsIngestIndex = migrationPaths.findIndex((migrationPath) =>
       migrationPath.includes("ingest_observations_atomically.sql"),
     );
+    const baselineSnapshotIndex = migrationPaths.findIndex((migrationPath) =>
+      migrationPath.includes("project_baseline_snapshots.sql"),
+    );
+    const droneOriginalValidationIndex = migrationPaths.findIndex((migrationPath) =>
+      migrationPath.includes("drone_original_validation.sql"),
+    );
     expect(hardeningIndex).toBeGreaterThanOrEqual(0);
     expect(validationIndex).toBeGreaterThan(hardeningIndex);
     expect(uploadIntentIndex).toBeGreaterThan(validationIndex);
@@ -132,7 +138,8 @@ describe("4DM Supabase tenant hardening migration", () => {
     expect(finalizeCoalesceFixIndex).toBeGreaterThan(uploadIntentForwardReconciliationIndex);
     expect(uploadRpcMembershipFixIndex).toBeGreaterThan(finalizeCoalesceFixIndex);
     expect(atomicObservationsIngestIndex).toBeGreaterThan(uploadRpcMembershipFixIndex);
-    expect(migrationPaths.at(-1)).toContain("ingest_observations_atomically.sql");
+    expect(baselineSnapshotIndex).toBeGreaterThan(atomicObservationsIngestIndex);
+    expect(droneOriginalValidationIndex).toBeGreaterThan(baselineSnapshotIndex);
   });
 
   it("removes every known legacy/open policy from every affected table", () => {

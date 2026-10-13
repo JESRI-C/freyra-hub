@@ -122,7 +122,9 @@ export function generateProjectReportPreview({
     }
   });
   if (keyFindings.length === 0) {
-    keyFindings.push("Ingen signifikante tendenser registreret i denne periode.");
+    keyFindings.push(
+      "Datagrundlaget dokumenterer endnu ingen tidslig udvikling. Fravær af registrerede tendenser er ikke dokumentation for uændrede forhold.",
+    );
   }
 
   // ── Data sources summary ────────────────────────────────────────────────────
@@ -151,7 +153,9 @@ export function generateProjectReportPreview({
     .filter((i) => i.trend === "down")
     .forEach((i) => openRisks.push(`Faldende indikator: ${i.label}`));
   if (openRisks.length === 0) {
-    openRisks.push("Ingen identificerede risici i denne periode.");
+    openRisks.push(
+      "Der er endnu ingen registrerede risikopunkter i disse data. En fuldstændig faglig risikovurdering er ikke dokumenteret.",
+    );
   }
 
   // ── Recommended actions ─────────────────────────────────────────────────────

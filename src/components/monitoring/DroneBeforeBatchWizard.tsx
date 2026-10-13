@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -22,6 +23,7 @@ import {
   cancelUploadIntent,
   resolveUploadMime,
   type UploadIntent,
+  type Upload,
   UploadTransferError,
   uploadFileResumable,
 } from "@/services/monitoring/uploads-service";
@@ -32,6 +34,14 @@ import {
   runWithConcurrency,
   selectUniqueBatchFiles,
 } from "./drone-before-batch-helpers";
+import { validateDroneOriginal } from "@/lib/drone-original-validation.functions";
+import {
+  checkOriginalsSequentially,
+  isOriginalCheckComplete,
+  MAX_ORIGINAL_CHECK_BYTES,
+  originalCheckStatusLabel,
+  type OriginalCheckState,
+} from "./drone-original-check-helpers";
 
 type QueueStatus = "analysing" | "analysed" | "uploading" | "received" | "upload_failed";
 
@@ -47,6 +57,8 @@ interface BatchItem {
   resumeIntent?: UploadIntent;
   clientRequestId: string;
   batchSequence: number;
+  receivedUpload?: Upload;
+  originalCheck?: OriginalCheckState;
 }
 
 interface DroneBeforeBatchWizardProps {
@@ -81,14 +93,19 @@ function statusLabel(item: BatchItem): string {
     case "uploading":
       return `Uploader ${item.progress}%`;
     case "received":
-      return "Modtaget – afventer servervalidering";
+      return item.originalCheck
+        ? originalCheckStatusLabel(item.originalCheck)
+        : "Modtaget – afventer originalkontrol";
     case "upload_failed":
       return "Upload fejlede";
   }
 }
 
 function statusTone(item: BatchItem): string {
-  if (item.status === "received") return "bg-emerald-100 text-emerald-800";
+  if (item.status === "received")
+    return item.originalCheck?.status === "raw_original_validated"
+      ? "bg-slate-100 text-slate-800"
+      : "bg-amber-100 text-amber-900";
   if (item.status === "upload_failed") return "bg-red-100 text-red-800";
   if (item.status === "uploading" || item.status === "analysing") {
     return "bg-sky-100 text-sky-800";
@@ -114,15 +131,23 @@ export function DroneBeforeBatchWizard({
   const [items, setItems] = useState<BatchItem[]>([]);
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [checkingOriginals, setCheckingOriginals] = useState(false);
+  const busyRef = useRef(false);
+  const validateOriginal = useServerFn(validateDroneOriginal);
   const inputRef = useRef<HTMLInputElement>(null);
   const batchIdRef = useRef<string | null>(null);
   const runGenerationRef = useRef(0);
 
-  const active = items.some((item) => item.status === "analysing" || item.status === "uploading");
+  const active =
+    checkingOriginals ||
+    items.some((item) => item.status === "analysing" || item.status === "uploading");
   const uploadCandidates = items.filter(
     (item) => item.status === "analysed" || item.status === "upload_failed",
   );
   const receivedCount = items.filter((item) => item.status === "received").length;
+  const originalRetryCandidates = items.filter(
+    (item) => item.receivedUpload && item.originalCheck?.status === "failed",
+  );
   const warningCount = items.filter(
     (item) =>
       item.status !== "analysing" &&
@@ -139,6 +164,19 @@ export function DroneBeforeBatchWizard({
   const analyse = useCallback(
     async (added: BatchItem[], generation: number) => {
       await runWithConcurrency(added, DRONE_BEFORE_CONCURRENCY, async (item) => {
+        if (
+          resolveUploadMime(item.file) !== "image/jpeg" ||
+          !/\.jpe?g$/i.test(item.file.name) ||
+          item.file.size > MAX_ORIGINAL_CHECK_BYTES
+        ) {
+          if (runGenerationRef.current !== generation) return;
+          updateItem(item.id, {
+            status: "analysed",
+            analysisError:
+              "Ikke behandlet her: metadata- og originalkontrol understøtter JPEG op til 32 MiB. Filen kan stadig modtages.",
+          });
+          return;
+        }
         try {
           const preview = await parseImage(item.file);
           if (runGenerationRef.current !== generation) return;
@@ -210,56 +248,100 @@ export function DroneBeforeBatchWizard({
     [analyse, items],
   );
 
+  const checkReceivedOriginals = async (received: { key: string; upload: Upload }[]) => {
+    setCheckingOriginals(true);
+    try {
+      await checkOriginalsSequentially(
+        received,
+        projectId,
+        (input) => validateOriginal({ data: input }),
+        (id, originalCheck) => updateItem(id, { originalCheck }),
+      );
+    } finally {
+      setCheckingOriginals(false);
+    }
+  };
+
+  const retryOriginalChecks = async () => {
+    if (busyRef.current || active || clearing) return;
+    busyRef.current = true;
+    try {
+      await checkReceivedOriginals(
+        originalRetryCandidates.map((item) => ({ key: item.id, upload: item.receivedUpload! })),
+      );
+      onImported?.();
+    } finally {
+      busyRef.current = false;
+    }
+  };
+
   const uploadBatch = async () => {
+    if (busyRef.current || active || clearing) return;
+    busyRef.current = true;
     const batchId = batchIdRef.current ?? createId("before-batch");
     batchIdRef.current = batchId;
     let successes = 0;
     const candidates = [...uploadCandidates];
+    const received: { key: string; upload: Upload; sequence: number }[] = [];
 
-    await runWithConcurrency(candidates, DRONE_BEFORE_CONCURRENCY, async (item) => {
-      updateItem(item.id, { status: "uploading", progress: 0, uploadError: undefined });
-      try {
-        await uploadFileResumable({
-          file: item.file,
-          projectId,
-          uploadType: "drone_photo",
-          userMetadata: {
-            intake: {
-              schema_version: "gofreyra.drone-before-intake/v1",
-              phase: "BEFORE",
-              media_kind: "drone_photo",
-              batch_id: batchId,
-              batch_sequence: item.batchSequence,
+    try {
+      await runWithConcurrency(candidates, DRONE_BEFORE_CONCURRENCY, async (item) => {
+        updateItem(item.id, { status: "uploading", progress: 0, uploadError: undefined });
+        try {
+          const upload = await uploadFileResumable({
+            file: item.file,
+            projectId,
+            uploadType: "drone_photo",
+            userMetadata: {
+              intake: {
+                schema_version: "gofreyra.drone-before-intake/v1",
+                phase: "BEFORE",
+                media_kind: "drone_photo",
+                batch_id: batchId,
+                batch_sequence: item.batchSequence,
+              },
+              // Browser-derived EXIF/XMP/SHA is untrusted evidence. The server
+              // must re-extract and populate detected_metadata before use.
+              client_preview: item.clientMetadata ?? {
+                metadata_parse_error: item.analysisError ?? "Metadata mangler",
+              },
             },
-            // Browser-derived EXIF/XMP/SHA is untrusted evidence. The server
-            // must re-extract and populate detected_metadata before use.
-            client_preview: item.clientMetadata ?? {
-              metadata_parse_error: item.analysisError ?? "Metadata mangler",
+            onProgress: (progress) => {
+              updateItem(item.id, {
+                progress: Math.max(0, Math.min(100, Math.round(progress))),
+              });
             },
-          },
-          onProgress: (progress) => {
-            updateItem(item.id, {
-              progress: Math.max(0, Math.min(100, Math.round(progress))),
-            });
-          },
-          resumeIntent: item.resumeIntent,
-          clientRequestId: item.clientRequestId,
-        });
-        successes += 1;
-        updateItem(item.id, { status: "received", progress: 100, resumeIntent: undefined });
-      } catch (error) {
-        updateItem(item.id, {
-          status: "upload_failed",
-          uploadError: errorMessage(error),
-          resumeIntent: error instanceof UploadTransferError ? error.intent : item.resumeIntent,
-        });
-      }
-    });
+            resumeIntent: item.resumeIntent,
+            clientRequestId: item.clientRequestId,
+          });
+          successes += 1;
+          received.push({ key: item.id, upload, sequence: item.batchSequence });
+          updateItem(item.id, {
+            status: "received",
+            progress: 100,
+            resumeIntent: undefined,
+            receivedUpload: upload,
+            originalCheck: { status: "queued" },
+          });
+        } catch (error) {
+          updateItem(item.id, {
+            status: "upload_failed",
+            uploadError: errorMessage(error),
+            resumeIntent: error instanceof UploadTransferError ? error.intent : item.resumeIntent,
+          });
+        }
+      });
 
-    if (successes > 0) onImported?.();
+      if (successes > 0) onImported?.();
+      await checkReceivedOriginals(received.sort((a, b) => a.sequence - b.sequence));
+      if (successes > 0) onImported?.();
+    } finally {
+      busyRef.current = false;
+    }
   };
 
   const reset = async (): Promise<boolean> => {
+    if (busyRef.current || active) return false;
     const pending = items.filter((item) => Boolean(item.resumeIntent));
     if (pending.length > 0) {
       setClearing(true);
@@ -291,7 +373,7 @@ export function DroneBeforeBatchWizard({
   };
 
   const handleClose = () => {
-    if (active || clearing) return;
+    if (busyRef.current || active || clearing) return;
     void reset().then((cleared) => {
       if (cleared) onClose();
     });
@@ -336,6 +418,16 @@ export function DroneBeforeBatchWizard({
           >
             Luk
           </button>
+          {originalRetryCandidates.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void retryOriginalChecks()}
+              disabled={active || clearing}
+              className="rounded-lg border bg-card px-3 py-1.5 text-xs disabled:opacity-50"
+            >
+              Prøv originalkontrol igen
+            </button>
+          )}
           {items.length > 0 && !active && (
             <button
               type="button"
@@ -365,16 +457,17 @@ export function DroneBeforeBatchWizard({
       }
     >
       <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
-        Billederne bindes til det valgte projekt og modtages som en FØR-runde. Browserens EXIF, XMP,
-        GPS, UTC og SHA-256 er foreløbig, ubetroet metadata. Serveren skal validere originalerne,
-        før de må bruges som dokumenteret position, analyse eller rapportbevis.
+        Originalerne bindes til den valgte sag. Browserens metadata er foreløbige. Efter modtagelse
+        kontrollerer serveren JPEG-originaler op til 32 MiB én ad gangen. Originalkontrol er endnu
+        ingen faglig godkendelse, georeferering eller rapportklar observation.
       </div>
 
       <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 hover:bg-muted/30">
         <FileImage className="h-7 w-7 text-muted-foreground" />
         <div className="mt-2 text-sm font-medium">Vælg op til 200 originale dronebilleder</div>
         <div className="mt-1 text-center text-xs text-muted-foreground">
-          Metadata og SHA-256 læses to ad gangen. Upload kører også højst to ad gangen.
+          Upload kører højst to ad gangen; serverens originalkontrol kører én ad gangen. Andre
+          billedformater og JPEG over 32 MiB kan modtages, men bliver ikke behandlet her.
         </div>
         <input
           ref={inputRef}
@@ -411,9 +504,10 @@ export function DroneBeforeBatchWizard({
         <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <div className="font-medium">Modtaget – afventer servervalidering</div>
+            <div className="font-medium">Alle originaler er modtaget</div>
             <div className="mt-0.5 text-xs">
-              Ingen billeder kaldes kort- eller analyseklar, før serverkontrollen er bestået.
+              Se kontrollens status ved hver fil. Modtagelse og originalkontrol gør ikke billederne
+              rapportklare.
             </div>
           </div>
         </div>
@@ -427,7 +521,8 @@ export function DroneBeforeBatchWizard({
           const cameraPositionCandidate = metadata
             ? isReadyForAutomaticCameraPosition(metadata)
             : false;
-          const canRemove = item.status === "analysed" || item.status === "upload_failed";
+          const canRemove =
+            !active && (item.status === "analysed" || item.status === "upload_failed");
           return (
             <div key={item.id} className="rounded-lg border bg-card p-3 text-xs">
               <div className="flex items-start justify-between gap-2">
@@ -467,13 +562,16 @@ export function DroneBeforeBatchWizard({
               {item.status !== "analysing" && (
                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
                   <span className={hasGps ? "text-emerald-700" : "text-amber-800"}>
-                    <MapPin className="mr-1 inline h-3 w-3" /> GPS {hasGps ? "fundet" : "mangler"}
+                    <MapPin className="mr-1 inline h-3 w-3" /> Browser-GPS{" "}
+                    {hasGps ? "fundet" : "mangler"}
                   </span>
                   <span className={hasUtc ? "text-emerald-700" : "text-amber-800"}>
-                    UTC {hasUtc ? "fundet" : "mangler"}
+                    Browser-UTC {hasUtc ? "fundet" : "mangler"}
                   </span>
                   <span>
-                    SHA-256 {metadata?.file.sha256 ? metadata.file.sha256.slice(0, 12) : "afventer"}
+                    {item.originalCheck?.sha256
+                      ? `Server-SHA-256 ${item.originalCheck.sha256.slice(0, 12)}`
+                      : `Foreløbig SHA-256 ${metadata?.file.sha256 ? metadata.file.sha256.slice(0, 12) : "afventer"}`}
                   </span>
                 </div>
               )}
@@ -489,6 +587,17 @@ export function DroneBeforeBatchWizard({
               )}
               {item.uploadError && (
                 <div className="mt-2 text-red-700">Uploadfejl: {item.uploadError}</div>
+              )}
+              {item.originalCheck?.error && (
+                <div className="mt-2 text-amber-900" role="alert">
+                  {item.originalCheck.error}
+                </div>
+              )}
+              {isOriginalCheckComplete(item.originalCheck) && (
+                <div className="mt-2 text-muted-foreground">
+                  Serverens rå originalkontrol er gemt. Faglig billedgennemgang og observationer er
+                  næste trin.
+                </div>
               )}
             </div>
           );

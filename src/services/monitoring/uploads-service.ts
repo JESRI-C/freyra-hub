@@ -4,7 +4,13 @@ import type { Database } from "@/integrations/supabase/types";
 import { logAuditEvent } from "./audit-service";
 import { uploadWithTus } from "./resumable-upload-service";
 
-export type Upload = Database["public"]["Tables"]["uploads"]["Row"];
+// Read-only extension for the additive original-validation migration. Client
+// INSERT/UPDATE types deliberately retain the generated caller-owned contract.
+export type Upload = Database["public"]["Tables"]["uploads"]["Row"] & {
+  original_sha256?: string | null;
+  original_validation_sha256?: string | null;
+  original_validation?: Database["public"]["Tables"]["uploads"]["Row"]["detected_metadata"];
+};
 export type UploadInsert = Database["public"]["Tables"]["uploads"]["Insert"];
 export type UploadUpdate = Database["public"]["Tables"]["uploads"]["Update"];
 

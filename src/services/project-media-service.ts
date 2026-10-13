@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled } from "@/lib/data-mode";
 import type {
   ProjectMediaItem,
   MediaCategory,
@@ -145,12 +146,14 @@ async function materializePrivateMedia(
   return { data: rowToMediaItem(row, signedUrl.data), error: null };
 }
 
-// List media for a project — falls back to seed data if Supabase not configured
+// Demo media is available only by explicit offline choice.
 export async function listProjectMedia(
   projectId: string,
 ): Promise<MediaServiceResult<ProjectMediaItem[]>> {
   if (!isSupabaseConfigured || supabase === null) {
-    return { data: getSeedMedia(projectId), error: null };
+    return isDemoDataEnabled
+      ? { data: getSeedMedia(projectId), error: null }
+      : { data: null, error: "Kundedatabasen er ikke konfigureret." };
   }
 
   const { data, error } = await getDb()!
@@ -182,23 +185,10 @@ export async function uploadProjectMedia(
   input: UploadMediaInput,
 ): Promise<MediaServiceResult<ProjectMediaItem>> {
   if (!isSupabaseConfigured || supabase === null) {
-    // Preview mode — construct a mock item without actual upload
-    const mockItem: ProjectMediaItem = {
-      id: `mock-${Date.now()}`,
-      projectId: input.projectId,
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      source: input.source,
-      url: URL.createObjectURL(input.file),
-      uploadedAt: new Date().toISOString(),
-      capturedAt: input.capturedAt,
-      coordinates: input.coordinates,
-      isReportReady: input.isReportReady,
-      tags: input.tags,
-      status: "uploaded",
+    return {
+      data: null,
+      error: "Upload kræver en konfigureret kundedatabase. Filen er ikke gemt.",
     };
-    return { data: mockItem, error: null };
   }
 
   // Build storage path

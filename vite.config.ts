@@ -20,6 +20,9 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    // This checkout can live below an older dashboard. Its PostCSS/Tailwind
+    // configuration must not be inherited from the parent project.
+    css: { postcss: { plugins: [] } },
     optimizeDeps: {
       include: ["leaflet"],
     },

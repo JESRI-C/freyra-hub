@@ -79,6 +79,12 @@ function Page() {
 
   const map = useMapEditor(project, ndvi);
   const analysis = useFullAnalysis(project);
+  const savedAnalysisResults = [
+    analysis.result?.ndvi,
+    analysis.result?.biodiversity,
+    analysis.result?.carbon,
+    analysis.result?.water,
+  ].filter((result) => result?.savedToDb === true).length;
 
   const lat = project?.geometry_centroid_lat ?? null;
   const lng = project?.geometry_centroid_lng ?? null;
@@ -359,7 +365,10 @@ function Page() {
                   />
                   <ResultRow label="Vandrisiko" value={analysis.summary.waterRisk ?? "—"} />
                   <div className="text-[11px] text-muted-foreground pt-1">
-                    Gennemført på {analysis.durationS}s — gemt i databasen
+                    Kørsel afsluttet på {analysis.durationS}s —{" "}
+                    {savedAnalysisResults > 0
+                      ? `${savedAnalysisResults} resultat${savedAnalysisResults === 1 ? "" : "er"} gemt i databasen`
+                      : "ingen analyseresultater gemt"}
                     {analysis.stepsFailed.length > 0 &&
                       ` · ${analysis.stepsFailed.length} trin fejlede`}
                   </div>
