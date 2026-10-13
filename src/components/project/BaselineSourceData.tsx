@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { PublicBaselineSource } from "@/services/baseline/public-baseline-types";
+import { parseSavedWaterPlanNatureSource } from "@/services/baseline/water-plan-nature-saved-payload";
 
 const Timestamp = z.string().datetime({ offset: true });
 const Coordinates = z.tuple([
@@ -630,17 +631,227 @@ function RasterData({ source }: { source: PublicBaselineSource }) {
   );
 }
 
+function WaterPlanNatureData({ source }: { source: PublicBaselineSource }) {
+  const data = parseSavedWaterPlanNatureSource(source);
+  if (!data) return <InvalidPayload />;
+  const titles = {
+    "protected-nature": "Naturregistreringer",
+    "protected-watercourses": "Registreringer af beskyttede vandløb",
+    "vp3-watercourses": "Vandområder fra vandplanen",
+  };
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="rounded border border-amber-300/50 bg-amber-50/30 p-2 dark:bg-amber-950/10">
+        <p className="font-medium">{source.coverage.returnedCount} registreringskandidater</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Registreringerne er fundet i søgeområdet. Placering i projektpolygonen og sammenhæng med
+          den kommunale delstrækning afventer faglig kontrol. Der er ingen juridisk vurdering eller
+          beregnede arealer, længder og scorer.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Dækning af undersøgelsesperioden er ukendt. Registrerings-, system-, plan- og hentetid er
+          forskellige tidspunkter og dokumenterer ikke en ny besigtigelse. Manglende registreringer
+          betyder ikke ubeskyttet natur eller god tilstand.
+        </p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Søgeområde ({data.queryProjection.queryCrs}, øst/nord i meter):{" "}
+        {data.queryProjection.bbox.map(numberText).join(" · ")}. Buffer{" "}
+        {numberText(data.queryProjection.queryBufferM)} m. Native kildegeometrier er bevaret;
+        opmålingsnøjagtighed og højder er ikke valideret.
+      </p>
+      {data.products.map((product) => (
+        <section key={product.id} className="space-y-2">
+          <p className="font-medium">
+            {titles[product.id]} · {product.candidates.length}{" "}
+            {product.candidates.length === 1 ? "kandidat" : "kandidater"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {product.attribution} ·{" "}
+            <a
+              href={product.licenceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              {product.licence}
+            </a>
+            {product.id === "vp3-watercourses" && (
+              <span className="block">
+                Planversion {product.datasetVersion} · Offentliggjort{" "}
+                <time dateTime={product.planPublishedDate!}>18.12.2025</time> · Gældende fra{" "}
+                <time dateTime={product.planEffectiveFrom!}>01.01.2026</time>. Datoen for den
+                konkrete tilstandsvurdering er ukendt.
+              </span>
+            )}
+          </p>
+          {product.candidates.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Ingen kandidater i denne gemte kildeforespørgsel. Det fastslår ikke fravær af
+              beskyttet natur eller vandplanforhold.
+            </p>
+          ) : (
+            <div className="max-h-80 overflow-auto rounded border">
+              <table className="w-full text-xs">
+                <caption className="p-2 text-left text-muted-foreground">
+                  {product.id === "vp3-watercourses"
+                    ? "Miljømål og vurderet tilstand er separate kildeoplysninger, ikke nye lokale målinger. Vandområde-ID er ikke en godkendt kommunal delstrækning."
+                    : "Registreringsstatus er kildens egen status. Besigtigelse og registervedligeholdelse er adskilt; ingen ny besigtigelse er verificeret."}
+                </caption>
+                <thead>
+                  <tr className="border-b bg-muted/30 text-left">
+                    {product.id === "vp3-watercourses" ? (
+                      <>
+                        <th scope="col" className="p-2">
+                          Vandområde
+                        </th>
+                        <th scope="col" className="p-2">
+                          Økologisk miljømål
+                        </th>
+                        <th scope="col" className="p-2">
+                          Økologisk tilstand
+                        </th>
+                        <th scope="col" className="p-2">
+                          Kemisk miljømål
+                        </th>
+                        <th scope="col" className="p-2">
+                          Kemisk tilstand
+                        </th>
+                      </>
+                    ) : (
+                      <>
+                        <th scope="col" className="p-2">
+                          Registrering
+                        </th>
+                        <th scope="col" className="p-2">
+                          Kildestatus
+                        </th>
+                        <th scope="col" className="p-2">
+                          Registreret / systemversion (UTC)
+                        </th>
+                        <th scope="col" className="p-2">
+                          Besigtigelse
+                        </th>
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {product.candidates.map((candidate) => (
+                    <tr key={candidate.featureId} className="border-b last:border-0">
+                      {candidate.kind === "vp3-watercourses" ? (
+                        <>
+                          <td className="p-2 break-all">
+                            {candidate.waterbodyId}
+                            <span className="block text-muted-foreground">
+                              {candidate.sourceName ?? "Navn ukendt"}
+                            </span>
+                            <span className="block text-muted-foreground">
+                              Vurderingsdato: Ukendt
+                            </span>
+                          </td>
+                          <td className="p-2">{candidate.planGoals.ecological ?? "Ukendt"}</td>
+                          <td className="p-2">{candidate.assessedState.ecological ?? "Ukendt"}</td>
+                          <td className="p-2">{candidate.planGoals.chemical ?? "Ukendt"}</td>
+                          <td className="p-2">{candidate.assessedState.chemical ?? "Ukendt"}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="p-2 break-all">
+                            {candidate.natureType?.name ?? candidate.themeName ?? "Type ukendt"}
+                            <span className="block text-muted-foreground">
+                              Objekt {candidate.objectId}
+                            </span>
+                            <span className="block text-muted-foreground">
+                              Version {candidate.versionId}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            {candidate.status.interpretation === "unknown"
+                              ? "Ukendt"
+                              : candidate.status.name}
+                            <span className="block text-muted-foreground">
+                              Ingen juridisk godkendelse
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            Registreret:{" "}
+                            {candidate.rawDates.registeredAt
+                              ? dateText(candidate.rawDates.registeredAt)
+                              : "Ukendt"}
+                            <span className="block text-muted-foreground">
+                              Systemversion fra:{" "}
+                              {candidate.rawDates.systemValidFrom
+                                ? dateText(candidate.rawDates.systemValidFrom)
+                                : "Ukendt"}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            {candidate.inspection?.status === "reported_date" &&
+                            candidate.inspection.reportedDate
+                              ? `Kildens besigtigelsesdato: ${dateText(candidate.inspection.reportedDate)}`
+                              : "Besigtigelsesdato: Ukendt"}
+                            <span className="block text-muted-foreground">
+                              Ny besigtigelse er ikke verificeret
+                            </span>
+                            {candidate.registryMaintenance && (
+                              <span className="block text-muted-foreground">
+                                Registervedligeholdelse:{" "}
+                                {candidate.registryMaintenance.status ?? "Ukendt"}
+                                {candidate.registryMaintenance.rawDate
+                                  ? ` · ${dateText(candidate.registryMaintenance.rawDate)}`
+                                  : " · Dato ukendt"}
+                              </span>
+                            )}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ))}
+      <details className="text-xs text-muted-foreground">
+        <summary className="cursor-pointer">
+          Kildeproveniens · {data.pages.length} gemte sider
+        </summary>
+        <p className="mt-1">
+          Alle forventede registreringer på de modtagne sider er gemt. Kilden tilbyder ikke en
+          transaktionssikker snapshot; registreringer kan være ændret mellem hentningerne.
+        </p>
+        <ul className="mt-2 space-y-2">
+          {data.pages.map((page) => (
+            <li key={`${page.productId}-${page.startIndex}`} className="break-all">
+              <a
+                href={page.queryUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                {titles[page.productId]} · Fra indeks {page.startIndex} · {page.numberReturned}{" "}
+                registreringer
+              </a>
+              <span className="block">Kildens tidspunkt: {dateText(page.serverTimestamp)}</span>
+              <span className="block">SHA-256: {page.responseSha256}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
 /** Read only: these values come from the selected immutable source snapshot, never a new fetch. */
 export function BaselineSourceData({ source }: { source: PublicBaselineSource }) {
-  if (!["dmi-historical", "sentinel-2-scenes", "orthophoto-terrain"].includes(source.id))
+  if (
+    !["dmi-historical", "sentinel-2-scenes", "orthophoto-terrain", "water-plan-nature"].includes(
+      source.id,
+    )
+  )
     return null;
-  if (source.mode === "error" || source.error) {
-    return (
-      <p role="alert" className="text-sm text-destructive">
-        Kilden kunne ikke hentes. Der vises ingen dataværdier fra denne hentning.
-      </p>
-    );
-  }
   if (
     source.mode === "preview" ||
     source.status === "not_implemented" ||
@@ -652,7 +863,15 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
       </p>
     );
   }
+  if (source.mode === "error" || source.error) {
+    return (
+      <p role="alert" className="text-sm text-destructive">
+        Kilden kunne ikke hentes. Der vises ingen dataværdier fra denne hentning.
+      </p>
+    );
+  }
   if (source.id === "dmi-historical") return <DmiData source={source} />;
   if (source.id === "sentinel-2-scenes") return <SentinelData source={source} />;
+  if (source.id === "water-plan-nature") return <WaterPlanNatureData source={source} />;
   return <RasterData source={source} />;
 }

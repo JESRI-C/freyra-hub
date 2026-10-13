@@ -11,11 +11,19 @@ import {
   COLLECTED_AT,
 } from "./public-baseline.fixtures";
 
-const defaults = vi.hoisted(() => ({ dmi: vi.fn(), sentinel: vi.fn(), raster: vi.fn() }));
+const defaults = vi.hoisted(() => ({
+  dmi: vi.fn(),
+  sentinel: vi.fn(),
+  raster: vi.fn(),
+  nature: vi.fn(),
+}));
 vi.mock("../dmi-historical-source", () => ({ fetchDmiHistoricalSource: defaults.dmi }));
 vi.mock("../sentinel-scene-source", () => ({ fetchSentinelSceneSource: defaults.sentinel }));
 vi.mock("../datafordeler-raster-inventory.server", () => ({
   fetchDatafordelerRasterInventorySource: defaults.raster,
+}));
+vi.mock("../water-plan-nature-source.server", () => ({
+  fetchWaterPlanNatureSource: defaults.nature,
 }));
 
 async function source(id: string): Promise<PublicBaselineSource> {
@@ -33,13 +41,16 @@ async function source(id: string): Promise<PublicBaselineSource> {
 }
 
 describe("authorized public baseline collection", () => {
-  it("loads the raster server adapter only through default collection and retains its result", async () => {
+  it("loads raster and nature server adapters through default collection and retains their results", async () => {
     const manifest = await makeManifest();
     const raster = await source("orthophoto-terrain");
     defaults.dmi.mockResolvedValue(await source("dmi-historical"));
     defaults.sentinel.mockResolvedValue(await source("sentinel-2-scenes"));
     defaults.raster.mockResolvedValue(raster);
+    const nature = await source("water-plan-nature");
+    defaults.nature.mockResolvedValue(nature);
     expect(defaults.raster).not.toHaveBeenCalled();
+    expect(defaults.nature).not.toHaveBeenCalled();
     const collected = await collectPublicBaselineSources(manifest);
     expect(defaults.raster).toHaveBeenCalledTimes(1);
     expect(defaults.raster).toHaveBeenCalledWith({
@@ -49,13 +60,22 @@ describe("authorized public baseline collection", () => {
       geometrySha256: manifest.project.polygonSha256,
     });
     expect(collected.sources.find((s) => s.id === "orthophoto-terrain")).toEqual(raster);
+    expect(defaults.nature).toHaveBeenCalledTimes(1);
+    expect(defaults.nature).toHaveBeenCalledWith(defaults.raster.mock.calls[0][0]);
+    expect(collected.sources.find((s) => s.id === "water-plan-nature")).toEqual(nature);
   });
   it("binds collectors to the saved polygon and dates and reloads the same saved sources", async () => {
     const manifest = await makeManifest();
     const dmi = vi.fn().mockResolvedValue(await source("dmi-historical"));
     const sentinel = vi.fn().mockResolvedValue(await source("sentinel-2-scenes"));
     const raster = vi.fn().mockResolvedValue(await source("orthophoto-terrain"));
-    const collected = await collectPublicBaselineSources(manifest, { dmi, sentinel, raster });
+    const nature = vi.fn().mockResolvedValue(await source("water-plan-nature"));
+    const collected = await collectPublicBaselineSources(manifest, {
+      dmi,
+      sentinel,
+      raster,
+      nature,
+    });
     expect(dmi).toHaveBeenCalledWith({
       polygon: manifest.project.polygon,
       dateFrom: manifest.period.from,
@@ -64,6 +84,8 @@ describe("authorized public baseline collection", () => {
     });
     expect(sentinel).toHaveBeenCalledWith(dmi.mock.calls[0][0]);
     expect(raster).toHaveBeenCalledWith(dmi.mock.calls[0][0]);
+    expect(nature).toHaveBeenCalledWith(dmi.mock.calls[0][0]);
+    expect(collected.sources.filter((s) => s.id === "water-plan-nature")).toHaveLength(1);
     expect(collected.sources.filter((s) => s.id === "orthophoto-terrain")).toHaveLength(1);
     expect(collected.sources.filter((s) => s.id === "dmi-historical")).toHaveLength(1);
     const reopened = await baselineSnapshotFromRow({
@@ -79,6 +101,7 @@ describe("authorized public baseline collection", () => {
     expect(reopened.manifest).toEqual(collected);
     expect(dmi).toHaveBeenCalledTimes(1);
     expect(raster).toHaveBeenCalledTimes(1);
+    expect(nature).toHaveBeenCalledTimes(1);
   });
   it("records one unavailable source while preserving the other source's actual response", async () => {
     const manifest = await makeManifest();
@@ -87,6 +110,7 @@ describe("authorized public baseline collection", () => {
       dmi: vi.fn().mockRejectedValue(new Error("internal provider failure")),
       sentinel: vi.fn().mockResolvedValue(sentinelResult),
       raster: vi.fn().mockResolvedValue(await source("orthophoto-terrain")),
+      nature: vi.fn().mockResolvedValue(await source("water-plan-nature")),
     });
     const dmi = collected.sources.find((s) => s.id === "dmi-historical")!;
     expect(dmi).toMatchObject({
@@ -112,6 +136,7 @@ describe("authorized public baseline collection", () => {
           dmi: vi.fn().mockResolvedValue(dmi),
           sentinel: vi.fn().mockResolvedValue(await source("sentinel-2-scenes")),
           raster: vi.fn().mockResolvedValue(await source("orthophoto-terrain")),
+          nature: vi.fn().mockResolvedValue(await source("water-plan-nature")),
         }),
       ).rejects.toThrow();
     },
@@ -126,6 +151,7 @@ describe("authorized public baseline collection", () => {
       dmi: vi.fn().mockResolvedValue(dmiResult),
       sentinel: vi.fn().mockResolvedValue(await source("sentinel-2-scenes")),
       raster: vi.fn().mockRejectedValue(new Error("private provider URL apiKey=must-not-escape")),
+      nature: vi.fn().mockResolvedValue(await source("water-plan-nature")),
     });
     expect(collected.sources.find((s) => s.id === "orthophoto-terrain")).toMatchObject({
       mode: "error",
@@ -154,6 +180,49 @@ describe("authorized public baseline collection", () => {
           dmi: vi.fn().mockResolvedValue(await source("dmi-historical")),
           sentinel: vi.fn().mockResolvedValue(await source("sentinel-2-scenes")),
           raster: vi.fn().mockResolvedValue(raster),
+          nature: vi.fn().mockResolvedValue(await source("water-plan-nature")),
+        }),
+      ).rejects.toThrow();
+    },
+  );
+  it("records a nature failure without inventing zero candidates or modifying saved snapshots", async () => {
+    const manifest = await makeManifest();
+    const original = structuredClone(manifest);
+    const dmiResult = await source("dmi-historical");
+    const collected = await collectPublicBaselineSources(manifest, {
+      dmi: vi.fn().mockResolvedValue(dmiResult),
+      sentinel: vi.fn().mockResolvedValue(await source("sentinel-2-scenes")),
+      raster: vi.fn().mockResolvedValue(await source("orthophoto-terrain")),
+      nature: vi.fn().mockRejectedValue(new Error("private upstream diagnostics must-not-escape")),
+    });
+    expect(collected.sources.find((s) => s.id === "water-plan-nature")).toMatchObject({
+      mode: "error",
+      status: "failed",
+      payload: null,
+      payloadSha256: null,
+      coverage: { spatial: "unknown", temporal: "unknown", returnedCount: null },
+      error: { code: "COLLECTOR_FAILED" },
+    });
+    expect(JSON.stringify(collected)).not.toContain("must-not-escape");
+    expect(collected.sources.find((s) => s.id === "dmi-historical")).toEqual(dmiResult);
+    expect(manifest).toEqual(original);
+  });
+
+  it.each(["id", "geometry", "period", "payload"])(
+    "rejects corrupted nature %s bindings before persistence",
+    async (field) => {
+      const manifest = await makeManifest();
+      const nature = await source("water-plan-nature");
+      if (field === "id") nature.id = "other-source";
+      if (field === "geometry") nature.query.geometrySha256 = "a".repeat(64);
+      if (field === "period") nature.query.requestedTo = "2026-10-01";
+      if (field === "payload") nature.payload = { fabricated: true };
+      await expect(
+        collectPublicBaselineSources(manifest, {
+          dmi: vi.fn().mockResolvedValue(await source("dmi-historical")),
+          sentinel: vi.fn().mockResolvedValue(await source("sentinel-2-scenes")),
+          raster: vi.fn().mockResolvedValue(await source("orthophoto-terrain")),
+          nature: vi.fn().mockResolvedValue(nature),
         }),
       ).rejects.toThrow();
     },

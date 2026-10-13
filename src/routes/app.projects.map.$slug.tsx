@@ -9,6 +9,7 @@ import { getProjectSensors } from "@/services/iot-simulation-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
 import { getMapLayers, getProjectGeoJSON, getProjectMetrics } from "@/services/geospatial-service";
 import { fetchAndIngestNatureGeo } from "@/lib/nature-geo.functions";
+import { PublicNatureCandidatesStatus } from "@/components/maps/PublicNatureCandidatesStatus";
 import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
 import { LayerControlPanel } from "@/components/maps/LayerControlPanel";
@@ -109,21 +110,19 @@ function GeoMapPage() {
     enabled: !!projectId,
   });
 
-  // Natur-geodata (§3 + vandløb): hentes live fra Miljøportal WFS og
-  // persisteres server-side i geo_features/nature_contexts (best-effort).
-  const { data: natureGeo } = useQuery({
-    queryKey: ["nature-geo", projectId],
+  // Current public catalogue candidates use the server's saved canonical area.
+  const natureGeoQuery = useQuery({
+    queryKey: ["nature-geo", projectId, project?.geometry_polygon],
     queryFn: () =>
       fetchAndIngestNatureGeo({
         data: {
           projectId,
-          lat: geometry.centroid?.lat ?? 0,
-          lng: geometry.centroid?.lng ?? 0,
         },
       }),
-    enabled: !!projectId && !!geometry.centroid,
+    enabled: !!projectId,
     staleTime: 30 * 60 * 1000,
   });
+  const natureGeo = natureGeoQuery.isError ? undefined : natureGeoQuery.data;
 
   // Geo data
   const { data: mapLayers = [] } = useQuery({
@@ -242,6 +241,12 @@ function GeoMapPage() {
               }
             />
           </div>
+
+          <PublicNatureCandidatesStatus
+            result={natureGeo}
+            loading={natureGeoQuery.isPending}
+            requestFailed={natureGeoQuery.isError}
+          />
 
           {droneUploadsQuery.isError && (
             <div

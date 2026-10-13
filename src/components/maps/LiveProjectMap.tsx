@@ -443,7 +443,14 @@ export function LiveProjectMap({
           style: { color: "#16A34A", weight: 1.5, fillColor: "#22C55E", fillOpacity: 0.25 },
           onEachFeature: (feature, layer) => {
             const t = (feature.properties as Record<string, unknown>)["natureType"];
-            layer.bindPopup(popupContent("§3 beskyttet natur", [String(t ?? "Naturareal")]));
+            const status = (feature.properties as Record<string, unknown>)["registryStatus"];
+            layer.bindPopup(
+              popupContent("§3-naturregistrering (kandidat)", [
+                String(t ?? "Naturareal"),
+                `Registreringsstatus: ${String(status ?? "Ukendt")}`,
+                "Juridisk projektbeskyttelse er ikke vurderet.",
+              ]),
+            );
           },
         }).addTo(map);
       }
@@ -457,7 +464,12 @@ export function LiveProjectMap({
           style: { color: "#0EA5E9", weight: 2, opacity: 0.85 },
           onEachFeature: (feature, layer) => {
             const navn = (feature.properties as Record<string, unknown>)["navn"];
-            layer.bindPopup(popupContent("Vandløb", navn ? [String(navn)] : []));
+            layer.bindPopup(
+              popupContent("Vandløbsregistrering (kandidat)", [
+                ...(navn ? [String(navn)] : []),
+                "Den kommunale delstrækning er ikke fastlagt her.",
+              ]),
+            );
           },
         }).addTo(map);
       }

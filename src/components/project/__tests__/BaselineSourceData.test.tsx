@@ -3,6 +3,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { BaselineSourceData } from "../BaselineSourceData";
 import type { BaselineJson, PublicBaselineSource } from "@/services/baseline/public-baseline-types";
+import {
+  WATER_PLAN_NATURE_PRODUCTS,
+  WATER_PLAN_NATURE_CRS,
+  buildWaterPlanNatureUrl,
+  parseWaterPlanNaturePage,
+  type WaterPlanNaturePayload,
+} from "@/services/baseline/water-plan-nature-source";
+import { ACTUAL_NATIVE_FEATURES } from "@/services/baseline/__tests__/water-plan-nature.fixtures";
 
 function source(
   id: string,
@@ -520,5 +528,418 @@ describe("saved raster inventory metadata", () => {
     historical.status = "not_implemented";
     expect(render(historical)).toContain("Kilden er endnu ikke hentet eller tilsluttet");
     expect(render(historical)).not.toContain("0 filmetadata");
+  });
+});
+
+function naturePayload(empty = false): WaterPlanNaturePayload {
+  const bbox: [number, number, number, number] = [515884, 6132418, 517217, 6136177];
+  const timestamp = "2026-10-13T17:31:04.782Z";
+  return {
+    schema: "gofreyra.water-plan-nature-inventory/v1",
+    wfsVersion: "2.0.0",
+    inventoryOnly: true,
+    legalAssessmentPerformed: false,
+    metricsCalculated: false,
+    municipalReachMapped: false,
+    upstreamTransactionalSnapshot: false,
+    geometrySha256: "1".repeat(64),
+    requestedPeriod: { from: "2026-08-24", to: "2026-08-25" },
+    queryProjection: {
+      sourceCrs: "EPSG:4326",
+      sourceAxisOrder: "lng-lat",
+      queryCrs: "EPSG:25832",
+      queryAxisOrder: "easting-northing",
+      bbox,
+      method: "proj4-grs80-catalog-envelope/v1",
+      edgeSampleStepDegrees: 0.01,
+      projectedSampleCount: 12,
+      queryBufferM: 25,
+      bboxRounding: "outward-to-integer-metres",
+      datumAssumption: "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+      surveyAccuracyVerified: false,
+      heightTransformed: false,
+    },
+    products: WATER_PLAN_NATURE_PRODUCTS.map((product) => {
+      const features = empty ? [] : structuredClone(ACTUAL_NATIVE_FEATURES[product.id]);
+      const candidates = parseWaterPlanNaturePage(
+        {
+          type: "FeatureCollection",
+          features,
+          totalFeatures: features.length,
+          numberMatched: features.length,
+          numberReturned: features.length,
+          timeStamp: timestamp,
+          crs: { type: "name", properties: { name: WATER_PLAN_NATURE_CRS } },
+        },
+        product.id,
+        bbox,
+        0,
+      ).candidates;
+      return {
+        id: product.id,
+        layer: product.layer,
+        endpoint: product.endpoint,
+        geometryName: product.geometryName,
+        sortKey: product.sortKey,
+        datasetVersion: product.datasetVersion,
+        versionBasis:
+          product.id === "vp3-watercourses"
+            ? "published_plan_release"
+            : "per_feature_registration_version",
+        planPublishedDate: product.id === "vp3-watercourses" ? "2025-12-18" : null,
+        planEffectiveFrom: product.id === "vp3-watercourses" ? "2026-01-01" : null,
+        licence: product.licence,
+        licenceUrl: product.licenceUrl,
+        attribution: product.attribution,
+        catalogueIds: product.catalogueIds,
+        receivedInventoryComplete: true,
+        pagingIsTransactionSafe: false,
+        matchedCount: candidates.length,
+        candidates,
+      };
+    }),
+    pages: WATER_PLAN_NATURE_PRODUCTS.map((product, index) => {
+      const count = empty ? 0 : ACTUAL_NATIVE_FEATURES[product.id].length;
+      return {
+        productId: product.id,
+        queryUrl: buildWaterPlanNatureUrl(product.id, bbox, 0),
+        responseSha256: String(index + 2).repeat(64),
+        responseBytes: 1234,
+        startIndex: 0,
+        requestedCount: 50,
+        sortKey: product.sortKey,
+        numberMatched: count,
+        numberReturned: count,
+        totalFeatures: count,
+        serverTimestamp: timestamp,
+      };
+    }),
+  };
+}
+function natureSource(
+  payload: WaterPlanNaturePayload | null = naturePayload(),
+): PublicBaselineSource {
+  const count =
+    payload?.products.reduce((sum, product) => sum + product.candidates.length, 0) ?? null;
+  return source("water-plan-nature", payload as unknown as BaselineJson, count ?? 0, {
+    provider: "Danmarks Miljøportal / Kommunerne / SGAV",
+    dataset: "Naturregistreringer og VP3G-vandløbsafgrænsning, miljømål og tilstand",
+    licence: "CC0 1.0 (natur); CC BY 4.0 (VP3G)",
+    attribution:
+      "Danmarks Miljøportal / Kommunerne; Styrelsen for Grøn Arealomlægning og Vandmiljø (SGAV)",
+    sourceUrl: "https://datakatalog.miljoeportal.dk/api/swagger/index.html",
+    adapterVersion: "water-plan-nature-inventory/v1",
+    coverage: {
+      spatial: "unknown",
+      temporal: "unknown",
+      observedFrom: null,
+      observedTo: null,
+      paginationComplete: true,
+      returnedCount: count,
+    },
+    quality: {
+      evidenceKind: "official_registration",
+      method: "bounded_native_wfs_received_inventory_only",
+      warnings: [],
+    },
+  });
+}
+
+describe("saved nature and water-plan candidates", () => {
+  it("renders a complete four-page received inventory and rejects missing second-page provenance", () => {
+    const data = naturePayload();
+    data.pages = [];
+    for (const [productIndex, fixed] of WATER_PLAN_NATURE_PRODUCTS.entries()) {
+      const total = [82, 4, 3][productIndex];
+      const product = data.products[productIndex];
+      product.candidates = [];
+      product.matchedCount = total;
+      for (let start = 0; start < total; start += 50) {
+        const features = Array.from({ length: Math.min(50, total - start) }, (_, index) => {
+          const feature = JSON.parse(JSON.stringify(ACTUAL_NATIVE_FEATURES[fixed.id][0]));
+          const sequence = String(start + index + 1).padStart(12, "0");
+          if (fixed.id === "vp3-watercourses") {
+            feature.properties.ov_id = `DKRIVER${sequence}`;
+            feature.id = `vp3_2e2025_vandloeb_samlet.${start + index + 1}`;
+          } else {
+            feature.properties.Objekt_id = `${productIndex + 1}0000000-0000-4000-8000-${sequence}`;
+            feature.properties.Version_id = `${productIndex + 5}0000000-0000-4000-8000-${sequence}`;
+            feature.id = `${fixed.id === "protected-nature" ? "bes_naturtyper" : "bes_vandloeb"}.${feature.properties.Version_id}`;
+          }
+          return feature;
+        });
+        const timestamp = start === 0 ? "2026-10-13T17:31:04.782Z" : "2026-10-13T17:31:05.123Z";
+        const parsed = parseWaterPlanNaturePage(
+          {
+            type: "FeatureCollection",
+            features,
+            totalFeatures: total,
+            numberMatched: total,
+            numberReturned: features.length,
+            timeStamp: timestamp,
+            crs: { type: "name", properties: { name: WATER_PLAN_NATURE_CRS } },
+          },
+          fixed.id,
+          data.queryProjection.bbox,
+          start,
+        );
+        product.candidates.push(...parsed.candidates);
+        data.pages.push({
+          productId: fixed.id,
+          queryUrl: buildWaterPlanNatureUrl(fixed.id, data.queryProjection.bbox, start),
+          responseSha256: "d".repeat(64),
+          responseBytes: 1234,
+          startIndex: start,
+          requestedCount: 50,
+          sortKey: fixed.sortKey,
+          numberMatched: total,
+          numberReturned: features.length,
+          totalFeatures: total,
+          serverTimestamp: timestamp,
+        });
+      }
+    }
+    const html = render(natureSource(data));
+    expect(html).not.toContain('role="alert"');
+    expect(html).toContain("89 registreringskandidater");
+    expect(html).toContain("Naturregistreringer · 82 kandidater");
+    expect(html).toContain("Registreringer af beskyttede vandløb · 4 kandidater");
+    expect(html).toContain("Vandområder fra vandplanen · 3 kandidater");
+    expect(html).toContain("Kildeproveniens · 4 gemte sider");
+    expect(html).toContain("Fra indeks 50 · 32 registreringer");
+    data.pages.splice(1, 1);
+    expect(render(natureSource(data))).toContain('role="alert"');
+  });
+
+  it("shows separate goals and states, unknown epoch-zero inspection, dates and exact provenance without fetching", () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("No saved-data fetch"));
+    try {
+      const html = render(natureSource());
+      expect(html).not.toContain('role="alert"');
+      expect(html).toContain("4 registreringskandidater");
+      expect(html).toContain("Naturregistreringer · 2 kandidater");
+      expect(html).toContain("Registreringer af beskyttede vandløb · 1 kandidat");
+      expect(html).toContain("Vandområder fra vandplanen · 1 kandidat");
+      expect(html).toContain("DKRIVER2580");
+      expect(html).toContain("Økologisk miljømål");
+      expect(html).toContain("God økologisk tilstand");
+      expect(html).toContain("Økologisk tilstand");
+      expect(html).toContain("Dårlig økologisk tilstand");
+      expect(html).toContain("Kemisk miljømål");
+      expect(html).toContain("Kemisk tilstand");
+      expect(html).toContain("Vurderingsdato: Ukendt");
+      expect(html).toContain("Besigtigelsesdato: Ukendt");
+      expect(html).not.toContain("1970");
+      expect(html).toContain("Registervedligeholdelse: Ok - gennemgået");
+      expect(html).toContain("Ingen juridisk godkendelse");
+      expect(html).toContain('dateTime="2025-12-18"');
+      expect(html).toContain('dateTime="2026-01-01"');
+      expect(html).toContain("Planversion vp3_2endelig2025");
+      expect(html).toContain("CC0 1.0");
+      expect(html).toContain("CC BY 4.0");
+      expect(html).toContain("Kildeproveniens · 3 gemte sider");
+      expect(html).toContain("Kilden tilbyder ikke en");
+      expect(html).toContain("transaktionssikker snapshot");
+      expect(html).toContain("515.884 · 6.132.418 · 517.217 · 6.136.177");
+      expect(html).toContain("opmålingsnøjagtighed og højder er ikke valideret");
+      expect(html).not.toContain("Bykær Bæk");
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it("shows reported inspection dates separately from registry maintenance without claiming a new inspection", () => {
+    const data = naturePayload();
+    const candidate = data.products[0].candidates[0];
+    if (candidate.kind !== "protected-nature") throw new Error("Wrong fixture");
+    candidate.inspection!.rawDate = "2020-08-24T00:00:00Z";
+    candidate.inspection!.reportedDate = candidate.inspection!.rawDate;
+    candidate.inspection!.status = "reported_date";
+    const html = render(natureSource(data));
+    expect(html).toContain("Kildens besigtigelsesdato:");
+    expect(html).toContain("2020");
+    expect(html).toContain("Ny besigtigelse er ikke verificeret");
+    expect(html).not.toContain('role="alert"');
+  });
+
+  it("retains unknown waterbody names, goals and assessed states independently", () => {
+    const data = naturePayload();
+    const candidate = data.products[2].candidates[0];
+    if (candidate.kind !== "vp3-watercourses") throw new Error("Wrong fixture");
+    candidate.sourceName = null;
+    candidate.planGoals.ecological = null;
+    candidate.assessedState.chemical = null;
+    const html = render(natureSource(data));
+    expect(html).toContain("Navn ukendt");
+    expect(html).toContain("Dårlig økologisk tilstand");
+    expect(html).toContain("God kemisk tilstand");
+    expect(html).not.toContain('role="alert"');
+  });
+
+  it("shows validated empty inventories without turning failure into zero or asserting legal absence", () => {
+    const html = render(natureSource(naturePayload(true)));
+    expect(html).toContain("0 registreringskandidater");
+    expect(html).toContain("Ingen kandidater i denne gemte kildeforespørgsel");
+    expect(html).toContain("Det fastslår ikke fravær");
+    expect(html).not.toContain('role="alert"');
+    const failed = natureSource(null);
+    failed.mode = "error";
+    failed.status = "timeout";
+    failed.error = { code: "SOURCE_TIMEOUT", message: "Timeout" };
+    expect(render(failed)).toContain("Kilden kunne ikke hentes");
+    expect(render(failed)).not.toContain("0 registreringskandidater");
+  });
+
+  it("preserves historical unimplemented placeholders even when they carry their old error envelope", () => {
+    const historical = natureSource(null);
+    historical.mode = "error";
+    historical.status = "not_implemented";
+    historical.adapterVersion = "not-implemented/v1";
+    historical.error = { code: "NOT_IMPLEMENTED", message: "Not connected" };
+    expect(render(historical)).toContain("Kilden er endnu ikke hentet eller tilsluttet");
+    expect(render(historical)).not.toContain('role="alert"');
+    expect(render(historical)).not.toContain("0 registreringskandidater");
+  });
+
+  it.each([
+    [
+      "foreign endpoint",
+      (data: WaterPlanNaturePayload) => {
+        data.products[0].endpoint = "https://example.test/wfs";
+      },
+    ],
+    [
+      "credential query",
+      (data: WaterPlanNaturePayload) => {
+        data.pages[0].queryUrl += "&apiKey=DO-NOT-RENDER";
+      },
+    ],
+    [
+      "malformed query",
+      (data: WaterPlanNaturePayload) => {
+        data.pages[0].queryUrl = "not-a-url";
+      },
+    ],
+    [
+      "wrong query bbox",
+      (data: WaterPlanNaturePayload) => {
+        data.queryProjection.bbox[0]++;
+      },
+    ],
+    [
+      "wrong licence",
+      (data: WaterPlanNaturePayload) => {
+        data.products[0].licence = "Unverified licence";
+      },
+    ],
+    [
+      "wrong plan release",
+      (data: WaterPlanNaturePayload) => {
+        data.products[2].datasetVersion = "hearing-2023";
+      },
+    ],
+    [
+      "wrong hash binding",
+      (data: WaterPlanNaturePayload) => {
+        data.geometrySha256 = "f".repeat(64);
+      },
+    ],
+    [
+      "wrong period",
+      (data: WaterPlanNaturePayload) => {
+        data.requestedPeriod.from = "2026-08-23";
+      },
+    ],
+    [
+      "missing inventory candidate",
+      (data: WaterPlanNaturePayload) => {
+        data.products[0].candidates.pop();
+      },
+    ],
+    [
+      "incorrect page count",
+      (data: WaterPlanNaturePayload) => {
+        data.pages[0].numberReturned++;
+      },
+    ],
+    [
+      "missing page",
+      (data: WaterPlanNaturePayload) => {
+        data.pages.pop();
+      },
+    ],
+    [
+      "duplicate page",
+      (data: WaterPlanNaturePayload) => {
+        data.pages.push(data.pages[0]);
+      },
+    ],
+    [
+      "native coordinate corruption",
+      (data: WaterPlanNaturePayload) => {
+        data.products[0].candidates[0].nativeBBox[0]++;
+      },
+    ],
+    [
+      "position count corruption",
+      (data: WaterPlanNaturePayload) => {
+        data.products[0].candidates[0].positionCount++;
+      },
+    ],
+    [
+      "invalid source calendar date",
+      (data: WaterPlanNaturePayload) => {
+        const candidate = data.products[0].candidates[0];
+        if (candidate.kind === "vp3-watercourses") throw new Error("Wrong fixture");
+        candidate.rawDates.registeredAt = "2026-02-30T12:00:00Z";
+      },
+    ],
+    [
+      "epoch-zero presented as inspection",
+      (data: WaterPlanNaturePayload) => {
+        const candidate = data.products[0].candidates[1];
+        if (candidate.kind !== "protected-nature") throw new Error("Wrong fixture");
+        candidate.inspection!.reportedDate = candidate.inspection!.rawDate;
+        candidate.inspection!.status = "reported_date";
+      },
+    ],
+    [
+      "unknown status presented as approved",
+      (data: WaterPlanNaturePayload) => {
+        const candidate = data.products[0].candidates[1];
+        if (candidate.kind === "vp3-watercourses") throw new Error("Wrong fixture");
+        candidate.status.interpretation = "source_record_status";
+      },
+    ],
+  ] as const)("rejects %s before displaying candidate values", (_name, mutate) => {
+    const data = naturePayload();
+    mutate(data);
+    const html = render(natureSource(data));
+    expect(html).toContain('role="alert"');
+    expect(html).not.toContain("registreringskandidater");
+    expect(html).not.toContain("DO-NOT-RENDER");
+    expect(html).not.toContain("DKRIVER2580");
+  });
+
+  it("rejects invalid requested calendar dates, false coverage and unsupported source adapters", () => {
+    const invalidDate = natureSource();
+    invalidDate.query.requestedFrom = "2026-02-30";
+    const payload = invalidDate.payload as unknown as WaterPlanNaturePayload;
+    payload.requestedPeriod.from = invalidDate.query.requestedFrom;
+    expect(render(invalidDate)).toContain('role="alert"');
+    for (const bad of [
+      { status: "complete" },
+      { adapterVersion: "unknown/v2" },
+      { licence: "Unverified licence" },
+      { sourceUrl: "https://example.test/source?apiKey=DO-NOT-RENDER" },
+      { coverage: { ...natureSource().coverage, returnedCount: 5 } },
+      { coverage: { ...natureSource().coverage, temporal: "complete" } },
+      { coverage: { ...natureSource().coverage, paginationComplete: false } },
+    ] as Partial<PublicBaselineSource>[]) {
+      expect(render({ ...natureSource(), ...bad })).toContain('role="alert"');
+    }
   });
 });

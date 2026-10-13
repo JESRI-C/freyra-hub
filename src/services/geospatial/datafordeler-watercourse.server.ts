@@ -16,16 +16,60 @@ export interface DatafordelerWatercourseFetchOptions {
   timeoutMs?: number;
 }
 
-async function fetchXml(
-  canonicalUrl: string,
-  options: DatafordelerWatercourseFetchOptions,
-): Promise<string> {
+function requireServerApiKey(): string {
   const apiKey = process.env.DATAFORDELER_API_KEY?.trim();
   if (!apiKey) {
     throw new DatafordelerWatercourseError(
       "Adgang til Datafordeleren mangler. Den officielle API-nøgle skal tilsluttes på serveren.",
     );
   }
+  return apiKey;
+}
+
+/** Check actual strings, rather than JSON serialization that can escape the key again. */
+function rejectCredentialEcho(value: unknown, apiKey: string): void {
+  if (typeof value === "string") {
+    if (value.includes(apiKey))
+      throw new DatafordelerWatercourseError("Datafordelerens svar kunne ikke valideres sikkert.");
+  } else if (Array.isArray(value)) {
+    for (const item of value) rejectCredentialEcho(item, apiKey);
+  } else if (value !== null && typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      rejectCredentialEcho(key, apiKey);
+      rejectCredentialEcho(item, apiKey);
+    }
+  }
+}
+
+function rejectXmlCredentialEcho(xml: string, apiKey: string): void {
+  rejectCredentialEcho(xml, apiKey);
+  // Match the source parser's single decoding pass for predefined/numeric XML
+  // references. Do not expand custom entities or alter the XML handed to it.
+  const predefined: Record<string, string> = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: '"',
+    apos: "'",
+  };
+  const decoded = xml.replace(
+    /&(amp|lt|gt|quot|apos|#\d{1,7}|#x[\da-fA-F]{1,6});/g,
+    (reference, token: string) => {
+      if (Object.hasOwn(predefined, token)) return predefined[token];
+      const code = token.startsWith("#x") ? parseInt(token.slice(2), 16) : Number(token.slice(1));
+      return code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff)
+        ? String.fromCodePoint(code)
+        : reference;
+    },
+  );
+  rejectCredentialEcho(decoded, apiKey);
+}
+
+async function fetchXml(
+  canonicalUrl: string,
+  apiKey: string,
+  options: DatafordelerWatercourseFetchOptions,
+): Promise<string> {
   const url = new URL(canonicalUrl);
   const endpoint = new URL(DATAFORDELER_WATERCOURSE_ENDPOINT);
   if (
@@ -102,6 +146,7 @@ async function fetchXml(
       xml += decoder.decode(chunk.value, { stream: true });
     }
     xml += decoder.decode();
+    rejectXmlCredentialEcho(xml, apiKey);
     completed = true;
     return xml;
   } catch (error) {
@@ -124,8 +169,12 @@ export async function fetchDatafordelerWatercourse(
   options: DatafordelerWatercourseFetchOptions = {},
 ): Promise<DatafordelerWatercourseGeometry> {
   const url = buildDatafordelerWatercourseGeometryUrl(id);
-  const xml = await fetchXml(url, options);
-  return parseDatafordelerWatercourseGeometry(xml, id);
+  const apiKey = requireServerApiKey();
+  const xml = await fetchXml(url, apiKey, options);
+  const geometry = parseDatafordelerWatercourseGeometry(xml, id);
+  // Parsing can join separate text/CDATA segments or normalize source values.
+  rejectCredentialEcho(geometry, apiKey);
+  return geometry;
 }
 
 export async function searchDatafordelerWatercourses(
@@ -133,15 +182,21 @@ export async function searchDatafordelerWatercourses(
   options: DatafordelerWatercourseFetchOptions = {},
 ): Promise<OfficialWatercourseSuggestion[]> {
   const url = buildDatafordelerWatercourseSearchUrl(query);
-  const xml = await fetchXml(url, options);
-  const { watercourses } = parseDatafordelerWatercourseCollection(xml);
-  return watercourses.slice(0, DATAFORDELER_WATERCOURSE_MAX_RESULTS).map((watercourse) => ({
-    id: watercourse.id,
-    name: watercourse.name,
-    nameStatus: watercourse.nameStatus,
-    municipalities: watercourse.municipalities,
-    center: watercourse.center,
-    bbox: watercourse.bbox,
-    modifiedAt: watercourse.modifiedAt,
-  }));
+  const apiKey = requireServerApiKey();
+  const xml = await fetchXml(url, apiKey, options);
+  const collection = parseDatafordelerWatercourseCollection(xml);
+  rejectCredentialEcho(collection, apiKey);
+  const suggestions = collection.watercourses
+    .slice(0, DATAFORDELER_WATERCOURSE_MAX_RESULTS)
+    .map((watercourse) => ({
+      id: watercourse.id,
+      name: watercourse.name,
+      nameStatus: watercourse.nameStatus,
+      municipalities: watercourse.municipalities,
+      center: watercourse.center,
+      bbox: watercourse.bbox,
+      modifiedAt: watercourse.modifiedAt,
+    }));
+  rejectCredentialEcho(suggestions, apiKey);
+  return suggestions;
 }
