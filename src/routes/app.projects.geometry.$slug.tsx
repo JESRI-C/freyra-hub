@@ -667,10 +667,11 @@ function GeometryEditorPage() {
                     )}
                   </div>
                   <a
-                    href={activeWatercourse.sourceUrl}
+                    href="https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-bearbejdet-wfs/"
                     target="_blank"
                     rel="noreferrer"
-                    title="Åbn kilden"
+                    title="Læs om datakilden"
+                    aria-label="Læs om datakilden"
                     className="text-blue-700 hover:text-blue-900 dark:text-blue-300"
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -679,6 +680,13 @@ function GeometryEditorPage() {
                 <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
                   {activeWatercourse.disclaimer}
                 </p>
+                {!watercoursePreview && savedWatercourseQuery.data && (
+                  <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
+                    Gemt reference. Kilden genkontrolleres, når et nyt datagrundlag oprettes.
+                    {!savedWatercourseQuery.data.sourceProvider &&
+                      " Denne reference stammer fra den udfasede DAWA-kilde. Søg og gem en reference fra Datafordeleren for at oprette et nyt datagrundlag."}
+                  </p>
+                )}
                 {watercoursePreview ? (
                   <div className="flex gap-2">
                     <button

@@ -18,13 +18,26 @@ vi.mock("@/lib/public-baseline.functions", () => ({
   getProjectBaseline: vi.fn(),
   listProjectBaselines: vi.fn(),
 }));
+vi.mock("@/lib/verification-plan.functions", () => ({
+  saveVerificationPlan: vi.fn(),
+  getVerificationPlan: vi.fn(),
+  listVerificationPlans: vi.fn(),
+}));
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ setQueryData: vi.fn(), invalidateQueries: vi.fn() }),
   useMutation: () => ({ error: null, isPending: false, mutate: vi.fn() }),
+  useInfiniteQuery: () => ({
+    data: { pages: [] },
+    error: null,
+    isPending: false,
+    hasNextPage: false,
+  }),
   useQuery: (options: { queryKey: unknown[] }) =>
     options.queryKey[0] === "public-baselines"
       ? { data: state.snapshot ? [state.snapshot] : [], error: state.listError, isPending: false }
-      : { data: state.snapshot, error: state.savedError, isFetching: false },
+      : options.queryKey[0] === "verification-plan"
+        ? { data: null, error: null, isFetching: false }
+        : { data: state.snapshot, error: state.savedError, isFetching: false },
 }));
 
 import { PublicBaselinePanel } from "../PublicBaselinePanel";

@@ -6,8 +6,11 @@ import type { BaselineJson, PublicBaselineSource } from "./public-baseline-types
 export const DMI_CLIMATE_BASE = "https://opendataapi.dmi.dk/v2/climateData/collections";
 export const DMI_CLIMATE_DOCS = "https://www.dmi.dk/friedata/dokumentation/apis/climate-data-api-1";
 export const DMI_PARAMETER_DOCS = "https://www.dmi.dk/friedata/dokumentation/climate-data";
-const VERSION = "dmi-historical-station-precip/v1";
+export const DMI_STATION_PERIOD_DOCS =
+  "https://www.dmi.dk/friedata/dokumentation/stations-lists-explained";
+const VERSION = "dmi-historical-station-precip/v2";
 const MAX_PAGES = 3;
+const MAX_STATION_ATTEMPTS = 3;
 const PAGE_SIZE = 200;
 const MAX_PAGE_BYTES = 768 * 1024;
 const TOTAL_TIMEOUT_MS = 12_000;
@@ -64,10 +67,12 @@ const Station = z.object({
     country: z.string().optional(),
     status: z.string().optional(),
     type: z.string().optional(),
-    validFrom: Timestamp.optional(),
-    validTo: Timestamp.nullable().optional(),
-    operationFrom: Timestamp.optional(),
-    operationTo: Timestamp.nullable().optional(),
+    // Preserve missing/invalid bounds for an explicit rejection proof. Null is
+    // an open END only; it never proves an unknown station began operating.
+    validFrom: z.string().max(100).nullable().optional(),
+    validTo: z.string().max(100).nullable().optional(),
+    operationFrom: z.string().max(100).nullable().optional(),
+    operationTo: z.string().max(100).nullable().optional(),
     updated: Timestamp.nullable().optional(),
   }),
 });
@@ -157,6 +162,146 @@ function distanceKm(a: [number, number], b: [number, number]): number {
     Math.sin(dlat / 2) ** 2 +
     Math.cos(radians(a[1])) * Math.cos(radians(b[1])) * Math.sin(dlng / 2) ** 2;
   return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(Math.max(0, 1 - value)));
+}
+type DmiStation = z.infer<typeof Station>;
+interface StationBoundProof {
+  state: "value" | "open" | "missing" | "invalid";
+  value: string | null;
+}
+interface StationCandidateProof {
+  occurrenceId: string;
+  stationId: string;
+  name: string;
+  country: string | null;
+  status: string | null;
+  coordinates: [number, number];
+  distanceToProjectCenterKm: number;
+  parameterIds: string[];
+  operationFrom: StationBoundProof;
+  operationTo: StationBoundProof;
+  validFrom: StationBoundProof;
+  validTo: StationBoundProof;
+  eligible: boolean;
+  rejectionReasons: string[];
+}
+interface StationAttemptProof {
+  stationId: string;
+  occurrenceId: string;
+  rank: number;
+  outcome:
+    | "pending"
+    | "selected_with_values"
+    | "complete_empty_try_next"
+    | "complete_empty_stop"
+    | "truncated_empty_stop"
+    | "failed";
+  rawValueCount: number | null;
+  overlappingDailyValueCount: number | null;
+  paginationComplete: boolean;
+  queryPageIndices: number[];
+  errorCode: string | null;
+}
+function stationBound(value: string | null | undefined, isEnd: boolean): StationBoundProof {
+  if (value === undefined) return { state: "missing", value: null };
+  if (value === null) return { state: isEnd ? "open" : "invalid", value: null };
+  return { state: Timestamp.safeParse(value).success ? "value" : "invalid", value };
+}
+function stationCandidate(
+  station: DmiStation,
+  searchBbox: Bbox,
+  midpoint: [number, number],
+  fromMs: number,
+  toMs: number,
+): StationCandidateProof {
+  const p = station.properties,
+    c = station.geometry.coordinates;
+  const proof: StationCandidateProof = {
+    occurrenceId: station.id,
+    stationId: p.stationId,
+    name: p.name,
+    country: p.country ?? null,
+    status: p.status ?? null,
+    coordinates: c,
+    distanceToProjectCenterKm: distanceKm(midpoint, c),
+    parameterIds: p.parameterId,
+    operationFrom: stationBound(p.operationFrom, false),
+    operationTo: stationBound(p.operationTo, true),
+    validFrom: stationBound(p.validFrom, false),
+    validTo: stationBound(p.validTo, true),
+    eligible: false,
+    rejectionReasons: [],
+  };
+  if (!p.parameterId.includes("acc_precip"))
+    proof.rejectionReasons.push("no_precipitation_parameter");
+  if (c[0] < searchBbox[0] || c[0] > searchBbox[2] || c[1] < searchBbox[1] || c[1] > searchBbox[3])
+    proof.rejectionReasons.push("outside_search_bbox");
+  // validFrom/To describes this metadata occurrence; operationFrom/To describes
+  // the measuring lifetime. Both must overlap [requestedFrom, requestedTo).
+  // Current status is retained as provenance, never a historical-data shortcut.
+  for (const [kind, start, end] of [
+    ["operation", proof.operationFrom, proof.operationTo],
+    ["metadata", proof.validFrom, proof.validTo],
+  ] as const) {
+    if (start.state === "missing" || end.state === "missing")
+      proof.rejectionReasons.push(`${kind}_period_unknown`);
+    else if (start.state !== "value" || !["value", "open"].includes(end.state))
+      proof.rejectionReasons.push(`${kind}_period_invalid`);
+    else {
+      const startMs = Date.parse(start.value!);
+      const endMs = end.state === "open" ? Infinity : Date.parse(end.value!);
+      if (endMs <= startMs) proof.rejectionReasons.push(`${kind}_period_invalid`);
+      else if (startMs >= toMs || endMs <= fromMs)
+        proof.rejectionReasons.push(`${kind}_period_outside_request`);
+    }
+  }
+  proof.eligible = proof.rejectionReasons.length === 0;
+  return proof;
+}
+function dailySeries(
+  features: unknown[],
+  stationId: string,
+  fromMs: number,
+  toMs: number,
+): DmiDailyPrecipitation[] {
+  const latest = new Map<string, DmiDailyPrecipitation>();
+  for (const feature of features) {
+    const value = DailyValue.parse(feature),
+      p = value.properties;
+    if (p.stationId !== stationId)
+      throw new SourceError("STATION_MISMATCH", "DMI returnerede data fra en anden station.");
+    if (Date.parse(p.to) <= Date.parse(p.from))
+      throw new SourceError("INVALID_INTERVAL", "DMI returnerede et ugyldigt døgninterval.");
+    if (Date.parse(p.to) <= fromMs || Date.parse(p.from) >= toMs) continue;
+    const row: DmiDailyPrecipitation = {
+      id: value.id,
+      stationId: p.stationId,
+      coordinates: value.geometry.coordinates,
+      parameterId: p.parameterId,
+      timeResolution: p.timeResolution,
+      from: p.from,
+      to: p.to,
+      value: p.value,
+      unit: "mm",
+      valueKind: p.value === -0.1 ? "trace" : p.value < 0 ? "invalid_negative" : "amount",
+      qcStatus: p.qcStatus,
+      validity: p.validity ?? null,
+      created: p.created,
+      calculatedAt: p.calculatedAt ?? null,
+      noValuesInCalculation: p.noValuesInCalculation ?? null,
+    };
+    const key = `${Date.parse(p.from)}:${Date.parse(p.to)}`,
+      old = latest.get(key);
+    if (!old || Date.parse(row.created) > Date.parse(old.created)) latest.set(key, row);
+    else if (
+      Date.parse(row.created) === Date.parse(old.created) &&
+      canonical(row) !== canonical(old)
+    )
+      throw new SourceError(
+        "CONFLICTING_DUPLICATE",
+        "DMI returnerede modstridende versioner af samme døgn.",
+      );
+  }
+  return [...latest.values()].sort((a, b) => Date.parse(a.from) - Date.parse(b.from));
 }
 function withAbort<T>(operation: PromiseLike<T>, signal: AbortSignal): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -310,7 +455,7 @@ export async function fetchDmiHistoricalSource(
     quality: {
       evidenceKind: "calculation",
       method:
-        "Official DMI daily station precipitation, nearest eligible station in bounded search; catchment relevance pending.",
+        "Official DMI daily station precipitation; known operational and metadata periods must overlap the request. Nearest distinct station with data, at most three complete-empty attempts; catchment relevance pending.",
       warnings,
     },
     payload: null,
@@ -329,6 +474,7 @@ export async function fetchDmiHistoricalSource(
   const maxPages = Math.max(1, Math.min(options.maxPages ?? MAX_PAGES, MAX_PAGES));
   const fetchImpl = options.fetchImpl ?? fetch;
   const queries: Array<{ url: string; sha256: string }> = [];
+  const attempts: StationAttemptProof[] = [];
   async function collection(name: "station" | "stationValue", params: Record<string, string>) {
     let offset = 0,
       complete = false;
@@ -399,89 +545,152 @@ export async function fetchDmiHistoricalSource(
       bbox: searchBbox.join(","),
       datetime: `${requestedFrom}/${requestedTo}`,
     });
-    const candidates = stations.features
-      .map((feature) => Station.parse(feature))
-      .filter((station) => {
-        const p = station.properties,
-          c = station.geometry.coordinates;
-        return (
-          p.parameterId.includes("acc_precip") &&
-          c[0] >= searchBbox[0] &&
-          c[0] <= searchBbox[2] &&
-          c[1] >= searchBbox[1] &&
-          c[1] <= searchBbox[3] &&
-          (!p.validFrom || Date.parse(p.validFrom) < toMs) &&
-          (!p.validTo || Date.parse(p.validTo) >= fromMs)
+    const occurrences = new Map<string, DmiStation>();
+    for (const feature of stations.features) {
+      const station = Station.parse(feature);
+      const previous = occurrences.get(station.id);
+      if (previous && canonical(previous) !== canonical(station))
+        throw new SourceError(
+          "CONFLICTING_STATION_OCCURRENCE",
+          "DMI returnerede modstridende metadata for samme stationsforekomst.",
         );
-      })
+      occurrences.set(station.id, station);
+    }
+    const evaluated = [...occurrences.values()]
+      .map((station) => ({
+        station,
+        proof: stationCandidate(station, searchBbox, midpoint, fromMs, toMs),
+      }))
       .sort(
         (a, b) =>
-          distanceKm(midpoint, a.geometry.coordinates) -
-            distanceKm(midpoint, b.geometry.coordinates) ||
-          a.properties.stationId.localeCompare(b.properties.stationId),
+          a.proof.distanceToProjectCenterKm - b.proof.distanceToProjectCenterKm ||
+          a.proof.stationId.localeCompare(b.proof.stationId) ||
+          a.proof.occurrenceId.localeCompare(b.proof.occurrenceId),
       );
+    const uniqueStations = new Map<string, DmiStation>();
+    for (const { station, proof } of evaluated)
+      if (proof.eligible && !uniqueStations.has(proof.stationId))
+        uniqueStations.set(proof.stationId, station);
+    const candidates = [...uniqueStations.values()];
+    const uncertainCandidates = evaluated.filter(
+      ({ proof }) =>
+        !proof.rejectionReasons.some((reason) =>
+          [
+            "no_precipitation_parameter",
+            "outside_search_bbox",
+            "operation_period_outside_request",
+            "metadata_period_outside_request",
+          ].includes(reason),
+        ) &&
+        proof.rejectionReasons.some(
+          (reason) => reason.endsWith("_unknown") || reason.endsWith("_invalid"),
+        ),
+    ).length;
+    const selectionComplete = stations.complete && uncertainCandidates === 0;
     if (!stations.complete)
       warnings.push(
         "Stationslisten er afgrænset af sidegrænsen; den nærmeste station er kun valgt blandt de modtagne kandidater.",
       );
-    const selected = candidates[0];
-    if (!selected) {
-      source.coverage.paginationComplete = stations.complete;
-      source.status = stations.complete ? "no_coverage" : "partial";
-      source.payload = {
-        searchBbox,
-        queries,
-        candidateCount: 0,
-        reason: "No eligible precipitation station in the bounded search area.",
+    if (uncertainCandidates)
+      warnings.push(
+        `${uncertainCandidates} stationsforekomster har ukendte eller ugyldige periodegrænser; ingen fuld periodesum frigives.`,
+      );
+    let selected: DmiStation | undefined;
+    let series: DmiDailyPrecipitation[] = [];
+    let valuesComplete = false;
+    let attemptLimitReached = false;
+    for (const [index, candidate] of candidates.slice(0, MAX_STATION_ATTEMPTS).entries()) {
+      selected = candidate;
+      const firstQuery = queries.length;
+      const attempt: StationAttemptProof = {
+        stationId: candidate.properties.stationId,
+        occurrenceId: candidate.id,
+        rank: index + 1,
+        outcome: "pending",
+        rawValueCount: null,
+        overlappingDailyValueCount: null,
+        paginationComplete: false,
+        queryPageIndices: [],
+        errorCode: null,
       };
-    } else {
+      attempts.push(attempt);
       const values = await collection("stationValue", {
-        stationId: selected.properties.stationId,
+        stationId: candidate.properties.stationId,
         parameterId: "acc_precip",
         timeResolution: "day",
         datetime: `${requestedFrom}/${requestedTo}`,
       });
-      const latest = new Map<string, DmiDailyPrecipitation>();
-      for (const feature of values.features) {
-        const value = DailyValue.parse(feature),
-          p = value.properties;
-        if (p.stationId !== selected.properties.stationId)
-          throw new SourceError("STATION_MISMATCH", "DMI returnerede data fra en anden station.");
-        if (Date.parse(p.to) <= Date.parse(p.from))
-          throw new SourceError("INVALID_INTERVAL", "DMI returnerede et ugyldigt døgninterval.");
-        if (Date.parse(p.to) <= fromMs || Date.parse(p.from) >= toMs) continue;
-        const row: DmiDailyPrecipitation = {
-          id: value.id,
-          stationId: p.stationId,
-          coordinates: value.geometry.coordinates,
-          parameterId: p.parameterId,
-          timeResolution: p.timeResolution,
-          from: p.from,
-          to: p.to,
-          value: p.value,
-          unit: "mm",
-          valueKind: p.value === -0.1 ? "trace" : p.value < 0 ? "invalid_negative" : "amount",
-          qcStatus: p.qcStatus,
-          validity: p.validity ?? null,
-          created: p.created,
-          calculatedAt: p.calculatedAt ?? null,
-          noValuesInCalculation: p.noValuesInCalculation ?? null,
-        };
-        const key = `${Date.parse(p.from)}:${Date.parse(p.to)}`,
-          old = latest.get(key);
-        if (!old || Date.parse(row.created) > Date.parse(old.created)) latest.set(key, row);
-        else if (
-          Date.parse(row.created) === Date.parse(old.created) &&
-          canonical(row) !== canonical(old)
-        )
-          throw new SourceError(
-            "CONFLICTING_DUPLICATE",
-            "DMI returnerede modstridende versioner af samme døgn.",
-          );
+      attempt.queryPageIndices = Array.from(
+        { length: queries.length - firstQuery },
+        (_, pageIndex) => firstQuery + pageIndex,
+      );
+      attempt.rawValueCount = values.features.length;
+      // Parse every returned row before deciding the response is empty. An
+      // invalid or unrelated row must never trigger a more convenient station.
+      series = dailySeries(values.features, candidate.properties.stationId, fromMs, toMs);
+      valuesComplete = values.complete;
+      attempt.overlappingDailyValueCount = series.length;
+      attempt.paginationComplete = valuesComplete;
+      if (series.length) {
+        attempt.outcome = "selected_with_values";
+        break;
       }
-      const series = [...latest.values()].sort((a, b) => Date.parse(a.from) - Date.parse(b.from));
-      const paginationComplete = stations.complete && values.complete;
-      if (!values.complete)
+      if (!valuesComplete) {
+        attempt.outcome = "truncated_empty_stop";
+        break;
+      }
+      const hasNext = index + 1 < candidates.length;
+      attemptLimitReached = hasNext && index + 1 === MAX_STATION_ATTEMPTS;
+      if (!hasNext || attemptLimitReached) {
+        attempt.outcome = "complete_empty_stop";
+        break;
+      }
+      attempt.outcome = "complete_empty_try_next";
+    }
+    if (attempts.length > 1)
+      warnings.push(
+        `${attempts.length - 1} nærmere stationer havde en komplet tom serie for perioden; den næste særskilte station er undersøgt uden at sammenblande serier.`,
+      );
+    if (attemptLimitReached)
+      warnings.push(
+        "Stationsvalget nåede grænsen på tre særskilte stationer. Flere kandidater er ikke undersøgt; ingen fuld områdedækning eller periodesum påstås.",
+      );
+    const stationSelection = {
+      schema: "gofreyra.dmi-station-selection/v2",
+      method:
+        "nearest-known-eligible-distinct-station; fallback-only-after-complete-empty-valid-response",
+      periodDocumentationUrl: DMI_STATION_PERIOD_DOCS,
+      boundsConvention: "[requestedFrom,requestedTo)",
+      requestedInterval: { from: requestedFrom, to: requestedTo },
+      stationCatalogComplete: stations.complete,
+      eligibilityComplete: selectionComplete,
+      receivedOccurrenceCount: stations.features.length,
+      distinctOccurrenceCount: evaluated.length,
+      eligibleOccurrenceCount: evaluated.filter(({ proof }) => proof.eligible).length,
+      eligibleUniqueStationCount: candidates.length,
+      uncertainOccurrenceCount: uncertainCandidates,
+      candidates: evaluated.map(({ proof }) => proof),
+      attempts,
+      selectedStationId: selected?.properties.stationId ?? null,
+      selectedOccurrenceId: selected?.id ?? null,
+      maxDistinctStationAttempts: MAX_STATION_ATTEMPTS,
+      attemptLimitReached,
+      unattemptedEligibleStationCount: candidates.length - attempts.length,
+    };
+    if (!selected) {
+      source.coverage.paginationComplete = stations.complete;
+      source.status = selectionComplete ? "no_coverage" : "partial";
+      source.payload = {
+        searchBbox,
+        queries,
+        candidateCount: 0,
+        stationSelection: z.json().parse(stationSelection),
+        reason:
+          "No station has known operational and metadata intervals eligible for the requested period in the bounded search area.",
+      };
+    } else {
+      const paginationComplete = stations.complete && valuesComplete;
+      if (!valuesComplete)
         warnings.push("Nedbørsseriens pagination er ikke komplet; ingen fuld periodesum frigives.");
       const summary = summarizeDmiDailySeries(
         series,
@@ -489,6 +698,15 @@ export async function fetchDmiHistoricalSource(
         requestedTo,
         paginationComplete,
       );
+      // Page completeness is distinct from candidate eligibility and our
+      // station-attempt budget. Preserve each reason rather than mislabeling
+      // a fully fetched response as truncated pagination.
+      if (uncertainCandidates || attemptLimitReached) {
+        if (uncertainCandidates) summary.reasons.push("station_eligibility_unknown");
+        if (attemptLimitReached) summary.reasons.push("station_attempt_limit_reached");
+        summary.complete = false;
+        summary.totalMm = null;
+      }
       const withinProject = input.polygon
         ? booleanPointInPolygon(
             point(selected.geometry.coordinates),
@@ -509,7 +727,11 @@ export async function fetchDmiHistoricalSource(
         warnings.push(
           "Den valgte station ligger uden for projektpolygonen eller projektpolygonen er ikke angivet.",
         );
-      source.status = series.length ? "partial" : paginationComplete ? "no_coverage" : "partial";
+      source.status = series.length
+        ? "partial"
+        : paginationComplete && selectionComplete && !attemptLimitReached
+          ? "no_coverage"
+          : "partial";
       source.coverage = {
         spatial: "partial",
         temporal: summary.complete ? "complete" : series.length ? "partial" : "none",
@@ -536,6 +758,9 @@ export async function fetchDmiHistoricalSource(
           status: selected.properties.status ?? null,
           validFrom: selected.properties.validFrom ?? null,
           validTo: selected.properties.validTo ?? null,
+          operationFrom: selected.properties.operationFrom ?? null,
+          operationTo: selected.properties.operationTo ?? null,
+          occurrenceId: selected.id,
           distanceToProjectCenterKm: distanceKm(midpoint, selected.geometry.coordinates),
           withinProject,
           catchmentRelevance: "not_assessed",
@@ -543,6 +768,7 @@ export async function fetchDmiHistoricalSource(
         unit: "mm",
         unitSource: DMI_PARAMETER_DOCS,
         candidateCount: candidates.length,
+        stationSelection: z.json().parse(stationSelection),
         series: series as unknown as BaselineJson,
         summary,
         queries,
@@ -552,6 +778,20 @@ export async function fetchDmiHistoricalSource(
     return source;
   } catch (error) {
     const timedOut = error instanceof Error && error.name === "AbortError";
+    const errorCode = timedOut
+      ? "TIMEOUT"
+      : error instanceof SourceError
+        ? error.code
+        : "INVALID_SOURCE_RESPONSE";
+    const interrupted = attempts.at(-1);
+    if (interrupted?.outcome === "pending") {
+      interrupted.outcome = "failed";
+      interrupted.errorCode = errorCode;
+    }
+    if (attempts.length)
+      warnings.push(
+        `Stationsforsøg afbrudt uden fallback: ${attempts.map((attempt) => `${attempt.stationId} (${attempt.outcome}${attempt.errorCode ? `/${attempt.errorCode}` : ""})`).join(", ")}. Kilde-fejlen bevares, og ingen nedbørssum frigives.`,
+      );
     return {
       ...source,
       mode: "error",
@@ -567,11 +807,7 @@ export async function fetchDmiHistoricalSource(
       payload: null,
       payloadSha256: null,
       error: {
-        code: timedOut
-          ? "TIMEOUT"
-          : error instanceof SourceError
-            ? error.code
-            : "INVALID_SOURCE_RESPONSE",
+        code: errorCode,
         message: timedOut
           ? "DMI-hentningen overskred tidsgrænsen."
           : error instanceof SourceError

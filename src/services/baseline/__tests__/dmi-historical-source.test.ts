@@ -28,6 +28,8 @@ function station(
       parameterId: ["acc_precip", "mean_temp"],
       validFrom: "2000-01-01T00:00:00Z",
       validTo: null,
+      operationFrom: "2000-01-01T00:00:00Z",
+      operationTo: null,
       status: "Active",
       ...properties,
     },
@@ -76,6 +78,41 @@ function payload(source: Awaited<ReturnType<typeof fetchDmiHistoricalSource>>) {
     series: DmiDailyPrecipitation[];
     summary: { totalMm: number | null; complete: boolean; reasons: string[] };
     queries: Array<{ url: string; sha256: string }>;
+    candidateCount: number;
+    stationSelection: {
+      schema: string;
+      receivedOccurrenceCount: number;
+      distinctOccurrenceCount: number;
+      eligibleOccurrenceCount: number;
+      eligibleUniqueStationCount: number;
+      eligibilityComplete: boolean;
+      selectedStationId: string | null;
+      selectedOccurrenceId: string | null;
+      maxDistinctStationAttempts: number;
+      attemptLimitReached: boolean;
+      unattemptedEligibleStationCount: number;
+      candidates: Array<{
+        occurrenceId: string;
+        stationId: string;
+        eligible: boolean;
+        rejectionReasons: string[];
+        status: string;
+        operationFrom: { state: string; value: string | null };
+        operationTo: { state: string; value: string | null };
+        validFrom: { state: string; value: string | null };
+        validTo: { state: string; value: string | null };
+      }>;
+      attempts: Array<{
+        stationId: string;
+        occurrenceId: string;
+        rank: number;
+        outcome: string;
+        rawValueCount: number;
+        overlappingDailyValueCount: number;
+        paginationComplete: boolean;
+        queryPageIndices: number[];
+      }>;
+    };
   };
 }
 afterEach(() => vi.useRealTimers());
@@ -91,6 +128,7 @@ describe("official historical DMI source", () => {
       provider: "DMI",
       fetchedAt: now(),
       error: null,
+      adapterVersion: "dmi-historical-station-precip/v2",
       coverage: {
         spatial: "partial",
         temporal: "complete",
@@ -141,6 +179,385 @@ describe("official historical DMI source", () => {
       .mockResolvedValueOnce(page([value(17), value(18)]));
     const result = await fetchDmiHistoricalSource(input, { fetchImpl });
     expect(payload(result).station.id).toBe("06149");
+  });
+
+  it("rejects Oksenvad closed in 2009 despite its open Inactive metadata row, preserving the rejection proof", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        page([
+          station("26050", [9.4, 55.25], {
+            status: "Inactive",
+            validFrom: "2009-04-02T00:00:00Z",
+            validTo: null,
+            operationFrom: "1920-09-01T00:00:00Z",
+            operationTo: "2009-04-02T00:00:00Z",
+          }),
+          station(),
+        ]),
+      )
+      .mockResolvedValueOnce(page([value(17), value(18)]));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(payload(result).station.id).toBe("06149");
+    expect(payload(result).stationSelection.candidates).toContainEqual(
+      expect.objectContaining({
+        stationId: "26050",
+        eligible: false,
+        status: "Inactive",
+        operationTo: { state: "value", value: "2009-04-02T00:00:00Z" },
+        validTo: { state: "open", value: null },
+        rejectionReasons: ["operation_period_outside_request"],
+      }),
+    );
+    expect(new URL(String(fetchImpl.mock.calls[1][0])).searchParams.get("stationId")).toBe("06149");
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("accepts an inactive historical station whose documented operational and occurrence periods overlap the request", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        page([
+          station("06149", [9.45, 55.25], {
+            status: "Inactive",
+            operationTo: "2026-09-01T00:00:00Z",
+            validTo: "2026-09-01T00:00:00Z",
+          }),
+        ]),
+      )
+      .mockResolvedValueOnce(page([value(17), value(18)]));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(payload(result).summary.totalMm).toBe(8);
+    expect(payload(result).stationSelection.candidates[0]).toMatchObject({
+      eligible: true,
+      status: "Inactive",
+      rejectionReasons: [],
+    });
+    const stationUrl = new URL(String(fetchImpl.mock.calls[0][0]));
+    expect(stationUrl.searchParams.has("status")).toBe(false);
+    expect(stationUrl.searchParams.get("datetime")).toBe(
+      `${new Date(input.dateFrom).toISOString()}/${new Date(input.dateTo).toISOString()}`,
+    );
+  });
+
+  it.each([
+    [
+      "missing operation start",
+      { operationFrom: undefined },
+      "operation_period_unknown",
+      "missing",
+    ],
+    ["missing operation end", { operationTo: undefined }, "operation_period_unknown", "missing"],
+    ["null operation start", { operationFrom: null }, "operation_period_invalid", "invalid"],
+    ["invalid operation end", { operationTo: "not-a-date" }, "operation_period_invalid", "invalid"],
+    ["missing metadata end", { validTo: undefined }, "metadata_period_unknown", "missing"],
+    ["invalid metadata start", { validFrom: "not-a-date" }, "metadata_period_invalid", "invalid"],
+  ])(
+    "distinguishes %s from a documented open end and keeps unknown eligibility partial",
+    async (_label, properties, reason, state) => {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(page([station("unknown", [9.4, 55.25], properties), station()]))
+        .mockResolvedValueOnce(page([value(17), value(18)]));
+      const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+      const proof = payload(result).stationSelection.candidates.find(
+        (candidate) => candidate.stationId === "unknown",
+      )!;
+      expect(proof).toMatchObject({ eligible: false, rejectionReasons: [reason] });
+      expect(
+        Object.values(proof).some(
+          (bound) =>
+            typeof bound === "object" &&
+            bound !== null &&
+            "state" in bound &&
+            bound.state === state,
+        ),
+      ).toBe(true);
+      expect(
+        payload(result).stationSelection.candidates.find(
+          (candidate) => candidate.stationId === "06149",
+        )?.operationTo,
+      ).toEqual({ state: "open", value: null });
+      expect(result.coverage.paginationComplete).toBe(true);
+      expect(payload(result).summary.totalMm).toBeNull();
+      expect(payload(result).summary.reasons).toContain("station_eligibility_unknown");
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each([
+    [{ operationTo: input.dateFrom }, "operation_period_outside_request"],
+    [{ operationFrom: input.dateTo }, "operation_period_outside_request"],
+    [{ validTo: input.dateFrom }, "metadata_period_outside_request"],
+    [{ validFrom: input.dateTo }, "metadata_period_outside_request"],
+    [
+      { operationFrom: "2026-09-01T00:00:00Z", operationTo: "2026-08-01T00:00:00Z" },
+      "operation_period_invalid",
+    ],
+  ])(
+    "rejects non-overlapping or inverted interval bounds without querying that station",
+    async (properties, reason) => {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(page([station("excluded", [9.4, 55.25], properties)]));
+      const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+      expect(payload(result).stationSelection.candidates[0].rejectionReasons).toContain(reason);
+      expect(payload(result).stationSelection.selectedStationId).toBeNull();
+      expect(fetchImpl).toHaveBeenCalledOnce();
+      expect(result.status).toBe(reason.endsWith("invalid") ? "partial" : "no_coverage");
+    },
+  );
+
+  it("does not claim no coverage when every precipitation candidate has absent operational metadata", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        page([
+          station("unknown", [9.4, 55.25], { operationFrom: undefined, operationTo: undefined }),
+        ]),
+      );
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(result).toMatchObject({
+      mode: "live",
+      status: "partial",
+      coverage: { paginationComplete: true, returnedCount: 0 },
+    });
+    expect(payload(result).candidateCount).toBe(0);
+    expect(payload(result).stationSelection.eligibilityComplete).toBe(false);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("preserves duplicate metadata occurrences but probes each distinct station at most once", async () => {
+    const near = { ...station("near", [9.4, 55.25]), id: "near-a" };
+    const moved = { ...station("near", [9.42, 55.25]), id: "near-b" };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(page([near, near, moved, station()]))
+      .mockResolvedValueOnce(page([]))
+      .mockResolvedValueOnce(page([value(17), value(18)]));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(payload(result).station.id).toBe("06149");
+    expect(payload(result).stationSelection).toMatchObject({
+      receivedOccurrenceCount: 4,
+      distinctOccurrenceCount: 3,
+      eligibleOccurrenceCount: 3,
+      eligibleUniqueStationCount: 2,
+    });
+    expect(
+      payload(result).stationSelection.candidates.map((candidate) => candidate.occurrenceId),
+    ).toEqual(["near-a", "near-b", "station-06149"]);
+    expect(payload(result).stationSelection.attempts.map((attempt) => attempt.stationId)).toEqual([
+      "near",
+      "06149",
+    ]);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects conflicting versions of the same metadata occurrence rather than choosing a convenient one", async () => {
+    const repeated = station();
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        page([repeated, { ...repeated, geometry: { type: "Point", coordinates: [9.5, 55.25] } }]),
+      );
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(result).toMatchObject({
+      status: "failed",
+      payload: null,
+      error: { code: "CONFLICTING_STATION_OCCURRENCE" },
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("tries the next nearest station only after a complete empty period response and retains every attempt/page proof", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(page([station("near", [9.4, 55.25]), station()]))
+      .mockResolvedValueOnce(page([]))
+      .mockResolvedValueOnce(page([value(17), value(18)]));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(payload(result).station.id).toBe("06149");
+    expect(payload(result).summary.totalMm).toBe(8);
+    expect(payload(result).stationSelection.attempts).toEqual([
+      expect.objectContaining({
+        stationId: "near",
+        rank: 1,
+        outcome: "complete_empty_try_next",
+        rawValueCount: 0,
+        overlappingDailyValueCount: 0,
+        paginationComplete: true,
+        queryPageIndices: [1],
+      }),
+      expect.objectContaining({
+        stationId: "06149",
+        rank: 2,
+        outcome: "selected_with_values",
+        overlappingDailyValueCount: 2,
+        paginationComplete: true,
+        queryPageIndices: [2],
+      }),
+    ]);
+    expect(payload(result).queries).toHaveLength(3);
+    expect(payload(result).queries.every((query) => /^[0-9a-f]{64}$/.test(query.sha256))).toBe(
+      true,
+    );
+  });
+
+  it("bounds fallback to three unique stations and retains unprobed candidates as incomplete coverage", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        page([
+          station("a", [9.4, 55.25]),
+          station("b", [9.41, 55.25]),
+          station("c", [9.42, 55.25]),
+          station("d", [9.43, 55.25]),
+        ]),
+      )
+      .mockImplementation(async () => page([]));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(result).toMatchObject({
+      mode: "live",
+      status: "partial",
+      coverage: { temporal: "none", paginationComplete: true },
+    });
+    expect(payload(result).summary.totalMm).toBeNull();
+    expect(payload(result).summary.reasons).toContain("station_attempt_limit_reached");
+    expect(payload(result).stationSelection).toMatchObject({
+      maxDistinctStationAttempts: 3,
+      attemptLimitReached: true,
+      unattemptedEligibleStationCount: 1,
+      eligibleUniqueStationCount: 4,
+    });
+    expect(payload(result).stationSelection.attempts.map((attempt) => attempt.stationId)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+  });
+
+  it("reports no period data after all known candidates return complete empty series, with no zero-filled rainfall", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(page([station("a", [9.4, 55.25]), station("b", [9.41, 55.25])]))
+      .mockImplementation(async () => page([]));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(result).toMatchObject({
+      mode: "live",
+      status: "no_coverage",
+      coverage: { returnedCount: 0, paginationComplete: true },
+    });
+    expect(payload(result).summary.totalMm).toBeNull();
+    expect(payload(result).stationSelection).toMatchObject({
+      attemptLimitReached: false,
+      unattemptedEligibleStationCount: 0,
+    });
+    expect(payload(result).stationSelection.attempts.at(-1)?.outcome).toBe("complete_empty_stop");
+  });
+
+  it.each([
+    ["partial series", [value(17)], null],
+    ["unchecked quality", [value(17, 4, { qcStatus: "none" }), value(18)], null],
+    ["trace rain", [value(17, -0.1), value(18)], null],
+    ["invalid unit", [value(17, 4, { unit: "inches" })], "INVALID_SOURCE_RESPONSE"],
+    ["invalid interval", [value(17, 4, { to: input.dateFrom })], "INVALID_INTERVAL"],
+    ["wrong station", [value(17, 4, { stationId: "other" })], "STATION_MISMATCH"],
+  ])("never switches station to hide %s", async (_name, values, errorCode) => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(page([station(), station("other", [9.1, 55.1])]))
+      .mockResolvedValueOnce(page(values));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    if (errorCode) {
+      expect(result).toMatchObject({
+        mode: "error",
+        status: "failed",
+        payload: null,
+        error: { code: errorCode },
+      });
+      expect(
+        result.quality.warnings.some((warning) => warning.includes(`06149 (failed/${errorCode})`)),
+      ).toBe(true);
+    } else {
+      expect(payload(result).station.id).toBe("06149");
+      expect(payload(result).summary.totalMm).toBeNull();
+      expect(payload(result).stationSelection.attempts).toHaveLength(1);
+    }
+  });
+
+  it("does not fallback after a truncated empty value response", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(page([station(), station("other", [9.1, 55.1])]))
+      .mockResolvedValueOnce(
+        page(
+          [value(15)],
+          "https://opendataapi.dmi.dk/v2/climateData/collections/stationValue/items?offset=200",
+        ),
+      );
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl, maxPages: 1 });
+    expect(result).toMatchObject({
+      status: "partial",
+      coverage: { paginationComplete: false, returnedCount: 0 },
+    });
+    expect(payload(result).stationSelection.attempts[0]).toMatchObject({
+      outcome: "truncated_empty_stop",
+      rawValueCount: 1,
+      overlappingDailyValueCount: 0,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves a failure on the second attempt instead of hiding it with a third station", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        page([
+          station("a", [9.4, 55.25]),
+          station("b", [9.41, 55.25]),
+          station("c", [9.42, 55.25]),
+        ]),
+      )
+      .mockResolvedValueOnce(page([]))
+      .mockResolvedValueOnce(new Response("unavailable", { status: 503 }));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect(result).toMatchObject({
+      mode: "error",
+      status: "failed",
+      payload: null,
+      payloadSha256: null,
+      error: { code: "HTTP_503" },
+    });
+    expect(
+      result.quality.warnings.some((warning) =>
+        warning.includes("a (complete_empty_try_next), b (failed/HTTP_503)"),
+      ),
+    ).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps a timed-out station attempt visible and never falls back", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(page([station(), station("other", [9.1, 55.1])]))
+      .mockImplementationOnce(
+        (_url, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              "abort",
+              () => reject(new DOMException("timed out", "AbortError")),
+              { once: true },
+            );
+          }),
+      );
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl, requestTimeoutMs: 5 });
+    expect(result).toMatchObject({ status: "timeout", payload: null, error: { code: "TIMEOUT" } });
+    expect(
+      result.quality.warnings.some((warning) => warning.includes("06149 (failed/TIMEOUT)")),
+    ).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("uses the most recently created official revision, without summing duplicate dates", async () => {

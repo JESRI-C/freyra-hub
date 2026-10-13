@@ -1,0 +1,144 @@
+{
+  "schema": "gofreyra.staging-modern-chain-postflight/v1",
+  "recordedAt": "2026-10-13T16:15:40Z",
+  "environment": "staging",
+  "supabaseRef": "xdvqdzdpyceojbdknofi",
+  "productionChanged": false,
+  "repository": {
+    "name": "JESRI-C/freyra-hub",
+    "branch": "codex/haderslev-delivery",
+    "codeSha": "972524e298d0bbad1cbefb2e6e39d0a2c5886017",
+    "applicationBuildSourceSha": "bf67149161ec0681d383569d802b5b0b76cdf799",
+    "applicationTreeIdenticalBetweenCommits": true,
+    "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/15"
+  },
+  "ci": {
+    "runId": 38425940663,
+    "conclusion": "success",
+    "app": {
+      "jobId": 115395221211,
+      "files": 94,
+      "tests": 1024,
+      "typecheck": true,
+      "lint": true,
+      "factors": true,
+      "build": true
+    },
+    "database": {
+      "jobId": 115395221936,
+      "disposableLocalMigrationReplay": true,
+      "files": 5,
+      "tapPoints": 268,
+      "passed": true,
+      "knownCatalogVerifiedPostgisLimitations": 6
+    },
+    "priorFailedRun": {
+      "id": 38425193178,
+      "databaseFailedPoints": 1,
+      "reason": "OLD.original_role field planned for non-media trigger records",
+      "fix": "Separate trigger dispatch IF blocks; no weakened tests"
+    }
+  },
+  "deployment": {
+    "worker": "gofreyra-p0-staging",
+    "versionId": "c07618c5-17d3-49ff-8341-b336744aab1f",
+    "requiredEncryptedServerBindings": [
+      "SUPABASE_URL",
+      "SUPABASE_PUBLISHABLE_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "DATAFORDELER_API_KEY"
+    ]
+  },
+  "migrations": [
+    {
+      "repositoryVersion": "20261013144725",
+      "hostedVersion": "20261013160451",
+      "name": "promote_drone_original",
+      "applied": true
+    },
+    {
+      "repositoryVersion": "20261013151039",
+      "hostedVersion": "20261013160458",
+      "name": "datafordeler_watercourse_reference",
+      "applied": true
+    }
+  ],
+  "security": {
+    "originAndReceiptRlsEnabled": true,
+    "baselineSchemaVersions": [1, 2],
+    "serviceOnlyRpcCallerExecuteDenied": true,
+    "storageInsertUpdateDeleteRestrictivePolicies": true,
+    "storageObjectForeignKeysRestrictDelete": true
+  },
+  "qa": {
+    "synthetic": true,
+    "projectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+    "baseline": {
+      "evidence": "staging-modern-baseline-qa-2026-10-13.json",
+      "passedCheckpoints": 31,
+      "id": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "manifestSha256": "32f9b05a8a30c2a8a0d118f14a4f36bfb98e5b34c5bc88786c5b5599a8bcd6c3",
+      "period": {
+        "from": "2026-08-24",
+        "to": "2026-09-07"
+      },
+      "provider": "datafordeler-ds-bearbejdet-wfs/v1",
+      "sourceDatasetVersion": "static-2025-09",
+      "savedVersion": 1,
+      "completePublicSourceCoverage": false
+    },
+    "promotion": {
+      "evidence": "staging-canonical-promotion-qa-2026-10-13.json",
+      "passedCheckpoints": 33,
+      "mediaId": "df98d250-fb09-4fa5-b275-e5e06cbb9ab5",
+      "bytes": 137,
+      "originalSha256": "d7e98b662c74dcc8fd2a62381df06a4baf558919188bea95c09f06ee8da7a737",
+      "canonicalMedia": 1,
+      "physicalOrigins": 2,
+      "requestReceipts": 3,
+      "rawStatus": "review_required",
+      "privateBytesAndObjectPinsRetainedAfterDeniedOverwriteDelete": true,
+      "requestedLinkTtlSeconds": 60,
+      "linkRejectionObservedAfterSeconds": 72,
+      "pixelDecoded": false,
+      "georeferenced": false,
+      "reportEligible": false
+    },
+    "counts": {
+      "projects": 7,
+      "uploads": 15,
+      "baselines": 1,
+      "serverValidatedOriginals": 2,
+      "canonicalOriginals": 1,
+      "physicalOrigins": 2,
+      "promotionRequests": 3
+    },
+    "syntheticDerivedOutputs": {
+      "flights": 0,
+      "observations": 0,
+      "reports": 0
+    },
+    "municipalAcceptance": false
+  },
+  "municipalScope": {
+    "meetingDate": "2026-11-10",
+    "BykaerIncludedAmongCases": true,
+    "otherCasesSelected": false,
+    "reachEndpointsAccepted": false,
+    "reviewerAssigned": false,
+    "existingCaseAreaNeedsVerification": true,
+    "syntheticBboxAreaIsMunicipalReach": false
+  },
+  "sourceGaps": [
+    "DMI selected inactive station 26050; zero daily values for the QA period, selection under investigation",
+    "Nine Sentinel scene candidates; local cloud/shadow/nodata quality remains pending",
+    "Municipal regulation, dated orthophoto/terrain, water plan/nature, and public monitoring stations are not implemented"
+  ],
+  "secretScan": {
+    "repositoryFiles": 636,
+    "outputFiles": 779,
+    "datafordelerKeyOccurrencesInRepository": 0,
+    "datafordelerKeyOccurrencesInOutput": 0,
+    "privilegedBundleTokens": 0
+  }
+}

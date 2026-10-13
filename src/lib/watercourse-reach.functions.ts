@@ -434,27 +434,9 @@ export async function executeWatercourseLoad(
     userId,
     projectId,
   );
-  const saved = await dependencies.loadSaved(client, projectId);
-  if (!saved) return null;
-  const official = await dependencies.fetchSource(
-    saved.id,
-    saved.sourceProvider ?? "dawa-stednavne/v1",
-  );
-  if (
-    saved.sourceProvider !== official.sourceProvider ||
-    (await sha256Hex(saved.geometry)) !== (await sha256Hex(official.geometry))
-  ) {
-    throw new Error(
-      "Den officielle vandløbsgeometri er ændret siden gemning. Vælg og gem strækningen igen.",
-    );
-  }
-  return {
-    ...official,
-    municipalities:
-      saved.municipalities.length > 0 ? saved.municipalities : official.municipalities,
-    zoneId: saved.zoneId,
-    savedAt: saved.savedAt,
-  };
+  // loadSaved validates the persisted geometry hash and provider provenance.
+  // Reopening preserves that snapshot; preview/save and new baselines verify live sources.
+  return dependencies.loadSaved(client, projectId);
 }
 
 export async function executeWatercourseSave(

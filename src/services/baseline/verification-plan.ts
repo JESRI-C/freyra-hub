@@ -68,7 +68,7 @@ function sourceAvailable(source: PublicBaselineSource): boolean {
  * neither fetches newer sources nor saves decisions or approves observations.
  * Missing public data are collection gaps; a drone cannot resolve those gaps.
  */
-export async function createDraftVerificationPlan(
+export async function createDraftVerificationPlanV1(
   snapshot: PublicBaselineSnapshot,
 ): Promise<DraftVerificationPlan> {
   const manifest = await validatePublicBaselineManifest(snapshot.manifest);
@@ -183,3 +183,6 @@ export async function createDraftVerificationPlan(
   });
   return plan;
 }
+
+/** Preview remains v1. A future generator must keep the saved v1 implementation. */
+export const createDraftVerificationPlan = createDraftVerificationPlanV1;
