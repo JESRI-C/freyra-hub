@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { identifySpeciesFromImage, type IdentifiedSpecies } from "@/lib/species-id.functions";
 import { createObservation } from "@/services/monitoring/observations-service";
 import { useAuth } from "@/lib/auth";
+import { AI_IMAGE_MAX_BYTES, isAllowedAiImageDataUrl } from "@/lib/ai-image-input";
 
 interface Props {
   projectId: string;
@@ -34,9 +35,21 @@ export function SpeciesRecognitionFlow({ projectId, onSaved }: Props) {
   async function handleFile(file: File) {
     setError(null);
     setSaved(false);
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Vælg et JPEG-, PNG- eller WebP-billede.");
+      return;
+    }
+    if (file.size > AI_IMAGE_MAX_BYTES) {
+      setError("Billedet er for stort (maks 2 MiB).");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;
+      if (!isAllowedAiImageDataUrl(dataUrl)) {
+        setError("Billedet har et ugyldigt eller ikke understøttet format.");
+        return;
+      }
       setImage(dataUrl);
       setBusy(true);
       setSuggestions([]);
@@ -51,6 +64,7 @@ export function SpeciesRecognitionFlow({ projectId, onSaved }: Props) {
         setBusy(false);
       }
     };
+    reader.onerror = () => setError("Billedet kunne ikke læses. Prøv igen.");
     reader.readAsDataURL(file);
   }
 
@@ -89,10 +103,11 @@ export function SpeciesRecognitionFlow({ projectId, onSaved }: Props) {
           <div className="text-sm font-medium">Upload feltbillede</div>
           <div className="text-xs text-muted-foreground mt-1">
             AI foreslår arter og du bekræfter inden observationen gemmes.
+            <span className="block">JPEG/PNG/WebP · maks 2 MiB</span>
           </div>
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
           />

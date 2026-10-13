@@ -70,12 +70,12 @@ export function SpeciesIdentifier({ project }: { project: Project | null }) {
               <div className="text-sm font-medium">
                 Træk et billede hertil eller klik for at vælge
               </div>
-              <div className="text-xs text-muted-foreground mt-1">JPEG/PNG · maks 8 MB</div>
+              <div className="text-xs text-muted-foreground mt-1">JPEG/PNG/WebP · maks 2 MiB</div>
             </button>
             <input
               ref={inputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               capture="environment"
               className="hidden"
               onChange={(e) => handleFiles(e.target.files)}

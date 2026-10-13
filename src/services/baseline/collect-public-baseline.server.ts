@@ -14,9 +14,14 @@ type Collector = (input: CollectorInput) => Promise<PublicBaselineSource>;
 /** Called only after project authorization and canonical area/reference loading. */
 export async function collectPublicBaselineSources(
   manifest: PublicBaselineManifest,
-  collectors: { dmi: Collector; sentinel: Collector } = {
+  collectors: { dmi: Collector; sentinel: Collector; raster: Collector } = {
     dmi: fetchDmiHistoricalSource,
     sentinel: fetchSentinelSceneSource,
+    raster: async (input) => {
+      const { fetchDatafordelerRasterInventorySource } =
+        await import("./datafordeler-raster-inventory.server");
+      return fetchDatafordelerRasterInventorySource(input);
+    },
   },
 ): Promise<PublicBaselineManifest> {
   const input: CollectorInput = {
@@ -25,8 +30,12 @@ export async function collectPublicBaselineSources(
     dateTo: manifest.period.to,
     geometrySha256: manifest.project.polygonSha256,
   };
-  const ids = ["dmi-historical", "sentinel-2-scenes"] as const;
-  const results = await Promise.allSettled([collectors.dmi(input), collectors.sentinel(input)]);
+  const ids = ["dmi-historical", "sentinel-2-scenes", "orthophoto-terrain"] as const;
+  const results = await Promise.allSettled([
+    collectors.dmi(input),
+    collectors.sentinel(input),
+    collectors.raster(input),
+  ]);
   const replacements = new Map<string, PublicBaselineSource>();
   for (const [index, result] of results.entries()) {
     const id = ids[index];

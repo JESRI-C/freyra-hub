@@ -104,6 +104,188 @@ const SentinelCatalog = z.object({
     )
     .max(150),
 });
+const RasterDataset = z.enum(["GeoDKO10cm", "GeoDKO12,5cm", "Terraen"]);
+const NativeRasterBbox = Bbox.refine(
+  ([minX, minY, maxX, maxY]) =>
+    minX >= 100_000 &&
+    maxX <= 1_100_000 &&
+    minY >= 5_800_000 &&
+    maxY <= 6_600_000 &&
+    minX < maxX &&
+    minY < maxY,
+);
+const RasterFile = z
+  .object({
+    id: z.string().uuid(),
+    register: z.enum(["geodko", "dhm"]),
+    dataset: RasterDataset,
+    modelVersion: z.literal(1),
+    dataDeliveryNumber: z.number().int().positive(),
+    fileName: z
+      .string()
+      .max(200)
+      .regex(/^[A-Za-z0-9_.,-]+\.tiff?$/i),
+    fileFormat: z.literal("tif"),
+    fileSizeInBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    fileGeneratedAt: Timestamp,
+    catalogBBoxCrs: z.literal("EPSG:25832"),
+    nativeBBox: NativeRasterBbox,
+    capturedFrom: z.null(),
+    capturedTo: z.null(),
+    verifiedRasterCrs: z.null(),
+    verifiedVerticalCrs: z.null(),
+    actualPixelSizeM: z.null(),
+    nodata: z.literal("not_checked"),
+    pixelCoverage: z.literal("unknown"),
+    rasterBytesFetched: z.literal(false),
+  })
+  .strict();
+const RasterProduct = z
+  .object({
+    register: z.enum(["geodko", "dhm"]),
+    dataset: RasterDataset,
+    modelVersion: z.literal(1),
+    dataDeliveryNumber: z.number().int().positive().nullable(),
+    catalogueComplete: z.literal(true),
+    files: z.array(RasterFile).max(200),
+    nominalPixelSizeM: z.number().finite().positive(),
+    nominalSizeIsNotRasterVerified: z.literal(true),
+    expectedHorizontalCrs: z.literal("EPSG:25832"),
+    expectedVerticalCrs: z.literal("EPSG:5799").nullable(),
+    licence: z.string().min(1),
+    licenceUrl: z.string().url(),
+    attribution: z.string().min(1),
+  })
+  .strict()
+  .refine((product) => {
+    const isTerrain = product.dataset === "Terraen";
+    return (
+      product.register === (isTerrain ? "dhm" : "geodko") &&
+      product.expectedVerticalCrs === (isTerrain ? "EPSG:5799" : null) &&
+      (product.files.length === 0
+        ? product.dataDeliveryNumber === null
+        : product.dataDeliveryNumber !== null) &&
+      product.files.every(
+        (file) =>
+          file.dataset === product.dataset &&
+          file.register === product.register &&
+          file.dataDeliveryNumber === product.dataDeliveryNumber,
+      )
+    );
+  });
+const RasterInventory = z
+  .object({
+    schema: z.literal("gofreyra.datafordeler-raster-inventory/v1"),
+    apiVersion: z.literal("v1.0"),
+    inventoryOnly: z.literal(true),
+    pixelDataNotFetched: z.literal(true),
+    rasterAnalysisStatus: z.literal("not_started"),
+    generationDatesAreNotCaptureDates: z.literal(true),
+    queryProjection: z
+      .object({
+        sourceCrs: z.literal("EPSG:4326"),
+        sourceAxisOrder: z.literal("lng-lat"),
+        queryCrs: z.literal("EPSG:25832"),
+        queryAxisOrder: z.literal("easting-northing"),
+        bbox: NativeRasterBbox,
+        method: z.literal("proj4-grs80-catalog-envelope/v1"),
+        edgeSampleStepDegrees: z.number().finite().positive(),
+        projectedSampleCount: z.number().int().positive().max(20_000),
+        queryBufferM: z.number().finite().nonnegative(),
+        bboxRounding: z.literal("outward-to-integer-metres"),
+        datumAssumption: z.literal("wgs84-treated-as-etrs89-without-epoch-or-grid-shift"),
+        surveyAccuracyVerified: z.literal(false),
+        heightTransformed: z.literal(false),
+      })
+      .strict(),
+    products: z.array(RasterProduct).length(3),
+    pages: z
+      .array(
+        z
+          .object({
+            dataset: RasterDataset,
+            page: z.number().int().min(1).max(2),
+            queryUrl: z
+              .string()
+              .url()
+              .refine((value) => {
+                let url: URL;
+                try {
+                  url = new URL(value);
+                } catch {
+                  return false;
+                }
+                return (
+                  url.origin === "https://api.datafordeler.dk" &&
+                  url.pathname === "/FileDownloads/v1.0/GetAvailableRasterFileDownloads" &&
+                  !url.username &&
+                  !url.password &&
+                  !url.hash &&
+                  Array.from(url.searchParams.keys()).every((key) =>
+                    [
+                      "Register",
+                      "DataSetName",
+                      "Version",
+                      "Pagenumber",
+                      "MinX",
+                      "MinY",
+                      "MaxX",
+                      "MaxY",
+                      "DataDeliveryNumber",
+                    ].includes(key),
+                  )
+                );
+              }),
+            responseSha256: z.string().regex(/^[0-9a-f]{64}$/),
+            responseBytes: z
+              .number()
+              .int()
+              .positive()
+              .max(1024 * 1024),
+            pagination: z
+              .object({
+                currentPage: z.number().int().min(1).max(2),
+                pageSize: z.number().int().min(1).max(100),
+                totalCount: z.number().int().min(0).max(200),
+                totalPages: z.number().int().min(0).max(2),
+              })
+              .strict(),
+          })
+          .strict(),
+      )
+      .min(3)
+      .max(6),
+  })
+  .strict()
+  .refine((data) => {
+    const files = data.products.flatMap((product) => product.files);
+    return (
+      new Set(data.products.map((product) => product.dataset)).size === 3 &&
+      files.length <= 200 &&
+      new Set(files.map((file) => file.id)).size === files.length &&
+      data.products.every((product) => {
+        const pages = data.pages.filter((page) => page.dataset === product.dataset);
+        if (pages.length === 0) return false;
+        const first = pages[0].pagination;
+        const expectedPages = Math.ceil(product.files.length / first.pageSize);
+        return (
+          pages.length === Math.max(first.totalPages, 1) &&
+          new Set(pages.map((page) => page.page)).size === pages.length &&
+          pages.every(
+            (page) =>
+              page.page === page.pagination.currentPage &&
+              page.pagination.totalCount === product.files.length &&
+              page.pagination.pageSize === first.pageSize &&
+              page.pagination.totalPages === first.totalPages &&
+              page.page <= Math.max(first.totalPages, 1),
+          ) &&
+          (product.files.length === 0
+            ? [0, 1].includes(first.totalPages)
+            : first.totalPages === expectedPages)
+        );
+      })
+    );
+  });
 
 const reasonLabels: Record<string, string> = {
   pagination_incomplete: "Alle sider er ikke hentet.",
@@ -345,9 +527,113 @@ function SentinelData({ source }: { source: PublicBaselineSource }) {
   );
 }
 
+function RasterData({ source }: { source: PublicBaselineSource }) {
+  const parsed = RasterInventory.safeParse(source.payload);
+  if (!parsed.success) return <InvalidPayload />;
+  const { products, queryProjection, pages } = parsed.data;
+  const count = products.reduce((sum, product) => sum + product.files.length, 0);
+  if (
+    source.status !== "partial" ||
+    source.coverage.returnedCount !== count ||
+    !source.coverage.paginationComplete ||
+    source.coverage.spatial !== "unknown" ||
+    source.coverage.temporal !== "unknown" ||
+    source.coverage.observedFrom !== null ||
+    source.coverage.observedTo !== null
+  )
+    return <InvalidPayload />;
+  return (
+    <div className="space-y-3 text-sm">
+      <div className="rounded border border-amber-300/50 bg-amber-50/30 p-2 dark:bg-amber-950/10">
+        <p className="font-medium">{count} filmetadata · 0 rasterbytes hentet</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Kataloget viser kandidatfiler, ikke validerede billeder. Faktisk optagedato, NoData,
+          pixeldækning, rasterets opløsning og koordinat-/højdesystem er endnu ukendte. Terrænkoter
+          og hældning er ikke beregnet.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Filgenerering og dataleverance er ikke optagedato. Der er ingen bekræftet dækning af
+          undersøgelsesperioden.
+        </p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Katalogområde ({queryProjection.queryCrs}, øst/nord i meter):{" "}
+        {queryProjection.bbox.map(numberText).join(" · ")}. Buffer{" "}
+        {numberText(queryProjection.queryBufferM)} m · {pages.length} metadatasider.
+        Koordinatomregningen bruges til filsøgning; opmålingsnøjagtighed og højder er ikke
+        valideret.
+      </p>
+      {products.map((product) => (
+        <section key={product.dataset} className="space-y-2">
+          <p className="font-medium">
+            {product.dataset === "Terraen" ? "DHM Terræn" : product.dataset} ·{" "}
+            {product.files.length} filmetadata
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Register {product.register} · Model {product.modelVersion} · Leverance{" "}
+            {product.dataDeliveryNumber ?? "ikke angivet"}. Nominel produktopløsning{" "}
+            {numberText(product.nominalPixelSizeM)} m; ikke kontrolleret i rasterpixels.
+          </p>
+          {product.files.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Ingen kandidatfiler i katalogforespørgslen. Det dokumenterer ikke manglende data i
+              området.
+            </p>
+          ) : (
+            <div className="max-h-80 overflow-auto rounded border">
+              <table className="w-full text-xs">
+                <caption className="p-2 text-left text-muted-foreground">
+                  Gemte filmetadata. Filgenereringstidspunktet beskriver ikke billedets optagelse.
+                </caption>
+                <thead>
+                  <tr className="border-b bg-muted/30 text-left">
+                    <th scope="col" className="p-2">
+                      Kildefil
+                    </th>
+                    <th scope="col" className="p-2">
+                      Katalogets afgrænsning (EPSG:25832)
+                    </th>
+                    <th scope="col" className="p-2">
+                      Filgenerering (UTC)
+                    </th>
+                    <th scope="col" className="p-2">
+                      Faktisk optagedato
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {product.files.map((file) => (
+                    <tr key={file.id} className="border-b last:border-0">
+                      <td className="p-2 break-all">
+                        {file.fileName}
+                        <span className="block text-muted-foreground">Fil-ID {file.id}</span>
+                        <span className="block text-muted-foreground">
+                          Model {file.modelVersion} · Leverance {file.dataDeliveryNumber}
+                        </span>
+                      </td>
+                      <td className="p-2">{file.nativeBBox.map(numberText).join(" · ")}</td>
+                      <td className="p-2">
+                        <time dateTime={file.fileGeneratedAt}>
+                          {dateText(file.fileGeneratedAt)}
+                        </time>
+                      </td>
+                      <td className="p-2">Ukendt</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
 /** Read only: these values come from the selected immutable source snapshot, never a new fetch. */
 export function BaselineSourceData({ source }: { source: PublicBaselineSource }) {
-  if (source.id !== "dmi-historical" && source.id !== "sentinel-2-scenes") return null;
+  if (!["dmi-historical", "sentinel-2-scenes", "orthophoto-terrain"].includes(source.id))
+    return null;
   if (source.mode === "error" || source.error) {
     return (
       <p role="alert" className="text-sm text-destructive">
@@ -366,9 +652,7 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
       </p>
     );
   }
-  return source.id === "dmi-historical" ? (
-    <DmiData source={source} />
-  ) : (
-    <SentinelData source={source} />
-  );
+  if (source.id === "dmi-historical") return <DmiData source={source} />;
+  if (source.id === "sentinel-2-scenes") return <SentinelData source={source} />;
+  return <RasterData source={source} />;
 }

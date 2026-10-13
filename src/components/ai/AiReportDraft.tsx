@@ -71,8 +71,8 @@ export function AiReportDraft({ reportType, projectName, audience, context }: Pr
               </span>
             </div>
             <div className="text-xs text-muted-foreground">
-              Generér struktureret udkast — resumé, nøglefund, risici og anbefalinger — direkte fra
-              projektets data.
+              Generér et udkast med resumé, nøglefund, risici og anbefalinger. Udkastet bygger på
+              det indsendte grundlag og kræver faglig gennemgang.
             </div>
           </div>
         </div>

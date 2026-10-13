@@ -12,10 +12,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { aiPublicFailure, requireBoundedAiText, withBoundedAiGateway } from "./ai-gateway.server";
+import { AI_IMAGE_MAX_DATA_URL_CHARACTERS, isAllowedAiImageDataUrl } from "./ai-image-input";
 
 const IdentifyInput = z.object({
-  imageDataUrl: z.string().min(32), // data:image/jpeg;base64,...
+  imageDataUrl: z
+    .string()
+    .min(32)
+    .max(AI_IMAGE_MAX_DATA_URL_CHARACTERS)
+    .refine(
+      isAllowedAiImageDataUrl,
+      "Billedet skal være JPEG, PNG eller WebP som base64-data (maks 2 MB).",
+    ),
   hint: z.string().max(200).optional(), // valgfri kontekst, fx "fugl ved vandløb"
 });
 
@@ -44,6 +53,7 @@ const SYSTEM_PROMPT =
   'Hvis intet levende kan identificeres, returnér {"species":[]}.';
 
 export const identifySpeciesFromImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => IdentifyInput.parse(input))
   .handler(async ({ data }): Promise<SpeciesIdResult> => {
     const key = process.env.LOVABLE_API_KEY;
@@ -56,37 +66,39 @@ export const identifySpeciesFromImage = createServerFn({ method: "POST" })
       };
     }
 
-    const gateway = createLovableAiGatewayProvider(key);
-    const model = gateway("google/gemini-3-flash-preview");
-
     const userText =
       "Identificér de arter du kan se på dette billede fra et dansk naturområde." +
       (data.hint ? ` Kontekst: ${data.hint}.` : "") +
       " Returnér kun JSON.";
 
     try {
-      const { text } = await generateText({
-        model,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userText },
-              // AI SDK accepterer image som data-URL eller URL
-              { type: "image", image: data.imageDataUrl },
-            ],
-          },
-        ],
-        maxOutputTokens: 600,
+      const result = await withBoundedAiGateway(key, async (limits) => {
+        const generated = await generateText({
+          ...limits,
+          system: SYSTEM_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: userText },
+                // Only validated inline bytes are accepted; no URL download is authorized.
+                { type: "image", image: data.imageDataUrl },
+              ],
+            },
+          ],
+          maxOutputTokens: 600,
+        });
+        const text = requireBoundedAiText(generated.text, 4096);
+        // Parsing stays inside the deadline and final credential-echo guard.
+        // Neither caller uses rawText. Retain the API field without forwarding model
+        // text or fields discarded by the species schema.
+        return { species: parseSpeciesJson(text), rawText: "" };
       });
-
-      const parsed = parseSpeciesJson(text);
-      return { species: parsed, rawText: text, error: false };
+      return { ...result, error: false };
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Ukendt fejl";
-      const isCredit = /402/.test(message);
-      const isRate = /429/.test(message);
+      const reason = aiPublicFailure(err);
+      const isCredit = reason === "credits";
+      const isRate = reason === "rate_limit";
       return {
         species: [],
         rawText: "",
@@ -108,23 +120,31 @@ function parseSpeciesJson(text: string): IdentifiedSpecies[] {
   // Find første { og sidste }
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1) return [];
-
-  try {
-    const obj = JSON.parse(cleaned.slice(start, end + 1)) as { species?: unknown };
-    if (!Array.isArray(obj.species)) return [];
-    return obj.species
-      .filter((s): s is Record<string, unknown> => !!s && typeof s === "object")
-      .map((s) => ({
-        scientificName: String(s["scientificName"] ?? "").trim(),
-        danishName: String(s["danishName"] ?? s["scientificName"] ?? "Ukendt").trim(),
-        group: String(s["group"] ?? "Andet").trim(),
-        confidence:
-          typeof s["confidence"] === "number" ? Math.max(0, Math.min(1, s["confidence"])) : 0.5,
-        notes: s["notes"] ? String(s["notes"]).trim() : undefined,
-      }))
-      .filter((s) => s.scientificName.length > 0);
-  } catch {
-    return [];
-  }
+  if (start === -1 || end === -1) throw new Error("Ugyldigt AI-svar");
+  return z
+    .object({
+      species: z
+        .array(
+          z.object({
+            scientificName: z.string().trim().min(1).max(120),
+            danishName: z.string().trim().min(1).max(120),
+            group: z.enum([
+              "Fugle",
+              "Pattedyr",
+              "Padder",
+              "Krybdyr",
+              "Fisk",
+              "Insekter",
+              "Planter",
+              "Svampe",
+              "Laver",
+              "Andet",
+            ]),
+            confidence: z.number().finite().min(0).max(1),
+            notes: z.string().max(500).optional(),
+          }),
+        )
+        .max(5),
+    })
+    .parse(JSON.parse(cleaned.slice(start, end + 1))).species;
 }

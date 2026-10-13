@@ -12,6 +12,7 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { identifySpeciesFromImage } from "@/lib/species-id.functions";
+import { AI_IMAGE_MAX_BYTES, isAllowedAiImageDataUrl } from "@/lib/ai-image-input";
 import {
   enrichSpeciesList,
   saveSpeciesObservations,
@@ -28,8 +29,6 @@ type Phase =
   | "saving"
   | "saved"
   | "error";
-
-const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -61,13 +60,13 @@ export function useSpeciesIdentification(project: Project | null) {
 
   const identifyFile = useCallback(async (file: File, hint?: string) => {
     setError(null);
-    if (!file.type.startsWith("image/")) {
-      setError("Filen er ikke et billede.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Vælg et JPEG-, PNG- eller WebP-billede.");
       setPhase("error");
       return;
     }
-    if (file.size > MAX_BYTES) {
-      setError("Billedet er for stort (maks 8 MB).");
+    if (file.size > AI_IMAGE_MAX_BYTES) {
+      setError("Billedet er for stort (maks 2 MiB).");
       setPhase("error");
       return;
     }
@@ -75,6 +74,8 @@ export function useSpeciesIdentification(project: Project | null) {
     try {
       setPhase("reading");
       const dataUrl = await fileToDataUrl(file);
+      if (!isAllowedAiImageDataUrl(dataUrl))
+        throw new Error("Billedet har et ugyldigt eller ikke understøttet format.");
       setPreviewUrl(dataUrl);
 
       setPhase("identifying");
