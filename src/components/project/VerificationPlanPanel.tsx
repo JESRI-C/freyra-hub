@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SurveyRoundPanel } from "./SurveyRoundPanel";
 import { useServerFn } from "@tanstack/react-start";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
@@ -125,147 +126,153 @@ export function VerificationPlanPanel({ snapshot }: { snapshot: PublicBaselineSn
   const priorityLabels = { high: "høj", normal: "normal", low: "lav" };
 
   return (
-    <Card>
-      <CardHeader
-        title="Spørgsmål til drone og felt"
-        subtitle={`Forslag fra gemt datagrundlag, version ${snapshot.version}`}
-      />
-      <div className="px-5 pb-5 space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Rækkefølgen er datagrundlag → spørgsmål → drone/felt → faglig gennemgang. Disse forslag er
-          endnu ikke en godkendt flyveplan eller registrerede resultater.
-        </p>
-        <div className="flex flex-wrap items-end gap-3">
-          <button
-            type="button"
-            onClick={() => save.mutate()}
-            disabled={save.isPending || !!previewError}
-            className="rounded bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50"
-          >
-            {save.isPending ? "Gemmer plan …" : "Gem planversion som udkast"}
-          </button>
-          {!!summaries.length && (
-            <label className="text-sm space-y-1">
-              <span className="block">Gemt planversion</span>
-              <select
-                value={activeId ?? ""}
-                disabled={save.isPending}
-                onChange={(event) => setSelectedId(event.target.value)}
-                className="rounded border bg-background p-2 max-w-full"
-              >
-                {summaries.map((version) => (
-                  <option key={version.id} value={version.id}>
-                    Version {version.version} ·{" "}
-                    {new Date(version.createdAt).toLocaleString("da-DK")}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {versions.hasNextPage && (
+    <>
+      <Card>
+        <CardHeader
+          title="Spørgsmål til drone og felt"
+          subtitle={`Forslag fra gemt datagrundlag, version ${snapshot.version}`}
+        />
+        <div className="px-5 pb-5 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Rækkefølgen er datagrundlag → spørgsmål → drone/felt → faglig gennemgang. Disse forslag
+            er endnu ikke en godkendt flyveplan eller registrerede resultater.
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
             <button
               type="button"
-              disabled={versions.isFetchingNextPage}
-              className="text-sm underline"
-              onClick={() => void versions.fetchNextPage()}
+              onClick={() => save.mutate()}
+              disabled={save.isPending || !!previewError}
+              className="rounded bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50"
             >
-              {versions.isFetchingNextPage ? "Henter …" : "Vis ældre planversioner"}
+              {save.isPending ? "Gemmer plan …" : "Gem planversion som udkast"}
             </button>
-          )}
-        </div>
-        {stored ? (
-          <p className="text-xs text-muted-foreground">
-            Gemt udkast, version {stored.version}. Spørgsmål, metode og datagrundlag er fastholdt.
-            Faglig godkendelse afventer.
-          </p>
-        ) : (
-          !versions.isPending &&
-          !activeId && (
-            <p className="text-xs text-muted-foreground">
-              Forslagene er endnu ikke gemt som en planversion.
-            </p>
-          )
-        )}
-        {(versions.isPending || saved.isFetching) && (
-          <p className="text-sm text-muted-foreground">Henter gemte planer …</p>
-        )}
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        {!plan && !error && (
-          <p className="text-sm text-muted-foreground">Danner forslag fra den gemte version …</p>
-        )}
-        {plan && (
-          <>
-            {plan.questions.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Datagrundlaget giver endnu ingen dokumenterbare drone- eller feltspørgsmål.
-              </p>
+            {!!summaries.length && (
+              <label className="text-sm space-y-1">
+                <span className="block">Gemt planversion</span>
+                <select
+                  value={activeId ?? ""}
+                  disabled={save.isPending}
+                  onChange={(event) => setSelectedId(event.target.value)}
+                  className="rounded border bg-background p-2 max-w-full"
+                >
+                  {summaries.map((version) => (
+                    <option key={version.id} value={version.id}>
+                      Version {version.version} ·{" "}
+                      {new Date(version.createdAt).toLocaleString("da-DK")}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
-            {plan.questions.map((question) => (
-              <div key={question.id} className="rounded border p-3 space-y-2">
-                <div className="flex justify-between gap-3 text-sm">
-                  <strong>{question.title}</strong>
-                  <Pill tone="info">Udkast · {priorityLabels[question.priority]} prioritet</Pill>
+            {versions.hasNextPage && (
+              <button
+                type="button"
+                disabled={versions.isFetchingNextPage}
+                className="text-sm underline"
+                onClick={() => void versions.fetchNextPage()}
+              >
+                {versions.isFetchingNextPage ? "Henter …" : "Vis ældre planversioner"}
+              </button>
+            )}
+          </div>
+          {stored ? (
+            <p className="text-xs text-muted-foreground">
+              Gemt udkast, version {stored.version}. Spørgsmål, metode og datagrundlag er fastholdt.
+              Faglig godkendelse afventer.
+            </p>
+          ) : (
+            !versions.isPending &&
+            !activeId && (
+              <p className="text-xs text-muted-foreground">
+                Forslagene er endnu ikke gemt som en planversion.
+              </p>
+            )
+          )}
+          {(versions.isPending || saved.isFetching) && (
+            <p className="text-sm text-muted-foreground">Henter gemte planer …</p>
+          )}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          {!plan && !error && (
+            <p className="text-sm text-muted-foreground">Danner forslag fra den gemte version …</p>
+          )}
+          {plan && (
+            <>
+              {plan.questions.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Datagrundlaget giver endnu ingen dokumenterbare drone- eller feltspørgsmål.
+                </p>
+              )}
+              {plan.questions.map((question) => (
+                <div key={question.id} className="rounded border p-3 space-y-2">
+                  <div className="flex justify-between gap-3 text-sm">
+                    <strong>{question.title}</strong>
+                    <Pill tone="info">Udkast · {priorityLabels[question.priority]} prioritet</Pill>
+                  </div>
+                  <p className="text-sm">{question.question}</p>
+                  <p className="text-xs text-muted-foreground">{question.rationale}</p>
+                  <p className="text-xs text-muted-foreground">{question.area.restriction}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Undersøgelsesperiode: {question.dates.baselineFrom}–{question.dates.baselineTo}.
+                    Kilde hentet: {question.dates.sourceFetchedAt.slice(0, 10)}.
+                  </p>
+                  <p className="text-sm">
+                    <strong>Dokumentation:</strong>{" "}
+                    {
+                      question.requiredEvidence.find(
+                        (evidence) => evidence.kind === "original_photo",
+                      )?.description
+                    }
+                  </p>
+                  <details className="text-xs text-muted-foreground">
+                    <summary className="cursor-pointer">Metode og usikkerhed</summary>
+                    <p className="mt-2">{question.method}</p>
+                    {question.uncertainty.map((warning) => (
+                      <p key={warning} className="mt-1">
+                        {warning}
+                      </p>
+                    ))}
+                  </details>
+                  <p className="text-xs text-muted-foreground">
+                    Faglig gennemgang skal senere registrere: understøttet, afkræftet, ikke
+                    afgørligt eller kræver besigtigelse.
+                  </p>
                 </div>
-                <p className="text-sm">{question.question}</p>
-                <p className="text-xs text-muted-foreground">{question.rationale}</p>
-                <p className="text-xs text-muted-foreground">{question.area.restriction}</p>
-                <p className="text-xs text-muted-foreground">
-                  Undersøgelsesperiode: {question.dates.baselineFrom}–{question.dates.baselineTo}.
-                  Kilde hentet: {question.dates.sourceFetchedAt.slice(0, 10)}.
-                </p>
-                <p className="text-sm">
-                  <strong>Dokumentation:</strong>{" "}
-                  {
-                    question.requiredEvidence.find((evidence) => evidence.kind === "original_photo")
-                      ?.description
-                  }
-                </p>
-                <details className="text-xs text-muted-foreground">
-                  <summary className="cursor-pointer">Metode og usikkerhed</summary>
-                  <p className="mt-2">{question.method}</p>
-                  {question.uncertainty.map((warning) => (
-                    <p key={warning} className="mt-1">
-                      {warning}
+              ))}
+              {plan.baselineDataGaps.length > 0 && (
+                <details className="rounded border p-3 text-sm">
+                  <summary className="cursor-pointer">
+                    {plan.baselineDataGaps.length} kilder kræver mere datagrundlag
+                  </summary>
+                  <p className="mt-2 text-muted-foreground">
+                    Manglende offentlige kilder skal hentes eller importeres. Dronefotos kan ikke
+                    udfylde disse kildehuller.
+                  </p>
+                  {plan.baselineDataGaps.map((gap) => (
+                    <p key={gap.sourceId} className="mt-2 text-xs text-muted-foreground">
+                      <strong>
+                        {gap.provider} · {gap.dataset}:
+                      </strong>{" "}
+                      {gap.reason}
                     </p>
                   ))}
                 </details>
-                <p className="text-xs text-muted-foreground">
-                  Faglig gennemgang skal senere registrere: understøttet, afkræftet, ikke afgørligt
-                  eller kræver besigtigelse.
+              )}
+              {plan.warnings.map((warning) => (
+                <p key={warning} className="text-xs text-muted-foreground">
+                  {warning}
                 </p>
-              </div>
-            ))}
-            {plan.baselineDataGaps.length > 0 && (
-              <details className="rounded border p-3 text-sm">
-                <summary className="cursor-pointer">
-                  {plan.baselineDataGaps.length} kilder kræver mere datagrundlag
-                </summary>
-                <p className="mt-2 text-muted-foreground">
-                  Manglende offentlige kilder skal hentes eller importeres. Dronefotos kan ikke
-                  udfylde disse kildehuller.
-                </p>
-                {plan.baselineDataGaps.map((gap) => (
-                  <p key={gap.sourceId} className="mt-2 text-xs text-muted-foreground">
-                    <strong>
-                      {gap.provider} · {gap.dataset}:
-                    </strong>{" "}
-                    {gap.reason}
-                  </p>
-                ))}
-              </details>
-            )}
-            {plan.warnings.map((warning) => (
-              <p key={warning} className="text-xs text-muted-foreground">
-                {warning}
-              </p>
-            ))}
-          </>
-        )}
-      </div>
-    </Card>
+              ))}
+            </>
+          )}
+        </div>
+      </Card>
+      {stored && (
+        <SurveyRoundPanel key={`${snapshot.id}:${stored.id}`} snapshot={snapshot} plan={stored} />
+      )}
+    </>
   );
 }

@@ -13,6 +13,13 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => React.createElement("a", null, children),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
+vi.mock("@/lib/survey-round.functions", () => ({
+  saveSurveyRound: vi.fn(),
+  getSurveyRound: vi.fn(),
+  listSurveyRounds: vi.fn(),
+  getSurveyRoundAccess: vi.fn(),
+}));
+vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/lib/public-baseline.functions", () => ({
   createProjectBaseline: vi.fn(),
   getProjectBaseline: vi.fn(),

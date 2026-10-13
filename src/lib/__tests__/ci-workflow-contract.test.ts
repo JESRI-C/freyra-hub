@@ -72,7 +72,27 @@ describe("P0 app-gates workflow", () => {
       "supabase db lint --local --schema public,private,storage --level error --fail-on none",
     );
     expect(workflow).not.toMatch(/--(?:linked|db-url)\b/);
-    expect(workflow).toContain("if: always()\n        run: supabase stop --no-backup");
+    expect(workflow).toContain(
+      "if: always()\n        run: node scripts/database-concurrency/stop-disposable-stack.mjs --disposable-local",
+    );
+    const cleanup = readFileSync(
+      resolve(process.cwd(), "scripts/database-concurrency/stop-disposable-stack.mjs"),
+      "utf8",
+    );
+    expect(cleanup).toContain('args.includes("--disposable-local")');
+    expect(cleanup).toContain('["stop", "--no-backup"]');
+    expect(cleanup).not.toMatch(/--(?:linked|db-url|project-id)\b/);
+    const databaseChecks = workflow.indexOf("supabase test db --local");
+    const concurrencyChecks = workflow.indexOf("node scripts/test-disposable-db-concurrency.mjs");
+    const functionLint = workflow.indexOf("supabase db lint --local");
+    const stop = workflow.indexOf(
+      "run: node scripts/database-concurrency/stop-disposable-stack.mjs",
+    );
+    const receipts = workflow.indexOf("name: Preserve disposable local concurrency evidence");
+    expect(concurrencyChecks).toBeGreaterThan(databaseChecks);
+    expect(functionLint).toBeGreaterThan(concurrencyChecks);
+    expect(stop).toBeGreaterThan(functionLint);
+    expect(receipts).toBeGreaterThan(stop);
   });
 
   it("classifies lint only against the same local database and preserves evidence", () => {

@@ -88,6 +88,13 @@ jobs:
       - name: Check database isolation
         run: supabase test db --local supabase/tests/database
 
+      - name: Check real local database concurrency
+        run: |
+          node scripts/test-disposable-db-concurrency.mjs \
+            --disposable-local \
+            --database postgresql://postgres:postgres@127.0.0.1:54322/postgres \
+            --checkout-sha '${{ github.sha }}'
+
       - name: Check database functions
         env:
           PGPASSWORD: postgres
@@ -126,6 +133,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 35
 
-      - name: Stop disposable local stack
+      - name: Stop disposable local stack and retain cleanup evidence
         if: always()
-        run: supabase stop --no-backup
+        run: node scripts/database-concurrency/stop-disposable-stack.mjs --disposable-local
+
+      - name: Preserve disposable local concurrency evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-database-concurrency-evidence
+          path: tmp/database-concurrency/**
+          if-no-files-found: ignore
+          retention-days: 35

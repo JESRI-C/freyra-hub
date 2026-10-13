@@ -1,0 +1,43 @@
+{
+  "schema": "gofreyra.disposable-database-concurrency-index/v1",
+  "hashNormalization": "CRLF to LF only, so Windows authoring and Linux CI retain identical source text identity",
+  "syntheticOnly": true,
+  "files": [
+    {
+      "path": "scripts/test-disposable-db-concurrency.mjs",
+      "normalizedSha256": "5ca25d0868bcb9704483294be3109d7601547220a39b194175dc78f99376abea"
+    },
+    {
+      "path": "scripts/database-concurrency/stop-disposable-stack.mjs",
+      "normalizedSha256": "5716b2987fff0e8ab0b47f721e68839c7694e8a19d777f2ff6cbe24202afd69a"
+    },
+    {
+      "path": "scripts/database-concurrency/local-database-guard.mjs",
+      "normalizedSha256": "868f042275b171c91140657e11884f4f3bc62eb56348bec4907e33f6bafac839"
+    },
+    {
+      "path": "scripts/database-concurrency/survey-round-concurrency.test.mjs",
+      "normalizedSha256": "9c4a3beffad2f8d34e53534d7d5d86544494ac0b139a982b48059d146027e082"
+    },
+    {
+      "path": "scripts/database-concurrency/project-role-snapshot-concurrency.test.mjs",
+      "normalizedSha256": "6432f10817f80eafe7e7f9768a0fe29acba1abc6ca607157fc9d61318fbdca83"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/initialize.sql",
+      "normalizedSha256": "2492224db3f71358e2a4eeef53c15a42f665e4b2decdd09499a27c0a2d8afa8d"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/round.json",
+      "normalizedSha256": "e4a890880db1b07fd622d3cf4833372edfc9392c3c163fc98e91299020fe36c2"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/role-snapshot.json",
+      "normalizedSha256": "036f040167dc109c9326f3d5850829d5bc91837b6521d2ee3aebf11910907413"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/fixture-genesis.json",
+      "normalizedSha256": "52b22844d09ba050c84f1b2c4f520a21cbdacad9c74eda265f7a8181fea276c0"
+    }
+  ]
+}

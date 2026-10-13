@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { PublicBaselineSource } from "@/services/baseline/public-baseline-types";
 import { parseSavedWaterPlanNatureSource } from "@/services/baseline/water-plan-nature-saved-payload";
+import { parseSavedPublicMonitoringStationsSource } from "@/services/baseline/public-monitoring-stations-saved-payload";
 
 const Timestamp = z.string().datetime({ offset: true });
 const Coordinates = z.tuple([
@@ -844,12 +845,132 @@ function WaterPlanNatureData({ source }: { source: PublicBaselineSource }) {
   );
 }
 
+function PublicMonitoringStationsData({ source }: { source: PublicBaselineSource }) {
+  const data = parseSavedPublicMonitoringStationsSource(source);
+  if (!data)
+    return (
+      <p role="alert" className="text-sm text-destructive">
+        De gemte stedoplysninger mangler eller har et ugyldigt format. Der vises ingen
+        stedkandidater.
+      </p>
+    );
+  return (
+    <div className="space-y-3 text-sm">
+      <p className="font-medium">
+        Offentlige undersøgelsessteder · {data.product.candidates.length} stedkandidater
+      </p>
+      <p className="text-muted-foreground">
+        Stednumrene kan bruges til at finde mulige supplerende kilder. Stedtype og tilknytning til
+        vandløbet eller oplandet skal verificeres, før en kilde bruges i vurderingen.
+      </p>
+      <p className="text-muted-foreground">
+        Vandstand og vandføring er ikke hentet. Stederne dokumenterer ingen måledækning i den valgte
+        periode.
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Undersøgelsesperiode: {data.requestedPeriod.from}–{data.requestedPeriod.to}. Aktuelt
+        register hentet {dateText(source.fetchedAt)}; hentetidspunktet er ikke et måletidspunkt.
+      </p>
+      {data.product.candidates.length === 0 ? (
+        <p className="text-muted-foreground">
+          Ingen stedkandidater i denne gemte kildeforespørgsel. Det fastslår ikke fravær af
+          målestationer i andre registre eller manglende vandføring.
+        </p>
+      ) : (
+        <div className="max-h-80 overflow-auto rounded border">
+          <table className="w-full text-xs">
+            <caption className="p-2 text-left text-muted-foreground">
+              Stationsnummeret identificerer et offentligt undersøgelsessted. Det bekræfter ikke en
+              hydrometrisk station. Navne er udeladt fra dette datagrundlag.
+            </caption>
+            <thead>
+              <tr className="border-b bg-muted/30 text-left">
+                <th scope="col" className="p-2">
+                  Stationsnummer
+                </th>
+                <th scope="col" className="p-2">
+                  Sted-ID
+                </th>
+                <th scope="col" className="p-2">
+                  Verifikation
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.product.candidates.map((candidate) => (
+                <tr key={candidate.siteUuid} className="border-b last:border-0">
+                  <td className="p-2">{candidate.stationNumber}</td>
+                  <td className="p-2 break-all">{candidate.siteUuid}</td>
+                  <td className="p-2">
+                    Stedtype: Ukendt
+                    <span className="block text-muted-foreground">
+                      Vandløb og opland: Afventer kontrol
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <details className="text-xs text-muted-foreground">
+        <summary className="cursor-pointer">
+          Kilde og afgrænsning · {data.pages.length} gemte sider
+        </summary>
+        <p className="mt-2">
+          {data.product.attribution} ·{" "}
+          <a
+            href={data.product.licenceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            {data.product.licence}
+          </a>
+          . Søgeområdet er et bufferet kortudsnit, som ikke bekræfter den kommunale delstrækning
+          eller et opland.
+        </p>
+        <p className="mt-1">
+          Native punkter er bevaret i {data.queryProjection.queryCrs}. Forespørgslen anvender en
+          erklæret datumantagelse; opmålingsnøjagtighed og højder er ikke verificeret.
+        </p>
+        <p className="mt-1">
+          De modtagne sider er gemt med antal- og ID-kontrol. Registeret kan være ændret mellem
+          hentningerne.
+        </p>
+        <ul className="mt-2 space-y-2">
+          {data.pages.map((page) => (
+            <li key={page.startIndex} className="break-all">
+              <a
+                href={page.queryUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Kildeside · {page.numberReturned} stedkandidater
+              </a>
+              <span className="block">
+                Kildens katalogtidspunkt: {dateText(page.serverTimestamp)}
+              </span>
+              <span className="block">SHA-256: {page.responseSha256}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
 /** Read only: these values come from the selected immutable source snapshot, never a new fetch. */
 export function BaselineSourceData({ source }: { source: PublicBaselineSource }) {
   if (
-    !["dmi-historical", "sentinel-2-scenes", "orthophoto-terrain", "water-plan-nature"].includes(
-      source.id,
-    )
+    ![
+      "dmi-historical",
+      "sentinel-2-scenes",
+      "orthophoto-terrain",
+      "water-plan-nature",
+      "public-monitoring-stations",
+    ].includes(source.id)
   )
     return null;
   if (
@@ -873,5 +994,7 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
   if (source.id === "dmi-historical") return <DmiData source={source} />;
   if (source.id === "sentinel-2-scenes") return <SentinelData source={source} />;
   if (source.id === "water-plan-nature") return <WaterPlanNatureData source={source} />;
+  if (source.id === "public-monitoring-stations")
+    return <PublicMonitoringStationsData source={source} />;
   return <RasterData source={source} />;
 }

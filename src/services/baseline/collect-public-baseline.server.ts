@@ -14,7 +14,13 @@ type Collector = (input: CollectorInput) => Promise<PublicBaselineSource>;
 /** Called only after project authorization and canonical area/reference loading. */
 export async function collectPublicBaselineSources(
   manifest: PublicBaselineManifest,
-  collectors: { dmi: Collector; sentinel: Collector; raster: Collector; nature: Collector } = {
+  collectors: {
+    dmi: Collector;
+    sentinel: Collector;
+    raster: Collector;
+    nature: Collector;
+    monitoring: Collector;
+  } = {
     dmi: fetchDmiHistoricalSource,
     sentinel: fetchSentinelSceneSource,
     raster: async (input) => {
@@ -25,6 +31,11 @@ export async function collectPublicBaselineSources(
     nature: async (input) => {
       const { fetchWaterPlanNatureSource } = await import("./water-plan-nature-source.server");
       return fetchWaterPlanNatureSource(input);
+    },
+    monitoring: async (input) => {
+      const { fetchPublicMonitoringStationsSource } =
+        await import("./public-monitoring-stations-source.server");
+      return fetchPublicMonitoringStationsSource(input);
     },
   },
 ): Promise<PublicBaselineManifest> {
@@ -39,12 +50,14 @@ export async function collectPublicBaselineSources(
     "sentinel-2-scenes",
     "orthophoto-terrain",
     "water-plan-nature",
+    "public-monitoring-stations",
   ] as const;
   const results = await Promise.allSettled([
     collectors.dmi(input),
     collectors.sentinel(input),
     collectors.raster(input),
     collectors.nature(input),
+    collectors.monitoring(input),
   ]);
   const replacements = new Map<string, PublicBaselineSource>();
   for (const [index, result] of results.entries()) {
@@ -62,6 +75,15 @@ export async function collectPublicBaselineSources(
         status: "failed",
         payload: null,
         payloadSha256: null,
+        coverage: {
+          ...placeholder.coverage,
+          spatial: "unknown",
+          temporal: "unknown",
+          observedFrom: null,
+          observedTo: null,
+          paginationComplete: false,
+          returnedCount: null,
+        },
         error: {
           code: "COLLECTOR_FAILED",
           message: "Kilden kunne ikke hentes eller valideres. Prøv en ny dataversion senere.",

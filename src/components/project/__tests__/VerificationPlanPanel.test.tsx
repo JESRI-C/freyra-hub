@@ -14,6 +14,13 @@ const state = vi.hoisted(() => ({
   readError: null as Error | null,
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
+vi.mock("@/lib/survey-round.functions", () => ({
+  saveSurveyRound: vi.fn(),
+  getSurveyRound: vi.fn(),
+  listSurveyRounds: vi.fn(),
+  getSurveyRoundAccess: vi.fn(),
+}));
+vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/lib/verification-plan.functions", () => ({
   saveVerificationPlan: vi.fn(),
   getVerificationPlan: vi.fn(),
@@ -48,6 +55,9 @@ describe("saved verification plan review panel", () => {
     const html = renderToStaticMarkup(<VerificationPlanPanel snapshot={snapshot} />);
     expect(html).toContain(state.plan!.manifest.questions[0].title);
     expect(html).toContain("Gemt udkast, version 1");
+    expect(html).toContain("Registreringsrunder");
+    expect(html).toContain(`Datagrundlag, version ${snapshot.version}`);
+    expect(html).toContain(`Plan, version ${state.plan!.version}`);
     expect(html).toContain("Faglig godkendelse afventer");
     expect(html).toContain("endnu ikke en godkendt flyveplan");
     expect(html).toContain(state.plan!.manifest.baselineDataGaps[0].provider);
