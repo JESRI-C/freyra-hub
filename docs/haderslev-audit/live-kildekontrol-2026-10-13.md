@@ -26,6 +26,54 @@ Payload-SHA-256: `265eb6c80d8a2109a9f7b1b4e5b30bfddff4650a84ac15895168a133440836
 
 Primær kilde: [Copernicus Data Space STAC](https://documentation.dataspace.copernicus.eu/APIs/STAC.html). Det aktuelle endpoint er `https://stac.dataspace.copernicus.eu/v1/search`.
 
+## Danske Stednavne — DAWA lukket, ny adgang nødvendig
+
+Kontrolleret 13. oktober 2026 med officielle myndighedskilder og anonyme GET-kald. Ingen API-nøgler, credentials eller kundedata blev læst eller sendt. Byskov Bæk var alene søgetekst; der er ikke fundet eller godkendt en konkret pilotreference.
+
+Klimadatastyrelsen oplyser, at **alle DAWA-tjenester lukkede 1. oktober 2026 kl. 10**. HTTP 410 fra den eksisterende adapter er derfor en nedlagt tjeneste. [Officiel nedlukningsmeddelelse, 2. juli 2026](https://www.klimadatastyrelsen.dk/om-klimadatastyrelsen/nyheder/nyhedsarkiv/2026/jul/dawa-lukker-d-1-oktober-2026).
+
+| Offentligt endpoint testet uden credentials                                                                             | Faktisk svar                     |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `https://api.dataforsyningen.dk/stednavne2?q=Byskov%20B%C3%A6k`                                                         | 410 JSON: Gone                   |
+| `https://api.dataforsyningen.dk/steder?format=geojson&srid=4326&hovedtype=Vandl%C3%B8b&per_side=1`                      | 410 JSON: Gone                   |
+| `https://services.datafordeler.dk/STEDNAVN/Stednavne/1.0.0/REST/HentDKStednavne?Format=JSON&stednavn=Byskov%20B%C3%A6k` | 403: Unauthorized access         |
+| `https://wfs.datafordeler.dk/Stednavn/STEDNAVNE_BEARBEJDET_GML3SFP/1/WFS?service=WFS&request=GetCapabilities`           | 401                              |
+| `https://graphql.datafordeler.dk/DS/v1/schema` og `/DS/v2/schema`                                                       | Begge 401                        |
+| `https://graphql.datafordeler.dk/DS/v1?query=%7B__typename%7D`                                                          | 401                              |
+| `https://api.datafordeler.dk/FileDownloads/GetAvailableFileDownloads?Register=DS`                                       | 401                              |
+| `https://api.dataforsyningen.dk/rest/gsearch/v2.0/stednavn?q=Byskov%20B%C3%A6k`                                         | 400: kræver authentication token |
+
+Probeværktøjet havde 15 sekunders timeout, afviste redirects og læste højst 650 bytes til statusdokumentation pr. svar. Sandkassens DNS-fejl blev efterfulgt af en godkendt read-only prøve uden for sandkassen; tabellen viser de faktisk modtagne HTTP-svar.
+
+De aktuelle officielle [GraphQL](https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-graphql/), [bearbejdede WFS](https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-bearbejdet-wfs/) og [Fildownload](https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-fildownload/) beskriver **API-key/OAuth**, bruger og IT-system på Datafordeler Administration. Der er ikke verificeret en anonym geometri-afløser. Skemakatalogets betegnelse “Åben” beviser ikke anonym dataadgang; de testede schema-URL'er krævede også autentifikation. Legacy REST udfases og er ikke anbefalet som ny provider. **Danske Stednavne har ikke været opdateret siden september 2025**; et nyt hentetidspunkt giver ikke en nyopmålt vandløbsgeometri.
+
+Gsearch er heller ikke en varig nødløsning: den lukker **29. oktober 2026 kl. 16**, før mødet. [Officiel transitionsmeddelelse, 25. september 2026](https://www.klimadatastyrelsen.dk/om-klimadatastyrelsen/nyheder/nyhedsarkiv/2026/sep/dataforsyningen-flytter-til-ny-driftsplatform-2-november-2026).
+
+**Implementeringskonsekvens:** den eksisterende adapter giver nu en tydelig dansk nedluknings-/adgangsfejl ved 410, uden fallback. En ny provider skal være server-only, fast-host og bounded, med adgangsmangel som `needs_access` i kildeplanen. Provider-/ID-/geometri-/CRS-mapping er ikke credentialvalideret og er ikke implementeret her. Gemte v1-referencers proveniens må ikke lydløst omskrives til nye URL'er; nuværende loader og baselinebinding kræver særskilt versioneret providerændring.
+
+Alternativt kan næste implementering støtte en eksplicit **officiel filimport**. [Fildownloaddokumentationen](https://confluence.kds.dk/pages/viewpage.action?pageId=158368067) udstiller bl.a. `Vandloeb` og `Stednavn` i JSON/GPKG; Stednavn alene har ikke geometri. Importen kræver originalfil/checksum, register-/entitets-ID og relation, faktisk data-/downloadversion, kilde-/licensreference samt dokumenteret CRS og eventuel transformation til EPSG:4326. Den skal være mærket importeret og afvente relevant faglig accept; den må ikke kaldes frisk anonym API-hentning. Denne importvej er et forslag, ikke en eksisterende understøttet uploadfunktion.
+
+### Adgangsoverdragelse til moderniseret Datafordeler
+
+Den officielle produktionsindgang er [Datafordeler Administration](https://portal.datafordeler.dk/hjem), bekræftet via myndighedens [loginoversigt](https://datafordeler.dk/konto/login-oversigt/) og [brugeroprettelsesguide](https://confluence.kds.dk/display/DML/Brugeroprettelse%2BDatafordeler%2BAdministration). Brugeren skal selv acceptere brugsvilkårene og udføre login/verifikation.
+
+Mindste adgang til offentlige DS-data:
+
+1. Opret bruger med e-mail/adgangskode eller MitID Privat og verificér e-mail. MitID Erhverv er relevant ved organisationsdeling/beskyttede data; det er ikke nødvendigt for denne ubeskyttede DS-adgang.
+2. Opret eller tilknyt et IT-system til GoFreyra.
+3. Vælg **API-Keys → Opret**, og navngiv nøglen. Den vises kun én gang og skal overføres privat til serverbinding. [Officiel API-key-guide](https://confluence.kds.dk/pages/viewpage.action?pageId=187105503).
+4. API-key giver ubeskyttede data; dokumentationen beskriver ikke en DS-only nøglescope. GoFreyras kommende adapter skal selv afgrænse register/host/forespørgsel til DS og bevare credentialfri proveniens. Der skal ikke ansøges om CPR eller andre beskyttede registerdata til dette formål.
+
+Dokumenterede moderniserede endpoints:
+
+| Tjeneste                          | Endpoint og dokumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bearbejdet navne-/geometri-WFS    | `https://wfs.datafordeler.dk/Stednavn/STEDNAVNE_BEARBEJDET_GML3SFP/1/WFS` med serverintern `apikey` eller OAuth. [Officielt produktkort](https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-bearbejdet-wfs/).                                                                                                                                                                                                                                               |
+| GraphQL                           | `https://graphql.datafordeler.dk/DS/<version>` og samme URL med `/schema`. Version vælges fra det aktuelle katalog/schema efter adgang; v1/v2 blev kun probet anonymt og er ikke credentialvalideret her. [Produktkort](https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-graphql/) og [officiel endpoint-/query-/adgangsvejledning](https://datafordeler.dk/media/5iyjgjvp/brugervejledning-transitionsguide-for-entitetsbaserede-graphql-tjenester.pdf). |
+| Filinventar og officielle exports | `https://api.datafordeler.dk/FileDownloads/GetAvailableFileDownloads?Register=DS` og `https://api.datafordeler.dk/FileDownloads/GetFile?Register=DS`, med serverintern autentifikation. [Registerspecifik dokumentation](https://confluence.kds.dk/pages/viewpage.action?pageId=158368067). Vælg den konkrete entitet/filversion; en massefil er ikke et bounded projektopslag.                                                                                                 |
+
+Efter adgang følger en read-only schema/capabilities-prøve, faktisk ID-/navne-/geometri-/CRS-mapping og først derefter ny serveradapter. API-key-parametre må ikke indgå i klienten, loggede URL'er, `sourceUrl` eller baseline-manifest. Den nuværende fejlrettelse ændrer ikke provider eller udfører disse prøver.
+
 ## Acceptgrænse
 
-Kaldkontrollen beviser de to adapteres faktiske læsning og konservative status på testregionen. Den beviser ikke gemt baseline, Worker-runtime, lokal rasterkvalitet, kommunal geografi eller faglig pilotgodkendelse. Disse har separate opgaver og acceptkrav.
+Kaldkontrollen beviser DMI-/Sentinel-adapteres faktiske læsning og konservative status på testregionen samt de dokumenterede anonyme HTTP-svar for stednavnetjenesterne. Den beviser ikke en ny Datafordelerintegration, gemt baseline, Worker-runtime, lokal rasterkvalitet, kommunal geografi eller faglig pilotgodkendelse. Disse har separate opgaver og acceptkrav.
