@@ -165,6 +165,8 @@ describe("official historical DMI source", () => {
   it.each([
     ["trace", [value(17, -0.1), value(18)], "trace"],
     ["invalid validity", [value(17, 4, { validity: false }), value(18)], "invalid_value"],
+    ["unknown validity", [value(17, 4, { validity: null }), value(18)], "validity_unknown"],
+    ["missing validity", [value(17, 4, { validity: undefined }), value(18)], "validity_unknown"],
     [
       "unchecked quality",
       [value(17, 4, { qcStatus: "none" }), value(18)],

@@ -192,6 +192,33 @@ describe("saved DMI source values", () => {
     expect(html).not.toContain("Periodesum: 6 mm");
   });
 
+  it("keeps unknown validity visible and refuses a supposedly complete sum", () => {
+    const series = [
+      row("a", "2026-08-24T06:00:00Z", "2026-08-25T06:00:00Z", 2.5, { validity: null }),
+      dailyRows()[1],
+    ];
+    const html = render(
+      source(
+        "dmi-historical",
+        dmiPayload({
+          series,
+          summary: summary({
+            complete: false,
+            totalMm: null,
+            reasons: ["validity_unknown"],
+          }),
+        }),
+        2,
+      ),
+    );
+    expect(html).toContain("Ikke angivet");
+    expect(html).toContain("Gyldigheden er ikke angivet");
+    expect(html).not.toContain("Periodesum: 6 mm");
+    const contradictory = render(source("dmi-historical", dmiPayload({ series }), 2));
+    expect(contradictory).toContain('role="alert"');
+    expect(contradictory).not.toContain("Periodesum: 6 mm");
+  });
+
   it("shows no station coverage instead of a zero rainfall value", () => {
     const html = render(
       source(

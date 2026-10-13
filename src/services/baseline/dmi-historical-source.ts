@@ -221,6 +221,7 @@ export function summarizeDmiDailySeries(
   for (const [index, row] of ordered.entries()) {
     if (row.valueKind !== "amount") reasons.push(row.valueKind);
     if (row.validity === false) reasons.push("invalid_value");
+    if (row.validity === null) reasons.push("validity_unknown");
     if (row.qcStatus !== "manual") reasons.push("quality_control_incomplete");
     const duration = Date.parse(row.to) - Date.parse(row.from);
     if (duration < 23 * 3_600_000 - 1000 || duration > 25 * 3_600_000)

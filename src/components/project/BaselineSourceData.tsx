@@ -72,8 +72,7 @@ const DmiSeries = z
       !data.summary.complete ||
       (data.series.length > 0 &&
         data.series.every(
-          (row) =>
-            row.valueKind === "amount" && row.qcStatus === "manual" && row.validity !== false,
+          (row) => row.valueKind === "amount" && row.qcStatus === "manual" && row.validity === true,
         ) &&
         Math.abs(data.series.reduce((sum, row) => sum + row.value, 0) - data.summary.totalMm!) <
           0.000000001),
@@ -112,6 +111,7 @@ const reasonLabels: Record<string, string> = {
   trace: "Spor af nedbør har ingen præcis mængde.",
   invalid_negative: "Serien indeholder en ugyldig negativ værdi.",
   invalid_value: "Serien indeholder en værdi markeret ugyldig.",
+  validity_unknown: "Gyldigheden er ikke angivet for alle døgnværdier.",
   quality_control_incomplete: "DMI's kvalitetskontrol er ikke afsluttet for alle værdier.",
   incomplete_daily_interval: "Et interval dækker ikke et helt døgn.",
   incomplete_daily_inputs: "Et døgn har et ufuldstændigt observationsgrundlag.",

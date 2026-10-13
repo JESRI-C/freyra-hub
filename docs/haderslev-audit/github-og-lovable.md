@@ -143,5 +143,3 @@ Dette skal stå som **første P0-sikkerhedsopgave**: verificér hele produktions
 Produktionsbucket-inventeringen fandt af de tre forventede filområder kun `monitoring-uploads`; `project-media` og `evidence-files` mangler. `monitoring-uploads` er privat, men bucketfelterne `allowed_mime_types` og `file_size_limit` er null. Det dokumenterer manglende bucket-specifikke begrænsninger, ikke nødvendigvis ubegrænset upload: globale indstillinger og andre valideringer kan stadig gælde. [Supabases bucketdokumentation](https://supabase.com/docs/guides/storage/buckets/creating-buckets) beskriver MIME-/størrelsesbegrænsningerne.
 
 Planen skal derfor også prioritere et verificeret, sammenhængende Storage-flow med de nødvendige private buckets, medlemsbaserede policies, eksplicit filkontrakt, servervalidering og download/revoke/expiry/cleanupaccept. Det er en konkret funktionel og sikkerhedsmæssig forudsætning for kommunens billeder og evidens. Der er ikke oprettet buckets eller rettet policies under auditten.
-
-
