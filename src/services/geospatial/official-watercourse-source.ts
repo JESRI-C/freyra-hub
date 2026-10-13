@@ -49,6 +49,14 @@ export interface OfficialWatercourseGeometry {
   sourceUrl: string;
   attribution: string;
   disclaimer: string;
+  /** Present only for the authenticated modern provider; absent in legacy snapshots. */
+  sourceProvider?: "datafordeler-ds-bearbejdet-wfs/v1";
+  sourceCrs?: "EPSG:4326";
+  sourceAxisOrder?: "lat-lng";
+  datasetVersion?: "static-2025-09";
+  sourceRegisteredAt?: string | null;
+  sourceValidFrom?: string | null;
+  officialLengthM?: number | null;
 }
 
 export class OfficialWatercourseSourceError extends Error {

@@ -94,12 +94,13 @@ describe("P0 app-gates workflow", () => {
 });
 
 describe("P0 staging deploy configuration", () => {
-  it("requires caller-auth and original/baseline writer bindings in the named staging environment", () => {
+  it("requires caller-auth, writer and official source bindings in the named staging environment", () => {
     expect(wranglerConfig.env.staging.name).toBe("gofreyra-p0-staging");
     expect(wranglerConfig.env.staging.secrets?.required).toEqual([
       "SUPABASE_URL",
       "SUPABASE_PUBLISHABLE_KEY",
       "SUPABASE_SERVICE_ROLE_KEY",
+      "DATAFORDELER_API_KEY",
     ]);
     // Secrets are non-inheritable; moving this to the default environment loses the safeguard.
     expect(wranglerConfig.secrets).toBeUndefined();
@@ -116,6 +117,8 @@ describe("P0 staging deploy configuration", () => {
     for (const config of [wranglerConfig, wranglerConfig.env.staging]) {
       expect(config.vars ?? {}).not.toHaveProperty("SUPABASE_SERVICE_ROLE_KEY");
       expect(config.vars ?? {}).not.toHaveProperty("VITE_SUPABASE_SERVICE_ROLE_KEY");
+      expect(config.vars ?? {}).not.toHaveProperty("DATAFORDELER_API_KEY");
+      expect(config.vars ?? {}).not.toHaveProperty("VITE_DATAFORDELER_API_KEY");
     }
   });
 

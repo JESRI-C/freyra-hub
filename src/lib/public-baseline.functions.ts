@@ -76,7 +76,10 @@ export interface PublicBaselineDependencies {
     client: PublicBaselineClient,
     projectId: string,
   ): Promise<SavedOfficialWatercourseReach | null>;
-  fetchReference(id: string): Promise<OfficialWatercourseGeometry>;
+  fetchReference(
+    id: string,
+    provider?: OfficialWatercourseGeometry["sourceProvider"],
+  ): Promise<OfficialWatercourseGeometry>;
   collectSources(manifest: PublicBaselineManifest): Promise<PublicBaselineManifest>;
   loadRequest(
     client: PublicBaselineClient,
@@ -144,7 +147,14 @@ const DEFAULT_DEPENDENCIES: PublicBaselineDependencies = {
   },
   loadReference: (client, projectId) =>
     loadSavedOfficialWatercourseReach(client as never, projectId),
-  fetchReference: fetchOfficialWatercourse,
+  fetchReference: async (id, provider) => {
+    if (provider === "datafordeler-ds-bearbejdet-wfs/v1") {
+      const { fetchDatafordelerWatercourse } =
+        await import("@/services/geospatial/datafordeler-watercourse.server");
+      return fetchDatafordelerWatercourse(id);
+    }
+    return fetchOfficialWatercourse(id);
+  },
   collectSources: collectPublicBaselineSources,
   loadRequest: (client, projectId, actorId, requestId) =>
     readOne(client, projectId, "request_id", requestId, actorId),
@@ -227,7 +237,9 @@ export async function executeCreateProjectBaseline(
   const reference = await dependencies.loadReference(client, input.projectId);
   if (!reference)
     throw new Error("Vælg og gem en officiel vandløbsreference, før du henter datagrundlaget.");
-  const official = await dependencies.fetchReference(reference.id);
+  const official = reference.sourceProvider
+    ? await dependencies.fetchReference(reference.id, reference.sourceProvider)
+    : await dependencies.fetchReference(reference.id);
   const fetchedReference = {
     ...official,
     zoneId: reference.zoneId,

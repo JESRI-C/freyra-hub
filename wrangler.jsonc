@@ -9,7 +9,12 @@
       "name": "gofreyra-p0-staging",
       "workers_dev": true,
       "secrets": {
-        "required": ["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY"],
+        "required": [
+          "SUPABASE_URL",
+          "SUPABASE_PUBLISHABLE_KEY",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "DATAFORDELER_API_KEY",
+        ],
       },
     },
   },

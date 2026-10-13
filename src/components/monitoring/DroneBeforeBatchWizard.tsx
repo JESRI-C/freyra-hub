@@ -35,13 +35,19 @@ import {
   selectUniqueBatchFiles,
 } from "./drone-before-batch-helpers";
 import { validateDroneOriginal } from "@/lib/drone-original-validation.functions";
+import { promoteDroneOriginal } from "@/lib/drone-original-promotion.functions";
 import {
-  checkOriginalsSequentially,
   isOriginalCheckComplete,
   MAX_ORIGINAL_CHECK_BYTES,
   originalCheckStatusLabel,
   type OriginalCheckState,
 } from "./drone-original-check-helpers";
+import {
+  droneOriginalPromotionStatusLabel,
+  processDroneOriginalsSequentially,
+  type DroneOriginalProcessingCandidate,
+  type DroneOriginalPromotionState,
+} from "./drone-original-promotion-helpers";
 
 type QueueStatus = "analysing" | "analysed" | "uploading" | "received" | "upload_failed";
 
@@ -59,6 +65,7 @@ interface BatchItem {
   batchSequence: number;
   receivedUpload?: Upload;
   originalCheck?: OriginalCheckState;
+  promotion?: DroneOriginalPromotionState;
 }
 
 interface DroneBeforeBatchWizardProps {
@@ -93,6 +100,8 @@ function statusLabel(item: BatchItem): string {
     case "uploading":
       return `Uploader ${item.progress}%`;
     case "received":
+      if (item.promotion && item.promotion.status !== "awaiting_original")
+        return droneOriginalPromotionStatusLabel(item.promotion);
       return item.originalCheck
         ? originalCheckStatusLabel(item.originalCheck)
         : "Modtaget – afventer originalkontrol";
@@ -134,6 +143,7 @@ export function DroneBeforeBatchWizard({
   const [checkingOriginals, setCheckingOriginals] = useState(false);
   const busyRef = useRef(false);
   const validateOriginal = useServerFn(validateDroneOriginal);
+  const promoteOriginal = useServerFn(promoteDroneOriginal);
   const inputRef = useRef<HTMLInputElement>(null);
   const batchIdRef = useRef<string | null>(null);
   const runGenerationRef = useRef(0);
@@ -146,7 +156,9 @@ export function DroneBeforeBatchWizard({
   );
   const receivedCount = items.filter((item) => item.status === "received").length;
   const originalRetryCandidates = items.filter(
-    (item) => item.receivedUpload && item.originalCheck?.status === "failed",
+    (item) =>
+      item.receivedUpload &&
+      (item.originalCheck?.status === "failed" || item.promotion?.status === "failed"),
   );
   const warningCount = items.filter(
     (item) =>
@@ -248,14 +260,20 @@ export function DroneBeforeBatchWizard({
     [analyse, items],
   );
 
-  const checkReceivedOriginals = async (received: { key: string; upload: Upload }[]) => {
+  const checkReceivedOriginals = async (received: DroneOriginalProcessingCandidate[]) => {
     setCheckingOriginals(true);
     try {
-      await checkOriginalsSequentially(
+      await processDroneOriginalsSequentially(
         received,
         projectId,
-        (input) => validateOriginal({ data: input }),
-        (id, originalCheck) => updateItem(id, { originalCheck }),
+        {
+          validate: (input) => validateOriginal({ data: input }),
+          promote: (input) => promoteOriginal({ data: input }),
+        },
+        {
+          onOriginalCheck: (id, originalCheck) => updateItem(id, { originalCheck }),
+          onPromotion: (id, promotion) => updateItem(id, { promotion }),
+        },
       );
     } finally {
       setCheckingOriginals(false);
@@ -267,7 +285,12 @@ export function DroneBeforeBatchWizard({
     busyRef.current = true;
     try {
       await checkReceivedOriginals(
-        originalRetryCandidates.map((item) => ({ key: item.id, upload: item.receivedUpload! })),
+        originalRetryCandidates.map((item) => ({
+          key: item.id,
+          upload: item.receivedUpload!,
+          originalCheck: item.originalCheck,
+          promotion: item.promotion,
+        })),
       );
       onImported?.();
     } finally {
@@ -425,7 +448,7 @@ export function DroneBeforeBatchWizard({
               disabled={active || clearing}
               className="rounded-lg border bg-card px-3 py-1.5 text-xs disabled:opacity-50"
             >
-              Prøv originalkontrol igen
+              Prøv kontrol eller tilknytning igen
             </button>
           )}
           {items.length > 0 && !active && (
@@ -458,8 +481,9 @@ export function DroneBeforeBatchWizard({
     >
       <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
         Originalerne bindes til den valgte sag. Browserens metadata er foreløbige. Efter modtagelse
-        kontrollerer serveren JPEG-originaler op til 32 MiB én ad gangen. Originalkontrol er endnu
-        ingen faglig godkendelse, georeferering eller rapportklar observation.
+        kontrollerer serveren JPEG-originaler op til 32 MiB én ad gangen og tilknytter kontrollerede
+        råfiler i medieregisteret. Faglig billedgennemgang afventer; billederne er endnu ikke
+        georefererede eller rapportgodkendte.
       </div>
 
       <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 hover:bg-muted/30">
@@ -506,8 +530,8 @@ export function DroneBeforeBatchWizard({
           <div>
             <div className="font-medium">Alle originaler er modtaget</div>
             <div className="mt-0.5 text-xs">
-              Se kontrollens status ved hver fil. Modtagelse og originalkontrol gør ikke billederne
-              rapportklare.
+              Se originalkontrol og tilknytning ved hver fil. Modtagelse, råkontrol og kanonisk
+              registrering gør ikke billederne rapportklare eller afslutter en FØR-runde.
             </div>
           </div>
         </div>
@@ -593,10 +617,28 @@ export function DroneBeforeBatchWizard({
                   {item.originalCheck.error}
                 </div>
               )}
+              {item.promotion?.error && (
+                <div className="mt-2 text-amber-900" role="alert">
+                  {item.promotion.error}
+                </div>
+              )}
               {isOriginalCheckComplete(item.originalCheck) && (
                 <div className="mt-2 text-muted-foreground">
-                  Serverens rå originalkontrol er gemt. Faglig billedgennemgang og observationer er
-                  næste trin.
+                  {originalCheckStatusLabel(item.originalCheck!)}.
+                  {item.promotion?.status === "canonical" && (
+                    <>
+                      {" "}
+                      Kanonisk mediereference: {item.promotion.mediaId}. Dubletuploads bevarer hver
+                      sin originalreference.
+                    </>
+                  )}
+                  {item.originalCheck?.status !== "rejected" && (
+                    <>
+                      {" "}
+                      Faglig billedgennemgang afventer. Ingen georeferering eller
+                      rapportgodkendelse.
+                    </>
+                  )}
                 </div>
               )}
             </div>

@@ -164,7 +164,7 @@ describe("official watercourse reach authorization", () => {
 
     const result = await executeWatercourseLoad(PROJECT_ID, USER_ID, CLIENT, calls.overrides);
 
-    expect(calls.fetchSource).toHaveBeenCalledWith(WATERCOURSE_ID);
+    expect(calls.fetchSource).toHaveBeenCalledWith(WATERCOURSE_ID, "dawa-stednavne/v1");
     expect(result?.name).toBe("Bykær Bæk");
     expect(result?.zoneId).toBe(ZONE_ID);
   });

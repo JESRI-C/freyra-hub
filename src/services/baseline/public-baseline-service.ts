@@ -1,9 +1,13 @@
 import { z } from "zod";
 import { validateProjectPolygon } from "@/services/geo-service";
-import { buildOfficialWatercourseGeometryUrl } from "@/services/geospatial/official-watercourse-source";
+import {
+  hasOfficialWatercourseProvenance,
+  isDatafordelerWatercourseReference,
+} from "@/services/geospatial/watercourse-source-provenance";
 import type { SavedOfficialWatercourseReach } from "@/lib/watercourse-reach.functions";
 import {
   PUBLIC_BASELINE_SCHEMA,
+  PUBLIC_BASELINE_DATAFORDELER_SCHEMA,
   type CreatePublicBaselineInput,
   type PublicBaselineManifest,
   type PublicBaselineSnapshot,
@@ -73,7 +77,10 @@ const SourceSchema = z.object({
   error: z.object({ code: z.string(), message: z.string() }).nullable(),
 });
 const ManifestSchema = z.object({
-  schema: z.literal(PUBLIC_BASELINE_SCHEMA),
+  schema: z.union([
+    z.literal(PUBLIC_BASELINE_SCHEMA),
+    z.literal(PUBLIC_BASELINE_DATAFORDELER_SCHEMA),
+  ]),
   project: z.object({
     id: Uuid,
     name: z.string(),
@@ -109,6 +116,13 @@ const ManifestSchema = z.object({
     sourceUrl: z.string(),
     attribution: z.string(),
     disclaimer: z.string(),
+    sourceProvider: z.literal("datafordeler-ds-bearbejdet-wfs/v1").optional(),
+    sourceCrs: z.literal("EPSG:4326").optional(),
+    sourceAxisOrder: z.literal("lat-lng").optional(),
+    datasetVersion: z.literal("static-2025-09").optional(),
+    sourceRegisteredAt: z.string().datetime().nullable().optional(),
+    sourceValidFrom: z.string().datetime().nullable().optional(),
+    officialLengthM: z.number().finite().nonnegative().nullable().optional(),
   }),
   sources: z.array(SourceSchema).min(1),
 });
@@ -160,13 +174,14 @@ export async function buildPublicBaselineManifest(
     throw new Error(`Projektgrænse mangler eller er ugyldig: ${validation.error}`);
   if (
     reference.id !== fetchedReference.id ||
+    reference.sourceProvider !== fetchedReference.sourceProvider ||
     (await baselineSha256(reference.geometry)) !== (await baselineSha256(fetchedReference.geometry))
   ) {
     throw new Error(
       "Den officielle reference er ændret. Vælg og gem strækningen igen, før du henter en ny version.",
     );
   }
-  if (fetchedReference.sourceUrl !== buildOfficialWatercourseGeometryUrl(fetchedReference.id)) {
+  if (!hasOfficialWatercourseProvenance(fetchedReference)) {
     throw new Error("Vandløbsreferencen har ugyldig kildeproveniens.");
   }
   const polygon = validation.polygon;
@@ -184,19 +199,24 @@ export async function buildPublicBaselineManifest(
     requestedFrom: input.dateFrom,
     requestedTo: input.dateTo,
   };
+  const isDatafordeler = isDatafordelerWatercourseReference(fetchedReference);
   const source: PublicBaselineSource = {
     id: "official-watercourse-reference",
     mode: "live",
     status: "complete",
-    provider: "SDFI / Dataforsyningen",
+    provider: isDatafordeler ? "Klimadatastyrelsen / Datafordeler" : "SDFI / Dataforsyningen",
     dataset: "Danske Stednavne — vandløbsreference",
-    datasetVersion: fetchedReference.geometryVersion?.toString() ?? null,
+    datasetVersion: isDatafordeler
+      ? fetchedReference.datasetVersion
+      : (fetchedReference.geometryVersion?.toString() ?? null),
     licence: null,
     attribution: fetchedReference.attribution,
     sourceUrl: fetchedReference.sourceUrl,
     sourceModifiedAt: fetchedReference.modifiedAt,
     fetchedAt,
-    adapterVersion: "official-watercourse-reference/v1",
+    adapterVersion: isDatafordeler
+      ? "datafordeler-ds-bearbejdet-wfs/v1"
+      : "official-watercourse-reference/v1",
     query,
     coverage: {
       spatial: "unknown",
@@ -213,6 +233,11 @@ export async function buildPublicBaselineManifest(
         fetchedReference.disclaimer,
         "Referencegeometrien beskriver det navngivne vandløb. Den dokumenterer ikke juridisk stationering eller hele undersøgelsesperioden.",
         "Kildens licens skal afklares før videre aflevering.",
+        ...(isDatafordeler
+          ? [
+              "Danske Stednavne er et statisk register fra september 2025. Hentetid og registrerings-/virkningstid er ikke en ny kontrolopmåling.",
+            ]
+          : []),
       ],
     },
     payload: z.json().parse(JSON.parse(JSON.stringify(fetchedReference))) as BaselineJson,
@@ -267,7 +292,7 @@ export async function buildPublicBaselineManifest(
     }),
   );
   return {
-    schema: PUBLIC_BASELINE_SCHEMA,
+    schema: isDatafordeler ? PUBLIC_BASELINE_DATAFORDELER_SCHEMA : PUBLIC_BASELINE_SCHEMA,
     project: { id: project.id, name: project.name, polygon, polygonSha256, crs: "EPSG:4326", bbox },
     period: { from: input.dateFrom, to: input.dateTo },
     reference: fetchedReference,
@@ -289,8 +314,29 @@ export async function validatePublicBaselineManifest(
   ) {
     throw new Error("Det gemte datagrundlag har ugyldig projektgeometri eller checksum.");
   }
-  if (manifest.reference.sourceUrl !== buildOfficialWatercourseGeometryUrl(manifest.reference.id)) {
+  if (
+    !hasOfficialWatercourseProvenance(manifest.reference) ||
+    (manifest.schema === PUBLIC_BASELINE_DATAFORDELER_SCHEMA) !==
+      isDatafordelerWatercourseReference(manifest.reference)
+  ) {
     throw new Error("Det gemte datagrundlag har ugyldig referenceproveniens.");
+  }
+  if (manifest.schema === PUBLIC_BASELINE_DATAFORDELER_SCHEMA) {
+    const officialSource = manifest.sources.find(
+      (source) => source.id === "official-watercourse-reference",
+    );
+    if (
+      !officialSource ||
+      officialSource.mode !== "live" ||
+      officialSource.status !== "complete" ||
+      officialSource.adapterVersion !== manifest.reference.sourceProvider ||
+      officialSource.datasetVersion !== manifest.reference.datasetVersion ||
+      officialSource.sourceUrl !== manifest.reference.sourceUrl ||
+      officialSource.sourceModifiedAt !== null ||
+      canonicalBaselineJson(officialSource.payload) !== canonicalBaselineJson(manifest.reference)
+    ) {
+      throw new Error("Den gemte Datafordeler-kilde matcher ikke vandløbsreferencen.");
+    }
   }
   const ids = new Set<string>();
   for (const source of manifest.sources) {
@@ -361,6 +407,7 @@ export async function baselineSnapshotFromRow(value: unknown): Promise<PublicBas
       created_at: z.string(),
       created_by: Uuid,
       request_id: Uuid,
+      schema_version: z.union([z.literal(1), z.literal(2)]).optional(),
       manifest_sha256: Hash,
       manifest: z.unknown(),
     })
@@ -368,6 +415,8 @@ export async function baselineSnapshotFromRow(value: unknown): Promise<PublicBas
   const manifest = await validatePublicBaselineManifest(row.manifest);
   if (
     manifest.project.id !== row.project_id ||
+    (row.schema_version !== undefined &&
+      row.schema_version !== (manifest.schema === PUBLIC_BASELINE_DATAFORDELER_SCHEMA ? 2 : 1)) ||
     (await baselineSha256(manifest)) !== row.manifest_sha256
   ) {
     throw new Error("Den gemte version matcher ikke dens projekt eller manifest-checksum.");

@@ -43,6 +43,9 @@ if (
 if (env.VITE_SUPABASE_SERVICE_ROLE_KEY) {
   errors.push("service-role key må aldrig have VITE_-prefix");
 }
+if (env.VITE_DATAFORDELER_API_KEY) {
+  errors.push("Datafordeler API-key må aldrig have VITE_-prefix");
+}
 
 async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -71,6 +74,7 @@ async function verifyBundle() {
     "OBSERVATIONS_INGEST_API_SECRET",
     "MONITORING_CRON_API_SECRET",
     "DMI_API_KEY",
+    "DATAFORDELER_API_KEY",
   ]
     .map((name) => [name, env[name]])
     .filter(([, value]) => value?.trim());

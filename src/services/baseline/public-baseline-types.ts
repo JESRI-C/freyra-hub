@@ -2,6 +2,7 @@ import type { GeoJSONPolygon } from "@/lib/supabase/types";
 import type { OfficialWatercourseGeometry } from "@/services/geospatial/official-watercourse-source";
 
 export const PUBLIC_BASELINE_SCHEMA = "gofreyra.public-baseline/v1" as const;
+export const PUBLIC_BASELINE_DATAFORDELER_SCHEMA = "gofreyra.public-baseline/v2" as const;
 export type BaselineJson =
   | string
   | number
@@ -64,7 +65,7 @@ export interface PublicBaselineSource {
 }
 
 export interface PublicBaselineManifest {
-  schema: typeof PUBLIC_BASELINE_SCHEMA;
+  schema: typeof PUBLIC_BASELINE_SCHEMA | typeof PUBLIC_BASELINE_DATAFORDELER_SCHEMA;
   project: {
     id: string;
     name: string;

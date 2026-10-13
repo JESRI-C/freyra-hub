@@ -591,8 +591,10 @@ function GeometryEditorPage() {
           <Card className="p-4 space-y-3">
             <SectionTitle n={4}>Vandløbsstreng</SectionTitle>
             <p className="text-[11px] text-muted-foreground">
-              Find en navngivet, officiel linje fra Dataforsyningen. Strengen gemmes som
-              monitoreringsreference og ændrer ikke projektgrænsen.
+              Find en navngivet, officiel linje fra Datafordeleren. Strengen gemmes som
+              monitoreringsreference og ændrer ikke projektgrænsen. Navneregistret er statisk siden
+              september 2025; kommunens regulativ og kontrolopmåling afklarer den konkrete
+              undersøgelsesstrækning.
             </p>
             <form
               className="flex gap-2"
