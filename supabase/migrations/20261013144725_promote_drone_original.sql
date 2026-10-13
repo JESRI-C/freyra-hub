@@ -194,7 +194,13 @@ create trigger project_media_storage_reference before insert or update on public
 create function private.reject_project_media_promotion_mutation()
 returns trigger language plpgsql set search_path = '' as $$
 begin
-  if tg_table_name <> 'project_media' or old.original_role is not null then
+  -- Trigger records have different row types. Keep the media-only field in a
+  -- separate statement; SQL expression planning resolves fields before OR
+  -- short-circuiting and request receipts do not have original_role.
+  if tg_table_name <> 'project_media' then
+    raise exception 'Canonical media promotion provenance is immutable' using errcode = '23514';
+  end if;
+  if old.original_role is not null then
     raise exception 'Canonical media promotion provenance is immutable' using errcode = '23514';
   end if;
   return old;
