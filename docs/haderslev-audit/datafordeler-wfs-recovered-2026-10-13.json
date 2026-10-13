@@ -1,0 +1,16 @@
+{
+  "schema": "gofreyra.public-wfs-current-availability/v1",
+  "observedAt": "2026-10-13T19:00:34.772Z",
+  "publicUrl": "https://wfs.datafordeler.dk/Stednavn/STEDNAVNE_BEARBEJDET_GML3SFP/1/WFS?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=sn%3AVandloeb&COUNT=2&STARTINDEX=0&SRSNAME=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A4326&FILTER=%3Cfes%3AFilter+xmlns%3Afes%3D%22http%3A%2F%2Fwww.opengis.net%2Ffes%2F2.0%22+xmlns%3Asn%3D%22http%3A%2F%2Fdata.gov.dk%2Fschemas%2Fstednavne%2F2%2Fgml3sfp%22%3E%3Cfes%3APropertyIsEqualTo%3E%3Cfes%3AValueReference%3Esn%3Aid.lokalId%3C%2Ffes%3AValueReference%3E%3Cfes%3ALiteral%3E1233766a-1fdb-6b98-e053-d480220a5a3f%3C%2Ffes%3ALiteral%3E%3C%2Ffes%3APropertyIsEqualTo%3E%3C%2Ffes%3AFilter%3E",
+  "sourceId": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+  "maxResponseBytes": 262144,
+  "totalTimeoutMs": 20000,
+  "httpStatus": 200,
+  "headerMs": 842,
+  "totalMs": 864,
+  "responseBytes": 12152,
+  "responseSha256": "91318769950fcc1ff9e0ab6510cdceae841678eaa4c682cafdee6a6e3682b4a0",
+  "sourceIdPresent": true,
+  "credentialEchoDetected": false,
+  "posListSegments": 8
+}
