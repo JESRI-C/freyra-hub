@@ -253,7 +253,11 @@ values (
   '{"size":1024,"mimetype":"image/tiff"}'::jsonb
 );
 update public.uploads
-set received_at = created_at
+-- This legacy object belongs to project A. Its path alone is deliberately not
+-- tenant authority; the trusted metadata fixture must carry the real scope.
+-- The other upload remains unscoped for the separate first-attachment test.
+set received_at = created_at,
+    project_id = 'a2000000-0000-4000-8000-000000000001'
 where id = 'a5000000-0000-4000-8000-000000000002';
 
 -- A administrator.
