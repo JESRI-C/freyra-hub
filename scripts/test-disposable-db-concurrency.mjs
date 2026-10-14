@@ -196,10 +196,24 @@ try {
     "--dbname",
     connection.href,
   ];
-  // Fail before fixtures if this is an already-populated project/customer DB.
+  // Fresh replay retains the exact three projects/one organization seeded by
+  // the historic migration. No users or operational/customer inputs are allowed.
   // Numeric loopback itself is not proof against an undisclosed tunnel.
+  const legacyProjectIds = [
+    "10000000-0000-0000-0000-000000000001",
+    "10000000-0000-0000-0000-000000000002",
+    "10000000-0000-0000-0000-000000000003",
+  ];
+  const legacyOrganizationId = "00000000-0000-0000-0000-000000000001";
+  const legacyProjectSql = legacyProjectIds.map((id) => `'${id}'`).join(",");
   const preflightSql = `select jsonb_build_object('database',current_database(),'role',current_user,
     'requiredRoundTablePresent',to_regclass('public.survey_round_versions') is not null,
+    'legacyProjectIds',(select jsonb_agg(id order by id) from public.projects),
+    'legacyOrganizationIds',(select jsonb_agg(id order by id) from public.organizations),
+    'legacyGraphSha256',encode(extensions.digest(jsonb_build_object(
+      'projects',(select jsonb_agg(to_jsonb(row) order by row.id) from public.projects row),
+      'organizations',(select jsonb_agg(to_jsonb(row) order by row.id) from public.organizations row)
+    )::text,'sha256'),'hex'),
     'counts',jsonb_build_object(
     'users',(select count(*) from auth.users),'organizations',(select count(*) from public.organizations),
     'organizationMembers',(select count(*) from public.organization_memberships),'projects',(select count(*) from public.projects),
@@ -220,12 +234,29 @@ try {
     true,
     "Reviewed Round migration must already have replayed locally",
   );
+  assert.deepEqual(
+    before.legacyProjectIds,
+    legacyProjectIds,
+    "Only historical migration seed projects are permitted",
+  );
+  assert.deepEqual(
+    before.legacyOrganizationIds,
+    [legacyOrganizationId],
+    "Only the historical migration seed organization is permitted",
+  );
+  assert.match(before.legacyGraphSha256, /^[0-9a-f]{64}$/);
   for (const [name, count] of Object.entries(before.counts))
     assert.equal(
       Number(count),
-      0,
-      `Fresh disposable business table must be empty before init: ${name}`,
+      name === "projects" ? 3 : name === "organizations" ? 1 : 0,
+      `Fresh disposable table must match the historic migration seed before init: ${name}`,
     );
+  receipt.legacySeedGraph = {
+    projects: 3,
+    organizations: 1,
+    beforeSha256: before.legacyGraphSha256,
+    preserved: false,
+  };
   const sql = await readFile(
     resolve(root, "supabase/tests/fixtures/database-concurrency/initialize.sql"),
     "utf8",
@@ -302,6 +333,15 @@ try {
   assert.equal(roleProof?.positiveFullDataAcceptance, false);
   const postflightSql = `select jsonb_build_object(
     'users',(select count(*) from auth.users),'organizations',(select count(*) from public.organizations),
+    'organizationMemberships',(select count(*) from public.organization_memberships),
+    'personalBootstrapOrganizations',(select count(*) from public.organizations organization
+      join public.organization_memberships member on member.organization_id=organization.id
+      where member.user_id='${genesis.actorId}'::uuid and member.role='owner'
+      and organization.id<>'${genesis.organizationId}'::uuid),
+    'legacyGraphSha256',encode(extensions.digest(jsonb_build_object(
+      'projects',(select jsonb_agg(to_jsonb(row) order by row.id) from public.projects row where row.id=any(array[${legacyProjectSql}]::uuid[])),
+      'organizations',(select jsonb_agg(to_jsonb(row) order by row.id) from public.organizations row where row.id='${legacyOrganizationId}'::uuid)
+    )::text,'sha256'),'hex'),
     'projects',(select count(*) from public.projects),'baselines',(select count(*) from public.project_baseline_snapshots),
     'plans',(select count(*) from public.verification_plan_versions),'rounds',(select count(*) from public.survey_round_versions),
     'draftRounds',(select count(*) from public.survey_round_versions where status='draft'),
@@ -312,7 +352,29 @@ try {
   const [after] = await processStage("postflight", psql, psqlArgs, postflightSql, childEnvironment);
   await writeFile(resolve(evidence, "postflight.json"), `${JSON.stringify(after, null, 2)}\n`);
   for (const name of ["users", "organizations", "projects", "baselines", "plans"])
-    assert.equal(Number(after[name]), 1, `Shared synthetic fixture remains singular: ${name}`);
+    assert.equal(
+      Number(after[name]),
+      Number(before.counts[name]) + (name === "organizations" ? 2 : 1),
+      `Only fixture rows and the real Auth bootstrap may be added: ${name}`,
+    );
+  assert.equal(
+    Number(after.personalBootstrapOrganizations),
+    1,
+    "The real Auth trigger creates one personal organization",
+  );
+  assert.equal(
+    Number(after.organizationMemberships),
+    2,
+    "Only fixture-viewer and personal-owner memberships exist",
+  );
+  assert.equal(
+    after.legacyGraphSha256,
+    before.legacyGraphSha256,
+    "Historical migration seed projects and organization remain byte-for-byte unchanged",
+  );
+  receipt.legacySeedGraph.afterSha256 = after.legacyGraphSha256;
+  receipt.legacySeedGraph.preserved = true;
+  receipt.authBootstrapOrganizations = 1;
   for (const name of ["rounds", "draftRounds", "unapprovedRounds"])
     assert.equal(
       Number(after[name]),

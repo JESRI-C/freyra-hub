@@ -5,7 +5,7 @@
   "files": [
     {
       "path": "scripts/test-disposable-db-concurrency.mjs",
-      "normalizedSha256": "5ca25d0868bcb9704483294be3109d7601547220a39b194175dc78f99376abea"
+      "normalizedSha256": "092eb44e9d0724a14b449fc0cd97f4040ee6ecd048319754e806e485c81f4899"
     },
     {
       "path": "scripts/database-concurrency/stop-disposable-stack.mjs",
