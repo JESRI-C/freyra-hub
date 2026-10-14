@@ -19,8 +19,8 @@ export function ProjectReportRecords({
       <div className="px-5 pb-4 divide-y">
         {records.length === 0 && (
           <p className="text-sm text-muted-foreground py-3">
-            Ingen rapportregistreringer for dette projekt. Start i Grundlag med de daterede kilder
-            og den gemte fototilknytning. Den samlede kommunale rapport er endnu ikke klar.
+            Ingen rapportregistreringer for dette projekt. Start i Undersøgelse med datagrundlag,
+            billeder og kladdenoter. Den samlede kommunale rapport er endnu ikke klar.
           </p>
         )}
         {records.map((report) => (

@@ -429,8 +429,8 @@ export function DroneBeforeBatchWizard({
     <Drawer
       open={open}
       onClose={handleClose}
-      title="Importer FØR-dronefotos"
-      subtitle="Fast fase: FØR · Fast medietype: drone_photo"
+      title="Tilføj dronebilleder"
+      subtitle="Billeder til FØR-dokumentation"
       footer={
         <>
           <button
@@ -474,24 +474,22 @@ export function DroneBeforeBatchWizard({
             )}
             {items.some((item) => item.status === "upload_failed")
               ? "Prøv fejlede igen"
-              : "Upload kø"}
+              : "Upload valgte billeder"}
           </button>
         </>
       }
     >
       <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
-        Originalerne bindes til den valgte sag. Browserens metadata er foreløbige. Efter modtagelse
-        kontrollerer serveren JPEG-originaler op til 32 MiB én ad gangen og tilknytter kontrollerede
-        råfiler i medieregisteret. Faglig billedgennemgang afventer; billederne er endnu ikke
-        georefererede eller rapportgodkendte.
+        Upload originalerne til denne sag. Optagedato og GPS læses fra filerne, når de findes.
+        Billederne afventer faglig gennemgang.
       </div>
 
       <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 hover:bg-muted/30">
         <FileImage className="h-7 w-7 text-muted-foreground" />
         <div className="mt-2 text-sm font-medium">Vælg op til 200 originale dronebilleder</div>
         <div className="mt-1 text-center text-xs text-muted-foreground">
-          Upload kører højst to ad gangen; serverens originalkontrol kører én ad gangen. Andre
-          billedformater og JPEG over 32 MiB kan modtages, men bliver ikke behandlet her.
+          JPEG-billeder op til 32 MiB kan behandles her. Andre billedformater og større JPEG-filer
+          kan modtages, men afventer behandling.
         </div>
         <input
           ref={inputRef}

@@ -420,11 +420,13 @@ function Workspace({
               : `${photoCount} dronefotos modtaget i sagen`}
           </p>
         </div>
-        {photoAccess.data && !canUpload && (
-          <p className="text-sm">
-            Du har læseadgang. En projektmedarbejder skal tilføje billederne.
-          </p>
-        )}
+        {photoAccess.isSuccess &&
+          !photoAccess.isFetching &&
+          photoAccess.data.canAssign === false && (
+            <p className="text-sm">
+              Du har læseadgang. En projektmedarbejder skal tilføje billederne.
+            </p>
+          )}
         {error && (
           <p
             role="alert"

@@ -101,7 +101,7 @@ describe("truthful project report surfaces", () => {
   it("shows an empty state without inventing reports", () => {
     const html = renderToStaticMarkup(<ProjectReportRecords projectId="project-a" reports={[]} />);
     expect(html).toContain("Ingen rapportregistreringer for dette projekt");
-    expect(html).toContain("Start i Grundlag");
+    expect(html).toContain("Start i Undersøgelse");
     expect(html).not.toContain("approved");
   });
   it("suppresses derived period, readiness, findings and risk claims while preserving current recorded inputs", () => {

@@ -552,6 +552,27 @@ describe("guided drone survey workspace", () => {
     expect(state.start).not.toHaveBeenCalled();
   });
 
+  it("does not label cached photo access as read-only during refetch and shows read-only only after a confirmed denial", () => {
+    state.queryState.set("inspection-photo-access", {
+      data: { projectId: props.project.id, userId: state.actor, canAssign: true },
+      error: null,
+      isFetching: true,
+    });
+    const refreshing = tree();
+    expect(button(refreshing, "Tilføj dronebilleder").props.disabled).toBe(true);
+    expect(text(refreshing)).not.toContain("Du har læseadgang");
+
+    setData("inspection-photo-access", {
+      projectId: props.project.id,
+      userId: state.actor,
+      canAssign: false,
+    });
+    const denied = tree();
+    expect(button(denied, "Tilføj dronebilleder").props.disabled).toBe(true);
+    expect(text(denied)).toContain("Du har læseadgang");
+    expect(state.start).not.toHaveBeenCalled();
+  });
+
   it.each(["actor", "project"])(
     "rejects a mismatched verified %s in both access responses",
     async (field) => {
