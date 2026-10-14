@@ -1,33 +1,29 @@
 # Haderslev — status 14. oktober 2026
 
-**Hele leverancen til mødet 10. november er endnu ikke færdig.** Den tekniske kæde fra offentligt datagrundlag til gemte undersøgelsesrunder er nu afprøvet i den syntetiske testsag. Den brugbare kommunerapport og faglige accept mangler stadig.
+**Du kan begynde at afprøve programmet i en særskilt testsag. Hele leverancen til mødet 10. november er endnu ikke færdig.**
 
-## Det er gennemført i testmiljøet
+[Åbn Brugertest Haderslev – 14. oktober 2026](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/ae3012ca-662e-4ae0-9f84-234d08428ec9). Sagen er oprettet med din eksisterende bruger gennem den almindelige projektformular. Den er tom og tydeligt mærket som test. Vælg først et testområde og en vandløbsreference; der er endnu ikke valgt område eller egne fotos. Følg [brugertesten](HADERSLEV_BRUGERTEST.md).
 
-- Offentlige kilder gemmes som et dateret, versionsfast datagrundlag med kildehenvisninger og kendte datamangler. Seneste testsag har baselineversion 4.
-- Planversion 3 og to separate udkast til før- og kontrolrunde er gemt med de præcise inputversioner og spørgsmål.
-- Datagrundlaget bestod 40 kontroller. Rundekæden bestod 81 kontroller, herunder genlæsning, gentagne gemninger og adgang, der tilbagekaldes og genetableres.
-- Tidligere datagrundlag, planer og originale medier er bevaret. Genoptagelsen oprettede ingen ekstra runder.
-- Den konstaterede CPU-fejl er diagnosticeret. Brugeren har gennemført Cloudflare-opgraderingen; seks efterfølgende læsekald og den fulde rundetest gennemførtes uden fejlen.
+## Det virker nu i testmiljøet
 
-Dette dokumenterer systemets tekniske udkastkæde. Det dokumenterer ikke vandløbets tilstand eller en godkendt kommunal sag.
+- Offentligt datagrundlag, plan og før-/kontrolrunder kan gemmes som bestemte versioner. De tidligere 40 og 81 kontroller er bevarede beviser på den daværende version.
+- En privat original kan nu knyttes til den præcise gemte runde og dens spørgsmål. Samme original kan bruges i en anden runde uden en ny filkopi.
+- Den nye mediekæde bestod 68 kontroller i det kørende testmiljø, blandt andet gentagne gemninger, genåbning, privat hentning og afvist adgang. Kun to draftbindinger blev oprettet; gamle data blev bevaret.
+- Den nye version har bestået 1.797 apptests, 534 databasekontroller og 18 samtidighedscases. Optimeringen af gentagen datakontrol er med i denne version; ingen påstand om varig hastighed eller tilgængelighed følger af testen.
 
-## Arbejdet fortsætter i denne rækkefølge
+Medietesten brugte en eksisterende syntetisk fil på 137 bytes. Dine egne fotos og en rigtig 10/120-billedbatch er endnu ikke accepteret.
 
-1. **Dronebilleder til runder og spørgsmål.** Privat original, optageoplysninger og valgt spørgsmål skal følge den præcise gemte runde. Kode og skærmbilleder er lagt ind lokalt; samlet kontrol, faktisk databaseafprøvning og udrulning skal afsluttes.
-2. **Manuelle observationer og faglig gennemgang.** Registrér, hvad et konkret foto viser, hvad der er usikkert, og hvad der kræver kontrol på stedet. Gem ansvarlig person og vurdering som selvstændige versioner.
-3. **En brugbar FØR-rapport i programmet.** Saml afgrænsning, kort, udvalgte fotos, underbyggede fund, datamangler og foreslået opfølgning. Fjern statiske eksempelresultater fra den reelle sagsleverance.
-4. **En rapport, der kan genåbnes og afleveres.** Gem rapportversionen og de faktiske PDF-, CSV-, GeoJSON- og manifestfiler med checksums. En genereret PDF skal kunne hentes igen efter genindlæsning.
-5. **Reel pilot og aflevering.** Afprøv med jeres egne billeder, afbrudt upload/genoptagelse og fagligt godkendte observationer. Gennemgå hele brugerrejsen og afleveringspakken før mødet.
+## Næste arbejde
 
-En lokal optimering reducerer samtidig gentagen kontrol af samme datagrundlag fra 11 gennemløb til ét pr. læsning. Den skal gennem de samlede kontroller og afprøves i testdriften, før den regnes som leveret.
+1. **Din afprøvning:** vælg testområde/reference, gennemgå datagrundlag og runder, og prøv derefter ét eget originalfoto før en større batch. Notér også, når resultatet er svært at bruge.
+2. **Observationer og faglig gennemgang:** gem, hvad et konkret billede viser, usikkerhed og behov for kontrol på stedet. Notedelen er endnu en kladde.
+3. **Brugbar rapport og aflevering:** den første rapportarbejdsflade er reviewet og kopieret lokalt, men er endnu ikke udrullet. Gemt FØR-rapport, faglig godkendelse og faktisk arkiveret PDF/manifest/CSV/GeoJSON mangler.
+4. **Reel pilot og slutprøve:** egne billeder, afbrydelse/genoptagelse, faglig accept og hele forløbet frem til genåbnede afleveringsfiler skal prøves før mødet.
 
-## Datagrundlaget er stadig delvist
+## Datagrundlag og kommunal afgrænsning
 
-Testsagen indeholder rasterfilmetadata, natur-/vandplanskandidater, satellitsceners katalogoplysninger, DMI-døgnværdier og syv generiske undersøgelsessteder. Det er endnu ikke færdige terrænanalyser, lokal satellitverifikation eller verificerede hydrometriske målestationer. Rasterpixels, relevante optagedatoer, lokal dækning, oplandsrelevans, eventuelle måleserier og kommunalt regulativ skal færdiggøres eller beskrives som konkrete datamangler.
+Testsagens kilder er stadig delvise: rastermetadata, natur-/vandplanskandidater, satellitkatalog, DMI-døgnværdier og syv generiske undersøgelsessteder. Det er endnu ikke terrænanalyser, lokal satellitverifikation eller verificerede hydrometriske målestationer. Relevante datoer, lokal dækning, måleserier og regulativ skal færdiggøres eller fremgå som datamangler.
 
-## Sagens afgrænsning er åben
+Bykær Bæk er én af flere cases. Den konkrete delstrækning, kommunens formål, godkender og øvrige cases er åbne; de omtalte 83 meter er stadig uafklaret. En testmarkering vælger ingen kommunal strækning. Ingen faglig eller kommunal godkendelse er afledt af de tekniske tests; produktion og kundedata er uændrede.
 
-Bykær Bæk er én af flere cases. Den konkrete delstrækning, projektområde, kommunens formål, faglig godkender og øvrige cases er ikke endeligt valgt. Den omtalte strækning på 83 meter er fortsat uafklaret. Eksisterende kundedata ændres ikke til at passe en antagelse.
-
-[Detaljeret opgaveliste](HADERSLEV_OPGAVER.md) · [Plan frem mod mødet](HADERSLEV_PLAN_2026-11-10.md) · [Tekniske beviser](haderslev-audit/staging-source13-survey-round-checkpoint-2026-10-14.json)
+[Opgaveliste](HADERSLEV_OPGAVER.md) · [Plan](HADERSLEV_PLAN_2026-11-10.md) · [Nyt teknisk bevis](haderslev-audit/staging-round-media-checkpoint-2026-10-14.json)

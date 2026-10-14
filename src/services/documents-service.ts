@@ -85,19 +85,33 @@ export async function generateProjectReport(
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(20);
-  pdf.text(title, 40, y);
-  y += 18;
+  const titleLines = pdf.splitTextToSize(`Kladde: ${title}`, w - 80);
+  pdf.text(titleLines, 40, y);
+  y += titleLines.length * 23;
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(10);
   pdf.setTextColor(120);
   pdf.text(`Genereret ${new Date().toLocaleString("da-DK")}`, 40, y);
-  y += 24;
+  y += 18;
   pdf.setTextColor(20);
+  pdf.setFontSize(10);
+  for (const notice of [
+    "Rapporteringsperiode: ikke fastlagt.",
+    "Fagligt review: ikke dokumenteret for denne kladde.",
+    "Grundlag: aktuelle projektregistreringer, ikke en låst rapportversion.",
+    "Droneobservationer og kilde-/fotoreferencer indgår ikke i denne oversigt.",
+    "PDF-filen arkiveres ikke på projektet og kan ikke genhentes herfra.",
+  ]) {
+    const lines = pdf.splitTextToSize(notice, w - 80);
+    pdf.text(lines, 40, y);
+    y += lines.length * 14;
+  }
+  y += 14;
 
   // Project summary
   section(pdf, "Projekt", y);
-  y += 18;
+  y += 30;
   y = kv(pdf, "Navn", project.name, y);
   y = kv(pdf, "Type", project.project_type || "—", y);
   y = kv(pdf, "Status", project.status || "—", y);
@@ -106,8 +120,9 @@ export async function generateProjectReport(
   y += 8;
 
   // Sites
-  section(pdf, `Sites (${sites.length})`, y);
-  y += 18;
+  y = ensure(pdf, y, 40);
+  section(pdf, `Registrerede sites (${sites.length})`, y);
+  y += 30;
   if (sites.length === 0) {
     pdf.setFontSize(10);
     pdf.text("Ingen sites registreret.", 40, y);
@@ -127,8 +142,9 @@ export async function generateProjectReport(
   y += 8;
 
   // Indicators
-  section(pdf, `Indikatorer (${indicators.length})`, y);
-  y += 18;
+  y = ensure(pdf, y, 40);
+  section(pdf, `Registrerede indikatorer (${indicators.length})`, y);
+  y += 30;
   if (indicators.length === 0) {
     pdf.setFontSize(10);
     pdf.text("Ingen indikatorer defineret.", 40, y);
@@ -145,8 +161,9 @@ export async function generateProjectReport(
   y += 8;
 
   // Actions
-  section(pdf, `Handlinger (${actions.length})`, y);
-  y += 18;
+  y = ensure(pdf, y, 40);
+  section(pdf, `Registrerede handlinger (${actions.length})`, y);
+  y += 30;
   const grouped = groupByStatus(actions);
   for (const [status, items] of Object.entries(grouped)) {
     y = ensure(pdf, y);
@@ -172,7 +189,7 @@ export async function generateProjectReport(
     pdf.setFontSize(8);
     pdf.setTextColor(150);
     pdf.text(
-      `GoFreyra · ${title} · Side ${p}/${pages}`,
+      `GoFreyra - KLADDE - fagligt review ikke dokumenteret - Side ${p}/${pages}`,
       40,
       pdf.internal.pageSize.getHeight() - 20,
     );
@@ -243,6 +260,7 @@ function section(pdf: jsPDF, label: string, y: number) {
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(13);
   pdf.text(label, 40, y + 10);
+  pdf.setFont("helvetica", "normal");
 }
 
 function kv(pdf: jsPDF, k: string, v: string, y: number) {
@@ -255,8 +273,8 @@ function kv(pdf: jsPDF, k: string, v: string, y: number) {
   return y + 14;
 }
 
-function ensure(pdf: jsPDF, y: number) {
-  if (y > pdf.internal.pageSize.getHeight() - 60) {
+function ensure(pdf: jsPDF, y: number, requiredHeight = 0) {
+  if (y + requiredHeight > pdf.internal.pageSize.getHeight() - 60) {
     pdf.addPage();
     return 56;
   }

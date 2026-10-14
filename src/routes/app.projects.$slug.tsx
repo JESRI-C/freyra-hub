@@ -32,6 +32,7 @@ import { DocumentationScore } from "@/components/documents/DocumentationScore";
 import { computeDocumentationScore, listDocuments } from "@/services/documents-service";
 
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
+import { ProjectReportRecords } from "@/components/reports/ProjectReportRecords";
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import { BiodiversityCard } from "@/components/project/BiodiversityCard";
@@ -41,7 +42,7 @@ import {
   getDataSourcesByProject,
 } from "@/services/projects-service";
 import { getIndicatorsByProject } from "@/services/indicators-service";
-import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
+import { getReportsByProject } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "@/components/project/ProjectMembersPanel";
@@ -677,39 +678,7 @@ function ProjectDetailPage() {
             {/* ── Rapporter ──────────────────────────────────────────────── */}
             {active === "rapporter" && (
               <div className="space-y-4">
-                {/* Existing reports */}
-                {reports.length > 0 && (
-                  <Card>
-                    <CardHeader
-                      title="Eksisterende rapporter"
-                      action={<Pill tone="info">{reports.length}</Pill>}
-                    />
-                    <div className="px-5 pb-4 divide-y">
-                      {reports.map((r) => {
-                        const tone = reportStatusTone(r.status);
-                        return (
-                          <div key={r.id} className="py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{r.title}</span>
-                              <Pill tone={tone === "neutral" ? "default" : tone}>
-                                {r.status ?? "Kladde"}
-                              </Pill>
-                            </div>
-                            {r.summary && (
-                              <p className="text-xs text-muted-foreground mt-1">{r.summary}</p>
-                            )}
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {r.period_start && r.period_end
-                                ? `${r.period_start} – ${r.period_end}`
-                                : ""}
-                              {r.report_type ? ` · ${r.report_type}` : ""}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card>
-                )}
+                <ProjectReportRecords projectId={projectId} reports={reports} />
 
                 {/* Report preview */}
                 <ReportPreviewCard preview={reportPreview} />

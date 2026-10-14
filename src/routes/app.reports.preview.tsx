@@ -1,3 +1,5 @@
+import { isDemoDataEnabled } from "@/lib/data-mode";
+import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Download, Send, RefreshCw, AlertTriangle, MessageSquare } from "lucide-react";
@@ -18,7 +20,7 @@ import {
 import { MISSING_DATA } from "@/lib/reports-data";
 
 export const Route = createFileRoute("/app/reports/preview")({
-  component: Page,
+  component: isDemoDataEnabled ? Page : ReportWorkspaceNotice,
 });
 
 const PAGES = [

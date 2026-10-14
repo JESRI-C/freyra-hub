@@ -1,3 +1,5 @@
+import { isDemoDataEnabled } from "@/lib/data-mode";
+import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { GripVertical, Trash2, Sparkles, Eye, Send, Filter, ChevronDown } from "lucide-react";
@@ -7,7 +9,7 @@ import { Section, Chip, ReadinessBar } from "@/components/reports/Primitives";
 import { SECTION_LIBRARY, type SectionDef } from "@/lib/reports-data";
 
 export const Route = createFileRoute("/app/reports/builder")({
-  component: Page,
+  component: isDemoDataEnabled ? Page : ReportWorkspaceNotice,
 });
 
 const GROUPS = [

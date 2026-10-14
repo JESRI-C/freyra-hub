@@ -2,6 +2,20 @@
 
 ## Aktuelt checkpoint — 14. oktober 2026
 
+**Originaler kan nu knyttes til gemte runder i staging:** hosted medie-QA **68 checks PASS** på kode `5cbb1df9c8a34108d76b39851dd22d504f4c041b` og Worker-version `da24329a-bd0c-4017-a2ed-188f40f25991`. Samme eksisterende syntetiske original er knyttet til før- og kontrolrunden med præcise inputhashes og valgte spørgsmål. Save/retry/get/list, privat genhentning, adgangsafvisninger og same-JWT revoke/exact restore består. Kun to nye draftbindinger er oprettet; gamle baselines, planer, runder og originalgraf er uændrede. Der er ikke uploadet nye billedbytes.
+
+**Releasegates består:** [CI21](https://github.com/JESRI-C/freyra-hub/actions/runs/38517531986) har **116 testfiler/1.797 tests**, **9 SQL-filer/534 assertions** og **18 faktisk udførte samtidighedscases** samt disposable cleanup PASS. Mediemigrationen `20261014051726` er applied som stagingversion `20261014054744`; nyt build og Worker er verificeret. Den request-lokale baselinekontrol er med i releasen. En separat read-only prøve gav seks HTTP200; seks faktiske tailrecords viste CPU30–88 ms og wall203–632 ms. Der er ikke isoleret cold/warm eller bevist en før/efter-CPU-besparelse eller varig tilgængelighed. Fire krypterede bindingsnavne er bevaret; buildscan 734 repo-/794 outputfiler gav 0 lækager/privilegerede bundletokens.
+
+**Din første afprøvning kan begynde:** [Brugertest Haderslev – 14. oktober 2026](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/ae3012ca-662e-4ae0-9f84-234d08428ec9) er oprettet gennem den almindelige projektformular med din eksisterende bruger. Sagen er tom og tydeligt syntetisk; vælg først testområde og reference. Der er endnu ikke valgt faktisk AOI/reference eller egne fotos. [Brugertesten](HADERSLEV_BRUGERTEST.md) beskriver runde A–D. Den tekniske mediebinding er tilgængelig i staging, mens faktisk brugeraccept med ét foto og 10/120-batch stadig mangler.
+
+**Historiske accepter bevares:** SOURCE13-QA40, Round-QA81, baseline4, plan3 og de to rundedrafts blev accepteret på 81/f4 med metadata-SHA `c08c52a76bdf023451a78929903073f1b0e1e158f19e2b4af7ee4e770c522ca2`. De er uændrede inputs til den nye QA, ikke genkørte 40/81-checks på 5c. Ny medie-QA bruger en separat metadatafil/SHA `f1bdcad02c4ddee285147be70f4f586203c0ceb1c98a243f9e5b26f1f6a01b1e`; ingen kilde er genindsamlet.
+
+**Mødeleverancen 10. november er stadig ikke færdig:** M0-rapportarbejdsfladens 20 reviewede filer er kopieret lokalt efter QA68; typecheck, 24 tests og produktlint (0 fejl/23 eksisterende warnings) består. Ny commit/CI/build/deploy afventer. Det er ikke del af den deployede 5c-accept. Noter M1 er en uaccepteret kladde. Næste arbejde er manuelle noter/konservative observationer og fagligt review → brugbar gemt FØR-rapport → låst godkendelse og faktisk privat PDF/manifest/CSV/GeoJSON → reel batch, pilot og samlet brugerrejse. Bykærs delstrækning/83 m, formål, AOI/endepunkter, regulativ, reviewer og øvrige cases er fortsat åbne. Kildeinventaret er partial; miniature-QA er ingen pixel-, georeference-, faglig-, rapport- eller kommunal accept. Produktion og kundedata er uændrede.
+
+**Nyt slutbevis:** [mediebinding og brugeradgang](haderslev-audit/staging-round-media-checkpoint-2026-10-14.json), SHA `dacf7aa31a7d8668b3cc0e21278e4e639c1522d8b8dd8965ace8967f9e17f63e`. [Det historiske 81-bevis](haderslev-audit/staging-source13-survey-round-checkpoint-2026-10-14.json) bevares byteuændret.
+
+## Historisk 81-checkpoint — 14. oktober 2026
+
 **Teknisk stagingkæde accepteret:** SOURCE13 **40 checks PASS** og undersøgelsesrunder **81 checks PASS**. Baseline4, plan3 og to separate før-/kontroludkast kan gemmes, genåbnes og pagineres med de præcise inputhashes. Det afsluttende forsøg genbrugte de eksisterende request-id’er og rækker: **0 nye runder ved resume**. Mødeleverancen til **10. november er stadig ikke færdig**: originalbinding, manuelle noter/fagligt review og faktisk gemt rapport/PDF/datapakke mangler.
 
 **Accepteret deploy:** kode `81e229e0b99a91803b9b46bdf8b1202329b3efcd`, Worker-version `f4d6e4d7-6226-47ad-b205-60896a37ffc3` aktiv på 100 %; [CI20](https://github.com/JESRI-C/freyra-hub/actions/runs/38512714618) SUCCESS med app **110 filer/1.627 tests**, fresh disposable LOCAL **8 SQL-filer/470 TAP** og **13 faktiske samtidighedscases**. Begge release-migrationer er applied i staging. SOURCE13 og Round bruger samme uændrede metadata-SHA `c08c52a76bdf023451a78929903073f1b0e1e158f19e2b4af7ee4e770c522ca2`; fire krypterede bindingsnavne er bevaret, og kodebuildscan 712 repo-/793 outputfiler gav 0 nøglelækager/privilegerede bundletokens.
@@ -160,12 +174,12 @@ Det efterfølgende historiske [CI7](https://github.com/JESRI-C/freyra-hub/action
 
 ## Aktuelle afhængigheder og næste accept
 
-1. SOURCE13-QA40 og Round-QA81 er faktisk bestået på uændret 81/f4/c08. Same-request resume skabte 0 nye runder og bevarede gamle versioner/canonicalgraf. CPU-/503-forsøgene er historik; de nye positive reads og fulde QA er afgrænsede tekniske beviser.
-2. Saml mediebinding18 og relevant baselinekontekst. Type/lint og afgrænsede lokale tests er delbeviser; efter de smalle importfix skal samlet suite samt nye SQL-/18-samtidigheds-/CI-/buildgates bestå. Ny lokal kode er ikke deployet.
-3. Anvend derefter den reviewede mediemigration kun i staging; deploy samme kode og gennemfør hosted caller-/retry-/gammelgraf-/privat original-QA og faktisk browserforløb.
-4. Gem manuelle noter/konservative observationer og fagligt review19. Byg derfra faktisk gemt FØR-rapport, immutable godkendelsesversion og privat PDF/manifest/CSV/GeoJSON med checksum og genhentning21–23.
-5. Scope/regulativ/kilder/faglig baselineaccept15 afklares parallelt. Bykærs83m/AOI/endepunkter/reviewer/øvrige cases er uafklaret. Metadata er ikke lokal pixel-, hydrometri-, natur- eller effektdokumentation.
-6. Reel batch20, faglig pilot-/PDF-datapakkeaccept24 og ny-bruger-/Auth-/Storage-/eksportrelease26–27 mangler. Før/efter25 kræver faktisk egnet EFTER-evidens.
+1. Teknisk mediebinding18 og release5c/CI21 er stagingaccepteret med QA68; de gamle 40/81-checks bevares som historiske inputbeviser. Ingen reel fotobatch eller faglig accept er afledt heraf.
+2. Første brugerafprøvning starter i den nye tydeligt syntetiske sag med testområde/reference og runde A. Runde B kan derefter afprøve ét eget foto; 10/120-batch og afbrudt upload/genoptagelse skal stadig bestå.
+3. Færdiggør manuelle noter/konservative observationer og versionsfast fagligt review19. M1 er en kladde; M0-rapportarbejdsfladen er kopieret lokalt efter review; den er ikke deployet.
+4. Byg gemt FØR-rapport, immutable godkendelsesversion og faktisk privat PDF/manifest/CSV/GeoJSON21–23 med checksum og genhentning.
+5. Scope/regulativ/kilder/faglig baselineaccept15 afklares parallelt. Bykærs83m/AOI/endepunkter/reviewer/øvrige cases er uafklaret; metadata er ikke lokal pixel-, hydrometri-, natur- eller effektdokumentation.
+6. Reel batch20, faglig pilot-/PDF-datapakkeaccept24 og samlet ny-bruger-/Auth-/Storage-/eksportrelease26–27 mangler. Før/efter25 kræver faktisk egnet EFTER-evidens.
 
 Den samlede mødeversion er **ikke accepteret**; produktionskode/-kundedata er uændret.
 

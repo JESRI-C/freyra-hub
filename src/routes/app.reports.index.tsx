@@ -1,3 +1,5 @@
+import { isDemoDataEnabled } from "@/lib/data-mode";
+import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
@@ -49,8 +51,9 @@ const allReportsQuery = {
 };
 
 export const Route = createFileRoute("/app/reports/")({
-  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(allReportsQuery),
-  component: Page,
+  loader: ({ context: { queryClient } }) =>
+    isDemoDataEnabled ? queryClient.ensureQueryData(allReportsQuery) : undefined,
+  component: isDemoDataEnabled ? Page : ReportWorkspaceNotice,
 });
 
 function DataLayerReportsTable({ reports }: { reports: Report[] }) {
