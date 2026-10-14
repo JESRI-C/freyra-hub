@@ -12,6 +12,7 @@ import {
   localPsqlChildEnvironment,
 } from "./database-concurrency/local-database-guard.mjs";
 
+import { assertResolvedNoteMigration } from "./database-concurrency/survey-round-note-guards.mjs";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const option = (name) => {
@@ -139,6 +140,13 @@ try {
     ),
   );
   assert.equal(index.schema, "gofreyra.disposable-database-concurrency-index/v1");
+  const noteGenesis = JSON.parse(
+    await readFile(
+      resolve(root, "supabase/tests/fixtures/database-concurrency/note-fixture-genesis.json"),
+      "utf8",
+    ),
+  );
+  const noteMigration = assertResolvedNoteMigration(noteGenesis);
   const allowedArtifacts = new Set([
     "scripts/test-disposable-db-concurrency.mjs",
     "scripts/database-concurrency/stop-disposable-stack.mjs",
@@ -153,6 +161,12 @@ try {
     "supabase/tests/fixtures/database-concurrency/initialize-media.sql",
     "supabase/tests/fixtures/database-concurrency/round-media.json",
     "supabase/tests/fixtures/database-concurrency/media-fixture-genesis.json",
+    "scripts/database-concurrency/survey-round-note-concurrency.test.mjs",
+    "scripts/database-concurrency/survey-round-note-guards.mjs",
+    "supabase/tests/fixtures/database-concurrency/initialize-note.sql",
+    "supabase/tests/fixtures/database-concurrency/round-note.json",
+    "supabase/tests/fixtures/database-concurrency/note-fixture-genesis.json",
+    noteMigration,
   ]);
   assert.equal(
     index.files.length,
@@ -182,6 +196,12 @@ try {
       artifact.normalizedSha256,
       `Pinned fixture/harness content changed: ${artifact.path}`,
     );
+    if (artifact.path === noteMigration)
+      assert.equal(
+        normalized,
+        noteGenesis.migration.normalizedSqlSha256,
+        "Installed migration source must equal the reviewed note SQL",
+      );
     receipt.artifacts.push({
       path: artifact.path,
       rawSha256: rawSha(data),
@@ -212,6 +232,7 @@ try {
   const legacyProjectSql = legacyProjectIds.map((id) => `'${id}'`).join(",");
   const preflightSql = `select jsonb_build_object('database',current_database(),'role',current_user,
     'requiredRoundTablePresent',to_regclass('public.survey_round_versions') is not null,
+    'requiredNoteTablePresent',to_regclass('public.survey_round_note_versions') is not null,
     'legacyProjectIds',(select jsonb_agg(id order by id) from public.projects),
     'legacyOrganizationIds',(select jsonb_agg(id order by id) from public.organizations),
     'legacyGraphSha256',encode(extensions.digest(jsonb_build_object(
@@ -226,7 +247,8 @@ try {
     'uploads',(select count(*) from public.uploads),'media',(select count(*) from public.project_media),
     'origins',(select count(*) from public.project_media_upload_origins),'promotions',(select count(*) from public.project_media_promotion_requests),
     'storageObjects',(select count(*) from storage.objects),
-    'roundMediaBindings',(select count(*) from public.survey_round_media_versions)));`;
+    'roundMediaBindings',(select count(*) from public.survey_round_media_versions),
+    'roundNotes',(select count(*) from public.survey_round_note_versions)));`;
   const [before] = await processStage("preflight", psql, psqlArgs, preflightSql, childEnvironment);
   await writeFile(resolve(evidence, "preflight.json"), `${JSON.stringify(before, null, 2)}\n`);
   assert.equal(
@@ -238,6 +260,11 @@ try {
     before.requiredRoundTablePresent,
     true,
     "Reviewed Round migration must already have replayed locally",
+  );
+  assert.equal(
+    before.requiredNoteTablePresent,
+    true,
+    "Reviewed note migration must have replayed locally",
   );
   assert.deepEqual(
     before.legacyProjectIds,
@@ -399,6 +426,72 @@ try {
   assert.equal(mediaProof?.metadataOnlyOriginalFixtures, 2);
   assert.equal(mediaProof?.originalBytesUploadedOrStored, false);
   assert.equal(mediaProof?.professionalMunicipalOrReportAcceptance, false);
+  // All prior eighteen scenarios and their two-original output remain intact.
+  // Only now seed C metadata. Prior B stays changed exactly as found; A stays exact.
+  const noteInitializeSql = await readFile(
+    resolve(root, "supabase/tests/fixtures/database-concurrency/initialize-note.sql"),
+    "utf8",
+  );
+  const [noteInitialized] = await processStage(
+    "note-initialize",
+    psql,
+    psqlArgs,
+    noteInitializeSql,
+    childEnvironment,
+  );
+  await writeFile(
+    resolve(evidence, "note-initialize.json"),
+    JSON.stringify(noteInitialized, null, 2) + "\n",
+  );
+  assert.equal(noteInitialized.syntheticOnly, true);
+  assert.equal(noteInitialized.metadataOnly, true);
+  assert.equal(noteInitialized.bytesUploadedOrStored, false);
+  assert.equal(Number(noteInitialized.uploads), 3);
+  assert.equal(Number(noteInitialized.storageObjects), 3);
+  assert.equal(Number(noteInitialized.media), 2);
+  assert.equal(Number(noteInitialized.roundMediaBindings), 2);
+  assert.equal(Number(noteInitialized.notes), 0);
+  assert.equal(noteGenesis.actualPureNoteBuilder, true);
+  assert.equal(noteGenesis.actualPureMediaBuilder, true);
+  assert.equal(noteGenesis.actualOriginalValidatorInMemory, true);
+  assert.equal(noteGenesis.metadataOnlyAdditionalOriginals, 1);
+  const noteObjects = await processStage(
+    "round-note",
+    process.execPath,
+    [
+      resolve(root, "scripts/database-concurrency/survey-round-note-concurrency.test.mjs"),
+      ...shared,
+      "--fixture",
+      resolve(root, "supabase/tests/fixtures/database-concurrency/round-note.json"),
+    ],
+    undefined,
+    childEnvironment,
+  );
+  const noteProof = noteObjects.find((value) => value.result === "PASS");
+  await writeFile(
+    resolve(evidence, "round-note-proof.json"),
+    JSON.stringify(noteProof ?? null, null, 2) + "\n",
+  );
+  assert.equal(noteProof?.tests, 7);
+  assert.equal(noteProof?.rowsAdded, 6);
+  assert.equal(noteProof?.actualLockWaitsVerified, true);
+  assert.equal(noteProof?.exactMembershipRestored, true);
+  assert.equal(noteProof?.protectedOriginalAStoragePreserved, true);
+  assert.equal(noteProof?.priorChangedOriginalBPreservedAsFound, true);
+  assert.equal(
+    noteProof?.priorChangedOriginalBSha256,
+    mediaProof.cases.at(-1).afterSha256,
+    "B's actual committed mutation from the prior media case must stay exact",
+  );
+  assert.equal(noteProof?.immutablePriorInputGraphPreserved, true);
+  assert.equal(noteProof?.allNoteInputGraphPreserved, true);
+  assert.equal(noteProof?.actorId, genesis.actorId);
+  assert.equal(noteProof?.additionalMetadataOnlyOriginals, 1);
+  assert.equal(noteProof?.totalMetadataOnlyOriginalFixtures, 3);
+  assert.equal(noteProof?.originalBytesUploadedOrStored, false);
+  assert.equal(noteProof?.changedStorageCMetadataDeliberatelyNotRestored, true);
+  assert.equal(noteProof?.professionalMunicipalOrReportAcceptance, false);
+
   const postflightSql = `select jsonb_build_object(
     'users',(select count(*) from auth.users),'organizations',(select count(*) from public.organizations),
     'organizationMemberships',(select count(*) from public.organization_memberships),
@@ -417,6 +510,8 @@ try {
     'uploads',(select count(*) from public.uploads),'media',(select count(*) from public.project_media),'storageObjects',(select count(*) from storage.objects),
     'origins',(select count(*) from public.project_media_upload_origins),'promotions',(select count(*) from public.project_media_promotion_requests),
     'roundMediaBindings',(select count(*) from public.survey_round_media_versions),
+    'roundNotes',(select count(*) from public.survey_round_note_versions),
+    'unreviewedRoundNotes',(select count(*) from public.survey_round_note_versions where status='draft_unreviewed' and note_version_no=1 and supersedes_id is null and not(manifest ?| array['professionalApproved','reportReady','photoViewed','observedAt','objectGeometry'])),
     'unapprovedRoundMediaBindings',(select count(*) from public.survey_round_media_versions where status='draft_assignment' and manifest->'acceptance'='{\"municipalScopeApproved\":false,\"professionalApproved\":false,\"pixelDecoded\":false,\"georeferenced\":false,\"reportEligible\":false,\"reportAccepted\":false}'::jsonb),
     'editorRole',(select role::text from public.project_members where project_id='${genesis.projectId}'::uuid and user_id='${genesis.actorId}'::uuid),
     'organizationRole',(select role::text from public.organization_memberships where organization_id='${genesis.organizationId}'::uuid and user_id='${genesis.actorId}'::uuid));`;
@@ -455,15 +550,17 @@ try {
   for (const name of ["uploads", "media", "storageObjects", "origins", "promotions"])
     assert.equal(
       Number(after[name]),
-      2,
-      `Only two separate metadata-only original fixtures exist after media stage: ${name}`,
+      3,
+      `Only three separate metadata-only original fixtures exist after note stage: ${name}`,
     );
   for (const name of ["roundMediaBindings", "unapprovedRoundMediaBindings"])
     assert.equal(
       Number(after[name]),
-      2,
-      `Only the two authorized immutable draft assignments exist: ${name}`,
+      3,
+      `Only the three authorized immutable draft assignments exist: ${name}`,
     );
+  for (const name of ["roundNotes", "unreviewedRoundNotes"])
+    assert.equal(Number(after[name]), 6, `Exactly six immutable manual notes exist: ${name}`);
   assert.equal(after.editorRole, "editor");
   assert.equal(after.organizationRole, "viewer");
   assert.equal(interruptedSignal, null, "Cancelled local concurrency run cannot claim PASS");
@@ -471,10 +568,13 @@ try {
   receipt.roundScenarios = 5;
   receipt.roleSnapshotScenarios = 8;
   receipt.roundMediaScenarios = 5;
-  receipt.metadataOnlyOriginalFixtures = 2;
+  receipt.roundNoteScenarios = 7;
+  receipt.metadataOnlyOriginalFixtures = 3;
+  receipt.changedStorageCMetadataFixtureDeliberatelyNotRestored = true;
+  receipt.priorChangedStorageBPreservedAsFound = true;
   receipt.originalBytesUploadedOrStored = false;
   receipt.changedStorageMetadataFixtureDeliberatelyNotRestored = true;
-  receipt.totalConcurrencyScenarios = 18;
+  receipt.totalConcurrencyScenarios = 25;
 } catch (error) {
   receipt.result = "FAIL";
   // These scripts/fixtures contain synthetic diagnostics only. Never serialize

@@ -145,6 +145,30 @@ function historicalOriginalUploadBinding(value: unknown, media: CanonicalDroneMe
     throw new Error("Originalens gemte uploadbinding matcher ikke den kanoniske provenance.");
   return upload;
 }
+/** Pure historical replay shared by current-authorized immutable DB readers. */
+export async function parseHistoricalSurveyRoundMediaOriginalRows(
+  mediaValue: unknown,
+  uploadValue: unknown,
+  projectId: string,
+  mediaId: string,
+) {
+  const media = canonicalDroneMediaReference(mediaValue, projectId, mediaId);
+  const upload = historicalOriginalUploadBinding(uploadValue, media);
+  const raw = z
+    .object({
+      original_validation: z.unknown(),
+      original_validation_sha256: z.string(),
+    })
+    .parse(uploadValue);
+  if (raw.original_validation_sha256 !== media.original_validation_sha256)
+    throw new Error("Originalens gemte serverkontrol er ændret.");
+  const validation = await parseStoredDroneOriginalValidation(
+    raw.original_validation,
+    raw.original_validation_sha256,
+    upload,
+  );
+  return { media, validation };
+}
 const DEFAULTS: SurveyRoundMediaDependencies = {
   authorize: requireProjectNatureAccess,
   loadRound: (client, actorId, projectId, roundVersionId) =>
@@ -155,22 +179,12 @@ const DEFAULTS: SurveyRoundMediaDependencies = {
       projectId,
       mediaId,
     );
-    const value = await readOne(client, "uploads", projectId, media.source_upload_id);
-    const upload = historicalOriginalUploadBinding(value, media);
-    const raw = z
-      .object({
-        original_validation: z.unknown(),
-        original_validation_sha256: z.string(),
-      })
-      .parse(value);
-    if (raw.original_validation_sha256 !== media.original_validation_sha256)
-      throw new Error("Originalens gemte serverkontrol er ændret.");
-    const validation = await parseStoredDroneOriginalValidation(
-      raw.original_validation,
-      raw.original_validation_sha256,
-      upload,
+    return parseHistoricalSurveyRoundMediaOriginalRows(
+      media,
+      await readOne(client, "uploads", projectId, media.source_upload_id),
+      projectId,
+      mediaId,
     );
-    return { media, validation };
   },
   loadBinding: (client, projectId, bindingId) =>
     readOne(client, "survey_round_media_versions", projectId, bindingId),

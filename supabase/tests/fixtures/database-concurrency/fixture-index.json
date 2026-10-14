@@ -5,7 +5,7 @@
   "files": [
     {
       "path": "scripts/test-disposable-db-concurrency.mjs",
-      "normalizedSha256": "27d94d2f84c1c23b4d4e00d66cd8ff1c34bf1b6b7d04e1046eb050d17bf487a5"
+      "normalizedSha256": "1b0c475903f637af69fedf69ff51056964fe479c4dab42258b982bdc81b3c7cb"
     },
     {
       "path": "scripts/database-concurrency/stop-disposable-stack.mjs",
@@ -54,6 +54,30 @@
     {
       "path": "supabase/tests/fixtures/database-concurrency/media-fixture-genesis.json",
       "normalizedSha256": "ada06e5caa3b61432e296b433ff05adcf36a1fd4957a035a1e8d10a0f746f00d"
+    },
+    {
+      "path": "scripts/database-concurrency/survey-round-note-concurrency.test.mjs",
+      "normalizedSha256": "df4c9e74ca82a8fac87a9bd0892e6969193391d6f42333fc254d45240b9453e9"
+    },
+    {
+      "path": "scripts/database-concurrency/survey-round-note-guards.mjs",
+      "normalizedSha256": "533727b4ecd1e2a3a2ad099307168bbb69d6c26a12f88807b799995c56bbb993"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/initialize-note.sql",
+      "normalizedSha256": "df91146b865f7cd87432968a9ea8dc7994e49b12052bc3097846ae2a5720a69e"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/round-note.json",
+      "normalizedSha256": "24b03ac00780a83873a079bfb695b388175fa6d7955f015edb2d46838e40eb7f"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/note-fixture-genesis.json",
+      "normalizedSha256": "391a55558e0230cee951463cd30966bf8c8563150050a28562f7465f86a948ff"
+    },
+    {
+      "path": "supabase/migrations/20261014061314_survey_round_note_versions.sql",
+      "normalizedSha256": "427ebbe666e46aa9d0ee6800217479c0ac9c6f20704ef6db411ea1434b06e67d"
     }
   ]
 }

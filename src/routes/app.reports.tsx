@@ -34,6 +34,7 @@ function ReportsLayout() {
     <>
       <AppTopbar
         title="Rapporter"
+        showWorkspaceTools={isDemoDataEnabled}
         subtitle={
           isDemoDataEnabled
             ? "Eksempelvisning med opdigtede rapportdata"

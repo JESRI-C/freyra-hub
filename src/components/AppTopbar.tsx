@@ -5,7 +5,15 @@ import { useAuth } from "@/lib/auth";
 
 const RANGES = ["I dag", "Sidste 7 dage", "Sidste 30 dage", "Dette kvartal", "Året til dato"];
 
-export function AppTopbar({ title, subtitle }: { title: string; subtitle?: string }) {
+export function AppTopbar({
+  title,
+  subtitle,
+  showWorkspaceTools = true,
+}: {
+  title: string;
+  subtitle?: string;
+  showWorkspaceTools?: boolean;
+}) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [range, setRange] = useState("Sidste 30 dage");
@@ -22,57 +30,63 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: strin
           )}
         </div>
 
-        <div className="hidden md:flex items-center gap-2 ml-2 flex-1 max-w-md">
-          <div className="relative w-full">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              placeholder="Søg i projekt, datasæt, rapporter…"
-              className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+        {showWorkspaceTools && (
+          <div className="hidden md:flex items-center gap-2 ml-2 flex-1 max-w-md">
+            <div className="relative w-full">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                placeholder="Søg i projekt, datasæt, rapporter…"
+                className="w-full rounded-xl border border-input bg-card pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          <div className="relative hidden sm:block">
-            <button
-              onClick={() => setOpenRange((v) => !v)}
-              className="flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-sm hover:bg-muted transition"
-            >
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              {range}
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-            {openRange && (
-              <div className="absolute right-0 mt-2 w-52 rounded-xl border bg-popover shadow-card p-1 z-30">
-                {RANGES.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => {
-                      setRange(r);
-                      setOpenRange(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-muted ${r === range ? "text-primary font-medium" : ""}`}
-                  >
-                    {r}
-                  </button>
-                ))}
+          {showWorkspaceTools && (
+            <>
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setOpenRange((v) => !v)}
+                  className="flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-sm hover:bg-muted transition"
+                >
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  {range}
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+                {openRange && (
+                  <div className="absolute right-0 mt-2 w-52 rounded-xl border bg-popover shadow-card p-1 z-30">
+                    {RANGES.map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => {
+                          setRange(r);
+                          setOpenRange(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-muted ${r === range ? "text-primary font-medium" : ""}`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <button
-            className="relative h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
-            title="Notifikationer"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-          </button>
-          <button
-            className="hidden sm:grid h-9 w-9 place-items-center rounded-xl border bg-card hover:bg-muted transition"
-            title="Hjælp"
-          >
-            <HelpCircle className="h-4 w-4" />
-          </button>
+              <button
+                className="relative h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
+                title="Notifikationer"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+              </button>
+              <button
+                className="hidden sm:grid h-9 w-9 place-items-center rounded-xl border bg-card hover:bg-muted transition"
+                title="Hjælp"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
+            </>
+          )}
 
           <div className="relative">
             <button

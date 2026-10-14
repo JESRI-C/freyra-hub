@@ -1,3 +1,4 @@
+import { SurveyRoundNotePanel } from "./SurveyRoundNotePanel";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -790,6 +791,12 @@ export function SurveyRoundMediaPanel({
                 Tilknytningen godkender ikke billedkvalitet, afgrænsning, observationer eller
                 rapport. Den faglige gennemgang afventer.
               </p>
+              <SurveyRoundNotePanel
+                key={`${selected.id}:${selected.manifestSha256}`}
+                binding={selected}
+                round={round}
+                plan={plan}
+              />
             </div>
           )}
         </>
