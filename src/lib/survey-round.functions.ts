@@ -7,6 +7,10 @@ import {
   type ProjectNatureAccess,
 } from "@/lib/project-nature-access.server";
 import { baselineSnapshotFromRow } from "@/services/baseline/public-baseline-service";
+import {
+  createVerifiedInputContext,
+  type VerifiedInputContext,
+} from "@/services/baseline/verified-input-context";
 import type { PublicBaselineSnapshot } from "@/services/baseline/public-baseline-types";
 import {
   validateVerificationBaseline,
@@ -61,6 +65,7 @@ export interface SurveyRoundDependencies {
     client: SurveyRoundClient,
     projectId: string,
     baselineId: string,
+    context?: VerifiedInputContext,
   ): Promise<PublicBaselineSnapshot | null>;
   loadPlan(client: SurveyRoundClient, projectId: string, planId: string): Promise<unknown | null>;
   loadRequest(
@@ -107,9 +112,9 @@ async function readOne(
 
 const DEFAULT_DEPENDENCIES: SurveyRoundDependencies = {
   authorizeProject: requireProjectNatureAccess,
-  loadBaseline: async (client, projectId, baselineId) => {
+  loadBaseline: async (client, projectId, baselineId, context) => {
     const row = await readOne(client, "project_baseline_snapshots", projectId, "id", baselineId);
-    return row ? baselineSnapshotFromRow(row) : null;
+    return row ? baselineSnapshotFromRow(row, context) : null;
   },
   loadPlan: (client, projectId, planId) =>
     readOne(client, "verification_plan_versions", projectId, "id", planId),
@@ -184,18 +189,24 @@ async function loadRequiredInputs(
   projectId: string,
   baselineId: string,
   planId: string,
+  context?: VerifiedInputContext,
 ): Promise<{ baseline: PublicBaselineSnapshot; planRow: unknown; plan: VerificationPlanVersion }> {
-  const [baseline, planRow] = await Promise.all([
-    dependencies.loadBaseline(client, projectId, baselineId),
+  const [loadedBaseline, planRow] = await Promise.all([
+    context
+      ? dependencies.loadBaseline(client, projectId, baselineId, context)
+      : dependencies.loadBaseline(client, projectId, baselineId),
     dependencies.loadPlan(client, projectId, planId),
   ]);
-  if (!baseline || !planRow)
+  if (!loadedBaseline || !planRow)
     throw new Error("Vælg en gemt baseline og plan i denne sag, før du opretter runden.");
-  await validateVerificationBaseline(baseline, projectId, baselineId);
+  const baseline = context
+    ? await context.verifyBaseline(loadedBaseline, projectId, baselineId)
+    : loadedBaseline;
+  await validateVerificationBaseline(baseline, projectId, baselineId, context);
   const summary = verificationPlanSummaryFromRow(planRow);
   if (summary.id !== planId || summary.projectId !== projectId || summary.baselineId !== baselineId)
     throw new Error("Den gemte plan og baseline matcher ikke denne sag eller version.");
-  const plan = await verificationPlanVersionFromRow(planRow, baseline);
+  const plan = await verificationPlanVersionFromRow(planRow, baseline, context);
   return { baseline, planRow, plan };
 }
 
@@ -296,14 +307,17 @@ export async function executeGetSurveyRound(
   const summary = surveyRoundSummaryFromRow(row);
   if (summary.projectId !== input.projectId || summary.id !== input.roundVersionId)
     throw new Error("Den gemte registreringsrunde matcher ikke denne sag eller version.");
-  const { baseline, planRow } = await loadRequiredInputs(
+  // This context belongs to this authorized read only; it never contains access decisions.
+  const context = createVerifiedInputContext();
+  const { baseline, plan } = await loadRequiredInputs(
     dependencies,
     client,
     input.projectId,
     summary.baselineId,
     summary.planId,
+    context,
   );
-  return surveyRoundVersionFromRow(row, baseline, planRow);
+  return surveyRoundVersionFromRow(row, baseline, plan, context);
 }
 
 export async function executeListSurveyRounds(

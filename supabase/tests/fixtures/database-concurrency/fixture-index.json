@@ -5,7 +5,7 @@
   "files": [
     {
       "path": "scripts/test-disposable-db-concurrency.mjs",
-      "normalizedSha256": "092eb44e9d0724a14b449fc0cd97f4040ee6ecd048319754e806e485c81f4899"
+      "normalizedSha256": "27d94d2f84c1c23b4d4e00d66cd8ff1c34bf1b6b7d04e1046eb050d17bf487a5"
     },
     {
       "path": "scripts/database-concurrency/stop-disposable-stack.mjs",
@@ -38,6 +38,22 @@
     {
       "path": "supabase/tests/fixtures/database-concurrency/fixture-genesis.json",
       "normalizedSha256": "52b22844d09ba050c84f1b2c4f520a21cbdacad9c74eda265f7a8181fea276c0"
+    },
+    {
+      "path": "scripts/database-concurrency/survey-round-media-concurrency.test.mjs",
+      "normalizedSha256": "d02be63c9178ed26ace11d2a347ce268d644575911989a00724857dfdd24aee4"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/initialize-media.sql",
+      "normalizedSha256": "982606391b2c73cbc64d780ea96ca18eb477ca5b4decd391af899bfad5094278"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/round-media.json",
+      "normalizedSha256": "67a5fe7267ad6b01c78ecaa874752db509173e8fe70ee50657f404bb86e265ca"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/media-fixture-genesis.json",
+      "normalizedSha256": "ada06e5caa3b61432e296b433ff05adcf36a1fd4957a035a1e8d10a0f746f00d"
     }
   ]
 }

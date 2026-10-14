@@ -429,7 +429,16 @@ const ResultSchema = z
 export async function parseStoredDroneOriginalValidation(
   value: unknown,
   checksum: string | null,
-  upload: CanonicalDroneUpload,
+  upload: Pick<
+    CanonicalDroneUpload,
+    | "id"
+    | "project_id"
+    | "storage_path"
+    | "file_size"
+    | "uploaded_by"
+    | "received_at"
+    | "original_file_name"
+  >,
 ): Promise<DroneOriginalValidation> {
   if (
     !checksum ||

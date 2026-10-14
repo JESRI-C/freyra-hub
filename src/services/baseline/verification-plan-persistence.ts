@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { requireVerifiedInputContext, type VerifiedInputContext } from "./verified-input-context";
 import {
   baselineSha256,
   canonicalBaselineJson,
@@ -93,7 +94,12 @@ export async function validateVerificationBaseline(
   snapshot: PublicBaselineSnapshot,
   projectId: string,
   baselineId: string,
+  context?: VerifiedInputContext,
 ): Promise<void> {
+  if (context !== undefined) {
+    await requireVerifiedInputContext(context).verifyBaseline(snapshot, projectId, baselineId);
+    return;
+  }
   const manifest = await validatePublicBaselineManifest(snapshot.manifest);
   if (
     snapshot.id !== baselineId ||
@@ -107,10 +113,11 @@ export async function validateVerificationBaseline(
 function generateVersionedDraft(
   snapshot: PublicBaselineSnapshot,
   generatorVersion: VerificationPlanGenerator,
+  context?: VerifiedInputContext,
 ) {
   switch (generatorVersion) {
     case VERIFICATION_PLAN_GENERATOR_V1:
-      return createDraftVerificationPlanV1(snapshot);
+      return createDraftVerificationPlanV1(snapshot, context);
     default:
       throw new Error("Planens gemte generatorversion understøttes ikke.");
   }
@@ -119,9 +126,27 @@ function generateVersionedDraft(
 export async function buildVerificationPlanManifest(
   snapshot: PublicBaselineSnapshot,
   generatorVersion: VerificationPlanGenerator = VERIFICATION_PLAN_GENERATOR,
+  context?: VerifiedInputContext,
 ): Promise<VerificationPlanManifest> {
-  await validateVerificationBaseline(snapshot, snapshot.projectId, snapshot.id);
-  const draft = await generateVersionedDraft(snapshot, generatorVersion);
+  if (context !== undefined)
+    return requireVerifiedInputContext(context).planManifest(snapshot, generatorVersion);
+  return buildVerificationPlanManifestUncached(snapshot, generatorVersion);
+}
+
+/** Context factory calls only this hardcoded generator, never a caller-supplied callback. */
+export async function buildVerificationPlanManifestUncached(
+  snapshot: PublicBaselineSnapshot,
+  generatorVersion: VerificationPlanGenerator = VERIFICATION_PLAN_GENERATOR,
+  context?: VerifiedInputContext,
+): Promise<VerificationPlanManifest> {
+  if (context !== undefined)
+    snapshot = await requireVerifiedInputContext(context).verifyBaseline(
+      snapshot,
+      snapshot.projectId,
+      snapshot.id,
+    );
+  await validateVerificationBaseline(snapshot, snapshot.projectId, snapshot.id, context);
+  const draft = await generateVersionedDraft(snapshot, generatorVersion, context);
   const manifest: VerificationPlanManifest = {
     ...draft,
     schema: VERIFICATION_PLAN_SCHEMA,
@@ -160,11 +185,28 @@ export function verificationPlanSummaryFromRow(value: unknown): VerificationPlan
 export async function verificationPlanVersionFromRow(
   value: unknown,
   baseline: PublicBaselineSnapshot,
+  context?: VerifiedInputContext,
 ): Promise<VerificationPlanVersion> {
+  if (context !== undefined)
+    return requireVerifiedInputContext(context).planFromRow(value, baseline);
+  return verificationPlanVersionFromRowUncached(value, baseline);
+}
+
+export async function verificationPlanVersionFromRowUncached(
+  value: unknown,
+  baseline: PublicBaselineSnapshot,
+  context?: VerifiedInputContext,
+): Promise<VerificationPlanVersion> {
+  if (context !== undefined)
+    baseline = await requireVerifiedInputContext(context).verifyBaseline(
+      baseline,
+      baseline.projectId,
+      baseline.id,
+    );
   const row = SummaryRow.extend({ manifest: z.unknown() }).parse(value);
   const manifest = ManifestShape.parse(row.manifest);
-  await validateVerificationBaseline(baseline, row.project_id, row.baseline_id);
-  const expected = await buildVerificationPlanManifest(baseline, row.generator_version);
+  await validateVerificationBaseline(baseline, row.project_id, row.baseline_id, context);
+  const expected = await buildVerificationPlanManifest(baseline, row.generator_version, context);
   if (
     row.baseline_sha256 !== baseline.manifestSha256 ||
     manifest.projectId !== row.project_id ||

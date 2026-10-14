@@ -1,4 +1,5 @@
 import { booleanIntersects, multiLineString, polygon } from "@turf/turf";
+import { requireVerifiedInputContext, type VerifiedInputContext } from "./verified-input-context";
 import type { GeoJSONPolygon } from "@/lib/supabase/types";
 import type { OfficialWatercourseGeometry } from "@/services/geospatial/official-watercourse-source";
 import { baselineSha256, validatePublicBaselineManifest } from "./public-baseline-service";
@@ -70,11 +71,21 @@ function sourceAvailable(source: PublicBaselineSource): boolean {
  */
 export async function createDraftVerificationPlanV1(
   snapshot: PublicBaselineSnapshot,
+  context?: VerifiedInputContext,
 ): Promise<DraftVerificationPlan> {
-  const manifest = await validatePublicBaselineManifest(snapshot.manifest);
+  if (context !== undefined)
+    snapshot = await requireVerifiedInputContext(context).verifyBaseline(
+      snapshot,
+      snapshot.projectId,
+      snapshot.id,
+    );
+  const manifest =
+    context !== undefined
+      ? snapshot.manifest
+      : await validatePublicBaselineManifest(snapshot.manifest);
   if (
     snapshot.projectId !== manifest.project.id ||
-    (await baselineSha256(manifest)) !== snapshot.manifestSha256
+    (context === undefined && (await baselineSha256(manifest)) !== snapshot.manifestSha256)
   ) {
     throw new Error("Verifikationsplanen kræver en gyldig, uændret baselineversion.");
   }

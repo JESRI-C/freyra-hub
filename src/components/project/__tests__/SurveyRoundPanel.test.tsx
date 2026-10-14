@@ -11,6 +11,7 @@ type CallerAccess = { projectId: string; userId: string; canPersist: boolean };
 
 const state = vi.hoisted(() => ({
   cursor: 0,
+  mediaPanelProps: [] as unknown[],
   hooks: [] as unknown[],
   effects: [] as (() => void | (() => void))[],
   cleanups: [] as (() => void)[],
@@ -81,6 +82,12 @@ vi.mock("react", async (original) => {
     },
   };
 });
+vi.mock("../SurveyRoundMediaPanel", () => ({
+  SurveyRoundMediaPanel: (props: unknown) => {
+    state.mediaPanelProps.push(props);
+    return null;
+  },
+}));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({ user: state.access ? { id: state.access.userId } : null }),
@@ -247,6 +254,7 @@ function completeDraft() {
 beforeEach(async () => {
   fixture = await makeRoundFixture();
   state.cursor = 0;
+  state.mediaPanelProps = [];
   state.hooks = [];
   state.effects = [];
   state.cleanups = [];
@@ -667,7 +675,8 @@ describe("survey round draft UI and exact request lifecycle", () => {
     expect(output).toContain("Rundeversion 1");
     expect(output).toContain("2026-10-13–2026-10-14");
     expect(output).toContain("Afgrænsning, faglig godkendelse og rapportaccept afventer");
-    expect(output).toContain("Runden dokumenterer ikke modtagne fotos");
+    expect(output).toContain("Fototilknytninger vises særskilt nedenfor");
+    expect(state.mediaPanelProps.at(-1)).toEqual({ round: state.round, plan: fixture.plan });
     expect(state.calls).toEqual([]);
   });
   it("suppresses a cached round with different immutable plan or baseline binding", async () => {

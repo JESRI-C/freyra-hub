@@ -24,6 +24,8 @@ import {
   type SurveyRoundMutationResult,
 } from "./survey-round-request";
 
+import { SurveyRoundMediaPanel } from "./SurveyRoundMediaPanel";
+
 const kindLabels = { before: "Før", after: "Efter", control: "Kontrol" };
 const Uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const emptyDraft = (): SurveyRoundDraftInput => ({
@@ -618,8 +620,13 @@ export function SurveyRoundPanel({
                 </ul>
                 <p className="text-xs text-muted-foreground">
                   Afgrænsning, faglig godkendelse og rapportaccept afventer. Runden dokumenterer
-                  ikke modtagne fotos eller gennemførte registreringer.
+                  ikke gennemførte registreringer. Fototilknytninger vises særskilt nedenfor.
                 </p>
+                <SurveyRoundMediaPanel
+                  key={`${user?.id}:${stored.id}:${stored.manifestSha256}`}
+                  round={stored}
+                  plan={plan}
+                />
               </div>
             )}
           </>

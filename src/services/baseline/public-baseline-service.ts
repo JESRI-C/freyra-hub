@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { requireVerifiedInputContext, type VerifiedInputContext } from "./verified-input-context";
 import { validateProjectPolygon } from "@/services/geo-service";
 import {
   hasOfficialWatercourseProvenance,
@@ -398,7 +399,11 @@ export function baselineSummaryFromRow(value: unknown): PublicBaselineSummary {
   };
 }
 
-export async function baselineSnapshotFromRow(value: unknown): Promise<PublicBaselineSnapshot> {
+export async function baselineSnapshotFromRow(
+  value: unknown,
+  context?: VerifiedInputContext,
+): Promise<PublicBaselineSnapshot> {
+  if (context !== undefined) return requireVerifiedInputContext(context).baselineFromRow(value);
   const row = z
     .object({
       id: Uuid,

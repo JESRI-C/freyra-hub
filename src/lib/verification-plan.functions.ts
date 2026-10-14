@@ -7,6 +7,10 @@ import {
   type ProjectNatureAccess,
 } from "@/lib/project-nature-access.server";
 import { baselineSnapshotFromRow } from "@/services/baseline/public-baseline-service";
+import {
+  createVerifiedInputContext,
+  type VerifiedInputContext,
+} from "@/services/baseline/verified-input-context";
 import type { PublicBaselineSnapshot } from "@/services/baseline/public-baseline-types";
 import {
   buildVerificationPlanManifest,
@@ -57,6 +61,7 @@ export interface VerificationPlanDependencies {
     client: VerificationPlanClient,
     projectId: string,
     baselineId: string,
+    context?: VerifiedInputContext,
   ): Promise<PublicBaselineSnapshot | null>;
   loadRequest(
     client: VerificationPlanClient,
@@ -100,7 +105,7 @@ async function readPlan(
 
 const DEFAULT_DEPENDENCIES: VerificationPlanDependencies = {
   authorizeProject: requireProjectNatureAccess,
-  loadBaseline: async (client, projectId, baselineId) => {
+  loadBaseline: async (client, projectId, baselineId, context) => {
     const { data, error } = await client
       .from("project_baseline_snapshots")
       .select("*")
@@ -108,7 +113,7 @@ const DEFAULT_DEPENDENCIES: VerificationPlanDependencies = {
       .eq("id", baselineId)
       .maybeSingle();
     if (error) throw new Error("Kunne ikke læse planens gemte datagrundlag.");
-    return data ? baselineSnapshotFromRow(data) : null;
+    return data ? baselineSnapshotFromRow(data, context) : null;
   },
   loadRequest: (client, projectId, actorId, requestId) =>
     readPlan(client, projectId, "request_id", requestId, actorId),
@@ -156,10 +161,17 @@ async function loadRequiredBaseline(
   client: VerificationPlanClient,
   projectId: string,
   baselineId: string,
+  context?: VerifiedInputContext,
 ): Promise<PublicBaselineSnapshot> {
-  const baseline = await dependencies.loadBaseline(client, projectId, baselineId);
-  if (!baseline) throw new Error("Vælg en gemt baselineversion i denne sag, før du gemmer planen.");
-  await validateVerificationBaseline(baseline, projectId, baselineId);
+  const loadedBaseline = context
+    ? await dependencies.loadBaseline(client, projectId, baselineId, context)
+    : await dependencies.loadBaseline(client, projectId, baselineId);
+  if (!loadedBaseline)
+    throw new Error("Vælg en gemt baselineversion i denne sag, før du gemmer planen.");
+  const baseline = context
+    ? await context.verifyBaseline(loadedBaseline, projectId, baselineId)
+    : loadedBaseline;
+  await validateVerificationBaseline(baseline, projectId, baselineId, context);
   return baseline;
 }
 
@@ -234,13 +246,16 @@ export async function executeGetVerificationPlan(
   const summary = verificationPlanSummaryFromRow(row);
   if (summary.projectId !== input.projectId || summary.id !== input.planId)
     throw new Error("Den gemte plan matcher ikke denne sag eller version.");
+  // Keep verified immutable inputs local to this current-authorized read.
+  const context = createVerifiedInputContext();
   const baseline = await loadRequiredBaseline(
     dependencies,
     client,
     input.projectId,
     summary.baselineId,
+    context,
   );
-  return verificationPlanVersionFromRow(row, baseline);
+  return verificationPlanVersionFromRow(row, baseline, context);
 }
 
 export async function executeListVerificationPlans(

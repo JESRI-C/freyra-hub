@@ -149,6 +149,10 @@ try {
     "supabase/tests/fixtures/database-concurrency/round.json",
     "supabase/tests/fixtures/database-concurrency/role-snapshot.json",
     "supabase/tests/fixtures/database-concurrency/fixture-genesis.json",
+    "scripts/database-concurrency/survey-round-media-concurrency.test.mjs",
+    "supabase/tests/fixtures/database-concurrency/initialize-media.sql",
+    "supabase/tests/fixtures/database-concurrency/round-media.json",
+    "supabase/tests/fixtures/database-concurrency/media-fixture-genesis.json",
   ]);
   assert.equal(
     index.files.length,
@@ -221,7 +225,8 @@ try {
     'plans',(select count(*) from public.verification_plan_versions),'rounds',(select count(*) from public.survey_round_versions),
     'uploads',(select count(*) from public.uploads),'media',(select count(*) from public.project_media),
     'origins',(select count(*) from public.project_media_upload_origins),'promotions',(select count(*) from public.project_media_promotion_requests),
-    'storageObjects',(select count(*) from storage.objects)));`;
+    'storageObjects',(select count(*) from storage.objects),
+    'roundMediaBindings',(select count(*) from public.survey_round_media_versions)));`;
   const [before] = await processStage("preflight", psql, psqlArgs, preflightSql, childEnvironment);
   await writeFile(resolve(evidence, "preflight.json"), `${JSON.stringify(before, null, 2)}\n`);
   assert.equal(
@@ -331,6 +336,69 @@ try {
   assert.equal(roleProof?.exactMembershipRestored, true);
   assert.equal(roleProof?.graphPreserved, true);
   assert.equal(roleProof?.positiveFullDataAcceptance, false);
+  // The prior thirteen cases keep their original zero-media fixture contract.
+  // Only now seed TWO metadata-only originals: A stays exact; B is deliberately
+  // mutated/committed in the fifth media case to test actual changed-pin denial.
+  const mediaInitializeSql = await readFile(
+    resolve(root, "supabase/tests/fixtures/database-concurrency/initialize-media.sql"),
+    "utf8",
+  );
+  const [mediaInitialized] = await processStage(
+    "media-initialize",
+    psql,
+    psqlArgs,
+    mediaInitializeSql,
+    childEnvironment,
+  );
+  await writeFile(
+    resolve(evidence, "media-initialize.json"),
+    JSON.stringify(mediaInitialized, null, 2) + "\n",
+  );
+  assert.equal(mediaInitialized.syntheticOnly, true);
+  assert.equal(mediaInitialized.metadataOnly, true);
+  assert.equal(mediaInitialized.bytesUploadedOrStored, false);
+  assert.equal(Number(mediaInitialized.uploads), 2);
+  assert.equal(Number(mediaInitialized.storageObjects), 2);
+  assert.equal(Number(mediaInitialized.media), 0);
+  const mediaGenesis = JSON.parse(
+    await readFile(
+      resolve(root, "supabase/tests/fixtures/database-concurrency/media-fixture-genesis.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(mediaGenesis.syntheticOnly, true);
+  assert.equal(mediaGenesis.actualPureMediaBuilder, true);
+  assert.equal(mediaGenesis.actualOriginalValidator, true);
+  assert.equal(mediaGenesis.metadataOnlyOriginalFixtures, 2);
+  assert.equal(mediaGenesis.bytesUploadedOrStored, false);
+  assert.equal(mediaGenesis.roundSha256, genesis.roundManifestSha256);
+  const mediaObjects = await processStage(
+    "round-media",
+    process.execPath,
+    [
+      resolve(root, "scripts/database-concurrency/survey-round-media-concurrency.test.mjs"),
+      ...shared,
+      "--fixture",
+      resolve(root, "supabase/tests/fixtures/database-concurrency/round-media.json"),
+    ],
+    undefined,
+    childEnvironment,
+  );
+  const mediaProof = mediaObjects.find((value) => value.result === "PASS");
+  await writeFile(
+    resolve(evidence, "round-media-proof.json"),
+    JSON.stringify(mediaProof ?? null, null, 2) + "\n",
+  );
+  assert.equal(mediaProof?.tests, 5);
+  assert.equal(mediaProof?.rowsAdded, 2);
+  assert.equal(mediaProof?.actualLockWaitsVerified, true);
+  assert.equal(mediaProof?.exactMembershipRestored, true);
+  assert.equal(mediaProof?.protectedOriginalStoragePreserved, true);
+  assert.equal(mediaProof?.immutableInputGraphPreserved, true);
+  assert.equal(mediaProof?.changedStorageMetadataFixtureDeliberatelyNotRestored, true);
+  assert.equal(mediaProof?.metadataOnlyOriginalFixtures, 2);
+  assert.equal(mediaProof?.originalBytesUploadedOrStored, false);
+  assert.equal(mediaProof?.professionalMunicipalOrReportAcceptance, false);
   const postflightSql = `select jsonb_build_object(
     'users',(select count(*) from auth.users),'organizations',(select count(*) from public.organizations),
     'organizationMemberships',(select count(*) from public.organization_memberships),
@@ -347,6 +415,9 @@ try {
     'draftRounds',(select count(*) from public.survey_round_versions where status='draft'),
     'unapprovedRounds',(select count(*) from public.survey_round_versions where manifest->'acceptance'='{"municipalScopeApproved":false,"professionalApproved":false,"reportAccepted":false}'::jsonb),
     'uploads',(select count(*) from public.uploads),'media',(select count(*) from public.project_media),'storageObjects',(select count(*) from storage.objects),
+    'origins',(select count(*) from public.project_media_upload_origins),'promotions',(select count(*) from public.project_media_promotion_requests),
+    'roundMediaBindings',(select count(*) from public.survey_round_media_versions),
+    'unapprovedRoundMediaBindings',(select count(*) from public.survey_round_media_versions where status='draft_assignment' and manifest->'acceptance'='{\"municipalScopeApproved\":false,\"professionalApproved\":false,\"pixelDecoded\":false,\"georeferenced\":false,\"reportEligible\":false,\"reportAccepted\":false}'::jsonb),
     'editorRole',(select role::text from public.project_members where project_id='${genesis.projectId}'::uuid and user_id='${genesis.actorId}'::uuid),
     'organizationRole',(select role::text from public.organization_memberships where organization_id='${genesis.organizationId}'::uuid and user_id='${genesis.actorId}'::uuid));`;
   const [after] = await processStage("postflight", psql, psqlArgs, postflightSql, childEnvironment);
@@ -381,15 +452,29 @@ try {
       4,
       `Only four initial unapproved Round versions exist: ${name}`,
     );
-  for (const name of ["uploads", "media", "storageObjects"])
-    assert.equal(Number(after[name]), 0, `No original/pixel/Storage fixtures are seeded: ${name}`);
+  for (const name of ["uploads", "media", "storageObjects", "origins", "promotions"])
+    assert.equal(
+      Number(after[name]),
+      2,
+      `Only two separate metadata-only original fixtures exist after media stage: ${name}`,
+    );
+  for (const name of ["roundMediaBindings", "unapprovedRoundMediaBindings"])
+    assert.equal(
+      Number(after[name]),
+      2,
+      `Only the two authorized immutable draft assignments exist: ${name}`,
+    );
   assert.equal(after.editorRole, "editor");
   assert.equal(after.organizationRole, "viewer");
   assert.equal(interruptedSignal, null, "Cancelled local concurrency run cannot claim PASS");
   receipt.result = "PASS";
   receipt.roundScenarios = 5;
   receipt.roleSnapshotScenarios = 8;
-  receipt.totalConcurrencyScenarios = 13;
+  receipt.roundMediaScenarios = 5;
+  receipt.metadataOnlyOriginalFixtures = 2;
+  receipt.originalBytesUploadedOrStored = false;
+  receipt.changedStorageMetadataFixtureDeliberatelyNotRestored = true;
+  receipt.totalConcurrencyScenarios = 18;
 } catch (error) {
   receipt.result = "FAIL";
   // These scripts/fixtures contain synthetic diagnostics only. Never serialize

@@ -13,6 +13,7 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => React.createElement("a", null, children),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
+vi.mock("../SurveyRoundMediaPanel", () => ({ SurveyRoundMediaPanel: () => null }));
 vi.mock("@/lib/survey-round.functions", () => ({
   saveSurveyRound: vi.fn(),
   getSurveyRound: vi.fn(),

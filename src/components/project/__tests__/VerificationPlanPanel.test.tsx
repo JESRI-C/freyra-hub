@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({
   readError: null as Error | null,
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
+vi.mock("../SurveyRoundMediaPanel", () => ({ SurveyRoundMediaPanel: () => null }));
 vi.mock("@/lib/survey-round.functions", () => ({
   saveSurveyRound: vi.fn(),
   getSurveyRound: vi.fn(),

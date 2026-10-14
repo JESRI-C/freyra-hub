@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { requireVerifiedInputContext, type VerifiedInputContext } from "./verified-input-context";
 import { baselineSha256, canonicalBaselineJson } from "@/services/baseline/public-baseline-service";
 import type { PublicBaselineSnapshot } from "@/services/baseline/public-baseline-types";
 import {
@@ -192,10 +193,20 @@ export async function buildSurveyRoundManifestV1(
   raw: SaveSurveyRoundInput,
   baseline: PublicBaselineSnapshot,
   plan: VerificationPlanVersion,
+  context?: VerifiedInputContext,
 ): Promise<SurveyRoundManifest> {
   const input = SaveSurveyRoundInputSchema.parse(raw);
-  await validateVerificationBaseline(baseline, input.projectId, input.baselineId);
-  const expectedPlan = await buildVerificationPlanManifest(baseline, plan.generatorVersion);
+  if (context !== undefined) {
+    const scope = requireVerifiedInputContext(context);
+    baseline = await scope.verifyBaseline(baseline, input.projectId, input.baselineId);
+    plan = await scope.verifyPlan(plan, baseline);
+  }
+  await validateVerificationBaseline(baseline, input.projectId, input.baselineId, context);
+  const expectedPlan = await buildVerificationPlanManifest(
+    baseline,
+    plan.generatorVersion,
+    context,
+  );
   if (
     baseline.manifestSha256 !== input.baselineSha256 ||
     plan.id !== input.planId ||
@@ -204,7 +215,7 @@ export async function buildSurveyRoundManifestV1(
     plan.baselineSha256 !== input.baselineSha256 ||
     plan.manifestSha256 !== input.planSha256 ||
     plan.status !== "draft" ||
-    (await baselineSha256(plan.manifest)) !== plan.manifestSha256 ||
+    (context === undefined && (await baselineSha256(plan.manifest)) !== plan.manifestSha256) ||
     verificationPlanCanonicalText(plan.manifest) !== verificationPlanCanonicalText(expectedPlan)
   )
     throw new Error("Registreringsrunden kræver den præcise gemte plan og baseline i samme sag.");
@@ -278,10 +289,17 @@ export async function surveyRoundVersionFromRow(
   value: unknown,
   baseline: PublicBaselineSnapshot,
   planRow: unknown,
+  context?: VerifiedInputContext,
 ): Promise<SurveyRoundVersion> {
   const row = SummaryRow.extend({ manifest: z.unknown() }).parse(value);
   const manifest = ManifestSchema.parse(row.manifest);
-  const plan = await verificationPlanVersionFromRow(planRow, baseline);
+  if (context !== undefined)
+    baseline = await requireVerifiedInputContext(context).verifyBaseline(
+      baseline,
+      baseline.projectId,
+      baseline.id,
+    );
+  const plan = await verificationPlanVersionFromRow(planRow, baseline, context);
   const expected = await buildSurveyRoundManifestV1(
     {
       projectId: row.project_id,
@@ -297,6 +315,7 @@ export async function surveyRoundVersionFromRow(
     },
     baseline,
     plan,
+    context,
   );
   if (
     (await baselineSha256(manifest)) !== row.manifest_sha256 ||
