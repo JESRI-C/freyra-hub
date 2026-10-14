@@ -39,14 +39,19 @@ vi.mock("@tanstack/react-router", () => ({
     children,
     to,
     params,
+    search,
     ...props
   }: {
     children: React.ReactNode;
     to: string;
     params?: { slug: string };
+    search?: { tab?: string };
     className?: string;
   }) => (
-    <a href={to.replace("$slug", params?.slug ?? "")} {...props}>
+    <a
+      href={to.replace("$slug", params?.slug ?? "") + (search?.tab ? `?tab=${search.tab}` : "")}
+      {...props}
+    >
       {children}
     </a>
   ),
@@ -87,7 +92,7 @@ describe("municipal report customer boundaries", () => {
           React.createElement(Route.options.component as React.ComponentType),
         );
         expect(html).toContain("Rapportarbejdet foregår i projektet");
-        expect(html).toContain('href="/app/projects/syntetisk"');
+        expect(html).toContain('href="/app/projects/syntetisk?tab=rapporter"');
         for (const invented of [
           "Skallebæk",
           "Emma Larsen",

@@ -359,6 +359,7 @@ function GeometryEditorPage() {
         data: { projectId: project.id, watercourseId: watercoursePreview.id },
       });
       queryClient.setQueryData(["official-watercourse-reach", project.id], saved);
+      await queryClient.invalidateQueries({ queryKey: ["official-watercourse-reach"] });
       setWatercoursePreview(null);
       toast.success("Vandløbsstrengen er gemt på projektet");
     } catch (error) {

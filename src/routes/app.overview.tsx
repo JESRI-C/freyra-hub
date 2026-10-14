@@ -88,7 +88,7 @@ const REPOSITIONED_MODULES = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function DashboardPage() {
-  const { currentOrg } = useAuth();
+  const { currentOrg, currentProject } = useAuth();
   const orgId = currentOrg?.id ?? "";
 
   const { data: summaries } = useSuspenseQuery({
@@ -195,26 +195,49 @@ function DashboardPage() {
       {/* 1. Hero */}
       <section className="rounded-2xl border bg-gradient-to-br from-leaf/20 via-card to-card p-8 relative overflow-hidden">
         <div className="max-w-3xl space-y-3">
-          <Pill tone="success">Nature Project Command Center</Pill>
+          <Pill tone="success">Dit projektarbejde</Pill>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            Fra naturmål til dokumenteret handling
+            Hvad skal du arbejde med?
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            GoFreyra samler naturprojekter, arealdata, lodsejerdialog, biodiversitetsmetoder,
-            rapportering og offentlig dokumentation i ét arbejdsflow.
+            Start med billeder og en undersøgelse, eller fortsæt med projektets rapport og mangler.
           </p>
           <div className="flex flex-wrap gap-2 pt-2">
+            {currentProject ? (
+              <>
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug: currentProject.slug || currentProject.id }}
+                  search={{ tab: "arbejde" }}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Arbejd med dronebilleder
+                </Link>
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug: currentProject.slug || currentProject.id }}
+                  search={{ tab: "rapporter" }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-4 py-2 text-sm font-medium"
+                >
+                  <FileText className="h-4 w-4" />
+                  Se rapport og levering
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/app/projects"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
+              >
+                <ArrowRight className="h-4 w-4" />
+                Vælg projekt og begynd undersøgelsen
+              </Link>
+            )}
             <Link
               to="/app/projects"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-95"
-            >
-              <Plus className="h-4 w-4" /> Opret naturprojekt
-            </Link>
-            <Link
-              to="/app/reports"
               className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
             >
-              <FileText className="h-4 w-4" /> Generér rapport
+              <Plus className="h-4 w-4" /> Opret naturprojekt
             </Link>
           </div>
         </div>

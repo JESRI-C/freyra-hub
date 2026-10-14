@@ -20,7 +20,12 @@ const project = {
   geometry_polygon: null,
 };
 vi.mock("@tanstack/react-router", () => ({
-  createFileRoute: () => (options: unknown) => ({ options, useParams: () => ({ slug: "pilot" }) }),
+  createFileRoute: () => (options: unknown) => ({
+    options,
+    useParams: () => ({ slug: "pilot" }),
+    useSearch: () => ({}),
+    useNavigate: () => vi.fn(),
+  }),
   notFound: () => new Error("not found"),
   Link: () => null,
 }));
@@ -75,6 +80,17 @@ beforeEach(() => {
 });
 
 describe("customer project evidence guards", () => {
+  it("retains only supported task links and normalizes the exact copied round ID", () => {
+    const validate = Route.options.validateSearch as (value: Record<string, unknown>) => {
+      tab?: string;
+      round?: string;
+    };
+    expect(validate({ tab: "rapporter", round: "A1000000-0000-4000-8000-000000000001" })).toEqual({
+      tab: "rapporter",
+      round: "a1000000-0000-4000-8000-000000000001",
+    });
+    expect(validate({ tab: "unrecognized", round: "not-a-version" })).toEqual({});
+  });
   it("does not generate simulated sensor readings or feed them to report preview in customer mode", () => {
     renderProject();
     expect(state.sensors).not.toHaveBeenCalled();

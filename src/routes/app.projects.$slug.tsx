@@ -18,6 +18,7 @@ import {
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
+import { DroneSurveyWorkspace } from "@/components/project/DroneSurveyWorkspace";
 import { PublicBaselinePanel } from "@/components/project/PublicBaselinePanel";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
 import { IndicatorDetail } from "@/components/indicators/IndicatorDetail";
@@ -98,6 +99,15 @@ function AuditIcon({ name }: { name: string }) {
 }
 
 export const Route = createFileRoute("/app/projects/$slug")({
+  validateSearch: (search: Record<string, unknown>): { tab?: string; round?: string } => ({
+    ...(typeof search.tab === "string" && TABS.some((tab) => tab.id === search.tab)
+      ? { tab: search.tab }
+      : {}),
+    ...(typeof search.round === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.round)
+      ? { round: search.round.toLowerCase() }
+      : {}),
+  }),
   head: () => ({ meta: [{ title: "Projekt — GoFreyra" }] }),
   // Project reads depend on the browser-persisted Supabase session. Rendering
   // this route on the server would execute all suspense queries without the
@@ -118,6 +128,8 @@ export const Route = createFileRoute("/app/projects/$slug")({
 });
 
 const TABS = [
+  { id: "arbejde", label: "Undersøgelse" },
+  { id: "rapporter", label: "Rapport og levering" },
   { id: "grundlag", label: "Grundlag" },
   { id: "overblik", label: "Overblik" },
   { id: "sites", label: "Sites" },
@@ -128,7 +140,6 @@ const TABS = [
   { id: "roller", label: "Roller" },
   { id: "dokumentation", label: "Dokumentation" },
   { id: "medier", label: "Medier" },
-  { id: "rapporter", label: "Rapporter" },
   { id: "miljodata", label: "Miljødata" },
   { id: "livekort", label: "Livekort" },
 ];
@@ -137,6 +148,8 @@ const TABS = [
 
 function ProjectDetailPage() {
   const { slug } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
 
   const { data: project } = useSuspenseQuery({
     queryKey: ["project-by-slug", slug],
@@ -330,9 +343,42 @@ function ProjectDetailPage() {
         openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
       />
 
-      <ProjectTabs tabs={TABS}>
+      <ProjectTabs
+        tabs={TABS}
+        activeTab={search.tab ?? "arbejde"}
+        primaryTabIds={["arbejde", "rapporter"]}
+        onTabChange={(tab) =>
+          void navigate({ search: (previous) => ({ ...previous, tab }), replace: true })
+        }
+      >
         {(active) => (
           <>
+            {active === "arbejde" && (
+              <DroneSurveyWorkspace
+                project={project}
+                selectedRoundId={search.round}
+                onSelectRound={(round) =>
+                  void navigate({
+                    search: (previous) => ({ ...previous, tab: "arbejde", round }),
+                    replace: true,
+                  })
+                }
+                onOpenDelivery={() =>
+                  void navigate({
+                    search: (previous) => ({ ...previous, tab: "rapporter" }),
+                    replace: true,
+                  })
+                }
+                photoCount={droneUploadOverview?.receivedDroneUploads}
+                onPhotosChanged={async () => {
+                  await Promise.all([
+                    droneUploadsQuery.refetch(),
+                    queryClient.invalidateQueries({ queryKey: ["project-media", projectId] }),
+                    queryClient.invalidateQueries({ queryKey: ["survey-round-media-candidates"] }),
+                  ]);
+                }}
+              />
+            )}
             {/* ── Overblik ─────────────────────────────────────────────────── */}
             {active === "grundlag" && <PublicBaselinePanel key={project.id} project={project} />}
             {active === "overblik" && (
@@ -682,6 +728,15 @@ function ProjectDetailPage() {
 
                 {/* Report preview */}
                 <ReportPreviewCard preview={reportPreview} />
+                <DokumentationTab
+                  projectId={projectId}
+                  project={project}
+                  sites={sites}
+                  actions={localActions}
+                  indicators={indicators}
+                  evidenceFiles={evidenceFiles}
+                  delivery
+                />
               </div>
             )}
 
@@ -1065,6 +1120,7 @@ function DokumentationTab({
   actions,
   indicators,
   evidenceFiles,
+  delivery = false,
 }: {
   projectId: string;
   project: import("@/lib/supabase/types").Project;
@@ -1072,6 +1128,7 @@ function DokumentationTab({
   actions: Action[];
   indicators: import("@/lib/supabase/types").Indicator[];
   evidenceFiles: import("@/lib/supabase/types").EvidenceFile[];
+  delivery?: boolean;
 }) {
   const { data: documents = [] } = useQuery({
     queryKey: ["documents", projectId],
@@ -1103,11 +1160,24 @@ function DokumentationTab({
 
   return (
     <div className="space-y-4">
-      <div className="grid lg:grid-cols-[1fr_360px] gap-4">
+      {delivery && (
+        <Card className="p-5">
+          <h3 className="font-semibold">Afleveringen er endnu ikke klar</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            PDF-knappen henter en foreløbig projektkladde. Den samlede rapport med daterede kilder,
+            fotonoter, faglig godkendelse og en låst rapportversion er stadig under udvikling.
+          </p>
+        </Card>
+      )}
+      <div className={delivery ? "space-y-4" : "grid lg:grid-cols-[1fr_360px] gap-4"}>
         <Card>
           <CardHeader
-            title="Genererede dokumenter"
-            subtitle="Rapporter, notater og eksporter til myndigheder og partnere"
+            title={delivery ? "Projektkladde og eksisterende dokumenter" : "Genererede dokumenter"}
+            subtitle={
+              delivery
+                ? "En kladde kræver fortsat kontrol før aflevering"
+                : "Rapporter, notater og eksporter til myndigheder og partnere"
+            }
             action={
               <div className="flex items-center gap-2">
                 <Pill tone="info">{documents.length}</Pill>
@@ -1124,15 +1194,17 @@ function DokumentationTab({
             <DocumentList projectId={projectId} />
           </div>
         </Card>
-        <Card>
-          <CardHeader
-            title="Dokumentationsscore"
-            subtitle="Hvor komplet er projektets dokumentation"
-          />
-          <div className="px-5 pb-5">
-            <DocumentationScore score={score} />
-          </div>
-        </Card>
+        {!delivery && (
+          <Card>
+            <CardHeader
+              title="Dokumentationsscore"
+              subtitle="Hvor komplet er projektets dokumentation"
+            />
+            <div className="px-5 pb-5">
+              <DocumentationScore score={score} />
+            </div>
+          </Card>
+        )}
       </div>
 
       <Card>

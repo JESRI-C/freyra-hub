@@ -33,9 +33,11 @@ function readableError(failure: unknown): string {
 export function SurveyRoundMediaPanel({
   round,
   plan,
+  guided = false,
 }: {
   round: SurveyRoundVersion;
   plan: VerificationPlanVersion;
+  guided?: boolean;
 }) {
   const { user } = useAuth();
   const [mediaId, setMediaId] = useState("");
@@ -178,6 +180,21 @@ export function SurveyRoundMediaPanel({
       ? (bindings.data?.pages.flatMap((page) => page.items) ?? [])
       : [];
   const selected = stored.find((item) => item.id === selectedBindingId) ?? stored[0] ?? null;
+  const readMoreCandidates = useRef(candidates.fetchNextPage);
+  readMoreCandidates.current = candidates.fetchNextPage;
+  const missingPhotoNames =
+    guided &&
+    accessReady &&
+    !candidates.error &&
+    candidates.hasNextPage === true &&
+    !candidates.isFetchingNextPage &&
+    available.length < 200 &&
+    stored.some((binding) => !available.some((photo) => photo.mediaId === binding.mediaId));
+  useEffect(() => {
+    // Resolve actual filenames for batch selections beyond the first page.
+    // This performs bounded reads only; it never selects or assigns a photo.
+    if (missingPhotoNames) void readMoreCandidates.current();
+  }, [missingPhotoNames]);
   const bindingKey = selected ? `${selected.id}:${selected.manifestSha256}` : "";
   const previewSelection = useRef(bindingKey);
   previewSelection.current = bindingKey;
@@ -530,10 +547,13 @@ export function SurveyRoundMediaPanel({
     "Spørgsmålet kunne ikke genfindes i den gemte plan.";
   return (
     <section aria-label="Fotos til registreringsrunden" className="rounded border p-3 space-y-3">
-      <h3 className="font-medium">Fotos til registreringsrunden</h3>
+      <h3 className="font-medium">
+        {guided ? "Gennemgå foto og spørgsmål" : "Fotos til registreringsrunden"}
+      </h3>
       <p className="text-sm text-muted-foreground">
-        Vælg et originalfoto, der allerede er modtaget i sagen, og de spørgsmål fra denne gemte
-        runde, som billedet skal belyse. Tilknytningen er et udkast til senere faglig gennemgang.
+        {guided
+          ? "Vælg et tilknyttet foto nedenfor, åbn originalen, og beskriv, hvad der kan afgøres. Noterne gemmes som kladder til faglig gennemgang."
+          : "Vælg et originalfoto, der allerede er modtaget i sagen, og de spørgsmål fra denne gemte runde, som billedet skal belyse. Tilknytningen er et udkast til senere faglig gennemgang."}
       </p>
       <p className="text-sm">
         Planlagt registrering: {round.manifest.recordingWindow.dateFrom}–
@@ -565,107 +585,111 @@ export function SurveyRoundMediaPanel({
       )}
       {bound && accessReady && (
         <>
-          <fieldset disabled={locked} className="space-y-2">
-            <legend className="font-medium text-sm">Tilknyt et originalfoto</legend>
-            <label className="block text-sm">
-              Originalfoto
-              <select
-                aria-label="Originalfoto til runden"
-                value={mediaId}
-                onChange={(event) => setMediaId(event.target.value)}
-                className="block w-full rounded border bg-background p-2"
-              >
-                <option value="">Vælg et foto …</option>
-                {available.map((item) => (
-                  <option
-                    key={item.mediaId}
-                    value={item.mediaId}
-                    disabled={stored.some((binding) => binding.mediaId === item.mediaId)}
+          {(!guided || !!receipt) && (
+            <>
+              <fieldset disabled={locked} className="space-y-2">
+                <legend className="font-medium text-sm">Tilknyt et originalfoto</legend>
+                <label className="block text-sm">
+                  Originalfoto
+                  <select
+                    aria-label="Originalfoto til runden"
+                    value={mediaId}
+                    onChange={(event) => setMediaId(event.target.value)}
+                    className="block w-full rounded border bg-background p-2"
                   >
-                    {item.fileName} · {Math.ceil(item.sizeBytes / 1024)} kB
-                    {item.originalValidationStatus === "review_required"
-                      ? " · Afventer gennemgang"
-                      : ""}
-                    {stored.some((binding) => binding.mediaId === item.mediaId)
-                      ? " · Allerede tilknyttet"
-                      : ""}
-                  </option>
+                    <option value="">Vælg et foto …</option>
+                    {available.map((item) => (
+                      <option
+                        key={item.mediaId}
+                        value={item.mediaId}
+                        disabled={stored.some((binding) => binding.mediaId === item.mediaId)}
+                      >
+                        {item.fileName} · {Math.ceil(item.sizeBytes / 1024)} kB
+                        {item.originalValidationStatus === "review_required"
+                          ? " · Afventer gennemgang"
+                          : ""}
+                        {stored.some((binding) => binding.mediaId === item.mediaId)
+                          ? " · Allerede tilknyttet"
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {round.manifest.questionIds.map((id) => (
+                  <label key={id} className="flex gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      aria-label={questionTitle(id)}
+                      checked={questionIds.includes(id)}
+                      onChange={(event) =>
+                        setQuestionIds((previous) =>
+                          event.target.checked
+                            ? [...previous, id]
+                            : previous.filter((value) => value !== id),
+                        )
+                      }
+                    />
+                    {questionTitle(id)}
+                  </label>
                 ))}
-              </select>
-            </label>
-            {round.manifest.questionIds.map((id) => (
-              <label key={id} className="flex gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  aria-label={questionTitle(id)}
-                  checked={questionIds.includes(id)}
-                  onChange={(event) =>
-                    setQuestionIds((previous) =>
-                      event.target.checked
-                        ? [...previous, id]
-                        : previous.filter((value) => value !== id),
-                    )
-                  }
-                />
-                {questionTitle(id)}
-              </label>
-            ))}
-          </fieldset>
-          {candidates.isPending && <p className="text-sm">Henter originalfotos …</p>}
-          {!candidates.isPending && !candidates.error && available.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Der er endnu ingen gemte droneoriginaler at vælge i sagen.
-            </p>
-          )}
-          {candidates.hasNextPage && !candidates.error && (
-            <button
-              type="button"
-              className="text-sm underline"
-              disabled={candidates.isFetchingNextPage}
-              onClick={() => void candidates.fetchNextPage()}
-            >
-              Vis flere originalfotos
-            </button>
-          )}
-          {receipt && (
-            <p className="text-sm">
-              Et genforsøg er bevaret med samme originalfoto og spørgsmål. Nye valg er låst, indtil
-              tilknytningen er bekræftet. Originalfoto i genforsøget: {receipt.fileName}.
-            </p>
-          )}
-          <button
-            type="button"
-            className="rounded border px-3 py-2 text-sm"
-            disabled={
-              !canAssign ||
-              pending ||
-              !receiptReady ||
-              !!localError ||
-              !!candidates.error ||
-              !!bindings.error ||
-              (!receipt && (!candidate || alreadyBound || questionIds.length === 0))
-            }
-            onClick={() => save.mutate()}
-          >
-            {save.isPending
-              ? "Gemmer og bekræfter …"
-              : receipt
-                ? "Prøv samme billedtilknytning igen"
-                : "Gem billedtilknytning som udkast"}
-          </button>
-          {receipt && confirmedSaved && (
-            <button
-              type="button"
-              className="text-sm underline"
-              disabled={pending}
-              onClick={() => confirm.mutate()}
-            >
-              {confirm.isPending
-                ? "Bekræfter …"
-                : confirmedReceipt
-                  ? "Bekræft og ryd genforsøgsreferencen igen"
-                  : "Bekræft den gemte tilknytning igen"}
-            </button>
+              </fieldset>
+              {candidates.isPending && <p className="text-sm">Henter originalfotos …</p>}
+              {!candidates.isPending && !candidates.error && available.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Der er endnu ingen gemte droneoriginaler at vælge i sagen.
+                </p>
+              )}
+              {candidates.hasNextPage && !candidates.error && (
+                <button
+                  type="button"
+                  className="text-sm underline"
+                  disabled={candidates.isFetchingNextPage}
+                  onClick={() => void candidates.fetchNextPage()}
+                >
+                  Vis flere originalfotos
+                </button>
+              )}
+              {receipt && (
+                <p className="text-sm">
+                  Et genforsøg er bevaret med samme originalfoto og spørgsmål. Nye valg er låst,
+                  indtil tilknytningen er bekræftet. Originalfoto i genforsøget: {receipt.fileName}.
+                </p>
+              )}
+              <button
+                type="button"
+                className="rounded border px-3 py-2 text-sm"
+                disabled={
+                  !canAssign ||
+                  pending ||
+                  !receiptReady ||
+                  !!localError ||
+                  !!candidates.error ||
+                  !!bindings.error ||
+                  (!receipt && (!candidate || alreadyBound || questionIds.length === 0))
+                }
+                onClick={() => save.mutate()}
+              >
+                {save.isPending
+                  ? "Gemmer og bekræfter …"
+                  : receipt
+                    ? "Prøv samme billedtilknytning igen"
+                    : "Gem billedtilknytning som udkast"}
+              </button>
+              {receipt && confirmedSaved && (
+                <button
+                  type="button"
+                  className="text-sm underline"
+                  disabled={pending}
+                  onClick={() => confirm.mutate()}
+                >
+                  {confirm.isPending
+                    ? "Bekræfter …"
+                    : confirmedReceipt
+                      ? "Bekræft og ryd genforsøgsreferencen igen"
+                      : "Bekræft den gemte tilknytning igen"}
+                </button>
+              )}
+            </>
           )}
           {bindings.isPending && <p className="text-sm">Henter gemte billedtilknytninger …</p>}
           <p className="text-xs text-muted-foreground">
@@ -703,7 +727,7 @@ export function SurveyRoundMediaPanel({
           )}
           {!!stored.length && (
             <label className="block text-sm">
-              Gemt billedtilknytning
+              {guided ? "Foto til gennemgang" : "Gemt billedtilknytning"}
               <select
                 aria-label="Gemt billedtilknytning"
                 value={selected?.id ?? ""}
@@ -796,6 +820,7 @@ export function SurveyRoundMediaPanel({
                 binding={selected}
                 round={round}
                 plan={plan}
+                guided={guided}
               />
             </div>
           )}

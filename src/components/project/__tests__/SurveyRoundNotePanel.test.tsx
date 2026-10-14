@@ -19,6 +19,7 @@ const state = vi.hoisted(() => ({
   effects: [] as (() => void | (() => void))[],
   cleanups: [] as (() => void)[],
   userId: null as string | null,
+  guided: false,
   access: null as Access | null,
   accessError: null as Error | null,
   accessPending: false,
@@ -173,7 +174,12 @@ function tree(depth = 0): React.ReactElement {
   if (depth > 10) throw new Error("Synthetic effects did not settle");
   state.cursor = 0;
   state.effects = [];
-  const result = SurveyRoundNotePanel({ binding: f.binding, round: f.round, plan: f.plan });
+  const result = SurveyRoundNotePanel({
+    binding: f.binding,
+    round: f.round,
+    plan: f.plan,
+    guided: state.guided,
+  });
   if (state.effects.length) {
     for (const effect of state.effects) {
       const cleanup = effect();
@@ -275,6 +281,7 @@ beforeEach(async () => {
     effects: [],
     cleanups: [],
     userId: f.noteRow.created_by,
+    guided: false,
     access: { projectId: f.round.projectId, userId: f.noteRow.created_by, canDraft: true },
     accessError: null,
     accessPending: false,
@@ -323,6 +330,26 @@ afterEach(() => {
 });
 
 describe("saved-photo manual note UI", () => {
+  it("uses the one actual saved question in the guided flow but still requires an explicit assessment", async () => {
+    state.guided = true;
+    const out = html();
+    expect(out).toContain(f.plan.manifest.questions[0].title);
+    expect(out).not.toContain('aria-label="Spørgsmål til den manuelle note"');
+    expect(out).toContain("Vælg vurdering");
+    expect(out).toContain("Ikke vurderet");
+    expect(state.saveCalls).toEqual([]);
+    await expect(run()).rejects.toThrow();
+    expect(state.saveCalls).toEqual([]);
+    change("Manuel vurdering", f.noteInput.manual.qualitativeAnswer);
+    change("Manuel beskrivelse", f.noteInput.manual.manualStatement);
+    change("Usikkerhed", f.noteInput.manual.uncertainty);
+    change("Foreslået opfølgning", f.noteInput.manual.proposedFollowup);
+    await run();
+    expect((state.saveCalls[0] as { data: SaveSurveyRoundNoteInput }).data.questionId).toBe(
+      f.noteInput.questionId,
+    );
+    expect(html()).toContain("Ikke fagligt gennemgået");
+  });
   it("requires an explicit answer and keeps priority unassessed without signing or auto-writing", () => {
     const out = html();
     expect(out).toContain(f.plan.manifest.questions[0].title);

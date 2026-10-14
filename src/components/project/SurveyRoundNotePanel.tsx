@@ -43,10 +43,12 @@ export function SurveyRoundNotePanel({
   binding,
   round,
   plan,
+  guided = false,
 }: {
   binding: SurveyRoundMediaVersion;
   round: SurveyRoundVersion;
   plan: VerificationPlanVersion;
+  guided?: boolean;
 }) {
   const { user } = useAuth();
   const [questionId, setQuestionId] = useState("");
@@ -114,6 +116,7 @@ export function SurveyRoundNotePanel({
     };
   }, []);
   const questions = surveyRoundNoteQuestions({ binding, round, plan });
+  const singleQuestion = guided && questions.length === 1 ? questions[0] : null;
   const bound = questions.length > 0;
   const access = useQuery({
     queryKey: ["survey-round-note-access", key],
@@ -187,7 +190,7 @@ export function SurveyRoundNotePanel({
       ) ?? null)
     : null;
   const resetFields = () => {
-    setQuestionId("");
+    setQuestionId(singleQuestion?.id ?? "");
     setAnswer("");
     setStatement("");
     setUncertainty("");
@@ -411,9 +414,9 @@ export function SurveyRoundNotePanel({
     >
       <h4 className="font-medium">Manuel note til foto og spørgsmål</h4>
       <p className="text-sm text-muted-foreground">
-        Beskriv din manuelle vurdering af referencespørgsmålet. Noten er en kladde uden fagligt
-        review. Den fastslår ikke opmåling, arter, hydrauliske forhold eller rapportklarhed. Fotoet
-        åbnes særskilt ovenfor; gemning dokumenterer ikke, at det er blevet set.
+        {guided
+          ? "Åbn fotoet ovenfor. Besvar spørgsmålet med din egen vurdering, beskriv usikkerheden, og foreslå eventuel opfølgning. Noten afventer faglig godkendelse."
+          : "Beskriv din manuelle vurdering af referencespørgsmålet. Noten er en kladde uden fagligt review. Den fastslår ikke opmåling, arter, hydrauliske forhold eller rapportklarhed. Fotoet åbnes særskilt ovenfor; gemning dokumenterer ikke, at det er blevet set."}
       </p>
       {error && (
         <p role="alert" className="text-sm text-destructive">
@@ -444,22 +447,26 @@ export function SurveyRoundNotePanel({
             <>
               <fieldset disabled={locked} className="space-y-2">
                 <legend className="font-medium text-sm">Ny note (ikke fagligt gennemgået)</legend>
-                <label className="block text-sm">
-                  Gemt spørgsmål
-                  <select
-                    aria-label="Spørgsmål til den manuelle note"
-                    value={questionId}
-                    onChange={(e) => setQuestionId(e.target.value)}
-                    className="block w-full border rounded bg-background p-2"
-                  >
-                    <option value="">Vælg spørgsmål …</option>
-                    {questions.map((question) => (
-                      <option key={question.id} value={question.id}>
-                        {question.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {singleQuestion ? (
+                  <p className="text-sm font-medium">{singleQuestion.title}</p>
+                ) : (
+                  <label className="block text-sm">
+                    Gemt spørgsmål
+                    <select
+                      aria-label="Spørgsmål til den manuelle note"
+                      value={questionId}
+                      onChange={(e) => setQuestionId(e.target.value)}
+                      className="block w-full border rounded bg-background p-2"
+                    >
+                      <option value="">Vælg spørgsmål …</option>
+                      {questions.map((question) => (
+                        <option key={question.id} value={question.id}>
+                          {question.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <label className="block text-sm">
                   Manuel vurdering
                   <select

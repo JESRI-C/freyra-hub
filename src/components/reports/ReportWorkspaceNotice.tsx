@@ -22,16 +22,17 @@ export function ReportWorkspaceNotice() {
             genhentelig fil er endnu ikke tilgængelig i denne rapportbygger.
           </p>
           <p>
-            Næste skridt: gennemgå projektets grundlag og den gemte fototilknytning. Manuel
-            observation, fagligt review og den endelige kommunale rapport følger som særskilte trin.
+            Gennemgå billeder og manuelle kladdenoter under Undersøgelse. Faglig godkendelse og den
+            endelige kommunale rapport mangler fortsat.
           </p>
           {currentProject ? (
             <Link
               to="/app/projects/$slug"
               params={{ slug: currentProject.slug || currentProject.id }}
+              search={{ tab: "rapporter" }}
               className="inline-flex rounded-lg bg-primary text-primary-foreground px-3 py-2"
             >
-              Åbn {currentProject.name}
+              Åbn rapport og levering for {currentProject.name}
             </Link>
           ) : (
             <Link
