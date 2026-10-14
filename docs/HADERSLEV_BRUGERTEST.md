@@ -10,7 +10,7 @@ Målet er at finde både fejl og situationer, hvor programmet fungerer teknisk, 
 | --- | --- | --- | --- |
 | A | Sagsområde, offentligt datagrundlag, plan og undersøgelsesrunder | Klar til din første afprøvning i den nye tomme testsag. Begynd med testområde/reference. Den tidligere syntetiske kæde er teknisk afprøvet. | 14.–16. oktober; første lille test 30–45 minutter |
 | B | Egne dronebilleder, kobling til spørgsmål, dubletter og genoptagelse | Den tekniske draftbinding er nu udrullet i staging og bestod 68 kontroller med en syntetisk miniature. Din afprøvning med ét faktisk foto og derefter 10/120-batch mangler. | 19.–23. oktober, efter A og med egne originalfotos til rådighed |
-| C | Observationer, faglig gennemgang, forståelig rapport og genåbning af afleveringsfiler | Rapportfladen er opdateret i testsystemet med tydelig kladdestatus. Noter, faglig gennemgang, færdig rapport og arkiverede afleveringsfiler er stadig under udvikling. | 26.–30. oktober, når observationer og rapport er klar til afprøvning |
+| C | Manuelle kladdenoter, faglig gennemgang, forståelig rapport og genåbning af afleveringsfiler | Noter er teknisk API-afprøvet i en særskilt syntetisk sag. Din noteformular med egne fotos er endnu ikke afprøvet; fagligt review, færdig rapport og arkiv er stadig åbne. | 26.–30. oktober, når den relevante del er klar til afprøvning |
 | D | Hele forløbet igen med en ny sag og realistiske billeder | Slutprøve efter rettelser, med tid til en sidste rettelsesrunde før 10. november. | 2.–3. november; samlet prøve senest 3. november |
 
 Datoerne er testmål, afhængige af de nævnte forudsætninger; de er ikke en påstand om, at rapportdelen allerede er klar. Første A-test kan begynde nu i den tomme testsag. Vi sigter mod rettelser og genprøve **5.–6. november** og en aftalt, frosset mødeversion **9. november** før mødet den 10. november.
@@ -61,21 +61,21 @@ Prøv samme billede igen, et billede med manglende optageoplysninger og en filty
 
 **Det skal lykkes:** Dubletter behandles forståeligt, og den oprindelige dokumentation bevares. Uunderstøttede eller beskadigede filer afvises med en brugbar besked. Manglende oplysninger bliver ikke opfundet. Testfilerne ændrer ikke eksisterende kundesager.
 
-### C1 — En observation og en usikker vurdering
+### C1 — En manuel kladdenote og en usikker vurdering
 
-Når observationer er frigivet, besvar et spørgsmål ud fra et konkret billede. Prøv også en situation, hvor billedet ikke er godt nok til en konklusion.
+Manuelle kladdenoter er teknisk afprøvet med to syntetiske API-noter. Når din testsag har en gemt runde, et originalfoto og en billedbinding, afprøv selve formularen: besvar referencespørgsmålet manuelt og beskriv usikkerhed og foreslået opfølgning. Prøv også en situation, hvor billedet ikke giver en konklusion. Denne brugerafprøvning med egne fotos er endnu ikke gennemført.
 
-**Det skal lykkes:** Du kan dokumentere både en observation og usikkerhed eller behov for besigtigelse. Det fremgår, hvem der har skrevet vurderingen, og hvilket billede, spørgsmål og datagrundlag den vedrører. Faglig godkendelse er et særskilt trin.
+**Det skal lykkes:** Du kan gemme og genåbne en manuel kladdenote med usikkerhed eller behov for besigtigelse. Det fremgår, hvem der skrev den, og hvilket gemt billede, spørgsmål og datagrundlag den vedrører. Noten giver ingen automatisk billedfortolkning eller fagligt godkendt observation; faglig godkendelse er stadig et særskilt, ufærdigt trin.
 
 ### C2 — En rapport, som kommunen skal kunne bruge
 
-Gennemgå rapporten uden at få en mundtlig forklaring fra udvikleren.
+Når den faktiske rapport og det faglige review er klar, gennemgå rapporten uden en mundtlig forklaring fra udvikleren. Den nuværende rapportarbejdsflade er et udkast; C2 er endnu ikke accepteret.
 
 **Det skal lykkes:** Du kan finde sagens afgrænsning, datagrundlagets datoer og mangler, underbyggede observationer, relevante fotos og foreslået opfølgning. Det er tydeligt, hvad der er gennemgået, af hvem, og hvad der stadig er usikkert. Ingen eksempelperson eller statisk vurdering fremstår som en faktisk godkendelse.
 
 ### C3 — Luk, genåbn og aflever
 
-Hent rapport og bilag, luk siden, og hent den samme gemte rapportversion igen. Åbn PDF og relevante datafiler uden for programmet.
+Når faktisk lagrede afleveringsfiler er klar, hent rapport og bilag, luk siden, og hent den samme gemte rapportversion igen. Åbn PDF og relevante datafiler uden for programmet. Hosted PDF-download og arkiv er endnu ikke accepteret; C3 afventer denne funktion.
 
 **Det skal lykkes:** De faktiske filer findes, kan åbnes og svarer til den valgte rapportversion. Kort, billeder, tekst, datoer og danske tegn er læselige. Et dokumentlink eller en metadatarække tæller ikke som en arkiveret PDF.
 
@@ -94,3 +94,5 @@ Vi registrerer scenarie, handling, forventet resultat, faktisk resultat og konse
 Den konkrete kommunale strækning ved Bykær og den faglige godkender er stadig uafklaret. Vi afprøver programmet i tydeligt adskilte testsager, indtil scope er valgt.
 
 [Det tekniske 68-checks bevis og dets afgrænsning](haderslev-audit/staging-round-media-checkpoint-2026-10-14.json). Faktisk brugeraccept med egne billeder registreres særskilt.
+
+[Teknisk afprøvning af de manuelle kladdenoter](haderslev-audit/staging-round-note-checkpoint-2026-10-14.json). API-test er ikke brugeraccept af formularen eller faglig godkendelse.

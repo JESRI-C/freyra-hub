@@ -8,24 +8,26 @@
 
 - Offentligt datagrundlag, plan og før-/kontrolrunder kan gemmes som bestemte versioner. De tidligere 40 og 81 kontroller er bevarede beviser på den daværende version.
 - En privat original kan nu knyttes til den præcise gemte runde og dens spørgsmål. Samme original kan bruges i en anden runde uden en ny filkopi.
-- Den nye mediekæde bestod 68 kontroller i det kørende testmiljø, blandt andet gentagne gemninger, genåbning, privat hentning og afvist adgang. Kun to draftbindinger blev oprettet; gamle data blev bevaret.
-- Den aktuelle version har bestået 1.812 apptests, 534 databasekontroller og 18 samtidighedscases. Optimeringen af gentagen datakontrol er med i denne version; ingen påstand om varig hastighed eller tilgængelighed følger af testen.
+- Det historiske medieforløb på5c bestod 68 kontroller i det kørende testmiljø, blandt andet gentagne gemninger, genåbning, privat hentning og afvist adgang. Kun to draftbindinger blev oprettet; gamle data blev bevaret.
+- Den aktuelle70028-version har bestået 1.968 apptests, 601 databasekontroller og 25 samtidighedscases. Optimeringen af gentagen datakontrol er med i denne version; ingen påstand om varig hastighed eller tilgængelighed følger af testen.
 
-Medietesten brugte en eksisterende syntetisk fil på 137 bytes. Dine egne fotos og en rigtig 10/120-billedbatch er endnu ikke accepteret.
+Manuelle kladdenoter bestod 67 kontroller i den særskilte syntetiske API-testsag. To noter er gemt uden faglig godkendelse. Den faktiske noteformular og egne fotos er endnu ikke browserafprøvet. Medietesten brugte en eksisterende syntetisk fil på 137 bytes. Dine egne fotos og en rigtig 10/120-billedbatch er endnu ikke accepteret.
 
 ## Næste arbejde
 
 1. **Din afprøvning:** vælg testområde/reference, gennemgå datagrundlag og runder, og prøv derefter ét eget originalfoto før en større batch. Notér også, når resultatet er svært at bruge.
-2. **Observationer og faglig gennemgang:** gem, hvad et konkret billede viser, usikkerhed og behov for kontrol på stedet. Notedelen er endnu en kladde. M1 er samlet lokalt efter review; de fulde kontroller kører, mens SQL-, 25-samtidigheds- og hostedaccept afventer.
+2. **Observationer og faglig gennemgang:** gem, hvad et konkret billede viser, usikkerhed og behov for kontrol på stedet. Manuelle kladdenoter kan gemmes og genåbnes til det præcise billede og spørgsmål. Din afprøvning med egne fotos og den faglige godkendelse mangler stadig.
 3. **Brugbar rapport og aflevering:** rapportarbejdsfladen er nu opdateret i testsystemet og viser tydelig kladdestatus, ukendt periode og manglende faglig gennemgang. Gemt FØR-rapport, faglig godkendelse og faktisk arkiveret PDF/manifest/CSV/GeoJSON mangler.
 4. **Reel pilot og slutprøve:** egne billeder, afbrydelse/genoptagelse, faglig accept og hele forløbet frem til genåbnede afleveringsfiler skal prøves før mødet.
 
 ## Datagrundlag og kommunal afgrænsning
 
-Testsagens kilder er stadig delvise: rastermetadata, natur-/vandplanskandidater, satellitkatalog, DMI-døgnværdier og syv generiske undersøgelsessteder. Det er endnu ikke terrænanalyser, lokal satellitverifikation eller verificerede hydrometriske målestationer. Relevante datoer, lokal dækning, måleserier og regulativ skal færdiggøres eller fremgå som datamangler.
+Det teknisk afprøvede kildeinventar er stadig delvist: rastermetadata, natur-/vandplanskandidater, satellitkatalog, DMI-døgnværdier og syv generiske undersøgelsessteder. Det er endnu ikke terrænanalyser, lokal satellitverifikation eller verificerede hydrometriske målestationer. Relevante datoer, lokal dækning, måleserier og regulativ skal færdiggøres eller fremgå som datamangler.
 
 Bykær Bæk er én af flere cases. Den konkrete delstrækning, kommunens formål, godkender og øvrige cases er åbne; de omtalte 83 meter er stadig uafklaret. En testmarkering vælger ingen kommunal strækning. Ingen faglig eller kommunal godkendelse er afledt af de tekniske tests; produktion og kundedata er uændrede.
 
-[Opgaveliste](HADERSLEV_OPGAVER.md) · [Plan](HADERSLEV_PLAN_2026-11-10.md) · [Nyt teknisk bevis](haderslev-audit/staging-round-media-checkpoint-2026-10-14.json)
+[Opgaveliste](HADERSLEV_OPGAVER.md) · [Plan](HADERSLEV_PLAN_2026-11-10.md) · [Historisk mediebevis](haderslev-audit/staging-round-media-checkpoint-2026-10-14.json)
 
-Rapportcenteret og testsagens rapportfane er kontrolleret i den kørende version. [Bevis for rapportvisningen](haderslev-audit/staging-report-ui-checkpoint-2026-10-14.json).
+Rapportcenteret og testsagens rapportfane blev kontrolleret på 8eff-versionen. Rapportheaderen på den nye 70028-version er læst i en separat fane; noteformularen med egne fotos afventer brugerafprøvning. [Bevis for rapportvisningen](haderslev-audit/staging-report-ui-checkpoint-2026-10-14.json).
+
+[Noternes tekniske bevis og afgrænsning](haderslev-audit/staging-round-note-checkpoint-2026-10-14.json).
