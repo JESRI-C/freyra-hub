@@ -1,6 +1,14 @@
 # Haderslev: udførelse og accept
 
-## Aktuelt notecheckpoint — 14. oktober 2026
+## Aktuelt checkpoint: fem brugerrejser og samlet undersøgelse — 14. oktober 2026
+
+Fem simulerede brugerperspektiver har prioriteret en samlet dronearbejdsgang. Undersøgelse er nu projektets startside med direkte batchupload, én eksplicit handling til datagrundlag → faktisk plan → FØR-runde, samlet fotovalg, kort og manuelle noter. Rapport og levering samler rapportoversigten og PDF-kladden; fane og præcis runde bevares i adressen. GPS fra en tidligere fil overføres ikke længere ved filskift. [Fund og resterende accept for alle fem grupper](HADERSLEV_BRUGERTEST.md).
+
+Kode d338936adc9c1e6aefa3d41baaa4e145b491a7f6 er på staging-Worker 8b6dbad5-fe40-4f74-8665-30b4738b00db. [CI26](https://github.com/JESRI-C/freyra-hub/actions/runs/38603055037) består med 130 filer/2.111 tests, typekontrol, faktorer, build og lint (0 fejl/23 eksisterende advarsler); 10 SQL-filer/601 assertions og 25 samtidighedscases samt oprydning består. Lokalt består den fulde 2.110-testbaseline på8bca og 39 målrettede tests efter den sidste browserrettelse. Det normale 4 GiB-stagingbuild og faktisk nøglescan består; fire eksisterende krypterede bindingsnavne er bevaret. Den nye navigation og uploaddialog er browserafprøvet uden nye filer eller faglige registreringer. Ingen ny databaseændring eller produktion. [Nyt afgrænset bevis](haderslev-audit/staging-workflow-checkpoint-2026-10-14.json), SHA 6ec1d6d5d53a9538fea2aeb070b53665a52a95ad0fbf070a096b24808c2725a2.
+
+Næste prioriterede opgaver: (1) rigtig fil og 10/120-batch, inkl. genoptagelse og valg af en faktisk flyvning; (2) relevant dataindhold og brugbare observationer, herunder afprøvet billed-/satellitanalyse; (3) faglig gennemgang og kommunal FØR-rapport; (4) låst, genhentelig afleveringspakke; (5) samlet pilot og mødeprøve. Den nuværende plan danner højst ét regelbaseret referencespørgsmål. Automatisk lokalisering, adaptive AI-spørgsmål, billedfortolkning og færdig kommunerapport er ikke leveret af denne ændring. Bykærs konkrete delstrækning og godkender er fortsat uafklaret. Tidligere 40/81/68/67-beviser bevares på deres oprindelige versioner.
+
+## Historisk notecheckpoint — 14. oktober 2026
 
 **Manuelle kladdenoter er teknisk stagingafprøvet:** kode `70028af7845632d7f9f0fa85583c35334e39c59e` på Worker-version `97c603d4-3133-40bb-940a-1d8de0cee4db` har bestået **67 faktiske notechecks**. To selvstændige syntetiske noter er gemt som `draft_unreviewed` til de eksisterende før-/kontrolbindinger og det præcise referencespørgsmål. Begge er `inconclusive` med prioritet `not_assessed`; retry/get/list/cursor, aktuelle adgangsafvisninger, privat original og same-JWT revoke/exact restore består. Den tidligere inputgraf og begge billedbindinger er uændrede; højst to egne nye noter er tilføjet.
 

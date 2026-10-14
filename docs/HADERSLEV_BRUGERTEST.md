@@ -4,7 +4,7 @@
 
 Gennemgangen kombinerer konkrete browseropgaver i den eksisterende syntetiske testsag med gennemgang af kode og isolerede tests af rettelserne. Det er simulerede brugerperspektiver med den eksisterende bruger, ikke interviews med fem personer eller fem nye loginroller. Den konkrete kommunale strækning er ikke valgt ved testen.
 
-Browserfundene gælder den eksisterende testversion. Rettelseskolonnen beskriver ændringer under kontrol; den nye arbejdsgang er endnu ikke browseraccepteret med egne fotos.
+Browserfundene i tabellen gælder versionen før rettelserne. Den nye navigation, rapportindgang og uploaddialog er efterfølgende browserafprøvet i testmiljøet. Arbejdsgangen er endnu ikke accepteret med egne fotos eller en reel 120-billedbatch.
 
 | Brugergruppe | Opgave og faktisk fund | Prioritet og rettelse | Resterende accept |
 | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ Browserfundene gælder den eksisterende testversion. Rettelseskolonnen beskriver
 
 **Arbejdsgangen prioriteres nu sådan:** (1) kort vej fra billeder til en gemt undersøgelse, (2) relevant datagrundlag og forståelige observationer, (3) faglig gennemgang og brugbar rapport, (4) låst afleveringspakke, (5) reel pilot og genprøve før mødet. En pæn formular eller en bestået teknisk test erstatter ikke disse leverancer.
 
-Den nye arbejdsgang samler eksisterende funktioner. Automatisk stedforslag fra billeder, faktisk satellit-/billedanalyse og adaptive AI-spørgsmål er fortsat særskilte udviklingsopgaver; de er ikke accepteret som fungerende. Den eksisterende tomme testsag bruges kun til navigation og læsning under den første browsergennemgang; der blev ikke valgt strækning, uploadet nye filer eller ændret kundenoter.
+Den nye arbejdsgang samler eksisterende funktioner. Automatisk stedforslag fra billeder, faktisk satellit-/billedanalyse og adaptive AI-spørgsmål er fortsat særskilte udviklingsopgaver; de er ikke accepteret som fungerende. Den eksisterende tomme testsag bruges kun til navigation og læsning under browsergennemgangen; der blev ikke valgt strækning, uploadet nye filer eller ændret kundenoter. Prøven fandt også en midlertidig, misvisende læseadgangsbesked; den er rettet med en målrettet regression. Uploaddialogens tekniske introduktion er forkortet, og rapportens gamle henvisning til Grundlag peger nu på Undersøgelse. Områdevalg og valg af en faktisk flyvning skal fortsat forenkles.
 
 Målet er at finde både fejl og situationer, hvor programmet fungerer teknisk, men ikke giver dig et brugbart resultat. Din første test skal begynde, når den relevante arbejdsgang er frigivet i testmiljøet. Vi venter ikke på, at alle funktioner er færdige.
 
@@ -39,7 +39,7 @@ Vi gennemgår resultaterne efter hver runde og retter fejl, før vi regner arbej
 
 ### A1 — En helt ny testsag
 
-Brug den klargjorte testsag ovenfor og afgræns et aftalt testområde. Vælg vandløbsreference og periode, hent datagrundlaget, og opret en plan og en undersøgelsesrunde. En eventuel ekstra testsag oprettes særskilt under A3.
+Brug den klargjorte testsag ovenfor og afgræns et aftalt testområde. Vælg vandløbsreference og periode. Tryk Hent data og forbered undersøgelse; programmet gemmer datagrundlag, de faktisk genererede spørgsmål og en FØR-runde. En eventuel ekstra testsag oprettes særskilt under A3.
 
 **Det skal lykkes:** Du kan forstå, hvilke oplysninger programmet har hentet, hvorfra og for hvilken periode. Du kan se, hvad der mangler, og genåbne de samme gemte versioner. Et testområde ved Bykær må ikke forveksles med en valgt kommunal delstrækning.
 
