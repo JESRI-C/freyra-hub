@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   upload: vi.fn(),
   remove: vi.fn(),
   createSignedUrl: vi.fn(),
+  getCanonicalDroneMediaUrl: vi.fn(),
   fetchEvidenceFilesByProject: vi.fn(),
   fetchAllEvidenceFiles: vi.fn(),
 }));
@@ -21,6 +22,9 @@ vi.mock("@/lib/supabase/client", () => ({
 vi.mock("@/lib/supabase/queries", () => ({
   fetchEvidenceFilesByProject: mocks.fetchEvidenceFilesByProject,
   fetchAllEvidenceFiles: mocks.fetchAllEvidenceFiles,
+}));
+vi.mock("@/lib/canonical-drone-media.functions", () => ({
+  getCanonicalDroneMediaUrl: mocks.getCanonicalDroneMediaUrl,
 }));
 
 import {
@@ -146,6 +150,98 @@ afterEach(() => {
 });
 
 describe("private project media", () => {
+  function canonicalMediaRow() {
+    const uploadId = "f0000000-0000-4000-8000-000000000006";
+    const uploaderId = "f0000000-0000-4000-8000-000000000007";
+    return mediaRow({
+      category: "drone_image",
+      source: "drone",
+      storage_bucket: "monitoring-uploads",
+      original_role: "drone_original",
+      source_upload_id: uploadId,
+      original_sha256: "a".repeat(64),
+      original_validation_sha256: "b".repeat(64),
+      original_validation_status: "review_required",
+      storage_object_id: "f0000000-0000-4000-8000-000000000008",
+      storage_object_version: "version-1",
+      storage_object_updated_at: "2026-10-13T10:00:00.000Z",
+      file_path: `${uploaderId}/intents/${uploadId}/original.JPG`,
+      file_size_bytes: 150,
+      mime_type: "image/jpeg",
+    });
+  }
+  function canonicalSignature() {
+    return {
+      projectId: PROJECT_ID,
+      mediaId: MEDIA_ID,
+      signedUrl: "https://storage.example/signed/original.JPG?token=ephemeral-test",
+      expiresInSeconds: 60,
+      originalSha256: "a".repeat(64),
+      reportEligible: false,
+      georeferenced: false,
+    };
+  }
+  it("reads canonical monitoring originals through the caller-bound pin check and ignores saved URLs", async () => {
+    mocks.dbFrom.mockReturnValue(
+      createQueryBuilder({ listResult: { data: [canonicalMediaRow()], error: null } }),
+    );
+    mocks.getCanonicalDroneMediaUrl.mockResolvedValue(canonicalSignature());
+    const result = await listProjectMedia(PROJECT_ID);
+    expect(mocks.getCanonicalDroneMediaUrl).toHaveBeenCalledExactlyOnceWith({
+      data: { projectId: PROJECT_ID, mediaId: MEDIA_ID },
+    });
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
+    expect(result.data?.[0]).toMatchObject({
+      url: canonicalSignature().signedUrl,
+      isReportReady: false,
+      status: "uploaded",
+    });
+    expect(result.data?.[0]?.url).not.toContain("legacy-public");
+  });
+  it("a failed canonical read can retry without uploading, deleting or rewriting the original", async () => {
+    mocks.dbFrom.mockReturnValue(
+      createQueryBuilder({ listResult: { data: [canonicalMediaRow()], error: null } }),
+    );
+    mocks.getCanonicalDroneMediaUrl
+      .mockRejectedValueOnce(new Error("Read access revoked"))
+      .mockResolvedValueOnce(canonicalSignature());
+    expect((await listProjectMedia(PROJECT_ID)).data).toBeNull();
+    expect((await listProjectMedia(PROJECT_ID)).data?.[0]?.id).toBe(MEDIA_ID);
+    expect(mocks.getCanonicalDroneMediaUrl).toHaveBeenCalledTimes(2);
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.remove).not.toHaveBeenCalled();
+  });
+  it("refuses a foreign project row, unsupported bucket or inconsistent server signature", async () => {
+    for (const row of [
+      { ...canonicalMediaRow(), project_id: OTHER_PROJECT_ID },
+      { ...canonicalMediaRow(), storage_bucket: "public" },
+      { ...canonicalMediaRow(), is_report_ready: true },
+    ]) {
+      mocks.dbFrom.mockReturnValue(
+        createQueryBuilder({ listResult: { data: [row], error: null } }),
+      );
+      expect((await listProjectMedia(PROJECT_ID)).data).toBeNull();
+    }
+    expect(mocks.getCanonicalDroneMediaUrl).not.toHaveBeenCalled();
+    mocks.dbFrom.mockReturnValue(
+      createQueryBuilder({ listResult: { data: [canonicalMediaRow()], error: null } }),
+    );
+    mocks.getCanonicalDroneMediaUrl.mockResolvedValue({
+      ...canonicalSignature(),
+      mediaId: EVIDENCE_ID,
+    });
+    expect((await listProjectMedia(PROJECT_ID)).data).toBeNull();
+  });
+  it("gallery deletion cannot remove a canonical original or its provenance", async () => {
+    const builder = createQueryBuilder({
+      singleResults: [{ data: canonicalMediaRow(), error: null }],
+    });
+    mocks.dbFrom.mockReturnValue(builder);
+    const result = await deleteProjectMedia(MEDIA_ID);
+    expect(result.error).toContain("kan ikke slettes");
+    expect(mocks.remove).not.toHaveBeenCalled();
+    expect(builder.delete).not.toHaveBeenCalled();
+  });
   it("materialiserer kun en kortvarig signed URL og ignorerer persisterede public URLs", async () => {
     const builder = createQueryBuilder({
       listResult: { data: [mediaRow()], error: null },
@@ -239,7 +335,10 @@ describe("private project media", () => {
     ) => Promise<MediaServiceResult<void>>;
     const result = await legacyCall(MEDIA_ID, "c0000000-0000-4000-8000-000000000003/stjålet.jpg");
 
-    expect(builder.select).toHaveBeenNthCalledWith(1, "project_id,file_path");
+    expect(builder.select).toHaveBeenNthCalledWith(
+      1,
+      "id,project_id,file_path,storage_bucket,original_role",
+    );
     expect(builder.eq).toHaveBeenNthCalledWith(1, "id", MEDIA_ID);
     expect(mocks.remove).toHaveBeenCalledOnce();
     expect(mocks.remove).toHaveBeenCalledWith([MEDIA_PATH]);

@@ -1,16 +1,17 @@
 // Sensors Service
 
-import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import { fetchSensorsByProject } from "@/lib/supabase/queries";
 import { SEED_SENSORS } from "@/data/platform-seed";
 import type { Sensor } from "@/lib/supabase/types";
 
 export async function getSensorsByProject(projectId: string): Promise<Sensor[]> {
-  if (!isSupabaseConfigured) {
+  if (isDemoDataEnabled) {
     return SEED_SENSORS.filter((s) => s.project_id === projectId).sort((a, b) =>
       (b.last_seen_at ?? "").localeCompare(a.last_seen_at ?? ""),
     );
   }
+  requireCustomerDatabase();
   return fetchSensorsByProject(projectId);
 }
 

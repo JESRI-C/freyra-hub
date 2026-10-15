@@ -20,6 +20,22 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    // This runtime module is supplied by Workers. Keep it external only in the
+    // intermediate server bundle; Nitro's Cloudflare preset handles the final
+    // Worker bundle, and the client must retain its server-only import checks.
+    environments: {
+      // Workers uses modern V8. Avoid a second browser-target pass in the final
+      // staging server bundle; client and intermediate SSR targets stay unchanged.
+      ...(process.env.CLOUDFLARE_ENV === "staging"
+        ? { nitro: { build: { target: "esnext", minify: false as const } } }
+        : {}),
+      ssr: {
+        build: { rollupOptions: { external: ["cloudflare:workers"] } },
+      },
+    },
+    // This checkout can live below an older dashboard. Its PostCSS/Tailwind
+    // configuration must not be inherited from the parent project.
+    css: { postcss: { plugins: [] } },
     optimizeDeps: {
       include: ["leaflet"],
     },

@@ -12,12 +12,14 @@ interface OAuthApi {
     } | null;
     error: { message: string } | null;
   }>;
-  approveAuthorization(
-    id: string,
-  ): Promise<{ data: { redirect_url?: string; redirect_to?: string } | null; error: { message: string } | null }>;
-  denyAuthorization(
-    id: string,
-  ): Promise<{ data: { redirect_url?: string; redirect_to?: string } | null; error: { message: string } | null }>;
+  approveAuthorization(id: string): Promise<{
+    data: { redirect_url?: string; redirect_to?: string } | null;
+    error: { message: string } | null;
+  }>;
+  denyAuthorization(id: string): Promise<{
+    data: { redirect_url?: string; redirect_to?: string } | null;
+    error: { message: string } | null;
+  }>;
 }
 function oauthApi(): OAuthApi {
   return (supabase.auth as unknown as { oauth: OAuthApi }).oauth;
@@ -88,13 +90,15 @@ function Consent() {
             Forbind {clientName} til din GoFreyra-konto
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {clientName} vil kunne bruge GoFreyra som dig og tilgå de projekter,
-            data og handlinger, du selv har adgang til. Du kan altid trække
-            adgangen tilbage.
+            {clientName} vil kunne bruge GoFreyra som dig og tilgå de projekter, data og handlinger,
+            du selv har adgang til. Du kan altid trække adgangen tilbage.
           </p>
         </div>
         {error && (
-          <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+          <div
+            role="alert"
+            className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
+          >
             {error}
           </div>
         )}

@@ -56,7 +56,10 @@ function PublicImpactPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Projektsider" subtitle="Publicerede og igangværende public impact-sider" />
+        <CardHeader
+          title="Projektsider"
+          subtitle="Publicerede og igangværende public impact-sider"
+        />
         <div className="px-5 pb-5 grid md:grid-cols-3 gap-3">
           {PUBLIC_PAGES.map((p) => (
             <div key={p.slug} className="rounded-xl border p-4 bg-card">
@@ -91,7 +94,8 @@ function PublicImpactPage() {
             <FileText className="h-4 w-4 text-primary" /> Skabeloner
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Standardlayouts til vådområde, skov, landbrug og vandløb. Genbruges på tværs af projekter.
+            Standardlayouts til vådområde, skov, landbrug og vandløb. Genbruges på tværs af
+            projekter.
           </p>
           <Link
             to="/app/reports"

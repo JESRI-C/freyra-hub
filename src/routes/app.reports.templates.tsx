@@ -1,3 +1,5 @@
+import { isDemoDataEnabled } from "@/lib/data-mode";
+import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
@@ -6,7 +8,9 @@ import { Card, PageHeader } from "@/components/ui-bits";
 import { Drawer, Section, Chip } from "@/components/reports/Primitives";
 import { TEMPLATES, AUDIENCES, TONES } from "@/lib/reports-data";
 
-export const Route = createFileRoute("/app/reports/templates")({ component: Page });
+export const Route = createFileRoute("/app/reports/templates")({
+  component: isDemoDataEnabled ? Page : ReportWorkspaceNotice,
+});
 
 function Page() {
   const [sel, setSel] = useState<(typeof TEMPLATES)[0] | null>(null);

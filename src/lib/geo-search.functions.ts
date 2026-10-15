@@ -96,7 +96,11 @@ async function safeJson<T>(res: Response): Promise<T | null> {
     console.warn(`[geo-search] Ikke-JSON respons (${ct || "ukendt"}):`, text.slice(0, 200));
     return null;
   }
-  try { return JSON.parse(text) as T; } catch { return null; }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
 }
 
 function ringAreaHa(coords: number[][]): number {
@@ -203,7 +207,7 @@ export const pickMarkblok = createServerFn({ method: "POST" })
     if (!f || !poly) return null;
     const props = f.properties ?? {};
     const label = String(
-      (props["MARKBLOKNR"] ?? props["Marknr"] ?? props["MB_NR"] ?? f.id ?? "Markblok"),
+      props["MARKBLOKNR"] ?? props["Marknr"] ?? props["MB_NR"] ?? f.id ?? "Markblok",
     );
     return {
       source: "markblok",
@@ -212,8 +216,7 @@ export const pickMarkblok = createServerFn({ method: "POST" })
       geometry: poly,
       areaHa: Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
       attribution: "© Landbrugsstyrelsen / Styrelsen for Grøn Arealomlægning og Vandmiljø",
-      disclaimer:
-        "Markblokke er en offentlig arealreference og ikke en juridisk ejendomsgrænse.",
+      disclaimer: "Markblokke er en offentlig arealreference og ikke en juridisk ejendomsgrænse.",
     };
   });
 
@@ -250,8 +253,7 @@ async function pickMatrikelDawa(lat: number, lng: number): Promise<PickedFeature
     properties: normalizeProps(props),
     geometry: poly,
     areaHa:
-      jordstykkeAreaHa(props) ??
-      Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
+      jordstykkeAreaHa(props) ?? Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
     attribution: "© SDFI / Dataforsyningen (DAWA)",
     disclaimer:
       "Matrikeldata vises som digital reference. Endelig præcis grænse kræver landinspektørfaglig vurdering.",
@@ -369,9 +371,7 @@ export const listMarkblokkeInArea = createServerFn({ method: "POST" })
     return capResults(items, AREA_LOOKUP_MAX);
   });
 
-function normalizeProps(
-  props: Record<string, unknown>,
-): Record<string, string | number | null> {
+function normalizeProps(props: Record<string, unknown>): Record<string, string | number | null> {
   const out: Record<string, string | number | null> = {};
   for (const [k, v] of Object.entries(props)) {
     if (v == null) out[k] = null;

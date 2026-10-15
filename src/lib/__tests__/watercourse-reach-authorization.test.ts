@@ -15,6 +15,13 @@ import type {
   OfficialWatercourseGeometry,
   OfficialWatercourseSuggestion,
 } from "@/services/geospatial/official-watercourse-source";
+import {
+  buildDatafordelerWatercourseGeometryUrl,
+  DATAFORDELER_WATERCOURSE_PROVIDER,
+  DATAFORDELER_WATERCOURSE_CRS,
+  DATAFORDELER_WATERCOURSE_AXIS_ORDER,
+  DATAFORDELER_WATERCOURSE_DATASET_VERSION,
+} from "@/services/geospatial/datafordeler-watercourse-source";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "30000000-0000-4000-8000-000000000001";
@@ -133,6 +140,7 @@ describe("official watercourse reach authorization", () => {
       ),
     ).rejects.toEqual(new WatercourseReachReadOnlyError());
     expect(calls.persist).not.toHaveBeenCalled();
+    expect(calls.fetchSource).toHaveBeenCalledOnce();
   });
 
   it("re-fetches the allowlisted source ID before an editor save", async () => {
@@ -145,6 +153,9 @@ describe("official watercourse reach authorization", () => {
     );
 
     expect(calls.fetchSource).toHaveBeenCalledWith(WATERCOURSE_ID);
+    expect(calls.authorizeProject.mock.invocationCallOrder[0]).toBeLessThan(
+      calls.fetchSource.mock.invocationCallOrder[0],
+    );
     expect(calls.persist).toHaveBeenCalledWith(CLIENT, PROJECT_ID, USER_ID, REACH);
     expect(calls.fetchSource.mock.invocationCallOrder[0]).toBeLessThan(
       calls.persist.mock.invocationCallOrder[0],
@@ -152,7 +163,7 @@ describe("official watercourse reach authorization", () => {
     expect(result.zoneId).toBe("40000000-0000-4000-8000-000000000001");
   });
 
-  it("re-verifies a loaded row against the official source", async () => {
+  it("returns the saved snapshot without replacing its name or source dates", async () => {
     const calls = dependencies(false);
     const saved = {
       ...REACH,
@@ -164,14 +175,18 @@ describe("official watercourse reach authorization", () => {
 
     const result = await executeWatercourseLoad(PROJECT_ID, USER_ID, CLIENT, calls.overrides);
 
-    expect(calls.fetchSource).toHaveBeenCalledWith(WATERCOURSE_ID);
-    expect(result?.name).toBe("Bykær Bæk");
-    expect(result?.zoneId).toBe(ZONE_ID);
+    expect(result).toBe(saved);
+    expect(result?.name).toBe("Editor-supplied label");
+    expect(result?.modifiedAt).toBe(saved.modifiedAt);
+    expect(result?.savedAt).toBe(saved.savedAt);
+    expect(result?.sourceProvider).toBeUndefined();
+    expect(calls.fetchSource).not.toHaveBeenCalled();
+    expect(calls.persist).not.toHaveBeenCalled();
   });
 
-  it("fails closed when the saved geometry no longer matches the official source", async () => {
+  it("keeps saved geometry when the live source would return a different version", async () => {
     const calls = dependencies(false);
-    calls.overrides.loadSaved = vi.fn().mockResolvedValue({
+    const saved = {
       ...REACH,
       geometry: {
         type: "MultiLineString",
@@ -184,11 +199,71 @@ describe("official watercourse reach authorization", () => {
       },
       zoneId: ZONE_ID,
       savedAt: "2026-09-12T12:00:00.000Z",
-    } satisfies SavedOfficialWatercourseReach);
+    } satisfies SavedOfficialWatercourseReach;
+    calls.overrides.loadSaved = vi.fn().mockResolvedValue(saved);
+
+    const result = await executeWatercourseLoad(PROJECT_ID, USER_ID, CLIENT, calls.overrides);
+
+    expect(result).toBe(saved);
+    expect(result?.geometry).not.toEqual(REACH.geometry);
+    expect(calls.fetchSource).not.toHaveBeenCalled();
+  });
+
+  it.each(["preview", "save", "load"] as const)(
+    "denies foreign project access before %s loads rows or contacts a source",
+    async (operation) => {
+      const calls = dependencies(true);
+      const loadSaved = vi.fn();
+      calls.overrides.loadSaved = loadSaved;
+      calls.authorizeProject.mockRejectedValue(new ProjectAccessDeniedError());
+      const input = { projectId: PROJECT_ID, watercourseId: WATERCOURSE_ID };
+      const result =
+        operation === "load"
+          ? executeWatercourseLoad(PROJECT_ID, USER_ID, CLIENT, calls.overrides)
+          : operation === "preview"
+            ? executeWatercoursePreview(input, USER_ID, CLIENT, calls.overrides)
+            : executeWatercourseSave(input, USER_ID, CLIENT, calls.overrides);
+
+      await expect(result).rejects.toEqual(new ProjectAccessDeniedError());
+      expect(loadSaved).not.toHaveBeenCalled();
+      expect(calls.fetchSource).not.toHaveBeenCalled();
+      expect(calls.persist).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["preview", "save"] as const)(
+    "%s still requires a successful fresh source read",
+    async (operation) => {
+      const calls = dependencies(true);
+      const sourceFailure = new Error("DAWA HTTP 410 / source unavailable");
+      calls.fetchSource.mockRejectedValue(sourceFailure);
+      const input = { projectId: PROJECT_ID, watercourseId: WATERCOURSE_ID };
+
+      await expect(
+        operation === "preview"
+          ? executeWatercoursePreview(input, USER_ID, CLIENT, calls.overrides)
+          : executeWatercourseSave(input, USER_ID, CLIENT, calls.overrides),
+      ).rejects.toBe(sourceFailure);
+      expect(calls.fetchSource).toHaveBeenCalledWith(WATERCOURSE_ID);
+      expect(calls.authorizeProject.mock.invocationCallOrder[0]).toBeLessThan(
+        calls.fetchSource.mock.invocationCallOrder[0],
+      );
+      expect(calls.persist).not.toHaveBeenCalled();
+    },
+  );
+
+  it("returns null for an authorized project without a saved reach, without fetching", async () => {
+    const calls = dependencies(false);
+    const loadSaved = vi.fn().mockResolvedValue(null);
+    calls.overrides.loadSaved = loadSaved;
 
     await expect(
       executeWatercourseLoad(PROJECT_ID, USER_ID, CLIENT, calls.overrides),
-    ).rejects.toThrow("Den officielle vandløbsgeometri er ændret");
+    ).resolves.toBeNull();
+    expect(calls.authorizeProject.mock.invocationCallOrder[0]).toBeLessThan(
+      loadSaved.mock.invocationCallOrder[0],
+    );
+    expect(calls.fetchSource).not.toHaveBeenCalled();
   });
 });
 
@@ -232,6 +307,28 @@ async function storedRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+async function storedDatafordelerRow() {
+  const row = await storedRow();
+  return {
+    ...row,
+    source_metadata: {
+      ...row.source_metadata,
+      schema: "gofreyra.watercourse-reach-source/v2",
+      source_system: "KDS Datafordeler Danske Stednavne",
+      source_provider: DATAFORDELER_WATERCOURSE_PROVIDER,
+      source_url: buildDatafordelerWatercourseGeometryUrl(WATERCOURSE_ID),
+      source_modified_at: null,
+      geometry_version: null,
+      source_crs: DATAFORDELER_WATERCOURSE_CRS,
+      source_axis_order: DATAFORDELER_WATERCOURSE_AXIS_ORDER,
+      dataset_version: DATAFORDELER_WATERCOURSE_DATASET_VERSION,
+      source_registered_at: "2018-06-18T10:20:30.123Z",
+      source_valid_from: "2010-01-01T00:00:00.000Z",
+      official_length_m: 4200,
+    },
+  };
+}
+
 function loadClient(rows: unknown[]) {
   const query = {
     select: vi.fn(),
@@ -246,6 +343,73 @@ function loadClient(rows: unknown[]) {
 }
 
 describe("official watercourse reach persistence", () => {
+  it.each([
+    ["v1", "DAWA HTTP 410"],
+    ["v1", "network timeout"],
+    ["v2", "network unavailable"],
+  ] as const)(
+    "reopens validated %s metadata unchanged without the source even if it would fail: %s",
+    async (version, failure) => {
+      const row = version === "v1" ? await storedRow() : await storedDatafordelerRow();
+      const rawBefore = structuredClone(row);
+      const client = loadClient([row]);
+      const calls = dependencies(false);
+      const loadSaved = vi.fn(loadSavedOfficialWatercourseReach);
+      calls.overrides.loadSaved = loadSaved;
+      calls.fetchSource.mockRejectedValue(new Error(failure));
+
+      const result = await executeWatercourseLoad(PROJECT_ID, USER_ID, client, calls.overrides);
+
+      expect(calls.authorizeProject.mock.invocationCallOrder[0]).toBeLessThan(
+        loadSaved.mock.invocationCallOrder[0],
+      );
+      expect(calls.fetchSource).not.toHaveBeenCalled();
+      expect(calls.persist).not.toHaveBeenCalled();
+      expect(row).toEqual(rawBefore);
+      expect(result).toMatchObject({
+        zoneId: row.id,
+        savedAt: row.updated_at,
+        id: WATERCOURSE_ID,
+        geometry: row.geometry,
+        sourceUrl: row.source_metadata.source_url,
+        modifiedAt: row.source_metadata.source_modified_at,
+        geometryVersion: row.source_metadata.geometry_version,
+        municipalities: row.source_metadata.municipalities,
+      });
+      if (version === "v1") {
+        expect(result?.sourceProvider).toBeUndefined();
+        expect(result?.datasetVersion).toBeUndefined();
+        expect(result?.sourceRegisteredAt).toBeUndefined();
+        expect(result?.sourceValidFrom).toBeUndefined();
+      } else {
+        expect(result).toMatchObject({
+          sourceProvider: DATAFORDELER_WATERCOURSE_PROVIDER,
+          sourceCrs: DATAFORDELER_WATERCOURSE_CRS,
+          sourceAxisOrder: DATAFORDELER_WATERCOURSE_AXIS_ORDER,
+          datasetVersion: DATAFORDELER_WATERCOURSE_DATASET_VERSION,
+          sourceRegisteredAt: "2018-06-18T10:20:30.123Z",
+          sourceValidFrom: "2010-01-01T00:00:00.000Z",
+          officialLengthM: 4200,
+          modifiedAt: null,
+          geometryVersion: null,
+        });
+      }
+    },
+  );
+
+  it("still rejects an invalid stored hash without fetching a replacement", async () => {
+    const row = await storedRow();
+    row.source_metadata.geometry_sha256 = "0".repeat(64);
+    const calls = dependencies(false);
+    calls.overrides.loadSaved = loadSavedOfficialWatercourseReach;
+
+    await expect(
+      executeWatercourseLoad(PROJECT_ID, USER_ID, loadClient([row]), calls.overrides),
+    ).rejects.toThrow("ugyldig kildeproveniens");
+    expect(calls.fetchSource).not.toHaveBeenCalled();
+    expect(calls.persist).not.toHaveBeenCalled();
+  });
+
   it("loads only a canonical row with matching provenance and geometry hash", async () => {
     const row = await storedRow();
     const loaded = await loadSavedOfficialWatercourseReach(loadClient([row]), PROJECT_ID);
@@ -323,13 +487,10 @@ describe("official watercourse reach persistence", () => {
       created_by: USER_ID,
       geometry: REACH.geometry,
     });
-    const insertedRow = insertQuery.insert.mock.calls[0]?.[0] as unknown as Record<
-      string,
-      unknown
-    >;
-    expect(
-      (insertedRow["source_metadata"] as Record<string, unknown>)["geometry_sha256"],
-    ).toMatch(/^[0-9a-f]{64}$/);
+    const insertedRow = insertQuery.insert.mock.calls[0]?.[0] as unknown as Record<string, unknown>;
+    expect((insertedRow["source_metadata"] as Record<string, unknown>)["geometry_sha256"]).toMatch(
+      /^[0-9a-f]{64}$/,
+    );
   });
 
   it("updates the one active project reach instead of creating another", async () => {

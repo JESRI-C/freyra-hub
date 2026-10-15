@@ -103,7 +103,6 @@ function PortfolioPage() {
 
       {/* Summary */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
-
         <ImpactMetricCard
           label="Projekter i portefølje"
           value={`${items.length}`}

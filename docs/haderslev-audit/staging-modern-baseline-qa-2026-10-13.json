@@ -1,0 +1,431 @@
+{
+  "schema": "gofreyra.hosted-qa/v2",
+  "kind": "modern-baseline",
+  "startedAt": "2026-10-13T16:10:19.267Z",
+  "firstStartedAt": "2026-10-13T16:10:19.288Z",
+  "attempt": 1,
+  "outcome": "passed",
+  "synthetic": true,
+  "municipalAcceptance": false,
+  "supabaseRef": "xdvqdzdpyceojbdknofi",
+  "projectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+  "requests": {
+    "baseline": "20d9bd13-94d4-4eae-96e4-73744932c01e"
+  },
+  "checks": {
+    "ordinary-staging-identities": {
+      "ordinaryAuth": true,
+      "stagingIssuerVerified": true,
+      "syntheticProjectVerified": true
+    },
+    "modern-reference-preview": {
+      "sourceId": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+      "provider": "datafordeler-ds-bearbejdet-wfs/v1",
+      "datasetVersion": "static-2025-09",
+      "sourceCrs": "EPSG:4326",
+      "sourceAxisOrder": "lat-lng",
+      "keyFreeSourceUrlVerified": true,
+      "sourceUrlSha256": "82453d30b124cb2547e8d41761b1f77efb91fc62f0db4e5628dcdd2b54a6dbca",
+      "geometrySha256": "2f96a641377edcfa97aa2a097b56d1bd618532155e634afb819fce1def0d448d",
+      "vertexCount": 308,
+      "technicalReferenceOnly": true
+    },
+    "modern-reference-save-reload": {
+      "sourceId": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+      "zoneId": "1b88e5f3-f1ec-43d6-b70e-025e732812f6",
+      "geometryUnchanged": true,
+      "providerUnchanged": true,
+      "keyFreeSourceUrlVerified": true,
+      "actualSavedRowVerified": true
+    },
+    "synthetic-derived-project-polygon": {
+      "projectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+      "geometrySha256": "f54e3d492ecfa5026f4b1495f45aec5045e5a284838a2a47a6e76493d801d368",
+      "padDegrees": 0.002,
+      "syntheticQaProjectVerified": true,
+      "municipalReachAccepted": false
+    },
+    "baseline-v2-created": {
+      "baselineId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "version": 1,
+      "manifestSha256": "32f9b05a8a30c2a8a0d118f14a4f36bfb98e5b34c5bc88786c5b5599a8bcd6c3",
+      "sourceStatuses": [
+        {
+          "id": "official-watercourse-reference",
+          "mode": "live",
+          "status": "complete",
+          "evidenceKind": "official_registration",
+          "returnedCount": 1,
+          "payloadSha256": "f6c11bde07f48f11dbe172890d77ee01461ec3702de6e7b251e49dde436d883d"
+        },
+        {
+          "id": "municipal-regulation",
+          "mode": "error",
+          "status": "not_implemented",
+          "evidenceKind": "preview",
+          "returnedCount": null,
+          "payloadSha256": null
+        },
+        {
+          "id": "orthophoto-terrain",
+          "mode": "error",
+          "status": "not_implemented",
+          "evidenceKind": "preview",
+          "returnedCount": null,
+          "payloadSha256": null
+        },
+        {
+          "id": "dmi-historical",
+          "mode": "live",
+          "status": "no_coverage",
+          "evidenceKind": "calculation",
+          "returnedCount": 0,
+          "payloadSha256": "6eb1085a1bceefa89b7d988114176b41fc403c6bef9537682ee57b00852c2126"
+        },
+        {
+          "id": "water-plan-nature",
+          "mode": "error",
+          "status": "not_implemented",
+          "evidenceKind": "preview",
+          "returnedCount": null,
+          "payloadSha256": null
+        },
+        {
+          "id": "sentinel-2-scenes",
+          "mode": "live",
+          "status": "partial",
+          "evidenceKind": "official_registration",
+          "returnedCount": 9,
+          "payloadSha256": "58f2945764cc3696f7d87ed6964094d0469322a02c2b7b92be16c8baba9b0e1e"
+        },
+        {
+          "id": "public-monitoring-stations",
+          "mode": "error",
+          "status": "not_implemented",
+          "evidenceKind": "preview",
+          "returnedCount": null,
+          "payloadSha256": null
+        }
+      ],
+      "credentialsAbsentFromSourceUrls": true,
+      "referenceProviderVerified": true
+    },
+    "baseline-v2-retry-get-list": {
+      "baselineId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "manifestSha256": "32f9b05a8a30c2a8a0d118f14a4f36bfb98e5b34c5bc88786c5b5599a8bcd6c3",
+      "immutableManifestAndSources": true,
+      "sameIdAfterRetry": true,
+      "actualDatabaseRowMatches": true,
+      "singleRequestReceipt": true,
+      "listReturnsSummaryOnly": true
+    },
+    "viewer-actual-baseline-read": {
+      "baselineId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "allowed": true,
+      "actualRowAndHashMatch": true
+    },
+    "foreign-baseline-get": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "anonymous-baseline-get": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-actual-baseline-row": {
+      "denied": true,
+      "actualSnapshotId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "visibleRows": 0,
+      "httpStatus": 200
+    },
+    "anonymous-actual-baseline-row": {
+      "denied": true,
+      "actualSnapshotId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "visibleRows": 0,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "viewer-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "viewer-reference-save": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-reference-save": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "anonymous-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "anonymous-reference-save": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "viewer-baseline-insert": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "viewer-baseline-writer-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "foreign-baseline-insert": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "foreign-baseline-writer-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "anonymous-baseline-insert": {
+      "denied": true,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "anonymous-baseline-writer-rpc": {
+      "denied": true,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "revoked-viewer-actual-baseline-get": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "revoked-viewer-baseline-list": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "revoked-viewer-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "revoked-viewer-actual-baseline-row": {
+      "denied": true,
+      "actualSnapshotId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "visibleRows": 0,
+      "httpStatus": 200
+    },
+    "revoked-viewer-existing-jwt-baseline": {
+      "sameJwt": true,
+      "actualSavedRowDenied": true,
+      "snapshotId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12"
+    },
+    "viewer-membership-restored": {
+      "exactRowsRestored": true,
+      "originalRolesRestored": true,
+      "verifiedFromDatabase": true
+    },
+    "restored-viewer-baseline-read": {
+      "sameJwt": true,
+      "allowed": true,
+      "baselineId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "manifestSha256Unchanged": true
+    },
+    "baseline-v2-final-immutable-state": {
+      "baselineId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "manifestSha256": "32f9b05a8a30c2a8a0d118f14a4f36bfb98e5b34c5bc88786c5b5599a8bcd6c3",
+      "immutableRowUnchanged": true,
+      "savedReferenceUnchanged": true,
+      "noAssetsObservationsOrReportsCreated": true,
+      "drone_flights": 0,
+      "viewerMembershipRestored": true
+    }
+  },
+  "audit": {
+    "expectedAppBuildSourceSha": "bf67149161ec0681d383569d802b5b0b76cdf799",
+    "expectedRepositorySha": "972524e298d0bbad1cbefb2e6e39d0a2c5886017",
+    "expectedWorkerDeploymentId": "c07618c5-17d3-49ff-8341-b336744aab1f",
+    "rootReportedCi": {
+      "unitTestFiles": 94,
+      "unitTests": 1024,
+      "sqlFiles": 5,
+      "sqlAssertions": 268,
+      "passed": true
+    },
+    "appBuildEquivalentToRepositoryAccordingToRoot": true,
+    "verificationSource": "Root reported true CI, scoped migration apply and Worker deployment; script hashes local built manifests only",
+    "functionIds": {
+      "searchOfficialWatercourseReaches": "7067f725c0081ddc6e8bc672e6068f88c36f929eea6c3e6300c217616ccdab70",
+      "previewOfficialWatercourseReach": "0b26e565aadc5098913a2798ab1ff92dea8407026c94a11ed486771e9a60a4b2",
+      "saveOfficialWatercourseReach": "1b99e8411cc347a8fc0f4155a0911e2e6ac5af035dc6a72c758ca5f2151e9cb3",
+      "getSavedOfficialWatercourseReach": "9dc420f2d4520cdc5c7cce6414cad7a10079b271c29ee7b8e69f122ba635cfa3",
+      "createProjectBaseline": "b59708d3044b60e4de1f4ea0b1eef7d5ffa5e214f4917c95b812e3daf6fd9061",
+      "getProjectBaseline": "96a12ee85beb066d2afdd80a6a83382dd0da7cb091106b0d6f3c220a72325a23",
+      "listProjectBaselines": "23e41457716570f265a4649d9f51a46ca6f0732acce9610274e4aa2ffda9cd11"
+    },
+    "builtManifestFiles": [
+      {
+        "name": "server-zSoJNh37.mjs",
+        "sha256": "6478d9426a2732b7e265be4cf18154f71fc95f501a610b70a94c3ab9f270ee94"
+      }
+    ],
+    "requiresVerifiedCiAndStagingDeployment": true
+  },
+  "updatedAt": "2026-10-13T16:10:28.218Z",
+  "scope": {
+    "technicalReferenceOnly": true,
+    "namedRegisterReference": "Bykær Bæk",
+    "sourceId": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+    "provider": "datafordeler-ds-bearbejdet-wfs/v1",
+    "datasetVersion": "static-2025-09",
+    "municipalityPilotChosen": false,
+    "agreedMunicipalReach": false,
+    "reviewerApproved": false,
+    "syntheticPolygonDerivedFromOfficialBbox": true
+  },
+  "recordCountsBefore": {
+    "drone_assets": 0,
+    "observations": 0,
+    "reports": 0
+  },
+  "reference": {
+    "id": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+    "zoneId": "1b88e5f3-f1ec-43d6-b70e-025e732812f6",
+    "sourceUrlSha256": "82453d30b124cb2547e8d41761b1f77efb91fc62f0db4e5628dcdd2b54a6dbca",
+    "geometrySha256": "2f96a641377edcfa97aa2a097b56d1bd618532155e634afb819fce1def0d448d",
+    "provider": "datafordeler-ds-bearbejdet-wfs/v1",
+    "datasetVersion": "static-2025-09",
+    "sourceCrs": "EPSG:4326",
+    "sourceAxisOrder": "lat-lng"
+  },
+  "polygon": {
+    "sha256": "f54e3d492ecfa5026f4b1495f45aec5045e5a284838a2a47a6e76493d801d368",
+    "bboxPadDegrees": 0.002,
+    "technicalAreaOnly": true
+  },
+  "baseline": {
+    "id": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+    "version": 1,
+    "manifestSha256": "32f9b05a8a30c2a8a0d118f14a4f36bfb98e5b34c5bc88786c5b5599a8bcd6c3",
+    "schema": "gofreyra.public-baseline/v2",
+    "requestId": "20d9bd13-94d4-4eae-96e4-73744932c01e",
+    "sourceStatuses": [
+      {
+        "id": "official-watercourse-reference",
+        "mode": "live",
+        "status": "complete",
+        "evidenceKind": "official_registration",
+        "returnedCount": 1,
+        "payloadSha256": "f6c11bde07f48f11dbe172890d77ee01461ec3702de6e7b251e49dde436d883d"
+      },
+      {
+        "id": "municipal-regulation",
+        "mode": "error",
+        "status": "not_implemented",
+        "evidenceKind": "preview",
+        "returnedCount": null,
+        "payloadSha256": null
+      },
+      {
+        "id": "orthophoto-terrain",
+        "mode": "error",
+        "status": "not_implemented",
+        "evidenceKind": "preview",
+        "returnedCount": null,
+        "payloadSha256": null
+      },
+      {
+        "id": "dmi-historical",
+        "mode": "live",
+        "status": "no_coverage",
+        "evidenceKind": "calculation",
+        "returnedCount": 0,
+        "payloadSha256": "6eb1085a1bceefa89b7d988114176b41fc403c6bef9537682ee57b00852c2126"
+      },
+      {
+        "id": "water-plan-nature",
+        "mode": "error",
+        "status": "not_implemented",
+        "evidenceKind": "preview",
+        "returnedCount": null,
+        "payloadSha256": null
+      },
+      {
+        "id": "sentinel-2-scenes",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "official_registration",
+        "returnedCount": 9,
+        "payloadSha256": "58f2945764cc3696f7d87ed6964094d0469322a02c2b7b92be16c8baba9b0e1e"
+      },
+      {
+        "id": "public-monitoring-stations",
+        "mode": "error",
+        "status": "not_implemented",
+        "evidenceKind": "preview",
+        "returnedCount": null,
+        "payloadSha256": null
+      }
+    ],
+    "completePublicSourceCoverage": false,
+    "sourceGaps": [
+      {
+        "id": "official-watercourse-reference",
+        "status": "complete",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": null
+      },
+      {
+        "id": "municipal-regulation",
+        "status": "not_implemented",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": "NOT_IMPLEMENTED"
+      },
+      {
+        "id": "orthophoto-terrain",
+        "status": "not_implemented",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": "NOT_IMPLEMENTED"
+      },
+      {
+        "id": "dmi-historical",
+        "status": "no_coverage",
+        "spatial": "partial",
+        "temporal": "none",
+        "errorCode": null
+      },
+      {
+        "id": "water-plan-nature",
+        "status": "not_implemented",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": "NOT_IMPLEMENTED"
+      },
+      {
+        "id": "sentinel-2-scenes",
+        "status": "partial",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": null
+      },
+      {
+        "id": "public-monitoring-stations",
+        "status": "not_implemented",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": "NOT_IMPLEMENTED"
+      }
+    ]
+  },
+  "recordCountsAfter": {
+    "drone_assets": 0,
+    "observations": 0,
+    "reports": 0
+  },
+  "completedAt": "2026-10-13T16:10:28.218Z"
+}

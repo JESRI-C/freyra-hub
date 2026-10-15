@@ -127,14 +127,17 @@ function buildContextualReply(text: string, ctx: ProjectCtx): AssistantReply {
           : `Ingen åbne handlinger registreret for ${projectName}. Projektet er i god stand.`,
       basis: [
         `${actions.length} handlinger evalueret`,
-        biodiversity !== null ? `Biodiversitetsindeks: ${biodiversity}/100` : "Biodiversitet ikke målt",
+        biodiversity !== null
+          ? `Biodiversitetsindeks: ${biodiversity}/100`
+          : "Biodiversitet ikke målt",
         reportReadiness !== null ? `Rapportklarhed: ${reportReadiness}%` : "Rapportklarhed ukendt",
       ],
       recommendation:
         top3.length > 0
           ? `Start med "${top3[0].title}" (${top3[0].priority ?? "Ukendt"} prioritet).`
           : "Fokusér på at tilføje nye observationer og opdatere indikatorer.",
-      uncertainty: "Prioritering baseres på registrerede handlinger — manuelle vurderinger kan afvige.",
+      uncertainty:
+        "Prioritering baseres på registrerede handlinger — manuelle vurderinger kan afvige.",
       nextAction: "Gå til Projekter → Handlinger for at opdatere status.",
     };
   }
@@ -188,7 +191,12 @@ function buildContextualReply(text: string, ctx: ProjectCtx): AssistantReply {
   }
 
   // ── Datakvalitet / datakilder / svagest
-  if (t.includes("datakvalitet") || t.includes("datakilder") || t.includes("svagest") || t.includes("data")) {
+  if (
+    t.includes("datakvalitet") ||
+    t.includes("datakilder") ||
+    t.includes("svagest") ||
+    t.includes("data")
+  ) {
     const dq = dataQuality ?? 0;
     return {
       short:
@@ -204,7 +212,8 @@ function buildContextualReply(text: string, ctx: ProjectCtx): AssistantReply {
         dq < 70
           ? "Kalibrér offline sensorer og valider seneste dataindlæsninger i Smart Connect."
           : "Datakvaliteten er tilstrækkelig. Overvåg løbende via Smart Connect.",
-      uncertainty: "Kvalitetsscore er baseret på tilgængelige indikatorer og kan være ufuldstændig.",
+      uncertainty:
+        "Kvalitetsscore er baseret på tilgængelige indikatorer og kan være ufuldstændig.",
       nextAction: "Åbn Smart Connect → Datakvalitet for detaljer.",
     };
   }
@@ -235,7 +244,9 @@ function buildContextualReply(text: string, ctx: ProjectCtx): AssistantReply {
   return {
     short:
       `${projectName} har ${actions.filter((a) => a.status !== "Lukket").length} åbne handlinger` +
-      (offlineSensors.length > 0 ? `, ${offlineSensors.length} offline sensor${offlineSensors.length > 1 ? "er" : ""}` : "") +
+      (offlineSensors.length > 0
+        ? `, ${offlineSensors.length} offline sensor${offlineSensors.length > 1 ? "er" : ""}`
+        : "") +
       (biodiversity !== null ? ` og biodiversitetsindeks på ${biodiversity}/100` : "") +
       ".",
     basis: [
@@ -472,11 +483,7 @@ function Page() {
                 label="Datakonfidens"
                 value={<ConfidenceScore value={confidence} size="sm" />}
               />
-              <Ctx
-                icon={<Clock className="h-4 w-4" />}
-                label="Periode"
-                value="Sidste 30 dage"
-              />
+              <Ctx icon={<Clock className="h-4 w-4" />} label="Periode" value="Sidste 30 dage" />
             </ul>
           </Card>
 

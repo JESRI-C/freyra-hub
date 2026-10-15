@@ -7,7 +7,17 @@
   "env": {
     "staging": {
       "name": "gofreyra-p0-staging",
-      "workers_dev": true
-    }
-  }
+      "workers_dev": true,
+      "ai": { "binding": "AI" },
+      "images": { "binding": "IMAGES" },
+      "secrets": {
+        "required": [
+          "SUPABASE_URL",
+          "SUPABASE_PUBLISHABLE_KEY",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "DATAFORDELER_API_KEY",
+        ],
+      },
+    },
+  },
 }

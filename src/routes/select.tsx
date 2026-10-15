@@ -1,6 +1,20 @@
 import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Building2, MapPin, ChevronRight, Leaf, LogOut, CheckCircle2, Loader2, Plus, X, Info, Users, ShieldCheck, FolderTree } from "lucide-react";
+import {
+  Building2,
+  MapPin,
+  ChevronRight,
+  Leaf,
+  LogOut,
+  CheckCircle2,
+  Loader2,
+  Plus,
+  X,
+  Info,
+  Users,
+  ShieldCheck,
+  FolderTree,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,7 +27,8 @@ const ORG_TYPES = ["Kommune", "Rådgiver", "NGO", "Bygherre", "Forsyning", "Ande
 type OrgType = (typeof ORG_TYPES)[number];
 
 function SelectPage() {
-  const { user, loading, logout, selectOrg, selectProject, orgId, organizations, refresh } = useAuth();
+  const { user, loading, logout, selectOrg, selectProject, orgId, organizations, refresh } =
+    useAuth();
   const navigate = useNavigate();
   const [pickedOrg, setPickedOrg] = useState<string | null>(orgId);
   const [showCreate, setShowCreate] = useState(false);
@@ -200,7 +215,8 @@ function SelectPage() {
                 <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">
                   Ingen projekter i denne organisation endnu.
                   <div className="mt-2 text-xs">
-                    Klik <span className="font-medium text-foreground">Åbn {org.name}</span> for at gå ind og oprette dit første projekt.
+                    Klik <span className="font-medium text-foreground">Åbn {org.name}</span> for at
+                    gå ind og oprette dit første projekt.
                   </div>
                 </div>
               ) : (

@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled } from "@/lib/data-mode";
 import type {
   ProjectMediaItem,
   MediaCategory,
@@ -6,6 +7,8 @@ import type {
   MediaStatus,
 } from "@/lib/platform/media-types";
 import { getProjectMedia as getSeedMedia } from "@/data/project-media";
+import { getCanonicalDroneMediaUrl } from "@/lib/canonical-drone-media.functions";
+import { canonicalDroneMediaReference } from "./monitoring/canonical-drone-media-reference";
 
 // Minimal interface for an untyped Supabase query builder, used to access the
 // project_media table which is not yet in the generated Database types.
@@ -133,7 +136,49 @@ function rowToMediaItem(row: Record<string, unknown>, signedUrl: string): Projec
 
 async function materializePrivateMedia(
   row: Record<string, unknown>,
+  expectedProjectId?: string,
 ): Promise<MediaServiceResult<ProjectMediaItem>> {
+  if (expectedProjectId && row["project_id"] !== expectedProjectId)
+    return { data: null, error: "Medierækken matcher ikke det valgte projekt." };
+  const bucket = row["storage_bucket"] ?? BUCKET;
+  if (bucket === "monitoring-uploads") {
+    try {
+      const reference = canonicalDroneMediaReference(
+        row,
+        String(row["project_id"]),
+        String(row["id"]),
+      );
+      // Browser-supplied buckets/paths are not inputs. The server loads the
+      // caller's RLS row, checks the exact object twice and signs via caller RLS.
+      const result = await getCanonicalDroneMediaUrl({
+        data: { projectId: reference.project_id, mediaId: reference.id },
+      });
+      if (
+        result.projectId !== reference.project_id ||
+        result.mediaId !== reference.id ||
+        result.originalSha256 !== reference.original_sha256 ||
+        result.expiresInSeconds !== 60 ||
+        result.reportEligible !== false ||
+        result.georeferenced !== false
+      )
+        throw new Error("Originalreference kunne ikke bekræftes");
+      return {
+        data: rowToMediaItem({ ...row, is_report_ready: false }, result.signedUrl),
+        error: null,
+      };
+    } catch {
+      return {
+        data: null,
+        error:
+          "Den kanoniske original kunne ikke læses. Filversion eller projektadgang skal kontrolleres; prøv igen.",
+      };
+    }
+  }
+  if (bucket !== BUCKET || row["original_role"] != null)
+    return {
+      data: null,
+      error: "Projektmediet har en ugyldig Storage-bucket eller originalreference.",
+    };
   const filePath = getAuthorizedMediaPath(row);
   if (!filePath) {
     return { data: null, error: "Medierækken har en ugyldig eller forkert scoped Storage-sti" };
@@ -145,12 +190,14 @@ async function materializePrivateMedia(
   return { data: rowToMediaItem(row, signedUrl.data), error: null };
 }
 
-// List media for a project — falls back to seed data if Supabase not configured
+// Demo media is available only by explicit offline choice.
 export async function listProjectMedia(
   projectId: string,
 ): Promise<MediaServiceResult<ProjectMediaItem[]>> {
   if (!isSupabaseConfigured || supabase === null) {
-    return { data: getSeedMedia(projectId), error: null };
+    return isDemoDataEnabled
+      ? { data: getSeedMedia(projectId), error: null }
+      : { data: null, error: "Kundedatabasen er ikke konfigureret." };
   }
 
   const { data, error } = await getDb()!
@@ -164,7 +211,9 @@ export async function listProjectMedia(
   }
 
   const rows = (data ?? []) as Record<string, unknown>[];
-  const materialized = await Promise.all(rows.map(materializePrivateMedia));
+  const materialized = await Promise.all(
+    rows.map((row) => materializePrivateMedia(row, projectId)),
+  );
   const signingFailure = materialized.find((result) => result.data === null);
   if (signingFailure) {
     return { data: null, error: signingFailure.error ?? "Kunne ikke signere projektmedie" };
@@ -182,23 +231,10 @@ export async function uploadProjectMedia(
   input: UploadMediaInput,
 ): Promise<MediaServiceResult<ProjectMediaItem>> {
   if (!isSupabaseConfigured || supabase === null) {
-    // Preview mode — construct a mock item without actual upload
-    const mockItem: ProjectMediaItem = {
-      id: `mock-${Date.now()}`,
-      projectId: input.projectId,
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      source: input.source,
-      url: URL.createObjectURL(input.file),
-      uploadedAt: new Date().toISOString(),
-      capturedAt: input.capturedAt,
-      coordinates: input.coordinates,
-      isReportReady: input.isReportReady,
-      tags: input.tags,
-      status: "uploaded",
+    return {
+      data: null,
+      error: "Upload kræver en konfigureret kundedatabase. Filen er ikke gemt.",
     };
-    return { data: mockItem, error: null };
   }
 
   // Build storage path
@@ -258,7 +294,7 @@ export async function uploadProjectMedia(
     };
   }
 
-  return materializePrivateMedia(insertData as Record<string, unknown>);
+  return materializePrivateMedia(insertData as Record<string, unknown>, input.projectId);
 }
 
 // Update metadata (title, description, isReportReady, tags)
@@ -302,13 +338,22 @@ export async function deleteProjectMedia(id: string): Promise<MediaServiceResult
   // RLS authorizes this row lookup. Never trust a path supplied by a caller.
   const { data: mediaRow, error: lookupError } = await getDb()!
     .from("project_media")
-    .select("project_id,file_path")
+    .select("id,project_id,file_path,storage_bucket,original_role")
     .eq("id", id)
     .single();
 
   if (lookupError || !mediaRow) {
     return { data: null, error: lookupError?.message ?? "Projektmediet blev ikke fundet" };
   }
+
+  if (mediaRow["storage_bucket"] === "monitoring-uploads" || mediaRow["original_role"] != null)
+    return {
+      data: null,
+      error:
+        "Kanoniske droneoriginaler og deres dubletproveniens kan ikke slettes gennem mediegalleriet.",
+    };
+  if (mediaRow["storage_bucket"] != null && mediaRow["storage_bucket"] !== BUCKET)
+    return { data: null, error: "Projektmediet har en ugyldig Storage-bucket." };
 
   const filePath = getAuthorizedMediaPath(mediaRow);
   if (!filePath) {

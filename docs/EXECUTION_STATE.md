@@ -1,6 +1,6 @@
 # GoFreyra execution state
 
-Opdateret: 2026-09-13, eksakt evidence-downloadproveniens efter P0-cyklus 026.
+Aktuel udførelse fra 13. oktober 2026 findes i [HADERSLEV_EXECUTION](HADERSLEV_EXECUTION.md) på `codex/haderslev-delivery`. Sektionerne nedenfor bevarer det historiske checkpoint fra 13. september og må ikke læses som nye acceptbeviser.
 
 ## Seneste verificerede checkpoint
 

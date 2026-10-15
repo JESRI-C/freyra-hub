@@ -255,19 +255,13 @@ function KortPage() {
             </strong>
           </span>
           <span className="inline-flex items-center gap-1 italic">
-            <Info className="h-3 w-3" /> Registrér manuel pejling eller importér
-            HOBO-logger-CSV nedenfor
+            <Info className="h-3 w-3" /> Registrér manuel pejling eller importér HOBO-logger-CSV
+            nedenfor
           </span>
         </div>
         <div className="px-5 pb-4 space-y-2">
-          <PejlingsForm
-            projektId={projektId}
-            maalepunkter={maalepunkter.data ?? []}
-          />
-          <HoboImport
-            projektId={projektId}
-            maalepunkter={maalepunkter.data ?? []}
-          />
+          <PejlingsForm projektId={projektId} maalepunkter={maalepunkter.data ?? []} />
+          <HoboImport projektId={projektId} maalepunkter={maalepunkter.data ?? []} />
         </div>
         <div className="px-5 pb-5">
           <LavbundFeltkort
@@ -317,9 +311,7 @@ function KortPage() {
               type="button"
               onClick={() => setPlacing((p) => !p)}
               className={`ml-auto inline-flex items-center gap-1.5 text-xs rounded-lg border px-3 py-1.5 transition ${
-                placing
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "hover:bg-muted/40"
+                placing ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted/40"
               }`}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -329,8 +321,8 @@ function KortPage() {
           {visVandstand && (
             <p className="mt-2 text-[11px] text-muted-foreground">
               Vandstandskortet interpolerer punktmålingerne (nærmeste-punkt-princip, klippet til
-              projektområdet) og er retningsgivende — flere målepunkter giver et skarpere kort.
-              Klik på et punkt for dets dokumentation (målinger, kilder, periode, position).
+              projektområdet) og er retningsgivende — flere målepunkter giver et skarpere kort. Klik
+              på et punkt for dets dokumentation (målinger, kilder, periode, position).
             </p>
           )}
         </div>
@@ -342,7 +334,11 @@ function KortPage() {
           subtitle="HOBO-logger 15-min serier + periodiske markpejlinger. Grænsen for Våd eng: 0,50 m."
         />
         <div className="px-5 pb-5">
-          <TidsserieChart serie={tidsserie} height={260} etableringMaaned={projekt.data?.etableringsdato?.slice(0, 7)} />
+          <TidsserieChart
+            serie={tidsserie}
+            height={260}
+            etableringMaaned={projekt.data?.etableringsdato?.slice(0, 7)}
+          />
           {stats && (
             <>
               <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
@@ -352,8 +348,8 @@ function KortPage() {
               </div>
               {stats.efterEtablering && (
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  Middelværdier er opgjort efter etableringsdatoen — baseline-måneder (skraveret
-                  i grafen) indgår ikke.
+                  Middelværdier er opgjort efter etableringsdatoen — baseline-måneder (skraveret i
+                  grafen) indgår ikke.
                 </p>
               )}
             </>
@@ -538,7 +534,9 @@ export function HoboImport({
         >
           <option value="">Vælg…</option>
           {maalepunkter.map((m) => (
-            <option key={m.id} value={m.id}>{m.id}</option>
+            <option key={m.id} value={m.id}>
+              {m.id}
+            </option>
           ))}
         </select>
       </label>

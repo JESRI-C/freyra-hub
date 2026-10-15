@@ -359,6 +359,7 @@ function GeometryEditorPage() {
         data: { projectId: project.id, watercourseId: watercoursePreview.id },
       });
       queryClient.setQueryData(["official-watercourse-reach", project.id], saved);
+      await queryClient.invalidateQueries({ queryKey: ["official-watercourse-reach"] });
       setWatercoursePreview(null);
       toast.success("Vandløbsstrengen er gemt på projektet");
     } catch (error) {
@@ -591,8 +592,10 @@ function GeometryEditorPage() {
           <Card className="p-4 space-y-3">
             <SectionTitle n={4}>Vandløbsstreng</SectionTitle>
             <p className="text-[11px] text-muted-foreground">
-              Find en navngivet, officiel linje fra Dataforsyningen. Strengen gemmes som
-              monitoreringsreference og ændrer ikke projektgrænsen.
+              Find en navngivet, officiel linje fra Datafordeleren. Strengen gemmes som
+              monitoreringsreference og ændrer ikke projektgrænsen. Navneregistret er statisk siden
+              september 2025; kommunens regulativ og kontrolopmåling afklarer den konkrete
+              undersøgelsesstrækning.
             </p>
             <form
               className="flex gap-2"
@@ -665,10 +668,11 @@ function GeometryEditorPage() {
                     )}
                   </div>
                   <a
-                    href={activeWatercourse.sourceUrl}
+                    href="https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-bearbejdet-wfs/"
                     target="_blank"
                     rel="noreferrer"
-                    title="Åbn kilden"
+                    title="Læs om datakilden"
+                    aria-label="Læs om datakilden"
                     className="text-blue-700 hover:text-blue-900 dark:text-blue-300"
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -677,6 +681,13 @@ function GeometryEditorPage() {
                 <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
                   {activeWatercourse.disclaimer}
                 </p>
+                {!watercoursePreview && savedWatercourseQuery.data && (
+                  <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
+                    Gemt reference. Kilden genkontrolleres, når et nyt datagrundlag oprettes.
+                    {!savedWatercourseQuery.data.sourceProvider &&
+                      " Denne reference stammer fra den udfasede DAWA-kilde. Søg og gem en reference fra Datafordeleren for at oprette et nyt datagrundlag."}
+                  </p>
+                )}
                 {watercoursePreview ? (
                   <div className="flex gap-2">
                     <button

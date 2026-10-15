@@ -1,0 +1,74 @@
+{
+  "schema": "gofreyra.public-source13-adapter-probe/v1",
+  "observedAt": "2026-10-13T20:26:18.879Z",
+  "adapterIntegratedCodeUncommitted": true,
+  "syntheticTechnicalArea": true,
+  "elapsedMs": 432,
+  "sourceId": "public-monitoring-stations",
+  "mode": "live",
+  "status": "partial",
+  "coverage": {
+    "spatial": "unknown",
+    "temporal": "unknown",
+    "observedFrom": null,
+    "observedTo": null,
+    "paginationComplete": true,
+    "returnedCount": 7
+  },
+  "payloadSha256": "eacc49ad3573c614ddeca9b2f54568e0a679858bf11c9e0449e6b22cf808b7d6",
+  "error": null,
+  "savedUiPayloadValidated": true,
+  "queryProjection": {
+    "sourceCrs": "EPSG:4326",
+    "sourceAxisOrder": "lng-lat",
+    "queryCrs": "EPSG:25832",
+    "queryAxisOrder": "easting-northing",
+    "bbox": [
+      515756,
+      6132196,
+      517345,
+      6136401
+    ],
+    "method": "proj4-grs80-catalog-envelope/v1",
+    "edgeSampleStepDegrees": 0.01,
+    "projectedSampleCount": 14,
+    "queryBufferM": 25,
+    "bboxRounding": "outward-to-integer-metres",
+    "datumAssumption": "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+    "surveyAccuracyVerified": false,
+    "heightTransformed": false
+  },
+  "candidateCount": 7,
+  "stationNumbers": [
+    "38000292",
+    "38000308",
+    "38000309",
+    "38000310",
+    "38000711",
+    "38000854",
+    "70001544"
+  ],
+  "sourceNamesAllNull": true,
+  "unverifiedRelationsPreserved": true,
+  "pages": [
+    {
+      "queryUrl": "https://vanda-geo.miljoeportal.dk/geoserver/wfs?service=WFS&request=GetFeature&version=2.0.0&typeNames=vanda%3Asteder&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515756%2C6132196%2C517345%2C6136401%2Curn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&outputFormat=application%2Fjson&count=50&startIndex=0&sortBy=Stationsnummer+A",
+      "responseSha256": "12406b37d616b69a71fa992537f52e2616dbb74039b47a073133fa4f8e771f1e",
+      "responseBytes": 3156,
+      "startIndex": 0,
+      "requestedCount": 50,
+      "sortKey": "Stationsnummer",
+      "numberMatched": 7,
+      "numberReturned": 7,
+      "totalFeatures": 7,
+      "serverTimestamp": "2026-10-13T20:26:18.554Z"
+    }
+  ],
+  "credentialsRequired": false,
+  "hostedBaselineAcceptance": false,
+  "municipalAcceptance": false,
+  "professionalApproval": false,
+  "measurementDataFetched": false,
+  "rawFeatureGeometrySavedInThisEvidence": false,
+  "ownerContactNamesAndLinksSaved": false
+}

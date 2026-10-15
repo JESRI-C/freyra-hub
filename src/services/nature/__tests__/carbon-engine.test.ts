@@ -24,7 +24,12 @@ describe("computeCarbonEstimate", () => {
   });
 
   it("organisk jord booster CO₂-binding markant ift. sandjord", () => {
-    const organic = computeCarbonEstimate(10, "Vådområde", 0.5, makeSoil({ dominantClass: "organic" }));
+    const organic = computeCarbonEstimate(
+      10,
+      "Vådområde",
+      0.5,
+      makeSoil({ dominantClass: "organic" }),
+    );
     const sand = computeCarbonEstimate(10, "Vådområde", 0.5, makeSoil({ dominantClass: "sand" }));
     expect(organic.annualSequestration).toBeGreaterThan(sand.annualSequestration * 2);
   });

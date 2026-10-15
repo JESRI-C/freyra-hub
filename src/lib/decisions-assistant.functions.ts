@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { aiPublicFailure, withBoundedAiGateway } from "./ai-gateway.server";
 
 const ReplySchema = z.object({
   short: z.string().min(1).max(400),
@@ -15,31 +16,32 @@ const Input = z.object({
   question: z.string().min(1).max(2000),
   projectName: z.string().min(1).max(200),
   indicators: z
-    .array(z.object({ key: z.string(), value: z.number().nullable().optional() }))
+    .array(z.object({ key: z.string().max(120), value: z.number().finite().nullable().optional() }))
     .max(40),
   actions: z
     .array(
       z.object({
-        title: z.string(),
-        priority: z.string().nullable().optional(),
-        status: z.string().nullable().optional(),
-        due_date: z.string().nullable().optional(),
+        title: z.string().max(300),
+        priority: z.string().max(64).nullable().optional(),
+        status: z.string().max(64).nullable().optional(),
+        due_date: z.string().max(64).nullable().optional(),
       }),
     )
     .max(40),
   sensors: z
     .array(
       z.object({
-        label: z.string(),
-        type: z.string(),
-        status: z.string(),
-        batteryPercent: z.number(),
+        label: z.string().max(200),
+        type: z.string().max(64),
+        status: z.string().max(64),
+        batteryPercent: z.number().finite().min(0).max(100),
       }),
     )
     .max(60),
 });
 
 export const askDecisionsAssistant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
@@ -51,22 +53,25 @@ export const askDecisionsAssistant = createServerFn({ method: "POST" })
       };
     }
 
-    const gateway = createLovableAiGatewayProvider(key);
-    const model = gateway("google/gemini-3-flash-preview");
-
     const system =
       "Du er en ESG- og naturkapital-rådgiver i GoFreyra. " +
-      "Du svarer KUN på dansk, KUN baseret på de leverede data om projektet. " +
+      "Du giver AI-forslag KUN på dansk, KUN baseret på brugerens indsendte projektdata, som ikke er verificeret her. " +
+      "Svarene er ikke faglige godkendelser. " +
       "Hvis data mangler, skal du sige det eksplicit i 'uncertainty'. " +
       "Skriv konkret og kort — ingen floskler, ingen markdown.";
 
     const context =
       `Projekt: ${data.projectName}\n` +
       `Indikatorer: ${data.indicators.map((i) => `${i.key}=${i.value ?? "n/a"}`).join(", ") || "ingen"}\n` +
-      `Åbne handlinger (${data.actions.length}): ${data.actions
-        .slice(0, 10)
-        .map((a) => `${a.title} [${a.priority ?? "?"}/${a.status ?? "?"}${a.due_date ? `, frist ${a.due_date}` : ""}]`)
-        .join("; ") || "ingen"}\n` +
+      `Åbne handlinger (${data.actions.length}): ${
+        data.actions
+          .slice(0, 10)
+          .map(
+            (a) =>
+              `${a.title} [${a.priority ?? "?"}/${a.status ?? "?"}${a.due_date ? `, frist ${a.due_date}` : ""}]`,
+          )
+          .join("; ") || "ingen"
+      }\n` +
       `Sensorer (${data.sensors.length}): ${
         data.sensors
           .slice(0, 12)
@@ -80,26 +85,23 @@ export const askDecisionsAssistant = createServerFn({ method: "POST" })
       `Returnér et struktureret svar med felterne short, basis (1-4 datapunkter), recommendation, uncertainty og nextAction.`;
 
     try {
-      const { experimental_output } = await generateText({
-        model,
-        system,
-        prompt,
-        experimental_output: Output.object({ schema: ReplySchema }),
-        maxOutputTokens: 600,
+      const reply = await withBoundedAiGateway(key, async (limits) => {
+        const { experimental_output } = await generateText({
+          ...limits,
+          system,
+          prompt,
+          experimental_output: Output.object({ schema: ReplySchema }),
+          maxOutputTokens: 600,
+        });
+        return ReplySchema.parse(experimental_output);
       });
 
       return {
         error: false as const,
         reason: null,
-        reply: experimental_output,
+        reply,
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Ukendt fejl";
-      const reason: "rate_limit" | "credits" | "unknown" = /429/.test(message)
-        ? "rate_limit"
-        : /402/.test(message)
-          ? "credits"
-          : "unknown";
-      return { error: true as const, reason, reply: null };
+      return { error: true as const, reason: aiPublicFailure(err), reply: null };
     }
   });

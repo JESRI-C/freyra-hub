@@ -62,7 +62,7 @@ Auth-brugerne skal oprettes via lokal Auth Admin API. Testdata er syntetiske og 
 | STO-003 | Upload persisterer kun path, `upsert: false`                               | Bestået  | Ingen signed URL lagres                                                                     |
 | STO-004 | Delete bruger DB-rækkens autoriserede path                                 | Bestået  | Manipuleret caller-path ignoreres                                                           |
 | STO-005 | Evidence sanitiserer navn, gemmer privat path og rydder op ved DB-fejl     | Bestået  | Kompensationsflow med mocked Supabase                                                       |
-| STO-006 | Evidence-download bruger eksakt RLS-række/path og 300 s download-URL        | Bestået  | Mocked servicecases; rigtig credential-/Storage-runtime er fortsat **AFVENTER**              |
+| STO-006 | Evidence-download bruger eksakt RLS-række/path og 300 s download-URL       | Bestået  | Mocked servicecases; rigtig credential-/Storage-runtime er fortsat **AFVENTER**             |
 | MON-001 | Monitoring rollback-fejl er synlig                                         | Bestået  | Dobbeltfejl efterlades ikke som tavs succes                                                 |
 | MON-002 | Monitoring signed URL har fast 300 s TTL                                   | Bestået  | Caller kan ikke vælge en længere levetid                                                    |
 | MON-003 | Monitoring delete stopper ved Storage-fejl                                 | Bestået  | Metadata og audit ændres ikke efter afvist object-delete                                    |
@@ -164,23 +164,23 @@ Normal organization/project creator-bootstrap kontrolleres statisk, mens signup-
 
 ## Storage- og URL-tests
 
-| ID         | Forsøg                                                               | Forventning                                                                   | Status             |
-| ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------ |
-| STO-DB-001 | A læser/indsætter/opdaterer/sletter B-object                         | Afvist eller 0 rækker; UPDATE afvises for alle authenticated                  | **AFVENTER**       |
-| STO-DB-002 | `monitoring-uploads` user-prefix uden metadata-række                 | Kun egen personlige staging er tilladt                                        | **AFVENTER**       |
-| STO-DB-003 | Samme monitoring-path efter tenantassignment og tabt medlemskab      | Prefix-fallback gælder ikke; adgang afvises straks ved næste request          | **AFVENTER**       |
-| STO-DB-004 | Canonical path med org B men project A                               | Afvises af `storage_path_matches_project`; pgTAP-case skrevet                 | **AFVENTER**       |
-| STO-DB-005 | Project/evidence path uden matchende metadata-række                  | Skal afvises i slutdesignet; exact row-match er endnu ikke implementeret      | **AFVENTER / GAP** |
-| STO-DB-006 | Contributor sletter normalt eller ældre object                       | Afvist; almindelig delete kræver manage                                       | **AFVENTER**       |
-| STO-DB-007 | Contributor rydder nyt eget orphan efter fejlet metadata-insert      | Kun tilladt ved owner-id, ≤15 min, contribution-scope og ingen metadata-række | **AFVENTER**       |
-| STO-DB-008 | Authenticated INSERT uden server-issued intent/pending metadata      | Skal afvises i slutdesignet; intent-binding er ikke implementeret             | **AFVENTER / GAP** |
-| STO-DB-009 | Monitoring/project-media over DB-konfigureret type-/størrelsesgrænse | Skal afvises; konfiguration er statisk/pgTAP-planlagt, runtime ikke kørt      | **AFVENTER**       |
-| STO-DB-010 | Orphan efter crash/rollback-fejl                                     | Reconcileres/karantænes efter retention; job findes ikke                      | **AFVENTER / GAP** |
-| STO-DB-011 | Evidence-fil uden godkendt type-/størrelseskontrakt                  | Kontrakt skal godkendes før migration må fastsætte eller nulstille grænser    | **AFVENTER / GAP** |
-| URL-001    | A signer A-media/monitoring                                          | URL virker højst 300 sekunder                                                 | **AFVENTER**       |
-| URL-002    | A forsøger at signere B-media                                        | Afvist uden public fallback                                                   | **AFVENTER**       |
-| URL-003    | Medlemskab fjernes efter signering                                   | Nye signeringer afvises; eksisterende bearer-link virker op til 300 s         | **AFVENTER / GAP** |
-| URL-004    | Udløbet signed URL                                                   | Download afvises                                                              | **AFVENTER**       |
+| ID         | Forsøg                                                               | Forventning                                                                   | Status                         |
+| ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------ |
+| STO-DB-001 | A læser/indsætter/opdaterer/sletter B-object                         | Afvist eller 0 rækker; UPDATE afvises for alle authenticated                  | **AFVENTER**                   |
+| STO-DB-002 | `monitoring-uploads` user-prefix uden metadata-række                 | Kun egen personlige staging er tilladt                                        | **AFVENTER**                   |
+| STO-DB-003 | Samme monitoring-path efter tenantassignment og tabt medlemskab      | Prefix-fallback gælder ikke; adgang afvises straks ved næste request          | **AFVENTER**                   |
+| STO-DB-004 | Canonical path med org B men project A                               | Afvises af `storage_path_matches_project`; pgTAP-case skrevet                 | **AFVENTER**                   |
+| STO-DB-005 | Project/evidence path uden matchende metadata-række                  | Skal afvises i slutdesignet; exact row-match er endnu ikke implementeret      | **AFVENTER / GAP**             |
+| STO-DB-006 | Contributor sletter normalt eller ældre object                       | Afvist; almindelig delete kræver manage                                       | **AFVENTER**                   |
+| STO-DB-007 | Contributor rydder nyt eget orphan efter fejlet metadata-insert      | Kun tilladt ved owner-id, ≤15 min, contribution-scope og ingen metadata-række | **AFVENTER**                   |
+| STO-DB-008 | Authenticated INSERT uden server-issued intent/pending metadata      | Skal afvises i slutdesignet; intent-binding er ikke implementeret             | **AFVENTER / GAP**             |
+| STO-DB-009 | Monitoring/project-media over DB-konfigureret type-/størrelsesgrænse | Skal afvises; konfiguration er statisk/pgTAP-planlagt, runtime ikke kørt      | **AFVENTER**                   |
+| STO-DB-010 | Orphan efter crash/rollback-fejl                                     | Reconcileres/karantænes efter retention; job findes ikke                      | **AFVENTER / GAP**             |
+| STO-DB-011 | Evidence-fil uden godkendt type-/størrelseskontrakt                  | Kontrakt skal godkendes før migration må fastsætte eller nulstille grænser    | **AFVENTER / GAP**             |
+| URL-001    | A signer A-media/monitoring                                          | URL virker højst 300 sekunder                                                 | **AFVENTER**                   |
+| URL-002    | A forsøger at signere B-media                                        | Afvist uden public fallback                                                   | **AFVENTER**                   |
+| URL-003    | Medlemskab fjernes efter signering                                   | Nye signeringer afvises; eksisterende bearer-link virker op til 300 s         | **AFVENTER / GAP**             |
+| URL-004    | Udløbet signed URL                                                   | Download afvises                                                              | **AFVENTER**                   |
 | URL-005    | Evidence-download                                                    | Eksakt evidence-/project-RLS-opslag, valideret DB-path og 300 s download-URL  | **PASS kilde / AFVENTER live** |
 
 ## Eksport- og cachetests

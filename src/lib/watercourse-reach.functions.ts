@@ -10,15 +10,25 @@ import {
   type ProjectNatureAccess,
 } from "@/lib/project-nature-access.server";
 import {
-  buildOfficialWatercourseGeometryUrl,
   fetchOfficialWatercourse,
   OFFICIAL_WATERCOURSE_ATTRIBUTION,
   OFFICIAL_WATERCOURSE_DISCLAIMER,
-  searchOfficialWatercourses,
   type LngLat,
   type OfficialWatercourseGeometry,
   type OfficialWatercourseSuggestion,
 } from "@/services/geospatial/official-watercourse-source";
+import {
+  DATAFORDELER_WATERCOURSE_PROVIDER,
+  DATAFORDELER_WATERCOURSE_CRS,
+  DATAFORDELER_WATERCOURSE_AXIS_ORDER,
+  DATAFORDELER_WATERCOURSE_DATASET_VERSION,
+  DATAFORDELER_WATERCOURSE_ATTRIBUTION,
+  DATAFORDELER_WATERCOURSE_DISCLAIMER,
+} from "@/services/geospatial/datafordeler-watercourse-source";
+import {
+  hasOfficialWatercourseProvenance,
+  isDatafordelerWatercourseReference,
+} from "@/services/geospatial/watercourse-source-provenance";
 
 const POSTGRES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ProjectId = z.string().regex(POSTGRES_UUID, "Invalid project ID");
@@ -63,7 +73,10 @@ export interface WatercourseReachDependencies {
     projectId: string,
   ): Promise<ProjectNatureAccess>;
   searchSource(query: string): Promise<OfficialWatercourseSuggestion[]>;
-  fetchSource(id: string): Promise<OfficialWatercourseGeometry>;
+  fetchSource(
+    id: string,
+    provider?: OfficialWatercourseGeometry["sourceProvider"] | "dawa-stednavne/v1",
+  ): Promise<OfficialWatercourseGeometry>;
   loadSaved(client: DataClient, projectId: string): Promise<SavedOfficialWatercourseReach | null>;
   persist(
     client: DataClient,
@@ -86,6 +99,7 @@ function geometryFromJson(value: Json | null): OfficialWatercourseGeometry["geom
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const raw = value as Record<string, Json | undefined>;
   if (raw["type"] !== "MultiLineString" || !Array.isArray(raw["coordinates"])) return null;
+  if (raw["coordinates"].length === 0 || raw["coordinates"].length > 100) return null;
   const lines: LngLat[][] = [];
   let vertexCount = 0;
   for (const rawLine of raw["coordinates"]) {
@@ -156,19 +170,33 @@ async function savedReachFromRow(
   const sourceUrl = jsonString(metadata["source_url"]);
   const geometryHash = jsonString(metadata["geometry_sha256"]);
   const bbox = jsonBbox(metadata["bbox"]);
+  const isDatafordeler = metadata["schema"] === "gofreyra.watercourse-reach-source/v2";
+  const validProviderMetadata = isDatafordeler
+    ? metadata["source_system"] === "KDS Datafordeler Danske Stednavne" &&
+      metadata["source_provider"] === DATAFORDELER_WATERCOURSE_PROVIDER &&
+      metadata["source_crs"] === DATAFORDELER_WATERCOURSE_CRS &&
+      metadata["source_axis_order"] === DATAFORDELER_WATERCOURSE_AXIS_ORDER &&
+      metadata["dataset_version"] === DATAFORDELER_WATERCOURSE_DATASET_VERSION &&
+      metadata["source_modified_at"] === null &&
+      metadata["geometry_version"] === null &&
+      (metadata["source_registered_at"] === null ||
+        typeof metadata["source_registered_at"] === "string") &&
+      (metadata["source_valid_from"] === null ||
+        typeof metadata["source_valid_from"] === "string") &&
+      (metadata["official_length_m"] === null || typeof metadata["official_length_m"] === "number")
+    : metadata["schema"] === "gofreyra.watercourse-reach-source/v1" &&
+      metadata["source_system"] === "SDFI Danske Stednavne";
   if (
     row.zone_type !== "watercourse" ||
     row.status !== "active" ||
     row.source_type !== "imported" ||
-    metadata["schema"] !== "gofreyra.watercourse-reach-source/v1" ||
-    metadata["source_system"] !== "SDFI Danske Stednavne" ||
+    !validProviderMetadata ||
     metadata["crs"] !== "EPSG:4326" ||
     metadata["geometry_type"] !== "MultiLineString" ||
     !geometry ||
     !sourceId ||
     !POSTGRES_UUID.test(sourceId) ||
     !sourceUrl ||
-    sourceUrl !== buildOfficialWatercourseGeometryUrl(sourceId) ||
     !geometryHash ||
     !/^[0-9a-f]{64}$/i.test(geometryHash) ||
     geometryHash !== (await sha256Hex(geometry)) ||
@@ -177,7 +205,7 @@ async function savedReachFromRow(
     return null;
   }
   const vertexCount = geometry.coordinates.reduce((sum, line) => sum + line.length, 0);
-  return {
+  const saved: SavedOfficialWatercourseReach = {
     zoneId: row.id,
     savedAt: row.updated_at,
     id: sourceId,
@@ -191,11 +219,30 @@ async function savedReachFromRow(
     vertexCount,
     lengthM: jsonNumber(metadata["length_m"]) ?? 0,
     modifiedAt: jsonString(metadata["source_modified_at"]),
-    geometryVersion: jsonNumber(metadata["geometry_version"]),
+    geometryVersion: isDatafordeler ? null : jsonNumber(metadata["geometry_version"]),
     sourceUrl,
-    attribution: OFFICIAL_WATERCOURSE_ATTRIBUTION,
-    disclaimer: OFFICIAL_WATERCOURSE_DISCLAIMER,
+    attribution: isDatafordeler
+      ? DATAFORDELER_WATERCOURSE_ATTRIBUTION
+      : OFFICIAL_WATERCOURSE_ATTRIBUTION,
+    disclaimer: isDatafordeler
+      ? DATAFORDELER_WATERCOURSE_DISCLAIMER
+      : OFFICIAL_WATERCOURSE_DISCLAIMER,
+    ...(isDatafordeler
+      ? {
+          sourceProvider: DATAFORDELER_WATERCOURSE_PROVIDER,
+          sourceCrs: DATAFORDELER_WATERCOURSE_CRS,
+          sourceAxisOrder: DATAFORDELER_WATERCOURSE_AXIS_ORDER,
+          datasetVersion: DATAFORDELER_WATERCOURSE_DATASET_VERSION,
+          sourceRegisteredAt: jsonString(metadata["source_registered_at"]),
+          sourceValidFrom: jsonString(metadata["source_valid_from"]),
+          officialLengthM:
+            metadata["official_length_m"] === null
+              ? null
+              : jsonNumber(metadata["official_length_m"]),
+        }
+      : {}),
   };
+  return hasOfficialWatercourseProvenance(saved) ? saved : null;
 }
 
 async function sha256Hex(value: unknown): Promise<string> {
@@ -233,10 +280,15 @@ export async function persistOfficialWatercourseReach(
   reach: OfficialWatercourseGeometry,
 ): Promise<SavedOfficialWatercourseReach> {
   const fetchedAt = new Date().toISOString();
+  if (!hasOfficialWatercourseProvenance(reach))
+    throw new Error("Vandløbsreferencen har ugyldig kildeproveniens.");
+  const isDatafordeler = isDatafordelerWatercourseReference(reach);
   const geometryHash = await sha256Hex(reach.geometry);
   const sourceMetadata: Json = {
-    schema: "gofreyra.watercourse-reach-source/v1",
-    source_system: "SDFI Danske Stednavne",
+    schema: isDatafordeler
+      ? "gofreyra.watercourse-reach-source/v2"
+      : "gofreyra.watercourse-reach-source/v1",
+    source_system: isDatafordeler ? "KDS Datafordeler Danske Stednavne" : "SDFI Danske Stednavne",
     source_id: reach.id,
     source_url: reach.sourceUrl,
     source_modified_at: reach.modifiedAt,
@@ -251,6 +303,17 @@ export async function persistOfficialWatercourseReach(
     name_status: reach.nameStatus,
     attribution: reach.attribution,
     disclaimer: reach.disclaimer,
+    ...(isDatafordeler
+      ? {
+          source_provider: reach.sourceProvider,
+          source_crs: reach.sourceCrs,
+          source_axis_order: reach.sourceAxisOrder,
+          dataset_version: reach.datasetVersion,
+          source_registered_at: reach.sourceRegisteredAt,
+          source_valid_from: reach.sourceValidFrom,
+          official_length_m: reach.officialLengthM,
+        }
+      : {}),
   };
   const baseRow: MonitoringZoneInsert = {
     project_id: projectId,
@@ -308,8 +371,17 @@ export async function persistOfficialWatercourseReach(
 
 const DEFAULT_DEPENDENCIES: WatercourseReachDependencies = {
   authorizeProject: requireProjectNatureAccess,
-  searchSource: searchOfficialWatercourses,
-  fetchSource: fetchOfficialWatercourse,
+  searchSource: async (query) => {
+    const { searchDatafordelerWatercourses } =
+      await import("@/services/geospatial/datafordeler-watercourse.server");
+    return searchDatafordelerWatercourses(query);
+  },
+  fetchSource: async (id, provider) => {
+    if (provider === "dawa-stednavne/v1") return fetchOfficialWatercourse(id);
+    const { fetchDatafordelerWatercourse } =
+      await import("@/services/geospatial/datafordeler-watercourse.server");
+    return fetchDatafordelerWatercourse(id);
+  },
   loadSaved: loadSavedOfficialWatercourseReach,
   persist: persistOfficialWatercourseReach,
 };
@@ -362,21 +434,9 @@ export async function executeWatercourseLoad(
     userId,
     projectId,
   );
-  const saved = await dependencies.loadSaved(client, projectId);
-  if (!saved) return null;
-  const official = await dependencies.fetchSource(saved.id);
-  if ((await sha256Hex(saved.geometry)) !== (await sha256Hex(official.geometry))) {
-    throw new Error(
-      "Den officielle vandløbsgeometri er ændret siden gemning. Vælg og gem strækningen igen.",
-    );
-  }
-  return {
-    ...official,
-    municipalities:
-      saved.municipalities.length > 0 ? saved.municipalities : official.municipalities,
-    zoneId: saved.zoneId,
-    savedAt: saved.savedAt,
-  };
+  // loadSaved validates the persisted geometry hash and provider provenance.
+  // Reopening preserves that snapshot; preview/save and new baselines verify live sources.
+  return dependencies.loadSaved(client, projectId);
 }
 
 export async function executeWatercourseSave(

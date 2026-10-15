@@ -89,12 +89,14 @@ function ConstructionIndexPage() {
         module="Byggeri & Natur"
         tone="risk"
         cacheKey={`construction:${summaries.length}:${openHighRisks}:${avgReadiness}`}
-        context={`Antal byggeprojekter: ${summaries.length}. Projekter nær vandløb: ${projectsNearWater}. Åbne kritiske/høje risici: ${openHighRisks}. Myndighedspakker klar/indsendt: ${authorityReportsReady}. Gns. readiness: ${avgReadiness}%. Top-projekter: ${summaries.slice(0, 3).map((s) => `${s.project.name} (${s.project.status})`).join("; ")}.`}
+        context={`Antal byggeprojekter: ${summaries.length}. Projekter nær vandløb: ${projectsNearWater}. Åbne kritiske/høje risici: ${openHighRisks}. Myndighedspakker klar/indsendt: ${authorityReportsReady}. Gns. readiness: ${avgReadiness}%. Top-projekter: ${summaries
+          .slice(0, 3)
+          .map((s) => `${s.project.name} (${s.project.status})`)
+          .join("; ")}.`}
       />
 
       {/* Stat bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
         <StatCard
           label="Aktive projekter"
           value={String(summaries.length)}

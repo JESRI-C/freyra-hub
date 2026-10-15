@@ -62,11 +62,13 @@ function Page() {
         module="Anbefalinger"
         tone="action"
         cacheKey={`recs:${filtered.length}`}
-        context={`Filtrerede anbefalinger: ${filtered.length}. Prioritetsfilter: ${priority}. Kategori: ${category}. Status: ${status}. Min. konfidens: ${minConf}%. Titler: ${filtered.slice(0, 6).map((r) => r.title).join("; ")}.`}
+        context={`Filtrerede anbefalinger: ${filtered.length}. Prioritetsfilter: ${priority}. Kategori: ${category}. Status: ${status}. Min. konfidens: ${minConf}%. Titler: ${filtered
+          .slice(0, 6)
+          .map((r) => r.title)
+          .join("; ")}.`}
       />
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
-
         <StatCard label="Åbne anbefalinger" value="14" icon={<ListChecks className="h-5 w-5" />} />
         <StatCard
           label="Høj prioritet"

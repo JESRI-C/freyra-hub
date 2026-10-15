@@ -3,6 +3,7 @@ import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-quer
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled } from "@/lib/data-mode";
 import {
   ShieldCheck,
   RefreshCw,
@@ -17,6 +18,8 @@ import {
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
+import { DroneSurveyWorkspace } from "@/components/project/DroneSurveyWorkspace";
+import { PublicBaselinePanel } from "@/components/project/PublicBaselinePanel";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
 import { IndicatorDetail } from "@/components/indicators/IndicatorDetail";
 import { SitesPanel } from "@/components/project/SitesPanel";
@@ -30,6 +33,9 @@ import { DocumentationScore } from "@/components/documents/DocumentationScore";
 import { computeDocumentationScore, listDocuments } from "@/services/documents-service";
 
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
+import { ProjectReportRecords } from "@/components/reports/ProjectReportRecords";
+import { MunicipalReportPanel } from "@/components/reports/MunicipalReportPanel";
+import { DroneImageInspectionPanel } from "@/components/project/DroneImageInspectionPanel";
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import { BiodiversityCard } from "@/components/project/BiodiversityCard";
@@ -39,7 +45,7 @@ import {
   getDataSourcesByProject,
 } from "@/services/projects-service";
 import { getIndicatorsByProject } from "@/services/indicators-service";
-import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
+import { getReportsByProject } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "@/components/project/ProjectMembersPanel";
@@ -95,6 +101,15 @@ function AuditIcon({ name }: { name: string }) {
 }
 
 export const Route = createFileRoute("/app/projects/$slug")({
+  validateSearch: (search: Record<string, unknown>): { tab?: string; round?: string } => ({
+    ...(typeof search.tab === "string" && TABS.some((tab) => tab.id === search.tab)
+      ? { tab: search.tab }
+      : {}),
+    ...(typeof search.round === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.round)
+      ? { round: search.round.toLowerCase() }
+      : {}),
+  }),
   head: () => ({ meta: [{ title: "Projekt — GoFreyra" }] }),
   // Project reads depend on the browser-persisted Supabase session. Rendering
   // this route on the server would execute all suspense queries without the
@@ -115,6 +130,9 @@ export const Route = createFileRoute("/app/projects/$slug")({
 });
 
 const TABS = [
+  { id: "arbejde", label: "Undersøgelse" },
+  { id: "rapporter", label: "Rapport og levering" },
+  { id: "grundlag", label: "Grundlag" },
   { id: "overblik", label: "Overblik" },
   { id: "sites", label: "Sites" },
   { id: "datakilder", label: "Datakilder" },
@@ -124,7 +142,6 @@ const TABS = [
   { id: "roller", label: "Roller" },
   { id: "dokumentation", label: "Dokumentation" },
   { id: "medier", label: "Medier" },
-  { id: "rapporter", label: "Rapporter" },
   { id: "miljodata", label: "Miljødata" },
   { id: "livekort", label: "Livekort" },
 ];
@@ -133,6 +150,8 @@ const TABS = [
 
 function ProjectDetailPage() {
   const { slug } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
 
   const { data: project } = useSuspenseQuery({
     queryKey: ["project-by-slug", slug],
@@ -200,26 +219,18 @@ function ProjectDetailPage() {
   // a centroid alone (from location name) is not enough to run area-based analyses.
   const hasRealGeometry = validateProjectPolygon(project?.geometry_polygon).valid;
 
-  // Async media state
-  const [mediaItems, setMediaItems] = useState<
-    import("@/lib/platform/media-types").ProjectMediaItem[]
-  >([]);
-  const [mediaLoading, setMediaLoading] = useState(true);
-
-  useEffect(() => {
-    if (!projectId) return;
-    let cancelled = false;
-    setMediaLoading(true);
-    listProjectMedia(projectId).then((result) => {
-      if (!cancelled) {
-        setMediaItems(result.data ?? []);
-        setMediaLoading(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId]);
+  const {
+    data: mediaItems,
+    error: mediaError,
+    isFetching: mediaLoading,
+  } = useSuspenseQuery({
+    queryKey: ["project-media", projectId],
+    queryFn: async () => {
+      const result = await listProjectMedia(projectId);
+      if (result.error) throw new Error("Projektets medier kunne ikke hentes. Prøv igen senere.");
+      return result.data ?? [];
+    },
+  });
 
   const droneUploadsQuery = useQuery({
     queryKey: ["drone-upload-map-overview", projectId],
@@ -255,6 +266,8 @@ function ProjectDetailPage() {
     setIndicatorDetailOpen(true);
   };
 
+  // A failed background media refresh must not feed stale/empty evidence to the report preview.
+  if (mediaError) throw mediaError;
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
   }
@@ -296,8 +309,9 @@ function ProjectDetailPage() {
     }
   };
 
-  // IoT sensors — generated deterministically from project id + centroid
-  const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
+  // Generated sensor readings are available only in explicit offline demo.
+  const sensors =
+    isDemoDataEnabled && geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
 
   // Report preview
   const reportPreview = generateProjectReportPreview({
@@ -331,10 +345,44 @@ function ProjectDetailPage() {
         openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
       />
 
-      <ProjectTabs tabs={TABS}>
+      <ProjectTabs
+        tabs={TABS}
+        activeTab={search.tab ?? "arbejde"}
+        primaryTabIds={["arbejde", "rapporter"]}
+        onTabChange={(tab) =>
+          void navigate({ search: (previous) => ({ ...previous, tab }), replace: true })
+        }
+      >
         {(active) => (
           <>
+            {active === "arbejde" && (
+              <DroneSurveyWorkspace
+                project={project}
+                selectedRoundId={search.round}
+                onSelectRound={(round) =>
+                  void navigate({
+                    search: (previous) => ({ ...previous, tab: "arbejde", round }),
+                    replace: true,
+                  })
+                }
+                onOpenDelivery={() =>
+                  void navigate({
+                    search: (previous) => ({ ...previous, tab: "rapporter" }),
+                    replace: true,
+                  })
+                }
+                photoCount={droneUploadOverview?.receivedDroneUploads}
+                onPhotosChanged={async () => {
+                  await Promise.all([
+                    droneUploadsQuery.refetch(),
+                    queryClient.invalidateQueries({ queryKey: ["project-media", projectId] }),
+                    queryClient.invalidateQueries({ queryKey: ["survey-round-media-candidates"] }),
+                  ]);
+                }}
+              />
+            )}
             {/* ── Overblik ─────────────────────────────────────────────────── */}
+            {active === "grundlag" && <PublicBaselinePanel key={project.id} project={project} />}
             {active === "overblik" && (
               <div className="space-y-5">
                 {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
@@ -666,7 +714,9 @@ function ProjectDetailPage() {
                   <ProjectMediaUploadPanel
                     projectId={projectId}
                     projectCentroid={geometry.centroid ?? undefined}
-                    onUploadComplete={(item) => setMediaItems((prev) => [item, ...prev])}
+                    onUploadComplete={() =>
+                      void queryClient.invalidateQueries({ queryKey: ["project-media", projectId] })
+                    }
                     onDroneBatchImported={() => void droneUploadsQuery.refetch()}
                   />
                 </div>
@@ -676,42 +726,26 @@ function ProjectDetailPage() {
             {/* ── Rapporter ──────────────────────────────────────────────── */}
             {active === "rapporter" && (
               <div className="space-y-4">
-                {/* Existing reports */}
-                {reports.length > 0 && (
-                  <Card>
-                    <CardHeader
-                      title="Eksisterende rapporter"
-                      action={<Pill tone="info">{reports.length}</Pill>}
+                <MunicipalReportPanel projectId={projectId} />
+                <DroneImageInspectionPanel projectId={projectId} />
+                <details>
+                  <summary className="cursor-pointer text-sm text-muted-foreground">
+                    Øvrige projektoversigter og dokumenter
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <ProjectReportRecords projectId={projectId} reports={reports} />
+                    <ReportPreviewCard preview={reportPreview} />
+                    <DokumentationTab
+                      projectId={projectId}
+                      project={project}
+                      sites={sites}
+                      actions={localActions}
+                      indicators={indicators}
+                      evidenceFiles={evidenceFiles}
+                      delivery
                     />
-                    <div className="px-5 pb-4 divide-y">
-                      {reports.map((r) => {
-                        const tone = reportStatusTone(r.status);
-                        return (
-                          <div key={r.id} className="py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{r.title}</span>
-                              <Pill tone={tone === "neutral" ? "default" : tone}>
-                                {r.status ?? "Kladde"}
-                              </Pill>
-                            </div>
-                            {r.summary && (
-                              <p className="text-xs text-muted-foreground mt-1">{r.summary}</p>
-                            )}
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {r.period_start && r.period_end
-                                ? `${r.period_start} – ${r.period_end}`
-                                : ""}
-                              {r.report_type ? ` · ${r.report_type}` : ""}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card>
-                )}
-
-                {/* Report preview */}
-                <ReportPreviewCard preview={reportPreview} />
+                  </div>
+                </details>
               </div>
             )}
 
@@ -774,7 +808,11 @@ function ProjectDetailPage() {
                   <Card className="py-10 text-center">
                     <CardHeader
                       title="Ingen sensorer"
-                      subtitle="Tilknyt en projektgeometri for at aktivere IoT-sensorlaget"
+                      subtitle={
+                        isDemoDataEnabled
+                          ? "Tilknyt en projektgeometri for at se eksempelsensorer"
+                          : "Der er ingen tilknyttede sensorer i denne visning."
+                      }
                     />
                   </Card>
                 )}
@@ -992,8 +1030,8 @@ function GeometryRequiredBanner({
           <div className="text-sm font-semibold">Projektområde mangler</div>
           <p className="text-sm text-muted-foreground mt-1">
             {variant === "detailed"
-              ? "For at beregne NDVI, biodiversitet og miljøpåvirkning skal projektets afgrænsning defineres. Tegn polygonen på kortet, eller upload en GeoJSON-fil — beregningerne aktiveres straks efter."
-              : "Definér projektets afgrænsning før beregninger kan køre."}
+              ? "Afgræns projektet på kortet eller med GeoJSON. Hent derefter offentlige data under Grundlag og kontrollér dækning og kvalitet før analyse."
+              : "Definér projektets afgrænsning som grundlag for kildehentning og verifikation."}
           </p>
           <div className="mt-3">
             <Link
@@ -1091,6 +1129,7 @@ function DokumentationTab({
   actions,
   indicators,
   evidenceFiles,
+  delivery = false,
 }: {
   projectId: string;
   project: import("@/lib/supabase/types").Project;
@@ -1098,6 +1137,7 @@ function DokumentationTab({
   actions: Action[];
   indicators: import("@/lib/supabase/types").Indicator[];
   evidenceFiles: import("@/lib/supabase/types").EvidenceFile[];
+  delivery?: boolean;
 }) {
   const { data: documents = [] } = useQuery({
     queryKey: ["documents", projectId],
@@ -1129,11 +1169,24 @@ function DokumentationTab({
 
   return (
     <div className="space-y-4">
-      <div className="grid lg:grid-cols-[1fr_360px] gap-4">
+      {delivery && (
+        <Card className="p-5">
+          <h3 className="font-semibold">Afleveringen er endnu ikke klar</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            PDF-knappen henter en foreløbig projektkladde. Den samlede rapport med daterede kilder,
+            fotonoter, faglig godkendelse og en låst rapportversion er stadig under udvikling.
+          </p>
+        </Card>
+      )}
+      <div className={delivery ? "space-y-4" : "grid lg:grid-cols-[1fr_360px] gap-4"}>
         <Card>
           <CardHeader
-            title="Genererede dokumenter"
-            subtitle="Rapporter, notater og eksporter til myndigheder og partnere"
+            title={delivery ? "Projektkladde og eksisterende dokumenter" : "Genererede dokumenter"}
+            subtitle={
+              delivery
+                ? "En kladde kræver fortsat kontrol før aflevering"
+                : "Rapporter, notater og eksporter til myndigheder og partnere"
+            }
             action={
               <div className="flex items-center gap-2">
                 <Pill tone="info">{documents.length}</Pill>
@@ -1150,15 +1203,17 @@ function DokumentationTab({
             <DocumentList projectId={projectId} />
           </div>
         </Card>
-        <Card>
-          <CardHeader
-            title="Dokumentationsscore"
-            subtitle="Hvor komplet er projektets dokumentation"
-          />
-          <div className="px-5 pb-5">
-            <DocumentationScore score={score} />
-          </div>
-        </Card>
+        {!delivery && (
+          <Card>
+            <CardHeader
+              title="Dokumentationsscore"
+              subtitle="Hvor komplet er projektets dokumentation"
+            />
+            <div className="px-5 pb-5">
+              <DocumentationScore score={score} />
+            </div>
+          </Card>
+        )}
       </div>
 
       <Card>

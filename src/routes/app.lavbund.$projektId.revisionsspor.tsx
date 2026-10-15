@@ -140,7 +140,9 @@ function RevisionsSporPage() {
             <div className="text-xs text-destructive flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
-                <div className="font-semibold">Kæden er brudt ved post #{verifResultat.brud?.seq}</div>
+                <div className="font-semibold">
+                  Kæden er brudt ved post #{verifResultat.brud?.seq}
+                </div>
                 <div className="mt-1 font-mono text-[10px] break-all">
                   Forventet {verifResultat.brud?.forventet.slice(0, 20)}… fik{" "}
                   {verifResultat.brud?.faktisk.slice(0, 20)}…

@@ -36,7 +36,7 @@ Auditten skelner mellem checkpointets fund, den lokale rettelse og runtime-evide
 | Lokal Supabase             | Docker/Podman mangler; reset gav `LegacyLocalDbRunningError`, og pgTAP/db lint gav `ECONNREFUSED 127.0.0.1:54322` | **AFVENTER**                 |
 | Auth/PostgREST/RPC/Storage | SQL A/B-tenanttest + anon PostgREST-smoke; rigtig Auth-/Storage API-session mangler                               | Delvist verificeret          |
 | Lovable-/produktionstarget | `ikrmcetjutqcjtwfhzfv` er ikke ændret                                                                             | Ikke rørt                    |
-| Staging                    | `xdvqdzdpyceojbdknofi`; migrationshistorik gennem `20260912110614`, hærdet schema-postflight og tenanttest       | Verificeret for testet scope |
+| Staging                    | `xdvqdzdpyceojbdknofi`; migrationshistorik gennem `20260912110614`, hærdet schema-postflight og tenanttest        | Verificeret for testet scope |
 | Produktion                 | Ingen migration, read/write, secretændring eller deploy                                                           | Ikke rørt                    |
 
 ## Kritiske checkpoint-fund og lokal behandling

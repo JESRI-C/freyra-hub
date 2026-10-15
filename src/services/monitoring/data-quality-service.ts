@@ -15,12 +15,22 @@ export interface QualityBreakdown {
 }
 
 export interface QualityInput {
-  device: Pick<MonitoringDevice, "expected_interval_minutes" | "last_seen_at" | "latitude" | "longitude">;
-  measurements: Pick<DeviceMeasurement, "measured_at" | "value" | "quality_status" | "latitude" | "longitude">[];
+  device: Pick<
+    MonitoringDevice,
+    "expected_interval_minutes" | "last_seen_at" | "latitude" | "longitude"
+  >;
+  measurements: Pick<
+    DeviceMeasurement,
+    "measured_at" | "value" | "quality_status" | "latitude" | "longitude"
+  >[];
   windowHours: number;
 }
 
-export function computeQuality({ device, measurements, windowHours }: QualityInput): QualityBreakdown {
+export function computeQuality({
+  device,
+  measurements,
+  windowHours,
+}: QualityInput): QualityBreakdown {
   const interval = device.expected_interval_minutes ?? 60;
   const expected = Math.max(1, Math.floor((windowHours * 60) / interval));
   const completeness = clamp((measurements.length / expected) * 100);
@@ -31,17 +41,24 @@ export function computeQuality({ device, measurements, windowHours }: QualityInp
   const timeliness = clamp(100 - (latestAge / interval) * 25);
 
   const values = measurements.map((m) => m.value).filter((v) => Number.isFinite(v));
-  const consistency = values.length > 2 ? clamp(100 - (stdev(values) / (Math.abs(mean(values)) || 1)) * 40) : 60;
+  const consistency =
+    values.length > 2 ? clamp(100 - (stdev(values) / (Math.abs(mean(values)) || 1)) * 40) : 60;
 
   const validated = measurements.filter((m) => m.quality_status !== "invalid").length;
   const validation = measurements.length ? clamp((validated / measurements.length) * 100) : 50;
 
   const withGeo = measurements.filter((m) => m.latitude != null && m.longitude != null).length;
-  const spatial = measurements.length ? clamp((withGeo / measurements.length) * 100) : device.latitude != null ? 80 : 40;
+  const spatial = measurements.length
+    ? clamp((withGeo / measurements.length) * 100)
+    : device.latitude != null
+      ? 80
+      : 40;
 
   const temporal = clamp(100 - (temporalGapMinutes(measurements) / interval) * 30);
 
-  const overall = Math.round((completeness + timeliness + consistency + validation + spatial + temporal) / 6);
+  const overall = Math.round(
+    (completeness + timeliness + consistency + validation + spatial + temporal) / 6,
+  );
 
   return {
     completeness: round(completeness),
@@ -51,13 +68,35 @@ export function computeQuality({ device, measurements, windowHours }: QualityInp
     spatial: round(spatial),
     temporal: round(temporal),
     overall,
-    explanation: explain({ completeness, timeliness, consistency, validation, spatial, temporal, overall, expected, actual: measurements.length }),
+    explanation: explain({
+      completeness,
+      timeliness,
+      consistency,
+      validation,
+      spatial,
+      temporal,
+      overall,
+      expected,
+      actual: measurements.length,
+    }),
   };
 }
 
-function explain(x: { completeness: number; timeliness: number; consistency: number; validation: number; spatial: number; temporal: number; overall: number; expected: number; actual: number }): string {
+function explain(x: {
+  completeness: number;
+  timeliness: number;
+  consistency: number;
+  validation: number;
+  spatial: number;
+  temporal: number;
+  overall: number;
+  expected: number;
+  actual: number;
+}): string {
   const parts: string[] = [];
-  parts.push(`${x.actual} af ${x.expected} forventede aflæsninger (${Math.round(x.completeness)}% komplethed).`);
+  parts.push(
+    `${x.actual} af ${x.expected} forventede aflæsninger (${Math.round(x.completeness)}% komplethed).`,
+  );
   if (x.timeliness < 70) parts.push("Data er forsinket ift. forventet interval.");
   if (x.consistency < 70) parts.push("Værdier varierer usædvanligt meget.");
   if (x.validation < 90) parts.push("Nogle aflæsninger er markeret ugyldige.");
@@ -82,10 +121,14 @@ function stdev(a: number[]): number {
 }
 function temporalGapMinutes(measurements: Pick<DeviceMeasurement, "measured_at">[]): number {
   if (measurements.length < 2) return 0;
-  const sorted = [...measurements].sort((a, b) => new Date(a.measured_at).getTime() - new Date(b.measured_at).getTime());
+  const sorted = [...measurements].sort(
+    (a, b) => new Date(a.measured_at).getTime() - new Date(b.measured_at).getTime(),
+  );
   let maxGap = 0;
   for (let i = 1; i < sorted.length; i++) {
-    const gap = (new Date(sorted[i].measured_at).getTime() - new Date(sorted[i - 1].measured_at).getTime()) / 60_000;
+    const gap =
+      (new Date(sorted[i].measured_at).getTime() - new Date(sorted[i - 1].measured_at).getTime()) /
+      60_000;
     if (gap > maxGap) maxGap = gap;
   }
   return maxGap;

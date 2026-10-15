@@ -1,6 +1,7 @@
 // Observations Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import { fetchObservationsByProject, insertObservation } from "@/lib/supabase/queries";
 import { logAuditEvent } from "@/services/audit-service";
 import { SEED_OBSERVATIONS } from "@/data/platform-seed";
@@ -10,12 +11,13 @@ export async function getObservationsByProject(
   projectId: string,
   limit = 20,
 ): Promise<Observation[]> {
-  if (!isSupabaseConfigured) {
+  if (isDemoDataEnabled) {
     return [...SEED_OBSERVATIONS]
       .filter((o) => o.project_id === projectId)
       .sort((a, b) => (b.observed_at ?? "").localeCompare(a.observed_at ?? ""))
       .slice(0, limit);
   }
+  requireCustomerDatabase();
   return fetchObservationsByProject(projectId, limit);
 }
 
@@ -40,34 +42,24 @@ export async function recordObservation(input: {
     project_id: input.project_id,
     event_type: "observation",
     title: `${observationTypeLabel(input.observation_type)}: ${input.indicator_key ?? input.observation_type}`,
-    description: input.value !== undefined
-      ? `Målt: ${input.value}${input.unit ? " " + input.unit : ""}`
-      : undefined,
+    description:
+      input.value !== undefined
+        ? `Målt: ${input.value}${input.unit ? " " + input.unit : ""}`
+        : undefined,
     actor: input.observation_type === "sensor" ? "IoT System" : "Bruger",
     source: input.observation_type === "sensor" ? "automated" : "manual",
   });
 }
 
 /**
- * Batch-logger sensor-målinger fra IoT-simuleringen.
- * Skrives kun hvis Supabase er konfigureret — fejler aldrig stille.
+ * The legacy simulation hook must not persist fabricated sensor observations.
  */
 export async function recordSensorBatch(
   projectId: string,
   readings: Array<{ sensorType: string; value: number; unit: string; label: string }>,
 ): Promise<void> {
-  if (!isSupabaseConfigured) return;
-  await Promise.allSettled(
-    readings.map((r) =>
-      recordObservation({
-        project_id: projectId,
-        observation_type: "sensor",
-        indicator_key: r.sensorType,
-        value: r.value,
-        unit: r.unit,
-      }),
-    ),
-  );
+  void projectId;
+  void readings;
 }
 
 export function observationTypeLabel(type: string | null): string {

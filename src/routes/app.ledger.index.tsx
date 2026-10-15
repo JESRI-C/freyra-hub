@@ -76,10 +76,13 @@ function OverviewPage() {
       <AiInsightBanner
         module="ESG Ledger"
         tone="action"
-        context={`Projekt: ${PROJECT_FACTS.name}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Datakvalitet: ${PROJECT_FACTS.dataQuality}%. Åbne gaps: ${GAPS.map((g) => `${g.t} (${g.level})`).join("; ")}. Senest registrerede ledger-events: ${LEDGER_EVENTS.slice(0, 3).map((e) => `${e.type}: ${e.description}`).join("; ")}.`}
+        context={`Projekt: ${PROJECT_FACTS.name}. Rapportklarhed: ${PROJECT_FACTS.reportReadiness}%. Datakvalitet: ${PROJECT_FACTS.dataQuality}%. Åbne gaps: ${GAPS.map((g) => `${g.t} (${g.level})`).join("; ")}. Senest registrerede ledger-events: ${LEDGER_EVENTS.slice(
+          0,
+          3,
+        )
+          .map((e) => `${e.type}: ${e.description}`)
+          .join("; ")}.`}
       />
-
-
 
       {/* KPIs */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">

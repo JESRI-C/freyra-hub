@@ -49,6 +49,14 @@ export interface OfficialWatercourseGeometry {
   sourceUrl: string;
   attribution: string;
   disclaimer: string;
+  /** Present only for the authenticated modern provider; absent in legacy snapshots. */
+  sourceProvider?: "datafordeler-ds-bearbejdet-wfs/v1";
+  sourceCrs?: "EPSG:4326";
+  sourceAxisOrder?: "lat-lng";
+  datasetVersion?: "static-2025-09";
+  sourceRegisteredAt?: string | null;
+  sourceValidFrom?: string | null;
+  officialLengthM?: number | null;
 }
 
 export class OfficialWatercourseSourceError extends Error {
@@ -310,6 +318,11 @@ async function fetchJson(url: string, fetchImpl: typeof fetch = fetch): Promise<
       signal: controller.signal,
       headers: { Accept: "application/json" },
     });
+    if (response.status === 410) {
+      throw new OfficialWatercourseSourceError(
+        "Dataforsyningens tidligere stednavne-API er lukket (HTTP 410). Nye officielle vandløbsreferencer kræver adgang til Datafordeleren med API-nøgle eller OAuth.",
+      );
+    }
     if (!response.ok) {
       throw new OfficialWatercourseSourceError(
         `Dataforsyningen svarede med HTTP ${response.status}.`,

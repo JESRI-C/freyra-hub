@@ -1,6 +1,7 @@
 // Evidence Service
 
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import { fetchEvidenceFilesByProject, fetchAllEvidenceFiles } from "@/lib/supabase/queries";
 import { SEED_EVIDENCE_FILES } from "@/data/platform-seed";
 import type { EvidenceFile } from "@/lib/supabase/types";
@@ -98,18 +99,20 @@ async function removeEvidenceObject(path: string): Promise<string | null> {
 }
 
 export async function getEvidenceFilesByProject(projectId: string): Promise<EvidenceFile[]> {
-  if (!isSupabaseConfigured) {
+  if (isDemoDataEnabled) {
     return [...SEED_EVIDENCE_FILES]
       .filter((e) => e.project_id === projectId)
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
+  requireCustomerDatabase();
   return fetchEvidenceFilesByProject(projectId);
 }
 
 export async function getAllEvidenceFiles(): Promise<EvidenceFile[]> {
-  if (!isSupabaseConfigured) {
+  if (isDemoDataEnabled) {
     return [...SEED_EVIDENCE_FILES].sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
+  requireCustomerDatabase();
   return fetchAllEvidenceFiles();
 }
 

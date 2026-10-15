@@ -62,8 +62,7 @@ export function ActionEvidenceDialog({
         evidence_type: evidenceType,
         note: note.trim() || null,
         media_id: evidenceType === "photo" && reference.trim() ? reference.trim() : null,
-        evidence_file_id:
-          evidenceType === "document" && reference.trim() ? reference.trim() : null,
+        evidence_file_id: evidenceType === "document" && reference.trim() ? reference.trim() : null,
         project_id: action.project_id ?? undefined,
       });
       toast.success("Evidens tilføjet");
@@ -139,8 +138,13 @@ export function ActionEvidenceDialog({
           {/* Add new */}
           <div className="rounded-lg border p-3 space-y-2">
             <Label className="text-sm">Tilføj evidens</Label>
-            <Select value={evidenceType} onValueChange={(v) => setEvidenceType(v as typeof evidenceType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={evidenceType}
+              onValueChange={(v) => setEvidenceType(v as typeof evidenceType)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="note">Note</SelectItem>
                 <SelectItem value="photo">Foto (medie-ID)</SelectItem>
@@ -149,9 +153,7 @@ export function ActionEvidenceDialog({
             </Select>
             {evidenceType !== "note" && (
               <Input
-                placeholder={
-                  evidenceType === "photo" ? "Medie-ID fra galleri" : "Evidensfil-ID"
-                }
+                placeholder={evidenceType === "photo" ? "Medie-ID fra galleri" : "Evidensfil-ID"}
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
               />
@@ -178,7 +180,9 @@ export function ActionEvidenceDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Luk</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Luk
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -146,13 +146,13 @@ Den afsluttende review fandt desuden P0-blokeringer, som ikke er løst: Storage 
 
 ## 10. Migrationer
 
-| Migration/versionshistorik                                           | Status                                    | Bemærkning                                                                                         |
-| -------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Eksisterende historik                                                | Statisk auditeret                         | Ikke replayet lokalt                                                                               |
-| `006_project_media.sql`                                              | Lokalt rettet                             | `project_id uuid`; remote historik **AFVENTER**                                                    |
-| `20260831172610`, `20260831172839`                                   | Registreret på staging                    | Hærdningsbaseline; produktion urørt                                                                |
-| `20260901163924`, `20260902153933`, `20260912110614`                 | Registreret på staging                    | Upload-intent/orphan/claim-kæde; live schema-postflight er hærdet                                 |
-| `20260912112500_upload_intent_forward_reconciliation.sql`            | Source-only, **AFVENTER**                 | Må ikke beskrives som anvendt uden særskilt live-migrationsmandat                                  |
+| Migration/versionshistorik                                | Status                    | Bemærkning                                                        |
+| --------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------- |
+| Eksisterende historik                                     | Statisk auditeret         | Ikke replayet lokalt                                              |
+| `006_project_media.sql`                                   | Lokalt rettet             | `project_id uuid`; remote historik **AFVENTER**                   |
+| `20260831172610`, `20260831172839`                        | Registreret på staging    | Hærdningsbaseline; produktion urørt                               |
+| `20260901163924`, `20260902153933`, `20260912110614`      | Registreret på staging    | Upload-intent/orphan/claim-kæde; live schema-postflight er hærdet |
+| `20260912112500_upload_intent_forward_reconciliation.sql` | Source-only, **AFVENTER** | Må ikke beskrives som anvendt uden særskilt live-migrationsmandat |
 
 Migrationen samles i cyklus 009-checkpointet til push på `codex/gofreyra-p0`; det er ikke en produktionsgodkendelse.
 
@@ -172,25 +172,25 @@ Det beviser kun intent, indtil `supabase test db` har kørt og rapporteret 107/1
 
 ## 13. Testresultater
 
-| Gate                                | Resultat                         | Evidens                                                          |
-| ----------------------------------- | -------------------------------- | ---------------------------------------------------------------- |
-| Målrettet hardening + app + Storage | Bestået                          | Indgår i samlet Vitest                                           |
-| Samlet Vitest                       | 55 filer, 420/420 bestået        | Lokal fuld suite                                                 |
-| TypeScript                          | Bestået                          | Lokal typecheck                                                  |
-| Staging-build                       | Bestået                          | `build:staging`                                                  |
-| Målrettet ESLint                    | Bestået                          | Berørte filer                                                    |
-| Wrangler dry-run                    | Bestået                          | Staging Worker dry-run                                           |
-| Fuld lint                           | Fejlet: 5.164 fejl, 23 advarsler | 394 filer; fatal 0; repositoryets samlede lint-gate              |
-| Supabase CLI                        | 2.116.0                          | Pinnet package/lockfile                                          |
-| Docker/local start                  | Fejlet/blokeret                  | Docker og Podman `NOT_FOUND`                                     |
-| `db reset --local`                  | **AFVENTER**                     | `LegacyLocalDbRunningError`                                      |
-| `db lint --local`                   | **AFVENTER**                     | `ECONNREFUSED 127.0.0.1:54322`                                   |
-| pgTAP `plan(107)`                   | **AFVENTER**                     | 107 assertions skrevet, ikke runtime-kørt                        |
-| Auth/PostgREST/RPC A/B              | Delvist verificeret              | Syntetisk SQL A/B + anon 401; rigtig Auth-session **AFVENTER**   |
-| Storage A/B                         | Delvist verificeret              | SQL object-read afgrænset; rigtig Storage API **AFVENTER**       |
-| Lovable-/produktionstarget          | Ikke kørt/ændret                 | Connector utilgængelig                                           |
+| Gate                                | Resultat                         | Evidens                                                             |
+| ----------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
+| Målrettet hardening + app + Storage | Bestået                          | Indgår i samlet Vitest                                              |
+| Samlet Vitest                       | 55 filer, 420/420 bestået        | Lokal fuld suite                                                    |
+| TypeScript                          | Bestået                          | Lokal typecheck                                                     |
+| Staging-build                       | Bestået                          | `build:staging`                                                     |
+| Målrettet ESLint                    | Bestået                          | Berørte filer                                                       |
+| Wrangler dry-run                    | Bestået                          | Staging Worker dry-run                                              |
+| Fuld lint                           | Fejlet: 5.164 fejl, 23 advarsler | 394 filer; fatal 0; repositoryets samlede lint-gate                 |
+| Supabase CLI                        | 2.116.0                          | Pinnet package/lockfile                                             |
+| Docker/local start                  | Fejlet/blokeret                  | Docker og Podman `NOT_FOUND`                                        |
+| `db reset --local`                  | **AFVENTER**                     | `LegacyLocalDbRunningError`                                         |
+| `db lint --local`                   | **AFVENTER**                     | `ECONNREFUSED 127.0.0.1:54322`                                      |
+| pgTAP `plan(107)`                   | **AFVENTER**                     | 107 assertions skrevet, ikke runtime-kørt                           |
+| Auth/PostgREST/RPC A/B              | Delvist verificeret              | Syntetisk SQL A/B + anon 401; rigtig Auth-session **AFVENTER**      |
+| Storage A/B                         | Delvist verificeret              | SQL object-read afgrænset; rigtig Storage API **AFVENTER**          |
+| Lovable-/produktionstarget          | Ikke kørt/ændret                 | Connector utilgængelig                                              |
 | Staging                             | Hærdet schema-postflight         | Historik stopper ved `20260912110614`; `20260912112500` source-only |
-| Produktion                          | Ikke kørt                        | Ingen adgang eller ændringer                                     |
+| Produktion                          | Ikke kørt                        | Ingen adgang eller ændringer                                        |
 
 De grønne kilde-, unit-, typecheck- og buildgates kan ikke erstatte database-/RLS-gaten. Den fulde lint-gate er fortsat rød og er registreret separat fra den grønne changed-test ESLint-gate med 0 fejl.
 

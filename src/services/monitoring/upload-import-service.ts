@@ -278,7 +278,10 @@ export interface ColumnMapping {
  */
 export function suggestMapping(headers: string[]): ColumnMapping {
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const find = (needles: string[]) => headers.find((h) => needles.includes(norm(h)));
+  const find = (needles: string[]) => {
+    const normalizedNeedles = new Set(needles.map(norm));
+    return headers.find((h) => normalizedNeedles.has(norm(h)));
+  };
   return {
     timestamp: find([
       "timestamp",

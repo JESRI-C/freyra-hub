@@ -22,6 +22,17 @@ export interface ProjectsInsertClient {
     insert: (
       row: ProjectCreateInput & { id: string },
     ) => PromiseLike<{ error: ProjectCreateDatabaseError | null }>;
+    select: (columns: "id, slug") => {
+      eq: (
+        column: "id",
+        id: string,
+      ) => {
+        maybeSingle: () => PromiseLike<{
+          data: { id: string; slug: string | null } | null;
+          error: ProjectCreateDatabaseError | null;
+        }>;
+      };
+    };
   };
 }
 
@@ -35,11 +46,26 @@ export class ProjectCreateRequestError extends Error {
   }
 }
 
+/** The INSERT committed; a failed confirmation must not prompt another create. */
+export class ProjectCreateConfirmationError extends Error {
+  readonly projectId: string;
+
+  constructor(projectId: string, cause: unknown) {
+    super(
+      `Projektet er gemt med ID ${projectId}, men kunne ikke genindlæses. Åbn det gemte projekt eller genindlæs projektlisten. Opret ikke projektet igen.`,
+      { cause },
+    );
+    this.name = "ProjectCreateConfirmationError";
+    this.projectId = projectId;
+  }
+}
+
 export function canCreateProject(role: string | null | undefined): boolean {
   return PROJECT_CREATOR_ROLES.has(role?.trim().toLowerCase() ?? "");
 }
 
 export function projectCreateErrorMessage(error: unknown): string {
+  if (error instanceof ProjectCreateConfirmationError) return error.message;
   const code = error instanceof ProjectCreateRequestError ? error.code : null;
   const message = error instanceof Error ? error.message : "";
 
@@ -54,15 +80,28 @@ export async function insertProjectWithoutRepresentation(
   client: ProjectsInsertClient,
   input: ProjectCreateInput,
   idFactory: () => string = () => crypto.randomUUID(),
-): Promise<{ id: string; slug: null }> {
+): Promise<{ id: string; slug: string | null }> {
   const id = idFactory();
 
   // The projects SELECT policy resolves access by re-reading the projects row.
   // Postgres cannot see that row from the same INSERT ... RETURNING command,
-  // so create with a known id and let the next request read it normally.
-  const { error } = await client.from("projects").insert({ id, ...input });
+  // so create with a known id and read it in a separate committed request.
+  const { error } = await client.from("projects").insert({ ...input, id });
 
   if (error) throw new ProjectCreateRequestError(error);
 
-  return { id, slug: null };
+  try {
+    const { data, error: readError } = await client
+      .from("projects")
+      .select("id, slug")
+      .eq("id", id)
+      .maybeSingle();
+    if (readError) throw readError;
+    if (!data || data.id !== id || (data.slug !== null && typeof data.slug !== "string")) {
+      throw new Error("Databasen bekræftede ikke det gemte projekt.");
+    }
+    return data;
+  } catch (confirmationError) {
+    throw new ProjectCreateConfirmationError(id, confirmationError);
+  }
 }

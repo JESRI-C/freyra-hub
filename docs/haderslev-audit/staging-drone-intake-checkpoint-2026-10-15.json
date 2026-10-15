@@ -1,0 +1,486 @@
+{
+  "schema": "gofreyra.staging-drone-intake-checkpoint/v1",
+  "createdAt": "2026-10-15T08:38:03.389Z",
+  "scope": {
+    "stagingOnly": true,
+    "supabaseRef": "xdvqdzdpyceojbdknofi",
+    "syntheticProjectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+    "realDroneFlight": false,
+    "municipalAcceptance": false,
+    "productionTouched": false
+  },
+  "source": {
+    "commit": "e1fc83db2f4c7386245f8ffa8f72655322034269",
+    "tree": "2a71d12913e3b4b634632c2c24a91b205355033e",
+    "workerVersion": "0ac20aec-7540-4a54-a60a-3d3c595a732b",
+    "workerDeploymentRecord": "2974d395-66fc-4ba9-b255-0634407f2666",
+    "expectedDeploymentMetadataSha256": "ceb00174231e60e52f80875f7939c61081e27318d468c8fbe130abd9c6627b30"
+  },
+  "ci": {
+    "runId": 38705505371,
+    "runNumber": 33,
+    "sourceSha": "e1fc83db2f4c7386245f8ffa8f72655322034269",
+    "testedMergeSha": "8ced11b113ec49bbdd4b8eda2fdcdb5c6beb816d",
+    "testedTreeSha": "2a71d12913e3b4b634632c2c24a91b205355033e",
+    "repositoryTreeMatchesTestedMergeTree": true,
+    "conclusion": "success",
+    "unitTestFiles": 142,
+    "unitTests": 2378,
+    "sqlFiles": 11,
+    "sqlAssertions": 675,
+    "concurrencyCases": 25,
+    "disposableLocalCleanupPassed": true,
+    "lintErrors": 0,
+    "lintWarnings": 23,
+    "appJobId": 116323799060,
+    "databaseJobId": 116323798786,
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/38705505371",
+    "validationEvidence": "Actual completed GitHub app and database job logs inspected; artifact not independently downloaded. Fresh fetched PR merge tree equals locally built source tree."
+  },
+  "build": {
+    "startedAt": "2026-10-15T08:25:07.6507996Z",
+    "finishedAt": "2026-10-15T08:28:25.5214972Z",
+    "exitCode": 0,
+    "sourceSha": "e1fc83db2f4c7386245f8ffa8f72655322034269",
+    "treeSha": "2a71d12913e3b4b634632c2c24a91b205355033e",
+    "command": "npm run build:staging",
+    "heapMB": 4096
+  },
+  "stagingMigration": {
+    "applied": true,
+    "projectId": "xdvqdzdpyceojbdknofi",
+    "localVersion": "20261015064537",
+    "appliedVersion": "20261015073624",
+    "name": "drone_image_inspections",
+    "sqlSha256": "0edcc0e6005db9f46884d17eb3ec38526416bae2741274aba61c332c242e414c",
+    "freshSchemaAndRestrictedGrantReadback": true,
+    "productionTouched": false
+  },
+  "modelCompatibilityMigration": {
+    "applied": true,
+    "projectId": "xdvqdzdpyceojbdknofi",
+    "localVersion": "20261015082003",
+    "appliedVersion": "20261015083143",
+    "name": "drone_image_gemma_model_compatibility",
+    "sqlSha256": "24f265b4e018c085bb3763b6c8eedc8a3f7962bd755629b88d0e4b2752b62063",
+    "verified": {
+      "bothModelsAllowed": true,
+      "gemmaClaimSupported": true,
+      "browserClaimDenied": true,
+      "browserLeaseDenied": true,
+      "browserInsertDenied": true
+    }
+  },
+  "actualKeyScan": {
+    "repositoryFiles": 803,
+    "outputFiles": 803,
+    "repositoryLeaks": 0,
+    "outputLeaks": 0,
+    "privilegedBundleTokens": 0
+  },
+  "workerSecretNames": [
+    "DATAFORDELER_API_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_URL"
+  ],
+  "positiveOfficialMatch": {
+    "sourceSha": "e1fc83db2f4c7386245f8ffa8f72655322034269",
+    "checks": 16,
+    "expectedDeploymentMetadataSha256": "ceb00174231e60e52f80875f7939c61081e27318d468c8fbe130abd9c6627b30",
+    "evidenceSha256": "1c74f650055bb879c5f4ee868c5bedd76e238aa25c867ae9edc52bb147cd1c0b",
+    "completedAt": "2026-10-15T08:33:56.981Z",
+    "result": {
+      "syntheticAssignedGps": true,
+      "realFlight": false,
+      "referenceId": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+      "nameStatus": "officielt",
+      "distanceM": 0,
+      "geometryCompared": true,
+      "sourceStatus": "complete",
+      "municipalReachApproved": false,
+      "imageAiInvoked": false
+    },
+    "syntheticAssignedGps": true,
+    "fieldAccuracyTested": false,
+    "imageAiInvoked": false
+  },
+  "hosted": {
+    "outcome": "passed",
+    "checkCount": 26,
+    "evidenceSha256": "e36277f3052a94a85d0ec1e8c46fa8076964feca0b5d153085e5b0e984cc6e1a",
+    "completedAt": "2026-10-15T08:33:28.804Z",
+    "checks": {
+      "ordinary-staging-identities": {
+        "ordinaryAuth": true,
+        "stagingIssuerVerified": true,
+        "syntheticProjectVerified": true
+      },
+      "current-synthetic-role-preflight": {
+        "viewerRole": "viewer",
+        "viewerOrganizationRole": "viewer",
+        "foreignProjectVisible": false,
+        "mainContributor": true,
+        "noAccessChanges": true
+      },
+      "localizeDroneOriginals-anonymous": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "localizeDroneOriginals-invalid": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "inspectDroneImage-anonymous": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "inspectDroneImage-invalid": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "listDroneImageInspections-anonymous": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "listDroneImageInspections-invalid": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "saveDroneImageInspectionAnswers-anonymous": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "saveDroneImageInspectionAnswers-invalid": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "listDroneImageInspectionAnswers-anonymous": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "listDroneImageInspectionAnswers-invalid": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "synthetic-jpeg-original-validated": {
+        "synthetic": true,
+        "actualFlight": false,
+        "uploadId": "ece2f35d-d602-4043-a49f-71877fe5a240",
+        "mediaId": "450be386-015d-4005-81b1-aeb6ef4f1f91",
+        "originalSha256": "61289cdea04d2a7df1c3d662681e678daf5b721d6b9beb1d580d84e486af5d54",
+        "sizeBytes": 45778,
+        "width": 1200,
+        "height": 800,
+        "validationStatus": "review_required",
+        "metadataParseErrors": [],
+        "metadataErrorCodes": [],
+        "pixelDecodePending": true
+      },
+      "localization-diagnostic": {
+        "photoStatuses": [
+          {
+            "status": "located",
+            "reason": null,
+            "hasCameraPosition": true,
+            "capturedAtUtc": "2026-08-28T12:05:06.000Z"
+          }
+        ],
+        "clusterCount": 1,
+        "sourceStatuses": [
+          "complete"
+        ]
+      },
+      "location-source": {
+        "photoStatus": "located",
+        "clusterCount": 1,
+        "sourceStatuses": [
+          "complete"
+        ],
+        "candidateCounts": [
+          0
+        ],
+        "excludedCandidateCounts": [
+          0
+        ],
+        "cameraPositionOnly": true,
+        "municipalReachApproved": false
+      },
+      "synthetic-camera-within-source-area": {
+        "cameraWithinSourcePolygon": true,
+        "sourcePolygonSha256": "f54e3d492ecfa5026f4b1495f45aec5045e5a284838a2a47a6e76493d801d368",
+        "realFlight": false,
+        "municipalReachApproved": false
+      },
+      "sources-before-vision": {
+        "baselineId": "306bd060-c86a-48d3-bc95-9b9379b8799f",
+        "baselineSha256": "48b92e3fe1ecfdee3918efadbd0fc9510f72284090cf2026cc7109235cfe1531",
+        "roundId": "c1aba63b-7be1-4d40-8892-d87555493f5f",
+        "bindingId": "de20f489-b614-4b22-b3cb-dc649f19fafe",
+        "sourceStatuses": [
+          {
+            "id": "official-watercourse-reference",
+            "status": "complete"
+          },
+          {
+            "id": "municipal-regulation",
+            "status": "not_implemented"
+          },
+          {
+            "id": "orthophoto-terrain",
+            "status": "partial"
+          },
+          {
+            "id": "dmi-historical",
+            "status": "partial"
+          },
+          {
+            "id": "water-plan-nature",
+            "status": "partial"
+          },
+          {
+            "id": "sentinel-2-scenes",
+            "status": "timeout"
+          },
+          {
+            "id": "public-monitoring-stations",
+            "status": "partial"
+          }
+        ],
+        "professionalAcceptance": false,
+        "satellitePixelAnalysis": false
+      },
+      "inspection-denial-viewer": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "inspection-denial-foreign": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "direct-claim-denied": {
+        "denied": true,
+        "httpStatus": 403,
+        "sqlState": "42501"
+      },
+      "historical-qwen-and-current-gemma": {
+        "currentModel": "@cf/google/gemma-4-26b-a4b-it",
+        "historicalModel": "@cf/qwen/qwen3.8-27b",
+        "historicalResultSha256": "a3f4aa117738475dbeee9664f81cdaa97f101c7d47f0ddaa6bd016c95c8755b7",
+        "historicalAnswerId": "70a2c37d-1e57-4c6e-a1e9-7b7bba0fb64b",
+        "oldAnswerReplayedWithoutNewVersion": true,
+        "oldInspectionRelabeled": false
+      },
+      "actual-vision-and-dedup": {
+        "inspectionId": "e0baa093-87f0-4c45-b92b-87e38d5e32f4",
+        "resultSha256": "adb77c96d022ddf2af0026693443b8751cb2b39b797fa6a45d836e543e0e1892",
+        "model": "@cf/google/gemma-4-26b-a4b-it",
+        "provider": "cloudflare-workers-ai",
+        "attemptCount": 1,
+        "derivativeSha256": "572581923cdbb2f153c493a62b47ccb54c1027a2cd2f0f2456f52062da5b3365",
+        "derivativeWidth": 1200,
+        "derivativeHeight": 800,
+        "featureCount": 0,
+        "questionCount": 4,
+        "sourceSnapshotId": "306bd060-c86a-48d3-bc95-9b9379b8799f",
+        "replayedWithoutNewAttempt": true,
+        "actualFieldAccuracyTested": false
+      },
+      "foreign-inspection-read": {
+        "denied": true,
+        "authorizationError": true
+      },
+      "lease-token-hidden": {
+        "denied": true,
+        "httpStatus": 403,
+        "sqlState": "42501"
+      },
+      "durable-draft-answers": {
+        "answerVersionId": "f55a4406-fa8e-49ac-8358-0cac96d8052e",
+        "answerSha256": "caa6058a7341370a918c603ccfc929785156709c4debbcf1ad7d3bf7ca128979",
+        "viewerReadback": true,
+        "foreignDenied": true,
+        "leaseTokenHidden": true,
+        "professionallyReviewed": false,
+        "reportEligible": false
+      },
+      "old-evidence-preserved": {
+        "countsBefore": {
+          "drone_assets": 0,
+          "observations": 0,
+          "reports": 0
+        },
+        "countsAfter": {
+          "drone_assets": 0,
+          "observations": 0,
+          "reports": 0
+        },
+        "oldOriginalCount": 5,
+        "oldOriginalPinsPreserved": true,
+        "oldGraphRowCounts": {
+          "project_baseline_snapshots": 6,
+          "verification_plan_versions": 5,
+          "survey_round_versions": 4,
+          "survey_round_media_versions": 4,
+          "survey_round_note_versions": 2,
+          "project_media": 5,
+          "reports": 0,
+          "observations": 0
+        },
+        "oldGraphRowsPreserved": true,
+        "oldStorageBytesReDownloaded": false,
+        "productionTouched": false,
+        "municipalAcceptance": false
+      }
+    },
+    "ordinaryAccountAccessUnchanged": true
+  },
+  "publicSourceCoverage": {
+    "allComplete": false,
+    "statuses": [
+      {
+        "id": "official-watercourse-reference",
+        "status": "complete"
+      },
+      {
+        "id": "municipal-regulation",
+        "status": "not_implemented"
+      },
+      {
+        "id": "orthophoto-terrain",
+        "status": "partial"
+      },
+      {
+        "id": "dmi-historical",
+        "status": "partial"
+      },
+      {
+        "id": "water-plan-nature",
+        "status": "partial"
+      },
+      {
+        "id": "sentinel-2-scenes",
+        "status": "timeout"
+      },
+      {
+        "id": "public-monitoring-stations",
+        "status": "partial"
+      }
+    ],
+    "professionalAcceptance": false,
+    "satellitePixelAnalysis": false
+  },
+  "browser": {
+    "scope": "Read-only navigation on this deployed release in the existing human test project; no file uploaded or professional finding entered",
+    "sourceSha": "e1fc83db2f4c7386245f8ffa8f72655322034269",
+    "projectId": "ae3012ca-662e-4ae0-9f84-234d08428ec9",
+    "views": [
+      "Undersøgelse",
+      "Rapport og levering"
+    ],
+    "uploadFirstControlsObserved": true,
+    "uploadControlVisible": true,
+    "uploadControlEnabled": true,
+    "actualPhotoUiAcceptance": false,
+    "hostedTextDownloadAccepted": false,
+    "screenshot": "docs/haderslev-audit/workflow-drone-intake-2026-10-15.jpg",
+    "screenshotSha256": "b4156c9fed2b354b97f86e431f9d051d2be86783a7bd61ac48f265d94c9c98d8"
+  },
+  "implementation": {
+    "localization": "Server-replayed original EXIF with bounded official Datafordeler BBOX candidate search; user confirms area/date",
+    "sourceCollection": "Saved source snapshot before exact photo binding and image inspection; partial, missing and timed-out sources retained explicitly",
+    "areaConsistency": "Located selected cameras outside chosen polygon block preparation before source collection; proposed area does not inherit old reference silently",
+    "nameEligibility": "Current officielt and suAutoriseret names retain actual source status; explicit noneligible spatial features counted separately",
+    "nameStatusPrimarySource": "https://sdfi.dk/Media/638169009587696115/Featurekatalog%20Stednavne20_v7.pdf",
+    "model": "@cf/google/gemma-4-26b-a4b-it",
+    "provider": "cloudflare-workers-ai",
+    "modelConfiguration": {
+      "sourceSha": "e1fc83db2f4c7386245f8ffa8f72655322034269",
+      "modelSourceSha256": "4b046a889ec15fdd49c60019657ef38a9fddfafb96506b4e8593397a5156ff52",
+      "providerSourceSha256": "40dbaa72c5555883f263686b36d08cd035563826579e1d633db04ddf80249926",
+      "configuredThinkingEnabled": false,
+      "serverReportedThinkingExecutionVerified": false
+    },
+    "vision": "Private original decoded/re-encoded with metadata removed; visual drafts and source-aware fixed questions",
+    "answerPersistence": "Append-only draft answer versions; saved-answer text export available in UI",
+    "aiChunkSize": 12,
+    "maxVisionOriginalBytes": 20000000,
+    "projectAttemptsPerDay": 40,
+    "globalAttemptsPerDay": 200,
+    "attemptsPerExactInput": 3,
+    "attemptIdentityIncludes": [
+      "image",
+      "model",
+      "prompt",
+      "method",
+      "source snapshot"
+    ],
+    "visionDeadlineMs": 100000
+  },
+  "earlierAttempts": {
+    "gpsRuntimeFailure": {
+      "source": "bd4c6e58e220dde1111387378c3410978fcd2a13",
+      "reason": "EXIF and XMP used FileReader, unavailable in Workers; real File regression and ArrayBuffer transport fixed in current source",
+      "historicalValidationRewritten": false
+    },
+    "providerFirstAttempt": {
+      "model": "@cf/qwen/qwen3.8-27b",
+      "failure": "timeout",
+      "deadlineMs": 65000
+    },
+    "providerSeparateRetry": {
+      "source": "bd4c6e58e220dde1111387378c3410978fcd2a13",
+      "model": "@cf/qwen/qwen3.8-27b",
+      "outcome": "passed",
+      "checks": 25,
+      "evidenceSha256": "f38e9dd6e78a27b5a527c7d3c012bf14719310efb18b9aa33b4b8930b2fa8de9",
+      "automaticGpsPassed": false,
+      "liveBboxPassed": false,
+      "tokenExhaustionProven": false,
+      "coldStartProven": false
+    },
+    "laterQwenFailures": {
+      "sourceSha": "2b325af7f31a56fd4958e921b18affb0d75ed4dc",
+      "workerVersion": "18dcd32f-e4cb-463c-a57c-cd668aaf7f3b",
+      "model": "@cf/qwen/qwen3.8-27b",
+      "firstAttempt": {
+        "failureCode": "timeout",
+        "deadlineMs": 100000
+      },
+      "secondAttempt": {
+        "outcome": "invalid_output",
+        "phase": "output_validation",
+        "elapsedMs": 64392,
+        "phaseMs": {
+          "image_transform": 212,
+          "image_body": 0,
+          "reauthorization": 758,
+          "ai_inference": 63422,
+          "ai_body": 0,
+          "output_validation": 0
+        }
+      },
+      "evidenceSource": "Actual read-only failed row and filtered live Worker phase log",
+      "tokenExhaustionProven": false,
+      "coldStartProven": false,
+      "rawImageOrProviderProseRecorded": false,
+      "evidenceSha256": "e56a3d7701ca1809e2a6c9f90214b2e327fe08647969ad45bdd0e1b439325543"
+    },
+    "historicalWorkflowProofSha256": "6ec1d6d5d53a9538fea2aeb070b53665a52a95ad0fbf070a096b24808c2725a2"
+  },
+  "open": [
+    "Actual drone originals and 10/120-photo interrupted browser batch",
+    "Five real user acceptance sessions",
+    "Bykær Bæk exact reach, purpose, regulation and professional approver",
+    "Satellite pixel/NDVI, terrain and monitoring-series interpretation beyond catalog metadata",
+    "Reviewed municipal report/PDF and immutable downloadable delivery package"
+  ],
+  "limits": {
+    "draftUnreviewed": true,
+    "professionallyReviewed": false,
+    "reportEligible": false,
+    "cameraPositionIsNotFootprint": true,
+    "officialSearchAreaIsNotMunicipalReachApproval": true,
+    "syntheticVisionIsNotFieldAccuracyValidation": true
+  }
+}

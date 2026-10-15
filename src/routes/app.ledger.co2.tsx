@@ -52,7 +52,6 @@ function CO2Page() {
       />
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-
         <ESGMetricCard
           label="Total CO₂e (netto)"
           value={(total / 1000).toFixed(1)}

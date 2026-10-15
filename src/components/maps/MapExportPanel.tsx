@@ -27,8 +27,15 @@ export function MapExportPanel({ geoJSON, projectName, className }: MapExportPan
 
   return (
     <Card className={className}>
-      <CardHeader title="Eksport" subtitle="Download geodata" />
+      <CardHeader
+        title="Eksport af aktuelle kortdata"
+        subtitle="Løbende projektdata; ikke en låst eller fagligt gennemgået rapport"
+      />
       <div className="px-5 pb-5 space-y-2">
+        <p className="text-xs text-muted-foreground">
+          GeoJSON indeholder de aktuelle kortfeatures. CSV medtager kun punktfeatures med
+          koordinater; poster uden punktgeometri indgår ikke.
+        </p>
         <button
           onClick={() => {
             if (geoJSON) downloadJSON(geoJSON, `${slug}-geojson.json`);
@@ -40,7 +47,7 @@ export function MapExportPanel({ geoJSON, projectName, className }: MapExportPan
           <div>
             <div className="font-medium">Download GeoJSON</div>
             <div className="text-xs text-muted-foreground">
-              {geoJSON ? `${geoJSON.features.length} features` : "Indlæser…"}
+              {geoJSON ? `${geoJSON.features.length} features` : "Ingen kortdata til eksport"}
             </div>
           </div>
           <Download className="h-3.5 w-3.5 text-muted-foreground ml-auto" />
@@ -64,7 +71,7 @@ export function MapExportPanel({ geoJSON, projectName, className }: MapExportPan
         >
           <FileText className="h-4 w-4 text-emerald-600 shrink-0" />
           <div>
-            <div className="font-medium">Download observationer (CSV)</div>
+            <div className="font-medium">Download punktdata (CSV)</div>
             <div className="text-xs text-muted-foreground">Punktdata med koordinater</div>
           </div>
           <Download className="h-3.5 w-3.5 text-muted-foreground ml-auto" />

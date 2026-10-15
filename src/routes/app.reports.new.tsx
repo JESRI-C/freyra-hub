@@ -1,3 +1,5 @@
+import { isDemoDataEnabled } from "@/lib/data-mode";
+import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -16,7 +18,7 @@ import {
 } from "@/lib/reports-data";
 
 export const Route = createFileRoute("/app/reports/new")({
-  component: Page,
+  component: isDemoDataEnabled ? Page : ReportWorkspaceNotice,
 });
 
 const STEPS = ["Rapporttype", "Scope", "Datamoduler", "Målgruppe & tone", "Output", "Bekræft"];
