@@ -100,6 +100,38 @@ export async function renderMunicipalReportPdf(
     .array(imageSchema)
     .max(12)
     .parse(options.images ?? []);
+  function sourceTitle(source: (typeof report.sources)[number]) {
+    return source.id === "dmi-historical" &&
+      source.dataset === "climateData/stationValue_acc_precip_daily"
+      ? "DMI - nedbør fra målestation"
+      : source.dataset;
+  }
+  function sourceGapTitle(code: string, title: string) {
+    const source = report.sources.find((item) => code === `source:${item.id}`);
+    return source && title === `Afklar datakilden: ${source.dataset}`
+      ? `Afklar datakilden: ${sourceTitle(source)}`
+      : title;
+  }
+  function followupText(item: (typeof report.prioritizedFollowup)[number]) {
+    if (item.proposedBy !== "system") return item;
+    const source = report.sources.find(
+      (source) =>
+        item.id === `source:${source.id}` &&
+        item.sourceIds.length === 1 &&
+        item.sourceIds[0] === source.id,
+    );
+    if (!source) return item;
+    const rationale = `Gemt status: ${source.status}. Afklar om kilden kan suppleres, eller dokumentér hvorfor den ikke er nødvendig for den aftalte opgave.`;
+    return {
+      ...item,
+      title: sourceGapTitle(item.id, item.title),
+      action: sourceGapTitle(item.id, item.action),
+      rationale:
+        item.rationale === rationale
+          ? `Gemt status: ${statusLabels[source.status].toLowerCase()}. Afklar om kilden kan suppleres, eller dokumentér hvorfor den ikke er nødvendig for den aftalte opgave.`
+          : item.rationale,
+    };
+  }
   if (
     new Set(images.map((image) => image.mediaId)).size !== images.length ||
     images.some(
@@ -146,12 +178,24 @@ export async function renderMunicipalReportPdf(
   function ensure(height: number) {
     if (y + height > bottom) nextPage();
   }
-  function block(value: string, options: { size?: number; bold?: boolean; space?: number } = {}) {
+  function keepTogether(height: number) {
+    // Very long text may still span pages; a short label or photo group may not.
+    if (height <= bottom - 27) ensure(height);
+  }
+  function textLayout(
+    value: string,
+    options: { size?: number; bold?: boolean; space?: number } = {},
+  ) {
     const size = options.size ?? 10;
     pdf.setFont("helvetica", options.bold ? "bold" : "normal");
     pdf.setFontSize(size);
     const lines = pdf.splitTextToSize(printable(value), width) as string[];
     const lineHeight = size * 0.43;
+    const space = options.space ?? 2;
+    return { size, lines, lineHeight, space, height: lines.length * lineHeight + space };
+  }
+  function block(value: string, options: { size?: number; bold?: boolean; space?: number } = {}) {
+    const { size, lines, lineHeight, space } = textLayout(value, options);
     for (const line of lines) {
       ensure(lineHeight);
       pdf.setFont("helvetica", options.bold ? "bold" : "normal");
@@ -160,7 +204,7 @@ export async function renderMunicipalReportPdf(
       pdf.text(line, left, y);
       y += lineHeight;
     }
-    y += options.space ?? 2;
+    y += space;
   }
   function heading(value: string) {
     ensure(23);
@@ -168,7 +212,9 @@ export async function renderMunicipalReportPdf(
     block(value, { size: 14, bold: true, space: 3 });
   }
   function label(name: string, value: string | number | null | undefined) {
-    block(`${name}: ${value ?? "Ikke dokumenteret"}`, { size: 9 });
+    const text = `${name}: ${value ?? "Ikke dokumenteret"}`;
+    keepTogether(textLayout(text, { size: 9 }).height);
+    block(text, { size: 9 });
   }
   function brief(value: string, maximum = 230) {
     if (value.length <= maximum) return value;
@@ -176,27 +222,31 @@ export async function renderMunicipalReportPdf(
     return start.slice(0, Math.max(start.lastIndexOf(" "), maximum - 25)) + "...";
   }
   const date = (value: string | null) => (value ? value.slice(0, 10) : "ikke dokumenteret");
-  function imageFor(mediaId: string) {
+  const missingImageText =
+    "Originalfoto ikke indlejret - se bilagets reference og den private fotogennemgang.";
+  const imageCaption =
+    "Illustration af det refererede originalfoto; ikke et georefereret kort eller en fagligt godkendt observation.";
+  function imageLayout(mediaId: string) {
     const asset = images.find((image) => image.mediaId === mediaId);
-    if (!asset) {
-      block("Originalfoto ikke indlejret - se bilagets reference og den private fotogennemgang.", {
-        size: 9,
-      });
-      return;
-    }
+    if (!asset) return null;
     const info = pdf.getImageProperties(asset.dataUrl),
       scale = Math.min(150 / info.width, 82 / info.height);
     const w = info.width * scale,
       h = info.height * scale;
     if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0)
       throw new Error("Et valgt PDF-billede kunne ikke afkodes.");
+    return { asset, w, h };
+  }
+  function imageFor(image: ReturnType<typeof imageLayout>) {
+    if (!image) {
+      block(missingImageText, { size: 9 });
+      return;
+    }
+    const { asset, w, h } = image;
     ensure(h + 8);
     pdf.addImage(asset.dataUrl, "JPEG", left, y, w, h, undefined, "FAST");
     y += h + 4;
-    block(
-      "Illustration af det refererede originalfoto; ikke et georefereret kort eller en fagligt godkendt observation.",
-      { size: 8 },
-    );
+    block(imageCaption, { size: 8 });
   }
   header();
   block(report.projectName, { size: 21, bold: true, space: 3 });
@@ -213,7 +263,8 @@ export async function renderMunicipalReportPdf(
     { size: 9, bold: true },
   );
   block("De tre første handlinger", { size: 11, bold: true, space: 3 });
-  for (const [index, item] of report.prioritizedFollowup.slice(0, 3).entries()) {
+  for (const [index, rawItem] of report.prioritizedFollowup.slice(0, 3).entries()) {
+    const item = followupText(rawItem);
     block(`${index + 1}. ${brief(item.title, 190)}`, { size: 10, bold: true, space: 1 });
     block(`Hvorfor: ${brief(item.rationale, 260)}`, { size: 9, space: 3 });
   }
@@ -238,7 +289,7 @@ export async function renderMunicipalReportPdf(
   );
   for (const [index, source] of report.sources.entries()) {
     ensure(25);
-    block(`K${index + 1}. ${source.dataset}`, { size: 10, bold: true, space: 1 });
+    block(`K${index + 1}. ${sourceTitle(source)}`, { size: 10, bold: true, space: 1 });
     block(
       `${statusLabels[source.status]} | ${modeLabels[source.mode]} | ${source.provider} | hentet ${date(source.fetchedAt)}`,
       { size: 8.5, space: 1 },
@@ -263,22 +314,36 @@ export async function renderMunicipalReportPdf(
   heading("4. Fotos, billedforslag og gemte egne svar");
   if (!report.photos.length) block("Ingen originale fotos er valgt til denne rapportversion.");
   for (const [index, photo] of report.photos.entries()) {
-    ensure(30);
-    block(`Foto ${index + 1} af ${report.photos.length}`, { size: 13, bold: true });
-    label(
-      "Optagetid",
-      photo.capturedAtUtc
-        ? `${photo.capturedAtUtc} (UTC)`
-        : photo.localTimestamp
-          ? `${photo.localTimestamp} (tidszone ikke dokumenteret)`
-          : "Ikke dokumenteret",
-    );
+    const title = `Foto ${index + 1} af ${report.photos.length}`;
+    const labels: Array<[string, string]> = [
+      [
+        "Optagetid",
+        photo.capturedAtUtc
+          ? `${photo.capturedAtUtc} (UTC)`
+          : photo.localTimestamp
+            ? `${photo.localTimestamp} (tidszone ikke dokumenteret)`
+            : "Ikke dokumenteret",
+      ],
+    ];
     if (photo.cameraPosition)
-      label(
+      labels.push([
         "Kun kameraposition",
         `${photo.cameraPosition.latitude}, ${photo.cameraPosition.longitude} (ikke objektposition)`,
-      );
-    imageFor(photo.mediaId);
+      ]);
+    const image = imageLayout(photo.mediaId);
+    keepTogether(
+      textLayout(title, { size: 13, bold: true }).height +
+        labels.reduce(
+          (height, [name, value]) => height + textLayout(`${name}: ${value}`, { size: 9 }).height,
+          0,
+        ) +
+        (image
+          ? image.h + 4 + textLayout(imageCaption, { size: 8 }).height
+          : textLayout(missingImageText, { size: 9 }).height),
+    );
+    block(title, { size: 13, bold: true });
+    for (const [name, value] of labels) label(name, value);
+    imageFor(image);
     for (const note of photo.manualNotes) {
       block(`Gemt manuel note | ${date(note.createdAt)}`, { size: 10, bold: true });
       block(note.question);
@@ -329,7 +394,8 @@ export async function renderMunicipalReportPdf(
     `Her vises ${Math.min(10, report.prioritizedFollowup.length)} af ${report.prioritizedFollowup.length} opgaver. Den fulde prioriterede liste med evidensreferencer findes i rapportgrundlag.json; ingen opgaver er fjernet fra det gemte grundlag.`,
     { size: 9 },
   );
-  for (const [index, item] of report.prioritizedFollowup.slice(0, 10).entries()) {
+  for (const [index, rawItem] of report.prioritizedFollowup.slice(0, 10).entries()) {
+    const item = followupText(rawItem);
     ensure(20);
     block(`${index + 1}. ${item.title}`, { size: 10, bold: true, space: 1 });
     block(
@@ -346,7 +412,7 @@ export async function renderMunicipalReportPdf(
     { size: 9 },
   );
   block(
-    report.deliveryGaps.map((gap) => gap.title).join("; ") +
+    report.deliveryGaps.map((gap) => sourceGapTitle(gap.code, gap.title)).join("; ") +
       (report.deliveryGaps.length ? "." : "Ingen yderligere afleveringsmangler er valgt."),
     { size: 9 },
   );
