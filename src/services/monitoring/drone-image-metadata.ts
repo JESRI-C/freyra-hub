@@ -1,4 +1,4 @@
-import exifr from "exifr";
+import { parse, sidecar } from "exifr";
 
 export const DRONE_METADATA_SCHEMA_VERSION = "drone-image-metadata/v1";
 export const DRONE_METADATA_EXTRACTOR = "exifr@7.1.3";
@@ -102,9 +102,13 @@ export interface DroneImageMetadata {
 }
 
 interface MetadataReader {
-  parse: typeof exifr.parse;
-  sidecar: typeof exifr.sidecar;
+  parse: typeof parse;
+  sidecar: typeof sidecar;
 }
+
+// exifr 7.1.3's full ESM default is its lite namespace and omits sidecar.
+// Named exports retain the full XMP API in Vite/Workers as well as Node.
+const DEFAULT_METADATA_READER: MetadataReader = { parse, sidecar };
 
 interface MetadataDependencies {
   reader?: MetadataReader;
@@ -187,7 +191,7 @@ export async function extractDroneImageMetadata(
   file: File,
   dependencies: MetadataDependencies = {},
 ): Promise<DroneImageMetadata> {
-  const reader = dependencies.reader ?? exifr;
+  const reader = dependencies.reader ?? DEFAULT_METADATA_READER;
   const subtle = dependencies.subtle ?? crypto.subtle;
   const parseErrors: string[] = [];
   // Workers implements Blob.arrayBuffer(), but not the DOM FileReader used by

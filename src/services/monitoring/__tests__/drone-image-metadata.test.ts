@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { fileURLToPath } from "node:url";
+import { runInNewContext } from "node:vm";
+import { build } from "vite";
 import {
   extractDroneImageMetadata,
   isReadyForAutomaticCameraPosition,
@@ -91,6 +94,30 @@ function buildMinimalExifJpeg(): File {
   jpeg.set(tiff, 6 + exifHeader.length);
   jpeg.set([0xff, 0xd9], jpeg.length - 2);
   return new File([jpeg.buffer], "DJI_0001.JPG", {
+    type: "image/jpeg",
+    lastModified: FILE_INFO.lastModified,
+  });
+}
+
+async function buildExifAndXmpJpeg(): Promise<File> {
+  const original = new Uint8Array(await buildMinimalExifJpeg().arrayBuffer());
+  const xmp = new TextEncoder().encode(
+    "http://ns.adobe.com/xap/1.0/\0" +
+      '<x:xmpmeta xmlns:x="adobe:ns:meta/">' +
+      '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">' +
+      '<rdf:Description xmlns:drone-dji="http://www.dji.com/drone-dji/1.0/" ' +
+      'drone-dji:GimbalYawDegree="91.5" drone-dji:GimbalPitchDegree="-90.0" ' +
+      'drone-dji:RelativeAltitude="31.2" drone-dji:RtkFlag="50"/>' +
+      "</rdf:RDF></x:xmpmeta>",
+  );
+  const jpeg = new Uint8Array(original.length + xmp.length + 4);
+  jpeg.set(original.subarray(0, original.length - 2));
+  const offset = original.length - 2;
+  jpeg.set([0xff, 0xe1], offset);
+  new DataView(jpeg.buffer).setUint16(offset + 2, xmp.length + 2, false);
+  jpeg.set(xmp, offset + 4);
+  jpeg.set([0xff, 0xd9], jpeg.length - 2);
+  return new File([jpeg.buffer], "synthetic-dji-xmp.jpg", {
     type: "image/jpeg",
     lastModified: FILE_INFO.lastModified,
   });
@@ -297,6 +324,72 @@ describe("normaliseDroneImageMetadata", () => {
 });
 
 describe("extraction and serialization", () => {
+  it("extracts embedded DJI XMP through the real full exifr API", async () => {
+    const file = await buildExifAndXmpJpeg();
+    const metadata = await extractDroneImageMetadata(file);
+    expect(metadata.raw.parseErrors).toEqual([]);
+    expect(metadata.raw.xmpXml).toContain("drone-dji:GimbalYawDegree");
+    expect(metadata.orientation.gimbal).toMatchObject({ yawDeg: 91.5, pitchDeg: -90 });
+    expect(metadata.orientation.viewDirectionDeg).toBe(91.5);
+    expect(metadata.altitude.relativeTakeoffM).toBe(31.2);
+    expect(metadata.rtk.flagRaw).toBe(50);
+    expect(metadata.file.sha256).toBe(await sha256File(file));
+  });
+
+  it("extracts embedded XMP from Vite's actual full ESM bundle without Node or FileReader", async () => {
+    const resolvedModules: string[] = [];
+    const result = await build({
+      configFile: false,
+      logLevel: "silent",
+      publicDir: false,
+      plugins: [
+        {
+          name: "capture-metadata-bundle-modules",
+          moduleParsed(module) {
+            resolvedModules.push(module.id.replaceAll("\\", "/"));
+          },
+        },
+      ],
+      build: {
+        write: false,
+        minify: false,
+        target: "es2022",
+        lib: {
+          entry: fileURLToPath(new URL("../drone-image-metadata.ts", import.meta.url)),
+          name: "DroneMetadataBundle",
+          formats: ["iife"],
+        },
+      },
+    });
+    expect(resolvedModules.some((id) => id.endsWith("/exifr/dist/full.esm.mjs"))).toBe(true);
+    const outputs = Array.isArray(result) ? result : [result];
+    const chunks = outputs.flatMap((output) =>
+      "output" in output ? output.output.filter((item) => item.type === "chunk") : [],
+    );
+    expect(chunks).toHaveLength(1);
+    const workerGlobals = {
+      crypto,
+      File,
+      Blob,
+      ArrayBuffer,
+      Uint8Array,
+      DataView,
+      TextEncoder,
+      TextDecoder,
+    };
+    const bundled = runInNewContext(`${chunks[0].code}\nDroneMetadataBundle;`, {
+      ...workerGlobals,
+      self: workerGlobals,
+    }) as Pick<typeof import("../drone-image-metadata"), "extractDroneImageMetadata">;
+    const file = await buildExifAndXmpJpeg();
+    const metadata = await bundled.extractDroneImageMetadata(file);
+    expect(metadata.raw.parseErrors).toEqual([]);
+    expect(metadata.orientation.gimbal).toMatchObject({ yawDeg: 91.5, pitchDeg: -90 });
+    expect(metadata.orientation.viewDirectionDeg).toBe(91.5);
+    expect(metadata.qa.warnings.map((issue) => issue.code)).not.toContain("METADATA_PARSE_WARNING");
+    expect(metadata.file.sha256).toBe(await sha256File(file));
+  }, 15_000);
+
   it("extracts a real in-memory JPEG/EXIF fixture through exifr", async () => {
     const metadata = await extractDroneImageMetadata(buildMinimalExifJpeg());
 
