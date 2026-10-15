@@ -179,7 +179,7 @@ begin
   end if;
   select * into plan_row from public.verification_plan_versions where project_id = p_project_id and id = selected_plan_id;
   if not found or plan_row.baseline_id is distinct from selected_baseline_id
-    or plan_row.baseline_sha256 is distinct from baseline_row.manifest_sha256 or plan_row.status <> 'draft'
+    or plan_row.baseline_sha256 is distinct from baseline_row.manifest_sha256 or plan_row.manifest->>'status' is distinct from 'draft'
     or pins->'plan' is distinct from jsonb_build_object('id',plan_row.id,'sha256',plan_row.manifest_sha256) then
     raise exception 'Invalid exact report plan' using errcode = '23514';
   end if;

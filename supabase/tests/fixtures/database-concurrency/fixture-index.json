@@ -85,7 +85,7 @@
     },
     {
       "path": "supabase/migrations/20261015194002_municipal_report_versions.sql",
-      "normalizedSha256": "846e576314c8a683271353740fbf6c69189ae656f55ada316457c6692ce46bab"
+      "normalizedSha256": "ff82f5139627044510152d0227be0fee56f39e079117a37ba98c65ab446422c5"
     }
   ]
 }
