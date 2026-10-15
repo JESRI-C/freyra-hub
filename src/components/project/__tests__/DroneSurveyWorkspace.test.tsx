@@ -124,6 +124,8 @@ vi.mock("@/components/monitoring/DroneBeforeBatchWizard", () => ({
 vi.mock("@/components/maps/LiveProjectMap", () => ({ LiveProjectMap: () => null }));
 vi.mock("../SurveyRoundMediaPanel", () => ({ SurveyRoundMediaPanel: () => null }));
 vi.mock("../InspectionPhotoBatch", () => ({ InspectionPhotoBatch: () => null }));
+vi.mock("../DroneIntakeAssistant", () => ({ DroneIntakeAssistant: () => null }));
+vi.mock("../DroneImageInspectionPanel", () => ({ DroneImageInspectionPanel: () => null }));
 vi.mock("../stream-inspection-start", () => ({
   startStreamInspection: state.start,
   resumeCompletedStreamInspection: state.resume,
@@ -154,6 +156,7 @@ import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatch
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
 import { SurveyRoundMediaPanel } from "../SurveyRoundMediaPanel";
 import { InspectionPhotoBatch } from "../InspectionPhotoBatch";
+import { DroneIntakeAssistant } from "../DroneIntakeAssistant";
 import { makeRoundFixture } from "@/services/baseline/__tests__/survey-round.fixtures";
 import { surveyRoundVersionFromRow } from "@/services/baseline/survey-round-persistence";
 import { baselineSha256 } from "@/services/baseline/public-baseline-service";
@@ -331,6 +334,37 @@ afterEach(() => {
 });
 
 describe("guided drone survey workspace", () => {
+  it("hands only the just-uploaded canonical batch to intake and clears it when the actor changes", () => {
+    const wizard = find(tree(), (element) => element.type === DroneBeforeBatchWizard)!;
+    const emitted = {
+      projectId: props.project.id,
+      batchId: "before-batch-test",
+      mediaIds: [OTHER_ROUND],
+      receivedCount: 1,
+    };
+    (wizard.props.onCanonicalBatch as (value: typeof emitted) => void)(emitted);
+    const intake = find(tree(), (element) => element.type === DroneIntakeAssistant)!;
+    expect(intake.props.batch).toEqual(emitted);
+    expect(state.start).not.toHaveBeenCalled();
+    state.actor = OTHER_ACTOR;
+    expect(
+      find(tree(), (element) => element.type === DroneIntakeAssistant)!.props.batch,
+    ).toBeUndefined();
+  });
+
+  it("ignores an upload completion belonging to another project", () => {
+    const wizard = find(tree(), (element) => element.type === DroneBeforeBatchWizard)!;
+    (wizard.props.onCanonicalBatch as (value: unknown) => void)({
+      projectId: OTHER_PROJECT,
+      batchId: "before-batch-test",
+      mediaIds: [OTHER_ROUND],
+      receivedCount: 1,
+    });
+    expect(
+      find(tree(), (element) => element.type === DroneIntakeAssistant)!.props.batch,
+    ).toBeUndefined();
+    expect(state.start).not.toHaveBeenCalled();
+  });
   it("mounts a single understandable workflow without starting or saving an investigation", async () => {
     const node = tree();
     const html = renderToStaticMarkup(node);

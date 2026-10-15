@@ -1,0 +1,324 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  droneIntakeBaselinePeriod,
+  droneIntakeAiPhotos,
+  droneIntakeRecordingDate,
+  readOrCreateDroneIntakeRequests,
+  runDroneIntakeImageChunk,
+  type DroneIntakeScope,
+} from "../drone-intake-run";
+import type { DroneLocalizationResult } from "@/services/geospatial/drone-localization";
+const ACTOR = "10000000-0000-4000-8000-000000000001",
+  PROJECT = "20000000-0000-4000-8000-000000000001";
+const BASELINE = "40000000-0000-4000-8000-000000000001",
+  BASELINE_HASH = "a".repeat(64);
+const id = (index: number) => `30000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+function scope(count = 2): DroneIntakeScope {
+  return {
+    actorId: ACTOR,
+    projectId: PROJECT,
+    baselineSnapshotId: BASELINE,
+    baselineSha256: BASELINE_HASH,
+    batchId: "before-batch-test",
+    mediaIds: Array.from({ length: count }, (_, index) => id(index + 1)),
+  };
+}
+function storage() {
+  const values = new Map<string, string>();
+  return {
+    values,
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      values.set(key, value);
+    },
+  };
+}
+function sequence() {
+  let index = 100;
+  return () => id(index++);
+}
+function inspector() {
+  return vi.fn(
+    async ({
+      data,
+    }: {
+      data: { projectId: string; mediaId: string; requestId: string; expectedCallerUserId: string };
+    }) =>
+      ({
+        status: "completed",
+        inspection: {
+          projectId: data.projectId,
+          mediaId: data.mediaId,
+          sourceSnapshotId: BASELINE,
+          sourceSnapshotHash: BASELINE_HASH,
+          status: "completed",
+          result: { status: "draft" },
+        },
+      }) as never,
+  );
+}
+describe("bounded exact-batch image analysis", () => {
+  it("keeps large originals for manual review without trapping later supported photos", () => {
+    const photos = [
+      { mediaId: id(1), sizeBytes: 20_000_001 },
+      { mediaId: id(2), sizeBytes: 137 },
+      { mediaId: id(3), sizeBytes: 20_000_000 },
+    ] as Parameters<typeof droneIntakeAiPhotos>[0];
+    expect(droneIntakeAiPhotos(photos).map((photo) => photo.mediaId)).toEqual([id(2), id(3)]);
+  });
+  it("stores every fixed request before the first provider attempt and reuses IDs on retry", async () => {
+    const target = scope(),
+      saved = storage(),
+      run = inspector();
+    run.mockImplementation(async ({ data }) => {
+      expect(saved.values.size).toBe(1);
+      return {
+        status: "completed",
+        inspection: {
+          projectId: data.projectId,
+          mediaId: data.mediaId,
+          sourceSnapshotId: BASELINE,
+          sourceSnapshotHash: BASELINE_HASH,
+          status: "completed",
+          result: {},
+        },
+      } as never;
+    });
+    await runDroneIntakeImageChunk(target, run, {
+      storage: saved,
+      startIndex: 0,
+      isCurrent: () => true,
+      randomUUID: sequence(),
+    });
+    await runDroneIntakeImageChunk(target, run, {
+      storage: saved,
+      startIndex: 0,
+      isCurrent: () => true,
+      randomUUID: () => {
+        throw new Error("must reuse");
+      },
+    });
+    expect(run.mock.calls[0][0].data).toEqual(run.mock.calls[2][0].data);
+    expect(run.mock.calls[0][0].data).toMatchObject({
+      baselineSnapshotId: BASELINE,
+      baselineSha256: BASELINE_HASH,
+    });
+    expect(
+      run.mock.calls.every(
+        ([request]) =>
+          request.data.expectedCallerUserId === ACTOR &&
+          target.mediaIds.includes(request.data.mediaId),
+      ),
+    ).toBe(true);
+  });
+  it("runs twelve photos at most and never overlaps provider calls", async () => {
+    const target = scope(30),
+      saved = storage();
+    let active = 0,
+      maximum = 0;
+    const run = vi.fn(async ({ data }: { data: { projectId: string; mediaId: string } }) => {
+      active++;
+      maximum = Math.max(maximum, active);
+      await Promise.resolve();
+      active--;
+      return {
+        status: "completed",
+        inspection: {
+          projectId: data.projectId,
+          mediaId: data.mediaId,
+          sourceSnapshotId: BASELINE,
+          sourceSnapshotHash: BASELINE_HASH,
+          status: "completed",
+          result: {},
+        },
+      } as never;
+    });
+    const result = await runDroneIntakeImageChunk(target, run, {
+      storage: saved,
+      startIndex: 0,
+      isCurrent: () => true,
+      randomUUID: sequence(),
+    });
+    expect(run).toHaveBeenCalledTimes(12);
+    expect(maximum).toBe(1);
+    expect(result.nextIndex).toBe(12);
+    await runDroneIntakeImageChunk(target, run, {
+      storage: saved,
+      startIndex: 12,
+      isCurrent: () => true,
+    });
+    expect(run).toHaveBeenCalledTimes(24);
+    expect(run.mock.calls[12][0].data.mediaId).toBe(target.mediaIds[12]);
+  });
+  it("does not send an image when browser storage cannot preserve retry identity", async () => {
+    const run = inspector();
+    await expect(
+      runDroneIntakeImageChunk(scope(), run, {
+        storage: {
+          getItem: () => null,
+          setItem: () => {
+            throw new Error("storage blocked");
+          },
+        },
+        startIndex: 0,
+        isCurrent: () => true,
+        randomUUID: sequence(),
+      }),
+    ).rejects.toThrow("storage blocked");
+    expect(run).not.toHaveBeenCalled();
+  });
+  it("stops at busy or failed photos, preserving the same retry identity", async () => {
+    const saved = storage(),
+      target = scope(3),
+      run = inspector();
+    run.mockResolvedValueOnce({
+      status: "busy",
+      inspection: {
+        projectId: PROJECT,
+        mediaId: target.mediaIds[0],
+        sourceSnapshotId: BASELINE,
+        sourceSnapshotHash: BASELINE_HASH,
+        status: "pending",
+        result: null,
+      },
+    } as never);
+    expect(
+      await runDroneIntakeImageChunk(target, run, {
+        storage: saved,
+        startIndex: 0,
+        isCurrent: () => true,
+        randomUUID: sequence(),
+      }),
+    ).toEqual({ nextIndex: 0, busyMediaId: target.mediaIds[0] });
+    run.mockRejectedValueOnce(new Error("timeout"));
+    await expect(
+      runDroneIntakeImageChunk(target, run, {
+        storage: saved,
+        startIndex: 0,
+        isCurrent: () => true,
+      }),
+    ).rejects.toThrow("timeout");
+    expect(run.mock.calls[1][0]).toEqual(run.mock.calls[0][0]);
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+  it("discards a late response after actor, project or batch changes before scheduling another photo", async () => {
+    let current = true;
+    const completed = vi.fn(),
+      run = inspector();
+    run.mockImplementationOnce(async ({ data }) => {
+      current = false;
+      return {
+        status: "completed",
+        inspection: {
+          projectId: data.projectId,
+          mediaId: data.mediaId,
+          sourceSnapshotId: BASELINE,
+          sourceSnapshotHash: BASELINE_HASH,
+          status: "completed",
+          result: {},
+        },
+      } as never;
+    });
+    await expect(
+      runDroneIntakeImageChunk(scope(3), run, {
+        storage: storage(),
+        startIndex: 0,
+        isCurrent: () => current,
+        onCompleted: completed,
+        randomUUID: sequence(),
+      }),
+    ).rejects.toThrow("ændret");
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(completed).not.toHaveBeenCalled();
+  });
+  it("rejects a foreign photo response and does not process later photos", async () => {
+    const run = inspector();
+    run.mockResolvedValueOnce({
+      status: "completed",
+      inspection: { projectId: ACTOR, mediaId: id(1), status: "completed", result: {} },
+    } as never);
+    await expect(
+      runDroneIntakeImageChunk(scope(), run, {
+        storage: storage(),
+        startIndex: 0,
+        isCurrent: () => true,
+        randomUUID: sequence(),
+      }),
+    ).rejects.toThrow("matcher ikke");
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+  it("keeps request receipts separate for caller, case and exact newly promoted batch", () => {
+    const saved = storage(),
+      first = readOrCreateDroneIntakeRequests(scope(), saved, sequence());
+    const second = readOrCreateDroneIntakeRequests(
+      { ...scope(), actorId: PROJECT },
+      saved,
+      sequence(),
+    );
+    const third = readOrCreateDroneIntakeRequests(scope(3), saved, sequence());
+    expect(saved.values.size).toBe(3);
+    expect(first.scope).not.toEqual(second.scope);
+    expect(third.requests).toHaveLength(3);
+  });
+  it("keeps requests bound to the exact saved public-data version and rejects unlinked AI responses", async () => {
+    const saved = storage();
+    readOrCreateDroneIntakeRequests(scope(), saved, sequence());
+    readOrCreateDroneIntakeRequests(
+      { ...scope(), baselineSha256: "b".repeat(64) },
+      saved,
+      sequence(),
+    );
+    expect(saved.values.size).toBe(2);
+    const run = inspector();
+    run.mockResolvedValueOnce({
+      status: "completed",
+      inspection: {
+        projectId: PROJECT,
+        mediaId: id(1),
+        sourceSnapshotId: null,
+        sourceSnapshotHash: null,
+        status: "completed",
+        result: {},
+      },
+    } as never);
+    await expect(
+      runDroneIntakeImageChunk(scope(), run, {
+        storage: saved,
+        startIndex: 0,
+        isCurrent: () => true,
+      }),
+    ).rejects.toThrow("matcher ikke");
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+  it("does not silently regenerate a corrupt stored receipt", () => {
+    const saved = storage();
+    readOrCreateDroneIntakeRequests(scope(), saved, sequence());
+    saved.values.set([...saved.values.keys()][0], "broken");
+    const random = vi.fn(sequence());
+    expect(() => readOrCreateDroneIntakeRequests(scope(), saved, random)).toThrow();
+    expect(random).not.toHaveBeenCalled();
+  });
+  it("uses Danish recording dates and requires a choice when safe timestamps span days", () => {
+    const result = {
+      photos: [{ capturedAtUtc: "2026-10-13T23:30:00.000Z" }],
+    } as DroneLocalizationResult;
+    expect(droneIntakeRecordingDate(result)).toBe("2026-10-14");
+    expect(
+      droneIntakeRecordingDate({
+        ...result,
+        photos: [...result.photos, { capturedAtUtc: "2026-10-13T10:00:00.000Z" } as never],
+      }),
+    ).toBeNull();
+    expect(
+      droneIntakeRecordingDate({ ...result, photos: [{ capturedAtUtc: null } as never] }),
+    ).toBeNull();
+  });
+  it("prepares thirty inclusive calendar days without inventing a recording date", () => {
+    expect(droneIntakeBaselinePeriod("2026-10-14")).toEqual({
+      dateFrom: "2026-09-15",
+      dateTo: "2026-10-14",
+    });
+    expect(() => droneIntakeBaselinePeriod("")).toThrow();
+    expect(() => droneIntakeBaselinePeriod("2026-02-30")).toThrow();
+  });
+});

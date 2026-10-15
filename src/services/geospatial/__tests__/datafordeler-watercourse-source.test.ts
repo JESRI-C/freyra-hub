@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDatafordelerWatercourseGeometryUrl,
   buildDatafordelerWatercourseSearchUrl,
+  buildDatafordelerWatercourseBoundsUrl,
   DATAFORDELER_WATERCOURSE_ENDPOINT,
   DATAFORDELER_WATERCOURSE_PROVIDER,
   DATAFORDELER_WATERCOURSE_MAX_RESPONSE_BYTES,
@@ -25,6 +26,26 @@ const compact = liveFixture.replace(
 );
 
 describe("Datafordeler canonical queries", () => {
+  it("builds a bounded EPSG4326 latitude-longitude BBOX without credentials", () => {
+    const url = new URL(buildDatafordelerWatercourseBoundsUrl([9.25, 55.34, 9.27, 55.36]));
+    expect(url.searchParams.get("BBOX")).toBe("55.34,9.25,55.36,9.27,urn:ogc:def:crs:EPSG::4326");
+    expect(url.searchParams.get("COUNT")).toBe("21");
+    expect(url.searchParams.has("apikey")).toBe(false);
+    expect(url.searchParams.has("FILTER")).toBe(false);
+  });
+  it.each(
+    [
+      [7, 54, 16, 58],
+      [9, 55, 9, 56],
+      [55, 9, 56, 10],
+      [9, 55, Infinity, 55.1],
+      [9, 55, 9.1, 54.9],
+    ].map((bounds) => ({ bounds })),
+  )("rejects a malformed or unbounded BBOX $bounds", ({ bounds }) => {
+    expect(() =>
+      buildDatafordelerWatercourseBoundsUrl(bounds as [number, number, number, number]),
+    ).toThrow();
+  });
   it("binds the exact UUID to a fixed GML endpoint and key-free FES query", () => {
     const url = new URL(buildDatafordelerWatercourseGeometryUrl(ID.toUpperCase()));
     expect(`${url.origin}${url.pathname}`).toBe(DATAFORDELER_WATERCOURSE_ENDPOINT);

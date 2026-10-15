@@ -34,6 +34,7 @@ import { computeDocumentationScore, listDocuments } from "@/services/documents-s
 
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
 import { ProjectReportRecords } from "@/components/reports/ProjectReportRecords";
+import { DroneImageInspectionPanel } from "@/components/project/DroneImageInspectionPanel";
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import { BiodiversityCard } from "@/components/project/BiodiversityCard";
@@ -725,6 +726,7 @@ function ProjectDetailPage() {
             {active === "rapporter" && (
               <div className="space-y-4">
                 <ProjectReportRecords projectId={projectId} reports={reports} />
+                <DroneImageInspectionPanel projectId={projectId} />
 
                 {/* Report preview */}
                 <ReportPreviewCard preview={reportPreview} />

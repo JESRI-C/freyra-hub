@@ -1,5 +1,15 @@
 # Din afprøvning før Haderslev-mødet
 
+## Opfølgning 15. oktober 2026 — automatisk lokalisering og billedspørgsmål
+
+Den nye kode forbinder upload → serverkontrolleret GPS og forslag til vandløb → én bekræftelse af sted/dato → offentligt datagrundlag → gemt runde og præcise billedreferencer → billed-AI med den konkrete kildeversion → versionerede svar og tekstkladde til rapportgrundlag. **CI, staging-release og positiv hosted billed-AI er endnu ikke verificeret i dette checkpoint.** Tidligere daterede beviser nedenfor bevares.
+
+Lokalt: **141 testfiler / 2.329 tests bestået**, typekontrol og faktorgrundlag bestået. Endelig lint har 0 fejl og 23 eksisterende advarsler; genererede Worker-typer holdes uden for browserens globale typer/lint. Uafhængig gennemgang fandt fejl i timeout, metadatafjernelse og genoptagelse efter kortvalg; rettelser og afgrænsede regressioner er på plads.
+
+Der analyseres højst 12 fotos ad gangen efter kildehentning og tilknytning. JPEG-originaler over 20 MB bevares og tilknyttes, men afventer billed-AI. Grænser i testdriften er 40 analyseforsøg pr. projekt / 200 samlet pr. døgn og 3 forsøg pr. præcist billede/metode/kildeversion. Genforsøg genbruger gemte resultater. GPS angiver kameraets placering; forslag til søgeområde er ikke billedets footprint eller en kommunalt godkendt delstrækning.
+
+Rapportgrundlaget er fortsat en kladde: AI-forslag, egne svar, billed-/kildehash og usikkerhed kan gennemgås og hentes som tekst. Den samlede godkendte kommunale rapport/PDF, faglig reviewer, konkret delstrækning af bl.a. Bykær Bæk og fem faktiske brugerafprøvninger er fortsat åbne. Satellitkataloger må ikke beskrives som analyserede satellitpixels eller dokumenteret naturtilstand.
+
 ## Fem brugerperspektiver — gennemgang 14. oktober
 
 Gennemgangen kombinerer konkrete browseropgaver i den eksisterende syntetiske testsag med gennemgang af kode og isolerede tests af rettelserne. Det er simulerede brugerperspektiver med den eksisterende bruger, ikke interviews med fem personer eller fem nye loginroller. Den konkrete kommunale strækning er ikke valgt ved testen.

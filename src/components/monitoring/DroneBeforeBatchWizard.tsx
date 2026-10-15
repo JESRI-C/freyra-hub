@@ -73,6 +73,14 @@ interface DroneBeforeBatchWizardProps {
   onClose: () => void;
   projectId: string;
   onImported?: () => void;
+  onCanonicalBatch?: (batch: CanonicalDroneBatch) => void;
+}
+
+export interface CanonicalDroneBatch {
+  projectId: string;
+  batchId: string;
+  mediaIds: string[];
+  receivedCount: number;
 }
 
 function createId(prefix: string): string {
@@ -136,6 +144,7 @@ export function DroneBeforeBatchWizard({
   onClose,
   projectId,
   onImported,
+  onCanonicalBatch,
 }: DroneBeforeBatchWizardProps) {
   const [items, setItems] = useState<BatchItem[]>([]);
   const [selectionMessage, setSelectionMessage] = useState<string | null>(null);
@@ -262,6 +271,7 @@ export function DroneBeforeBatchWizard({
 
   const checkReceivedOriginals = async (received: DroneOriginalProcessingCandidate[]) => {
     setCheckingOriginals(true);
+    const canonical = new Set<string>();
     try {
       await processDroneOriginalsSequentially(
         received,
@@ -272,19 +282,34 @@ export function DroneBeforeBatchWizard({
         },
         {
           onOriginalCheck: (id, originalCheck) => updateItem(id, { originalCheck }),
-          onPromotion: (id, promotion) => updateItem(id, { promotion }),
+          onPromotion: (id, promotion) => {
+            updateItem(id, { promotion });
+            if (promotion.status === "canonical" && promotion.mediaId)
+              canonical.add(promotion.mediaId);
+          },
         },
       );
     } finally {
       setCheckingOriginals(false);
     }
+    return [...canonical];
+  };
+
+  const notifyCanonicalBatch = (mediaIds: string[], receivedTotal: number) => {
+    if (!batchIdRef.current || mediaIds.length === 0) return;
+    onCanonicalBatch?.({
+      projectId,
+      batchId: batchIdRef.current,
+      mediaIds: [...new Set(mediaIds)],
+      receivedCount: receivedTotal,
+    });
   };
 
   const retryOriginalChecks = async () => {
     if (busyRef.current || active || clearing) return;
     busyRef.current = true;
     try {
-      await checkReceivedOriginals(
+      const canonical = await checkReceivedOriginals(
         originalRetryCandidates.map((item) => ({
           key: item.id,
           upload: item.receivedUpload!,
@@ -293,6 +318,7 @@ export function DroneBeforeBatchWizard({
         })),
       );
       onImported?.();
+      notifyCanonicalBatch(canonical, receivedCount);
     } finally {
       busyRef.current = false;
     }
@@ -356,8 +382,11 @@ export function DroneBeforeBatchWizard({
       });
 
       if (successes > 0) onImported?.();
-      await checkReceivedOriginals(received.sort((a, b) => a.sequence - b.sequence));
+      const canonical = await checkReceivedOriginals(
+        received.sort((a, b) => a.sequence - b.sequence),
+      );
       if (successes > 0) onImported?.();
+      notifyCanonicalBatch(canonical, receivedCount + successes);
     } finally {
       busyRef.current = false;
     }

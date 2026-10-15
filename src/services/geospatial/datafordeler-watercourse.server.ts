@@ -2,6 +2,7 @@ import type { OfficialWatercourseSuggestion } from "./official-watercourse-sourc
 import {
   buildDatafordelerWatercourseGeometryUrl,
   buildDatafordelerWatercourseSearchUrl,
+  buildDatafordelerWatercourseBoundsUrl,
   DATAFORDELER_WATERCOURSE_ENDPOINT,
   DATAFORDELER_WATERCOURSE_MAX_RESPONSE_BYTES,
   DATAFORDELER_WATERCOURSE_MAX_RESULTS,
@@ -9,6 +10,8 @@ import {
   parseDatafordelerWatercourseCollection,
   parseDatafordelerWatercourseGeometry,
   type DatafordelerWatercourseGeometry,
+  type DatafordelerWatercourseCollection,
+  type WatercourseSearchBounds,
 } from "./datafordeler-watercourse-source";
 
 export interface DatafordelerWatercourseFetchOptions {
@@ -199,4 +202,17 @@ export async function searchDatafordelerWatercourses(
     }));
   rejectCredentialEcho(suggestions, apiKey);
   return suggestions;
+}
+
+/** Spatial results retain completeness and full geometry for distance ranking. */
+export async function findDatafordelerWatercoursesInBounds(
+  bounds: WatercourseSearchBounds,
+  options: DatafordelerWatercourseFetchOptions = {},
+): Promise<DatafordelerWatercourseCollection> {
+  const url = buildDatafordelerWatercourseBoundsUrl(bounds);
+  const apiKey = requireServerApiKey();
+  const xml = await fetchXml(url, apiKey, options);
+  const collection = parseDatafordelerWatercourseCollection(xml);
+  rejectCredentialEcho(collection, apiKey);
+  return collection;
 }

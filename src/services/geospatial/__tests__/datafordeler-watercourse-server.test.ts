@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchDatafordelerWatercourse,
   searchDatafordelerWatercourses,
+  findDatafordelerWatercoursesInBounds,
 } from "../datafordeler-watercourse.server";
 import {
   buildDatafordelerWatercourseGeometryUrl,
@@ -31,6 +32,19 @@ afterEach(() => {
 });
 
 describe("Datafordeler server transport", () => {
+  it("retains geometry and source completeness for spatial matching", async () => {
+    vi.stubEnv("DATAFORDELER_API_KEY", KEY);
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response(fixture));
+    const result = await findDatafordelerWatercoursesInBounds([9.91, 54.96, 9.94, 54.98], {
+      fetchImpl,
+    });
+    expect(result.paginationComplete).toBe(true);
+    expect(result.watercourses[0].geometry.type).toBe("MultiLineString");
+    expect(new URL(String(fetchImpl.mock.calls[0][0])).searchParams.get("BBOX")).toBe(
+      "54.96,9.91,54.98,9.94,urn:ogc:def:crs:EPSG::4326",
+    );
+    expect(JSON.stringify(result)).not.toContain(KEY);
+  });
   it("requires a server key before any network call", async () => {
     vi.stubEnv("DATAFORDELER_API_KEY", undefined);
     const fetchImpl = vi.fn<typeof fetch>();
@@ -60,11 +74,13 @@ describe("Datafordeler server transport", () => {
     );
   });
 
-  describe.each(["geometry", "search"] as const)("%s credential echoes", (operation) => {
+  describe.each(["geometry", "search", "bounds"] as const)("%s credential echoes", (operation) => {
     const call = (fetchImpl: typeof fetch) =>
       operation === "geometry"
         ? fetchDatafordelerWatercourse(ID, { fetchImpl })
-        : searchDatafordelerWatercourses("Lillemølle", { fetchImpl });
+        : operation === "search"
+          ? searchDatafordelerWatercourses("Lillemølle", { fetchImpl })
+          : findDatafordelerWatercoursesInBounds([9.91, 54.96, 9.94, 54.98], { fetchImpl });
 
     it.each([
       ["literal primary name", withName(`Before ${KEY} after`)],

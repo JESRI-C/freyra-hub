@@ -6,7 +6,13 @@ import { ArrowRight, Camera, CheckCircle2, Loader2, MapPin } from "lucide-react"
 import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/supabase/types";
 import { Card } from "@/components/ui-bits";
-import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
+import {
+  DroneBeforeBatchWizard,
+  type CanonicalDroneBatch,
+} from "@/components/monitoring/DroneBeforeBatchWizard";
+import { DroneIntakeAssistant } from "./DroneIntakeAssistant";
+import { DroneImageInspectionPanel } from "./DroneImageInspectionPanel";
+import { readPendingDroneBatch, savePendingDroneBatch } from "./drone-intake-batch-receipt";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
 import { createProjectBaseline, getProjectBaseline } from "@/lib/public-baseline.functions";
 import { getVerificationPlan, saveVerificationPlan } from "@/lib/verification-plan.functions";
@@ -105,6 +111,19 @@ function Workspace({
   onPhotosChanged,
 }: Props & { actorId: string }) {
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [intakeBatch, setIntakeBatch] = useState<CanonicalDroneBatch>();
+  const [pendingBatch, setPendingBatch] = useState<CanonicalDroneBatch>();
+  const [batchReceiptError, setBatchReceiptError] = useState<string | null>(null);
+  const [inspectionRefresh, setInspectionRefresh] = useState(0);
+  useEffect(() => {
+    try {
+      setPendingBatch(readPendingDroneBatch(localStorage, actorId, project.id));
+    } catch {
+      setBatchReceiptError(
+        "Den seneste billedserie kunne ikke genåbnes fra denne browser. De uploadede originaler er bevaret i sagen.",
+      );
+    }
+  }, [actorId, project.id]);
   const [dates, setDates] = useState(() => initialDates(actorId, project.id));
   const [progress, setProgress] = useState<StreamInspectionProgress | null>(null);
   const busy = useRef(false);
@@ -388,16 +407,16 @@ function Workspace({
           </p>
           <h2 className="mt-1 text-2xl font-semibold">Fra dronebilleder til gennemgang</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Upload billederne her. Bekræft sted og periode én gang; programmet henter datagrundlaget
-            og forbereder undersøgelsen samlet.
+            Upload originalbillederne. Programmet foreslår stedet og spørgsmål fra billederne.
+            Bekræft stedet og optagedatoen for at hente offentlige data og samle undersøgelsen.
           </p>
         </div>
         <ol aria-label="Undersøgelsens forløb" className="grid gap-2 text-sm sm:grid-cols-4">
           {[
             "1. Tilføj billeder",
-            "2. Bekræft stedet",
-            "3. Forbered undersøgelse",
-            "4. Gennemgå og aflever",
+            "2. Sted og offentlige data",
+            "3. Billeder og spørgsmål",
+            "4. Rapportgrundlag",
           ].map((label) => (
             <li key={label} className="rounded-lg border bg-muted/20 p-3">
               {label}
@@ -436,6 +455,20 @@ function Workspace({
           </p>
         )}
       </Card>
+      {!intakeBatch && pendingBatch && (
+        <button
+          type="button"
+          className="rounded-lg border px-4 py-2 text-sm"
+          onClick={() => setIntakeBatch(pendingBatch)}
+        >
+          Fortsæt med seneste billedserie · {pendingBatch.mediaIds.length} originaler
+        </button>
+      )}
+      {batchReceiptError && (
+        <p role="status" className="text-sm text-amber-700">
+          {batchReceiptError}
+        </p>
+      )}
       <DroneBeforeBatchWizard
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
@@ -443,148 +476,196 @@ function Workspace({
         onImported={() => {
           void onPhotosChanged();
         }}
+        onCanonicalBatch={(batch) => {
+          if (batch.projectId !== project.id) return;
+          const next = {
+            ...batch,
+            mediaIds:
+              intakeBatch?.batchId === batch.batchId
+                ? [...new Set([...intakeBatch.mediaIds, ...batch.mediaIds])]
+                : batch.mediaIds,
+          };
+          try {
+            savePendingDroneBatch(localStorage, actorId, next);
+            setBatchReceiptError(null);
+          } catch {
+            setBatchReceiptError(
+              "Billedserien kan behandles her, men genoptagelse efter navigation kunne ikke gemmes i browseren.",
+            );
+          }
+          setPendingBatch(next);
+          setIntakeBatch(next);
+          setUploadOpen(false);
+        }}
       />
-      <Card className="p-5 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-semibold">Sted og periode</h3>
-            <p className="text-sm text-muted-foreground">
-              {polygon.valid && reference.data
-                ? `Gemt område · ${reference.data.name}`
-                : "Bekræft den del af vandløbet, undersøgelsen handler om."}
-            </p>
-          </div>
-          <Link
-            to="/app/projects/geometry/$slug"
-            params={{ slug: project.slug || project.id }}
-            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-          >
-            <MapPin className="h-4 w-4" />
-            {polygon.valid && reference.data ? "Se eller ret område" : "Vælg område og vandløb"}
-          </Link>
-        </div>
-        {!selectedRoundId && (
-          <>
-            <div className="flex flex-wrap items-end gap-4">
-              <label className="text-sm space-y-1">
-                <span className="block font-medium">Undersøgelsens dato</span>
-                <input
-                  aria-label="Undersøgelsens dato"
-                  type="date"
-                  value={dates.recordingDate}
-                  onChange={(e) => updateDate(e.target.value)}
-                  disabled={prepare.isPending}
-                  className="rounded border bg-background p-2"
-                />
-              </label>
+      <DroneIntakeAssistant
+        project={project}
+        actorId={actorId}
+        batch={intakeBatch}
+        onPrepared={(value) => {
+          client.setQueryData(["inspection-selection", actorId, project.id, value.round.id], value);
+          void client.invalidateQueries({ queryKey: ["inspection-rounds", actorId, project.id] });
+          void client.invalidateQueries({
+            queryKey: ["official-watercourse-reach", actorId, project.id],
+          });
+          onSelectRound(value.round.id);
+        }}
+        onPhotosChanged={async () => {
+          setInspectionRefresh((value) => value + 1);
+          await onPhotosChanged();
+        }}
+      />
+      <DroneImageInspectionPanel
+        projectId={project.id}
+        actorId={actorId}
+        refreshToken={inspectionRefresh}
+      />
+      <details open={!intakeBatch}>
+        <summary className="cursor-pointer text-sm text-muted-foreground">
+          Manuel forberedelse og tidligere undersøgelser
+        </summary>
+        <Card className="p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold">Sted og periode</h3>
               <p className="text-sm text-muted-foreground">
-                FØR-dokumentation · datagrundlag {dates.dateFrom}–{dates.dateTo}
+                {polygon.valid && reference.data
+                  ? `Gemt område · ${reference.data.name}`
+                  : "Bekræft den del af vandløbet, undersøgelsen handler om."}
               </p>
             </div>
-            <details>
-              <summary className="cursor-pointer text-sm underline">Tilpas dataperioden</summary>
-              <p className="my-2 text-sm text-muted-foreground">
-                Forslaget er 30 dage op til undersøgelsesdatoen. Det ændrer ikke billedfilerne eller
-                deres faktiske optagetider.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {(["dateFrom", "dateTo"] as const).map((field) => (
-                  <label className="text-sm" key={field}>
-                    {field === "dateFrom" ? "Fra" : "Til"}
-                    <input
-                      type="date"
-                      aria-label={field === "dateFrom" ? "Datagrundlag fra" : "Datagrundlag til"}
-                      value={dates[field]}
-                      onChange={(e) =>
-                        setDates((previous) => ({ ...previous, [field]: e.target.value }))
-                      }
-                      disabled={prepare.isPending}
-                      className="ml-2 rounded border bg-background p-2"
-                    />
-                  </label>
-                ))}
+            <Link
+              to="/app/projects/geometry/$slug"
+              params={{ slug: project.slug || project.id }}
+              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+            >
+              <MapPin className="h-4 w-4" />
+              {polygon.valid && reference.data ? "Se eller ret område" : "Vælg område og vandløb"}
+            </Link>
+          </div>
+          {!selectedRoundId && (
+            <>
+              <div className="flex flex-wrap items-end gap-4">
+                <label className="text-sm space-y-1">
+                  <span className="block font-medium">Undersøgelsens dato</span>
+                  <input
+                    aria-label="Undersøgelsens dato"
+                    type="date"
+                    value={dates.recordingDate}
+                    onChange={(e) => updateDate(e.target.value)}
+                    disabled={prepare.isPending}
+                    className="rounded border bg-background p-2"
+                  />
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  FØR-dokumentation · datagrundlag {dates.dateFrom}–{dates.dateTo}
+                </p>
               </div>
-            </details>
+              <details>
+                <summary className="cursor-pointer text-sm underline">Tilpas dataperioden</summary>
+                <p className="my-2 text-sm text-muted-foreground">
+                  Forslaget er 30 dage op til undersøgelsesdatoen. Det ændrer ikke billedfilerne
+                  eller deres faktiske optagetider.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {(["dateFrom", "dateTo"] as const).map((field) => (
+                    <label className="text-sm" key={field}>
+                      {field === "dateFrom" ? "Fra" : "Til"}
+                      <input
+                        type="date"
+                        aria-label={field === "dateFrom" ? "Datagrundlag fra" : "Datagrundlag til"}
+                        value={dates[field]}
+                        onChange={(e) =>
+                          setDates((previous) => ({ ...previous, [field]: e.target.value }))
+                        }
+                        disabled={prepare.isPending}
+                        className="ml-2 rounded border bg-background p-2"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </details>
+              <button
+                type="button"
+                onClick={() => prepare.mutate()}
+                disabled={!canStart || prepare.isPending}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              >
+                {prepare.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
+                {prepare.isPending
+                  ? progressLabels[progress ?? "baseline"]
+                  : "Hent data og forbered undersøgelse"}
+              </button>
+              <p className="text-xs text-muted-foreground">
+                Henter kilder, gemmer spørgsmål og opretter en FØR-runde. Ingen billedfortolkning
+                eller faglig godkendelse udføres ved dette trin.
+              </p>
+              {access.data && !access.data.canPersist && (
+                <p className="text-sm">
+                  En projektansvarlig skal forberede en ny undersøgelse. Du kan fortsætte en
+                  eksisterende nedenfor.
+                </p>
+              )}
+            </>
+          )}
+          {!!completed.data && !selectedRoundId && (
             <button
               type="button"
-              onClick={() => prepare.mutate()}
-              disabled={!canStart || prepare.isPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+              className="flex items-center gap-2 text-sm underline"
+              onClick={() => onSelectRound(completed.data!.round.id)}
             >
-              {prepare.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowRight className="h-4 w-4" />
-              )}
-              {prepare.isPending
-                ? progressLabels[progress ?? "baseline"]
-                : "Hent data og forbered undersøgelse"}
+              <CheckCircle2 className="h-4 w-4" />
+              Fortsæt den gemte undersøgelse fra denne periode
             </button>
-            <p className="text-xs text-muted-foreground">
-              Henter kilder, gemmer spørgsmål og opretter en FØR-runde. Ingen billedfortolkning
-              eller faglig godkendelse udføres ved dette trin.
-            </p>
-            {access.data && !access.data.canPersist && (
-              <p className="text-sm">
-                En projektansvarlig skal forberede en ny undersøgelse. Du kan fortsætte en
-                eksisterende nedenfor.
-              </p>
-            )}
-          </>
-        )}
-        {!!completed.data && !selectedRoundId && (
-          <button
-            type="button"
-            className="flex items-center gap-2 text-sm underline"
-            onClick={() => onSelectRound(completed.data!.round.id)}
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            Fortsæt den gemte undersøgelse fra denne periode
-          </button>
-        )}
-        {(!!roundOptions.length || !!result) && (
-          <label className="block text-sm">
-            <span className="block mb-1 font-medium">Fortsæt en gemt undersøgelse</span>
-            <select
-              aria-label="Gemt undersøgelse"
-              value={selectedRoundId ?? ""}
-              onChange={(e) => onSelectRound(e.target.value || undefined)}
-              className="w-full rounded border bg-background p-2"
+          )}
+          {(!!roundOptions.length || !!result) && (
+            <label className="block text-sm">
+              <span className="block mb-1 font-medium">Fortsæt en gemt undersøgelse</span>
+              <select
+                aria-label="Gemt undersøgelse"
+                value={selectedRoundId ?? ""}
+                onChange={(e) => onSelectRound(e.target.value || undefined)}
+                className="w-full rounded border bg-background p-2"
+              >
+                <option value="">Ny undersøgelse …</option>
+                {result && !roundOptions.some((round) => round.id === result.round.id) && (
+                  <option value={result.round.id}>
+                    {result.round.manifest.title} · {result.round.manifest.recordingWindow.dateFrom}
+                    –{result.round.manifest.recordingWindow.dateTo}
+                  </option>
+                )}
+                {roundOptions.map((round) => (
+                  <option key={round.id} value={round.id}>
+                    {round.title} · {round.recordingWindow.dateFrom}–{round.recordingWindow.dateTo}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {rounds.hasNextPage && (
+            <button
+              className="text-sm underline"
+              disabled={rounds.isFetchingNextPage}
+              onClick={() => void rounds.fetchNextPage()}
             >
-              <option value="">Ny undersøgelse …</option>
-              {result && !roundOptions.some((round) => round.id === result.round.id) && (
-                <option value={result.round.id}>
-                  {result.round.manifest.title} · {result.round.manifest.recordingWindow.dateFrom}–
-                  {result.round.manifest.recordingWindow.dateTo}
-                </option>
-              )}
-              {roundOptions.map((round) => (
-                <option key={round.id} value={round.id}>
-                  {round.title} · {round.recordingWindow.dateFrom}–{round.recordingWindow.dateTo}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {rounds.hasNextPage && (
-          <button
-            className="text-sm underline"
-            disabled={rounds.isFetchingNextPage}
-            onClick={() => void rounds.fetchNextPage()}
-          >
-            Vis ældre undersøgelser
-          </button>
-        )}
-        {selectedRoundId && (
-          <button
-            type="button"
-            className="text-sm underline"
-            onClick={() => onSelectRound(undefined)}
-          >
-            Forbered en ny undersøgelse
-          </button>
-        )}
-      </Card>
+              Vis ældre undersøgelser
+            </button>
+          )}
+          {selectedRoundId && (
+            <button
+              type="button"
+              className="text-sm underline"
+              onClick={() => onSelectRound(undefined)}
+            >
+              Forbered en ny undersøgelse
+            </button>
+          )}
+        </Card>
+      </details>
       {selected.isFetching && <p role="status">Åbner den valgte undersøgelse …</p>}
       {result && (
         <>
@@ -596,8 +677,10 @@ function Workspace({
               {result.round.manifest.recordingWindow.dateTo}
             </p>
             <p className="text-sm">
-              {result.plan.manifest.questions.length} spørgsmål er forberedt. Vælg billederne samlet
-              nedenfor, og gennemgå derefter foto og spørgsmål.
+              {result.plan.manifest.questions.length} spørgsmål fra datagrundlaget er forberedt.
+              {intakeBatch
+                ? " Den bekræftede billedserie tilknyttes ovenfor. Se kilder og billedreferencer nedenfor."
+                : " Vælg billederne samlet nedenfor, og gennemgå derefter foto og spørgsmål."}
             </p>
             <details>
               <summary className="cursor-pointer text-sm underline">

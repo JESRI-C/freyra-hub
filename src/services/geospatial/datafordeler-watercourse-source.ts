@@ -118,6 +118,38 @@ export function buildDatafordelerWatercourseSearchUrl(query: string): string {
   return featureUrl(`<fes:Or>${names}</fes:Or>`, MAX_FEATURES);
 }
 
+export type WatercourseSearchBounds = [number, number, number, number];
+
+/** A small WGS84 search window; WFS EPSG:4326 uses latitude before longitude. */
+export function buildDatafordelerWatercourseBoundsUrl(bounds: WatercourseSearchBounds): string {
+  const [west, south, east, north] = bounds;
+  if (
+    bounds.length !== 4 ||
+    !bounds.every(Number.isFinite) ||
+    west < 7 ||
+    east > 16 ||
+    south < 54 ||
+    north > 58 ||
+    west >= east ||
+    south >= north ||
+    (north - south) * 111_320 * (east - west) * 111_320 * Math.cos((south * Math.PI) / 180) >
+      10_000_000
+  )
+    fail("Søgeområdet skal være et gyldigt dansk område på højst 10 km².");
+  const url = new URL(DATAFORDELER_WATERCOURSE_ENDPOINT);
+  url.search = new URLSearchParams({
+    SERVICE: "WFS",
+    VERSION: "2.0.0",
+    REQUEST: "GetFeature",
+    TYPENAMES: "sn:Vandloeb",
+    COUNT: String(MAX_FEATURES),
+    STARTINDEX: "0",
+    SRSNAME: SOURCE_SRS,
+    BBOX: `${south},${west},${north},${east},${SOURCE_SRS}`,
+  }).toString();
+  return url.toString();
+}
+
 interface XmlElement {
   local: string;
   namespace: string;

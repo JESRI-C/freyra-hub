@@ -8,6 +8,8 @@
     "staging": {
       "name": "gofreyra-p0-staging",
       "workers_dev": true,
+      "ai": { "binding": "AI" },
+      "images": { "binding": "IMAGES" },
       "secrets": {
         "required": [
           "SUPABASE_URL",
