@@ -2,24 +2,32 @@
 
 ## Opfølgning 15. oktober 2026 — automatisk lokalisering og billedspørgsmål
 
-Den nye kode forbinder upload → serverkontrolleret GPS og forslag til vandløb → én bekræftelse af sted/dato → offentligt datagrundlag → gemt runde og præcise billedreferencer → billed-AI med den konkrete kildeversion → versionerede svar og tekstkladde til rapportgrundlag. **CI, staging-release og positiv hosted billed-AI er endnu ikke verificeret i dette checkpoint.** Tidligere daterede beviser nedenfor bevares.
+Arbejdsgangen er nu i testmiljøet: upload → serverkontrolleret GPS og vandløbsforslag → bekræft sted/dato → offentligt datagrundlag → gemt undersøgelse og præcise billedreferencer → billed-AI med den konkrete kildeversion → gemte svar og tekstkladde til rapportgrundlag.
 
-Lokalt: **141 testfiler / 2.329 tests bestået**, typekontrol og faktorgrundlag bestået. Endelig lint har 0 fejl og 23 eksisterende advarsler; genererede Worker-typer holdes uden for browserens globale typer/lint. Uafhængig gennemgang fandt fejl i timeout, metadatafjernelse og genoptagelse efter kortvalg; rettelser og afgrænsede regressioner er på plads.
+**Release:** kode `e1fc83db2f4c7386245f8ffa8f72655322034269` på staging-Worker `0ac20aec-7540-4a54-a60a-3d3c595a732b`. [CI33](https://github.com/JESRI-C/freyra-hub/actions/runs/38705505371) består med **142 testfiler / 2378 tests**, typekontrol, faktorgrundlag, build og lint (0 fejl / 23 eksisterende advarsler). Databasen består med **11 SQL-filer / 675 kontroller**, **25 samtidighedsscenarier** og oprydning. Billed- og modelkompatibilitetsmigrationerne er anvendt i staging; faktisk bygning og nøglescan består.
 
-Der analyseres højst 12 fotos ad gangen efter kildehentning og tilknytning. JPEG-originaler over 20 MB bevares og tilknyttes, men afventer billed-AI. Grænser i testdriften er 40 analyseforsøg pr. projekt / 200 samlet pr. døgn og 3 forsøg pr. præcist billede/metode/kildeversion. Genforsøg genbruger gemte resultater. GPS angiver kameraets placering; forslag til søgeområde er ikke billedets footprint eller en kommunalt godkendt delstrækning.
+**Faktiske stagingprøver:** **26 kontroller består** i kæden fra en tydeligt mærket syntetisk JPEG til gemt kildeversion, billedkladde og svar. GPS og optagetid aflæses uden browserfunktioner; denne BBOX-søgning har status complete og 0 nære kandidater. Gemma lykkes på forsøg 1; billedvurderingen har 0 foreslåede visuelle fund og fører sammen med kildekonteksten til 4 faste opfølgende spørgsmål. Gemte svar, læsebrugerens genåbning, afvist fremmed adgang og genforsøg uden ny analyse består. Historiske Qwen-resultater og svar kan genåbnes uden ommærkning eller nye versioner; gamle rækker i den afgrænsede inputgraf er bevaret.
 
-Rapportgrundlaget er fortsat en kladde: AI-forslag, egne svar, billed-/kildehash og usikkerhed kan gennemgås og hentes som tekst. Den samlede godkendte kommunale rapport/PDF, faglig reviewer, konkret delstrækning af bl.a. Bykær Bæk og fem faktiske brugerafprøvninger er fortsat åbne. Satellitkataloger må ikke beskrives som analyserede satellitpixels eller dokumenteret naturtilstand.
+En **særskilt positiv lokalisering med 16 kontroller består** med syntetisk tildelt GPS: registergeometrien findes, og kamera-til-vandløbsafstanden er 0 m. Den prøve kalder ikke billed-AI og er ikke en måling af en virkelig flyvnings nøjagtighed. Den vælger heller ikke kommunens delstrækning. Begge prøver er teknisk API-accept på samme release. Den normale brugers Undersøgelse- og Rapport og levering-faner samt synlig/aktiv uploadknap er læst i browseren på denne version; egne fotos, faktisk UI-upload og hosted tekstdownload er endnu ikke brugeraccepteret. [Afgrænset bevis](haderslev-audit/staging-drone-intake-checkpoint-2026-10-15.json), SHA-256 `43121842b451383d3e963aa7cf37fd8fbbd338738ac0f9f38a3a1fb1cde46c21`.
+
+**Kildedækning er fortsat delvis:** officiel reference: komplet; regulativ: ikke tilsluttet; ortofoto/terræn: delvist; DMI: delvist; vandplan/natur: delvist; Sentinel: tidsgrænse; måledata: delvist. Tidsgrænser og mangler bevares i den gemte kildeversion og må ikke beskrives som fuld datadækning eller faglig accept. Satellitkataloger er ikke analyserede satellitpixels.
+
+Der analyseres højst **12 fotos ad gangen** efter kildehentning og tilknytning. JPEG-originaler over 20 MB bevares og tilknyttes, men afventer billed-AI. Testdriftens grænser er 40 analyseforsøg pr. projekt / 200 samlet pr. døgn på tværs af modeller og 3 forsøg pr. præcist billede/model/prompt/metode/kildeversion. Genforsøg i samme model genbruger samme analyse; et modelskift får egne forsøgsnumre og ændrer ikke historiske resultater.
+
+Tidligere Qwen-forsøg ramte tidsgrænser på 65 og 100 sekunder. Et særskilt genforsøg på den første release lykkedes; på en senere release blev svaret efter 64.392 ms afvist som `invalid_output`. Tokenudtømning og koldstart er ikke bevist. Den nye release bruger `@cf/google/gemma-4-26b-a4b-it`, konfigureret med thinking deaktiveret og en tidsgrænse på 100 sekunder. Minimerede fasetider indeholder ingen billeddata eller identifikatorer. Kamera-GPS og søgeområde er ikke et footprint eller en kommunalt godkendt delstrækning.
+
+**Fortsat åbent:** egne optagelser og reel 10/120-batch, fem faktiske brugerafprøvninger, Bykærs delstrækning/formål, regulativ og faglig godkender samt en samlet godkendt kommunerapport/PDF og genhentelig afleveringspakke. Tekstgrundlaget er en kladde. Satellitkataloger er ikke analyserede satellitpixels eller dokumenteret naturtilstand. Tidligere daterede beviser nedenfor bevares på deres oprindelige versioner.
 
 **En enklere arbejdsflade er lagt i testmiljøet. Hele leverancen til mødet 10. november er endnu ikke færdig.**
 
-[Åbn Undersøgelse i din testsag](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/ae3012ca-662e-4ae0-9f84-234d08428ec9?tab=arbejde). Du bruger dit eksisterende login. Vælg et testområde og en officiel vandløbsreference, hvis det ikke allerede er gjort. Et testområde udpeger ikke kommunens endelige delstrækning.
+[Åbn Undersøgelse i din testsag](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/ae3012ca-662e-4ae0-9f84-234d08428ec9?tab=arbejde). Du bruger dit eksisterende login. Vælg Tilføj dronebilleder og upload først 1–3 originale JPEG-fotos på højst 20 MB hver. Bekræft derefter stedforslag og optagedato med Bekræft sted, hent data og tilknyt billeder. Ved manglende GPS vælges stedet på kortet. Et testområde udpeger ikke kommunens endelige delstrækning.
 
 ## Ændret efter gennemgang af fem brugerperspektiver
 
 Droneoperatør, vandløbsfaglig medarbejder, kommunal sagsbehandler, projektleder og rapportmodtager er gennemgået som simulerede brugerrejser. Browsernavigation, kodegennemgang og tekniske tests er kombineret; der er endnu ikke gennemført interviews og accept med fem virkelige brugere. [Fund, prioritet og resterende accept for hver gruppe](HADERSLEV_BRUGERTEST.md).
 
 - Projektet åbner nu i **Undersøgelse** med direkte droneupload. De øvrige værktøjer ligger samlet under Flere værktøjer og historik.
-- Når sted og periode er bekræftet, forbereder **Hent data og forbered undersøgelse** datagrundlag, faktisk genererede spørgsmål og en FØR-runde i samme forløb. Afbrudte gemninger genbruger deres præcise identiteter.
+- Upload originalerne under **Tilføj dronebilleder**. Handlingen **Bekræft sted, hent data og tilknyt billeder** gemmer offentligt datagrundlag og en undersøgelsesrunde, tilknytter den bekræftede billedgruppe og starter højst 12 billedanalyser. Se kilde- og billedmangler, gennemgå spørgsmålene og gem dine svar; resultatet er fortsat en kladde.
 - Flere kontrollerede originaler kan vælges og knyttes til en gemt undersøgelse samlet. Kort, reference, foto og manuel kladdenote er samlet i arbejdsområdet. Et enkelt faktisk spørgsmål kræver ikke et ekstra valg; den faglige vurdering skal stadig angives manuelt.
 - **Rapport og levering** samler rapportoversigten og PDF-kladden. Valgt fane og præcis undersøgelse kan genåbnes via adressen. En kladde er tydeligt adskilt fra en færdig aflevering.
 - En fejl, hvor koordinater kunne følge med fra et tidligere valgt foto, er rettet. Midlertidig genindlæsning af adgang vises ikke længere som bekræftet læseadgang.
@@ -27,14 +35,14 @@ Droneoperatør, vandløbsfaglig medarbejder, kommunal sagsbehandler, projektlede
 ## Det næste, der skal færdiggøres
 
 1. **Rigtige billeder:** ét eget originalfoto, derefter 10 og 120 fotos med afbrydelse og genoptagelse. Billedvalg indlæses stadig i sider på 30; direkte valg af en konkret flyvning mangler.
-2. **Relevant data og observationer:** mere automatisk stedforslag og afprøvet billed-/satellitanalyse. Den nuværende plan danner højst ét regelbaseret referencespørgsmål. Den indeholder endnu ikke adaptive AI-spørgsmål eller automatisk fortolkning af dronebilleder.
+2. **Relevant data og observationer:** afprøv automatiske stedforslag og billedkladder med egne originaler. De faste opfølgende spørgsmål afhænger af billed- og kildekonteksten. Lokal satellit-/pixelanalyse, fuld relevant kildedækning og faglig vurdering mangler stadig.
 3. **Faglig gennemgang og brugbar rapport:** konkrete fund med foto og placering, kildedato, usikkerhed og underbygget opfølgning. Det delvise kildeinventar skal suppleres eller fremgå som mangler.
 4. **Fast aflevering:** en godkendt, genhentelig PDF med tilhørende manifest, CSV og GeoJSON. Den nuværende PDF-kladde opfylder ikke dette krav.
 5. **Pilot og samlet mødeprøve:** en reel sag fra start til genåbnede afleveringsfiler, med tid til rettelser før 10. november.
 
 Bykær Bæk er én af flere cases. Konkret delstrækning, kommunens formål, regulativ og faglig godkender er stadig uafklaret; de omtalte 83 meter er ikke valgt. Kameraets GPS er ikke automatisk placeringen af et synligt fund.
 
-## Hvad der er verificeret
+## Historisk kontrol — 14. oktober 2026
 
 CI26 består med 130 testfiler/2.111 tests, typekontrol, beregningskilder, build og lint uden fejl (23 eksisterende advarsler). Den isolerede databaseprøve består med 10 SQL-filer/601 kontroller og 25 samtidighedsscenarier samt oprydning. Stagingbuild og nøglescan består; de fire eksisterende hemmelige indstillingers navne er verificeret.
 

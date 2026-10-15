@@ -2,13 +2,22 @@
 
 ## Opfølgning 15. oktober 2026 — automatisk lokalisering og billedspørgsmål
 
-Den nye kode forbinder upload → serverkontrolleret GPS og forslag til vandløb → én bekræftelse af sted/dato → offentligt datagrundlag → gemt runde og præcise billedreferencer → billed-AI med den konkrete kildeversion → versionerede svar og tekstkladde til rapportgrundlag. **CI, staging-release og positiv hosted billed-AI er endnu ikke verificeret i dette checkpoint.** Tidligere daterede beviser nedenfor bevares.
+Arbejdsgangen er nu i testmiljøet: upload → serverkontrolleret GPS og vandløbsforslag → bekræft sted/dato → offentligt datagrundlag → gemt undersøgelse og præcise billedreferencer → billed-AI med den konkrete kildeversion → gemte svar og tekstkladde til rapportgrundlag.
 
-Lokalt: **141 testfiler / 2.329 tests bestået**, typekontrol og faktorgrundlag bestået. Endelig lint har 0 fejl og 23 eksisterende advarsler; genererede Worker-typer holdes uden for browserens globale typer/lint. Uafhængig gennemgang fandt fejl i timeout, metadatafjernelse og genoptagelse efter kortvalg; rettelser og afgrænsede regressioner er på plads.
+**Release:** kode `e1fc83db2f4c7386245f8ffa8f72655322034269` på staging-Worker `0ac20aec-7540-4a54-a60a-3d3c595a732b`. [CI33](https://github.com/JESRI-C/freyra-hub/actions/runs/38705505371) består med **142 testfiler / 2378 tests**, typekontrol, faktorgrundlag, build og lint (0 fejl / 23 eksisterende advarsler). Databasen består med **11 SQL-filer / 675 kontroller**, **25 samtidighedsscenarier** og oprydning. Billed- og modelkompatibilitetsmigrationerne er anvendt i staging; faktisk bygning og nøglescan består.
 
-Der analyseres højst 12 fotos ad gangen efter kildehentning og tilknytning. JPEG-originaler over 20 MB bevares og tilknyttes, men afventer billed-AI. Grænser i testdriften er 40 analyseforsøg pr. projekt / 200 samlet pr. døgn og 3 forsøg pr. præcist billede/metode/kildeversion. Genforsøg genbruger gemte resultater. GPS angiver kameraets placering; forslag til søgeområde er ikke billedets footprint eller en kommunalt godkendt delstrækning.
+**Faktiske stagingprøver:** **26 kontroller består** i kæden fra en tydeligt mærket syntetisk JPEG til gemt kildeversion, billedkladde og svar. GPS og optagetid aflæses uden browserfunktioner; denne BBOX-søgning har status complete og 0 nære kandidater. Gemma lykkes på forsøg 1; billedvurderingen har 0 foreslåede visuelle fund og fører sammen med kildekonteksten til 4 faste opfølgende spørgsmål. Gemte svar, læsebrugerens genåbning, afvist fremmed adgang og genforsøg uden ny analyse består. Historiske Qwen-resultater og svar kan genåbnes uden ommærkning eller nye versioner; gamle rækker i den afgrænsede inputgraf er bevaret.
 
-Rapportgrundlaget er fortsat en kladde: AI-forslag, egne svar, billed-/kildehash og usikkerhed kan gennemgås og hentes som tekst. Den samlede godkendte kommunale rapport/PDF, faglig reviewer, konkret delstrækning af bl.a. Bykær Bæk og fem faktiske brugerafprøvninger er fortsat åbne. Satellitkataloger må ikke beskrives som analyserede satellitpixels eller dokumenteret naturtilstand.
+En **særskilt positiv lokalisering med 16 kontroller består** med syntetisk tildelt GPS: registergeometrien findes, og kamera-til-vandløbsafstanden er 0 m. Den prøve kalder ikke billed-AI og er ikke en måling af en virkelig flyvnings nøjagtighed. Den vælger heller ikke kommunens delstrækning. Begge prøver er teknisk API-accept på samme release. Den normale brugers Undersøgelse- og Rapport og levering-faner samt synlig/aktiv uploadknap er læst i browseren på denne version; egne fotos, faktisk UI-upload og hosted tekstdownload er endnu ikke brugeraccepteret. [Afgrænset bevis](haderslev-audit/staging-drone-intake-checkpoint-2026-10-15.json), SHA-256 `43121842b451383d3e963aa7cf37fd8fbbd338738ac0f9f38a3a1fb1cde46c21`.
+
+**Kildedækning er fortsat delvis:** officiel reference: komplet; regulativ: ikke tilsluttet; ortofoto/terræn: delvist; DMI: delvist; vandplan/natur: delvist; Sentinel: tidsgrænse; måledata: delvist. Tidsgrænser og mangler bevares i den gemte kildeversion og må ikke beskrives som fuld datadækning eller faglig accept. Satellitkataloger er ikke analyserede satellitpixels.
+
+Der analyseres højst **12 fotos ad gangen** efter kildehentning og tilknytning. JPEG-originaler over 20 MB bevares og tilknyttes, men afventer billed-AI. Testdriftens grænser er 40 analyseforsøg pr. projekt / 200 samlet pr. døgn på tværs af modeller og 3 forsøg pr. præcist billede/model/prompt/metode/kildeversion. Genforsøg i samme model genbruger samme analyse; et modelskift får egne forsøgsnumre og ændrer ikke historiske resultater.
+
+Tidligere Qwen-forsøg ramte tidsgrænser på 65 og 100 sekunder. Et særskilt genforsøg på den første release lykkedes; på en senere release blev svaret efter 64.392 ms afvist som `invalid_output`. Tokenudtømning og koldstart er ikke bevist. Den nye release bruger `@cf/google/gemma-4-26b-a4b-it`, konfigureret med thinking deaktiveret og en tidsgrænse på 100 sekunder. Minimerede fasetider indeholder ingen billeddata eller identifikatorer. Kamera-GPS og søgeområde er ikke et footprint eller en kommunalt godkendt delstrækning.
+
+**Fortsat åbent:** egne optagelser og reel 10/120-batch, fem faktiske brugerafprøvninger, Bykærs delstrækning/formål, regulativ og faglig godkender samt en samlet godkendt kommunerapport/PDF og genhentelig afleveringspakke. Tekstgrundlaget er en kladde. Satellitkataloger er ikke analyserede satellitpixels eller dokumenteret naturtilstand. Tidligere daterede beviser nedenfor bevares på deres oprindelige versioner.
+
 
 ## Fem brugerperspektiver — gennemgang 14. oktober
 
@@ -26,13 +35,13 @@ Browserfundene i tabellen gælder versionen før rettelserne. Den nye navigation
 
 **Arbejdsgangen prioriteres nu sådan:** (1) kort vej fra billeder til en gemt undersøgelse, (2) relevant datagrundlag og forståelige observationer, (3) faglig gennemgang og brugbar rapport, (4) låst afleveringspakke, (5) reel pilot og genprøve før mødet. En pæn formular eller en bestået teknisk test erstatter ikke disse leverancer.
 
-Den nye arbejdsgang samler eksisterende funktioner. Automatisk stedforslag fra billeder, faktisk satellit-/billedanalyse og adaptive AI-spørgsmål er fortsat særskilte udviklingsopgaver; de er ikke accepteret som fungerende. Den eksisterende tomme testsag bruges kun til navigation og læsning under browsergennemgangen; der blev ikke valgt strækning, uploadet nye filer eller ændret kundenoter. Prøven fandt også en midlertidig, misvisende læseadgangsbesked; den er rettet med en målrettet regression. Uploaddialogens tekniske introduktion er forkortet, og rapportens gamle henvisning til Grundlag peger nu på Undersøgelse. Områdevalg og valg af en faktisk flyvning skal fortsat forenkles.
+Ved gennemgangen 14. oktober samlede arbejdsgangen eksisterende funktioner. Automatisk stedforslag fra billeder, faktisk satellit-/billedanalyse og adaptive AI-spørgsmål var på det tidspunkt særskilte udviklingsopgaver og var ikke accepteret som fungerende. Det aktuelle tekniske checkpoint 15. oktober står ovenfor. Den eksisterende tomme testsag bruges kun til navigation og læsning under browsergennemgangen; der blev ikke valgt strækning, uploadet nye filer eller ændret kundenoter. Prøven fandt også en midlertidig, misvisende læseadgangsbesked; den er rettet med en målrettet regression. Uploaddialogens tekniske introduktion er forkortet, og rapportens gamle henvisning til Grundlag peger nu på Undersøgelse. Områdevalg og valg af en faktisk flyvning skal fortsat forenkles.
 
 Målet er at finde både fejl og situationer, hvor programmet fungerer teknisk, men ikke giver dig et brugbart resultat. Din første test skal begynde, når den relevante arbejdsgang er frigivet i testmiljøet. Vi venter ikke på, at alle funktioner er færdige.
 
-[Åbn din testsag: Brugertest Haderslev – 14. oktober 2026](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/ae3012ca-662e-4ae0-9f84-234d08428ec9). Den er oprettet gennem den almindelige formular med din eksisterende bruger. Den er tom og tydeligt syntetisk. Første trin er at vælge et testområde og en reference; der er endnu ikke valgt AOI/reference eller uploadet egne fotos i denne sag. Et testområde er ikke en godkendt kommunal delstrækning.
+[Åbn din testsag: Brugertest Haderslev – 14. oktober 2026](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/ae3012ca-662e-4ae0-9f84-234d08428ec9). Den er oprettet gennem den almindelige formular med din eksisterende bruger. Den er tom og tydeligt syntetisk. Første trin er nu Tilføj dronebilleder: upload 1–3 originale JPEG-fotos på højst 20 MB hver, gennemgå stedforslag og optagedato, og vælg Bekræft sted, hent data og tilknyt billeder. Ved manglende GPS vælges stedet på kortet. Derefter hentes kilderne, billederne tilknyttes, og billed-AI giver kladdefund og faste opfølgende spørgsmål, som du gennemgår og besvarer. Egne fotos og dette UI-forløb er endnu ikke brugeraccepteret. Et testområde er ikke en godkendt kommunal delstrækning.
 
-## Hvornår du tester hvad
+## Historisk testplan fra 14. oktober — runder og mål
 
 | Runde | Indhold | Aktuel status 14. oktober | Mål for din test |
 | --- | --- | --- | --- |
@@ -45,7 +54,7 @@ Datoerne er testmål, afhængige af de nævnte forudsætninger; de er ikke en p�
 
 Vi gennemgår resultaterne efter hver runde og retter fejl, før vi regner arbejdsgangen som færdig. Ændrede dele prøves igen. Den tekniske adgangs- og samtidighedstest fortsætter ved siden af din afprøvning.
 
-## Scenarier
+## Historiske scenarier fra planen 14. oktober
 
 ### A1 — En helt ny testsag
 
