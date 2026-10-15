@@ -1,0 +1,298 @@
+{
+  "schema": "gofreyra.staging-municipal-report-checkpoint/v1",
+  "createdAt": "2026-10-15T21:34:02.283Z",
+  "scope": {
+    "stagingOnly": true,
+    "realDriveOriginalPilot": true,
+    "municipalAcceptance": false,
+    "productionTouched": false
+  },
+  "exportRelease": {
+    "sourceSha": "baaeb95ceeeb26c4e9c1f13c46021c693cf0e830",
+    "treeSha": "dcaa4feba103b088d51defd0b8cc4f9278711ea2",
+    "workerVersion": "b9a64de1-5059-4310-8c13-80b1f5d4908d",
+    "deploymentMetadataSha256": "c1b07b3f36791da516f2f509f9348c9ebb7178ccfadb0d7874d3331d406494ea",
+    "ci": {
+      "runId": 38810110355,
+      "runNumber": 43,
+      "sourceSha": "baaeb95ceeeb26c4e9c1f13c46021c693cf0e830",
+      "testedMergeSha": "1ae61c98ad233061c427effb0a0830b2e9d9c4cd",
+      "testedTreeSha": "dcaa4feba103b088d51defd0b8cc4f9278711ea2",
+      "repositoryTreeMatchesTestedMergeTree": true,
+      "conclusion": "success",
+      "unitTestFiles": 148,
+      "unitTests": 2484,
+      "sqlFiles": 12,
+      "sqlAssertions": 762,
+      "concurrencyCases": 29,
+      "disposableLocalCleanupPassed": true,
+      "lintErrors": 0,
+      "lintWarnings": 23,
+      "appJobId": 116680909670,
+      "databaseJobId": 116680909959,
+      "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/38810110355",
+      "validationEvidence": "Actual completed GitHub app and database job logs inspected; artifact not independently downloaded. Fresh fetched PR merge tree equals locally built source tree."
+    },
+    "migration": {
+      "applied": true,
+      "projectId": "xdvqdzdpyceojbdknofi",
+      "localVersion": "20261015194002",
+      "appliedVersion": "20261015201730",
+      "name": "municipal_report_versions",
+      "sqlSha256": "ff82f5139627044510152d0227be0fee56f39e079117a37ba98c65ab446422c5",
+      "verified": {
+        "tableRls": true,
+        "latestAnswerViewSecurityInvoker": true,
+        "browserSelectOnly": true,
+        "serviceInsertSelectOnly": true,
+        "browserRpcDenied": true,
+        "anonymousRpcDenied": true,
+        "serviceRpcAllowed": true
+      },
+      "databaseValidationRun": 38799872167,
+      "productionTouched": false
+    },
+    "actualKeyScan": {
+      "repositoryFiles": 821,
+      "outputFiles": 811,
+      "repositoryLeaks": 0,
+      "outputLeaks": 0,
+      "privilegedBundleTokens": 0
+    }
+  },
+  "dataAcquisition": {
+    "pilotKind": "private-real-drive-pilot/v4",
+    "evidenceSha256": "7d55fdd9663934bb0ad1e488cd62444d3ed5583fa62a1f7748b4dc2148c29994",
+    "workflow": "reused_pilot4_data_originals_and_baseline_from_pilot3",
+    "dataDeploymentMetadataSha256": "b35370b51187b93385aa97c0b09a1b15147f075d9bc9780e20b35aafd7af4f4b",
+    "dataSourceSha": "bcdb98f837bdea166f1c464d6cceb7a276ff223d",
+    "dataWorkerVersion": "9a345640-41ca-4e53-8867-2c9627dbe778",
+    "originalsAndBaselineOrigin": {
+      "sourceSha": "38c7e228e8c37fd31cb3c192af9c9a1a0f226af5",
+      "workerVersion": "a819e4a7-e71a-47d9-a732-b1a2263ba290",
+      "deploymentMetadataSha256": "84900a7ca5a980ec1e5181b952deaa6667f5a84f8846b50b4656cb0732933976"
+    },
+    "sameThreeOriginals": true,
+    "sameBaseline": true,
+    "noModelCallsForPdfExport": true
+  },
+  "nativeRetryRelease": {
+    "sourceSha": "bcdb98f837bdea166f1c464d6cceb7a276ff223d",
+    "treeSha": "5a1a919c456cf6b5fc6bc6403f23ea0be42c2bee",
+    "workerVersion": "9a345640-41ca-4e53-8867-2c9627dbe778",
+    "deploymentMetadataSha256": "b35370b51187b93385aa97c0b09a1b15147f075d9bc9780e20b35aafd7af4f4b",
+    "additionalCalls": 2,
+    "confirmedInvalidOutput": 2,
+    "newCompletedPhotos": 0,
+    "totalCompletedPhotosInReport": 1,
+    "aiReliabilityAccepted": false
+  },
+  "synthetic": {
+    "outcome": "passed",
+    "evidenceSha256": "d527b3d7b9ee8c9bf25b921d739a218d7a7aea278608e4ac2d3ef88bf4d4ed06",
+    "checks": 17,
+    "anonymousAndForeignDenied": true,
+    "viewerReopenVerified": true,
+    "idempotentSaveVerified": true,
+    "newAnswerCreatesNewReportWithoutChangingOld": true
+  },
+  "realDrivePilot": {
+    "outcome": "partial",
+    "evidenceSha256": "7d55fdd9663934bb0ad1e488cd62444d3ed5583fa62a1f7748b4dc2148c29994",
+    "originals": 3,
+    "canonicalHashesVerified": true,
+    "privateAccessBeforeUploadVerified": true,
+    "unapprovedAccountsDenied": true,
+    "municipalReachApproved": false,
+    "originalsUnchanged": true,
+    "localRecordingDate": "2026-08-24",
+    "captureTimezoneInferred": false,
+    "baselineId": "4d0297e3-946e-41b1-b49e-59a9473996f4",
+    "baselineSha256": "9231725b8cb21ef94553a7f601a21b5c6fb06ce1e0ca3572b98ac13f0a4cd613",
+    "sources": [
+      {
+        "id": "official-watercourse-reference",
+        "status": "complete",
+        "adapterVersion": "datafordeler-ds-bearbejdet-wfs/v1",
+        "payloadSha256": "80ff51eb8683ac3a162505a0afc0346b4d5f063bc5bb393000794cb3c4d958b3",
+        "requestedFrom": "2026-07-25",
+        "requestedTo": "2026-08-23",
+        "observedFrom": null,
+        "observedTo": null,
+        "paginationComplete": true
+      },
+      {
+        "id": "municipal-regulation",
+        "status": "not_implemented",
+        "adapterVersion": "not-implemented/v1",
+        "payloadSha256": null,
+        "requestedFrom": "2026-07-25",
+        "requestedTo": "2026-08-23",
+        "observedFrom": null,
+        "observedTo": null,
+        "paginationComplete": false
+      },
+      {
+        "id": "orthophoto-terrain",
+        "status": "partial",
+        "adapterVersion": "datafordeler-raster-inventory/v1",
+        "payloadSha256": "4d1026d389ffb228133c94843780e78a49aeb5ef90a4cc64ac78da7e62eeff5c",
+        "requestedFrom": "2026-07-25",
+        "requestedTo": "2026-08-23",
+        "observedFrom": null,
+        "observedTo": null,
+        "paginationComplete": true
+      },
+      {
+        "id": "dmi-historical",
+        "status": "partial",
+        "adapterVersion": "dmi-historical-station-precip/v3",
+        "payloadSha256": "bd5ad49c0bf23077897c28b70fc854d4445e16469ff9a38c454db06cf36028d1",
+        "requestedFrom": "2026-07-25",
+        "requestedTo": "2026-08-23",
+        "observedFrom": "2026-07-26T00:00:00.001000+02:00",
+        "observedTo": "2026-08-25T00:00:00+02:00",
+        "paginationComplete": true,
+        "availableDailySummary": {
+          "unit": "mm",
+          "scope": "complete_daily_intervals_inside_requested_period",
+          "method": "Sum of complete contiguous manually controlled DMI daily acc_precip intervals wholly inside the requested period; actual covered bounds retained. Not a full-request sum unless representsEntireRequestedPeriod is true. No gap filling, prorating or mixing stations.",
+          "reasons": [],
+          "totalMm": 47.90000000000001,
+          "complete": true,
+          "coveredTo": "2026-08-24T00:00:00+02:00",
+          "coveredFrom": "2026-07-26T00:00:00.001000+02:00",
+          "requestedTo": "2026-08-24T00:00:00.000Z",
+          "requestedFrom": "2026-07-25T00:00:00.000Z",
+          "dailyValueCount": 29,
+          "excludedBoundaryIntervalCount": 1,
+          "representsEntireRequestedPeriod": false
+        }
+      },
+      {
+        "id": "water-plan-nature",
+        "status": "partial",
+        "adapterVersion": "water-plan-nature-inventory/v1",
+        "payloadSha256": "8289401ed4b71fcf0ef88c0369c743980883ba2e918e2bd065243a43ebfcc681",
+        "requestedFrom": "2026-07-25",
+        "requestedTo": "2026-08-23",
+        "observedFrom": null,
+        "observedTo": null,
+        "paginationComplete": true
+      },
+      {
+        "id": "sentinel-2-scenes",
+        "status": "partial",
+        "adapterVersion": "sentinel-2-l2a-catalog/v2",
+        "payloadSha256": "30da5e7b01dbe0a1fa5bbff731e345ac2d14e02db6c5ef330fce16495b0f6f9c",
+        "requestedFrom": "2026-07-25",
+        "requestedTo": "2026-08-23",
+        "observedFrom": "2026-07-25T10:36:21.025Z",
+        "observedTo": "2026-08-23T10:30:41.024Z",
+        "paginationComplete": true,
+        "sceneCount": 18
+      },
+      {
+        "id": "public-monitoring-stations",
+        "status": "partial",
+        "adapterVersion": "public-monitoring-stations-inventory/v1",
+        "payloadSha256": "9fa95a637643df91cb99fe4ab41af2e9667f2432414f49ac10cfcc2f07371f6b",
+        "requestedFrom": "2026-07-25",
+        "requestedTo": "2026-08-23",
+        "observedFrom": null,
+        "observedTo": null,
+        "paginationComplete": true
+      }
+    ],
+    "completedAiCount": 1,
+    "aiTransportFollowup": {
+      "beforeFix": {
+        "evidenceSha256": "9cc63c82d32ed63aaa793f6c7f37628720bb7b5efea44338c7111fa9d36a480b",
+        "reportManifestSha256": "a50708f4fcd1e555a97221d0e91a94206fd2919455eb774d08ca22fe15389bb1",
+        "sourceSha": "38c7e228e8c37fd31cb3c192af9c9a1a0f226af5",
+        "validPhotos": 1,
+        "totalPhotos": 3,
+        "failedPhotos": 2,
+        "unsuccessfulCalls": 4,
+        "confirmedInvalidOutput": 2,
+        "retryFailureCodesUnconfirmed": 2,
+        "failureClassificationEvidence": "corrected_resume_lineage_initial_status_observations_only",
+        "fieldAccuracyAccepted": false
+      },
+      "afterFix": {
+        "samePrivateProject": true,
+        "sameThreeOriginals": true,
+        "sameBaseline": true,
+        "previousCompletedResultsReused": 1,
+        "additionalCalls": 2,
+        "maximumAdditionalCalls": 2,
+        "newCompletedPhotos": 0,
+        "attemptsWithoutCompletedOutput": 2,
+        "confirmedInvalidOutput": 2,
+        "latestStatusReadbackSha256": "004430e59705f8d077ca986c58156b3036c2ec45e04c0bed5a7a7d790513b148",
+        "totalCompletedPhotosInReport": 1,
+        "totalPhotos": 3,
+        "repeatedOrRepresentativeReliabilityAccepted": false
+      },
+      "nextDevelopmentPriority": {
+        "priority": "P0",
+        "beforeLargerImageBatches": true,
+        "exactRejectedRuleKnown": false,
+        "steps": [
+          "Lukket og værdifri fejlkategorisering uden modelprosa eller rå feltnavne",
+          "Korrekt versioneret promptjustering på grundlag af observeret fejlkategori",
+          "Særskilt afgrænset prøve før større billedbatches"
+        ],
+        "schemaOrProfessionalGatesWeakened": false,
+        "additionalBlindRetriesPermitted": false
+      },
+      "note": "Før rettelsen var 1 af 3 fotos gyldigt behandlet. De 2 øvrige fotos gav 4 mislykkede kald: 2 sikkert observerede invalid_output-fejl og 2 genforsøg med ubekræftet fejlkode. Efter rettelsen genbruges samme originaler, baseline og det ene gyldige resultat. De 2 yderligere kald gav begge serverbekræftet invalid_output. Resultatet er fortsat 1 af 3 gyldige billedvurderinger; formatrettelsen var ikke tilstrækkelig. Dette er ikke accept af driftssikkerhed eller faglig nøjagtighed."
+    },
+    "questionCount": 4,
+    "humanAnswersInvented": false,
+    "reportId": "87a620c2-c7f7-4966-9b1e-220f29842dcc",
+    "reportManifestSha256": "a50708f4fcd1e555a97221d0e91a94206fd2919455eb774d08ca22fe15389bb1",
+    "frozenReadbackVerified": true,
+    "oldEvidenceAndOrganizationAccessPreserved": true
+  },
+  "pdf": {
+    "draft": true,
+    "evidenceSha256": "1d54c03043cfa3e3b52159b336f2f8e9c8e7135e61ad7f837e0fa9c3ee4b33d1",
+    "visualReviewSha256": "cece3033694e61b11e4a889d0306d230668830fe46a235b0ea17114bf5545e40",
+    "pdfSha256": "298da043203921b2a11c22516f47a386967a8451df8d5a4db2b446bf478e8939",
+    "zipSha256": "11e0a27bbbc0587ae918462683e78a655abf0c59b1b0a63df63edbbf27106678",
+    "pages": 7,
+    "illustrations": 3,
+    "allPagesRenderedAndReviewed": true,
+    "repeatedPdfBytesIdentical": true,
+    "allPackageCrcSizesAndHashesVerified": true,
+    "allPhotoHashesQuestionsAndSavedNotesPresent": true
+  },
+  "limits": {
+    "professionallyReviewed": false,
+    "reportEligible": false,
+    "municipalScopeApproved": false,
+    "browserFileUploadAccepted": false,
+    "large10Or120BatchAccepted": false,
+    "hostedDownloadAccepted": false,
+    "fiveActualUserSessionsAccepted": false,
+    "fullPublicDataCoverage": false,
+    "aiReliabilityAccepted": false,
+    "cameraPositionIsNotFootprint": true,
+    "satelliteCatalogIsNotPixelAnalysis": true
+  },
+  "open": [
+    "P0 før større billedbatches: lukket fejlkategorisering, derefter korrekt versioneret promptjustering og en særskilt afgrænset prøve; ingen blinde genforsøg",
+    "Kommunal delstrækning og leverancens konkrete formål",
+    "Regulativ og faglig godkender",
+    "Relevante manglende kilder, måleserier og egentlig satellitpixelanalyse",
+    "Brugerafprøvning med egne uploads, afbrydelse/genoptagelse og 10/120 fotos",
+    "Faglig gennemgang og kommunal accept af den endelige rapport"
+  ],
+  "privacy": {
+    "originalImagesIncluded": false,
+    "rawGpsIncluded": false,
+    "credentialsIncluded": false,
+    "privatePathsOrSignedUrlsIncluded": false
+  }
+}

@@ -1,5 +1,26 @@
 # Haderslev — status 14. oktober 2026
 
+## Aktuelt rapport- og originalcheckpoint — 15. oktober 2026
+
+**En samlet rapportkladde med PDF og bilag er nu i testmiljøet. Den endelige kommunale aflevering afventer fortsat afgrænsning og faglig godkendelse.** Rapportversionen fastholder kilder, plan, runde, originalhenvisninger, noter, billedforslag og svar. Nye svar giver en ny rapport; tidligere versioner kan genåbnes uændret. Rapport og levering har én samlet indgang.
+
+**Aktuel PDF-eksportrelease (5):** kode `baaeb95ceeeb26c4e9c1f13c46021c693cf0e830`, Worker `b9a64de1-5059-4310-8c13-80b1f5d4908d`. [CI43](https://github.com/JESRI-C/freyra-hub/actions/runs/38810110355) består: **148 filer / 2484 tests**, typekontrol, build, faktorgrundlag og lint (0 fejl / 23 kendte advarsler); **12 SQL-filer / 762 kontroller**, **29 samtidighedsscenarier** og oprydning. Rapportmigration og faktisk stagingbuild/nøglescan er verificeret. Denne release retter PDF-layoutet.
+
+**Realdatagrundlag og AI-genprøve (release 4):** kode `bcdb98f837bdea166f1c464d6cceb7a276ff223d`, Worker `9a345640-41ca-4e53-8867-2c9627dbe778`. De private pilot4-data genbruges uændret: samme tre originaler, baseline og det ene gyldige analyseresultat fra pilot3. PDF-eksporten under release 5 udløser ingen nye modelkald og ændrer ikke de gemte resultater.
+
+**Teknisk syntetisk prøve:** 17 kontroller består med gemning/genforsøg, læsebrugerens genåbning, afvist forkert adgang og uændret tidligere rapport efter nye svar. **Særskilt realdataprøve:** 3 checksumkontrollerede Drive-originaler er ført gennem privat upload, stedkontrol, datagrundlag, runde og gemt rapport. 1 af 3 billedvurderinger indgår. Ingen faglige svar er opdigtet. Kameraposition og lokal optagedato er adskilt fra UTC og kommunalt godkendt delstrækning.
+
+**Billed-AI før og efter formatrettelsen:** Før rettelsen var 1 af 3 fotos gyldigt behandlet. De 2 andre fotos gav tilsammen 4 mislykkede kald: 2 sikkert observerede `invalid_output`-fejl og 2 genforsøg med ubekræftet fejlkode. Den nye prøve genbruger samme private sag, 3 originaler, datagrundlag og det ene gyldige analyseresultat. Efter rettelsen blev der startet 2 nye kald (højst 2; tredje forsøg på de tidligere fejlede fotos): 0 nye gyldige resultater og 2 forsøg uden et gyldigt resultat, heraf 2 med ny serverbekræftet `invalid_output`. Resultatet er fortsat 1 af 3; formatrettelsen var ikke tilstrækkelig. Samlet indgår 1 af 3 billedvurderinger. Genforsøget er ikke dokumentation for generel driftssikkerhed eller faglig nøjagtighed.
+
+**Faktisk PDF:** 7 sider med 3 illustrationer er genereret og visuelt gennemgået. Gentagen generering giver samme filhash. ZIP indeholder PDF, rapportgrundlag, fotoregister, kamerapositioner og filmanifest; CRC, størrelser, hashes og alle billedspørgsmål er kontrolleret. Dette er lokal/API-prøve, ikke accept af hosted browserdownload.
+
+**Kilder:** DMI viser særskilt summen for præcist dækkede, kvalitetskontrollerede døgn; manglende randdøgn bliver ikke til en helperiodesum. Sentinel bevarer allerede hentede katalogscener ved senere hentefejl. Den nye pilots præcise kildestatusser og datoer står i beviset. Gamle kildeversioner bliver ikke omskrevet. Katalogscener er ikke analyserede satellitpixels; stationer er ikke lokale vandføringsmålinger.
+
+**Prioriteret videre arbejde:** 1) **P0 før større billedbatches:** tilføj lukket og værdifri fejlkategorisering; justér derefter prompten med korrekt versionshistorik og gennemfør en særskilt afgrænset prøve. Den præcise afvisningsregel er endnu ukendt; schema og faglige kontroller bevares, og der foretages ikke flere blinde genforsøg; 2) egne UI-uploads og afbrudte 10/120-batches; 3) kommunens konkrete delstrækning/formål, regulativ og faglig godkender; 4) relevante kildehuller og feltverificering; 5) faglig gennemgang og accept af den genhentelige aflevering før 10. november. Fem brugerperspektiver er simuleret, men fem faktiske brugeraccepter mangler stadig.
+
+[Afgrænset rapportbevis](haderslev-audit/staging-municipal-report-checkpoint-2026-10-15.json), SHA-256 `e4c1af660f3197233b5b4d8491a1ad20cfba30cfbdf61df837a84afa78f639e5`. Ældre afsnit nedenfor beskriver deres daterede versioner; tidligere beviser bevares.
+
+
 ## Opfølgning 15. oktober 2026 — automatisk lokalisering og billedspørgsmål
 
 Arbejdsgangen er nu i testmiljøet: upload → serverkontrolleret GPS og vandløbsforslag → bekræft sted/dato → offentligt datagrundlag → gemt undersøgelse og præcise billedreferencer → billed-AI med den konkrete kildeversion → gemte svar og tekstkladde til rapportgrundlag.
