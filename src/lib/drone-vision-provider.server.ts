@@ -1,4 +1,4 @@
-import { Buffer } from "node:buffer";
+import { createServerOnlyFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
   DRONE_IMAGE_INSPECTION_SYSTEM_PROMPT,
@@ -194,142 +194,150 @@ async function readBounded(
   return result;
 }
 
-export async function inspectDroneImageBytes(
-  bytes: Uint8Array,
-  options: {
-    bindings?: DroneVisionBindings;
-    timeoutMs?: number;
-    beforeModelTransfer?: () => Promise<void>;
-    sourceContext?: DroneImageSourceContext | null;
-  } = {},
-) {
-  if (!bytes.length || bytes.length > DRONE_VISION_MAX_ORIGINAL_BYTES)
-    throw new DroneVisionError("image_size");
-  let bindings: DroneVisionBindings;
-  try {
-    bindings = options.bindings ?? (await import("cloudflare:workers")).env;
-  } catch {
-    throw new DroneVisionError("unavailable");
-  }
-  if (!bindings.AI?.run || !bindings.IMAGES?.input) throw new DroneVisionError("unavailable");
-  const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      controller.abort();
-      reject(new DroneVisionError("timeout"));
-    }, options.timeoutMs ?? 65_000);
-  });
-  try {
-    return await Promise.race([
-      timeout,
-      (async () => {
-        let transformed: Response;
-        try {
-          const image = await bindings.IMAGES.input(new Blob([bytes.slice().buffer]).stream())
-            .transform({ width: 1536, height: 1536, fit: "scale-down" })
-            .output({ format: "image/jpeg", quality: 85 });
-          transformed = image.response();
-        } catch {
-          throw new DroneVisionError("invalid_image");
-        }
-        const derivative = sanitizeVisionJpeg(
-          await readBounded(transformed, MAX_DERIVATIVE_BYTES, "invalid_image", controller.signal),
-        );
-        const digest = await crypto.subtle.digest("SHA-256", derivative.bytes.slice().buffer);
-        const sha256 = [...new Uint8Array(digest)]
-          .map((value) => value.toString(16).padStart(2, "0"))
-          .join("");
-        if (controller.signal.aborted) throw new DroneVisionError("timeout");
-        await options.beforeModelTransfer?.();
-        if (controller.signal.aborted) throw new DroneVisionError("timeout");
-        let result: unknown;
-        try {
-          result = await bindings.AI.run(
-            DRONE_VISION_MODEL,
-            {
-              messages: [
-                { role: "system", content: DRONE_IMAGE_INSPECTION_SYSTEM_PROMPT },
-                {
-                  role: "user",
-                  content: [
-                    {
-                      type: "text",
-                      text: buildDroneImageInspectionUserPrompt(options.sourceContext),
-                    },
-                    {
-                      type: "image_url",
-                      image_url: {
-                        url: `data:image/jpeg;base64,${Buffer.from(derivative.bytes).toString("base64")}`,
+export const inspectDroneImageBytes = createServerOnlyFn(
+  async (
+    bytes: Uint8Array,
+    options: {
+      bindings?: DroneVisionBindings;
+      timeoutMs?: number;
+      beforeModelTransfer?: () => Promise<void>;
+      sourceContext?: DroneImageSourceContext | null;
+    } = {},
+  ) => {
+    if (!bytes.length || bytes.length > DRONE_VISION_MAX_ORIGINAL_BYTES)
+      throw new DroneVisionError("image_size");
+    const { Buffer } = await import("node:buffer");
+    let bindings: DroneVisionBindings;
+    try {
+      bindings = options.bindings ?? (await import("cloudflare:workers")).env;
+    } catch {
+      throw new DroneVisionError("unavailable");
+    }
+    if (!bindings.AI?.run || !bindings.IMAGES?.input) throw new DroneVisionError("unavailable");
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new DroneVisionError("timeout"));
+      }, options.timeoutMs ?? 65_000);
+    });
+    try {
+      return await Promise.race([
+        timeout,
+        (async () => {
+          let transformed: Response;
+          try {
+            const image = await bindings.IMAGES.input(new Blob([bytes.slice().buffer]).stream())
+              .transform({ width: 1536, height: 1536, fit: "scale-down" })
+              .output({ format: "image/jpeg", quality: 85 });
+            transformed = image.response();
+          } catch {
+            throw new DroneVisionError("invalid_image");
+          }
+          const derivative = sanitizeVisionJpeg(
+            await readBounded(
+              transformed,
+              MAX_DERIVATIVE_BYTES,
+              "invalid_image",
+              controller.signal,
+            ),
+          );
+          const digest = await crypto.subtle.digest("SHA-256", derivative.bytes.slice().buffer);
+          const sha256 = [...new Uint8Array(digest)]
+            .map((value) => value.toString(16).padStart(2, "0"))
+            .join("");
+          if (controller.signal.aborted) throw new DroneVisionError("timeout");
+          await options.beforeModelTransfer?.();
+          if (controller.signal.aborted) throw new DroneVisionError("timeout");
+          let result: unknown;
+          try {
+            result = await bindings.AI.run(
+              DRONE_VISION_MODEL,
+              {
+                messages: [
+                  { role: "system", content: DRONE_IMAGE_INSPECTION_SYSTEM_PROMPT },
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "text",
+                        text: buildDroneImageInspectionUserPrompt(options.sourceContext),
                       },
-                    },
-                  ],
+                      {
+                        type: "image_url",
+                        image_url: {
+                          url: `data:image/jpeg;base64,${Buffer.from(derivative.bytes).toString("base64")}`,
+                        },
+                      },
+                    ],
+                  },
+                ],
+                response_format: {
+                  type: "json_schema",
+                  json_schema: {
+                    name: "drone_visual_draft",
+                    strict: true,
+                    schema: z.toJSONSchema(DroneImageVisualDraftSchema, { unrepresentable: "any" }),
+                  },
                 },
-              ],
-              response_format: {
-                type: "json_schema",
-                json_schema: {
-                  name: "drone_visual_draft",
-                  strict: true,
-                  schema: z.toJSONSchema(DroneImageVisualDraftSchema, { unrepresentable: "any" }),
-                },
+                max_completion_tokens: 2400,
+                reasoning_effort: "low",
+                temperature: 0.1,
+                stream: false,
+                store: false,
+                tool_choice: "none",
               },
-              max_completion_tokens: 2400,
-              reasoning_effort: "low",
-              temperature: 0.1,
-              stream: false,
-              store: false,
-              tool_choice: "none",
+              { signal: controller.signal, returnRawResponse: true },
+            );
+          } catch {
+            throw new DroneVisionError(controller.signal.aborted ? "timeout" : "provider");
+          }
+          if (!(result instanceof Response)) throw new DroneVisionError("invalid_output");
+          const text = new TextDecoder("utf-8", { fatal: true }).decode(
+            await readBounded(result, MAX_RESPONSE_BYTES, "invalid_output", controller.signal),
+          );
+          let visual: unknown;
+          try {
+            const envelope = z
+              .object({
+                choices: z
+                  .array(
+                    z.object({
+                      finish_reason: z.literal("stop"),
+                      message: z.object({ content: z.string().min(1).max(16_000) }),
+                    }),
+                  )
+                  .min(1)
+                  .max(1),
+              })
+              .parse(JSON.parse(text));
+            visual = DroneImageVisualDraftSchema.parse(
+              JSON.parse(envelope.choices[0].message.content),
+            );
+          } catch {
+            throw new DroneVisionError("invalid_output");
+          }
+          return {
+            visual,
+            derivative: {
+              sha256,
+              mimeType: "image/jpeg" as const,
+              widthPx: derivative.widthPx,
+              heightPx: derivative.heightPx,
+              transformVersion: DRONE_VISION_TRANSFORM,
             },
-            { signal: controller.signal, returnRawResponse: true },
-          );
-        } catch {
-          throw new DroneVisionError(controller.signal.aborted ? "timeout" : "provider");
-        }
-        if (!(result instanceof Response)) throw new DroneVisionError("invalid_output");
-        const text = new TextDecoder("utf-8", { fatal: true }).decode(
-          await readBounded(result, MAX_RESPONSE_BYTES, "invalid_output", controller.signal),
-        );
-        let visual: unknown;
-        try {
-          const envelope = z
-            .object({
-              choices: z
-                .array(
-                  z.object({
-                    finish_reason: z.literal("stop"),
-                    message: z.object({ content: z.string().min(1).max(16_000) }),
-                  }),
-                )
-                .min(1)
-                .max(1),
-            })
-            .parse(JSON.parse(text));
-          visual = DroneImageVisualDraftSchema.parse(
-            JSON.parse(envelope.choices[0].message.content),
-          );
-        } catch {
-          throw new DroneVisionError("invalid_output");
-        }
-        return {
-          visual,
-          derivative: {
-            sha256,
-            mimeType: "image/jpeg" as const,
-            widthPx: derivative.widthPx,
-            heightPx: derivative.heightPx,
-            transformVersion: DRONE_VISION_TRANSFORM,
-          },
-          provider: DRONE_VISION_PROVIDER,
-          model: DRONE_VISION_MODEL,
-        };
-      })(),
-    ]);
-  } catch (error) {
-    if (error instanceof DroneVisionError) throw error;
-    throw new DroneVisionError("provider");
-  } finally {
-    clearTimeout(timer);
-    controller.abort();
-  }
-}
+            provider: DRONE_VISION_PROVIDER,
+            model: DRONE_VISION_MODEL,
+          };
+        })(),
+      ]);
+    } catch (error) {
+      if (error instanceof DroneVisionError) throw error;
+      throw new DroneVisionError("provider");
+    } finally {
+      clearTimeout(timer);
+      controller.abort();
+    }
+  },
+);
