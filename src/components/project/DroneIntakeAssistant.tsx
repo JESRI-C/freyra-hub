@@ -38,6 +38,7 @@ import {
 } from "./drone-intake-run";
 import { prepareConfirmedDroneIntake } from "./drone-intake-prepare";
 import { bindConfirmedDroneIntakePhotos } from "./drone-intake-binding";
+import { droneIntakeAreaAssessment, droneIntakeEffectiveReference } from "./drone-intake-area";
 import type { StreamInspectionProgress, StreamInspectionResult } from "./stream-inspection-start";
 
 export interface DroneIntakeBatch {
@@ -175,8 +176,13 @@ function Intake({
   const hasExistingArea = validateProjectPolygon(displayedProject.geometry_polygon).valid;
   const cluster =
     localization?.clusters.find((item) => item.id === clusterId) ?? localization?.clusters[0];
-  const effectiveReferenceId =
-    referenceId || savedReference.data?.id || cluster?.suggestedReferenceId || "";
+  const usingProposedArea = !hasExistingArea || useProposedArea;
+  const effectiveReferenceId = droneIntakeEffectiveReference({
+    explicitReferenceId: referenceId,
+    savedReferenceId: savedReference.data?.id,
+    suggestedReferenceId: cluster?.suggestedReferenceId,
+    useProposedArea: usingProposedArea,
+  });
   const selectedReference =
     savedReference.data?.id === effectiveReferenceId
       ? savedReference.data
@@ -190,6 +196,10 @@ function Intake({
         cluster?.mediaIds.includes(photo.mediaId) ||
         (includeUnlocated && hasExistingArea && !useProposedArea && photo.status !== "located"),
     ) ?? [];
+  const areaAssessment = droneIntakeAreaAssessment(
+    usingProposedArea ? cluster?.suggestedPolygon : displayedProject.geometry_polygon,
+    selectedPhotos,
+  );
   const aiPhotos = prepared ? droneIntakeAiPhotos(prepared.photos) : [];
   const oversizedCount = prepared ? prepared.photos.length - aiPhotos.length : 0;
   const mapGeometry = useMemo(
@@ -405,6 +415,7 @@ function Intake({
           useProposedArea: !hasExistingArea || useProposedArea,
           referenceId: effectiveReferenceId,
           recordingDate,
+          photos: selectedPhotos,
         },
         {
           getProject: getProjectById,
@@ -625,19 +636,37 @@ function Intake({
             {cluster && searchLabels[cluster.searchStatus] && (
               <p className="text-sm text-amber-700">{searchLabels[cluster.searchStatus]}</p>
             )}
+            {!!cluster?.excludedCandidateCount && (
+              <p className="text-xs text-muted-foreground">
+                {cluster.excludedCandidateCount} kildeposter er udeladt fra forslagene, fordi deres
+                type, status eller primære navn ikke opfylder kravene til en aktuel officiel
+                vandløbsreference.
+              </p>
+            )}
             {hasExistingArea && (
               <label className="flex items-start gap-2 text-sm">
                 <input
                   type="checkbox"
                   checked={useProposedArea}
                   disabled={!cluster}
-                  onChange={(event) => setUseProposedArea(event.target.checked)}
+                  onChange={(event) => {
+                    setUseProposedArea(event.target.checked);
+                    setReferenceId("");
+                  }}
                 />
                 <span>
                   Brug kameraernes foreslåede søgeområde i stedet for sagens gemte område. Det gemte
                   område bruges, når feltet ikke er valgt.
                 </span>
               </label>
+            )}
+            {areaAssessment.outsideCount > 0 && (
+              <p role="alert" className="text-sm text-amber-700">
+                {areaAssessment.outsideCount} af de valgte fotos har kameraposition uden for det
+                valgte område. Der hentes ikke data, før du vælger kameraernes foreslåede søgeområde
+                eller retter området på kortet. Kamerapositionen er ikke billedets dækningsområde;
+                sammenhængen skal stadig gennemgås fagligt.
+              </p>
             )}
             {hasExistingArea &&
               !useProposedArea &&
@@ -734,6 +763,7 @@ function Intake({
                 !effectiveReferenceId ||
                 !recordingDate ||
                 !selectedPhotos.length ||
+                areaAssessment.outsideCount > 0 ||
                 (!hasExistingArea && !cluster) ||
                 !access.data?.canPersist ||
                 savedProject.isPending ||

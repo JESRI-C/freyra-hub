@@ -52,6 +52,8 @@ export interface DatafordelerWatercourseCollection {
   numberMatched: number | null;
   numberReturned: number;
   paginationComplete: boolean;
+  /** Spatial-only exclusions; numberReturned still describes all source members. */
+  excludedFeatureCount?: number;
 }
 
 function fail(message = "Datafordeleren returnerede ugyldigt vandløbs-GML."): never {
@@ -137,6 +139,8 @@ export function buildDatafordelerWatercourseBoundsUrl(bounds: WatercourseSearchB
   )
     fail("Søgeområdet skal være et gyldigt dansk område på højst 10 km².");
   const url = new URL(DATAFORDELER_WATERCOURSE_ENDPOINT);
+  // Use the documented BBOX shorthand. The service does not expose every name
+  // status column as a queryable FES property; eligibility is checked below.
   url.search = new URLSearchParams({
     SERVICE: "WFS",
     VERSION: "2.0.0",
@@ -289,6 +293,15 @@ function haversine(a: LngLat, b: LngLat): number {
   return 6_371_000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
+/**
+ * The official Stednavne 2.0 feature catalogue, p. 67, defines suAutoriseret as
+ * the authorized official name; it replaces, rather than coexists with, officielt.
+ * https://sdfi.dk/Media/638169009587696115/Featurekatalog%20Stednavne20_v7.pdf
+ */
+function officialNameStatus(value: string | null): value is "officielt" | "suAutoriseret" {
+  return value === "officielt" || value === "suAutoriseret";
+}
+
 function parseFeature(feature: XmlElement): DatafordelerWatercourseGeometry {
   if (feature.namespace !== SN || feature.local !== "Vandloeb") fail();
   const id = field(feature, "id.lokalId");
@@ -306,11 +319,12 @@ function parseFeature(feature: XmlElement): DatafordelerWatercourseGeometry {
   if (primary.length !== 1) fail("Vandløbet har ikke ét entydigt primært navn.");
   const slot = primary[0];
   const name = field(feature, `navn_${slot}.skrivemaade`);
+  const nameStatus = field(feature, `navn_${slot}.navnestatus`);
   if (
     !name ||
     name.length > 200 ||
     field(feature, `navn_${slot}.aktualitet`) !== "iAnvendelse" ||
-    field(feature, `navn_${slot}.navnestatus`) !== "officielt"
+    !officialNameStatus(nameStatus)
   )
     fail("Vandløbets primære navn er ikke aktuelt og officielt.");
   const geometry = one(feature, "geometri");
@@ -402,7 +416,7 @@ function parseFeature(feature: XmlElement): DatafordelerWatercourseGeometry {
   return {
     id: id.toLowerCase(),
     name,
-    nameStatus: "officielt",
+    nameStatus,
     municipalities: [],
     center: { lng: (west + east) / 2, lat: (south + north) / 2 },
     bbox: [west, south, east, north],
@@ -431,9 +445,45 @@ function nonnegativeInteger(value: string | undefined): number | null {
   return Number(value);
 }
 
-export function parseDatafordelerWatercourseCollection(
-  xml: string,
-): DatafordelerWatercourseCollection {
+/** Identity is validated even for source features excluded from spatial suggestions. */
+function spatialFeatureIdentity(feature: XmlElement): string {
+  if (feature.namespace !== SN || feature.local !== "Vandloeb") fail();
+  const id = field(feature, "id.lokalId");
+  if (!id || !UUID.test(id) || field(feature, "id.namespace") !== SOURCE_ID_NAMESPACE)
+    fail("Kildens vandløbsidentitet er ugyldig.");
+  return id.toLowerCase();
+}
+
+function spatialFeatureEligible(feature: XmlElement): boolean {
+  const status = field(feature, "status");
+  const type = field(feature, "vandloebstype");
+  // Catalogue pp. 55/79: Vandloeb has one type; lifecycle has four values.
+  // Unknown values are source errors, rather than silently excluded results.
+  if (
+    !status ||
+    !["iBrug", "nedlagt", "forslag", "foreslåetNedlagt"].includes(status) ||
+    type !== "vandløb"
+  )
+    fail();
+  if (status !== "iBrug") return false;
+  const primary = Array.from({ length: 5 }, (_, index) => index + 1).filter(
+    (index) => field(feature, `navn_${index}.brugsprioritet`, true) === "primær",
+  );
+  if (primary.length !== 1) fail("Vandløbet har ikke ét entydigt primært navn.");
+  const slot = primary[0];
+  const name = field(feature, `navn_${slot}.skrivemaade`);
+  const current = field(feature, `navn_${slot}.aktualitet`);
+  const official = field(feature, `navn_${slot}.navnestatus`);
+  if (!name || name.length > 200 || !current || !official) fail();
+  if (
+    !["iAnvendelse", "historisk"].includes(current) ||
+    (!officialNameStatus(official) && official !== "uofficielt")
+  )
+    fail();
+  return current === "iAnvendelse" && officialNameStatus(official);
+}
+
+function parseCollection(xml: string, spatial = false): DatafordelerWatercourseCollection {
   if (
     new TextEncoder().encode(xml).byteLength > DATAFORDELER_WATERCOURSE_MAX_RESPONSE_BYTES ||
     /<!\s*(?:DOCTYPE|ENTITY)/i.test(xml)
@@ -470,10 +520,25 @@ export function parseDatafordelerWatercourseCollection(
     (numberMatched !== null && numberMatched < members.length)
   )
     fail();
-  const watercourses = members.map((member) => {
+  let excludedFeatureCount = 0;
+  const spatialIds = new Set<string>();
+  const watercourses: DatafordelerWatercourseGeometry[] = [];
+  for (const member of members) {
     if (member.children.length !== 1 || member.text.trim()) fail();
-    return parseFeature(member.children[0]);
-  });
+    const feature = member.children[0];
+    if (spatial) {
+      const id = spatialFeatureIdentity(feature);
+      if (spatialIds.has(id)) fail("Kilden returnerede flere versioner af samme vandløb.");
+      spatialIds.add(id);
+      if (!spatialFeatureEligible(feature)) {
+        excludedFeatureCount++;
+        continue;
+      }
+    }
+    // Eligible features use the same strict geometry/provenance parser as an
+    // exact-ID lookup. A malformed eligible geometry fails the entire source.
+    watercourses.push(parseFeature(feature));
+  }
   if (new Set(watercourses.map((watercourse) => watercourse.id)).size !== watercourses.length)
     fail("Kilden returnerede flere versioner af samme vandløb.");
   return {
@@ -481,7 +546,21 @@ export function parseDatafordelerWatercourseCollection(
     numberMatched,
     numberReturned,
     paginationComplete: numberMatched === numberReturned && !attribute(root, "next"),
+    ...(spatial ? { excludedFeatureCount } : {}),
   };
+}
+
+export function parseDatafordelerWatercourseCollection(
+  xml: string,
+): DatafordelerWatercourseCollection {
+  return parseCollection(xml);
+}
+
+/** Bounded BBOX candidates may include explicitly inactive or unofficial names. */
+export function parseDatafordelerWatercourseSpatialCollection(
+  xml: string,
+): DatafordelerWatercourseCollection {
+  return parseCollection(xml, true);
 }
 
 export function parseDatafordelerWatercourseGeometry(

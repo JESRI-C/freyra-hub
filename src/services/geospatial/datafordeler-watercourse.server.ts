@@ -8,6 +8,7 @@ import {
   DATAFORDELER_WATERCOURSE_MAX_RESULTS,
   DatafordelerWatercourseError,
   parseDatafordelerWatercourseCollection,
+  parseDatafordelerWatercourseSpatialCollection,
   parseDatafordelerWatercourseGeometry,
   type DatafordelerWatercourseGeometry,
   type DatafordelerWatercourseCollection,
@@ -212,7 +213,7 @@ export async function findDatafordelerWatercoursesInBounds(
   const url = buildDatafordelerWatercourseBoundsUrl(bounds);
   const apiKey = requireServerApiKey();
   const xml = await fetchXml(url, apiKey, options);
-  const collection = parseDatafordelerWatercourseCollection(xml);
+  const collection = parseDatafordelerWatercourseSpatialCollection(xml);
   rejectCredentialEcho(collection, apiKey);
   return collection;
 }

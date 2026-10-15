@@ -59,6 +59,8 @@ export interface DroneLocalizationCluster {
     | "too_broad"
     | "call_limit";
   candidates: DroneLocalizationCandidate[];
+  /** Noneligible source features excluded from official reference suggestions. */
+  excludedCandidateCount?: number;
   suggestedReferenceId: string | null;
 }
 export interface DroneLocalizationResult {
@@ -275,10 +277,13 @@ export function rankDroneLocalizationCandidates(
       (candidate) => Number.isFinite(candidate.distanceM) && candidate.distanceM <= SEARCH_BUFFER_M,
     )
     .sort((a, b) => a.distanceM - b.distanceM || a.reference.id.localeCompare(b.reference.id));
+  const excludedCandidateCount = collection.excludedFeatureCount ?? 0;
   const complete =
+    Number.isSafeInteger(excludedCandidateCount) &&
+    excludedCandidateCount >= 0 &&
     collection.paginationComplete &&
     collection.numberMatched === collection.numberReturned &&
-    collection.numberReturned === collection.watercourses.length;
+    collection.numberReturned === collection.watercourses.length + excludedCandidateCount;
   const best = candidates[0];
   const suggestedReferenceId =
     complete &&
@@ -291,6 +296,7 @@ export function rankDroneLocalizationCandidates(
     ...cluster,
     searchStatus: complete ? "complete" : "truncated",
     candidates,
+    excludedCandidateCount,
     suggestedReferenceId,
   };
 }

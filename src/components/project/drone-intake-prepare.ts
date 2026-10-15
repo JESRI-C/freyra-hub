@@ -8,6 +8,7 @@ import {
   type StreamInspectionOptions,
 } from "./stream-inspection-start";
 import { droneIntakeBaselinePeriod } from "./drone-intake-run";
+import { droneIntakeAreaAssessment, type DroneIntakeCameraPhoto } from "./drone-intake-area";
 
 export interface DroneIntakePrepareInput {
   actorId: string;
@@ -17,6 +18,7 @@ export interface DroneIntakePrepareInput {
   useProposedArea: boolean;
   referenceId: string;
   recordingDate: string;
+  photos: DroneIntakeCameraPhoto[];
 }
 export interface DroneIntakePrepareDependencies {
   getProject(projectId: string): Promise<Project | null>;
@@ -69,6 +71,10 @@ export async function prepareConfirmedDroneIntake(
   );
   if (!selected.valid || !input.referenceId)
     throw new Error("Vælg både et bekræftet område og et vandløb.");
+  if (droneIntakeAreaAssessment(selected.polygon, input.photos).outsideCount > 0)
+    throw new Error(
+      "Kamerapositioner ligger uden for det valgte område. Vælg kameraernes søgeområde eller ret området på kortet, før der hentes data.",
+    );
   await authorize();
   const [fresh, freshReference] = await wait(
     Promise.all([deps.getProject(input.project.id), deps.getReference(input.project.id)]),

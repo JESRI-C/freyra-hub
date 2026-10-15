@@ -48,6 +48,16 @@ function fixture() {
     useProposedArea: false,
     referenceId: reference.id,
     recordingDate: "2026-10-14",
+    photos: [
+      {
+        status: "located",
+        cameraPosition: {
+          longitude: 9.025,
+          latitude: 55.025,
+          geometryRole: "camera_position_only",
+        },
+      },
+    ],
   };
   return { deps, input };
 }
@@ -56,6 +66,50 @@ const options = () => ({
   isCurrent: () => true,
 });
 describe("explicit confirmed-place preparation", () => {
+  it("blocks a far GPS cluster before access, data fetch or binding preparation, until matching area and reference are selected", async () => {
+    const { deps, input } = fixture();
+    input.photos = [
+      {
+        status: "located",
+        cameraPosition: {
+          longitude: 10.025,
+          latitude: 56.025,
+          geometryRole: "camera_position_only",
+        },
+      },
+    ];
+    await expect(prepareConfirmedDroneIntake(input, deps, options())).rejects.toThrow(
+      "uden for det valgte område",
+    );
+    expect(deps.inspection.getAccess).not.toHaveBeenCalled();
+    expect(deps.inspection.createBaseline).not.toHaveBeenCalled();
+    expect(deps.persistBoundary).not.toHaveBeenCalled();
+    expect(deps.saveReference).not.toHaveBeenCalled();
+    expect(start).not.toHaveBeenCalled();
+    input.useProposedArea = true;
+    input.proposedPolygon = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [10.02, 56.02],
+          [10.03, 56.02],
+          [10.03, 56.03],
+          [10.02, 56.03],
+          [10.02, 56.02],
+        ],
+      ],
+    };
+    input.referenceId = "";
+    await expect(prepareConfirmedDroneIntake(input, deps, options())).rejects.toThrow("Vælg både");
+    expect(start).not.toHaveBeenCalled();
+    input.referenceId = PROJECT_ID;
+    await expect(prepareConfirmedDroneIntake(input, deps, options())).resolves.toEqual({
+      marker: "saved-round",
+    });
+    expect(deps.persistBoundary).toHaveBeenCalledWith(PROJECT_ID, input.proposedPolygon);
+    expect(deps.saveReference).toHaveBeenCalledWith(PROJECT_ID, PROJECT_ID);
+    expect(start).toHaveBeenCalledTimes(1);
+  });
   it("preserves existing geometry and reference while starting one exact pinned workflow", async () => {
     const { deps, input } = fixture();
     const result = await prepareConfirmedDroneIntake(input, deps, options());

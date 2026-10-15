@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   buildDatafordelerWatercourseGeometryUrl,
@@ -8,6 +9,7 @@ import {
   DATAFORDELER_WATERCOURSE_PROVIDER,
   DATAFORDELER_WATERCOURSE_MAX_RESPONSE_BYTES,
   parseDatafordelerWatercourseCollection,
+  parseDatafordelerWatercourseSpatialCollection,
   parseDatafordelerWatercourseGeometry,
 } from "../datafordeler-watercourse-source";
 
@@ -24,14 +26,33 @@ const compact = liveFixture.replace(
   /<gml:posList>[\s\S]*?<\/gml:posList>/,
   "<gml:posList>54.967747653 9.926992122 54.967766043 9.926984735</gml:posList>",
 );
+const compactMember = compact.match(/<wfs:member>[\s\S]*?<\/wfs:member>/)![0];
+const spatialCollection = (...members: string[]) =>
+  compact
+    .replace(compactMember, members.join(""))
+    .replace('numberMatched="1"', `numberMatched="${members.length}"`)
+    .replace('numberReturned="1"', `numberReturned="${members.length}"`);
+const excludedMember = compactMember
+  .replaceAll(ID, "2233766a-1fdb-6b98-e053-d480220a5a3f")
+  .replace("<sn:navn_1.navnestatus>officielt", "<sn:navn_1.navnestatus>uofficielt");
 
 describe("Datafordeler canonical queries", () => {
   it("builds a bounded EPSG4326 latitude-longitude BBOX without credentials", () => {
     const url = new URL(buildDatafordelerWatercourseBoundsUrl([9.25, 55.34, 9.27, 55.36]));
     expect(url.searchParams.get("BBOX")).toBe("55.34,9.25,55.36,9.27,urn:ogc:def:crs:EPSG::4326");
+    expect(url.searchParams.get("SRSNAME")).toBe("urn:ogc:def:crs:EPSG::4326");
     expect(url.searchParams.get("COUNT")).toBe("21");
     expect(url.searchParams.has("apikey")).toBe(false);
     expect(url.searchParams.has("FILTER")).toBe(false);
+  });
+  it("preserves the exact historical geometry and name-query provenance URLs", () => {
+    const hash = (value: string) => createHash("sha256").update(value).digest("hex");
+    expect(hash(buildDatafordelerWatercourseGeometryUrl(ID))).toBe(
+      "88f4b519d095f1a0317566a6f7d96ee80bf54fa0232e35814a0da6f9f284b9f0",
+    );
+    expect(hash(buildDatafordelerWatercourseSearchUrl("Lillemølle"))).toBe(
+      "a308d202c5a11f8e34c26a527fe3e510e08d8641a705af6be2e7fd6833543d7c",
+    );
   });
   it.each(
     [
@@ -75,6 +96,164 @@ describe("Datafordeler canonical queries", () => {
       expect(() => buildDatafordelerWatercourseSearchUrl(query)).toThrow();
     },
   );
+});
+
+describe("Datafordeler spatial candidate eligibility", () => {
+  it("retains both official name statuses from the actual mixed spatial response", () => {
+    const authorizedMember = excludedMember.replace("uofficielt", "suAutoriseret");
+    const xml = spatialCollection(authorizedMember, compactMember);
+    const parsed = parseDatafordelerWatercourseSpatialCollection(xml);
+    expect(parsed).toMatchObject({
+      numberMatched: 2,
+      numberReturned: 2,
+      paginationComplete: true,
+      excludedFeatureCount: 0,
+    });
+    expect(parsed.watercourses.map((watercourse) => watercourse.nameStatus)).toEqual([
+      "suAutoriseret",
+      "officielt",
+    ]);
+    expect(parseDatafordelerWatercourseCollection(xml).watercourses).toEqual(parsed.watercourses);
+    expect(
+      parseDatafordelerWatercourseGeometry(
+        spatialCollection(authorizedMember),
+        "2233766a-1fdb-6b98-e053-d480220a5a3f",
+      ),
+    ).toEqual(parsed.watercourses[0]);
+    expect(parsed.watercourses[0].geometry).toEqual(parsed.watercourses[1].geometry);
+  });
+
+  it("retains eligible geometry and counts explicitly unofficial members", () => {
+    const xml = spatialCollection(excludedMember, compactMember);
+    expect(parseDatafordelerWatercourseSpatialCollection(xml)).toEqual({
+      watercourses: [parseDatafordelerWatercourseGeometry(compact, ID)],
+      numberMatched: 2,
+      numberReturned: 2,
+      paginationComplete: true,
+      excludedFeatureCount: 1,
+    });
+    // Exact-ID and name collection readers remain strict about the same member.
+    expect(() => parseDatafordelerWatercourseCollection(xml)).toThrow("officielt");
+    expect(() =>
+      parseDatafordelerWatercourseGeometry(spatialCollection(excludedMember), ID),
+    ).toThrow("officielt");
+  });
+
+  it.each([
+    ["inactive feature", (xml: string) => xml.replace("<sn:status>iBrug", "<sn:status>nedlagt")],
+    [
+      "historical name",
+      (xml: string) =>
+        xml.replace("<sn:navn_1.aktualitet>iAnvendelse", "<sn:navn_1.aktualitet>historisk"),
+    ],
+    [
+      "unofficial name",
+      (xml: string) =>
+        xml.replace("<sn:navn_1.navnestatus>officielt", "<sn:navn_1.navnestatus>uofficielt"),
+    ],
+  ])("explicitly excludes %s without changing raw source counts", (_, mutate) => {
+    expect(parseDatafordelerWatercourseSpatialCollection(mutate(compact))).toMatchObject({
+      watercourses: [],
+      numberMatched: 1,
+      numberReturned: 1,
+      paginationComplete: true,
+      excludedFeatureCount: 1,
+    });
+  });
+
+  it.each([
+    [
+      "invalid ID",
+      (xml: string) => xml.replaceAll("2233766a-1fdb-6b98-e053-d480220a5a3f", "invalid"),
+    ],
+    [
+      "wrong ID namespace",
+      (xml: string) => xml.replace("http://data.gov.dk/stednavne", "https://evil.test/id"),
+    ],
+    ["wrong feature identity", (xml: string) => xml.replaceAll("sn:Vandloeb", "sn:So")],
+    [
+      "missing name status",
+      (xml: string) => xml.replace(/<sn:navn_1.navnestatus>.*?<\/sn:navn_1.navnestatus>/, ""),
+    ],
+    [
+      "missing actuality",
+      (xml: string) => xml.replace(/<sn:navn_1.aktualitet>.*?<\/sn:navn_1.aktualitet>/, ""),
+    ],
+    ["missing type", (xml: string) => xml.replace(/<sn:vandloebstype>.*?<\/sn:vandloebstype>/, "")],
+    [
+      "unknown type",
+      (xml: string) => xml.replace("<sn:vandloebstype>vandløb", "<sn:vandloebstype>unknown"),
+    ],
+    ["unknown lifecycle", (xml: string) => xml.replace("<sn:status>iBrug", "<sn:status>unknown")],
+    [
+      "unknown actuality",
+      (xml: string) =>
+        xml.replace("<sn:navn_1.aktualitet>iAnvendelse", "<sn:navn_1.aktualitet>unknown"),
+    ],
+    [
+      "unknown name status",
+      (xml: string) =>
+        xml.replace("<sn:navn_1.navnestatus>uofficielt", "<sn:navn_1.navnestatus>unknown"),
+    ],
+    [
+      "ambiguous primary name",
+      (xml: string) =>
+        xml.replace(
+          "</sn:Vandloeb>",
+          "<sn:navn_2.brugsprioritet>primær</sn:navn_2.brugsprioritet></sn:Vandloeb>",
+        ),
+    ],
+  ])("does not hide %s behind an excluded name", (_, mutate) => {
+    expect(() =>
+      parseDatafordelerWatercourseSpatialCollection(spatialCollection(mutate(excludedMember))),
+    ).toThrow();
+  });
+
+  it("rejects duplicate IDs even when both members are excluded", () => {
+    expect(() =>
+      parseDatafordelerWatercourseSpatialCollection(
+        spatialCollection(excludedMember, excludedMember),
+      ),
+    ).toThrow("flere versioner");
+  });
+
+  it("keeps eligible geometry and collection structure strict", () => {
+    const xml = spatialCollection(excludedMember, compactMember);
+    expect(() =>
+      parseDatafordelerWatercourseSpatialCollection(
+        spatialCollection(excludedMember, compactMember.replace("54.967747653", "NaN")),
+      ),
+    ).toThrow();
+    expect(() =>
+      parseDatafordelerWatercourseSpatialCollection(
+        spatialCollection(
+          compactMember
+            .replace("<sn:navn_1.navnestatus>officielt", "<sn:navn_1.navnestatus>suAutoriseret")
+            .replace("54.967747653", "NaN"),
+        ),
+      ),
+    ).toThrow();
+    expect(() =>
+      parseDatafordelerWatercourseSpatialCollection(
+        xml.replace('numberReturned="2"', 'numberReturned="1"'),
+      ),
+    ).toThrow();
+    expect(() =>
+      parseDatafordelerWatercourseSpatialCollection(
+        '<!DOCTYPE x SYSTEM "https://evil.test/secret">' + xml,
+      ),
+    ).toThrow();
+    expect(
+      parseDatafordelerWatercourseSpatialCollection(
+        xml.replace('numberMatched="2"', 'numberMatched="3"'),
+      ),
+    ).toMatchObject({
+      numberMatched: 3,
+      numberReturned: 2,
+      paginationComplete: false,
+      excludedFeatureCount: 1,
+    });
+  });
 });
 
 describe("Datafordeler GML", () => {

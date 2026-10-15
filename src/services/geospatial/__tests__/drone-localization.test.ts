@@ -162,6 +162,46 @@ describe("server-original camera localization proposals", () => {
       expect(ranked.searchStatus).toBe(complete ? "complete" : "truncated");
     },
   );
+  it("accounts for excluded nonofficial members before suggesting an official reference", () => {
+    const result = buildDroneLocalization("p", "a", [photo(1)]);
+    const collection = {
+      watercourses: [source(9.26)],
+      numberReturned: 2,
+      numberMatched: 2,
+      paginationComplete: true,
+      excludedFeatureCount: 1,
+    };
+    const ranked = rankDroneLocalizationCandidates(result.clusters[0], result.photos, collection);
+    expect(ranked).toMatchObject({
+      searchStatus: "complete",
+      excludedCandidateCount: 1,
+      suggestedReferenceId: reference.id,
+    });
+    const truncated = rankDroneLocalizationCandidates(result.clusters[0], result.photos, {
+      ...collection,
+      numberMatched: 3,
+      paginationComplete: false,
+    });
+    expect(truncated).toMatchObject({
+      searchStatus: "truncated",
+      suggestedReferenceId: null,
+      excludedCandidateCount: 1,
+    });
+  });
+  it.each([-1, 0.5, NaN, 2])(
+    "does not accept inconsistent excluded count %s as a complete source",
+    (excludedFeatureCount) => {
+      const result = buildDroneLocalization("p", "a", [photo(1)]);
+      const ranked = rankDroneLocalizationCandidates(result.clusters[0], result.photos, {
+        watercourses: [source(9.26)],
+        numberReturned: 2,
+        numberMatched: 2,
+        paginationComplete: true,
+        excludedFeatureCount,
+      });
+      expect(ranked).toMatchObject({ searchStatus: "truncated", suggestedReferenceId: null });
+    },
+  );
   it("never suggests a reference when known results are truncated or distant", () => {
     const result = buildDroneLocalization("p", "a", [photo(1)]);
     const truncated = rankDroneLocalizationCandidates(result.clusters[0], result.photos, {

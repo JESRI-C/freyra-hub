@@ -11,6 +11,7 @@ const state = vi.hoisted(() => ({
   run: vi.fn(),
   prepared: vi.fn(),
   changed: vi.fn(),
+  queryData: {} as Record<string, unknown>,
 }));
 vi.mock("react", async (load) => ({
   ...(await load<typeof import("react")>()),
@@ -40,7 +41,11 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
 }));
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({ data: undefined, isPending: true, error: null }),
+  useQuery: ({ queryKey }: { queryKey: string[] }) => ({
+    data: state.queryData[queryKey[0]],
+    isPending: state.queryData[queryKey[0]] === undefined,
+    error: null,
+  }),
   useQueryClient: () => ({ invalidateQueries: vi.fn(async () => {}) }),
 }));
 vi.mock("@/components/ui-bits", () => ({
@@ -92,11 +97,11 @@ const batch = {
   mediaIds: [MEDIA],
   receivedCount: 1,
 };
-function render(selected: typeof batch | null = batch) {
+function render(selected: typeof batch | null = batch, selectedProject: Project = project) {
   state.cursor = 0;
   return renderToStaticMarkup(
     <DroneIntakeAssistant
-      project={project}
+      project={selectedProject}
       actorId={ACTOR}
       batch={selected ?? undefined}
       onPrepared={state.prepared}
@@ -112,6 +117,7 @@ beforeEach(() => {
   state.cursor = 0;
   state.hooks = [];
   state.effects = [];
+  state.queryData = {};
   vi.clearAllMocks();
   state.localize.mockImplementation(async ({ data }) => ({
     projectId: data.projectId,
@@ -127,6 +133,95 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe("upload-event-only intake assistant lifecycle", () => {
+  it.each([true, false])(
+    "shows and blocks an existing-area mismatch only when camera positions are outside: %s",
+    async (outside) => {
+      const selectedProject = {
+        ...project,
+        geometry_polygon: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [9, 55],
+              [9.1, 55],
+              [9.1, 55.1],
+              [9, 55.1],
+              [9, 55],
+            ],
+          ],
+        },
+      } as Project;
+      state.queryData = {
+        "drone-intake-project": selectedProject,
+        "official-watercourse-reach": {
+          id: ACTOR,
+          name: "Gemt reference",
+          geometry: {
+            type: "MultiLineString",
+            coordinates: [
+              [
+                [9.01, 55.01],
+                [9.09, 55.09],
+              ],
+            ],
+          },
+          disclaimer: "Faglig gennemgang kræves.",
+        },
+        "inspection-access": { userId: ACTOR, projectId: PROJECT, canPersist: true },
+      };
+      state.localize.mockResolvedValue({
+        projectId: PROJECT,
+        actorId: ACTOR,
+        photos: [
+          {
+            mediaId: MEDIA,
+            status: "located",
+            originalSha256: "a".repeat(64),
+            capturedAtUtc: "2026-10-14T10:00:00Z",
+            cameraPosition: {
+              longitude: outside ? 10.05 : 9.05,
+              latitude: outside ? 56.05 : 55.05,
+              geometryRole: "camera_position_only",
+            },
+          },
+        ],
+        clusters: [
+          {
+            id: "camera-group:test",
+            mediaIds: [MEDIA],
+            searchStatus: "complete",
+            candidates: [],
+            suggestedReferenceId: null,
+            suggestedPolygon: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [10, 56],
+                  [10.1, 56],
+                  [10.1, 56.1],
+                  [10, 56.1],
+                  [10, 56],
+                ],
+              ],
+            },
+          },
+        ],
+      });
+      render(batch, selectedProject);
+      const cleanup = state.effects[0]();
+      await flush();
+      const markup = render(batch, selectedProject);
+      const confirmButton = markup.match(
+        /<button[^>]*>Bekræft sted, hent data og tilknyt billeder<\/button>/,
+      )?.[0];
+      expect(confirmButton).toBeDefined();
+      expect(confirmButton?.includes('disabled=""')).toBe(outside);
+      expect(markup.includes("kameraposition uden for")).toBe(outside);
+      expect(state.run).not.toHaveBeenCalled();
+      expect(state.prepared).not.toHaveBeenCalled();
+      cleanup?.();
+    },
+  );
   it("does not localize, analyze or prepare merely by opening an existing project", async () => {
     expect(render(null)).toBe("");
     await flush();

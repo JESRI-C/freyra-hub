@@ -40,10 +40,51 @@ describe("Datafordeler server transport", () => {
     });
     expect(result.paginationComplete).toBe(true);
     expect(result.watercourses[0].geometry.type).toBe("MultiLineString");
-    expect(new URL(String(fetchImpl.mock.calls[0][0])).searchParams.get("BBOX")).toBe(
-      "54.96,9.91,54.98,9.94,urn:ogc:def:crs:EPSG::4326",
-    );
+    const query = new URL(String(fetchImpl.mock.calls[0][0])).searchParams;
+    expect(query.get("BBOX")).toBe("54.96,9.91,54.98,9.94,urn:ogc:def:crs:EPSG::4326");
+    expect(query.has("FILTER")).toBe(false);
     expect(JSON.stringify(result)).not.toContain(KEY);
+  });
+  it("filters ineligible names only for spatial candidates", async () => {
+    vi.stubEnv("DATAFORDELER_API_KEY", KEY);
+    const xml = fixture.replace(
+      "<sn:navn_1.navnestatus>officielt",
+      "<sn:navn_1.navnestatus>uofficielt",
+    );
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () => new Response(xml));
+    await expect(
+      findDatafordelerWatercoursesInBounds([9.91, 54.96, 9.94, 54.98], { fetchImpl }),
+    ).resolves.toMatchObject({
+      watercourses: [],
+      numberMatched: 1,
+      numberReturned: 1,
+      excludedFeatureCount: 1,
+      paginationComplete: true,
+    });
+    await expect(fetchDatafordelerWatercourse(ID, { fetchImpl })).rejects.toThrow("officielt");
+    await expect(searchDatafordelerWatercourses("Lillemølle", { fetchImpl })).rejects.toThrow(
+      "officielt",
+    );
+  });
+  it("preserves authorized official name status through exact-ID, name and spatial transport", async () => {
+    vi.stubEnv("DATAFORDELER_API_KEY", KEY);
+    const xml = fixture.replace(
+      "<sn:navn_1.navnestatus>officielt",
+      "<sn:navn_1.navnestatus>suAutoriseret",
+    );
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () => new Response(xml));
+    await expect(fetchDatafordelerWatercourse(ID, { fetchImpl })).resolves.toMatchObject({
+      nameStatus: "suAutoriseret",
+    });
+    await expect(
+      searchDatafordelerWatercourses("Lillemølle", { fetchImpl }),
+    ).resolves.toMatchObject([{ nameStatus: "suAutoriseret" }]);
+    await expect(
+      findDatafordelerWatercoursesInBounds([9.91, 54.96, 9.94, 54.98], { fetchImpl }),
+    ).resolves.toMatchObject({
+      watercourses: [{ nameStatus: "suAutoriseret" }],
+      excludedFeatureCount: 0,
+    });
   });
   it("requires a server key before any network call", async () => {
     vi.stubEnv("DATAFORDELER_API_KEY", undefined);
