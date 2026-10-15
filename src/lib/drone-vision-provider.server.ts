@@ -318,11 +318,11 @@ export const inspectDroneImageBytes = createServerOnlyFn(
                 ],
                 response_format: {
                   type: "json_schema",
-                  json_schema: {
-                    name: "drone_visual_draft",
-                    strict: true,
-                    schema: z.toJSONSchema(DroneImageVisualDraftSchema, { unrepresentable: "any" }),
-                  },
+                  // The native Workers AI binding takes the schema directly;
+                  // an OpenAI name/strict/schema wrapper is not its schema.
+                  json_schema: z.toJSONSchema(DroneImageVisualDraftSchema, {
+                    unrepresentable: "any",
+                  }),
                 },
                 max_completion_tokens: 2400,
                 chat_template_kwargs: { enable_thinking: false },

@@ -129,6 +129,43 @@ describe("private original to bounded vision derivative", () => {
     expect(mocks.transform).toHaveBeenCalledWith({ width: 1536, height: 1536, fit: "scale-down" });
     expect(mocks.run).toHaveBeenCalledTimes(1);
   });
+  it("supplies an actual root JSON schema to the native Workers AI binding", async () => {
+    const mocks = bindings();
+    mocks.run.mockImplementation(async (_model, input) => {
+      const format = input.response_format;
+      const schema = format.json_schema;
+      // Native Workers AI expects the schema itself here. The OpenAI wrapper
+      // has no root type or required fields and cannot constrain this response.
+      if (
+        format.type !== "json_schema" ||
+        schema.type !== "object" ||
+        schema.additionalProperties !== false ||
+        !["quality", "watercourseVisibility", "features", "overallUncertainty"].every((key) =>
+          schema.required.includes(key),
+        )
+      )
+        throw new Error("Native schema contract missing");
+      expect(schema).not.toHaveProperty("name");
+      expect(schema).not.toHaveProperty("strict");
+      expect(schema).not.toHaveProperty("schema");
+      expect(schema.properties.features.maxItems).toBe(5);
+      expect(schema.properties.features.items.additionalProperties).toBe(false);
+      expect(schema.properties.features.items.properties.confidence).toMatchObject({
+        type: "number",
+        minimum: 0,
+        maximum: 1,
+      });
+      expect(schema.properties.features.items.properties.region.anyOf).toContainEqual({
+        type: "null",
+      });
+      expect(schema.properties.quality.additionalProperties).toBe(false);
+      return Response.json({
+        choices: [{ finish_reason: "stop", message: { content: JSON.stringify(visual) } }],
+      });
+    });
+    await expect(inspectDroneImageBytes(jpeg, mocks)).resolves.toMatchObject({ visual });
+    expect(mocks.run).toHaveBeenCalledTimes(1);
+  });
   it("rejects large originals before any transform or inference", async () => {
     const mocks = bindings();
     await expect(
@@ -160,6 +197,61 @@ describe("private original to bounded vision derivative", () => {
     await expect(inspectDroneImageBytes(jpeg, mocks)).rejects.toMatchObject({
       code: "invalid_output",
     });
+  });
+  it.each([
+    { ...visual, quality: { ...visual.quality, issues: ["blur", "blur"] } },
+    {
+      ...visual,
+      features: [
+        {
+          kind: "surface_water",
+          appearance: "Mørkt vandspejl.",
+          confidence: 0.6,
+          uncertainty: "Vandets dybde kan ikke ses.",
+          region: { x: 0.9, y: 0.1, width: 0.2, height: 0.2 },
+        },
+      ],
+    },
+    {
+      ...visual,
+      features: [
+        {
+          kind: "vegetation_cover",
+          appearance: "Vegetation dækker 50 % af arealet.",
+          confidence: 0.6,
+          uncertainty: "Vegetationen skjuler jorden.",
+          region: null,
+        },
+      ],
+    },
+    {
+      ...visual,
+      quality: { ...visual.quality, assessment: "unusable" },
+      features: [
+        {
+          kind: "surface_water",
+          appearance: "Mørk flade.",
+          confidence: 0.6,
+          uncertainty: "Overfladen er utydelig.",
+          region: null,
+        },
+      ],
+    },
+  ])("still rejects semantic violations that native JSON Schema cannot express", async (draft) => {
+    const mocks = bindings({
+      response: Response.json({
+        choices: [{ finish_reason: "stop", message: { content: JSON.stringify(draft) } }],
+      }),
+    });
+    await expect(inspectDroneImageBytes(jpeg, mocks)).rejects.toMatchObject({
+      code: "invalid_output",
+    });
+    expect(console.info).toHaveBeenCalledWith(
+      "drone_vision_timing",
+      expect.objectContaining({
+        output: expect.objectContaining({ contentJson: "valid", visualSchema: "invalid" }),
+      }),
+    );
   });
   it.each([
     {
