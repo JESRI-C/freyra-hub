@@ -370,7 +370,7 @@ describe("guided drone survey workspace", () => {
     const html = renderToStaticMarkup(node);
     expect(html).toContain("Fra dronebilleder til gennemgang");
     expect(html).toContain("Rapport og aflevering");
-    expect(html).toContain("stadig under udvikling");
+    expect(html).toContain("Saml rapport og se mangler");
     for (const name of [
       "official-watercourse-reach",
       "inspection-access",
