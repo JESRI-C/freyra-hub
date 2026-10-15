@@ -26,7 +26,12 @@ export interface DroneLocalizationPhoto {
   originalValidationSha256: string;
   originalValidationStatus: "raw_original_validated" | "review_required";
   sizeBytes: number;
-  status: "located" | "missing_gps" | "metadata_review" | "outside_denmark";
+  status:
+    | "located"
+    | "date_confirmation_required"
+    | "missing_gps"
+    | "metadata_review"
+    | "outside_denmark";
   reason: string | null;
   cameraPosition: {
     latitude: number;
@@ -34,6 +39,8 @@ export interface DroneLocalizationPhoto {
     geometryRole: "camera_position_only";
   } | null;
   capturedAtUtc: string | null;
+  /** Literal local calendar date only; never a UTC instant or verified timezone. */
+  localRecordingDate?: string;
 }
 export interface DroneLocalizationCandidate {
   reference: DatafordelerWatercourseGeometry;
@@ -74,19 +81,74 @@ export interface DroneLocalizationResult {
   reportEligible: false;
 }
 
+/** Validate calendar components without treating a local wall time as an instant. */
+export function droneLocalRecordingDate(value: string | undefined): string | null {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?$/);
+  if (!match) return null;
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText] = match;
+  const [year, month, day, hour, minute, second] = [
+    yearText,
+    monthText,
+    dayText,
+    hourText,
+    minuteText,
+    secondText,
+  ].map(Number);
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return year >= 1 &&
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= days[month - 1] &&
+    hour < 24 &&
+    minute < 60 &&
+    second < 60
+    ? `${yearText}-${monthText}-${dayText}`
+    : null;
+}
+
+export function isDroneCameraLocationStatus(status: DroneLocalizationPhoto["status"]): boolean {
+  return status === "located" || status === "date_confirmation_required";
+}
+
+/** This exception proposes GPS only; the stored original remains review_required. */
+function dateConfirmationOnly(validation: DroneOriginalValidation): string | null {
+  const metadata = validation.metadata;
+  if (
+    validation.status !== "review_required" ||
+    validation.cameraPositionEligible !== false ||
+    !validation.jpegStructure ||
+    validation.errors?.length !== 0 ||
+    !metadata ||
+    metadata.raw.parseErrors.length !== 0 ||
+    metadata.qa.status !== "review_required" ||
+    metadata.qa.errors.length !== 0 ||
+    !metadata.qa.warnings.length ||
+    metadata.qa.warnings.some((issue) => issue.code !== "CAPTURE_TIMEZONE_UNKNOWN") ||
+    metadata.capture.timezoneKnown !== false ||
+    metadata.capture.capturedAtUtc !== undefined ||
+    metadata.capture.offset !== undefined
+  )
+    return null;
+  return droneLocalRecordingDate(metadata.capture.localTimestamp);
+}
+
 export function localizationPhoto(original: DroneLocalizationOriginal): DroneLocalizationPhoto {
   const { media, validation, fileName } = original;
   const position = validation.metadata?.position;
+  const localDate =
+    media.original_validation_status === "review_required"
+      ? dateConfirmationOnly(validation)
+      : null;
   let status: DroneLocalizationPhoto["status"] = "located";
   let reason: string | null = null;
   if (!position) {
     status = "missing_gps";
     reason = "Billedets original indeholder ingen entydig kameraposition. Vælg stedet på kortet.";
-  } else if (!validation.cameraPositionEligible) {
-    status = "metadata_review";
-    reason =
-      "Originalens position eller optagetid kræver gennemgang. Bekræft stedet og optagedatoen.";
   } else if (
+    !Number.isFinite(position.latitude) ||
+    !Number.isFinite(position.longitude) ||
     position.latitude < 54 ||
     position.latitude > 58 ||
     position.longitude < 7 ||
@@ -94,6 +156,11 @@ export function localizationPhoto(original: DroneLocalizationOriginal): DroneLoc
   ) {
     status = "outside_denmark";
     reason = "Kamerapositionen ligger uden for den danske datakildes område.";
+  } else if (!validation.cameraPositionEligible) {
+    status = localDate ? "date_confirmation_required" : "metadata_review";
+    reason = localDate
+      ? "GPS kan bruges til et stedforslag. Optagetidspunktet mangler tidszone; bekræft den lokale optagedato. UTC-tiden er ukendt."
+      : "Originalens position eller optagetid kræver gennemgang. Bekræft stedet og optagedatoen.";
   }
   return {
     mediaId: media.id,
@@ -105,7 +172,7 @@ export function localizationPhoto(original: DroneLocalizationOriginal): DroneLoc
     status,
     reason,
     cameraPosition:
-      status === "located" && position
+      isDroneCameraLocationStatus(status) && position
         ? {
             latitude: position.latitude,
             longitude: position.longitude,
@@ -113,6 +180,9 @@ export function localizationPhoto(original: DroneLocalizationOriginal): DroneLoc
           }
         : null,
     capturedAtUtc: validation.metadata?.capture.capturedAtUtc ?? null,
+    ...(status === "date_confirmation_required" && localDate
+      ? { localRecordingDate: localDate }
+      : {}),
   };
 }
 function distance(a: number[], b: number[]): number {
@@ -173,7 +243,7 @@ export function buildDroneLocalizationFromPhotos(
   projected: DroneLocalizationPhoto[],
 ): DroneLocalizationResult {
   const photos = [...projected].sort((a, b) => a.mediaId.localeCompare(b.mediaId));
-  const pending = photos.filter((photo) => photo.status === "located");
+  const pending = photos.filter((photo) => isDroneCameraLocationStatus(photo.status));
   const groups: DroneLocalizationPhoto[][] = [];
   while (pending.length) {
     const group = [pending.shift()!];

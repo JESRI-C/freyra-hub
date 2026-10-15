@@ -25,9 +25,10 @@ import {
 } from "@/lib/survey-round-media.functions";
 import { getProjectById, persistProjectBoundary } from "@/services/projects-service";
 import { resolveProjectGeometry, validateProjectPolygon } from "@/services/geo-service";
-import type {
-  DroneLocalizationPhoto,
-  DroneLocalizationResult,
+import {
+  isDroneCameraLocationStatus,
+  type DroneLocalizationPhoto,
+  type DroneLocalizationResult,
 } from "@/services/geospatial/drone-localization";
 import { Card } from "@/components/ui-bits";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
@@ -194,8 +195,14 @@ function Intake({
     localization?.photos.filter(
       (photo) =>
         cluster?.mediaIds.includes(photo.mediaId) ||
-        (includeUnlocated && hasExistingArea && !useProposedArea && photo.status !== "located"),
+        (includeUnlocated &&
+          hasExistingArea &&
+          !useProposedArea &&
+          !isDroneCameraLocationStatus(photo.status)),
     ) ?? [];
+  const dateConfirmationCount = selectedPhotos.filter(
+    (photo) => photo.status === "date_confirmation_required",
+  ).length;
   const areaAssessment = droneIntakeAreaAssessment(
     usingProposedArea ? cluster?.suggestedPolygon : displayedProject.geometry_polygon,
     selectedPhotos,
@@ -506,7 +513,7 @@ function Intake({
           <p>
             {localizing
               ? "Finder kamerapositioner og nærliggende vandløb …"
-              : `${localization?.photos.filter((photo) => photo.status === "located").length ?? 0} fotos med kontrolleret kameraposition.`}
+              : `${localization?.photos.filter((photo) => isDroneCameraLocationStatus(photo.status)).length ?? 0} fotos med kameraposition til stedforslag.`}
           </p>
           <p>
             {!prepared || !bindingsComplete
@@ -580,12 +587,12 @@ function Intake({
             Prøv lokalisering igen
           </button>
         )}
-        {localization?.photos.some((photo) => photo.status !== "located") && (
+        {localization?.photos.some((photo) => !isDroneCameraLocationStatus(photo.status)) && (
           <details className="text-sm">
             <summary>Fotos, der kræver hjælp med stedet</summary>
             <ul className="mt-2 space-y-1">
               {localization.photos
-                .filter((photo) => photo.status !== "located")
+                .filter((photo) => !isDroneCameraLocationStatus(photo.status))
                 .map((photo) => (
                   <li key={photo.mediaId}>
                     <strong>{photo.fileName}:</strong> {photo.reason}
@@ -670,7 +677,7 @@ function Intake({
             )}
             {hasExistingArea &&
               !useProposedArea &&
-              localization.photos.some((photo) => photo.status !== "located") && (
+              localization.photos.some((photo) => !isDroneCameraLocationStatus(photo.status)) && (
                 <label className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -679,8 +686,12 @@ function Intake({
                   />
                   <span>
                     Jeg bekræfter, at seriens{" "}
-                    {localization.photos.filter((photo) => photo.status !== "located").length} fotos
-                    uden sikker position også er fra sagens gemte område og skal tilknyttes.
+                    {
+                      localization.photos.filter(
+                        (photo) => !isDroneCameraLocationStatus(photo.status),
+                      ).length
+                    }{" "}
+                    fotos uden sikker position også er fra sagens gemte område og skal tilknyttes.
                   </span>
                 </label>
               )}
@@ -747,10 +758,18 @@ function Intake({
                 onChange={(event) => setRecordingDate(event.target.value)}
               />
               <span className="mt-1 block text-xs text-muted-foreground">
-                Datoen foreslås fra originalernes sikre optagetid, når billederne har samme dato.
-                Offentlige data hentes for de 30 dage frem til din valgte dato.
+                Datoen foreslås fra originalerne, når billederne har samme kalenderdato. Kontrollér
+                datoen, før du bekræfter. Offentlige data hentes for de 30 kalenderdage frem til din
+                valgte dato.
               </span>
             </label>
+            {dateConfirmationCount > 0 && (
+              <p className="text-sm text-amber-700">
+                {dateConfirmationCount} fotos har GPS og et lokalt optagetidspunkt uden tidszone.
+                GPS bruges kun til stedforslaget. Bekræft den lokale optagedato ovenfor; UTC-tiden
+                forbliver ukendt, og originalernes kontrolstatus ændres ikke.
+              </p>
+            )}
             <p className="text-sm">
               {selectedPhotos.length} af seriens {batch.mediaIds.length} fotos tilknyttes denne
               undersøgelse. Fotos fra andre billedgrupper indgår ikke.
@@ -772,7 +791,11 @@ function Intake({
               onClick={() => void prepare()}
             >
               {preparing && <Loader2 className="h-4 w-4 animate-spin" />}
-              {preparing ? stage : "Bekræft sted, hent data og tilknyt billeder"}
+              {preparing
+                ? stage
+                : dateConfirmationCount > 0
+                  ? "Bekræft sted og lokal optagedato, hent data og tilknyt billeder"
+                  : "Bekræft sted, hent data og tilknyt billeder"}
             </button>
             {access.data && !access.data.canPersist && (
               <p className="text-sm">

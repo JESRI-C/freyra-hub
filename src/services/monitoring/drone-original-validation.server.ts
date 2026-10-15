@@ -100,8 +100,110 @@ export function assertCanonicalDroneOriginal(
   return upload;
 }
 
-/** Validate JPEG framing, bounded dimensions and scan structure; this is not a pixel decoder. */
-export function validateJpegStructure(bytes: Uint8Array): JpegStructure {
+interface MpfImageSpan {
+  offset: number;
+  size: number;
+}
+/** CIPA DC-007 MP Index: TIFF byte order, B000 version, B001 image count,
+ * B002 array of 16-byte MP entries. Offsets of secondary images are relative
+ * to the TIFF header, as in Pillow's JpegImagePlugin/MpoImagePlugin readers. */
+function readMpfImageSpans(bytes: Uint8Array, start: number, end: number): MpfImageSpan[] {
+  const fail = (): never => {
+    throw new Error("MPF-indekset er ugyldigt eller ikke understøttet.");
+  };
+  const base = start + 4;
+  if (end - base < 8) fail();
+  const little = bytes[base] === 0x49 && bytes[base + 1] === 0x49;
+  if (!little && !(bytes[base] === 0x4d && bytes[base + 1] === 0x4d)) fail();
+  const view = new DataView(bytes.buffer, bytes.byteOffset + base, end - base);
+  const u16 = (at: number) => {
+    if (at < 0 || at + 2 > view.byteLength) fail();
+    return view.getUint16(at, little);
+  };
+  const u32 = (at: number) => {
+    if (at < 0 || at + 4 > view.byteLength) fail();
+    return view.getUint32(at, little);
+  };
+  if (u16(2) !== 42) fail();
+  const ifd = u32(4),
+    count = u16(ifd),
+    ifdEnd = ifd + 2 + count * 12 + 4;
+  if (ifd < 8 || ifd % 2 || count < 3 || count > 64 || ifdEnd > view.byteLength) fail();
+  let imageCount = 0,
+    tableOffset = -1,
+    tableBytes = 0,
+    hasVersion = false;
+  const tags = new Set<number>();
+  for (let index = 0; index < count; index++) {
+    const at = ifd + 2 + index * 12,
+      tag = u16(at),
+      type = u16(at + 2),
+      values = u32(at + 4);
+    if (tags.has(tag)) fail();
+    tags.add(tag);
+    if (tag === 0xb000) {
+      if (
+        type !== 7 ||
+        values !== 4 ||
+        bytes[base + at + 8] !== 0x30 ||
+        bytes[base + at + 9] !== 0x31 ||
+        bytes[base + at + 10] !== 0x30 ||
+        bytes[base + at + 11] !== 0x30
+      )
+        fail();
+      hasVersion = true;
+    } else if (tag === 0xb001) {
+      if (type !== 4 || values !== 1) fail();
+      imageCount = u32(at + 8);
+    } else if (tag === 0xb002) {
+      if (type !== 7) fail();
+      tableBytes = values;
+      tableOffset = u32(at + 8);
+    }
+  }
+  if (
+    !hasVersion ||
+    imageCount < 2 ||
+    imageCount > 8 ||
+    tableBytes !== imageCount * 16 ||
+    tableOffset < ifdEnd ||
+    tableOffset + tableBytes > view.byteLength
+  )
+    fail();
+  const spans: MpfImageSpan[] = [];
+  for (let index = 0; index < imageCount; index++) {
+    const at = tableOffset + index * 16,
+      attributes = u32(at),
+      size = u32(at + 4),
+      relative = u32(at + 8);
+    if (
+      ((attributes >>> 24) & 7) !== 0 ||
+      size < 20 ||
+      u16(at + 12) > imageCount ||
+      u16(at + 14) > imageCount ||
+      (index === 0 ? relative !== 0 : relative === 0)
+    )
+      fail();
+    spans.push({ offset: index === 0 ? 0 : base + relative, size });
+  }
+  return spans;
+}
+
+/** Validate JPEG framing, bounded dimensions and scan structure; this is not a pixel decoder.
+ * A bounded MPO may contain explicitly indexed secondary JPEGs. All bytes must
+ * belong to contiguous, individually valid JPEG images; arbitrary trailers fail. */
+export function validateJpegStructure(
+  bytes: Uint8Array,
+  warnings: OriginalValidationIssue[] = [],
+): JpegStructure {
+  return validateJpegImage(bytes, warnings, true, { markers: 0, metadataBytes: 0 });
+}
+function validateJpegImage(
+  bytes: Uint8Array,
+  warnings: OriginalValidationIssue[],
+  allowMpf: boolean,
+  budget: { markers: number; metadataBytes: number },
+): JpegStructure {
   const fail = (): never => {
     throw new Error("Originalfilen er ikke en komplet understøttet JPEG-container.");
   };
@@ -113,8 +215,6 @@ export function validateJpegStructure(bytes: Uint8Array): JpegStructure {
   )
     fail();
   let offset = 2,
-    markers = 0,
-    metadataBytes = 0,
     entropyBytes = 0;
   let frame: Omit<JpegStructure, "scans"> | null = null;
   let scans = 0;
@@ -122,19 +222,41 @@ export function validateJpegStructure(bytes: Uint8Array): JpegStructure {
   const quantTables = new Set<number>();
   const quantNeeded = new Set<number>();
   const huffmanTables = new Set<number>();
+  const mpfSegments: { start: number; end: number }[] = [];
   while (offset < bytes.length) {
-    if (++markers > 4096 || bytes[offset++] !== 0xff) fail();
+    if (++budget.markers > 4096 || bytes[offset++] !== 0xff) fail();
     while (bytes[offset] === 0xff) offset++;
     const marker = bytes[offset++];
     if (marker === 0xd9) {
-      if (
-        !frame ||
-        !scans ||
-        !entropyBytes ||
-        offset !== bytes.length ||
-        [...quantNeeded].some((id) => !quantTables.has(id))
-      )
+      if (!frame || !scans || !entropyBytes || [...quantNeeded].some((id) => !quantTables.has(id)))
         fail();
+      if (offset !== bytes.length) {
+        if (!allowMpf || mpfSegments.length !== 1) fail();
+        const segment = mpfSegments[0],
+          spans = readMpfImageSpans(bytes, segment.start, segment.end);
+        // DJI MPOs can retain an outdated primary size after metadata grows.
+        // That advisory value never authorizes bytes: the parsed EOI and exact
+        // secondary offsets/sizes must account for the entire file instead.
+        if (spans[0].size > offset) fail();
+        let consumed = offset;
+        for (const span of spans.slice(1)) {
+          if (span.offset !== consumed || span.offset + span.size > bytes.length) fail();
+          validateJpegImage(
+            bytes.subarray(span.offset, span.offset + span.size),
+            warnings,
+            false,
+            budget,
+          );
+          consumed += span.size;
+        }
+        if (consumed !== bytes.length) fail();
+        if (spans[0].size !== offset)
+          warnings.push({
+            code: "MPF_PRIMARY_SIZE_ADVISORY",
+            message:
+              "MPF-indeksets primære størrelsesfelt afviger fra den fuldt parsede JPEG-grænse. Alle sekundære JPEG-billeder og deres eksakte offset/længder er strukturelt kontrolleret; pixels er ikke dekodet.",
+          });
+      }
       return { ...frame!, scans };
     }
     if (marker === 0xd8 || marker === 0x00 || marker == null || (marker >= 0xd0 && marker <= 0xd7))
@@ -145,9 +267,17 @@ export function validateJpegStructure(bytes: Uint8Array): JpegStructure {
       end = offset + length;
     if (length < 2 || end > bytes.length) fail();
     if ((marker >= 0xe0 && marker <= 0xef) || marker === 0xfe) {
-      metadataBytes += length;
-      if (metadataBytes > MAX_ORIGINAL_VALIDATION_BYTES)
+      budget.metadataBytes += length;
+      if (budget.metadataBytes > MAX_ORIGINAL_VALIDATION_BYTES)
         throw new Error("JPEG-metadata overskrider 1 MiB.");
+      if (
+        marker === 0xe2 &&
+        bytes[start] === 0x4d &&
+        bytes[start + 1] === 0x50 &&
+        bytes[start + 2] === 0x46 &&
+        bytes[start + 3] === 0
+      )
+        mpfSegments.push({ start, end });
     }
     if (marker === 0xdb) {
       let position = start;
@@ -501,7 +631,7 @@ export async function validateDroneOriginalBytes(
   let jpegStructure: JpegStructure | null = null;
   let metadata: DroneImageMetadata | null = null;
   try {
-    jpegStructure = validateJpegStructure(bytes);
+    jpegStructure = validateJpegStructure(bytes, warnings);
   } catch (error) {
     errors.push({
       code: "JPEG_STRUCTURE_INVALID",

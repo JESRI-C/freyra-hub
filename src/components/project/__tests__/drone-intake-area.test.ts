@@ -49,6 +49,18 @@ describe("camera position consistency before fetching area data", () => {
     };
     expect(droneIntakeAreaAssessment(withHole, [photo(9.05, 55.05)]).outsideCount).toBe(1);
   });
+  it("checks all GPS-only date-confirmation photos against the area before fetching sources", () => {
+    const within = { ...photo(9.05, 55.05), status: "date_confirmation_required" as const };
+    const outside = { ...photo(10, 56), status: "date_confirmation_required" as const };
+    expect(droneIntakeAreaAssessment(polygon, [within, outside])).toEqual({
+      validArea: true,
+      locatedCount: 2,
+      outsideCount: 1,
+    });
+    expect(
+      droneIntakeAreaAssessment(polygon, [{ ...within, cameraPosition: null }]).outsideCount,
+    ).toBe(1);
+  });
   it("fails closed for missing geometry or malformed located positions without inventing GPS for unlocated photos", () => {
     expect(droneIntakeAreaAssessment(null, [photo(9.05, 55.05)]).outsideCount).toBe(1);
     expect(droneIntakeAreaAssessment(polygon, [photo(NaN, 55.05)]).outsideCount).toBe(1);

@@ -91,6 +91,27 @@ describe("confirmed-batch association to the exact new round", () => {
     });
     expect(run.mock.calls[0][0].expectedBatch).toEqual(run.mock.calls[1][0].expectedBatch);
   });
+  it("keeps the original review status, validation hash and unknown UTC when a local date is confirmed", async () => {
+    const { input, api, options } = setup();
+    Object.assign(input.photos[0], {
+      status: "date_confirmation_required",
+      localRecordingDate: "2026-08-24",
+      originalValidationStatus: "review_required",
+      capturedAtUtc: null,
+    });
+    const before = structuredClone(input.photos);
+    await bindConfirmedDroneIntakePhotos(input, api, options);
+    expect(input.photos).toEqual(before);
+    expect(run.mock.calls[0][0].expectedBatch.entries[0].receipt).toMatchObject({
+      originalValidationSha256: input.photos[0].originalValidationSha256,
+      originalSha256: input.photos[0].originalSha256,
+      input: { mediaId: input.photos[0].mediaId, roundVersionId: input.round.id },
+    });
+    expect(input.photos[0]).toMatchObject({
+      originalValidationStatus: "review_required",
+      capturedAtUtc: null,
+    });
+  });
   it("does not overwrite another frozen original selection on the same round", async () => {
     const { input, api, options } = setup();
     await bindConfirmedDroneIntakePhotos(input, api, options);

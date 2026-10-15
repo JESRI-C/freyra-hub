@@ -1,13 +1,16 @@
 import { booleanPointInPolygon, point } from "@turf/turf";
 import { validateProjectPolygon } from "@/services/geo-service";
-import type { DroneLocalizationPhoto } from "@/services/geospatial/drone-localization";
+import {
+  isDroneCameraLocationStatus,
+  type DroneLocalizationPhoto,
+} from "@/services/geospatial/drone-localization";
 
 export type DroneIntakeCameraPhoto = Pick<DroneLocalizationPhoto, "status" | "cameraPosition">;
 
 /** Camera positions are a consistency gate, never the photographed footprint. */
 export function droneIntakeAreaAssessment(polygon: unknown, photos: DroneIntakeCameraPhoto[]) {
   const area = validateProjectPolygon(polygon);
-  const located = photos.filter((photo) => photo.status === "located");
+  const located = photos.filter((photo) => isDroneCameraLocationStatus(photo.status));
   let outsideCount = 0;
   for (const photo of located) {
     const position = photo.cameraPosition;

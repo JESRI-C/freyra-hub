@@ -1,5 +1,8 @@
 import { z } from "zod";
-import type { DroneLocalizationResult } from "@/services/geospatial/drone-localization";
+import {
+  droneLocalRecordingDate,
+  type DroneLocalizationResult,
+} from "@/services/geospatial/drone-localization";
 import { MAX_DRONE_INSPECTION_ORIGINAL_BYTES } from "@/services/monitoring/drone-image-inspection";
 import { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
 import type { DroneLocalizationPhoto } from "@/services/geospatial/drone-localization";
@@ -164,21 +167,23 @@ export async function runDroneIntakeImageChunk(
 }
 
 export function droneIntakeRecordingDate(result: DroneLocalizationResult): string | null {
-  const days = new Set(
-    result.photos.flatMap((photo) => {
-      if (!photo.capturedAtUtc || !Number.isFinite(new Date(photo.capturedAtUtc).getTime()))
-        return [];
-      const parts = new Intl.DateTimeFormat("en", {
-        timeZone: "Europe/Copenhagen",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).formatToParts(new Date(photo.capturedAtUtc));
-      return [
-        `${parts.find((part) => part.type === "year")!.value}-${parts.find((part) => part.type === "month")!.value}-${parts.find((part) => part.type === "day")!.value}`,
-      ];
-    }),
-  );
+  const dates = result.photos.map((photo) => {
+    if (photo.status === "date_confirmation_required")
+      return photo.capturedAtUtc === null && photo.localRecordingDate
+        ? droneLocalRecordingDate(`${photo.localRecordingDate}T00:00:00`)
+        : null;
+    if (!photo.capturedAtUtc || !Number.isFinite(new Date(photo.capturedAtUtc).getTime()))
+      return null;
+    const parts = new Intl.DateTimeFormat("en", {
+      timeZone: "Europe/Copenhagen",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date(photo.capturedAtUtc));
+    return `${parts.find((part) => part.type === "year")!.value}-${parts.find((part) => part.type === "month")!.value}-${parts.find((part) => part.type === "day")!.value}`;
+  });
+  if (dates.some((date) => date === null)) return null;
+  const days = new Set(dates);
   return days.size === 1 ? [...days][0] : null;
 }
 export function droneIntakeBaselinePeriod(recordingDate: string): {

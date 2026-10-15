@@ -406,6 +406,55 @@ describe("bounded exact-batch image analysis", () => {
       droneIntakeRecordingDate({ ...result, photos: [{ capturedAtUtc: null } as never] }),
     ).toBeNull();
   });
+  it("prefills a common literal local date while keeping UTC unknown and mixed dates unselected", () => {
+    const result = {
+      photos: Array.from({ length: 3 }, () => ({
+        status: "date_confirmation_required",
+        localRecordingDate: "2026-08-24",
+        capturedAtUtc: null,
+      })),
+    } as DroneLocalizationResult;
+    const before = structuredClone(result);
+    expect(droneIntakeRecordingDate(result)).toBe("2026-08-24");
+    expect(result).toEqual(before);
+    expect(
+      droneIntakeRecordingDate({
+        ...result,
+        photos: [result.photos[0], { ...result.photos[1], localRecordingDate: "2026-08-25" }],
+      }),
+    ).toBeNull();
+    expect(
+      droneIntakeRecordingDate({
+        ...result,
+        photos: [result.photos[0], { ...result.photos[1], localRecordingDate: "2026-02-30" }],
+      }),
+    ).toBeNull();
+    expect(
+      droneIntakeRecordingDate({
+        ...result,
+        photos: [result.photos[0], { capturedAtUtc: null } as never],
+      }),
+    ).toBeNull();
+  });
+  it("does not reinterpret a local late-night date as UTC when it disagrees with a UTC-derived Danish date", () => {
+    const local = {
+      status: "date_confirmation_required",
+      localRecordingDate: "2026-08-24",
+      capturedAtUtc: null,
+    } as const;
+    const utc = { status: "located", capturedAtUtc: "2026-08-24T23:30:00.000Z" } as const;
+    expect(droneIntakeRecordingDate({ photos: [local] } as DroneLocalizationResult)).toBe(
+      "2026-08-24",
+    );
+    expect(
+      droneIntakeRecordingDate({ photos: [local, utc] } as DroneLocalizationResult),
+    ).toBeNull();
+    expect(
+      droneIntakeRecordingDate({
+        photos: [local, { ...utc, capturedAtUtc: "2026-08-24T07:31:00.000Z" }],
+      } as DroneLocalizationResult),
+    ).toBe("2026-08-24");
+  });
   it("prepares thirty inclusive calendar days without inventing a recording date", () => {
     expect(droneIntakeBaselinePeriod("2026-10-14")).toEqual({
       dateFrom: "2026-09-15",

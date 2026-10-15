@@ -133,6 +133,87 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe("upload-event-only intake assistant lifecycle", () => {
+  it("prefills the local day for clean GPS photos but requires explicit date confirmation before sources or AI", async () => {
+    state.queryData = {
+      "drone-intake-project": project,
+      "official-watercourse-reach": null,
+      "inspection-access": { userId: ACTOR, projectId: PROJECT, canPersist: true },
+    };
+    state.localize.mockResolvedValue({
+      projectId: PROJECT,
+      actorId: ACTOR,
+      photos: [
+        {
+          mediaId: MEDIA,
+          status: "date_confirmation_required",
+          localRecordingDate: "2026-08-24",
+          capturedAtUtc: null,
+          originalValidationStatus: "review_required",
+          cameraPosition: {
+            longitude: 9.05,
+            latitude: 55.05,
+            geometryRole: "camera_position_only",
+          },
+        },
+      ],
+      clusters: [
+        {
+          id: "camera-group:local-time",
+          mediaIds: [MEDIA],
+          searchStatus: "complete",
+          suggestedReferenceId: ACTOR,
+          suggestedPolygon: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [9, 55],
+                [9.1, 55],
+                [9.1, 55.1],
+                [9, 55.1],
+                [9, 55],
+              ],
+            ],
+          },
+          candidates: [
+            {
+              distanceM: 10,
+              reference: {
+                id: ACTOR,
+                name: "Foreslået vandløb",
+                disclaimer: "Strækning afventer faglig afklaring.",
+                geometry: {
+                  type: "MultiLineString",
+                  coordinates: [
+                    [
+                      [9.05, 55],
+                      [9.05, 55.1],
+                    ],
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    render();
+    const cleanup = state.effects[0]();
+    await flush();
+    const markup = render();
+    expect(markup).toContain('value="2026-08-24"');
+    expect(markup).toContain("UTC-tiden forbliver ukendt");
+    expect(markup).toContain("originalernes kontrolstatus ændres ikke");
+    expect(markup).not.toContain("Fotos, der kræver hjælp med stedet");
+    const confirm = markup.match(
+      /<button[^>]*>Bekræft sted og lokal optagedato, hent data og tilknyt billeder<\/button>/,
+    )?.[0];
+    expect(confirm).toBeDefined();
+    expect(confirm).not.toContain('disabled=""');
+    expect(state.run).not.toHaveBeenCalled();
+    expect(state.inspect).not.toHaveBeenCalled();
+    expect(state.prepared).not.toHaveBeenCalled();
+    cleanup?.();
+  });
   it.each([true, false])(
     "shows and blocks an existing-area mismatch only when camera positions are outside: %s",
     async (outside) => {

@@ -18,6 +18,51 @@ import {
   storageObject,
 } from "./drone-original-validation.fixtures";
 
+/** Structural MPO fixture, not a decoded-photo fixture. The auxiliary offset is
+ * TIFF-relative; primary size can reproduce DJI's stale pre-metadata value. */
+function indexedMpo(
+  options: { little?: boolean; staleSize?: boolean; secondary?: Uint8Array } = {},
+) {
+  const little = options.little ?? true,
+    secondary = options.secondary ?? originalJpeg(960, 640);
+  const primary = originalJpeg(5472, 3648);
+  const padding = options.staleSize ? new Uint8Array(8192) : new Uint8Array();
+  if (padding.length) padding.set([0xff, 0xe3, 0x1f, 0xfe]);
+  const tiff = new Uint8Array(82),
+    view = new DataView(tiff.buffer);
+  tiff.set(little ? [0x49, 0x49] : [0x4d, 0x4d]);
+  view.setUint16(2, 42, little);
+  view.setUint32(4, 8, little);
+  view.setUint16(8, 3, little);
+  const tag = (at: number, id: number, type: number, count: number, value: number) => {
+    view.setUint16(at, id, little);
+    view.setUint16(at + 2, type, little);
+    view.setUint32(at + 4, count, little);
+    view.setUint32(at + 8, value, little);
+  };
+  tag(10, 0xb000, 7, 4, 0);
+  tiff.set([0x30, 0x31, 0x30, 0x30], 18);
+  tag(22, 0xb001, 4, 1, 2);
+  tag(34, 0xb002, 7, 32, 50);
+  const segment = new Uint8Array([0xff, 0xe2, 0, 88, 0x4d, 0x50, 0x46, 0, ...tiff]);
+  const primaryEnd = primary.length + segment.length + padding.length,
+    base = 10;
+  const bytes = new Uint8Array(primaryEnd + secondary.length);
+  bytes.set(primary.subarray(0, 2));
+  bytes.set(segment, 2);
+  bytes.set(padding, 2 + segment.length);
+  bytes.set(primary.subarray(2), 2 + segment.length + padding.length);
+  bytes.set(secondary, primaryEnd);
+  const index = new DataView(bytes.buffer, base, tiff.length);
+  index.setUint32(50, 0xa0030000, little);
+  index.setUint32(54, primaryEnd - padding.length, little);
+  index.setUint16(64, 2, little);
+  index.setUint32(66, 0x40010001, little);
+  index.setUint32(70, secondary.length, little);
+  index.setUint32(74, primaryEnd - base, little);
+  return { bytes, primaryEnd, base, little };
+}
+
 describe("server original JPEG validation", () => {
   it("validates bounded JPEG structure and reports the actual frame dimensions", () => {
     expect(validateJpegStructure(originalJpeg())).toEqual({
@@ -31,6 +76,95 @@ describe("server original JPEG validation", () => {
       widthPx: 5280,
       heightPx: 3956,
     });
+  });
+  it.each([true, false])(
+    "accepts fully indexed, contiguous MPO JPEGs in either TIFF byte order: %s",
+    (little) => {
+      const warnings: { code: string; message: string }[] = [];
+      expect(validateJpegStructure(indexedMpo({ little }).bytes, warnings)).toEqual({
+        widthPx: 5472,
+        heightPx: 3648,
+        components: 1,
+        encoding: "baseline",
+        scans: 1,
+      });
+      expect(warnings).toEqual([]);
+    },
+  );
+  it("uses parsed primary EOI and exact secondary bounds when DJI primary-size metadata is stale", async () => {
+    const { bytes } = indexedMpo({ staleSize: true });
+    const warnings: { code: string; message: string }[] = [];
+    expect(validateJpegStructure(bytes, warnings)).toMatchObject({ widthPx: 5472, heightPx: 3648 });
+    expect(warnings.map((warning) => warning.code)).toEqual(["MPF_PRIMARY_SIZE_ADVISORY"]);
+    const result = await validateDroneOriginalBytes(
+      canonicalUpload(bytes),
+      storageObject(bytes),
+      bytes,
+      ACTOR_ID,
+    );
+    expect(result.validatorVersion).toBe("jpeg-structure-exifr/v1");
+    expect(result.status).not.toBe("rejected");
+    expect(result.warnings.some((warning) => warning.code === "MPF_PRIMARY_SIZE_ADVISORY")).toBe(
+      true,
+    );
+    expect(result.original.sha256).toBe(await sha256File(new Blob([bytes.slice().buffer])));
+    expect(result.pixelDecoded).toBe(false);
+    expect(result.reportEligible).toBe(false);
+    expect(
+      await parseStoredDroneOriginalValidation(
+        result,
+        await originalValidationSha256(result),
+        canonicalUpload(bytes),
+      ),
+    ).toEqual(result);
+  });
+  it.each([
+    "primary_zero",
+    "primary_overflow",
+    "secondary_gap",
+    "secondary_overlap",
+    "secondary_overflow",
+    "secondary_short",
+    "index_overflow",
+    "excess_images",
+    "non_jpeg_format",
+    "bad_secondary",
+  ])("rejects malformed MPF boundaries or secondary JPEG: %s", (kind) => {
+    const { bytes, base, primaryEnd } = indexedMpo({ staleSize: true }),
+      index = new DataView(bytes.buffer, base);
+    if (kind === "primary_zero") index.setUint32(54, 0, true);
+    if (kind === "primary_overflow") index.setUint32(54, primaryEnd + 1, true);
+    if (kind === "secondary_gap") index.setUint32(74, primaryEnd - base + 1, true);
+    if (kind === "secondary_overlap") index.setUint32(74, primaryEnd - base - 1, true);
+    if (kind === "secondary_overflow") index.setUint32(70, 0xffffffff, true);
+    if (kind === "secondary_short") index.setUint32(70, bytes.length - primaryEnd - 1, true);
+    if (kind === "index_overflow") index.setUint32(42, 0xffffffff, true);
+    if (kind === "excess_images") index.setUint32(30, 9, true);
+    if (kind === "non_jpeg_format") index.setUint32(66, 0x41010001, true);
+    if (kind === "bad_secondary") bytes[primaryEnd] = 0;
+    expect(() => validateJpegStructure(bytes)).toThrow();
+  });
+  it("continues rejecting unindexed concatenated JPEGs, nested MPOs and all undeclared trailing bytes", () => {
+    const { bytes } = indexedMpo();
+    for (const invalid of [
+      new Uint8Array([...originalJpeg(), ...originalJpeg()]),
+      new Uint8Array([...bytes, 0]),
+      new Uint8Array([...bytes, ...originalJpeg()]),
+      indexedMpo({ secondary: bytes }).bytes,
+    ])
+      expect(() => validateJpegStructure(invalid)).toThrow();
+  });
+  it("applies the existing metadata budget across all indexed images", () => {
+    const plain = originalJpeg(),
+      metadata = new Uint8Array(65004);
+    metadata.set([0xff, 0xe1, 0xfd, 0xea]);
+    const secondary = new Uint8Array(plain.length + metadata.length * 17);
+    secondary.set(plain.subarray(0, 2));
+    for (let index = 0; index < 17; index++) secondary.set(metadata, 2 + index * metadata.length);
+    secondary.set(plain.subarray(2), 2 + 17 * metadata.length);
+    expect(() => validateJpegStructure(indexedMpo({ secondary }).bytes)).toThrow(
+      "metadata overskrider",
+    );
   });
 
   it("rejects renamed non-JPEG, truncation, missing image data, trailing payload and excessive dimensions", () => {
