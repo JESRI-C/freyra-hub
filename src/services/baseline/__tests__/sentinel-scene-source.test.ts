@@ -349,11 +349,15 @@ describe("official Sentinel-2 L2A candidate catalogue", () => {
       status: "timeout",
       error: { code: "TIMEOUT" },
     });
-    const stream = new ReadableStream<Uint8Array>({
-      cancel: () => new Promise<void>(() => undefined),
-    });
     const bodyFailure = await fetchSentinelSceneSource(INPUT, {
-      fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(new Response(stream)),
+      fetchImpl: vi.fn<typeof fetch>().mockImplementation(
+        async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              cancel: () => new Promise<void>(() => undefined),
+            }),
+          ),
+      ),
       now: NOW,
       requestTimeoutMs: 5,
     });
@@ -369,7 +373,14 @@ describe("official Sentinel-2 L2A candidate catalogue", () => {
       );
     const source = await fetchSentinelSceneSource(INPUT, { fetchImpl, now: NOW, clockMs });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(source.status).toBe("timeout");
+    expect(source).toMatchObject({
+      status: "partial",
+      mode: "live",
+      error: { code: "TIMEOUT" },
+      coverage: { paginationComplete: false, returnedCount: 1 },
+    });
+    expect(scenes(source)).toHaveLength(1);
+    expect(source.payloadSha256).toBe(await baselineSha256(source.payload));
   });
 
   it("checks declared and actual response-byte limits", async () => {
@@ -405,5 +416,94 @@ describe("official Sentinel-2 L2A candidate catalogue", () => {
       ),
     ).rejects.toThrow("AOI");
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe("bounded Sentinel catalogue recovery", () => {
+  it("recovers one first-page timeout using the exact same canonical query", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(() => new Promise<Response>(() => undefined))
+      .mockResolvedValueOnce(response([item()]));
+    const result = await fetchSentinelSceneSource(INPUT, {
+      fetchImpl,
+      now: NOW,
+      requestTimeoutMs: 5,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[1][0]).toBe(fetchImpl.mock.calls[0][0]);
+    expect(fetchImpl.mock.calls[1][1]?.body).toBe(fetchImpl.mock.calls[0][1]?.body);
+    expect(result).toMatchObject({
+      status: "partial",
+      mode: "live",
+      error: null,
+      coverage: { paginationComplete: true, returnedCount: 1 },
+    });
+    expect(result.payload).toMatchObject({
+      requestAttemptCount: 2,
+      transientRetryCount: 1,
+      pagesFetched: 1,
+      collectionError: null,
+    });
+  });
+  it("keeps validated earlier scenes with exact dates after later transient failures", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        response([item()], [{ rel: "next", href: `${SENTINEL_STAC_SEARCH}?token=2` }]),
+      )
+      .mockImplementation(async () => new Response("Unavailable", { status: 503 }));
+    const result = await fetchSentinelSceneSource(INPUT, { fetchImpl, now: NOW });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(result).toMatchObject({
+      status: "partial",
+      mode: "live",
+      error: { code: "HTTP_503" },
+      coverage: {
+        paginationComplete: false,
+        returnedCount: 1,
+        observedFrom: "2026-09-12T10:30:00.000Z",
+        observedTo: "2026-09-12T10:30:00.000Z",
+      },
+    });
+    expect(result.payload).toMatchObject({
+      catalogComplete: false,
+      requestAttemptCount: 3,
+      transientRetryCount: 1,
+      pagesFetched: 1,
+      collectionError: { code: "HTTP_503" },
+    });
+    expect(scenes(result)[0].localQuality).toMatchObject({ usable: null });
+    expect(result.payloadSha256).toBe(await baselineSha256(result.payload));
+    expect(isBaselineMeasuredEvidence(result)).toBe(false);
+  });
+  it("shares the single retry across all pages and never keeps an incomplete empty result as no coverage", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("Unavailable", { status: 502 }))
+      .mockResolvedValueOnce(
+        response([item()], [{ rel: "next", href: `${SENTINEL_STAC_SEARCH}?token=2` }]),
+      )
+      .mockResolvedValueOnce(new Response("Unavailable", { status: 504 }));
+    const result = await fetchSentinelSceneSource(INPUT, { fetchImpl, now: NOW });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(result.payload).toMatchObject({
+      transientRetryCount: 1,
+      pagesFetched: 1,
+      catalogComplete: false,
+    });
+    const emptyFetch = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        response([], [{ rel: "next", href: `${SENTINEL_STAC_SEARCH}?token=2` }]),
+      )
+      .mockImplementation(async () => new Response("Unavailable", { status: 503 }));
+    const empty = await fetchSentinelSceneSource(INPUT, { fetchImpl: emptyFetch, now: NOW });
+    expect(empty).toMatchObject({
+      mode: "error",
+      status: "failed",
+      payload: null,
+      payloadSha256: null,
+    });
   });
 });

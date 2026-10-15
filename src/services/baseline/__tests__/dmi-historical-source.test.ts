@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchDmiHistoricalSource,
   summarizeDmiDailySeries,
+  summarizeAvailableDmiDailySeries,
   type DmiDailyPrecipitation,
 } from "../dmi-historical-source";
 import { isBaselineMeasuredEvidence } from "../public-baseline-types";
@@ -128,7 +129,7 @@ describe("official historical DMI source", () => {
       provider: "DMI",
       fetchedAt: now(),
       error: null,
-      adapterVersion: "dmi-historical-station-precip/v2",
+      adapterVersion: "dmi-historical-station-precip/v3",
       coverage: {
         spatial: "partial",
         temporal: "complete",
@@ -776,5 +777,97 @@ describe("official historical DMI source", () => {
     expect(summarizeDmiDailySeries([row, other], row.from, other.to, true).reasons).toContain(
       "mixed_stations",
     );
+  });
+});
+
+describe("bounded DMI daily context inside a requested window", () => {
+  const rows = [17, 18, 19].map((day) => ({
+    ...value(day).properties,
+    id: `local-day-${day}`,
+    coordinates: [9.45, 55.25] as [number, number],
+    parameterId: "acc_precip" as const,
+    timeResolution: "day" as const,
+    from: `2026-08-${day}T00:00:00.001+02:00`,
+    to: `2026-08-${day + 1}T00:00:00+02:00`,
+    value: day - 15,
+    unit: "mm" as const,
+    valueKind: "amount" as const,
+    qcStatus: "manual",
+    validity: true,
+    calculatedAt: null,
+    noValuesInCalculation: 24,
+  }));
+  it("uses only wholly contained local days and exposes their exact dates without a full-request claim", () => {
+    const result = summarizeAvailableDmiDailySeries(
+      rows,
+      "2026-08-17T00:00:00Z",
+      "2026-08-20T00:00:00Z",
+      true,
+    );
+    expect(result).toMatchObject({
+      scope: "complete_daily_intervals_inside_requested_period",
+      totalMm: 7,
+      complete: true,
+      dailyValueCount: 2,
+      excludedBoundaryIntervalCount: 1,
+      representsEntireRequestedPeriod: false,
+      coveredFrom: "2026-08-18T00:00:00.001+02:00",
+      coveredTo: "2026-08-20T00:00:00+02:00",
+      requestedFrom: "2026-08-17T00:00:00Z",
+      requestedTo: "2026-08-20T00:00:00Z",
+    });
+    expect(
+      summarizeDmiDailySeries(rows, "2026-08-17T00:00:00Z", "2026-08-20T00:00:00Z", true).totalMm,
+    ).toBeNull();
+  });
+  it("never sums boundary fractions, missing days, trace values or incomplete pagination", () => {
+    const from = rows[0].from,
+      to = rows[2].to;
+    for (const [series, complete] of [
+      [[rows[0], rows[2]], true],
+      [[{ ...rows[0], value: -0.1, valueKind: "trace" as const }, rows[1], rows[2]], true],
+      [rows, false],
+    ] as const) {
+      expect(summarizeAvailableDmiDailySeries([...series], from, to, complete).totalMm).toBeNull();
+    }
+    const empty = summarizeAvailableDmiDailySeries(
+      [rows[0]],
+      "2026-08-17T04:00:00Z",
+      "2026-08-17T05:00:00Z",
+      true,
+    );
+    expect(empty).toMatchObject({
+      complete: false,
+      totalMm: null,
+      dailyValueCount: 0,
+      coveredFrom: null,
+      coveredTo: null,
+      representsEntireRequestedPeriod: false,
+    });
+  });
+  it("can describe an exactly supported whole interval without modifying the stricter period summary", async () => {
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl: fixture() });
+    expect((result.payload as Record<string, unknown>).availableDailySummary).toMatchObject({
+      totalMm: 10,
+      complete: true,
+      representsEntireRequestedPeriod: true,
+      excludedBoundaryIntervalCount: 0,
+    });
+    expect(payload(result).summary).toMatchObject({ totalMm: 10, complete: true });
+  });
+  it("does not release an available-period sum while station eligibility is uncertain", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        page([station(), station("other", [9.5, 55.25], { operationFrom: undefined })]),
+      )
+      .mockResolvedValueOnce(page([value(17), value(18)]));
+    const result = await fetchDmiHistoricalSource(input, { fetchImpl });
+    expect((result.payload as Record<string, unknown>).availableDailySummary).toMatchObject({
+      complete: false,
+      totalMm: null,
+      representsEntireRequestedPeriod: false,
+      reasons: expect.arrayContaining(["station_eligibility_unknown"]),
+    });
   });
 });

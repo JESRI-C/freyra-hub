@@ -5,7 +5,7 @@
   "files": [
     {
       "path": "scripts/test-disposable-db-concurrency.mjs",
-      "normalizedSha256": "1b0c475903f637af69fedf69ff51056964fe479c4dab42258b982bdc81b3c7cb"
+      "normalizedSha256": "965e5ebce172d6de02205441eb5e5a634260c70ea5ec6d43bf77ec45d7ecb07d"
     },
     {
       "path": "scripts/database-concurrency/stop-disposable-stack.mjs",
@@ -78,6 +78,14 @@
     {
       "path": "supabase/migrations/20261014061314_survey_round_note_versions.sql",
       "normalizedSha256": "427ebbe666e46aa9d0ee6800217479c0ac9c6f20704ef6db411ea1434b06e67d"
+    },
+    {
+      "path": "scripts/database-concurrency/municipal-report-concurrency.test.mjs",
+      "normalizedSha256": "95e3962ed6f3fbd53d935813b8c06d4d0fc524d73c8ec055addebd7995487fca"
+    },
+    {
+      "path": "supabase/migrations/20261015194002_municipal_report_versions.sql",
+      "normalizedSha256": "846e576314c8a683271353740fbf6c69189ae656f55ada316457c6692ce46bab"
     }
   ]
 }

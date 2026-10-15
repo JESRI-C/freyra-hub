@@ -17,6 +17,7 @@ const MAX_PAYLOAD_BYTES = 768 * 1024;
 const TOTAL_TIMEOUT_MS = 12_000;
 const REQUEST_TIMEOUT_MS = 6_000;
 const MAX_SCENE_VERTICES = 500;
+const ADAPTER_VERSION = "sentinel-2-l2a-catalog/v2";
 
 const Position = z.tuple([
   z.number().finite().min(-180).max(180),
@@ -104,6 +105,12 @@ class CatalogError extends Error {
     super(message);
   }
 }
+function transientCatalogFailure(failure: unknown): failure is CatalogError {
+  return (
+    failure instanceof CatalogError &&
+    ["TIMEOUT", "HTTP_502", "HTTP_503", "HTTP_504"].includes(failure.code)
+  );
+}
 interface PageRequest {
   url: string;
   method: "GET" | "POST";
@@ -184,19 +191,23 @@ async function readBoundedPage(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await withAbort(
-      fetchImpl(request.url, {
-        method: request.method,
-        redirect: "manual",
-        signal: controller.signal,
-        headers: {
-          Accept: "application/geo+json, application/json",
-          ...(request.body ? { "Content-Type": "application/json" } : {}),
-        },
-        ...(request.body ? { body: JSON.stringify(request.body) } : {}),
-      }),
-      controller.signal,
+    const fetching = fetchImpl(request.url, {
+      method: request.method,
+      redirect: "manual",
+      signal: controller.signal,
+      headers: {
+        Accept: "application/geo+json, application/json",
+        ...(request.body ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(request.body ? { body: JSON.stringify(request.body) } : {}),
+    });
+    void fetching.then(
+      (lateResponse) => {
+        if (controller.signal.aborted) void lateResponse.body?.cancel().catch(() => undefined);
+      },
+      () => undefined,
     );
+    const response = await withAbort(fetching, controller.signal);
     if (!response.ok) {
       void response.body?.cancel().catch(() => undefined);
       throw new CatalogError(
@@ -230,6 +241,7 @@ async function readBoundedPage(
       // Cancellation is best effort; a stalled upstream cancel callback must
       // not extend the collection deadline after the reader has been rejected.
       void reader.cancel().catch(() => undefined);
+      reader.releaseLock();
     }
     const bytes = new Uint8Array(received);
     let offset = 0;
@@ -346,7 +358,7 @@ export async function fetchSentinelSceneSource(
     sourceUrl: SENTINEL_STAC_SEARCH,
     sourceModifiedAt: null,
     fetchedAt: now(),
-    adapterVersion: "sentinel-2-l2a-catalog/v1",
+    adapterVersion: ADAPTER_VERSION,
     query: { geometrySha256, bbox, requestedFrom: input.dateFrom, requestedTo: input.dateTo },
     coverage: {
       spatial: "unknown",
@@ -358,7 +370,7 @@ export async function fetchSentinelSceneSource(
     },
     quality: {
       evidenceKind: "official_registration",
-      method: "sentinel-2-l2a-catalog/v1",
+      method: ADAPTER_VERSION,
       warnings: [
         "Dette er et katalog over mulige scener. Lokale skyer, skygger, nodata og faktisk brugbar pixelopløsning er endnu ikke kontrolleret.",
         "Global scene-skydækning beskriver hele scenen og må ikke læses som lokal skydækning i projektet.",
@@ -399,6 +411,77 @@ export async function fetchSentinelSceneSource(
   const responseHashes: string[] = [];
   let pagesFetched = 0;
   let matched: number | null = null;
+  let requestAttemptCount = 0;
+  let transientRetryCount = 0;
+  const readPage = async (pageRequest: PageRequest): Promise<unknown> => {
+    while (true) {
+      const remaining = deadline - clockMs();
+      if (remaining <= 0)
+        throw new CatalogError("TIMEOUT", "Copernicus-kataloget nåede den samlede tidsgrænse.");
+      requestAttemptCount++;
+      try {
+        return await readBoundedPage(
+          pageRequest,
+          options.fetchImpl ?? fetch,
+          Math.min(requestMs, remaining),
+        );
+      } catch (failure) {
+        // STAC search is a read-only operation. Retry the exact same scope at
+        // most once, sharing the existing total deadline and page/byte limits.
+        if (!transientCatalogFailure(failure) || transientRetryCount >= 1 || clockMs() >= deadline)
+          throw failure;
+        transientRetryCount++;
+        base.quality.warnings.push(
+          "En midlertidig katalogfejl udløste ét genforsøg af samme forespørgsel inden for den samlede tidsgrænse.",
+        );
+      }
+    }
+  };
+  const result = async (
+    catalogComplete: boolean,
+    interruption: CatalogError | null = null,
+  ): Promise<PublicBaselineSource> => {
+    const scenes = [...candidates.values()].sort(
+      (a, b) => a.datetime.localeCompare(b.datetime) || a.id.localeCompare(b.id),
+    );
+    const payload = {
+      schema: "gofreyra.sentinel-scene-catalog/v1",
+      collection: SENTINEL_L2A_COLLECTION,
+      scenes,
+      pagesFetched,
+      catalogComplete,
+      requestAttemptCount,
+      transientRetryCount,
+      collectionError: interruption
+        ? { code: interruption.code, message: interruption.message }
+        : null,
+      localQualityStatus: "pending",
+      responseHashes,
+      documentationUrl: SENTINEL_STAC_DOCS,
+      licenceUrl:
+        "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice",
+    };
+    if (new TextEncoder().encode(canonicalBaselineJson(payload)).byteLength > MAX_PAYLOAD_BYTES)
+      throw new CatalogError(
+        "PAYLOAD_TOO_LARGE",
+        "Scenekataloget overskrider den tilladte snapshotstørrelse.",
+      );
+    return {
+      ...base,
+      status: scenes.length === 0 && catalogComplete ? "no_coverage" : "partial",
+      fetchedAt: now(),
+      coverage: {
+        ...base.coverage,
+        observedFrom: scenes[0]?.datetime ?? null,
+        observedTo: scenes[scenes.length - 1]?.datetime ?? null,
+        paginationComplete: catalogComplete,
+        returnedCount: scenes.length,
+      },
+      payload: z.json().parse(payload),
+      payloadSha256: await baselineSha256(payload),
+      error: interruption ? { code: interruption.code, message: interruption.message } : null,
+    };
+  };
   try {
     while (request && pagesFetched < maxPages) {
       const fingerprint = `${request.method}:${request.url}:${canonicalBaselineJson(request.body ?? null)}`;
@@ -408,14 +491,7 @@ export async function fetchSentinelSceneSource(
           "Katalogets næste side gentager en allerede hentet side.",
         );
       seen.add(fingerprint);
-      const remaining = deadline - clockMs();
-      if (remaining <= 0)
-        throw new CatalogError("TIMEOUT", "Copernicus-kataloget nåede den samlede tidsgrænse.");
-      const raw = await readBoundedPage(
-        request,
-        options.fetchImpl ?? fetch,
-        Math.min(requestMs, remaining),
-      );
+      const raw = await readPage(request);
       const page = PageSchema.parse(raw);
       responseHashes.push(await baselineSha256(raw));
       pagesFetched += 1;
@@ -448,40 +524,7 @@ export async function fetchSentinelSceneSource(
       base.quality.warnings.push(
         "Kataloget er kun delvist hentet. Flere scener kan findes i den valgte periode.",
       );
-    const scenes = [...candidates.values()].sort(
-      (a, b) => a.datetime.localeCompare(b.datetime) || a.id.localeCompare(b.id),
-    );
-    const payload = {
-      schema: "gofreyra.sentinel-scene-catalog/v1",
-      collection: SENTINEL_L2A_COLLECTION,
-      scenes,
-      pagesFetched,
-      catalogComplete,
-      localQualityStatus: "pending",
-      responseHashes,
-      documentationUrl: SENTINEL_STAC_DOCS,
-      licenceUrl:
-        "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice",
-    };
-    if (new TextEncoder().encode(canonicalBaselineJson(payload)).byteLength > MAX_PAYLOAD_BYTES)
-      throw new CatalogError(
-        "PAYLOAD_TOO_LARGE",
-        "Scenekataloget overskrider den tilladte snapshotstørrelse.",
-      );
-    return {
-      ...base,
-      status: scenes.length === 0 && catalogComplete ? "no_coverage" : "partial",
-      fetchedAt: now(),
-      coverage: {
-        ...base.coverage,
-        observedFrom: scenes[0]?.datetime ?? null,
-        observedTo: scenes[scenes.length - 1]?.datetime ?? null,
-        paginationComplete: catalogComplete,
-        returnedCount: scenes.length,
-      },
-      payload: z.json().parse(payload),
-      payloadSha256: await baselineSha256(payload),
-    };
+    return await result(catalogComplete);
   } catch (failure) {
     const error =
       failure instanceof CatalogError
@@ -490,6 +533,12 @@ export async function fetchSentinelSceneSource(
             "INVALID_OR_UNAVAILABLE_CATALOG",
             "Copernicus-kataloget kunne ikke hentes eller valideres.",
           );
+    if (transientCatalogFailure(error) && pagesFetched > 0 && candidates.size > 0) {
+      base.quality.warnings.push(
+        "Kataloghentningen blev afbrudt. Tidligere validerede scener og deres datoer er bevaret; pagination og fuld dækning er ikke bekræftet.",
+      );
+      return result(false, error);
+    }
     return {
       ...base,
       mode: "error",

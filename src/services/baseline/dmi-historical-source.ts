@@ -8,7 +8,7 @@ export const DMI_CLIMATE_DOCS = "https://www.dmi.dk/friedata/dokumentation/apis/
 export const DMI_PARAMETER_DOCS = "https://www.dmi.dk/friedata/dokumentation/climate-data";
 export const DMI_STATION_PERIOD_DOCS =
   "https://www.dmi.dk/friedata/dokumentation/stations-lists-explained";
-const VERSION = "dmi-historical-station-precip/v2";
+const VERSION = "dmi-historical-station-precip/v3";
 const MAX_PAGES = 3;
 const MAX_STATION_ATTEMPTS = 3;
 const PAGE_SIZE = 200;
@@ -405,6 +405,48 @@ export function summarizeDmiDailySeries(
   };
 }
 
+/**
+ * DMI documents local and meteorological days, whose actual bounds can differ
+ * from a UTC date request. Keep a useful, explicitly smaller observed window
+ * without converting overlapping/partial days into a whole-request total.
+ */
+export function summarizeAvailableDmiDailySeries(
+  series: DmiDailyPrecipitation[],
+  from: string,
+  to: string,
+  paginationComplete: boolean,
+) {
+  const start = Date.parse(from),
+    end = Date.parse(to);
+  const contained = series
+    .filter((row) => Date.parse(row.from) >= start && Date.parse(row.to) <= end)
+    .sort((a, b) => Date.parse(a.from) - Date.parse(b.from));
+  const first = contained[0],
+    last = contained.at(-1);
+  const summary = summarizeDmiDailySeries(
+    contained,
+    first?.from ?? from,
+    last?.to ?? to,
+    paginationComplete,
+  );
+  return {
+    ...summary,
+    scope: "complete_daily_intervals_inside_requested_period" as const,
+    requestedFrom: from,
+    requestedTo: to,
+    excludedBoundaryIntervalCount: series.length - contained.length,
+    representsEntireRequestedPeriod:
+      summary.complete &&
+      !!first &&
+      !!last &&
+      Date.parse(first.from) === start &&
+      Math.abs(Date.parse(last.to) - end) <= 1000,
+    method:
+      "Sum of complete contiguous manually controlled DMI daily acc_precip intervals wholly inside the requested period; actual covered bounds retained. Not a full-request sum unless representsEntireRequestedPeriod is true. No gap filling, prorating or mixing stations.",
+  };
+}
+export type DmiAvailableDailySummary = ReturnType<typeof summarizeAvailableDmiDailySeries>;
+
 export async function fetchDmiHistoricalSource(
   input: DmiHistoricalInput,
   options: DmiHistoricalOptions = {},
@@ -698,15 +740,31 @@ export async function fetchDmiHistoricalSource(
         requestedTo,
         paginationComplete,
       );
+      const availableDailySummary = summarizeAvailableDmiDailySeries(
+        series,
+        requestedFrom,
+        requestedTo,
+        paginationComplete,
+      );
       // Page completeness is distinct from candidate eligibility and our
       // station-attempt budget. Preserve each reason rather than mislabeling
       // a fully fetched response as truncated pagination.
       if (uncertainCandidates || attemptLimitReached) {
-        if (uncertainCandidates) summary.reasons.push("station_eligibility_unknown");
-        if (attemptLimitReached) summary.reasons.push("station_attempt_limit_reached");
-        summary.complete = false;
-        summary.totalMm = null;
+        for (const evaluatedSummary of [summary, availableDailySummary]) {
+          if (uncertainCandidates) evaluatedSummary.reasons.push("station_eligibility_unknown");
+          if (attemptLimitReached) evaluatedSummary.reasons.push("station_attempt_limit_reached");
+          evaluatedSummary.complete = false;
+          evaluatedSummary.totalMm = null;
+        }
+        availableDailySummary.representsEntireRequestedPeriod = false;
       }
+      if (
+        availableDailySummary.totalMm !== null &&
+        !availableDailySummary.representsEntireRequestedPeriod
+      )
+        warnings.push(
+          "Den særskilte sum for tilgængelige komplette døgn gælder kun sine angivne dækningsdatoer, ikke hele den bestilte periode eller et lokalt vandløbsopland.",
+        );
       const withinProject = input.polygon
         ? booleanPointInPolygon(
             point(selected.geometry.coordinates),
@@ -771,6 +829,7 @@ export async function fetchDmiHistoricalSource(
         stationSelection: z.json().parse(stationSelection),
         series: series as unknown as BaselineJson,
         summary,
+        availableDailySummary,
         queries,
       };
     }

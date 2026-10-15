@@ -34,6 +34,7 @@ import { computeDocumentationScore, listDocuments } from "@/services/documents-s
 
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
 import { ProjectReportRecords } from "@/components/reports/ProjectReportRecords";
+import { MunicipalReportPanel } from "@/components/reports/MunicipalReportPanel";
 import { DroneImageInspectionPanel } from "@/components/project/DroneImageInspectionPanel";
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
@@ -725,20 +726,26 @@ function ProjectDetailPage() {
             {/* ── Rapporter ──────────────────────────────────────────────── */}
             {active === "rapporter" && (
               <div className="space-y-4">
-                <ProjectReportRecords projectId={projectId} reports={reports} />
+                <MunicipalReportPanel projectId={projectId} />
                 <DroneImageInspectionPanel projectId={projectId} />
-
-                {/* Report preview */}
-                <ReportPreviewCard preview={reportPreview} />
-                <DokumentationTab
-                  projectId={projectId}
-                  project={project}
-                  sites={sites}
-                  actions={localActions}
-                  indicators={indicators}
-                  evidenceFiles={evidenceFiles}
-                  delivery
-                />
+                <details>
+                  <summary className="cursor-pointer text-sm text-muted-foreground">
+                    Øvrige projektoversigter og dokumenter
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <ProjectReportRecords projectId={projectId} reports={reports} />
+                    <ReportPreviewCard preview={reportPreview} />
+                    <DokumentationTab
+                      projectId={projectId}
+                      project={project}
+                      sites={sites}
+                      actions={localActions}
+                      indicators={indicators}
+                      evidenceFiles={evidenceFiles}
+                      delivery
+                    />
+                  </div>
+                </details>
               </div>
             )}
 

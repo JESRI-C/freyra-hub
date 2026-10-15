@@ -743,15 +743,15 @@ function Workspace({
       <Card className="p-5 space-y-3">
         <h3 className="font-semibold">Rapport og aflevering</h3>
         <p className="text-sm text-muted-foreground">
-          En kladdenote er ikke en godkendt konklusion. Den færdige, genåbnelige kommunerapport og
-          faglige godkendelse er stadig under udvikling.
+          Under Rapport og levering kan du gemme en samlet rapportversion med kilder, fotos og svar.
+          Faglig godkendelse og kommunal afgrænsning skal fortsat afklares.
         </p>
         <button
           type="button"
           onClick={onOpenDelivery}
           className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
         >
-          Se rapportkladde og mangler
+          Saml rapport og se mangler
           <ArrowRight className="h-4 w-4" />
         </button>
       </Card>

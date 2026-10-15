@@ -163,6 +163,8 @@ try {
     "supabase/tests/fixtures/database-concurrency/media-fixture-genesis.json",
     "scripts/database-concurrency/survey-round-note-concurrency.test.mjs",
     "scripts/database-concurrency/survey-round-note-guards.mjs",
+    "scripts/database-concurrency/municipal-report-concurrency.test.mjs",
+    "supabase/migrations/20261015194002_municipal_report_versions.sql",
     "supabase/tests/fixtures/database-concurrency/initialize-note.sql",
     "supabase/tests/fixtures/database-concurrency/round-note.json",
     "supabase/tests/fixtures/database-concurrency/note-fixture-genesis.json",
@@ -233,6 +235,7 @@ try {
   const preflightSql = `select jsonb_build_object('database',current_database(),'role',current_user,
     'requiredRoundTablePresent',to_regclass('public.survey_round_versions') is not null,
     'requiredNoteTablePresent',to_regclass('public.survey_round_note_versions') is not null,
+    'requiredReportTablePresent',to_regclass('public.municipal_report_versions') is not null,
     'legacyProjectIds',(select jsonb_agg(id order by id) from public.projects),
     'legacyOrganizationIds',(select jsonb_agg(id order by id) from public.organizations),
     'legacyGraphSha256',encode(extensions.digest(jsonb_build_object(
@@ -248,7 +251,10 @@ try {
     'origins',(select count(*) from public.project_media_upload_origins),'promotions',(select count(*) from public.project_media_promotion_requests),
     'storageObjects',(select count(*) from storage.objects),
     'roundMediaBindings',(select count(*) from public.survey_round_media_versions),
-    'roundNotes',(select count(*) from public.survey_round_note_versions)));`;
+    'roundNotes',(select count(*) from public.survey_round_note_versions),
+    'inspections',(select count(*) from public.drone_image_inspections),
+    'answers',(select count(*) from public.drone_image_inspection_answer_versions),
+    'reports',(select count(*) from public.municipal_report_versions)));`;
   const [before] = await processStage("preflight", psql, psqlArgs, preflightSql, childEnvironment);
   await writeFile(resolve(evidence, "preflight.json"), `${JSON.stringify(before, null, 2)}\n`);
   assert.equal(
@@ -265,6 +271,11 @@ try {
     before.requiredNoteTablePresent,
     true,
     "Reviewed note migration must have replayed locally",
+  );
+  assert.equal(
+    before.requiredReportTablePresent,
+    true,
+    "Reviewed municipal report migration must have replayed locally",
   );
   assert.deepEqual(
     before.legacyProjectIds,
@@ -492,6 +503,38 @@ try {
   assert.equal(noteProof?.changedStorageCMetadataDeliberatelyNotRestored, true);
   assert.equal(noteProof?.professionalMunicipalOrReportAcceptance, false);
 
+  // Preserve all twenty-five prior schedules and their deliberate B/C changes.
+  // Report schedules reuse their immutable rows; no additional seed is written.
+  const reportObjects = await processStage(
+    "municipal-report",
+    process.execPath,
+    [
+      resolve(root, "scripts/database-concurrency/municipal-report-concurrency.test.mjs"),
+      ...shared,
+      "--fixture",
+      resolve(root, "supabase/tests/fixtures/database-concurrency/round-note.json"),
+    ],
+    undefined,
+    childEnvironment,
+  );
+  const reportProof = reportObjects.find((value) => value.result === "PASS");
+  await writeFile(
+    resolve(evidence, "municipal-report-proof.json"),
+    JSON.stringify(reportProof ?? null, null, 2) + "\n",
+  );
+  assert.equal(reportProof?.tests, 4);
+  assert.equal(reportProof?.rowsAdded, 4);
+  assert.equal(reportProof?.actualLockWaitsVerified, true);
+  assert.equal(reportProof?.actorId, genesis.actorId);
+  assert.equal(reportProof?.exactMembershipRestored, true);
+  assert.equal(reportProof?.immutableInputGraphPreserved, true);
+  assert.equal(reportProof?.priorChangedStorageBAndCPreservedAsFound, true);
+  assert.equal(reportProof?.productionReportCompilerExecuted, false);
+  assert.equal(reportProof?.pdfGenerated, false);
+  assert.equal(reportProof?.metadataOnlyOriginalFixtures, 3);
+  assert.equal(reportProof?.originalBytesUploadedOrStored, false);
+  assert.equal(reportProof?.professionalMunicipalOrReportAcceptance, false);
+
   const postflightSql = `select jsonb_build_object(
     'users',(select count(*) from auth.users),'organizations',(select count(*) from public.organizations),
     'organizationMemberships',(select count(*) from public.organization_memberships),
@@ -511,6 +554,10 @@ try {
     'origins',(select count(*) from public.project_media_upload_origins),'promotions',(select count(*) from public.project_media_promotion_requests),
     'roundMediaBindings',(select count(*) from public.survey_round_media_versions),
     'roundNotes',(select count(*) from public.survey_round_note_versions),
+    'inspections',(select count(*) from public.drone_image_inspections),
+    'answers',(select count(*) from public.drone_image_inspection_answer_versions),
+    'reports',(select count(*) from public.municipal_report_versions),
+    'unreviewedReports',(select count(*) from public.municipal_report_versions where status='draft_unreviewed' and not report_eligible and not professionally_reviewed and not municipal_scope_approved),
     'unreviewedRoundNotes',(select count(*) from public.survey_round_note_versions where status='draft_unreviewed' and note_version_no=1 and supersedes_id is null and not(manifest ?| array['professionalApproved','reportReady','photoViewed','observedAt','objectGeometry'])),
     'unapprovedRoundMediaBindings',(select count(*) from public.survey_round_media_versions where status='draft_assignment' and manifest->'acceptance'='{\"municipalScopeApproved\":false,\"professionalApproved\":false,\"pixelDecoded\":false,\"georeferenced\":false,\"reportEligible\":false,\"reportAccepted\":false}'::jsonb),
     'editorRole',(select role::text from public.project_members where project_id='${genesis.projectId}'::uuid and user_id='${genesis.actorId}'::uuid),
@@ -561,6 +608,18 @@ try {
     );
   for (const name of ["roundNotes", "unreviewedRoundNotes"])
     assert.equal(Number(after[name]), 6, `Exactly six immutable manual notes exist: ${name}`);
+  for (const name of ["reports", "unreviewedReports"])
+    assert.equal(
+      Number(after[name]),
+      4,
+      `Exactly four immutable unapproved report versions exist: ${name}`,
+    );
+  for (const name of ["inspections", "answers"])
+    assert.equal(
+      Number(after[name]),
+      0,
+      `No inspection or answer rows added by report SQL schedules: ${name}`,
+    );
   assert.equal(after.editorRole, "editor");
   assert.equal(after.organizationRole, "viewer");
   assert.equal(interruptedSignal, null, "Cancelled local concurrency run cannot claim PASS");
@@ -569,12 +628,13 @@ try {
   receipt.roleSnapshotScenarios = 8;
   receipt.roundMediaScenarios = 5;
   receipt.roundNoteScenarios = 7;
+  receipt.municipalReportScenarios = 4;
   receipt.metadataOnlyOriginalFixtures = 3;
   receipt.changedStorageCMetadataFixtureDeliberatelyNotRestored = true;
   receipt.priorChangedStorageBPreservedAsFound = true;
   receipt.originalBytesUploadedOrStored = false;
   receipt.changedStorageMetadataFixtureDeliberatelyNotRestored = true;
-  receipt.totalConcurrencyScenarios = 25;
+  receipt.totalConcurrencyScenarios = 29;
 } catch (error) {
   receipt.result = "FAIL";
   // These scripts/fixtures contain synthetic diagnostics only. Never serialize
