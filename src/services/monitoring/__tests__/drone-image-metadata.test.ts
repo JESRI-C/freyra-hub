@@ -90,16 +90,10 @@ function buildMinimalExifJpeg(): File {
   jpeg.set(exifHeader, 6);
   jpeg.set(tiff, 6 + exifHeader.length);
   jpeg.set([0xff, 0xd9], jpeg.length - 2);
-  // Keep the runtime value a Uint8Array so exifr uses its native buffer reader
-  // in Vitest's Node environment, while exposing the File fields used by the
-  // production extractor. Browsers pass a real File through the same parser.
-  return Object.assign(jpeg, {
-    name: "DJI_0001.JPG",
-    size: jpeg.byteLength,
+  return new File([jpeg.buffer], "DJI_0001.JPG", {
     type: "image/jpeg",
     lastModified: FILE_INFO.lastModified,
-    arrayBuffer: async () => jpeg.buffer.slice(jpeg.byteOffset, jpeg.byteOffset + jpeg.byteLength),
-  }) as unknown as File;
+  });
 }
 
 function standardExif(overrides: Record<string, unknown> = {}) {
@@ -326,6 +320,25 @@ describe("extraction and serialization", () => {
     expect(metadata.raw.parseErrors).toEqual([]);
   });
 
+  it("extracts GPS and UTC from a genuine File without DOM FileReader, reading original bytes once", async () => {
+    vi.stubGlobal("FileReader", undefined);
+    try {
+      const file = buildMinimalExifJpeg();
+      const read = vi.spyOn(file, "arrayBuffer");
+      const metadata = await extractDroneImageMetadata(file);
+      expect(file).toBeInstanceOf(File);
+      expect(read).toHaveBeenCalledTimes(1);
+      expect(metadata.position?.latitude).toBeCloseTo(55.245678, 6);
+      expect(metadata.position?.longitude).toBeCloseTo(9.487654, 6);
+      expect(metadata.capture.capturedAtUtc).toBe("2026-08-28T12:05:06.000Z");
+      expect(metadata.raw.parseErrors).toEqual([]);
+      expect(isReadyForAutomaticCameraPosition(metadata)).toBe(true);
+      expect(metadata.file.sha256).toBe(await sha256File(file));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("produces the known SHA-256 for a deterministic fixture", async () => {
     const file = new File(["gofreyra-drone-fixture-v1"], "fixture.jpg", { type: "image/jpeg" });
     await expect(sha256File(file)).resolves.toBe(
@@ -349,6 +362,8 @@ describe("extraction and serialization", () => {
     });
 
     expect(parse).toHaveBeenCalledTimes(2);
+    expect(parse.mock.calls[0]?.[0]).toBeInstanceOf(ArrayBuffer);
+    expect(parse.mock.calls[1]?.[0]).toBe(parse.mock.calls[0]?.[0]);
     expect(parse.mock.calls[0]?.[1]).toMatchObject({
       reviveValues: false,
       xmp: false,

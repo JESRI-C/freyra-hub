@@ -190,11 +190,14 @@ export async function extractDroneImageMetadata(
   const reader = dependencies.reader ?? exifr;
   const subtle = dependencies.subtle ?? crypto.subtle;
   const parseErrors: string[] = [];
-  const sha256 = await sha256File(file, subtle);
+  // Workers implements Blob.arrayBuffer(), but not the DOM FileReader used by
+  // exifr's Blob reader. Hash and parse one exact byte snapshot in every runtime.
+  const bytes = await file.arrayBuffer();
+  const sha256 = await sha256Buffer(bytes, subtle);
 
   let exifOutput: unknown = null;
   try {
-    exifOutput = await reader.parse(file, EXIF_OPTIONS);
+    exifOutput = await reader.parse(bytes, EXIF_OPTIONS);
     appendParserOutputErrors(exifOutput, "EXIF", parseErrors);
   } catch (error) {
     parseErrors.push(`EXIF: ${errorMessage(error)}`);
@@ -203,7 +206,7 @@ export async function extractDroneImageMetadata(
   let xmpXml: string | null = null;
   let xmpOutput: unknown = null;
   try {
-    const envelope = await reader.parse(file, RAW_XMP_OPTIONS);
+    const envelope = await reader.parse(bytes, RAW_XMP_OPTIONS);
     appendParserOutputErrors(envelope, "XMP", parseErrors);
     xmpXml = findFirstString(envelope, ["xmp"]);
     if (xmpXml) {
@@ -243,7 +246,11 @@ export async function sha256File(
   file: Blob,
   subtle: SubtleCrypto = crypto.subtle,
 ): Promise<string> {
-  const digest = await subtle.digest("SHA-256", await file.arrayBuffer());
+  return sha256Buffer(await file.arrayBuffer(), subtle);
+}
+
+async function sha256Buffer(bytes: ArrayBuffer, subtle: SubtleCrypto): Promise<string> {
+  const digest = await subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 

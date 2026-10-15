@@ -11,6 +11,9 @@ export const DRONE_VISION_PROVIDER = "cloudflare-workers-ai";
 export const DRONE_VISION_MODEL = "@cf/qwen/qwen3.8-27b";
 export const DRONE_VISION_MAX_ORIGINAL_BYTES = 20_000_000;
 export const DRONE_VISION_TRANSFORM = "cloudflare-images-jpeg-1536-q85-strip-app/v1";
+// One attempt stays below the three-minute claim lease. Upstream inference may
+// queue; the same deadline also covers Images, reauthorization and body reads.
+export const DRONE_VISION_TIMEOUT_MS = 100_000;
 const MAX_DERIVATIVE_BYTES = 2 * 1024 * 1024;
 const MAX_RESPONSE_BYTES = 64 * 1024;
 
@@ -214,13 +217,31 @@ export const inspectDroneImageBytes = createServerOnlyFn(
       throw new DroneVisionError("unavailable");
     }
     if (!bindings.AI?.run || !bindings.IMAGES?.input) throw new DroneVisionError("unavailable");
+    type Phase =
+      | "image_transform"
+      | "image_body"
+      | "reauthorization"
+      | "ai_inference"
+      | "ai_body"
+      | "output_validation";
+    const startedAt = Date.now();
+    let phase: Phase = "image_transform";
+    let phaseStartedAt = startedAt;
+    let outcome: "completed" | DroneVisionError["code"] = "provider";
+    const phaseMs: Partial<Record<Phase, number>> = {};
+    const enter = (next: Phase) => {
+      const now = Date.now();
+      phaseMs[phase] = Math.max(0, now - phaseStartedAt);
+      phase = next;
+      phaseStartedAt = now;
+    };
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         controller.abort();
         reject(new DroneVisionError("timeout"));
-      }, options.timeoutMs ?? 65_000);
+      }, options.timeoutMs ?? DRONE_VISION_TIMEOUT_MS);
     });
     try {
       return await Promise.race([
@@ -235,6 +256,7 @@ export const inspectDroneImageBytes = createServerOnlyFn(
           } catch {
             throw new DroneVisionError("invalid_image");
           }
+          enter("image_body");
           const derivative = sanitizeVisionJpeg(
             await readBounded(
               transformed,
@@ -248,8 +270,10 @@ export const inspectDroneImageBytes = createServerOnlyFn(
             .map((value) => value.toString(16).padStart(2, "0"))
             .join("");
           if (controller.signal.aborted) throw new DroneVisionError("timeout");
+          enter("reauthorization");
           await options.beforeModelTransfer?.();
           if (controller.signal.aborted) throw new DroneVisionError("timeout");
+          enter("ai_inference");
           let result: unknown;
           try {
             result = await bindings.AI.run(
@@ -294,9 +318,11 @@ export const inspectDroneImageBytes = createServerOnlyFn(
             throw new DroneVisionError(controller.signal.aborted ? "timeout" : "provider");
           }
           if (!(result instanceof Response)) throw new DroneVisionError("invalid_output");
+          enter("ai_body");
           const text = new TextDecoder("utf-8", { fatal: true }).decode(
             await readBounded(result, MAX_RESPONSE_BYTES, "invalid_output", controller.signal),
           );
+          enter("output_validation");
           let visual: unknown;
           try {
             const envelope = z
@@ -318,6 +344,7 @@ export const inspectDroneImageBytes = createServerOnlyFn(
           } catch {
             throw new DroneVisionError("invalid_output");
           }
+          outcome = "completed";
           return {
             visual,
             derivative: {
@@ -333,11 +360,23 @@ export const inspectDroneImageBytes = createServerOnlyFn(
         })(),
       ]);
     } catch (error) {
-      if (error instanceof DroneVisionError) throw error;
+      if (error instanceof DroneVisionError) {
+        outcome = error.code;
+        throw error;
+      }
       throw new DroneVisionError("provider");
     } finally {
       clearTimeout(timer);
       controller.abort();
+      phaseMs[phase] = Math.max(0, Date.now() - phaseStartedAt);
+      // Deliberately exclude image bytes, hashes, IDs, URLs and error payloads.
+      // This single event identifies which boundary exhausted the deadline.
+      console.info("drone_vision_timing", {
+        outcome,
+        phase,
+        elapsedMs: Math.max(0, Date.now() - startedAt),
+        phaseMs: { ...phaseMs },
+      });
     }
   },
 );

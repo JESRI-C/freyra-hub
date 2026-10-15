@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   inspectDroneImageBytes,
   sanitizeVisionJpeg,
   DRONE_VISION_MAX_ORIGINAL_BYTES,
+  DRONE_VISION_TIMEOUT_MS,
   type DroneVisionBindings,
 } from "../drone-vision-provider.server";
 
@@ -42,6 +43,13 @@ function bindings(options: { response?: Response; image?: Uint8Array } = {}) {
   };
 }
 describe("private original to bounded vision derivative", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
   it("strips metadata and derives dimensions from transformed JPEG bytes", () => {
     const clean = sanitizeVisionJpeg(jpeg);
     expect(new TextDecoder().decode(clean.bytes)).not.toContain("EXIF");
@@ -173,6 +181,68 @@ describe("private original to bounded vision derivative", () => {
     await expect(inspectDroneImageBytes(jpeg, { ...mocks, timeoutMs: 20 })).rejects.toMatchObject({
       code: "timeout",
     });
+    expect(console.info).toHaveBeenCalledWith(
+      "drone_vision_timing",
+      expect.objectContaining({ outcome: "timeout", phase: "ai_inference" }),
+    );
+  });
+  it("allows a slow single inference to finish after the old deadline", async () => {
+    vi.useFakeTimers();
+    const mocks = bindings();
+    let markStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    mocks.run.mockImplementation(() => {
+      markStarted();
+      return new Promise((resolve) => {
+        setTimeout(
+          () =>
+            resolve(
+              Response.json({
+                choices: [{ finish_reason: "stop", message: { content: JSON.stringify(visual) } }],
+              }),
+            ),
+          90_000,
+        );
+      });
+    });
+    let settled = false;
+    const pending = inspectDroneImageBytes(jpeg, mocks).then((result) => {
+      settled = true;
+      return result;
+    });
+    await started;
+    await vi.advanceTimersByTimeAsync(66_000);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(24_000);
+    await expect(pending).resolves.toMatchObject({ visual });
+    expect(mocks.run).toHaveBeenCalledTimes(1);
+    expect(DRONE_VISION_TIMEOUT_MS).toBe(100_000);
+    expect(console.info).toHaveBeenCalledWith(
+      "drone_vision_timing",
+      expect.objectContaining({
+        outcome: "completed",
+        phase: "output_validation",
+        elapsedMs: 90_000,
+      }),
+    );
+  });
+  it("logs bounded phase timings without payloads, URLs or image identifiers", async () => {
+    const mocks = bindings();
+    mocks.run.mockRejectedValue(new Error("secret provider payload https://private.test/image"));
+    await expect(inspectDroneImageBytes(jpeg, mocks)).rejects.toMatchObject({ code: "provider" });
+    const diagnostic = vi.mocked(console.info).mock.calls[0];
+    expect(diagnostic[0]).toBe("drone_vision_timing");
+    expect(Object.keys(diagnostic[1]).sort()).toEqual(["elapsedMs", "outcome", "phase", "phaseMs"]);
+    expect(diagnostic[1]).toMatchObject({ outcome: "provider", phase: "ai_inference" });
+    expect(JSON.stringify(diagnostic)).not.toMatch(/secret|https:|EXIF|sha256|project|mediaId/);
+    expect(
+      Object.values(diagnostic[1].phaseMs).every(
+        (value) => Number.isFinite(value) && Number(value) >= 0,
+      ),
+    ).toBe(true);
+    expect(console.info).toHaveBeenCalledTimes(1);
   });
   it("cancels a stalled transformed image and never starts late inference", async () => {
     const mocks = bindings();
@@ -186,6 +256,10 @@ describe("private original to bounded vision derivative", () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(mocks.run).not.toHaveBeenCalled();
+    expect(console.info).toHaveBeenCalledWith(
+      "drone_vision_timing",
+      expect.objectContaining({ outcome: "timeout", phase: "image_body" }),
+    );
   });
   it("cancels a stalled inference body at the same deadline", async () => {
     const cancel = vi.fn();
@@ -196,6 +270,10 @@ describe("private original to bounded vision derivative", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(mocks.run).toHaveBeenCalledTimes(1);
+    expect(console.info).toHaveBeenCalledWith(
+      "drone_vision_timing",
+      expect.objectContaining({ outcome: "timeout", phase: "ai_body" }),
+    );
   });
   it("reauthorizes after transformation before transferring pixels to inference", async () => {
     const mocks = bindings();
