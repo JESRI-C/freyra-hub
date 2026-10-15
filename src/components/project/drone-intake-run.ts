@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { DroneLocalizationResult } from "@/services/geospatial/drone-localization";
 import { MAX_DRONE_INSPECTION_ORIGINAL_BYTES } from "@/services/monitoring/drone-image-inspection";
+import { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
 import type { DroneLocalizationPhoto } from "@/services/geospatial/drone-localization";
 import type { inspectDroneImage } from "@/lib/drone-image-inspection.functions";
 
@@ -26,7 +27,8 @@ const Scope = z
 export type DroneIntakeScope = z.infer<typeof Scope>;
 const Receipt = z
   .object({
-    schema: z.literal("gofreyra.drone-intake-image-requests/v1"),
+    schema: z.literal("gofreyra.drone-intake-image-requests/v2"),
+    modelId: z.literal(DRONE_VISION_MODEL),
     scope: Scope,
     requests: z
       .array(z.object({ mediaId: Uuid, requestId: Uuid }).strict())
@@ -56,7 +58,7 @@ export function droneIntakeAiPhotos(photos: DroneLocalizationPhoto[]): DroneLoca
 }
 export function droneIntakeReceiptKey(raw: DroneIntakeScope): string {
   const scope = Scope.parse(raw);
-  return `gofreyra.drone-intake-image-requests:${scope.actorId}:${scope.projectId}:${scope.batchId}:${scope.baselineSnapshotId}:${scope.baselineSha256}:${scope.mediaIds.join(",")}`;
+  return `gofreyra.drone-intake-image-requests/v2:${encodeURIComponent(DRONE_VISION_MODEL)}:${scope.actorId}:${scope.projectId}:${scope.batchId}:${scope.baselineSnapshotId}:${scope.baselineSha256}:${scope.mediaIds.join(",")}`;
 }
 export function readOrCreateDroneIntakeRequests(
   raw: DroneIntakeScope,
@@ -82,7 +84,8 @@ export function readOrCreateDroneIntakeRequests(
     return value;
   }
   const value = Receipt.parse({
-    schema: "gofreyra.drone-intake-image-requests/v1",
+    schema: "gofreyra.drone-intake-image-requests/v2",
+    modelId: DRONE_VISION_MODEL,
     scope,
     requests: scope.mediaIds.map((mediaId) => ({ mediaId, requestId: randomUUID() })),
   });

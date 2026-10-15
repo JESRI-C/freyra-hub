@@ -177,6 +177,34 @@ select set_config('request.jwt.claims','{"sub":"bb100000-0000-4000-8000-00000000
 select is((select count(result)::integer from public.drone_image_inspections),0,'foreign member sees no image drafts');
 select is((select count(*)::integer from public.drone_image_inspection_answer_versions),0,'foreign member sees no answer history');
 reset role;
+-- A new model gets its own exact-input version; old Qwen drafts are neither
+-- relabeled nor overwritten. All existing role/pin/budget checks still apply.
+create function pg_temp.vision_model_claim(p_model text,p_request uuid default 'bb730000-0000-4000-8000-000000000001',p_actor uuid default 'bb100000-0000-4000-8000-000000000001') returns jsonb language sql as $$
+ select public.claim_drone_image_inspection('bb200000-0000-4000-8000-000000000001',id,p_actor,p_request,
+  'cloudflare-workers-ai',p_model,'danish-stream-visual-draft/v1','visual-photo-followups/v1')
+ from public.project_media where source_upload_id='bb300000-0000-4000-8000-000000000001'
+$$;
+create temporary table vision_prior_qwen as select id,result_sha256,result_text,attempt_count from public.drone_image_inspections where model_id='@cf/qwen/qwen3.8-27b';
+grant select on vision_prior_qwen to service_role;
+set local role service_role;
+select throws_ok($q$select pg_temp.vision_model_claim('@cf/unapproved/model')$q$,'22023',null,'unsupported model cannot acquire a provider reservation');
+select throws_ok($q$select pg_temp.vision_model_claim(null)$q$,'22023',null,'missing model cannot acquire a provider reservation');
+select throws_ok($q$select pg_temp.vision_model_claim('@cf/google/gemma-4-26b-a4b-it','bb730000-0000-4000-8000-000000000002','bb100000-0000-4000-8000-000000000002')$q$,'42501',null,'Gemma retains the viewer denial gate');
+select throws_ok($q$select pg_temp.vision_model_claim('@cf/google/gemma-4-26b-a4b-it','bb700000-0000-4000-8000-000000000001')$q$,'23514',null,'changing model cannot reuse the historical Qwen request');
+select lives_ok($q$do $$declare claimed jsonb; draft jsonb; begin
+ claimed:=pg_temp.vision_model_claim('@cf/google/gemma-4-26b-a4b-it');
+ if claimed->>'state'<>'claimed' then raise exception 'Expected new Gemma reservation'; end if;
+ select result into strict draft from public.drone_image_inspections where model_id='@cf/qwen/qwen3.8-27b';
+ draft:=jsonb_set(draft,'{provenance,model}',to_jsonb('@cf/google/gemma-4-26b-a4b-it'::text));
+ draft:=jsonb_set(draft,'{provenance,requestId}',claimed#>'{inspection,request_id}');
+ perform public.finish_drone_image_inspection('bb200000-0000-4000-8000-000000000001',(claimed#>>'{inspection,id}')::uuid,
+  'bb100000-0000-4000-8000-000000000001',(claimed->>'claimToken')::uuid,draft::text,null);
+end $$;$q$,'Gemma can claim and save a separate bounded unreviewed draft');
+select ok((select status='completed' and attempt_count=1 and result#>>'{provenance,model}'='@cf/google/gemma-4-26b-a4b-it'
+ from public.drone_image_inspections where model_id='@cf/google/gemma-4-26b-a4b-it'),'new Gemma draft retains exact model provenance');
+select ok((select row.result_sha256=old.result_sha256 and row.result_text=old.result_text and row.attempt_count=old.attempt_count
+ from public.drone_image_inspections row join pg_temp.vision_prior_qwen old using(id)),'historical Qwen bytes, checksum and attempts remain unchanged');
+reset role;
 delete from public.project_members where project_id='bb200000-0000-4000-8000-000000000001' and user_id='bb100000-0000-4000-8000-000000000001';
 set local role service_role;
 select throws_ok($q$select pg_temp.vision_claim()$q$,'42501',null,'completed replay rechecks current contribution membership');

@@ -46,8 +46,9 @@ function pendingRow() {
     completed_at: null,
   };
 }
-async function completedRow() {
+async function completedRow(modelId = "@cf/qwen/qwen3.8-27b") {
   const row = pendingRow();
+  row.model_id = modelId;
   const result = buildDroneImageInspectionDraft({
     visual: {
       quality: {
@@ -90,6 +91,28 @@ async function completedRow() {
 }
 
 describe("image inspection immutable replay", () => {
+  it.each(["@cf/qwen/qwen3.8-27b", "@cf/google/gemma-4-26b-a4b-it"])(
+    "replays the exact saved supported model without relabeling provenance: %s",
+    async (modelId) => {
+      const raw = await completedRow(modelId);
+      await expect(droneImageInspectionFromRow(raw, project, media)).resolves.toMatchObject({
+        modelId,
+        result: { provenance: { model: modelId } },
+      });
+      const other =
+        modelId === "@cf/qwen/qwen3.8-27b"
+          ? "@cf/google/gemma-4-26b-a4b-it"
+          : "@cf/qwen/qwen3.8-27b";
+      await expect(
+        droneImageInspectionFromRow({ ...raw, model_id: other }, project),
+      ).rejects.toThrow();
+    },
+  );
+  it("rejects an unsupported model before treating a pending row as an allowed reservation", async () => {
+    await expect(
+      droneImageInspectionFromRow({ ...pendingRow(), model_id: "@cf/unapproved/model" }, project),
+    ).rejects.toThrow();
+  });
   it("returns a bounded public record without claim ownership or duplicate result text", async () => {
     const raw = await completedRow();
     const record = await droneImageInspectionFromRow(raw, project, media);

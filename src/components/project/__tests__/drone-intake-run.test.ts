@@ -3,11 +3,13 @@ import {
   droneIntakeBaselinePeriod,
   droneIntakeAiPhotos,
   droneIntakeRecordingDate,
+  droneIntakeReceiptKey,
   readOrCreateDroneIntakeRequests,
   runDroneIntakeImageChunk,
   type DroneIntakeScope,
 } from "../drone-intake-run";
 import type { DroneLocalizationResult } from "@/services/geospatial/drone-localization";
+import { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
 const ACTOR = "10000000-0000-4000-8000-000000000001",
   PROJECT = "20000000-0000-4000-8000-000000000001";
 const BASELINE = "40000000-0000-4000-8000-000000000001",
@@ -58,6 +60,97 @@ function inspector() {
   );
 }
 describe("bounded exact-batch image analysis", () => {
+  it("preserves old Qwen receipts while issuing stable new Gemma request identities", () => {
+    const target = scope(),
+      saved = storage();
+    const suffix = `${target.actorId}:${target.projectId}:${target.batchId}:${target.baselineSnapshotId}:${target.baselineSha256}:${target.mediaIds.join(",")}`;
+    const legacyKey = `gofreyra.drone-intake-image-requests:${suffix}`;
+    const qwenKey = `gofreyra.drone-intake-image-requests/v2:${encodeURIComponent("@cf/qwen/qwen3.8-27b")}:${suffix}`;
+    const old = JSON.stringify({
+      schema: "gofreyra.drone-intake-image-requests/v1",
+      scope: target,
+      requests: target.mediaIds.map((mediaId, index) => ({ mediaId, requestId: id(index + 100) })),
+    });
+    const oldQwen = JSON.stringify({
+      ...JSON.parse(old),
+      schema: "gofreyra.drone-intake-image-requests/v2",
+      modelId: "@cf/qwen/qwen3.8-27b",
+    });
+    saved.setItem(legacyKey, old);
+    saved.setItem(qwenKey, oldQwen);
+    let nextId = 200;
+    const current = readOrCreateDroneIntakeRequests(target, saved, () => id(nextId++));
+    expect(current.modelId).toBe(DRONE_VISION_MODEL);
+    expect(current.modelId).toBe("@cf/google/gemma-4-26b-a4b-it");
+    expect(current.requests.map((request) => request.requestId)).toEqual([id(200), id(201)]);
+    expect(
+      readOrCreateDroneIntakeRequests(target, saved, () => {
+        throw new Error("must reuse current model");
+      }),
+    ).toEqual(current);
+    expect(saved.getItem(legacyKey)).toBe(old);
+    expect(saved.getItem(qwenKey)).toBe(oldQwen);
+    expect(saved.values.size).toBe(3);
+  });
+  it("rejects a mismatched model stored under the current receipt key without replacing it", () => {
+    const saved = storage(),
+      target = scope();
+    const current = readOrCreateDroneIntakeRequests(target, saved, sequence());
+    const wrong = JSON.stringify({ ...current, modelId: "@cf/qwen/qwen3.8-27b" });
+    saved.setItem(droneIntakeReceiptKey(target), wrong);
+    const random = vi.fn(sequence());
+    expect(() => readOrCreateDroneIntakeRequests(target, saved, random)).toThrow();
+    expect(random).not.toHaveBeenCalled();
+    expect(saved.getItem(droneIntakeReceiptKey(target))).toBe(wrong);
+  });
+  it("prevents concurrent attempts and preserves the same model-pinned request for retry", async () => {
+    const saved = storage(),
+      target = scope(1),
+      run = inspector();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    run.mockImplementationOnce(async ({ data }) => {
+      await gate;
+      return {
+        status: "completed",
+        inspection: {
+          projectId: data.projectId,
+          mediaId: data.mediaId,
+          sourceSnapshotId: BASELINE,
+          sourceSnapshotHash: BASELINE_HASH,
+          status: "completed",
+          result: {},
+        },
+      } as never;
+    });
+    const pending = runDroneIntakeImageChunk(target, run, {
+      storage: saved,
+      startIndex: 0,
+      isCurrent: () => true,
+      randomUUID: sequence(),
+    });
+    await expect(
+      runDroneIntakeImageChunk(target, run, {
+        storage: saved,
+        startIndex: 0,
+        isCurrent: () => true,
+      }),
+    ).rejects.toThrow("allerede");
+    expect(run).toHaveBeenCalledTimes(1);
+    release();
+    await pending;
+    await runDroneIntakeImageChunk(target, run, {
+      storage: saved,
+      startIndex: 0,
+      isCurrent: () => true,
+      randomUUID: () => {
+        throw new Error("must reuse");
+      },
+    });
+    expect(run.mock.calls[1][0]).toEqual(run.mock.calls[0][0]);
+  });
   it("keeps large originals for manual review without trapping later supported photos", () => {
     const photos = [
       { mediaId: id(1), sizeBytes: 20_000_001 },

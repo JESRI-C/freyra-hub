@@ -1,5 +1,7 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
+export { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
 import {
   DRONE_IMAGE_INSPECTION_SYSTEM_PROMPT,
   DroneImageVisualDraftSchema,
@@ -8,7 +10,6 @@ import {
 } from "@/services/monitoring/drone-image-inspection";
 
 export const DRONE_VISION_PROVIDER = "cloudflare-workers-ai";
-export const DRONE_VISION_MODEL = "@cf/qwen/qwen3.8-27b";
 export const DRONE_VISION_MAX_ORIGINAL_BYTES = 20_000_000;
 export const DRONE_VISION_TRANSFORM = "cloudflare-images-jpeg-1536-q85-strip-app/v1";
 // One attempt stays below the three-minute claim lease. Upstream inference may
@@ -228,6 +229,24 @@ export const inspectDroneImageBytes = createServerOnlyFn(
     let phase: Phase = "image_transform";
     let phaseStartedAt = startedAt;
     let outcome: "completed" | DroneVisionError["code"] = "provider";
+    type ValidationStatus = "not_attempted" | "valid" | "invalid";
+    const finishReasonSchema = z.enum([
+      "stop",
+      "length",
+      "tool_calls",
+      "content_filter",
+      "function_call",
+    ]);
+    let outputDiagnostics:
+      | {
+          finishReason: z.infer<typeof finishReasonSchema> | "missing" | "other";
+          contentLength: number | null;
+          envelopeJson: ValidationStatus;
+          envelopeSchema: ValidationStatus;
+          contentJson: ValidationStatus;
+          visualSchema: ValidationStatus;
+        }
+      | undefined;
     const phaseMs: Partial<Record<Phase, number>> = {};
     const enter = (next: Phase) => {
       const now = Date.now();
@@ -306,7 +325,7 @@ export const inspectDroneImageBytes = createServerOnlyFn(
                   },
                 },
                 max_completion_tokens: 2400,
-                reasoning_effort: "low",
+                chat_template_kwargs: { enable_thinking: false },
                 temperature: 0.1,
                 stream: false,
                 store: false,
@@ -323,8 +342,42 @@ export const inspectDroneImageBytes = createServerOnlyFn(
             await readBounded(result, MAX_RESPONSE_BYTES, "invalid_output", controller.signal),
           );
           enter("output_validation");
+          outputDiagnostics = {
+            finishReason: "missing",
+            contentLength: null,
+            envelopeJson: "not_attempted",
+            envelopeSchema: "not_attempted",
+            contentJson: "not_attempted",
+            visualSchema: "not_attempted",
+          };
           let visual: unknown;
           try {
+            let decoded: unknown;
+            try {
+              decoded = JSON.parse(text);
+              outputDiagnostics.envelopeJson = "valid";
+            } catch {
+              outputDiagnostics.envelopeJson = "invalid";
+              throw new DroneVisionError("invalid_output");
+            }
+            // Read only scalar diagnostics from the bounded envelope. Never log
+            // model prose, schema issue paths, unexpected keys or raw reasons.
+            const rawChoices =
+              typeof decoded === "object" && decoded !== null
+                ? (decoded as Record<string, unknown>).choices
+                : undefined;
+            const firstChoice = Array.isArray(rawChoices) ? rawChoices[0] : undefined;
+            if (typeof firstChoice === "object" && firstChoice !== null) {
+              const reason = finishReasonSchema.safeParse(firstChoice.finish_reason);
+              outputDiagnostics.finishReason = reason.success
+                ? reason.data
+                : firstChoice.finish_reason == null
+                  ? "missing"
+                  : "other";
+              const content = firstChoice.message?.content;
+              if (typeof content === "string")
+                outputDiagnostics.contentLength = Math.min(content.length, MAX_RESPONSE_BYTES);
+            }
             const envelope = z
               .object({
                 choices: z
@@ -337,10 +390,21 @@ export const inspectDroneImageBytes = createServerOnlyFn(
                   .min(1)
                   .max(1),
               })
-              .parse(JSON.parse(text));
-            visual = DroneImageVisualDraftSchema.parse(
-              JSON.parse(envelope.choices[0].message.content),
-            );
+              .safeParse(decoded);
+            outputDiagnostics.envelopeSchema = envelope.success ? "valid" : "invalid";
+            if (!envelope.success) throw new DroneVisionError("invalid_output");
+            let content: unknown;
+            try {
+              content = JSON.parse(envelope.data.choices[0].message.content);
+              outputDiagnostics.contentJson = "valid";
+            } catch {
+              outputDiagnostics.contentJson = "invalid";
+              throw new DroneVisionError("invalid_output");
+            }
+            const parsedVisual = DroneImageVisualDraftSchema.safeParse(content);
+            outputDiagnostics.visualSchema = parsedVisual.success ? "valid" : "invalid";
+            if (!parsedVisual.success) throw new DroneVisionError("invalid_output");
+            visual = parsedVisual.data;
           } catch {
             throw new DroneVisionError("invalid_output");
           }
@@ -376,6 +440,7 @@ export const inspectDroneImageBytes = createServerOnlyFn(
         phase,
         elapsedMs: Math.max(0, Date.now() - startedAt),
         phaseMs: { ...phaseMs },
+        ...(outputDiagnostics ? { output: { ...outputDiagnostics } } : {}),
       });
     }
   },

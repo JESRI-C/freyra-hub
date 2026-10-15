@@ -148,6 +148,7 @@ function assertRecordPins(
   record: DroneImageInspectionRecord,
   media: CanonicalDroneMediaReference,
   sourceContext: DroneImageSourceContext | null = null,
+  requireCurrentModel = true,
 ): void {
   if (
     record.projectId !== media.project_id ||
@@ -158,7 +159,7 @@ function assertRecordPins(
     record.storageObjectVersion !== media.storage_object_version ||
     record.storageObjectUpdatedAt !== media.storage_object_updated_at ||
     record.provider !== DRONE_VISION_PROVIDER ||
-    record.modelId !== DRONE_VISION_MODEL ||
+    (requireCurrentModel && record.modelId !== DRONE_VISION_MODEL) ||
     record.promptVersion !== DRONE_IMAGE_INSPECTION_PROMPT_VERSION ||
     record.methodVersion !== DRONE_IMAGE_INSPECTION_METHOD ||
     record.sourceSnapshotId !== (sourceContext?.snapshotId ?? null) ||
@@ -666,7 +667,7 @@ export async function executeSaveDroneImageInspectionAnswers(
   const text = droneImageInspectionAnswersCanonicalText(input.answers);
   const { media } = await deps.loadOriginal(client, input.projectId, inspection.mediaId);
   canonicalDroneMediaReference(media, input.projectId, inspection.mediaId);
-  assertRecordPins(inspection, media, inspection.result?.sourceContext ?? null);
+  assertRecordPins(inspection, media, inspection.result?.sourceContext ?? null, false);
   assertContributor(await deps.authorize(client, actorId, input.projectId));
   const writer = await deps.getWriter();
   await deps.prepare(writer, actorId, media);

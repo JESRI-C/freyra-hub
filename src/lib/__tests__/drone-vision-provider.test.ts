@@ -4,6 +4,7 @@ import {
   sanitizeVisionJpeg,
   DRONE_VISION_MAX_ORIGINAL_BYTES,
   DRONE_VISION_TIMEOUT_MS,
+  DRONE_VISION_MODEL,
   type DroneVisionBindings,
 } from "../drone-vision-provider.server";
 
@@ -118,7 +119,11 @@ describe("private original to bounded vision derivative", () => {
       store: false,
       tool_choice: "none",
       max_completion_tokens: 2400,
+      chat_template_kwargs: { enable_thinking: false },
     });
+    expect(args[0]).toBe("@cf/google/gemma-4-26b-a4b-it");
+    expect(result.model).toBe(DRONE_VISION_MODEL);
+    expect(args[1]).not.toHaveProperty("reasoning_effort");
     expect(JSON.stringify(args[1])).not.toContain("supabase");
     expect(args[1].messages[1].content[1].image_url.url).toMatch(/^data:image\/jpeg;base64,/);
     expect(mocks.transform).toHaveBeenCalledWith({ width: 1536, height: 1536, fit: "scale-down" });
@@ -155,6 +160,97 @@ describe("private original to bounded vision derivative", () => {
     await expect(inspectDroneImageBytes(jpeg, mocks)).rejects.toMatchObject({
       code: "invalid_output",
     });
+  });
+  it.each([
+    {
+      body: "not JSON",
+      expected: {
+        finishReason: "missing",
+        contentLength: null,
+        envelopeJson: "invalid",
+        envelopeSchema: "not_attempted",
+        contentJson: "not_attempted",
+        visualSchema: "not_attempted",
+      },
+    },
+    {
+      body: JSON.stringify({
+        choices: [{ finish_reason: "length", message: { content: "{}" } }],
+      }),
+      expected: {
+        finishReason: "length",
+        contentLength: 2,
+        envelopeJson: "valid",
+        envelopeSchema: "invalid",
+        contentJson: "not_attempted",
+        visualSchema: "not_attempted",
+      },
+    },
+    {
+      body: JSON.stringify({
+        choices: [{ finish_reason: "stop", message: { content: "not JSON" } }],
+      }),
+      expected: {
+        finishReason: "stop",
+        contentLength: 8,
+        envelopeJson: "valid",
+        envelopeSchema: "valid",
+        contentJson: "invalid",
+        visualSchema: "not_attempted",
+      },
+    },
+    {
+      body: JSON.stringify({
+        choices: [{ finish_reason: "stop", message: { content: "{}" } }],
+      }),
+      expected: {
+        finishReason: "stop",
+        contentLength: 2,
+        envelopeJson: "valid",
+        envelopeSchema: "valid",
+        contentJson: "valid",
+        visualSchema: "invalid",
+      },
+    },
+  ])(
+    "distinguishes output failure boundaries using only bounded scalar diagnostics",
+    async ({ body, expected }) => {
+      const mocks = bindings({ response: new Response(body) });
+      await expect(inspectDroneImageBytes(jpeg, mocks)).rejects.toMatchObject({
+        code: "invalid_output",
+      });
+      expect(console.info).toHaveBeenCalledWith(
+        "drone_vision_timing",
+        expect.objectContaining({
+          outcome: "invalid_output",
+          phase: "output_validation",
+          output: expected,
+        }),
+      );
+    },
+  );
+  it("replaces unexpected finish reasons and never logs invalid output prose or schema keys", async () => {
+    const mocks = bindings({
+      response: Response.json({
+        choices: [
+          {
+            finish_reason: "https://private.test/secret\n",
+            message: { content: "SECRET_MODEL_PROSE" },
+          },
+        ],
+        private_extra_schema_key: "secret",
+      }),
+    });
+    await expect(inspectDroneImageBytes(jpeg, mocks)).rejects.toMatchObject({
+      code: "invalid_output",
+    });
+    const diagnostic = vi.mocked(console.info).mock.calls[0];
+    expect(diagnostic[1].output).toMatchObject({
+      finishReason: "other",
+      contentLength: 18,
+      envelopeSchema: "invalid",
+    });
+    expect(JSON.stringify(diagnostic)).not.toMatch(/secret|https:|SECRET|private_extra_schema_key/);
   });
   it("bounds the response even with no declared length", async () => {
     const mocks = bindings({ response: new Response("x".repeat(65537)) });

@@ -11,6 +11,11 @@ import {
 const Uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
 const Hash = z.string().regex(/^[0-9a-f]{64}$/);
 const Timestamp = z.string().datetime({ offset: true });
+export const DRONE_IMAGE_INSPECTION_MODELS = [
+  "@cf/qwen/qwen3.8-27b",
+  "@cf/google/gemma-4-26b-a4b-it",
+] as const;
+export type DroneImageInspectionModel = (typeof DRONE_IMAGE_INSPECTION_MODELS)[number];
 export const DroneImageInspectionFailureSchema = z.enum([
   "provider_unavailable",
   "provider_error",
@@ -58,7 +63,7 @@ const RowSchema = z
     created_by: Uuid,
     request_id: Uuid,
     provider: z.literal("cloudflare-workers-ai"),
-    model_id: z.literal("@cf/qwen/qwen3.8-27b"),
+    model_id: z.enum(DRONE_IMAGE_INSPECTION_MODELS),
     prompt_version: z.literal(DRONE_IMAGE_INSPECTION_PROMPT_VERSION),
     method_version: z.literal(DRONE_IMAGE_INSPECTION_METHOD),
     original_sha256: Hash,
@@ -88,7 +93,7 @@ export interface DroneImageInspectionRecord {
   createdBy: string;
   requestId: string;
   provider: "cloudflare-workers-ai";
-  modelId: "@cf/qwen/qwen3.8-27b";
+  modelId: DroneImageInspectionModel;
   promptVersion: typeof DRONE_IMAGE_INSPECTION_PROMPT_VERSION;
   methodVersion: typeof DRONE_IMAGE_INSPECTION_METHOD;
   originalSha256: string;

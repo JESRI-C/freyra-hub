@@ -721,6 +721,48 @@ describe("durable draft answers to exact image questions", () => {
       },
     };
   }
+  it("allows answers on historical Qwen drafts after the active provider changes without relabeling or rerunning AI", async () => {
+    const { deps, input } = await setup();
+    const historicalDraft = structuredClone(deps.completed.result);
+    historicalDraft.provenance.model = "@cf/qwen/qwen3.8-27b";
+    const historicalHash = await baselineSha256(historicalDraft);
+    const historical = {
+      ...deps.completed,
+      model_id: "@cf/qwen/qwen3.8-27b",
+      result: historicalDraft,
+      result_text: droneImageInspectionResultText(historicalDraft),
+      result_sha256: historicalHash,
+    };
+    deps.loadInspection.mockResolvedValue(historical as typeof deps.completed);
+    deps.saveAnswers.mockResolvedValue({
+      ...deps.savedAnswers,
+      inspection_result_sha256: historicalHash,
+    });
+    const saved = await executeSaveDroneImageInspectionAnswers(
+      { ...input, inspectionResultSha256: historicalHash },
+      ACTOR_ID,
+      CLIENT,
+      deps,
+    );
+    expect(saved.inspectionResultSha256).toBe(historicalHash);
+    expect(saved.reportEligible).toBe(false);
+    expect(historical.result.provenance.model).toBe("@cf/qwen/qwen3.8-27b");
+    expect(deps.prepare).toHaveBeenCalled();
+    expect(deps.inspect).not.toHaveBeenCalled();
+    expect(deps.download).not.toHaveBeenCalled();
+  });
+  it("does not reuse a historical model claim for the current model's inspection", async () => {
+    const { deps } = await setup();
+    deps.claim.mockResolvedValue({
+      state: "busy",
+      inspection: { ...deps.pending, model_id: "@cf/qwen/qwen3.8-27b" },
+      claimToken: null,
+    } as never);
+    await expect(executeInspectDroneImage(INPUT, ACTOR_ID, CLIENT, deps)).rejects.toThrow("metode");
+    expect(deps.download).not.toHaveBeenCalled();
+    expect(deps.inspect).not.toHaveBeenCalled();
+    expect(deps.finish).not.toHaveBeenCalled();
+  });
   it.each(["approved", "professionallyReviewed", "reportEligible", "model", "snapshotId"])(
     "rejects caller %s before authorization or writes",
     async (field) => {
