@@ -1,5 +1,9 @@
 # Freyra - aktivt acceptregnskab
 
+**Brugerrettelse 22.10.2026:** Kategorierne skal kunne åbnes også i staging. Den første leverances tekniske tests kontrollerede ikke dette tilstrækkeligt. [Kategorirettelsen](CATEGORY_RESTORATION.md) genåbner accept af pakke 1-2 og tilføjer konkret browserkontrol af de eksisterende kategoriindgange.
+
+**Aktuelt NO-GO:** Kategorirettelsen består build og 2.790 tests, men fejler browserkontrol af Byggeri og natur samt startside efter organisationsvalg. Arbejdet er standset efter brugerens instruks; status i pakketabellen nedenfor beskriver første UI-leverance og er ikke frigivelsesgodkendelse af den ufærdige kategorirettelse.
+
 ## Arbejdsmandat
 
 Jesper har efter produktgennemgangen bedt om at udføre hele udviklingsplanen. Implementeringen omfatter derfor både UI-pakkerne og de funktionelle restopgaver. De leveres i afhængighedsrækkefølge og i adskilte commits. Den første UI-leverance bevarer motor, database, API og eksisterende parametre. Main og `codex/haderslev-demo-2710` forbliver referencegrene.

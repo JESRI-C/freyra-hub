@@ -5,7 +5,6 @@ import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { DEMO_MODE, MUNICIPAL_PROJECT_TABS } from "@/lib/demo-mode";
 import { isDemoDataEnabled } from "@/lib/data-mode";
 import {
   ShieldCheck,
@@ -115,8 +114,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
     ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
       ? { step: search.step as MunicipalStep }
       : {}),
-    ...(typeof search.tab === "string" &&
-    TABS.some((tab) => tab.id === search.tab && (!DEMO_MODE || MUNICIPAL_PROJECT_TABS.has(tab.id)))
+    ...(typeof search.tab === "string" && TABS.some((tab) => tab.id === search.tab)
       ? { tab: search.tab }
       : {}),
     ...(typeof search.round === "string" &&
@@ -171,11 +169,7 @@ function ProjectPage() {
   const search = Route.useSearch();
   // Existing full-app tabs and deep links retain their exact components and handlers.
   // The default and explicit steps use the guided presentation in both modes.
-  return !DEMO_MODE && search.tab && !search.step ? (
-    <ProjectDetailPage />
-  ) : (
-    <MunicipalProjectPage />
-  );
+  return search.tab && !search.step ? <ProjectDetailPage /> : <MunicipalProjectPage />;
 }
 
 function MunicipalProjectPage() {
@@ -418,6 +412,14 @@ function ProjectDetailPage() {
 
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
+      <Link
+        to="/app/projects/$slug"
+        params={{ slug }}
+        search={{ step: "billeder", round: search.round }}
+        className="inline-block text-sm text-primary underline underline-offset-4"
+      >
+        Til det guidede sagsforløb
+      </Link>
       <ProjectHeader
         canEdit={canEdit}
         project={project}
@@ -427,7 +429,7 @@ function ProjectDetailPage() {
       />
 
       <ProjectTabs
-        tabs={DEMO_MODE ? TABS.filter((tab) => MUNICIPAL_PROJECT_TABS.has(tab.id)) : TABS}
+        tabs={TABS}
         activeTab={search.tab ?? "arbejde"}
         primaryTabIds={["arbejde", "rapporter"]}
         onTabChange={(tab) => void navigate({ search: { ...search, tab }, replace: true })}

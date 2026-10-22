@@ -4,7 +4,6 @@ import { Search, ArrowRight, Database } from "lucide-react";
 import { CONNECTOR_REGISTRY } from "@/data/connectors-registry";
 import { ConnectorRegistryTable } from "@/components/data-foundation/ConnectorRegistryTable";
 import { useAuth } from "@/lib/auth";
-import { DEMO_MODE } from "@/lib/demo-mode";
 import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
 
 export const Route = createFileRoute("/app/sources")({
@@ -99,11 +98,9 @@ function SourcesPage() {
           </button>
         </div>
       )}
-      {!DEMO_MODE && (
-        <Link to="/app/connect/registry" className="inline-block text-sm text-primary underline">
-          Åbn den fulde oversigt over data og metoder
-        </Link>
-      )}
+      <Link to="/app/connect/registry" className="inline-block text-sm text-primary underline">
+        Åbn den fulde oversigt over data og metoder
+      </Link>
     </main>
   );
 }

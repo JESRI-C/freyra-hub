@@ -76,7 +76,10 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await checkpoint("login_navigation");
   await expect(page.getByRole("navigation", { name: "Sagens seks trin" })).toBeVisible();
   await checkpoint("upload_original");
-  await expect(page.getByText("Finansiering og effekt", { exact: true })).toHaveCount(0);
+  // Every category remains reachable; the primary municipal workflow stays compact.
+  await expect(page.getByRole("navigation", { name: "Hovedmenu" }).getByRole("link")).toHaveCount(
+    2,
+  );
   await page.getByRole("button", { name: "Tilføj dronebilleder", exact: true }).click();
   await page.locator('input[type="file"][multiple]').setInputFiles(original);
   const upload = page.getByRole("button", { name: "Upload valgte billeder", exact: true });

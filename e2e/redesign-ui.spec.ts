@@ -34,6 +34,78 @@ async function capture(page: Page, name: string) {
   });
 }
 
+test("alle kategorier kan åbnes i staging uden omdirigering til Sager", async ({
+  page,
+  baseURL,
+}) => {
+  expect([
+    "localhost",
+    "127.0.0.1",
+    "gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  ]).toContain(new URL(baseURL!).hostname);
+  await page.goto("/login?next=%2Fapp%2Fprojects");
+  await expect(page.locator('input[type="email"]')).toBeEnabled();
+  await page.locator('input[type="email"]').fill(required("HADERSLEV_READER_EMAIL"));
+  await page.locator('input[type="password"]').fill(required("HADERSLEV_READER_PASSWORD"));
+  await page.getByRole("button", { name: "Log ind", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Hvad vil du gøre?" })).toBeVisible();
+  await page.goto("/select");
+  await page
+    .getByRole("button")
+    .filter({ hasText: /projekter · viewer/ })
+    .click();
+  await page.getByRole("button", { name: /^Åbn / }).click();
+  const routes = [
+    "/app/overview",
+    "/app/reports",
+    "/app/connect/map",
+    "/app/construction",
+    "/app/connect",
+    "/app/lavbund",
+    "/app/decisions",
+    "/app/ledger",
+    "/app/connect/registry",
+    "/app/impact",
+    "/app/public-impact",
+    "/app/settings",
+    "/app/settings/users",
+    "/app/system-test",
+  ];
+  for (const route of routes) {
+    await page.goto(route);
+    await expect(page.getByRole("navigation", { name: "Hovedmenu" })).toBeVisible();
+    await expect(page.locator("#workspace-content").getByRole("heading").first()).toBeVisible();
+    expect(new URL(page.url()).pathname.startsWith(route)).toBe(true);
+    await expect(page.getByRole("heading", { name: "Hvad vil du gøre?" })).toHaveCount(0);
+  }
+  const id = required("HADERSLEV_UI_PROJECT_ID");
+  const round = required("HADERSLEV_UI_ROUND_ID");
+  await page.goto(`/app/projects/${id}?tab=overblik&round=${round}`);
+  const tools = page
+    .locator("details")
+    .filter({ has: page.locator("summary", { hasText: "Flere værktøjer og historik" }) });
+  await expect(tools).toBeVisible();
+  await expect(tools.getByRole("button")).toHaveCount(12);
+  for (const label of [
+    "Fotopunkter",
+    "Datakilder",
+    "Indikatorer",
+    "Handlinger",
+    "Revisionsspor",
+    "Roller",
+    "Dokumentation",
+    "Medier",
+    "Miljødata",
+    "Livekort",
+  ]) {
+    await expect(tools.getByRole("button", { name: label, exact: true })).toBeVisible();
+  }
+  await capture(page, "15-sagens-bevarede-faner");
+  await page.getByRole("link", { name: "Til det guidede sagsforløb", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Sagens seks trin" })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`round=${round}`));
+});
+
 test("redesign: fem startvalg, seks trin, nulstilling og læseadgang på desktop og mobil", async ({
   page,
   baseURL,
@@ -91,6 +163,28 @@ test("redesign: fem startvalg, seks trin, nulstilling og læseadgang på desktop
   await page.evaluate(() => document.fonts.ready);
   expect(await page.evaluate(() => document.fonts.check('500 24px "Source Serif 4"'))).toBe(true);
   await capture(page, "02-startside-desktop");
+  const categories = page.getByRole("region", { name: "Alle kategorier", exact: true });
+  await expect(categories.getByRole("link")).toHaveCount(14);
+  for (const route of [
+    "/app/overview",
+    "/app/reports",
+    "/app/connect/map",
+    "/app/construction",
+    "/app/connect",
+    "/app/lavbund",
+    "/app/decisions",
+    "/app/ledger",
+    "/app/connect/registry",
+    "/app/impact",
+    "/app/public-impact",
+    "/app/settings",
+    "/app/settings/users",
+    "/app/system-test",
+  ])
+    await expect(categories.locator(`a[href="${route}"]`)).toBeVisible();
+  await categories.scrollIntoViewIfNeeded();
+  await capture(page, "14-alle-kategorier-desktop");
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.locator("button.start-action").filter({ hasText: "Upload dronefotos" }).click();
   await expect(page).toHaveURL(/\/app\/projects\/?$/);
   await expect(page.getByText("Vælg den sag, du vil arbejde med.", { exact: true })).toBeVisible();
@@ -203,6 +297,11 @@ test("redesign: fem startvalg, seks trin, nulstilling og læseadgang på desktop
   await expect(
     page.getByRole("dialog").getByRole("navigation", { name: "Hovedmenu" }).getByRole("link"),
   ).toHaveCount(2);
+  await page.getByRole("dialog").locator("summary", { hasText: "Alle kategorier" }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("navigation", { name: "Alle kategorier" }).getByRole("link"),
+  ).toHaveCount(14);
+  await capture(page, "16-alle-kategorier-mobil");
   await page.keyboard.press("Escape");
   await openCase("baseline");
   for (const name of [

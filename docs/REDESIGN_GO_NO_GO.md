@@ -2,7 +2,9 @@
 
 Kontroldato: 22. oktober 2026. Reference: `625781906a4f49d120b6b3581261279dd889e6de` på `codex/haderslev-demo-2710`. Arbejdsgren: `codex/redesign-2710`. Ingen ændring af main, demogrenen eller online staging.
 
-**Samlet beslutning: teknisk GO til gennemgang af UI-leverancen i PR #17.** Den samlede browserprøve med serveradgang er bestået på applikationscommit `ebe8e86`. Faglig accept, 10-sekunders brugerprøve og produktionsfrigivelse er fortsat åbne. PR'en erstatter ikke online staging.
+**Aktuel beslutning: NO-GO.** Brugeren kunne ikke finde kategorierne. [Kategorirettelsen](CATEGORY_RESTORATION.md) genåbner kategorierne, men browserprøven fandt HTTP 500 i Byggeri og natur og forkert startside efter organisationsvalg. Arbejdet er standset efter brugerens regel. Build og 2.790 tests er grønne, men to browserprøver fejler. Rapportkontrolsum med seks fotos består. Ingen frigivelse.
+
+**Historisk kontrol af første UI-leverance, ikke aktuel frigivelsesstatus:** Den samlede browserprøve med serveradgang bestod på applikationscommit `ebe8e86`. Kategoriernes reelle tilgængelighed var ikke dækket tilstrækkeligt af denne prøve. Faglig accept, 10-sekunders brugerprøve og produktionsfrigivelse er fortsat åbne.
 
 | Kontrol | Resultat | Evidens / begrænsning |
 |---|---|---|

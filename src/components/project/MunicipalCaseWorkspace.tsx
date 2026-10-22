@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { ActivityTray } from "@/components/redesign/ActivityTray";
 import { useCaseProgress } from "@/components/redesign/useCaseProgress";
-import { DEMO_MODE } from "@/lib/demo-mode";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -213,15 +212,13 @@ export function MunicipalCaseWorkspace({
           Alle sager
         </Link>
         <div className="flex items-center gap-4">
-          {!DEMO_MODE && (
-            <Link
-              to="/app/projects/$slug"
-              params={{ slug: project.slug ?? project.id }}
-              search={{ tab: "overblik", round: selectedRoundId }}
-            >
-              Flere sagsværktøjer
-            </Link>
-          )}
+          <Link
+            to="/app/projects/$slug"
+            params={{ slug: project.slug ?? project.id }}
+            search={{ tab: "overblik", round: selectedRoundId }}
+          >
+            Flere sagsværktøjer
+          </Link>
           <Link
             to="/app/projects/$slug"
             params={{ slug: project.slug ?? project.id }}

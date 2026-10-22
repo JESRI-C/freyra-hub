@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
-import { DEMO_MODE } from "@/lib/demo-mode";
 
 export const WORKSPACE_TOOLS = [
   {
@@ -76,14 +75,18 @@ export const WORKSPACE_TOOLS = [
 ] as const;
 
 export function WorkspaceTools() {
-  // Preserve the existing municipal release boundary as well as every full-app entry point.
-  if (DEMO_MODE) return null;
   return (
-    <details className="rounded-lg border bg-card p-5">
-      <summary className="cursor-pointer text-sm font-medium">Flere fagværktøjer</summary>
+    <section
+      id="workspace-categories"
+      aria-labelledby="workspace-categories-title"
+      className="rounded-lg border bg-card p-5"
+    >
+      <h2 id="workspace-categories-title" className="text-xl font-semibold">
+        Alle kategorier
+      </h2>
       <p className="mt-3 text-sm text-muted-foreground">
-        Alle fagværktøjer og deres indstillinger er samlet her. Vælg først den sag, du vil arbejde
-        med.
+        Her finder du alle de eksisterende fagværktøjer og deres indstillinger. Du kan altid vende
+        tilbage til Sager og det guidede forløb.
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {WORKSPACE_TOOLS.map((tool) => (
@@ -96,6 +99,6 @@ export function WorkspaceTools() {
           </Link>
         ))}
       </div>
-    </details>
+    </section>
   );
 }

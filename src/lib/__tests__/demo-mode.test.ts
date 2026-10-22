@@ -108,7 +108,11 @@ describe("kommunens arbejdsflade", () => {
     ]);
     expect(navigation).toContain("Sager");
     expect(navigation).toContain("Kilder");
-    expect(html).not.toContain("Indstillinger");
+    expect(html).toContain("Alle kategorier");
+    expect(html).toContain("Indstillinger");
+    expect(html).toContain('href="/app/impact"');
+    expect(html).toContain('href="/app/connect"');
+    expect(html).toContain('href="/app/lavbund"');
     expect(html).toContain('href="/select"');
   });
 });
