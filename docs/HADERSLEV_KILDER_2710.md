@@ -28,6 +28,10 @@ Validerede offentlige svar for samme projekt, geometri og datoperiode genbruges 
 
 Polygonadapterne henter højst 200 kandidater: beplantningskilder højst 384 KiB, matrikel og jordart højst 512 KiB pr. geometrisvar. Sentinel-billedet er højst 300.000 bytes og har en selvstændig 8-sekunders grænse. Hvis det fulde antal er større, gemmes delvis dækning. Kortgeometrier bevarer huller og multipolygoner. Et område uden modtaget data klassificeres ikke som frit for begrænsninger. Jordartskilden påstår aldrig komplet lokal kortlægning alene ud fra et fuldt API-svar.
 
+Nye indlæsninger af markblokke, lavbund, skov og jordart kontrollerer også polygonernes topologi. Hele ugyldige features udelades uden formændring eller reparation; antal, årsag og råsvarets SHA-256 dokumenteres, og rumlig dækning kan da aldrig være komplet. Hvis alle modtagne polygoner er ugyldige, er laget ikke tilgængeligt med ukendt dækning. Byte- og vertexgrænser gælder det oprindelige svar før filtrering. Ældre kildeversioner bruges ikke som automatisk fallback for denne nye validering, men genåbnes fortsat uændret. GeoDanmarks dokumenterede finite Z-koordinat udelades eksplicit fra nye XY-kortgeometrier med kildeadvarsel; den er ikke en højdemåling i Freyra. GEUS tillader højst 1.000 ringe pr. polygon under den uændrede samlede grænse på 24.000 vertices.
+
+En afgrænset kontrol af den faktiske seksfotosags første baseline 22. oktober fandt ugyldig topologi i 8 af 38 gemte lavbundspolygoner. En ny læseprøve hos GEUS fandt desuden topologifejl i én af 20 modtagne jordartspolygoner. Den gamle baseline ændres ikke; en ny baseline og faglig gennemgang er nødvendig for at bruge de validerede delmængder. Disse datagab er ikke bevis for lavbundsfri jord eller manglende beskyttelse.
+
 ## Adgang og kontrollen 22. oktober
 
 Ortofoto, skov og matrikel bruger den eksisterende servervariabel `DATAFORDELER_API_KEY`. Nøglen indgår aldrig i baseline, klient-URL eller fejltekst. Markblokke, Kulstof2022, GEUS og Sentinel kræver ingen ny nøgle. Der er ikke foretaget produktionsændringer.

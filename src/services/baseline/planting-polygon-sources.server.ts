@@ -4,6 +4,7 @@ import type { GeoJSONPolygon } from "@/lib/supabase/types";
 import type { PublicBaselineSource } from "./public-baseline-types";
 import { baselineSha256 } from "./public-baseline-service";
 import { PublicReadError, readPublicBytes, bytesSha256 } from "./bounded-public-read.server";
+import { hasUsablePolygonTopology, POLYGON_TOPOLOGY_METHOD } from "./polygon-topology";
 
 /** Endpoint/type names verified against the official DMP catalogue on 22 October 2026. */
 export const PLANTING_POLYGON_SOURCES = [
@@ -146,7 +147,7 @@ export async function fetchPlantingPolygonSource(
     sourceUrl: config.endpoint,
     sourceModifiedAt: null,
     fetchedAt: (options.now ?? (() => new Date().toISOString()))(),
-    adapterVersion: id === "planting-woodland" ? "planting-polygons-2d/v2" : "planting-polygons/v1",
+    adapterVersion: "planting-polygons-topology/v3",
     query: { geometrySha256, bbox, requestedFrom: input.dateFrom, requestedTo: input.dateTo },
     coverage: {
       spatial: "unknown",
@@ -228,14 +229,26 @@ export async function fetchPlantingPolygonSource(
           : f.geometry.coordinates.flat(2).length;
     }
     if (positionCount > 24_000) throw new PublicReadError("GEOMETRY_LIMIT");
+    const responseSha256 = await bytesSha256(bytes);
+    const valid = page.features.filter((f) => hasUsablePolygonTopology(f.geometry));
+    const rejectedFeatureCount = page.features.length - valid.length;
+    if (rejectedFeatureCount)
+      source.quality.warnings.push(
+        `${rejectedFeatureCount} af ${page.features.length} modtagne polygoner er udeladt på grund af ugyldig topologi. Geometrien er ikke repareret. De manglende arealer er ukendte, og rumlig dækning er delvis.`,
+      );
+    if (rejectedFeatureCount && valid.length === 0) {
+      source.quality.warnings.push(`Råsvar SHA-256: ${responseSha256}.`);
+      throw new PublicReadError("INVALID_GEOMETRY");
+    }
     // The upstream BBOX returns candidates, including polygons overlapping only the envelope.
-    const candidates = page.features.filter((f) =>
+    const candidates = valid.filter((f) =>
       booleanIntersects(polygon(input.polygon.coordinates), feature(f.geometry)),
     );
     const complete = page.features.length === page.numberMatched;
     source.coverage = {
       ...source.coverage,
-      spatial: complete && id !== "planting-woodland" ? "complete" : "partial",
+      spatial:
+        complete && !rejectedFeatureCount && id !== "planting-woodland" ? "complete" : "partial",
       paginationComplete: complete,
       returnedCount: candidates.length,
     };
@@ -248,7 +261,13 @@ export async function fetchPlantingPolygonSource(
       crs: "EPSG:4326",
       geometries: candidates.map((f) => f.geometry),
       featureIds: candidates.map((f) => String(f.id)),
-      responseSha256: await bytesSha256(bytes),
+      responseSha256,
+      geometryValidation: {
+        method: POLYGON_TOPOLOGY_METHOD,
+        receivedFeatureCount: page.features.length,
+        rejectedFeatureCount,
+        rejectionReason: rejectedFeatureCount ? "INVALID_TOPOLOGY" : null,
+      },
       catalogueUrl: `https://arealdata.miljoeportal.dk/datasets/${config.catalogueId}`,
       layer: config.layer,
       numberMatched: page.numberMatched,

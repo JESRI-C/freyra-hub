@@ -16,6 +16,16 @@ type CollectorInput = {
   geometrySha256: string;
 };
 type Collector = (input: CollectorInput) => Promise<PublicBaselineSource>;
+const CACHE_ADAPTERS: Record<string, string> = {
+  "sentinel-2-scenes": "sentinel-scene-catalog-frozen/v1",
+  "planting-markblocks": "planting-polygons-topology/v3",
+  "planting-lowland": "planting-polygons-topology/v3",
+  "planting-woodland": "planting-polygons-topology/v3",
+  "soil-type": "geus-jordart-topology/v3",
+};
+export function acceptsCurrentPublicSourceCache(source: PublicBaselineSource): boolean {
+  return !CACHE_ADAPTERS[source.id] || source.adapterVersion === CACHE_ADAPTERS[source.id];
+}
 type Collectors = {
   dmi: Collector;
   sentinel: Collector;
@@ -120,11 +130,8 @@ export async function collectPublicBaselineSources(
         {
           ...options,
           cache: options.cache ?? (collectors ? undefined : publicSourceCache),
-          // New versions must attempt to freeze pixels instead of inheriting a legacy URL.
-          acceptCached:
-            id === "sentinel-2-scenes" && !collectors
-              ? (source) => source.adapterVersion === "sentinel-scene-catalog-frozen/v1"
-              : undefined,
+          // New snapshots require current ingestion validation; frozen old snapshots stay unchanged.
+          acceptCached: collectors ? undefined : acceptsCurrentPublicSourceCache,
         },
       );
     }),

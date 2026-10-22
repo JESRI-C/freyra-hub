@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { booleanIntersects, booleanValid, feature, polygon } from "@turf/turf";
+import { booleanIntersects, feature, polygon } from "@turf/turf";
 import type { GeoJSONPolygon } from "@/lib/supabase/types";
 import type { PublicBaselineSource } from "./public-baseline-types";
 import { baselineSha256 } from "./public-baseline-service";
 import { bytesSha256, PublicReadError, readPublicBytes } from "./bounded-public-read.server";
+import { hasUsablePolygonTopology, POLYGON_TOPOLOGY_METHOD } from "./polygon-topology";
 
 /** Current official GEUS service and polygon layer, verified 22 October 2026. */
 export const SOIL_TYPE_LAYER =
@@ -81,7 +82,7 @@ export async function fetchSoilTypeSource(
     sourceUrl: SOIL_TYPE_LAYER,
     sourceModifiedAt: null,
     fetchedAt: (options.now ?? (() => new Date().toISOString()))(),
-    adapterVersion: "geus-jordart-arcgis/v2",
+    adapterVersion: "geus-jordart-topology/v3",
     query: { geometrySha256, bbox, requestedFrom: input.dateFrom, requestedTo: input.dateTo },
     coverage: {
       spatial: "unknown",
@@ -163,13 +164,22 @@ export async function fetchSoilTypeSource(
       0,
     );
     if (vertices > 24_000) throw new PublicReadError("GEOMETRY_LIMIT");
-    for (const f of page.features)
-      if (!booleanValid(feature(f.geometry))) throw new PublicReadError("INVALID_GEOMETRY");
+    const responseSha256 = await bytesSha256(bytes);
+    const valid = page.features.filter((f) => hasUsablePolygonTopology(f.geometry));
+    const rejectedFeatureCount = page.features.length - valid.length;
+    if (rejectedFeatureCount)
+      source.quality.warnings.push(
+        `${rejectedFeatureCount} af ${page.features.length} modtagne jordartspolygoner er udeladt på grund af ugyldig topologi. Geometrien er ikke repareret; de udeladte arealer har ukendt jordart.`,
+      );
+    if (rejectedFeatureCount && valid.length === 0) {
+      source.quality.warnings.push(`Råsvar SHA-256: ${responseSha256}.`);
+      throw new PublicReadError("INVALID_GEOMETRY");
+    }
     const complete =
       page.features.length === count &&
       !page.exceededTransferLimit &&
       !page.properties?.exceededTransferLimit;
-    const features = page.features
+    const features = valid
       .filter((f) => booleanIntersects(polygon(input.polygon.coordinates), feature(f.geometry)))
       .map((f) => ({
         id: f.id,
@@ -201,7 +211,13 @@ export async function fetchSoilTypeSource(
       numberReturned: page.features.length,
       generalizationDegrees: 0.00001,
       coordinateDecimals: 7,
-      responseSha256: await bytesSha256(bytes),
+      responseSha256,
+      geometryValidation: {
+        method: POLYGON_TOPOLOGY_METHOD,
+        receivedFeatureCount: page.features.length,
+        rejectedFeatureCount,
+        rejectionReason: rejectedFeatureCount ? "INVALID_TOPOLOGY" : null,
+      },
       countResponseSha256: await bytesSha256(countBytes),
       documentationUrl: SOIL_TYPE_LAYER,
     };

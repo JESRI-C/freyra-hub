@@ -8,6 +8,7 @@ import {
 } from "../public-source-cache.server";
 import { monitoringSource } from "./public-monitoring-stations-saved.fixtures";
 import { parseSavedPublicMonitoringStationsSource } from "../public-monitoring-stations-saved-payload";
+import { acceptsCurrentPublicSourceCache } from "../collect-public-baseline.server";
 
 async function fixture() {
   const initial = (await makeManifest()).sources.find((s) => s.id === "sentinel-2-scenes")!;
@@ -25,6 +26,38 @@ async function fixture() {
   };
 }
 describe("bounded public-source cache", () => {
+  it.each(["planting-markblocks", "planting-lowland", "planting-woodland", "soil-type"])(
+    "requires current polygon validation for fresh cache and outage fallback: %s",
+    async (id) => {
+      const { initial: template, result: templateResult } = await fixture();
+      const initial = { ...template, id };
+      const legacy = { ...templateResult, id, adapterVersion: "legacy/v1" };
+      const upgraded = {
+        ...legacy,
+        adapterVersion:
+          id === "soil-type" ? "geus-jordart-topology/v3" : "planting-polygons-topology/v3",
+      };
+      const cache = new PublicSourceCache();
+      await cache.put(publicSourceCacheKey(PROJECT_ID, initial), legacy);
+      const options = {
+        cache,
+        nowMs: () => Date.parse(COLLECTED_AT) + 60_000,
+        acceptCached: acceptsCurrentPublicSourceCache,
+      };
+      const collect = vi.fn().mockResolvedValue(upgraded);
+      expect(await collectCachedPublicSource(PROJECT_ID, initial, collect, options)).toEqual(
+        upgraded,
+      );
+      expect(collect).toHaveBeenCalledTimes(1);
+      await cache.put(publicSourceCacheKey(PROJECT_ID, initial), legacy);
+      collect.mockRejectedValue(new Error("test outage"));
+      expect(await collectCachedPublicSource(PROJECT_ID, initial, collect, options)).toMatchObject({
+        mode: "error",
+        payload: null,
+      });
+      expect(legacy.adapterVersion).toBe("legacy/v1");
+    },
+  );
   it("does not reuse a legacy representation when the caller requires frozen pixels", async () => {
     const { initial, result } = await fixture();
     const cache = new PublicSourceCache();
