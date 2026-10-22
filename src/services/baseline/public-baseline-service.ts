@@ -255,8 +255,8 @@ export async function buildPublicBaselineManifest(
     ["planting-markblocks", "Landbrugs- og Fiskeristyrelsen", "Markblokke 2026"],
     ["planting-lowland", "DCA / Aarhus Universitet", "Kulstof 2022 (lavbundskort)"],
     ["planting-woodland", "GeoDanmark", "Skove og registreret trædække"],
-    ["cadastral-parcels", "Geodatastyrelsen", "Matrikel · versioneret geometri afventer"],
-    ["soil-type", "GEUS", "Jordart · versioneret geometri afventer"],
+    ["cadastral-parcels", "Geodatastyrelsen", "Matriklen2 · gældende jordstykker"],
+    ["soil-type", "GEUS", "Danmarks Digitale Jordartskort 1:25.000"],
     ["dmi-historical", "DMI", "Historisk vejr og nedbør"],
     [
       "water-plan-nature",

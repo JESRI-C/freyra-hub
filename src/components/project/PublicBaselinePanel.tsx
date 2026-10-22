@@ -208,7 +208,9 @@ export function PublicBaselinePanel({
                 <div key={source.id} className="rounded border p-3 space-y-2">
                   <div className="flex justify-between gap-3 text-sm">
                     <strong>
-                      {source.provider} · {source.dataset}
+                      {source.id === "dmi-historical"
+                        ? "DMI – nedbør fra målestation"
+                        : `${source.provider} · ${source.dataset}`}
                     </strong>
                     <Pill tone={source.status === "complete" ? "info" : "warning"}>
                       {availabilityLabel(source.status)}

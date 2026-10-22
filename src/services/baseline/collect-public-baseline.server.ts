@@ -1,7 +1,7 @@
 import type { PublicBaselineManifest, PublicBaselineSource } from "./public-baseline-types";
 import { validatePublicBaselineManifest } from "./public-baseline-service";
 import { fetchDmiHistoricalSource } from "./dmi-historical-source";
-import { fetchSentinelSceneSource } from "./sentinel-scene-source";
+import { fetchFrozenSentinelSceneSource } from "./sentinel-preview.server";
 import { fitCollectedBaselineBudget } from "./public-baseline-budget";
 import {
   collectCachedPublicSource,
@@ -26,6 +26,8 @@ type Collectors = {
   markblocks?: Collector;
   lowland?: Collector;
   woodland?: Collector;
+  cadastral?: Collector;
+  soil?: Collector;
 };
 
 /** Called only after project authorization and canonical area/reference loading. */
@@ -38,7 +40,7 @@ export async function collectPublicBaselineSources(
     collectors ??
     ({
       dmi: fetchDmiHistoricalSource,
-      sentinel: fetchSentinelSceneSource,
+      sentinel: fetchFrozenSentinelSceneSource,
       raster: async (input) => {
         const { fetchDatafordelerRasterInventorySource } =
           await import("./datafordeler-raster-inventory.server");
@@ -55,6 +57,9 @@ export async function collectPublicBaselineSources(
       },
       ortho: async (input) =>
         (await import("./orthophoto-preview.server")).fetchOrthophotoPreviewSource(input),
+      cadastral: async (input) =>
+        (await import("./cadastral-source.server")).fetchCadastralSource(input),
+      soil: async (input) => (await import("./soil-type-source.server")).fetchSoilTypeSource(input),
       markblocks: async (input) =>
         (await import("./planting-polygon-sources.server")).fetchPlantingPolygonSource(
           "planting-markblocks",
@@ -96,6 +101,8 @@ export async function collectPublicBaselineSources(
     ["planting-markblocks", adapters.markblocks],
     ["planting-lowland", adapters.lowland],
     ["planting-woodland", adapters.woodland],
+    ["cadastral-parcels", adapters.cadastral],
+    ["soil-type", adapters.soil],
   ] as const) {
     if (adapter && manifest.sources.some((source) => source.id === id)) {
       ids.push(id);
@@ -113,6 +120,11 @@ export async function collectPublicBaselineSources(
         {
           ...options,
           cache: options.cache ?? (collectors ? undefined : publicSourceCache),
+          // New versions must attempt to freeze pixels instead of inheriting a legacy URL.
+          acceptCached:
+            id === "sentinel-2-scenes" && !collectors
+              ? (source) => source.adapterVersion === "sentinel-scene-catalog-frozen/v1"
+              : undefined,
         },
       );
     }),
