@@ -147,6 +147,7 @@ function protectedNature(sources: PublicBaselineSource[]): PlantingLayer {
       fetchedAt: source.fetchedAt,
       geometries,
       warnings: [
+        ...source.quality.warnings,
         "Gemte §3-registreringer genbruges; registerfravær er ikke bevis for ubeskyttet natur. Kildens rumlige dækning er ukendt.",
         "ETRS89/UTM32 er transformeret til WGS84 uden epoke-/gridkorrektion; opmålingsnøjagtighed er ikke verificeret.",
       ],
