@@ -4,6 +4,11 @@ import type { GeoJSONPolygon } from "@/lib/supabase/types";
 import { validateProjectPolygon } from "@/services/geo-service";
 import { baselineSha256, canonicalBaselineJson } from "./public-baseline-service";
 import type { BaselineJson, PublicBaselineSource } from "./public-baseline-types";
+import {
+  isSafeSentinelThumbnailUrl,
+  selectSentinelPreview,
+  type SentinelThumbnail,
+} from "./sentinel-preview";
 
 /** Official current CDSE endpoint; the legacy catalogue endpoint is deprecated. */
 export const SENTINEL_STAC_SEARCH = "https://stac.dataspace.copernicus.eu/v1/search";
@@ -17,7 +22,7 @@ const MAX_PAYLOAD_BYTES = 768 * 1024;
 const TOTAL_TIMEOUT_MS = 12_000;
 const REQUEST_TIMEOUT_MS = 6_000;
 const MAX_SCENE_VERTICES = 500;
-const ADAPTER_VERSION = "sentinel-2-l2a-catalog/v2";
+const ADAPTER_VERSION = "sentinel-2-l2a-catalog/v3";
 
 const Position = z.tuple([
   z.number().finite().min(-180).max(180),
@@ -51,6 +56,12 @@ const ItemSchema = z.object({
   bbox: Bbox,
   geometry: Footprint,
   properties: Properties,
+  assets: z.record(z.string(), z.unknown()).optional(),
+});
+const ThumbnailAsset = z.object({
+  href: z.string().max(2000),
+  type: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  roles: z.array(z.string()).optional(),
 });
 const LinkSchema = z.object({
   rel: z.string(),
@@ -77,6 +88,7 @@ export interface SentinelSceneCandidate {
   footprint: z.infer<typeof Footprint>;
   globalCloudCoverPct: number | null;
   sourceUrl: string;
+  thumbnail: SentinelThumbnail | null;
   localQuality: { cloud: "pending"; shadow: "pending"; nodata: "pending"; usable: null };
 }
 
@@ -296,6 +308,19 @@ function candidateFromItem(
   const [west, south, east, north] = item.bbox;
   if (west > east || south > north || west < -180 || east > 180 || south < -90 || north > 90)
     throw new CatalogError("INVALID_BBOX", "En scene har en ugyldig geografisk afgrænsning.");
+  const thumbnail =
+    Object.entries(item.assets ?? {})
+      .map(([name, value]) => {
+        const asset = ThumbnailAsset.safeParse(value);
+        if (
+          !asset.success ||
+          !(asset.data.roles?.includes("thumbnail") || /^(thumbnail|quicklook)$/i.test(name)) ||
+          !isSafeSentinelThumbnailUrl(asset.data.href)
+        )
+          return null;
+        return { href: asset.data.href, mediaType: asset.data.type };
+      })
+      .find((asset) => asset !== null) ?? null;
   return {
     id: item.id,
     productId:
@@ -310,6 +335,7 @@ function candidateFromItem(
     footprint: item.geometry,
     globalCloudCoverPct: item.properties["eo:cloud_cover"] ?? null,
     sourceUrl: `https://stac.dataspace.copernicus.eu/v1/collections/${SENTINEL_L2A_COLLECTION}/items/${encodeURIComponent(item.id)}`,
+    thumbnail,
     localQuality: { cloud: "pending", shadow: "pending", nodata: "pending", usable: null },
   };
 }
@@ -325,6 +351,11 @@ export async function fetchSentinelSceneSource(
   const toMs = dateStart(input.dateTo) + 86_400_000;
   if (fromMs >= toMs || toMs - fromMs > 366 * 86_400_000)
     throw new Error("Sentinel-perioden skal være højst 366 dage og i korrekt rækkefølge.");
+  // A flight day often has no overpass. Search a declared neighbouring window for visual context.
+  const searchFromMs = input.dateFrom === input.dateTo ? fromMs - 30 * 86_400_000 : fromMs;
+  const searchToMs = input.dateFrom === input.dateTo ? toMs + 30 * 86_400_000 : toMs;
+  const searchFrom = new Date(searchFromMs).toISOString().slice(0, 10);
+  const searchTo = new Date(searchToMs - 1).toISOString().slice(0, 10);
   const geometrySha256 = await baselineSha256(validation.polygon);
   if (input.geometrySha256 && input.geometrySha256 !== geometrySha256)
     throw new Error("Sentinel-AOI matcher ikke den gemte geometriversion.");
@@ -375,6 +406,11 @@ export async function fetchSentinelSceneSource(
         "Dette er et katalog over mulige scener. Lokale skyer, skygger, nodata og faktisk brugbar pixelopløsning er endnu ikke kontrolleret.",
         "Global scene-skydækning beskriver hele scenen og må ikke læses som lokal skydækning i projektet.",
         "Footprintoverlap dokumenterer en geografisk kandidat. Det er ikke en godkendt lokal måling eller NDVI.",
+        ...(input.dateFrom === input.dateTo
+          ? [
+              `Ved én flyvedag søges også 30 dage før og efter (${searchFrom}–${searchTo}). Scenens egen optagedato bevares; den dokumenterer ikke automatisk forholdene på flyvedagen.`,
+            ]
+          : []),
       ],
     },
     payload: null,
@@ -384,7 +420,7 @@ export async function fetchSentinelSceneSource(
   const canonical: Record<string, BaselineJson> = {
     collections: [SENTINEL_L2A_COLLECTION],
     intersects: z.json().parse(validation.polygon),
-    datetime: `${input.dateFrom}T00:00:00Z/${input.dateTo}T23:59:59.999Z`,
+    datetime: `${searchFrom}T00:00:00Z/${searchTo}T23:59:59.999Z`,
     limit: PAGE_SIZE,
     fields: {
       include: [
@@ -400,6 +436,8 @@ export async function fetchSentinelSceneSource(
         "properties.product:identifier",
         "properties.s2:product_uri",
         "properties.s2:product_id",
+        "assets.thumbnail",
+        "assets.QUICKLOOK",
         "links",
       ],
     },
@@ -448,6 +486,10 @@ export async function fetchSentinelSceneSource(
       schema: "gofreyra.sentinel-scene-catalog/v1",
       collection: SENTINEL_L2A_COLLECTION,
       scenes,
+      cataloguePeriod: { from: searchFrom, to: searchTo },
+      previewSceneId: selectSentinelPreview(scenes, input.dateFrom)?.id ?? null,
+      previewReferenceDate: input.dateFrom,
+      previewMaxGlobalCloudPct: 10,
       pagesFetched,
       catalogComplete,
       requestAttemptCount,
@@ -497,7 +539,7 @@ export async function fetchSentinelSceneSource(
       pagesFetched += 1;
       matched = page.numberMatched ?? page.context?.matched ?? matched;
       for (const rawItem of page.features) {
-        const candidate = candidateFromItem(rawItem, validation.polygon, fromMs, toMs);
+        const candidate = candidateFromItem(rawItem, validation.polygon, searchFromMs, searchToMs);
         const previous = candidates.get(candidate.id);
         if (previous && canonicalBaselineJson(previous) !== canonicalBaselineJson(candidate))
           throw new CatalogError(
