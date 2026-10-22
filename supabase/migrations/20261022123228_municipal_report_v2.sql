@@ -217,6 +217,10 @@ begin
       and report_manifest#>>'{planting,baselineId}' = selected_baseline_id::text
       and report_manifest#>>'{planting,baselineSha256}' = baseline_row.manifest_sha256
       and report_manifest#>'{planting,localEffectsCalculated}' = 'false'::jsonb
+      and report_manifest#>>'{planting,status}' in ('complete','partial','unavailable')
+      and jsonb_typeof(report_manifest#>'{planting,warnings}') = 'array'
+      and (report_manifest->'planting') - array['schema','notice','projectId','baselineId','baselineSha256',
+        'status','sources','warnings','reaches','localEffectsCalculated','literature'] = '{}'::jsonb
       and jsonb_typeof(report_manifest#>'{planting,reaches}') = 'array'
       and jsonb_array_length(report_manifest#>'{planting,reaches}') = 10
       and jsonb_typeof(report_manifest#>'{planting,sources}') = 'array'
@@ -224,6 +228,41 @@ begin
       and jsonb_typeof(report_manifest#>'{planting,literature}') = 'array'
       and jsonb_array_length(report_manifest#>'{planting,literature}') = 4
     ) is not true then raise exception 'Invalid exact planting summary' using errcode = '23514'; end if;
+    -- Reject unreadable summaries at the DB boundary as well as in the compiler.
+    -- Unknown hectare coverage must stay null; it must never silently become zero.
+    if exists (select 1 from jsonb_array_elements(report_manifest#>'{planting,reaches}') reach
+      where case when jsonb_typeof(reach) <> 'object' then true else (reach->>'reach' in ('A','B','C','D','E')
+        and reach->'bufferM' in ('10'::jsonb,'20'::jsonb)
+        and reach->>'status' in ('complete','unknown')
+        and jsonb_typeof(reach->'reason') in ('string','null')
+        and reach - array['reach','bufferM','status','suitableHa','conditionalHa','unsuitableHa','reason'] = '{}'::jsonb
+        and case when reach->>'status' = 'unknown' then
+          reach->'suitableHa' = 'null'::jsonb and reach->'conditionalHa' = 'null'::jsonb and reach->'unsuitableHa' = 'null'::jsonb
+        else
+          case when jsonb_typeof(reach->'suitableHa') = 'number' then (reach->>'suitableHa')::numeric >= 0 else false end
+          and case when jsonb_typeof(reach->'conditionalHa') = 'number' then (reach->>'conditionalHa')::numeric >= 0 else false end
+          and case when jsonb_typeof(reach->'unsuitableHa') = 'number' then (reach->>'unsuitableHa')::numeric >= 0 else false end
+        end) is not true end)
+      or (select count(distinct (reach->>'reach',reach->>'bufferM'))
+          from jsonb_array_elements(report_manifest#>'{planting,reaches}') reach) <> 10
+      or exists (select 1 from jsonb_array_elements(report_manifest#>'{planting,sources}') source
+        where case when jsonb_typeof(source) <> 'object' then true else (source->>'id' in ('watercourse','section3','woodland','lowland','fields')
+          and jsonb_typeof(source->'label') = 'string'
+          and source->>'coverage' in ('complete','partial','unavailable')
+          and jsonb_typeof(source->'fetchedAt') in ('string','null')
+          and jsonb_typeof(source->'sourceUrl') in ('string','null')
+          and jsonb_typeof(source->'warnings') = 'array'
+          and source - array['id','label','coverage','fetchedAt','sourceUrl','warnings'] = '{}'::jsonb) is not true end)
+      or (select count(distinct source->>'id') from jsonb_array_elements(report_manifest#>'{planting,sources}') source) <> 5
+      or exists (select 1 from jsonb_array_elements(report_manifest#>'{planting,literature}') citation
+        where case when jsonb_typeof(citation) <> 'object' then true else (jsonb_typeof(citation->'effect') = 'string'
+          and jsonb_typeof(citation->'interval') in ('string','null')
+          and jsonb_typeof(citation->'context') = 'string'
+          and jsonb_typeof(citation->'citation') = 'string'
+          and citation->>'sourceUrl' like 'https://%'
+          and citation->>'checkedAt' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          and citation - array['effect','interval','context','citation','sourceUrl','checkedAt'] = '{}'::jsonb) is not true end)
+    then raise exception 'Invalid planting sources, literature or reach coverage' using errcode = '23514'; end if;
     for pin in select value from jsonb_array_elements(report_manifest->'photoPointReviews') loop
       select * into review_row from public.photo_point_review_versions
         where project_id = p_project_id and id = (pin->>'id')::uuid;

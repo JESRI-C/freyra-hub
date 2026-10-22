@@ -5,10 +5,14 @@ create table public.photo_point_review_versions (
   binding_id uuid not null references public.survey_round_media_versions(id) on delete restrict,
   reviewed_by uuid not null, request_id uuid not null,
   review jsonb not null, review_text text not null,
+  binding_sha256 text generated always as (review->>'bindingSha256') stored not null,
   review_sha256 text not null check(review_sha256 ~ '^[0-9a-f]{64}$'),
   created_at timestamptz not null default clock_timestamp(),
   unique(project_id,reviewed_by,request_id),
-  constraint photo_review_text_matches check(jsonb_typeof(review)='object' and review_text::jsonb=review and octet_length(review_text)<=16384),
+  constraint photo_review_text_matches check(jsonb_typeof(review)='object' and review_text::jsonb=review and octet_length(review_text)<=16384
+    and encode(pg_catalog.sha256(convert_to(review_text,'UTF8')),'hex')=review_sha256),
+  constraint photo_review_exact_binding foreign key(project_id,binding_id,binding_sha256)
+    references public.survey_round_media_versions(project_id,id,manifest_sha256) on delete restrict,
   constraint photo_review_identity check((review->>'schema'='freyra.photo-point-review/v1'
     and review->>'projectId'=project_id::text and review->>'bindingId'=binding_id::text
     and review->>'decision' in ('confirmed','rejected')) is true)

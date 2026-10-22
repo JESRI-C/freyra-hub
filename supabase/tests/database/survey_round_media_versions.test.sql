@@ -299,6 +299,19 @@ select is((select count(*) from public.photo_point_review_versions),1::bigint,'r
 select is((select count(*) from public.audit_events where event_type='photo_point_reviewed'),1::bigint,'review retry creates only one audit event');
 select is((select review_sha256 from public.photo_point_review_versions),
  (select encode(pg_catalog.sha256(convert_to(review_text,'UTF8')),'hex') from public.photo_point_review_versions),'review hash binds exact UTF8 bytes');
+select throws_ok($q$insert into public.photo_point_review_versions(project_id,binding_id,reviewed_by,request_id,review,review_text,review_sha256)
+ select project_id,binding_id,reviewed_by,'fb100000-0000-4000-8000-000000000099',review,review_text,repeat('f',64)
+ from public.photo_point_review_versions$q$,'23514',null,'direct service insert cannot store a forged review checksum');
+reset role;
+create function pg_temp.insert_review_with_changes(p_changes jsonb) returns void language sql as $$
+ insert into public.photo_point_review_versions(project_id,binding_id,reviewed_by,request_id,review,review_text,review_sha256)
+ select (content->>'projectId')::uuid,(content->>'bindingId')::uuid,reviewed_by,'fb100000-0000-4000-8000-000000000099',content,
+   pg_temp.canonical_fixture(content),encode(pg_catalog.sha256(convert_to(pg_temp.canonical_fixture(content),'UTF8')),'hex')
+ from (select review || p_changes as content,reviewed_by from public.photo_point_review_versions) changed
+$$;
+set local role service_role;
+select throws_ok($q$select pg_temp.insert_review_with_changes('{"projectId":"e2000000-0000-4000-8000-000000000002"}')$q$,'23503',null,'direct service insert cannot bind another tenant project');
+select throws_ok($q$select pg_temp.insert_review_with_changes('{"bindingSha256":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}')$q$,'23503',null,'direct service insert requires the exact immutable binding checksum');
 select throws_ok($q$select pg_temp.photo_review(p_changes=>'{"decision":"confirmed"}')$q$,'23514',null,'same request cannot change a decision');
 select lives_ok($q$select pg_temp.photo_review(p_request=>'fb100000-0000-4000-8000-000000000002',p_changes=>'{"decision":"confirmed","note":"Synthetic second review."}')$q$,'new request appends a new decision');
 select is((select count(*) from public.photo_point_review_versions),2::bigint,'both professional decisions remain');

@@ -452,11 +452,16 @@ create function pg_temp.report_manifest_v2() returns jsonb language sql as $$
       'projectId','e2000000-0000-4000-8000-000000000001',
       'baselineId',pg_temp.report_manifest()#>>'{pins,baseline,id}',
       'baselineSha256',pg_temp.report_manifest()#>>'{pins,baseline,sha256}',
-      'localEffectsCalculated',false,
+      'localEffectsCalculated',false,'status','unavailable','warnings','[]'::jsonb,
       'reaches',(select jsonb_agg(jsonb_build_object('reach',reach,'bufferM',width,'status','unknown',
         'suitableHa',null,'conditionalHa',null,'unsuitableHa',null,'reason','Synthetic missing geometry'))
         from unnest(array['A','B','C','D','E']) reach cross join unnest(array[10,20]) width),
-      'sources','[null,null,null,null,null]'::jsonb,'literature','[null,null,null,null]'::jsonb),
+      'sources',(select jsonb_agg(jsonb_build_object('id',id,'label','Synthetic source fixture',
+        'coverage','unavailable','fetchedAt',null,'sourceUrl',null,'warnings','[]'::jsonb))
+        from unnest(array['watercourse','section3','woodland','lowland','fields']) id),
+      'literature',(select jsonb_agg(jsonb_build_object('effect','Synthetic effect fixture '||i,'interval',null,
+        'context','No real literature result in SQL test','citation','Synthetic test fixture',
+        'sourceUrl','https://example.test/fixture','checkedAt','2026-10-15')) from generate_series(1,4) i)),
     'photoPointReviews','[]'::jsonb)
 $$;
 set local role service_role;
@@ -466,6 +471,10 @@ select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-00000000
 select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{generatorVersion}','"municipal-evidence-report/v1"'))$q$,'23514',null,'v2 sections cannot be laundered into historical v1');
 select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{planting,baselineSha256}',to_jsonb(repeat('f',64))))$q$,'23514',null,'planting must pin exact baseline checksum');
 select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{planting,localEffectsCalculated}','true'))$q$,'23514',null,'no calculated local effect allowed in v2 sketch');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{planting,sources,0}','null'))$q$,'23514',null,'null source elements cannot create an unreadable report');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{planting,literature,0}','null'))$q$,'23514',null,'null citations cannot create an unreadable report');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{planting,reaches,0,suitableHa}','0'))$q$,'23514',null,'unknown hectares cannot be represented as zero');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{planting,reaches,0}',pg_temp.report_manifest_v2()#>'{planting,reaches,1}'))$q$,'23514',null,'repeated A-E and buffer combinations are rejected');
 reset role;
 -- Immutable decision fixture with an exact original/source binding, independent of AI.
 with review_fixture as (
