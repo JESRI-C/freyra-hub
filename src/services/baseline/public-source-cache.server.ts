@@ -57,11 +57,18 @@ export async function collectCachedPublicSource(
   projectId: string,
   placeholder: PublicBaselineSource,
   collect: () => Promise<PublicBaselineSource>,
-  options: { cache?: PublicSourceCache; nowMs?: () => number; timeoutMs?: number } = {},
+  options: {
+    cache?: PublicSourceCache;
+    nowMs?: () => number;
+    timeoutMs?: number;
+    acceptCached?: (source: PublicBaselineSource) => boolean;
+  } = {},
 ): Promise<PublicBaselineSource> {
   const nowMs = options.nowMs ?? Date.now;
   const key = publicSourceCacheKey(projectId, placeholder);
-  const cached = options.cache?.get(key, nowMs()) ?? null;
+  const candidate = options.cache?.get(key, nowMs()) ?? null;
+  const cached =
+    candidate && (!options.acceptCached || options.acceptCached(candidate)) ? candidate : null;
   const reuse = (stale: boolean): PublicBaselineSource => ({
     ...cached!,
     status: stale ? "partial" : cached!.status,

@@ -7,7 +7,13 @@ export class PublicReadError extends Error {
 /** Callers provide fixed provider URLs. No response URL, credential, or upstream body escapes errors. */
 export async function readPublicBytes(
   url: URL,
-  options: { fetchImpl?: typeof fetch; maxBytes: number; timeoutMs?: number; mediaType: string },
+  options: {
+    fetchImpl?: typeof fetch;
+    maxBytes: number;
+    timeoutMs?: number;
+    mediaType: string;
+    additionalMediaTypes?: string[];
+  },
 ): Promise<Uint8Array> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), Math.min(15_000, options.timeoutMs ?? 15_000));
@@ -42,7 +48,11 @@ export async function readPublicBytes(
         response.status === 401 || response.status === 403 ? "ACCESS_DENIED" : "HTTP_ERROR",
       );
     }
-    if (!(response.headers.get("content-type") ?? "").toLowerCase().startsWith(options.mediaType)) {
+    const contentType = (response.headers.get("content-type") ?? "")
+      .toLowerCase()
+      .split(";")[0]
+      .trim();
+    if (![options.mediaType, ...(options.additionalMediaTypes ?? [])].includes(contentType)) {
       void response.body?.cancel().catch(() => undefined);
       throw new PublicReadError("INVALID_CONTENT_TYPE");
     }

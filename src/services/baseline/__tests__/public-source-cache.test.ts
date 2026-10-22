@@ -25,6 +25,27 @@ async function fixture() {
   };
 }
 describe("bounded public-source cache", () => {
+  it("does not reuse a legacy representation when the caller requires frozen pixels", async () => {
+    const { initial, result } = await fixture();
+    const cache = new PublicSourceCache();
+    await cache.put(publicSourceCacheKey(PROJECT_ID, initial), result);
+    const upgraded = { ...result, adapterVersion: "sentinel-scene-catalog-frozen/v1" };
+    const collect = vi.fn().mockResolvedValue(upgraded);
+    const options = {
+      cache,
+      nowMs: () => Date.parse(COLLECTED_AT) + 60_000,
+      acceptCached: (source: { adapterVersion: string }) =>
+        source.adapterVersion === upgraded.adapterVersion,
+    };
+    expect(await collectCachedPublicSource(PROJECT_ID, initial, collect, options)).toEqual(
+      upgraded,
+    );
+    expect(collect).toHaveBeenCalledTimes(1);
+    expect(
+      (await collectCachedPublicSource(PROJECT_ID, initial, collect, options)).retrieval?.mode,
+    ).toBe("cache");
+    expect(collect).toHaveBeenCalledTimes(1);
+  });
   it("uses exact project/geometry/period and retains original source date on a fresh hit", async () => {
     const { initial, result } = await fixture();
     const cache = new PublicSourceCache();
