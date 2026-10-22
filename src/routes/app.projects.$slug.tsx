@@ -163,7 +163,15 @@ const TABS = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function MunicipalProjectPage() {
-  const project = Route.useLoaderData();
+  const initialProject = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const cache = useQueryClient();
+  const { data: refreshedProject } = useQuery({
+    queryKey: ["project-by-slug", slug],
+    queryFn: () => getProjectBySlug(slug),
+    initialData: initialProject,
+  });
+  const project = refreshedProject ?? initialProject;
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const step =
@@ -180,7 +188,11 @@ function MunicipalProjectPage() {
       selectedRoundId={search.round}
       utility={search.tab === "audit" || search.tab === "roller" ? search.tab : undefined}
       onStep={(next) => void navigate({ search: { step: next, round: search.round } })}
-      onRound={(round) => void navigate({ search: { step, round } })}
+      onRound={(round) => {
+        void cache.invalidateQueries({ queryKey: ["project-by-slug", slug] });
+        void cache.invalidateQueries({ queryKey: ["public-baselines", project.id] });
+        void navigate({ search: { step, round } });
+      }}
     />
   );
 }

@@ -132,7 +132,7 @@ export function MunicipalCaseWorkspace({
     ...(photoCount === 0
       ? [
           {
-            text: "Der er endnu ingen modtagne originalfotos i sagen.",
+            text: "Originalfotos skal uploades eller åbnes til serverkontrol.",
             step: "billeder" as const,
           },
         ]
@@ -194,20 +194,22 @@ export function MunicipalCaseWorkspace({
             {readOnly ? "Kommunal læseadgang" : "Sagens dokumentation"}
           </span>
         </div>
-        <nav aria-label="Sagens fem trin" className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-5">
+        <nav aria-label="Sagens fem trin" className="mt-6 grid grid-cols-5 gap-1 sm:gap-2">
           {MUNICIPAL_STEPS.map((item, i) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 type="button"
+                aria-label={`${i + 1}. ${item.label}`}
+                title={item.label}
                 aria-current={!utility && step === item.id ? "step" : undefined}
                 onClick={() => onStep(item.id)}
                 className={`flex min-h-12 items-center gap-2 rounded-lg border px-3 py-3 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${step === item.id && !utility ? "border-primary bg-primary text-primary-foreground" : "border-transparent bg-muted/60 hover:border-border"}`}
               >
                 <span className="text-xs opacity-75">{i + 1}</span>
                 <Icon className="size-4 shrink-0" />
-                <span>{item.label}</span>
+                <span className="hidden sm:inline">{item.label}</span>
               </button>
             );
           })}
@@ -289,7 +291,7 @@ export function MunicipalCaseWorkspace({
               <h2 className="font-semibold">Sagens grundlag</h2>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-muted-foreground">Modtagne originaler</dt>
+                  <dt className="text-muted-foreground">Kontrollerede originaler</dt>
                   <dd>{photoCount ?? "Afventer"}</dd>
                 </div>
                 <div className="flex justify-between gap-3">

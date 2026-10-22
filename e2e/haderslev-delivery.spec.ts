@@ -72,7 +72,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
     .click();
   // The label also contains explanatory text about the date and its timezone.
   await expect(page.getByLabel(/^Optagedato/)).toHaveValue("2026-08-24");
-  const watercourse = page.getByLabel("Vandløb", { exact: true });
+  const watercourse = page.getByRole("combobox", { name: /^Vandløb/ });
   await expect(watercourse.locator("option")).not.toHaveCount(1);
   const candidates = await watercourse.locator("option").evaluateAll((options) =>
     options.map((option) => ({

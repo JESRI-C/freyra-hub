@@ -12,6 +12,8 @@ Hav den seneste gennemgåede PDF/ZIP og tilhørende SHA-256 lokalt. Test dem ude
 
 ## Klik for klik — cirka 15 minutter
 
+Ved første klargøring vælges **Datagrundlag → Billedgruppe → Alle seriens fotopunkter — 6 fotos**. De seks GPS-positioner fordeler sig på to grupper. Vælg den officielle **Bykær Bæk** og kræv **6 af seriens 6 fotos**, før området bekræftes. Det samlede GPS-søgeområde er ikke en fagligt godkendt strækningsgrænse. Genåbn den gemte undersøgelse ved senere gennemgang.
+
 | Tid | Klik og forklaring | Plan B |
 |---|---|---|
 | 0:00–1:00 | Log ind → Sager → **Bykær Bæk – Haderslev**. Vis de fem trin og forklar, at samme sag bevarer billeder, kilder, faglige beslutninger og rapporter. | Åbn det gemte direkte sagslink. Ved loginfejl: vis lokal pakke, registrér adgangsfejlen og undlad at erklære selvbetjening afleveret. |
