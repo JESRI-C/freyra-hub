@@ -113,6 +113,8 @@ describe("municipal report PDF layout boundaries", () => {
     expect(text).toContain("Fotopunkt afventer faglig gennemgang");
     expect(text).toContain("9. Versions- og evidensregister");
     expect(text).toContain("ingen beregnet lokal effekt");
+    expect(text).toContain("CO2");
+    expect(text).not.toContain("CO₂");
     for (const source of manifest.planting!.literature) {
       expect(text).toContain(source.sourceUrl);
       expect(text).toContain(source.checkedAt);

@@ -189,7 +189,10 @@ export async function renderMunicipalReportPdf(
     const size = options.size ?? 10;
     pdf.setFont("helvetica", options.bold ? "bold" : "normal");
     pdf.setFontSize(size);
-    const lines = pdf.splitTextToSize(printable(value), width) as string[];
+    // Helvetica's WinAnsi font has no subscript 2. Keep the historical v1
+    // renderer unchanged; v2 literature uses readable CO2 in the PDF only.
+    const rendered = report.planting ? value.replace(/\u2082/g, "2") : value;
+    const lines = pdf.splitTextToSize(printable(rendered), width) as string[];
     const lineHeight = size * 0.43;
     const space = options.space ?? 2;
     return { size, lines, lineHeight, space, height: lines.length * lineHeight + space };
