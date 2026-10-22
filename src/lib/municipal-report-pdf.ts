@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { baselineSha256 } from "@/services/baseline/public-baseline-service";
 import {
+  municipalCoverageLabels,
+  municipalPinLabels,
+  municipalReportSummaryText,
+} from "./municipal-report-labels";
+import {
   MunicipalReportManifestSchema,
   municipalReportCanonicalText,
   type MunicipalReportPdfVersion,
@@ -102,7 +107,7 @@ export async function renderMunicipalReportPdf(
     .parse(options.images ?? []);
   function sourceTitle(source: (typeof report.sources)[number]) {
     return source.id === "dmi-historical" &&
-      source.dataset === "climateData/stationValue_acc_precip_daily"
+      (report.planting || source.dataset === "climateData/stationValue_acc_precip_daily")
       ? "DMI - nedbør fra målestation"
       : source.dataset;
   }
@@ -260,7 +265,11 @@ export async function renderMunicipalReportPdf(
   block("KLADDE - AFVENTER FAGLIG GENNEMGANG", { size: 10, bold: true, space: 3 });
   heading("1. Formål og overblik");
   block(report.purpose, { size: 9 });
-  for (const text of report.executiveSummary) block(text, { size: 9, space: 1.5 });
+  for (const text of report.executiveSummary)
+    block(report.planting ? municipalReportSummaryText(report, text) : text, {
+      size: 9,
+      space: 1.5,
+    });
   block(
     `${report.photos.length} valgte fotos er gennemgået nedenfor; ${images.length} er illustreret. Alle valgte fotos, billedspørgsmål og gemte svar er med.`,
     { size: 9, bold: true },
@@ -294,7 +303,7 @@ export async function renderMunicipalReportPdf(
     ensure(25);
     block(`K${index + 1}. ${sourceTitle(source)}`, { size: 10, bold: true, space: 1 });
     block(
-      `${statusLabels[source.status]} | ${modeLabels[source.mode]} | ${source.provider} | hentet ${date(source.fetchedAt)}`,
+      `${statusLabels[source.status]} | ${modeLabels[source.mode]} | ${source.provider} | ${report.planting && source.mode === "error" ? "forsøgt" : "hentet"} ${date(source.fetchedAt)}`,
       { size: 8.5, space: 1 },
     );
     block(
@@ -302,7 +311,7 @@ export async function renderMunicipalReportPdf(
       { size: 8.5, space: 1 },
     );
     block(
-      `Dækning: sted ${source.spatialCoverage}, tid ${source.temporalCoverage}; alle sider: ${source.paginationComplete ? "ja" : "nej"}${source.returnedCount === null ? "" : `; ${source.returnedCount} poster`}.`,
+      `Dækning: sted ${report.planting ? municipalCoverageLabels[source.spatialCoverage] : source.spatialCoverage}, tid ${report.planting ? municipalCoverageLabels[source.temporalCoverage] : source.temporalCoverage}; alle sider: ${source.paginationComplete ? "ja" : "nej"}${source.returnedCount === null ? "" : `; ${source.returnedCount} poster`}.`,
       { size: 8.5, space: 1 },
     );
     const concreteFacts = source.facts.filter((fact) => !fact.startsWith("Kilden returnerede "));
@@ -314,6 +323,8 @@ export async function renderMunicipalReportPdf(
       );
     y += 3;
   }
+  // Start the v2 photo section with its first illustration, not an orphaned title.
+  if (report.planting && report.photos.length) nextPage();
   heading("4. Fotos, billedforslag og gemte egne svar");
   if (!report.photos.length) block("Ingen originale fotos er valgt til denne rapportversion.");
   for (const [index, photo] of report.photos.entries()) {
@@ -501,10 +512,17 @@ export async function renderMunicipalReportPdf(
     `${report.scope.referenceId} | ${report.scope.referenceSourceUrl ?? "link ikke dokumenteret"}`,
   );
   for (const kind of ["baseline", "plan", "round"] as const)
-    label(kind, `${report.pins[kind].id} | SHA-256 ${report.pins[kind].sha256}`);
+    label(
+      report.planting ? municipalPinLabels[kind] : kind,
+      `${report.pins[kind].id} | SHA-256 ${report.pins[kind].sha256}`,
+    );
   for (const [kind, pins] of Object.entries(report.pins))
     if (Array.isArray(pins))
-      for (const pin of pins) label(kind, `${pin.id} | SHA-256 ${pin.sha256}`);
+      for (const pin of pins)
+        label(
+          report.planting ? (municipalPinLabels[kind] ?? kind) : kind,
+          `${pin.id} | SHA-256 ${pin.sha256}`,
+        );
   for (const [index, photo] of report.photos.entries()) {
     label(`Foto ${index + 1}`, photo.mediaId);
     label("Original SHA-256", photo.originalSha256);

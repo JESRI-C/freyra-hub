@@ -115,6 +115,12 @@ describe("municipal report PDF layout boundaries", () => {
     expect(text).toContain("ingen beregnet lokal effekt");
     expect(text).toContain("CO2");
     expect(text).not.toContain("CO₂");
+    expect(text).not.toContain("status end complete");
+    expect(text).not.toMatch(/Dækning: sted (?:complete|partial|none|unknown)/);
+    expect(text).toContain("Kildeversion:");
+    const photoHeading = drawing.texts.find((entry) => entry.value.startsWith("4. Fotos"));
+    const firstPhoto = drawing.texts.find((entry) => entry.value.startsWith("Foto 1 af"));
+    expect(photoHeading?.page).toBe(firstPhoto?.page);
     for (const source of manifest.planting!.literature) {
       expect(text).toContain(source.sourceUrl);
       expect(text).toContain(source.checkedAt);

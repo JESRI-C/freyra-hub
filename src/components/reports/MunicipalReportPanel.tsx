@@ -13,6 +13,11 @@ import {
 import { getCanonicalDroneMediaUrl } from "@/lib/canonical-drone-media.functions";
 import type { MunicipalReportVersion } from "@/services/monitoring/municipal-report-persistence";
 import type { MunicipalReportPdfImage } from "@/lib/municipal-report-pdf";
+import {
+  municipalReportSummaryText,
+  municipalReportSourceText,
+  municipalSourceTitle,
+} from "@/lib/municipal-report-labels";
 
 const buttonClass =
   "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm disabled:opacity-50";
@@ -437,7 +442,7 @@ function SavedReport({
       <p className="font-medium">Rapportversion {report.version} · Afventer faglig gennemgang</p>
       <ul className="list-disc space-y-1 pl-5 text-sm">
         {m.executiveSummary.map((text) => (
-          <li key={text}>{text}</li>
+          <li key={text}>{municipalReportSummaryText(m, text)}</li>
         ))}
       </ul>
       <p className="text-sm">
@@ -450,19 +455,20 @@ function SavedReport({
           {m.sources.map((s) => (
             <div key={s.id} className="rounded border p-3 text-sm">
               <p className="font-medium">
-                {s.dataset} · {statusLabels[s.status] ?? s.status}
+                {municipalSourceTitle(s)} · {statusLabels[s.status] ?? s.status}
               </p>
               <p className="text-xs text-muted-foreground">
-                Hentet {s.fetchedAt} · periode {s.requestedFrom} til {s.requestedTo}
+                {s.mode === "error" ? "Forsøgt" : "Hentet"} {s.fetchedAt} · periode{" "}
+                {s.requestedFrom} til {s.requestedTo}
               </p>
               {s.facts.map((f) => (
                 <p className="mt-1" key={f}>
-                  {f}
+                  {municipalReportSourceText(m, f)}
                 </p>
               ))}
               {s.limitations.map((f) => (
                 <p className="mt-1 text-xs text-muted-foreground" key={f}>
-                  {f}
+                  {municipalReportSourceText(m, f)}
                 </p>
               ))}
             </div>
@@ -476,9 +482,9 @@ function SavedReport({
         <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm">
           {m.prioritizedFollowup.map((f) => (
             <li key={f.id}>
-              <strong>{f.title}</strong>
-              <p>{f.rationale}</p>
-              <p>{f.action}</p>
+              <strong>{municipalReportSourceText(m, f.title)}</strong>
+              <p>{municipalReportSourceText(m, f.rationale)}</p>
+              <p>{municipalReportSourceText(m, f.action)}</p>
             </li>
           ))}
         </ol>
@@ -490,7 +496,8 @@ function SavedReport({
         <ul className="mt-2 list-disc space-y-2 pl-5 text-sm">
           {m.deliveryGaps.map((g) => (
             <li key={g.code}>
-              <strong>{g.title}</strong> · {g.detail}
+              <strong>{municipalReportSourceText(m, g.title)}</strong> ·{" "}
+              {municipalReportSourceText(m, g.detail)}
             </li>
           ))}
         </ul>
