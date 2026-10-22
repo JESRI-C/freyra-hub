@@ -184,6 +184,16 @@ test("redesign: fem startvalg, seks trin, nulstilling og læseadgang på desktop
   await page.getByRole("button", { name: "Vis alle kilder", exact: true }).click();
   await capture(page, "10-kilder-desktop");
 
+  // An obsolete bookmark must offer recovery, never wait forever or show another baseline.
+  await openCase("baseline", "00000000-0000-4000-8000-000000000001");
+  await expect(page.getByRole("alert")).toContainText(
+    "Den valgte undersøgelses datagrundlag kunne ikke åbnes.",
+  );
+  await expect(page.getByLabel(/^Gemt version/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Vælg en anden undersøgelse", exact: true }).click();
+  await page.getByLabel("Åbn gemt undersøgelse", { exact: true }).selectOption(roundId);
+  await expect(page).toHaveURL(new RegExp(`round=${roundId}`));
+
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/app/projects");
   await expect(page.getByRole("heading", { name: "Hvad vil du gøre?" })).toBeVisible();

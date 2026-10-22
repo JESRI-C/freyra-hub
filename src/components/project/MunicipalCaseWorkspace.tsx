@@ -347,7 +347,22 @@ export function MunicipalCaseWorkspace({
                 }
               />
             )}
-            {step === "baseline" && (
+            {step === "baseline" && progress.baselineUnavailable && (
+              <div role="alert" className="space-y-3 rounded-lg border bg-card p-5">
+                <p>
+                  Den valgte undersøgelses datagrundlag kunne ikke åbnes. Kontrollér dit link, eller
+                  vælg en anden gemt undersøgelse i sagen.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onStep("datagrundlag")}
+                  className="rounded bg-primary px-4 py-2 text-primary-foreground"
+                >
+                  Vælg en anden undersøgelse
+                </button>
+              </div>
+            )}
+            {step === "baseline" && !progress.baselineUnavailable && (
               <PublicBaselinePanel
                 key={`${project.id}:${selectedRoundId ?? "latest"}`}
                 project={project}

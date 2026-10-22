@@ -35,6 +35,9 @@ export function useCaseProgress(actorId: string | undefined, projectId: string, 
     baseline.data?.manifestSha256 === selected?.baselineSha256
       ? baseline.data
       : undefined;
+  const baselineUnavailable =
+    (!!roundId && (round.isError || (round.isSuccess && !selected))) ||
+    (!!selected && (baseline.isError || (baseline.isSuccess && !snapshot)));
   const bindings = useQuery({
     queryKey: ["case-progress-bindings", actorId, projectId, roundId],
     queryFn: () => listBindings({ data: { projectId, roundVersionId: roundId!, limit: 30 } }),
@@ -78,12 +81,12 @@ export function useCaseProgress(actorId: string | undefined, projectId: string, 
   return {
     snapshot,
     baselineId: snapshot?.id,
+    baselineUnavailable,
     hasRound: !!selected,
     reviewed,
     reviewsComplete,
     hasReport: !reports.error && !!reports.data?.items.length,
-    isError:
-      !!round.error || !!baseline.error || !!bindings.error || reviewError || !!reports.error,
+    isError: baselineUnavailable || !!bindings.error || reviewError || !!reports.error,
     isFetching:
       round.isFetching ||
       baseline.isFetching ||
