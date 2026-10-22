@@ -4,8 +4,11 @@ import {
   type MunicipalReportClient,
 } from "../municipal-report.functions";
 import { makeMunicipalReportFixture } from "@/services/monitoring/__tests__/municipal-report.fixtures";
-import { baselineSha256 } from "@/services/baseline/public-baseline-service";
-import { compileMunicipalReportV1 } from "@/services/monitoring/municipal-report";
+import { baselineSha256, canonicalBaselineJson } from "@/services/baseline/public-baseline-service";
+import {
+  compileMunicipalReportV1,
+  MUNICIPAL_REPORT_GENERATOR_V2,
+} from "@/services/monitoring/municipal-report";
 import {
   droneImageInspectionCanonicalText,
   droneImageInspectionAnswersCanonicalText,
@@ -250,13 +253,85 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("municipal report input graph reads", () => {
+  it("freezes exact human decisions and replays them after a newer decision", async () => {
+    const f = await makeMunicipalReportFixture();
+    const tables = fixtureTables(f);
+    const review = {
+      schema: "freyra.photo-point-review/v1",
+      projectId: f.input.projectId,
+      bindingId: f.binding.id,
+      bindingSha256: f.binding.manifestSha256,
+      mediaId: f.binding.mediaId,
+      originalSha256: f.binding.manifest.originalSha256,
+      baselineId: f.baseline.id,
+      baselineSha256: f.baseline.manifestSha256,
+      decision: "confirmed",
+      note: "Syntetisk vurdering til test",
+      reviewerName: "Testperson",
+      inspectionId: f.inspection.id,
+      inspectionSha256: f.inspection.resultSha256,
+    };
+    const firstRow = {
+      id: "d8000000-0000-4000-8000-000000000001",
+      project_id: f.input.projectId,
+      binding_id: f.binding.id,
+      reviewed_by: f.note.createdBy,
+      request_id: "d8000000-0000-4000-8000-000000000002",
+      review,
+      review_text: canonicalBaselineJson(review),
+      review_sha256: await baselineSha256(review),
+      created_at: "2026-10-15T08:00:00.000Z",
+    };
+    tables.photo_point_review_versions = [firstRow];
+    const fresh = await load(new ReadOnlyClient(tables), f);
+    const frozen = await compileMunicipalReportV1(fresh);
+    expect(frozen.photoPointReviews?.[0].id).toBe(firstRow.id);
+    const rejected = { ...review, decision: "rejected", note: "Senere syntetisk afvisning" };
+    tables.photo_point_review_versions.push({
+      ...firstRow,
+      id: "d8000000-0000-4000-8000-000000000003",
+      review: rejected,
+      review_text: canonicalBaselineJson(rejected),
+      review_sha256: await baselineSha256(rejected),
+      created_at: "2026-10-15T08:30:00.000Z",
+    });
+    const newer = await load(new ReadOnlyClient(tables), f);
+    expect(newer.photoPointReviews?.[0].review.decision).toBe("rejected");
+    const replay = await loadMunicipalReportInputs(
+      new ReadOnlyClient(tables),
+      f.input.projectId,
+      f.round.id,
+      f.input.generatedAt,
+      frozen,
+    );
+    expect(await compileMunicipalReportV1(replay)).toEqual(frozen);
+    expect(replay.photoPointReviews?.[0].review.decision).toBe("confirmed");
+    tables.photo_point_review_versions[0].review_sha256 = "0".repeat(64);
+    await expect(
+      loadMunicipalReportInputs(
+        new ReadOnlyClient(tables),
+        f.input.projectId,
+        f.round.id,
+        f.input.generatedAt,
+        frozen,
+      ),
+    ).rejects.toThrow();
+  });
+
   it("replays the complete canonical graph with real validators and matching hashes", async () => {
     const f = await makeMunicipalReportFixture();
     const client = new ReadOnlyClient(fixtureTables(f));
     const input = await load(client, f);
 
-    expect(input).toEqual(f.input);
-    expect(await compileMunicipalReportV1(input)).toEqual(f.manifest);
+    expect(input).toEqual({
+      ...f.input,
+      generatorVersion: MUNICIPAL_REPORT_GENERATOR_V2,
+      photoPointReviews: [],
+    });
+    const report = await compileMunicipalReportV1(input);
+    expect(report.generatorVersion).toBe(MUNICIPAL_REPORT_GENERATOR_V2);
+    expect(report.photos).toEqual(f.manifest.photos);
+    expect(report.planting?.baselineSha256).toBe(f.baseline.manifestSha256);
     expect(
       client.queries.every((query) =>
         query.equals.some(

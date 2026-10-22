@@ -16,6 +16,8 @@ import {
   type SurveyRoundNoteVersion,
 } from "@/services/baseline/survey-round-note-persistence";
 import { DroneImageInspectionDraftSchema } from "./drone-image-inspection";
+import { PhotoPointReviewSchema, type PhotoPointReviewRecord } from "./photo-point-review";
+import { PlantingReportSchema, compilePlantingReportV1 } from "@/services/planting/planting-report";
 import {
   droneImageInspectionAnswersCanonicalText,
   validateDroneImageInspectionAnswerQuestions,
@@ -25,6 +27,10 @@ import {
 
 export const MUNICIPAL_REPORT_SCHEMA = "gofreyra.municipal-report/v1" as const;
 export const MUNICIPAL_REPORT_GENERATOR = "municipal-evidence-report/v1" as const;
+export const MUNICIPAL_REPORT_GENERATOR_V2 = "municipal-evidence-report/v2" as const;
+export type MunicipalReportGenerator =
+  | typeof MUNICIPAL_REPORT_GENERATOR
+  | typeof MUNICIPAL_REPORT_GENERATOR_V2;
 export const MAX_MUNICIPAL_REPORT_BYTES = 2 * 1024 * 1024;
 const Uuid = z.string().uuid(),
   Hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -42,6 +48,18 @@ const Text = (max: number) =>
       "Rapporttekst indeholder kontroltegn.",
     );
 const Pin = z.object({ id: Uuid, sha256: Hash }).strict();
+const FrozenPhotoReview = z
+  .object({
+    id: Uuid,
+    projectId: Uuid,
+    bindingId: Uuid,
+    reviewedBy: Uuid,
+    requestId: Uuid,
+    review: PhotoPointReviewSchema,
+    reviewSha256: Hash,
+    createdAt: Timestamp,
+  })
+  .strict();
 const Question = z
   .object({
     id: Text(300),
@@ -172,7 +190,7 @@ const Followup = z
 export const MunicipalReportManifestSchema = z
   .object({
     schema: z.literal(MUNICIPAL_REPORT_SCHEMA),
-    generatorVersion: z.literal(MUNICIPAL_REPORT_GENERATOR),
+    generatorVersion: z.enum([MUNICIPAL_REPORT_GENERATOR, MUNICIPAL_REPORT_GENERATOR_V2]),
     projectId: Uuid,
     generatedAt: Timestamp,
     recipient: z.literal("Haderslev Kommune"),
@@ -241,10 +259,68 @@ export const MunicipalReportManifestSchema = z
       )
       .max(500),
     limitations: z.array(Text(3000)).max(30),
+    planting: PlantingReportSchema.optional(),
+    photoPointReviews: z.array(FrozenPhotoReview).max(200).optional(),
   })
   .strict()
   .superRefine((report, ctx) => {
     const unique = (ids: string[]) => new Set(ids).size === ids.length;
+    if (report.generatorVersion === MUNICIPAL_REPORT_GENERATOR) {
+      if (report.planting !== undefined || report.photoPointReviews !== undefined)
+        ctx.addIssue({
+          code: "custom",
+          message: "Historiske rapporter må ikke tilføjes nye afsnit.",
+        });
+    } else if (!report.planting || !report.photoPointReviews) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Rapport v2 mangler beplantningsgrundlag eller fotogennemgang.",
+      });
+    }
+    if (
+      report.planting &&
+      (report.planting.projectId !== report.projectId ||
+        report.planting.baselineId !== report.pins.baseline.id ||
+        report.planting.baselineSha256 !== report.pins.baseline.sha256)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Beplantningsskitsen matcher ikke rapportens kildeversion.",
+      });
+    if (
+      report.photoPointReviews &&
+      (!unique(report.photoPointReviews.map((review) => review.id)) ||
+        !unique(report.photoPointReviews.map((review) => review.bindingId)) ||
+        report.photoPointReviews.some((record) => {
+          const review = record.review;
+          return (
+            record.projectId !== report.projectId ||
+            review.projectId !== report.projectId ||
+            record.bindingId !== review.bindingId ||
+            review.baselineId !== report.pins.baseline.id ||
+            review.baselineSha256 !== report.pins.baseline.sha256 ||
+            Date.parse(record.createdAt) > Date.parse(report.generatedAt) ||
+            !report.pins.mediaBindings.some(
+              (pin) =>
+                pin.id === review.bindingId &&
+                pin.sha256 === review.bindingSha256 &&
+                pin.mediaId === review.mediaId &&
+                pin.originalSha256 === review.originalSha256,
+            ) ||
+            (review.inspectionId !== null &&
+              !report.pins.inspections.some(
+                (pin) =>
+                  pin.id === review.inspectionId &&
+                  pin.sha256 === review.inspectionSha256 &&
+                  pin.mediaId === review.mediaId,
+              ))
+          );
+        }))
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Faglig fotogennemgang matcher ikke rapportens præcise input.",
+      });
     if (
       ![
         report.pins.mediaBindings,
@@ -324,6 +400,8 @@ export const MunicipalReportManifestSchema = z
   });
 export type MunicipalReportManifest = z.infer<typeof MunicipalReportManifestSchema>;
 export interface MunicipalReportCompileInput {
+  generatorVersion?: MunicipalReportGenerator;
+  photoPointReviews?: PhotoPointReviewRecord[];
   projectId: string;
   generatedAt: string;
   baseline: PublicBaselineSnapshot;
@@ -515,6 +593,20 @@ export async function compileMunicipalReportV1(
   ensureUnique(input.inspections, 400);
   ensureUnique(input.answers, 400);
   const { baseline, plan, round, projectId } = input;
+  const generatorVersion = input.generatorVersion ?? MUNICIPAL_REPORT_GENERATOR;
+  const photoPointReviews =
+    generatorVersion === MUNICIPAL_REPORT_GENERATOR_V2
+      ? sorted(input.photoPointReviews ?? [])
+      : undefined;
+  if (photoPointReviews) {
+    ensureUnique(photoPointReviews, 200);
+    for (const record of photoPointReviews) {
+      const review = PhotoPointReviewSchema.parse(record.review);
+      if ((await baselineSha256(review)) !== record.reviewSha256)
+        throw new Error("Den faglige fotogennemgang matcher ikke sin gemte checksum.");
+    }
+  } else if (input.photoPointReviews?.length)
+    throw new Error("Fotogennemgang kræver rapportgenerator v2.");
   await verifyManifestPin(baseline, projectId);
   await verifyManifestPin(plan, projectId);
   await verifyManifestPin(round, projectId);
@@ -817,7 +909,7 @@ export async function compileMunicipalReportV1(
   followups.sort((a, b) => rank[a.priority] - rank[b.priority] || a.id.localeCompare(b.id, "en"));
   const report = MunicipalReportManifestSchema.parse({
     schema: MUNICIPAL_REPORT_SCHEMA,
-    generatorVersion: MUNICIPAL_REPORT_GENERATOR,
+    generatorVersion,
     projectId,
     generatedAt: input.generatedAt,
     recipient: "Haderslev Kommune",
@@ -832,7 +924,9 @@ export async function compileMunicipalReportV1(
       `Rapporten samler ${photos.length} valgte originale fotos, ${notes.length} gemte manuelle noter, ${inspections.length} billedvurderinger og ${answers.length} gemte svarversioner.`,
       `Der er ${sources.length} daterede kilder. ${sources.filter((s) => s.status !== "complete").length} har en anden status end complete; status er en dækningsoplysning, ikke en faglig konklusion.`,
       "Opfølgningen prioriterer dokumentationsmangler og faglig afklaring. Den er ikke en automatisk prioritering af vedligeholdelsesindgreb.",
-      "Ingen miljøeffekt, længde, areal, vandføring eller ændring før/efter er beregnet i denne rapport.",
+      generatorVersion === MUNICIPAL_REPORT_GENERATOR
+        ? "Ingen miljøeffekt, længde, areal, vandføring eller ændring før/efter er beregnet i denne rapport."
+        : "Beplantning vises som en geometrisk skitse med kildeforbehold. Ingen lokal miljøeffekt, vandføring eller ændring før/efter er beregnet.",
     ],
     pins: {
       baseline: { id: baseline.id, sha256: baseline.manifestSha256 },
@@ -889,6 +983,12 @@ export async function compileMunicipalReportV1(
       "Satellit-, kort- og stationsinventarer er kildereferencer. Ingen satellitpixelanalyse, lokal hydraulik eller miljøeffekt er udledt her.",
       "Kun de udtrykkeligt valgte, gemte versioner indgår. Senere redigeringer og nyere kilder ændrer ikke denne rapportversion.",
     ],
+    ...(generatorVersion === MUNICIPAL_REPORT_GENERATOR_V2
+      ? {
+          planting: compilePlantingReportV1(baseline),
+          photoPointReviews,
+        }
+      : {}),
   });
   municipalReportCanonicalText(report);
   return report;

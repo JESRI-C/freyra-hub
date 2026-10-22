@@ -22,8 +22,14 @@ import {
 } from "@/services/monitoring/drone-image-inspection-persistence";
 import {
   compileMunicipalReportV1,
+  MUNICIPAL_REPORT_GENERATOR_V2,
   type MunicipalReportManifest,
 } from "@/services/monitoring/municipal-report";
+import {
+  PHOTO_POINT_REVIEW_SELECT,
+  photoPointReviewFromRow,
+  type PhotoPointReviewRecord,
+} from "@/services/monitoring/photo-point-review";
 import {
   SaveMunicipalReportInputSchema,
   GetMunicipalReportInputSchema,
@@ -203,6 +209,7 @@ export async function loadMunicipalReportInputs(
   generatedAt: string,
   frozen?: MunicipalReportManifest,
 ): Promise<ReportInputs> {
+  const generatorVersion = frozen?.generatorVersion ?? MUNICIPAL_REPORT_GENERATOR_V2;
   const context = createVerifiedInputContext();
   const rawRound = await required(client, "survey_round_versions", projectId, roundId);
   const roundPins = z.object({ baseline_id: Uuid, plan_id: Uuid }).parse(rawRound);
@@ -344,6 +351,67 @@ export async function loadMunicipalReportInputs(
       }
     }
   }
+  const photoPointReviews: PhotoPointReviewRecord[] = [];
+  if (generatorVersion === MUNICIPAL_REPORT_GENERATOR_V2) {
+    const reviewRows = frozen
+      ? [
+          ...(
+            await byIds(
+              client,
+              "photo_point_review_versions",
+              projectId,
+              (frozen.photoPointReviews ?? []).map((review) => review.id),
+              PHOTO_POINT_REVIEW_SELECT,
+            )
+          ).values(),
+        ]
+      : await relatedRows(
+          client,
+          "photo_point_review_versions",
+          projectId,
+          "binding_id",
+          [...bindingById.keys()],
+          400,
+          PHOTO_POINT_REVIEW_SELECT,
+        );
+    for (const raw of reviewRows) {
+      const review = await photoPointReviewFromRow(raw, projectId);
+      if (!bindingById.has(review.bindingId)) throw failRead();
+      if (frozen || Date.parse(review.createdAt) <= Date.parse(generatedAt))
+        photoPointReviews.push(review);
+    }
+    if (!frozen) {
+      photoPointReviews.sort(
+        (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.id.localeCompare(a.id),
+      );
+      const selected = new Set<string>();
+      for (let i = 0; i < photoPointReviews.length; ) {
+        if (selected.has(photoPointReviews[i].bindingId)) photoPointReviews.splice(i, 1);
+        else {
+          selected.add(photoPointReviews[i].bindingId);
+          i++;
+        }
+      }
+      // A review may refer to an older, precisely identified AI result. Include
+      // it alongside the newest assessment; never silently relabel the review.
+      const missingIds = photoPointReviews.flatMap((record) =>
+        record.review.inspectionId &&
+        !inspections.some((item) => item.id === record.review.inspectionId)
+          ? [record.review.inspectionId]
+          : [],
+      );
+      for (const raw of (
+        await byIds(
+          client,
+          "drone_image_inspections",
+          projectId,
+          missingIds,
+          DRONE_IMAGE_INSPECTION_SELECT,
+        )
+      ).values())
+        inspections.push(await droneImageInspectionFromRow(raw, projectId));
+    }
+  }
   const inspectionById = new Map(inspections.map((inspection) => [inspection.id, inspection]));
   const answerRows = frozen
     ? [
@@ -387,6 +455,8 @@ export async function loadMunicipalReportInputs(
     }
   }
   return {
+    generatorVersion,
+    ...(generatorVersion === MUNICIPAL_REPORT_GENERATOR_V2 ? { photoPointReviews } : {}),
     projectId,
     generatedAt,
     baseline,

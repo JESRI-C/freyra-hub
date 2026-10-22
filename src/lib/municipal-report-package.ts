@@ -163,9 +163,21 @@ export async function buildMunicipalReportPackage(
     { name: "fotoregister.csv", bytes: utf8.encode(municipalReportPhotoCsv(report)) },
     { name: "kamerapositioner.geojson", bytes: utf8.encode(municipalReportCameraGeoJson(report)) },
   ];
+  if (report.manifest.planting) {
+    files.push({
+      name: "beplantningsskitse.json",
+      bytes: utf8.encode(JSON.stringify(report.manifest.planting, null, 2) + "\n"),
+    });
+    files.push({
+      name: "faglig-fotogennemgang.json",
+      bytes: utf8.encode(JSON.stringify(report.manifest.photoPointReviews, null, 2) + "\n"),
+    });
+  }
   const manifest = {
     schema: "gofreyra.municipal-report-package/v1",
-    pdfRendererVersion: "municipal-evidence-pdf/v1",
+    pdfRendererVersion: report.manifest.planting
+      ? "municipal-evidence-pdf/v2"
+      : "municipal-evidence-pdf/v1",
     reportVersionId: report.id,
     reportManifestSha256: report.manifestSha256,
     status: "draft_unreviewed",

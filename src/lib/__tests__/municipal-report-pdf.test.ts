@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { baselineSha256 } from "@/services/baseline/public-baseline-service";
 import { makeMunicipalReportFixture } from "@/services/monitoring/__tests__/municipal-report.fixtures";
 import { buildMunicipalReportPdf } from "../municipal-report-pdf";
+import {
+  compileMunicipalReportV1,
+  MUNICIPAL_REPORT_GENERATOR_V2,
+} from "@/services/monitoring/municipal-report";
 
 const drawing = vi.hoisted(() => ({
   texts: [] as { value: string; y: number; page: number }[],
@@ -89,6 +93,31 @@ describe("municipal report PDF layout boundaries", () => {
     version.manifest.projectName = "Unpersisted change";
     await expect(buildMunicipalReportPdf(version)).rejects.toThrow("checksum");
     expect(drawing.texts).toHaveLength(0);
+  });
+  it("renders v2 sketch limitations, unknown hectares, frozen citations and pending human decisions", async () => {
+    const f = await makeMunicipalReportFixture();
+    const manifest = await compileMunicipalReportV1({
+      ...f.input,
+      generatorVersion: MUNICIPAL_REPORT_GENERATOR_V2,
+      photoPointReviews: [],
+    });
+    await buildMunicipalReportPdf({
+      ...(await fixture()),
+      manifest,
+      manifestSha256: await baselineSha256(manifest),
+    });
+    const text = drawing.texts.map((entry) => entry.value).join(" ");
+    expect(text).toContain("5. Beplantningsegnethed");
+    expect(text).toContain("Skitse - kræver faglig validering");
+    expect(text).toContain("A: egnet ukendt");
+    expect(text).toContain("Fotopunkt afventer faglig gennemgang");
+    expect(text).toContain("9. Versions- og evidensregister");
+    expect(text).toContain("ingen beregnet lokal effekt");
+    for (const source of manifest.planting!.literature) {
+      expect(text).toContain(source.sourceUrl);
+      expect(text).toContain(source.checkedAt);
+    }
+    expect(drawing.texts.every((entry) => entry.y <= 289)).toBe(true);
   });
   it("refuses a foreign or wrong-original JPEG asset instead of embedding it", async () => {
     const version = await fixture();

@@ -3,6 +3,8 @@ import { baselineSha256, canonicalBaselineJson } from "@/services/baseline/publi
 import {
   MunicipalReportManifestSchema,
   MUNICIPAL_REPORT_GENERATOR,
+  MUNICIPAL_REPORT_GENERATOR_V2,
+  type MunicipalReportGenerator,
   municipalReportCanonicalText,
   type MunicipalReportManifest,
 } from "./municipal-report";
@@ -39,7 +41,7 @@ const SummaryRowSchema = z.object({
   plan_sha256: Hash,
   round_version_id: Uuid,
   round_sha256: Hash,
-  generator_version: z.literal(MUNICIPAL_REPORT_GENERATOR),
+  generator_version: z.enum([MUNICIPAL_REPORT_GENERATOR, MUNICIPAL_REPORT_GENERATOR_V2]),
   status: z.literal("draft_unreviewed"),
   report_eligible: z.literal(false),
   professionally_reviewed: z.literal(false),
@@ -84,7 +86,7 @@ export interface MunicipalReportSummary {
   planSha256: string;
   roundVersionId: string;
   roundSha256: string;
-  generatorVersion: typeof MUNICIPAL_REPORT_GENERATOR;
+  generatorVersion: MunicipalReportGenerator;
   status: "draft_unreviewed";
   reportEligible: false;
   professionallyReviewed: false;

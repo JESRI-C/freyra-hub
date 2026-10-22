@@ -154,7 +154,7 @@ export async function renderMunicipalReportPdf(
     title: `${report.projectName} - rapportgrundlag`,
     subject: "Kladde til faglig gennemgang og kommunal dialog",
     author: "Freyra",
-    creator: "Freyra kommunal rapport v1",
+    creator: report.planting ? "Freyra kommunal rapport v2" : "Freyra kommunal rapport v1",
   });
   const left = 17,
     width = 176,
@@ -344,6 +344,26 @@ export async function renderMunicipalReportPdf(
     block(title, { size: 13, bold: true });
     for (const [name, value] of labels) label(name, value);
     imageFor(image);
+    if (report.photoPointReviews) {
+      const record = report.photoPointReviews.find((entry) => entry.bindingId === photo.bindingId);
+      block(
+        record
+          ? record.review.decision === "confirmed"
+            ? "Fotopunkt fagligt bekræftet"
+            : "Fotopunkt fagligt afvist"
+          : "Fotopunkt afventer faglig gennemgang",
+        { size: 10, bold: true },
+      );
+      if (record) {
+        label("Faglig gennemgang", `${record.review.reviewerName} | ${date(record.createdAt)}`);
+        block(record.review.note, { size: 9 });
+        label("Revisionsreference", `${record.id} | SHA-256 ${record.reviewSha256}`);
+        block(
+          "Beslutningen gælder dette foto og den gemte kildeversion. Den godkender ikke rapporten eller et fysisk indgreb.",
+          { size: 8 },
+        );
+      }
+    }
     for (const note of photo.manualNotes) {
       block(`Gemt manuel note | ${date(note.createdAt)}`, { size: 10, bold: true });
       block(note.question);
@@ -386,7 +406,49 @@ export async function renderMunicipalReportPdf(
     y += 4;
   }
   ensure(70);
-  heading("5. Begrundet prioriteret opfølgning");
+  if (report.planting) {
+    heading("5. Beplantningsegnethed");
+    block(report.planting.notice, { size: 11, bold: true });
+    block(
+      "10 m og 20 m er alternative buffere fra den officielle vandløbslinje. §3-natur og eksisterende skov/trædække er udeladt; markblokke er kandidater og lavbund/kulstofrig jord kræver særskilt vurdering. Arealerne er kortskitser, ikke tilladelser.",
+      { size: 9 },
+    );
+    for (const width of [10, 20]) {
+      block(`Afstand ${width} m | areal i ha`, { size: 10, bold: true });
+      for (const reach of report.planting.reaches.filter((entry) => entry.bufferM === width)) {
+        const ha = (value: number | null) =>
+          value === null
+            ? "ukendt"
+            : value.toLocaleString("da-DK", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+        block(
+          `${reach.reach}: egnet ${ha(reach.suitableHa)} | betinget ${ha(reach.conditionalHa)} | uegnet ${ha(reach.unsuitableHa)}`,
+          { size: 9, space: 1 },
+        );
+        if (reach.reason) block(reach.reason, { size: 8, space: 1 });
+      }
+    }
+    for (const warning of report.planting.warnings) block(warning, { size: 8 });
+    const coverage = { complete: "hentet", partial: "delvist", unavailable: "ikke tilgængelig" };
+    for (const source of report.planting.sources) {
+      block(`${source.label}: ${coverage[source.coverage]} | hentet ${date(source.fetchedAt)}`, {
+        size: 9,
+      });
+      if (source.sourceUrl) block(source.sourceUrl, { size: 8 });
+    }
+    block("Litteraturintervaller - ingen beregnet lokal effekt", { size: 10, bold: true });
+    for (const entry of report.planting.literature) {
+      block(`${entry.effect.replace("₂", "2")}: ${entry.interval ?? "Ikke opgjort"}`, {
+        size: 9,
+        bold: true,
+      });
+      block(entry.context.replaceAll("₂", "2"), { size: 8 });
+      block(`${entry.citation} | ${entry.sourceUrl} | kontrolleret ${entry.checkedAt}`, {
+        size: 8,
+      });
+    }
+  }
+  const sectionOffset = report.planting ? 1 : 0;
+  heading(`${5 + sectionOffset}. Begrundet prioriteret opfølgning`);
   block(
     "Prioriteten angår dokumentation og faglig afklaring. Den er ikke en godkendelse af vedligeholdelse eller et fysisk indgreb.",
   );
@@ -406,7 +468,7 @@ export async function renderMunicipalReportPdf(
       block(`Næste skridt: ${brief(item.action, 220)}`, { size: 9, space: 1 });
     y += 2;
   }
-  heading("6. Mangler før kommunal aflevering");
+  heading(`${6 + sectionOffset}. Mangler før kommunal aflevering`);
   block(
     "Følgende skal afklares eller begrundet afgrænses før aflevering. Begrundelserne er samlet ovenfor og står uafkortet i manifestet.",
     { size: 9 },
@@ -416,7 +478,7 @@ export async function renderMunicipalReportPdf(
       (report.deliveryGaps.length ? "." : "Ingen yderligere afleveringsmangler er valgt."),
     { size: 9 },
   );
-  heading("7. Metode og begrænsninger");
+  heading(`${7 + sectionOffset}. Metode og begrænsninger`);
   block(
     "Kun valgte, gemte versioner indgår; senere ændringer ændrer ikke denne rapport. AI og egne registreringer er udkast, og en bekræftelse er ikke en faglig godkendelse. Modellens sikkerhedstal er ukalibrerede egenvurderinger. Kamera-GPS er ikke et objekts position eller billedets footprint. Rundetype og planlagte datoer beviser ikke faktisk optagedækning eller en ændring før/efter.",
     { size: 9 },
@@ -425,7 +487,7 @@ export async function renderMunicipalReportPdf(
     "Stationsnedbør dokumenterer ikke lokal vandføring. Satellit- og rasterinventarer er ikke pixelanalyse, og produktdato er ikke nødvendigvis optagedato. Et stationsinventar indeholder ikke automatisk lokale måleserier eller en oplandskobling. Der er ikke beregnet lokal hydraulik eller miljøeffekt. Samtlige kildespecifikke forbehold og metodebegrænsninger står uafkortet i rapportgrundlag.json.",
     { size: 9 },
   );
-  heading("8. Versions- og evidensregister");
+  heading(`${8 + sectionOffset}. Versions- og evidensregister`);
   label("Rapportversion", `${version.version} | ${version.id}`);
   label("Sag", report.projectId);
   label("Genereret", report.generatedAt);

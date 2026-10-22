@@ -441,6 +441,63 @@ select throws_ok($q$select * from public.municipal_report_versions$q$,'42501',nu
 reset role;
 select throws_ok($q$update public.municipal_report_versions set status='draft_unreviewed'$q$,'23514',null,'even owner cannot mutate saved history');
 select throws_ok($q$delete from public.municipal_report_versions$q$,'23514',null,'even owner cannot delete saved history');
+-- Additive v2 boundaries use synthetic local data in the same rollback-only test transaction.
+create temporary table report_v1_before_v2 as
+  select jsonb_agg(to_jsonb(r) order by id) as value from public.municipal_report_versions r;
+create function pg_temp.report_manifest_v2() returns jsonb language sql as $$
+  select pg_temp.report_manifest() || jsonb_build_object(
+    'generatorVersion','municipal-evidence-report/v2',
+    'planting',jsonb_build_object(
+      'schema','freyra.planting-suitability/v1','notice','Skitse – kræver faglig validering',
+      'projectId','e2000000-0000-4000-8000-000000000001',
+      'baselineId',pg_temp.report_manifest()#>>'{pins,baseline,id}',
+      'baselineSha256',pg_temp.report_manifest()#>>'{pins,baseline,sha256}',
+      'localEffectsCalculated',false,
+      'reaches',(select jsonb_agg(jsonb_build_object('reach',reach,'bufferM',width,'status','unknown',
+        'suitableHa',null,'conditionalHa',null,'unsuitableHa',null,'reason','Synthetic missing geometry'))
+        from unnest(array['A','B','C','D','E']) reach cross join unnest(array[10,20]) width),
+      'sources','[null,null,null,null,null]'::jsonb,'literature','[null,null,null,null]'::jsonb),
+    'photoPointReviews','[]'::jsonb)
+$$;
+set local role service_role;
+select lives_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',pg_temp.report_manifest_v2())$q$,'v2 permits a source-bound sketch and explicit empty review list');
+select is((select generator_version from public.municipal_report_versions where request_id='ed900000-0000-4000-8000-000000000001'),'municipal-evidence-report/v2','v2 generator is stored without relabeling v1');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',pg_temp.report_manifest_v2()-'planting')$q$,'23514',null,'v2 cannot omit planting evidence');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{generatorVersion}','"municipal-evidence-report/v1"'))$q$,'23514',null,'v2 sections cannot be laundered into historical v1');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{planting,baselineSha256}',to_jsonb(repeat('f',64))))$q$,'23514',null,'planting must pin exact baseline checksum');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2(),'{planting,localEffectsCalculated}','true'))$q$,'23514',null,'no calculated local effect allowed in v2 sketch');
+reset role;
+-- Immutable decision fixture with an exact original/source binding, independent of AI.
+with review_fixture as (
+  select binding.id as binding_id, jsonb_build_object('schema','freyra.photo-point-review/v1',
+    'projectId',binding.project_id,'bindingId',binding.id,'bindingSha256',binding.manifest_sha256,
+    'mediaId',binding.media_id,'originalSha256',binding.original_sha256,
+    'baselineId',binding.baseline_id,'baselineSha256',binding.baseline_sha256,
+    'decision','confirmed','note','Synthetic local professional decision','reviewerName','Synthetic reviewer',
+    'inspectionId',null,'inspectionSha256',null) as review
+  from public.survey_round_media_versions binding where request_id='ef700000-0000-4000-8000-000000000001'
+)
+insert into public.photo_point_review_versions(id,project_id,binding_id,reviewed_by,request_id,review,review_text,review_sha256,created_at)
+select 'ed910000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000001',binding_id,
+  'e1000000-0000-4000-8000-000000000001','ed910000-0000-4000-8000-000000000002',review,
+  pg_temp.canonical_fixture(review),encode(pg_catalog.sha256(convert_to(pg_temp.canonical_fixture(review),'UTF8')),'hex'),'2026-10-15T08:00:00Z'
+from review_fixture;
+create function pg_temp.report_manifest_v2_review() returns jsonb language sql as $$
+  select jsonb_set(pg_temp.report_manifest_v2(),'{photoPointReviews}',jsonb_build_array(jsonb_build_object(
+    'id',id,'projectId',project_id,'bindingId',binding_id,'reviewedBy',reviewed_by,'requestId',request_id,
+    'review',review,'reviewSha256',review_sha256,'createdAt',created_at)))
+  from public.photo_point_review_versions where id='ed910000-0000-4000-8000-000000000001'
+$$;
+set local role service_role;
+select lives_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000002','e1000000-0000-4000-8000-000000000001',pg_temp.report_manifest_v2_review())$q$,'v2 stores an exact immutable human decision');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2_review(),'{photoPointReviews,0,review,note}','"Forged note"'))$q$,'23514',null,'decision prose must equal authoritative immutable row');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2_review(),'{photoPointReviews,0,reviewedBy}','"e1000000-0000-4000-8000-000000000003"'))$q$,'23514',null,'decision reviewer identity cannot be forged');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2_review(),'{photoPointReviews,0,reviewSha256}',to_jsonb(repeat('f',64))))$q$,'23514',null,'decision hash cannot be forged');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2_review(),'{generatedAt}','"2026-10-15T07:59:00Z"'))$q$,'23514',null,'decision cannot postdate frozen report generation');
+select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v2_review(),'{photoPointReviews}',(pg_temp.report_manifest_v2_review()->'photoPointReviews')||(pg_temp.report_manifest_v2_review()->'photoPointReviews')))$q$,'23514',null,'decision cannot be duplicated within report');
+reset role;
+select is((select jsonb_agg(to_jsonb(r) order by id) from public.municipal_report_versions r where generator_version='municipal-evidence-report/v1'),(select value from report_v1_before_v2),'adding v2 never rewrites historical v1 rows or hashes');
+
 delete from public.project_members where project_id='e2000000-0000-4000-8000-000000000001' and user_id='e1000000-0000-4000-8000-000000000001';
 set local role service_role;
 select throws_ok($q$select pg_temp.save_report()$q$,'42501',null,'revoked writer cannot retry prior request');
@@ -451,7 +508,7 @@ select set_config('request.jwt.claim.sub','e1000000-0000-4000-8000-000000000002'
 select is((select count(*) from public.municipal_report_versions),0::bigint,'unchanged JWT loses report read after revoke');
 select is((select count(*) from public.municipal_report_latest_answers),0::bigint,'unchanged JWT loses latest answer view after revoke');
 reset role;
-select is((select count(*) from public.municipal_report_versions),2::bigint,'failed attempts leave exactly two immutable versions');
+select is((select count(*) from public.municipal_report_versions),4::bigint,'failed attempts leave exactly two v1 and two v2 immutable versions');
 select is(jsonb_build_object(
   'baselines',(select jsonb_agg(to_jsonb(r) order by id) from public.project_baseline_snapshots r),
   'plans',(select jsonb_agg(to_jsonb(r) order by id) from public.verification_plan_versions r),
