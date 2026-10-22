@@ -295,6 +295,7 @@ select is((select prosecdef from pg_proc where oid='public.save_photo_point_revi
 set local role service_role;
 select lives_ok($q$select pg_temp.photo_review()$q$,'editor records professional rejection without AI');
 select lives_ok($q$select pg_temp.photo_review()$q$,'exact professional decision retry is idempotent');
+select ok(not (pg_temp.photo_review() ? 'binding_sha256'),'internal generated FK column is excluded from the strict public review DTO');
 select is((select count(*) from public.photo_point_review_versions),1::bigint,'review retry does not duplicate decision');
 select is((select count(*) from public.audit_events where event_type='photo_point_reviewed'),1::bigint,'review retry creates only one audit event');
 select is((select review_sha256 from public.photo_point_review_versions),

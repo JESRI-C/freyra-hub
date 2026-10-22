@@ -102,7 +102,7 @@ begin
     if existing.binding_id is distinct from p_binding_id or existing.review_text is distinct from p_review_text
       or existing.review_sha256 is distinct from content_hash
     then raise exception 'Review request ID is already bound to other content' using errcode='23514'; end if;
-    return to_jsonb(existing);
+    return to_jsonb(existing) - 'binding_sha256';
   end if;
   insert into public.photo_point_review_versions(project_id,binding_id,reviewed_by,request_id,review,review_text,review_sha256)
     values(p_project_id,p_binding_id,p_actor_id,p_request_id,review,p_review_text,content_hash) returning * into saved;
@@ -111,7 +111,8 @@ begin
       case when review->>'decision'='confirmed' then 'Fotopunkt fagligt bekræftet' else 'Fotopunkt fagligt afvist' end,
       p_actor_id::text,'professional_review',jsonb_build_object('review_id',saved.id,'binding_id',p_binding_id,
         'media_id',binding.media_id,'baseline_id',binding.baseline_id,'decision',review->>'decision','review_sha256',content_hash));
-  return to_jsonb(saved);
+  -- Keep the strict public DTO unchanged; the generated FK column is internal.
+  return to_jsonb(saved) - 'binding_sha256';
 end $$;
 revoke all on function public.save_photo_point_review(uuid,uuid,uuid,uuid,text) from public,anon,authenticated;
 grant execute on function public.save_photo_point_review(uuid,uuid,uuid,uuid,text) to service_role;
