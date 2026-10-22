@@ -1,161 +1,128 @@
-# Freyra: én sag i fem trin (designplan)
+# Freyra: visuel designgennemgang (kun UI, kun rådgivning)
 
-Denne plan er kun et designforslag. Den ændrer ingen filer, ingen data og publicerer ikke noget. Den kan bygges ovenpå de funktioner, der findes i dag.
+Rådgivning. Der ændres ingen filer, ingen gren og der deployes intet. Implementeringen sker i JESRI-C/freyra-hub på `codex/redesign-2710` (fra demo-grenens 6257819). main og demo-grenen skal ikke røres.
 
-## 1. Hvad gennemgangen viste
+## Vurdering af retningen
 
-- Sidemenuen har 5 grupper med 16 punkter (Dashboard, Naturprojekter, Kort & zoner, Byggeri & natur, Monitoring, LavbundsMRV, Project Intelligence, Dokumentation & audit, Funding & impact, Public impact, System Test m.fl.). En kommunal fagbruger får ingen hjælp til at vide, hvor han skal begynde.
-- Navnet "GoFreyra" og engelske betegnelser ("Funding & Impact Potential", "Documentation & Audit Trail", "Project Intelligence") står side om side med dansk tekst.
-- Hvert modul har sin egen fanebjælke (impact, ledger, lavbund, connect, projektside), og der er intet fælles flow på tværs af dem.
-- Der findes ingen side til beplantning i dag. Trin 4 skal derfor bygges som noget nyt.
-- Flere sider viser tal fra eksempeldata (`platform-seed`, `lavbundMockData`, `impact-data`, `ledger-data`, `reports-data`) på samme måde som rigtige resultater.
-- Farver og afstande ligger i `styles.css`, men en del steder bruges faste farver som `text-white` og `bg-success text-white`.
+Retningen holder. To menupunkter, én startside med fem valg og en sag i seks trin kan forstås på 10 sekunder. Der er tre risici:
+1. **Genveje uden sag.** "Upload dronefotos" kan ende i en tom eller forkert sag. Derfor skal brugeren altid vælge en sag først (se forbedring 3).
+2. **"Resultat først" kan skjule usikkerhed.** Dækning, ukendt areal og manglende faglig accept skal stå *i* resultatkortet og ikke inde i Avancerede indstillinger.
+3. **Kontrast.** Mellemgrøn #66A182 på beige når ca. 2,9:1. Den må kun bruges til flader, ikoner og kanter, aldrig til tekst. Tekst og knapper bruger #27543D (ca. 8:1 på beige).
 
-## 2. Ny struktur
+## Tokens (justering af trin 1)
 
 ```text
-Sager (liste)  ->  Sag: [1 Billeder]-[2 Datagrundlag]-[3 Gennemgang]-[4 Beplantning]-[5 Rapport og aflevering]
+--background  oklch(0.965 0.008 90)   beige (flyttes fra sidebar til hele appen)
+--card        oklch(0.99 0.004 90)    let lysere kort, så de skiller sig ud fra baggrunden
+--primary     #27543D                 knapper, aktiv menu, links
+--brand-mid   #66A182                 kun ikoner/fyld/kanter
+--foreground  #2A2E35
+--muted-foreground  oklch(0.48 0.01 260)  (>= 4.5:1 på beige)
+--radius      6px  (0.375rem)
+Overskrifter  Source Serif 4 500: H1 32/40 (mobil 26/32), H2 22/28, H3 18/24
+Brødtekst     Helvetica Neue 16/24, hjælpetekst 14/20, labels 13/18 600
+Afstand       4-grid: 8 / 12 / 16 / 24 / 32 / 48
 ```
 
-**Sidemenuen bliver kortere:**
-- Sager
-- Ny sag
-- Opgaver til mig
-- (nederst) Indstillinger · Hjælp
+## Forbedringer
 
-Moduler, der ikke hører til forløbet (Funding & impact, Public impact, Byggeri & natur, LavbundsMRV, Project Intelligence, System Test, Monitoring-fanerne), forsvinder fra menuen. De kan stadig slås til under *Indstillinger → Moduler* for organisationer, der skal bruge dem. Ingen funktioner bliver slettet.
+### 1. Hovedmenu: kun "Sager" og "Kilder"
+- 1440px: fast venstremenu på 240px. Logo "Freyra" i Source Serif 20px, padding 24px. Menupunkterne er 44px høje med radius 6px, og det aktive punkt har baggrund #27543D og lys tekst. Nederst står en diskret linje: "Indstillinger · Hjælp · Log ud" (14px).
+- 375px: topbjælke på 56px med "Freyra" til venstre og en menuknap (44×44, aria-label "Åbn menu") til højre. Menuen åbner som et ark med de samme to punkter.
+- De øvrige moduler fjernes fra menuen men slettes ikke. De kan nås fra sagens trin eller fra Kilder. Ingen funktion forsvinder.
 
-**Hvor de nuværende funktioner ender:**
+### 2. Startside "Hvad vil du gøre?"
+```text
+1440: max-bredde 1120, top-padding 48
+H1  Hvad vil du gøre?
+p   Freyra samler dronefotos og offentlige data for et naturprojekt,
+    så du kan dokumentere baseline og aflevere en sporbar rapport.   (18/28, max 64ch)
+Gitter 3+2 kort, gap 16, hvert kort min-højde 148, padding 24
+```
+Kortene (titel 18px 600 og én sætning på 15px):
+- **Start en ny sag**: "Opret en sag for et område, og følg de seks trin fra billeder til rapport."
+- **Upload dronefotos**: "Læg fotos ind i en sag. Position og tidspunkt læses fra filerne."
+- **Se baseline**: "Se, hvad der er dokumenteret i området, før projektet går i gang."
+- **Find steder at plante træer**: "Se arealer, hvor data peger på mulig beplantning, til faglig vurdering."
+- **Hent rapport**: "Hent rapporten for en sag med kilder, mangler og godkendelsesstatus."
+
+"Start en ny sag" er det eneste kort med fyldt primærfarve. De andre er lyse kort med 1px kant. Under 640px vises kortene i én kolonne med 12px mellemrum, og hele kortet kan trykkes (mindst 72px højt).
+
+### 3. Genveje kræver valg af sag
+Klikker man på et af de fire andre kort, åbner en dialog. På 375px er det et ark fra bunden.
+- Titel: "Vælg sag"
+- Tekst: "Vælg den sag, du vil uploade dronefotos til." (verbet følger kortet)
+- En liste med søgefelt "Søg efter sagsnavn eller adresse". Hver række viser sagsnavn, adresse og aktuelt trin.
+- Knapper: [Fortsæt] er inaktiv, indtil en sag er valgt. Sekundært link: "Start en ny sag i stedet".
+- Ingen sag vælges automatisk, heller ikke den senest brugte. Den kan højst stå øverst med mærket "Senest åbnet".
+
+### 4. Sagens topbjælke: seks trin, status og én næste-knap
+```text
+1440: [Sagsnavn H1 26px] adresse 14px muted          [Næste: Hent datagrundlag ->]
+      1 Billeder ✓  2 Datagrundlag ●  3 Verificering  4 Baseline  5 Beplantning  6 Rapport
+      trinbjælke 56px, hvert trin = nummer-cirkel 24px + label 14px + statuslinje 13px
+```
+- Statusser (ikon + tekst, aldrig kun farve): "Færdig", "I gang", "Mangler data", "Afventer faglig accept", "Ikke startet".
+- Der er altid kun én primærknap pr. skærm, og teksten viser den konkrete handling, fx "Næste: Verificér 3 punkter". Tallet kommer fra data. Hvis tallet ikke kendes, står der ikke noget tal.
+- 375px: titlen står på én linje og kortes af med "…". Under den står "Trin 2 af 6 · Datagrundlag · I gang", og et tryk åbner listen over trin. Næste-knappen ligger i en fast bundbjælke på 64px plus sikker zone, i fuld bredde.
+- Trinene er aldrig låst. Et trin, der ikke er færdigt, kan åbnes, men viser hvad der mangler.
+
+### 5. Resultat først, parametre under "Avancerede indstillinger"
+Rækkefølgen på hvert trin (Datagrundlag, Baseline, Beplantning):
+1. **Resultatkort** (padding 24): hovedresultatet og lige under det en **dækningslinje**, fx "Kilder: 4 af 6 hentet · Ukendt areal: vises på kortet". Værdierne kommer altid fra data, og hvis de mangler, står der "Ikke beregnet endnu".
+2. Kort og tabel.
+3. `Avancerede indstillinger` er foldet sammen (chevron, 44px trykflade). Hver parameter har en label, standardværdien som hjælpetekst ("Standard: …") og en sætning på 14px om, hvad den påvirker. Nederst står linket "Nulstil til standard" med bekræftelsen "Alle indstillinger på dette trin sættes tilbage til standard. Resultatet beregnes igen." Ændrede parametre markeres med "Ændret" og en prik, også når boksen er foldet sammen ("Avancerede indstillinger · 2 ændret").
+Alle eksisterende parametre beholdes. De bliver kun flyttet.
+
+### 6. Usikkerhed skal kunne ses
+- **Ukendt areal**: skraveret mønster på kortet med signaturen "Ukendt – ingen data" og arealet angivet, hvis det er beregnet.
+- **Delvis kildedækning**: en ravgul bjælke over resultatet: "Resultatet bygger på 4 af 6 kilder. Mangler: GEUS, Miljøportalen." [Se kilder]
+- **Faglig accept mangler**: resultatet får mærket "Afventer faglig accept" med stiplet kant. I rapporten står: "Ikke fagligt godkendt". Systemet sætter aldrig selv godkendt-status.
+- Eksempeldata og antagelser: mærket "Eksempel – ikke målt for denne sag" eller "Antagelse – skal bekræftes af fagperson". De tælles aldrig med i resultater.
+
+### 7. Aktivitetsbakke kun som visning
+- 1440px: højre panel på 320px, som kan foldes ind. 375px: knap i topbjælken "Aktivitet (3)", der åbner et ark.
+- To sektioner: **Det mangler** (konkrete punkter med link til trinnet) og **Seneste arbejde** (faktiske hændelser fra revisionssporet med tid og person).
+- Der er ingen knapper til at udføre handlinger i bakken, kun links til trin. Er der ingen hændelser, står der: "Der er ikke registreret aktivitet på sagen endnu."
+
+### 8. Login
+- Overskrift: "Log ind på Freyra"
+- Undertekst: "Sporbar dokumentation af naturprojekter – fra dronefoto til godkendt baseline."
+- 1440px: centreret kort på 420px på beige baggrund. 375px: fuld bredde med 16px margin og felter på 48px.
+
+## Skærmstruktur
+
+```text
+1440 (arbejdsplads, fx 24" skærm)
++-------+------------------------------------------+-----------+
+| Menu  | Sagsheader + trinbjælke + Næste-knap     | Aktivitet |
+| 240px | Indhold max 960px, padding 32            | 320px     |
++-------+------------------------------------------+-----------+
+
+375
++-----------------------------+
+| Freyra            [Menu]    |  56
+| Sag · Trin 2 af 6           |  48
+| Indhold, padding 16         |
+| ...                         |
+| [ Næste: … ]  (fast bund)   |  64 + safe-area
++-----------------------------+
+```
+
+## Trin og eksisterende funktioner
 
 | Trin | Bygger på |
 |---|---|
-| 1 Billeder | Upload center (billeder, drone, GPS/EXIF), projektmedier |
-| 2 Datagrundlag | Projektområde/kort (geometry), datakilder, §3, GEUS, NDVI, kulstof, vandmiljø |
-| 3 Gennemgang | Datakvalitet, artsgenkendelse, alerts (som "punkter til gennemgang"), noter |
-| 4 Beplantning | Nyt: arter, mængder, placering på kort, plejeplan |
-| 5 Rapport og aflevering | Rapport-builder, godkendelse, revisionsspor (ledger), eksport |
+| 1 Billeder | Upload center, projektmedier, EXIF/GPS |
+| 2 Datagrundlag | Projektområde, kildeopslag (§3, GEUS, NDVI, kulstof, vand) |
+| 3 Verificering | Datakvalitet, artsgenkendelse, alerts som punkter |
+| 4 Baseline | Eksisterende indikatorer og miljøkort, samlet visning |
+| 5 Beplantning | Kort og zoner, eksisterende analyser som forslag |
+| 6 Rapport | Rapportbygger, godkendelse, revisionsspor, eksport |
 
-**Adresser:** `/app/sager`, `/app/sager/$id/billeder` · `/datagrundlag` · `/gennemgang` · `/beplantning` · `/rapport`. De gamle adresser sender videre til de nye.
-
-## 3. Skærmene
-
-### Sagsoversigt (`/app/sager`)
-- Overskrift "Sager" og en primærknap "Opret ny sag".
-- Filtre: Status (Kladde, I gang, Afventer data, Klar til aflevering, Afleveret) · Ansvarlig · Søg.
-- Tabel på desktop og kort på mobil: sagsnavn, adresse/matrikel, aktuelt trin (x af 5), antal datamangler, senest ændret, næste handling som link.
-- Tom liste: "Du har ingen sager endnu. Opret en sag for at uploade billeder og hente data for området." og knappen [Opret ny sag].
-
-### Sagsramme (gælder alle fem trin)
-**Desktop (fra 1024px):**
-```text
-+--------------------------------------------------------------------+
-| Sagsnavn · matrikel          Status-badge     [Næste handling ->]  |
-| (1)Billeder ✓ —(2)Datagrundlag ●—(3)Gennemgang—(4)Beplantning—(5)  |
-+--------------------------------------+-----------------------------+
-| Trinindhold (maks. 880px)            | Sidepanel 320px:            |
-|                                      |  - Det mangler (liste)      |
-|                                      |  - Sagsoplysninger          |
-|                                      |  - Seneste aktivitet        |
-+--------------------------------------+-----------------------------+
-```
-**Mobil (under 768px):**
-- Kompakt topbjælke med sagsnavn og "Trin 2 af 5 · Datagrundlag", som åbner en trinliste.
-- Indholdet ligger i én kolonne. "Det mangler" vises som et kort, der kan foldes ud, øverst.
-- En fast bundbjælke med den primære handling, mindst 48px høj og med plads til sikker zone.
-
-Trinene kan altid åbnes. Hvis man springer et trin over, står der "Ikke færdigt" ved det. Man bliver ikke låst ude.
-
-### Trin 1 – Billeder
-- Træk filer ind i feltet, eller brug "Tag billede" på mobil.
-- Billederne vises i et gitter med et mærke: "Har GPS-position" eller "Mangler position".
-- Under gitteret ligger et lille kort, hvor billederne er placeret efter position.
-- Færdigt, når der er mindst 1 billede og alle billeder har position eller er placeret manuelt.
-
-### Trin 2 – Datagrundlag
-- Projektområdet tegnes på kortet, eller matriklen vælges.
-- Kortet med datakilder viser for hver kilde en af disse statusser: Hentet / Henter / Ikke tilgængelig / Fejl, og hvornår den sidst blev opdateret.
-- Knappen "Hent data for området" kører hele analysen og viser fremdriften trin for trin.
-
-### Trin 3 – Gennemgang
-- En liste med punkter, der skal tages stilling til: datakvalitet, foreslåede arter, afvigelser.
-- Hvert punkt kan få "Godkend", "Ret" eller "Afvis", og man kan skrive en kommentar.
-- En tæller viser "4 af 9 punkter gennemgået".
-
-### Trin 4 – Beplantning (nyt)
-- Tabel med art, antal/areal, zone og begrundelse.
-- Til højre vises zonerne på kortet.
-- Forslag fra systemet står altid som "Forslag", indtil fagbrugeren godkender dem.
-
-### Trin 5 – Rapport og aflevering
-- Tjekliste for om rapporten er klar, og hvert punkt linker direkte til det trin, der mangler.
-- Forhåndsvisning af rapporten. Eksport til PDF. Afleveringen bliver registreret i revisionssporet.
-
-## 4. Regler for data og ærlighed
-
-- Kun data, der er hentet eller indtastet for sagen, må stå som et resultat.
-- Eksempeldata og beregnede antagelser får mærket **"Eksempel"** eller **"Antagelse"** med stiplet kant, og de kommer aldrig med i rapporten.
-- Hvis data mangler, står der "Ikke tilgængeligt endnu" eller "—" og et link til det trin, hvor de kan skaffes. Der vises aldrig et 0 eller et fyldtal.
-- På sider, der i dag læser fra eksempeldata, bliver tallene erstattet med en tom tilstand og et "Det mangler"-punkt.
-
-## 5. Komponenter
-
-- `SagShell`: topbjælke, trinbjælke, sidepanel og mobil bundbjælke.
-- `StepIndicator`: tilstandene ikke startet / i gang / færdig / mangler data.
-- `NextActionButton`: én primærknap pr. skærm, som får sin tekst ud fra sagens tilstand.
-- `MissingDataPanel`: bygger videre på `MissingDataItem` med årsag, konsekvens og link til trin.
-- `DataStatusBadge`: Hentet, Afventer, Mangler, Fejl, Eksempel, Antagelse.
-- `SourceCard`, `ReviewItem`, `PlantingTable`, `EmptyState`.
-- Genbruger shadcn (Button, Sheet, Dialog, Table, Tabs) og den eksisterende `StatusBadge`.
-
-## 6. Design tokens (i `styles.css`)
-
-Retningen er rolig og professionel og minder om en offentlig myndighed: neutral papirfarvet baggrund, dyb skovgrøn som primærfarve og meget lidt pynt.
-
-```text
---background   oklch(0.985 0.004 100)   papirhvid
---foreground   oklch(0.24 0.02 170)
---primary      oklch(0.42 0.09 165)     skovgrøn
---muted        oklch(0.965 0.006 120)
---border       oklch(0.90 0.01 140)
---status-done        oklch(0.55 0.12 150)
---status-progress    oklch(0.55 0.10 240)
---status-missing     oklch(0.75 0.13 75)  (+ mørk forgrund)
---status-error       oklch(0.55 0.18 28)
---status-example     oklch(0.60 0.02 260) (stiplet kant)
---radius 0.5rem · --shadow-card kun 1px kant + svag skygge
-Typografi: "Source Sans 3" (brødtekst) + "Source Serif 4" (sagsoverskrifter)
-Skala: 13 / 15 (brødtekst) / 18 / 22 / 28 · linjehøjde 1.5
-Afstande: 4-trins grid (8, 12, 16, 24, 32)
-```
-De faste farver (`text-white` m.fl.) bliver erstattet med `*-foreground`-tokens. Al tekst opfylder WCAG AA, og fokusringe er altid synlige.
-
-## 7. Dansk microcopy
-
-- Trinnavne: Billeder · Datagrundlag · Gennemgang · Beplantning · Rapport og aflevering
-- Næste handling (eksempler): "Upload billeder" · "Tegn projektområdet" · "Hent data for området" · "Gennemgå 5 punkter" · "Tilføj beplantning" · "Forhåndsvis rapport" · "Aflever sagen"
-- Mangler: "Der mangler et projektområde. Uden området kan vi ikke hente data." [Tegn område]
-- Eksempelmærke: "Eksempel – ikke målt for denne sag"
-- Antagelse: "Antagelse – skal bekræftes af fagperson"
-- Kilde fejlet: "Vi kunne ikke hente data fra Miljøportalen. Prøv igen, eller fortsæt uden." [Prøv igen]
-- Aflevering: "Sagen er afleveret 22. okt. 2026 af Jesper. Ændringer herefter registreres i revisionssporet."
-- Bekræftelse: "Er du sikker? Sagen kan ikke redigeres efter aflevering uden at genåbne den."
-
-## 8. Brand
-
-- "Freyra" bliver det eneste navn i sidemenu, login, sidetitler og rapporter. "GoFreyra" udgår, og engelske modulnavne bliver oversat.
-- Undertekst: "Naturdokumentation for kommuner".
-
-## 9. Rækkefølge for byggeriet
-
-1. Tokens, skrifttyper og brandnavn, samt oprydning i de faste farver.
-2. Ny sidemenu og skjulte moduler (styres via Indstillinger → Moduler).
-3. `SagShell`, sagsoversigt og videresendelser fra de gamle adresser.
-4. Trin 1–3 og 5 kobles på de eksisterende funktioner.
-5. Trin 4 Beplantning (ny tabel `plantings` med samme medlemsadgang som de andre sagstabeller).
-6. Eksempeldata bliver mærket og fjernet fra visningen af resultater, og flowet bliver testet på mobil (390px) og desktop.
+Der opfindes ingen nye beregninger. Hvor der ikke findes en funktion i dag (fx en egentlig træplantningsanalyse), viser trinnet de eksisterende data og en tom tilstand: "Freyra beregner ikke plantningsegnethed endnu. Brug kortet og datagrundlaget til din vurdering."
 
 ## Antagelser, der skal bekræftes
-
-- En "sag" svarer til det nuværende naturprojekt, så der kommer ikke en ny datastruktur.
-- Engelske moduler som Funding og LavbundsMRV bliver skjult som standard, men ikke slettet.
-- Den foreslåede skrifttype og grønne farve kan udskiftes, hvis I har en designmanual.
+- "Kilder" i menuen svarer til det nuværende register over data og metoder.
+- "Baseline" er en ny samlet visning af eksisterende data og ikke en ny beregning.
+- Planen for fem trin bliver erstattet af denne plan med seks trin.
