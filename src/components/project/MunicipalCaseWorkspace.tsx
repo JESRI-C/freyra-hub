@@ -287,7 +287,13 @@ export function MunicipalCaseWorkspace({
                 </Link>
               </>
             )}
-            {step === "rapport" && <MunicipalReportPanel projectId={project.id} />}
+            {step === "rapport" && (
+              <MunicipalReportPanel
+                projectId={project.id}
+                selectedRoundId={selectedRoundId}
+                onSelectRound={onRound}
+              />
+            )}
           </section>
           <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
             <div className="rounded-xl border bg-card p-5">

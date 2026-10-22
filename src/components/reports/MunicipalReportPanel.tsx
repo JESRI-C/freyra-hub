@@ -4,7 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { FileDown, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui-bits";
 import { useAuth } from "@/lib/auth";
-import { getSurveyRoundAccess, listSurveyRounds } from "@/lib/survey-round.functions";
+import {
+  getSurveyRound,
+  getSurveyRoundAccess,
+  listSurveyRounds,
+} from "@/lib/survey-round.functions";
 import {
   getMunicipalReport,
   listMunicipalReports,
@@ -84,14 +88,34 @@ async function jpegIllustration(signedUrl: string, sha256: string): Promise<stri
     image.close();
   }
 }
-export function MunicipalReportPanel({ projectId }: { projectId: string }) {
+interface MunicipalReportPanelProps {
+  projectId: string;
+  selectedRoundId?: string;
+  onSelectRound?: (roundId: string) => void;
+}
+export function MunicipalReportPanel({
+  projectId,
+  selectedRoundId,
+  onSelectRound,
+}: MunicipalReportPanelProps) {
   const { user } = useAuth();
   return user ? (
-    <ReportPanel key={`${user.id}:${projectId}`} projectId={projectId} actorId={user.id} />
+    <ReportPanel
+      key={`${user.id}:${projectId}:${selectedRoundId ?? "latest"}`}
+      projectId={projectId}
+      actorId={user.id}
+      selectedRoundId={selectedRoundId}
+      onSelectRound={onSelectRound}
+    />
   ) : null;
 }
-function ReportPanel({ projectId, actorId }: { projectId: string; actorId: string }) {
-  const [selectedRound, setSelectedRound] = useState(""),
+function ReportPanel({
+  projectId,
+  actorId,
+  selectedRoundId,
+  onSelectRound,
+}: MunicipalReportPanelProps & { actorId: string }) {
+  const [selectedRound, setSelectedRound] = useState(selectedRoundId ?? ""),
     [selectedReport, setSelectedReport] = useState(""),
     [progress, setProgress] = useState<string | null>(null),
     [error, setError] = useState<string | null>(null);
@@ -110,6 +134,7 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
     };
   }, []);
   const roundsFn = useServerFn(listSurveyRounds),
+    roundFn = useServerFn(getSurveyRound),
     accessFn = useServerFn(getSurveyRoundAccess),
     listFn = useServerFn(listMunicipalReports),
     getFn = useServerFn(getMunicipalReport),
@@ -128,7 +153,24 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
     queryFn: () => accessFn({ data: { projectId } }),
     retry: false,
   });
-  const roundItems = rounds.error ? [] : (rounds.data?.pages.flatMap((p) => p.items) ?? []),
+  const selected = useQuery({
+    queryKey: ["municipal-report-selected-round", actorId, projectId, selectedRound],
+    queryFn: async () => {
+      const value = await roundFn({ data: { projectId, roundVersionId: selectedRound } });
+      if (!value || value.id !== selectedRound || value.projectId !== projectId)
+        throw new Error("Den valgte undersøgelse kunne ikke åbnes.");
+      return value;
+    },
+    enabled: !!selectedRound,
+    retry: false,
+  });
+  const listedRounds = rounds.error ? [] : (rounds.data?.pages.flatMap((p) => p.items) ?? []);
+  const selectedRecord = selected.error ? undefined : selected.data;
+  // An explicit investigation can be older than the first page. Load it by ID, never substitute latest.
+  const roundItems =
+      selectedRecord && !listedRounds.some((item) => item.id === selectedRecord.id)
+        ? [selectedRecord, ...listedRounds]
+        : listedRounds,
     roundId = selectedRound || roundItems[0]?.id || "";
   const reports = useInfiniteQuery({
     queryKey: ["municipal-reports", actorId, projectId, roundId],
@@ -147,12 +189,26 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
     enabled: !!reportId,
     retry: false,
   });
+  const inputError = !!(
+    rounds.error ||
+    access.error ||
+    selected.error ||
+    reports.error ||
+    report.error
+  );
+  const canCreate =
+    !!roundId &&
+    !inputError &&
+    !access.isFetching &&
+    (!selectedRound || (!!selected.data && !selected.isFetching)) &&
+    access.data?.projectId === projectId &&
+    access.data.userId === actorId &&
+    access.data.canPersist;
   const requestKey = `gofreyra.municipal-report-request/v1:${actorId}:${projectId}:${roundId}`;
   const mutation = useMutation({
     mutationFn: async () => {
       setError(null);
-      if (!roundId || !access.data?.canPersist || access.data.userId !== actorId)
-        throw new Error("Vælg en gemt undersøgelse med skriverettighed.");
+      if (!canCreate) throw new Error("Vælg en gemt undersøgelse med skriverettighed.");
       let stored: string | null = null;
       try {
         stored = sessionStorage.getItem(requestKey);
@@ -199,14 +255,14 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
     retry: false,
   });
   async function download(packageFile: boolean, savedId = reportId) {
-    if (!savedId || downloadLock.current) return;
+    if (!savedId || downloadLock.current || inputError) return;
     downloadLock.current = true;
     setError(null);
     setProgress("Kontrollerer den gemte rapportversion …");
     try {
       const current = await getFn({ data: { projectId, reportVersionId: savedId } });
       if (!alive.current) return;
-      if (!current || current.projectId !== projectId)
+      if (!current || current.projectId !== projectId || current.manifest.pins.round.id !== roundId)
         throw new Error("Rapportversionen kunne ikke genåbnes.");
       const images: MunicipalReportPdfImage[] = [];
       if (withImages)
@@ -264,7 +320,21 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
       /* Mutation shows a safe, recoverable message. */
     }
   }
-  const current = report.error ? null : report.data;
+  const current =
+    !inputError &&
+    access.data?.userId === actorId &&
+    access.data.projectId === projectId &&
+    report.data?.projectId === projectId &&
+    report.data.manifest.pins.round.id === roundId
+      ? report.data
+      : null;
+  function refreshInputs() {
+    void rounds.refetch();
+    void access.refetch();
+    if (selectedRound) void selected.refetch();
+    if (roundId) void reports.refetch();
+    if (reportId) void report.refetch();
+  }
   return (
     <Card className="space-y-4 p-5">
       <div>
@@ -274,13 +344,20 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
           version ændres ikke, når nye billeder eller svar kommer til.
         </p>
       </div>
-      {(rounds.error || access.error || reports.error || report.error) && (
+      {inputError && (
         <p role="alert" className="text-sm text-destructive">
           Rapportens input kunne ikke hentes med din aktuelle adgang. Genindlæs oversigten, før du
           fortsætter.
         </p>
       )}
-      {rounds.isLoading ? (
+      <button
+        className={buttonClass}
+        disabled={mutation.isPending || !!progress}
+        onClick={refreshInputs}
+      >
+        Opdatér oversigt
+      </button>
+      {inputError ? null : rounds.isLoading ? (
         <p>Henter undersøgelser …</p>
       ) : !rounds.error && !roundItems.length ? (
         <p className="text-sm text-muted-foreground">
@@ -301,6 +378,8 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
                 setSelectedReport("");
                 request.current = null;
                 setError(null);
+                setPackageChecksum(null);
+                onSelectRound?.(e.target.value);
               }}
             >
               {roundItems.map((r) => (
@@ -322,28 +401,11 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
           <div className="flex flex-wrap gap-2">
             <button
               className={buttonClass + " bg-primary text-primary-foreground"}
-              disabled={
-                !access.data?.canPersist ||
-                access.data.userId !== actorId ||
-                mutation.isPending ||
-                !!progress ||
-                !!rounds.error
-              }
+              disabled={!canCreate || mutation.isPending || !!progress}
               onClick={() => void createAndDownload()}
             >
               {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Dan rapport og
               hent afleveringspakke
-            </button>
-            <button
-              className={buttonClass}
-              disabled={mutation.isPending || !!progress}
-              onClick={() => {
-                void rounds.refetch();
-                void reports.refetch();
-                void access.refetch();
-              }}
-            >
-              Opdatér oversigt
             </button>
           </div>
           {access.data && !access.data.canPersist && (
@@ -391,7 +453,7 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
           {progress}
         </p>
       )}
-      {packageChecksum && (
+      {!inputError && packageChecksum && (
         <div className="rounded-lg border p-3 text-xs">
           <p className="break-all">
             ZIP SHA-256 · {packageChecksum.name}: {packageChecksum.sha256}
