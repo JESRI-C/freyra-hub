@@ -190,6 +190,7 @@ test("redesign: fem startvalg, seks trin, nulstilling og læseadgang på desktop
     "Den valgte undersøgelses datagrundlag kunne ikke åbnes.",
   );
   await expect(page.getByLabel(/^Gemt version/)).toHaveCount(0);
+  await capture(page, "13-ugyldigt-undersoegelseslink");
   await page.getByRole("button", { name: "Vælg en anden undersøgelse", exact: true }).click();
   await page.getByLabel("Åbn gemt undersøgelse", { exact: true }).selectOption(roundId);
   await expect(page).toHaveURL(new RegExp(`round=${roundId}`));

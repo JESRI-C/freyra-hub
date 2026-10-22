@@ -2,7 +2,7 @@
 
 Kontroldato: 22. oktober 2026. Reference: `625781906a4f49d120b6b3581261279dd889e6de` på `codex/haderslev-demo-2710`. Arbejdsgren: `codex/redesign-2710`. Ingen ændring af main, demogrenen eller online staging.
 
-**Samlet beslutning: NO-GO til sammenlægning og frigivelse, indtil den nye versions samlede browserprøve med serveradgang er bestået.** Grøn build og unit-tests er ikke en grøn generalprøve.
+**Samlet beslutning: teknisk GO til gennemgang af UI-leverancen i PR #17.** Den samlede browserprøve med serveradgang er bestået på applikationscommit `ebe8e86`. Faglig accept, 10-sekunders brugerprøve og produktionsfrigivelse er fortsat åbne. PR'en erstatter ikke online staging.
 
 | Kontrol | Resultat | Evidens / begrænsning |
 |---|---|---|
@@ -12,11 +12,12 @@ Kontroldato: 22. oktober 2026. Reference: `625781906a4f49d120b6b3581261279dd889e
 | Lint | Bestået med advarsler | 0 fejl, 23 eksisterende advarsler; browserprøven formateret og efterkontrolleret. |
 | Unit-/integrationstests | Bestået | 172 testfiler, 2.790 tests. Seriel kørsel: `node node_modules/vitest/vitest.mjs run --maxWorkers=1 --no-file-parallelism`. |
 | Staging-build | Bestået | Vite staging-build, kontrol af stagingkonfiguration og bundle. Både browser- og serverdel er bygget. |
-| Desktop-/mobilnavigation | Bestået på `a43b214`; slutkontrol af `ebe8e86` afventer | `e2e/redesign-ui.spec.ts`, prøven med fem startvalg. Desktop/mobil, seks fotopunkter, historisk baseline, nulstilling og kildesøgning; nul observerede browserfejl. Dette er en særskilt prøve fra filintegritet. |
-| Ny UI-version, identisk rapport med fotos | Bestået i godkendt midlertidig testsession på `a43b214` | Efter afklaring af lokal serveropsætning gav samme læsekonto præcis generalprøvens PDF med seks billeder. Slutkontrol af seneste UI-rettelse afventer. |
+| Desktop-/mobilnavigation | Bestået på `ebe8e86`, 57,5 sekunder | Fem startvalg, alle seks trin, historisk baseline, nulstilling, kildesøgning og genoptagelse efter ugyldigt bogmærke. Desktop/mobil; nul observerede browserfejl. |
+| Ny UI-version, identisk rapport med fotos | Bestået på `ebe8e86`, 26,2 sekunder | Godkendt midlertidig testsession; samme læsekonto genhentede præcis generalprøvens PDF med seks billeder. |
 | Uændret online staging, eksisterende rapport | Bestået læsende kontrol | Samme læsekonto, rapportversion 2: 2.163.225 bytes, seks indlejrede illustrationer og præcis generalprøvens SHA-256. Ingen rapportversion eller faglig beslutning oprettet. |
-| Ny UI-version, originalupload til PDF/ZIP | Ikke gennemført | `e2e/haderslev-delivery.spec.ts` er tilpasset de seks trin. Prøven kræver fuld serveropsætning og en isoleret teknisk testsag. Den rigtige Bykær-historik må ikke bruges til testbeslutninger. |
-| DB/RLS og samtidighed | Ikke genkørt på PR-head | Ingen ændring af disse lag. Tidligere generalprøve er historisk evidens; PR-checks skal stadig bestå. |
+| Ny UI-version, originalupload til PDF/ZIP | Bestået på `ebe8e86`, 54,7 sekunder | Originalt DJI-foto, dato/GPS, baseline, teknisk fotobeslutning, audit, beplantning, PDF/ZIP og genhentning. Isoleret teknisk sag; nul AI-kald. Seks filer i ZIP med validerede kontrolsummer. |
+| Start en ny sag | Bestået, 9,6 sekunder | Oprettet gennem browseren: standardværdier, nulstilling, gemning, genåbning og læsende kontrol af gemte værdier. Præcis én teknisk sag oprettet. |
+| DB/RLS og samtidighed | Bestået i PR-CI på `e6cebd3` | Begge jobs grønne: app og database/samtidighed. Databaseprøven omfatter 814 pgTAP-tests. [Kørsel](https://github.com/JESRI-C/freyra-hub/actions/runs/39848598514). Senere ændringer er test, billeder og dokumentation; deres PR-checks kontrolleres særskilt. |
 | 10-sekunders forståelse | Afventer rigtig brugerprøve | Udviklerens skærmbilleder erstatter ikke observation af en førstegangsbruger. |
 | Faglig accept, kundeadgang, backup og drift | Fortsat åbent | Se udviklingsplanens pakke 3-6. Ingen produktionstilladelse udledes af denne PR. |
 
@@ -29,9 +30,13 @@ Den læsende sammenligning brugte samme undersøgelse (`43600233-a99b-48e6-8a3e-
 | Lokal preview uden nødvendig servernøgle | 23.459 | 0 | `92659a40d526697915281dbc1ba031b333f49a91002046f6a6ff6e96a4b45475` |
 | Uændret online staging | 2.163.225 | 6 | `a07aec981f2a2868be75d93e99b8b701a7742dd5ff5724160300397d708441b5` |
 
-Serverloggen dokumenterede den manglende servervariabel. Rapportmotor og downloadfunktion er uændrede. Dette beviser en lokal miljømangel; det beviser endnu ikke, at den nye UI-version består den fulde generalprøve med korrekt serveropsætning.
+Serverloggen dokumenterede den manglende servervariabel. Rapportmotor og downloadfunktion er uændrede. Den efterfølgende prøve med korrekt serveropsætning bestod både identisk genhentning og den fulde originalupload til PDF/ZIP på `ebe8e86`.
 
-Det første forsøg på at starte `wrangler dev --remote` blev afvist af automatisk sikkerhedskontrol: sessionen ville have adgang til stagingressourcer og servernøgler, og kontrollen krævede udtrykkelig tilladelse. Jesper gav derefter denne tilladelse den 22.10.2026. En midlertidig session blev startet med forbindelse gennem localhost:8788, og begge browserprøver bestod på `a43b214`: navigation 57,3 sekunder og filintegritet 30,4 sekunder. Den online stagingversion blev ikke erstattet. Nøgler er ikke lagt i Git eller browserkonfigurationen.
+Det første forsøg på at starte `wrangler dev --remote` blev afvist af automatisk sikkerhedskontrol: sessionen ville have adgang til stagingressourcer og servernøgler, og kontrollen krævede udtrykkelig tilladelse. Jesper gav derefter denne tilladelse den 22.10.2026. Den midlertidige session gennem localhost:8788 blev anvendt til de beståede slutprøver ovenfor. Den online stagingversion blev ikke erstattet. Nøgler er ikke lagt i Git eller browserkonfigurationen.
+
+Et uploadforsøg brugte først en nedskaleret rapportillustration med samme filnavn som originalen. Den manglede dato/GPS, hvilket programmet korrekt viste. Prøven blev derefter kørt med den verificerede DJI-original og bestod. Testen kontrollerer nu originalens SHA-256 før oprettelse af en testsag, så fejl i testmaterialet opdages tidligt. Den tekniske fotobeslutning er eksplicit en afvisning til test; ingen faglig godkendelse er afgivet.
+
+[Maskeret testkvittering](screens/redesign-qa-2026-10-22.json) indeholder kontrolsummer, testresultater og skellet mellem teknisk kontrol og menneskelig accept.
 
 ## Gentag de to browserkontroller
 

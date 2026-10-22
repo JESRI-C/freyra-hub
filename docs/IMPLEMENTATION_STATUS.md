@@ -11,8 +11,8 @@ Faglig og kommunal accept kræver de ansvarliges faktiske vurdering; de kan ikke
 | Pakke | Status | Bevis eller næste kontrol |
 |---|---|---|
 | 0: inventar og fast udgangspunkt | Inventar og audit gemt | `REDESIGN_MAP.md`, produktgennemgang og stagingkvittering. Base `6257819`. |
-| 1: genoptageligt sagsforløb | Implementeret; slutkontrol kører | Fem startvalg, seks trin og direkte undersøgelsesvalg er browserprøvet. Ugyldige bogmærker har nu en genoptagelsesvej; den sidste rettelse genprøves. |
-| 2: resultat, parametre og hjælp | Implementeret; slutkontrol kører | Avancerede indstillinger, læsende aktivitet, kildekatalog, brand og tomme tilstande. Desktop og mobil bestået; 12 maskerede skærmbilleder. |
+| 1: genoptageligt sagsforløb | Implementeret og teknisk bestået | Fem startvalg, seks trin, undersøgelsesvalg og genoptagelse efter ugyldigt bogmærke browserprøvet. Ny sag oprettet, nulstillet, gemt og genåbnet. 10-sekunders brugerprøve afventer. |
+| 2: resultat, parametre og hjælp | Implementeret og teknisk bestået | Avancerede indstillinger, læsende aktivitet, kildekatalog, brand og tomme tilstande. Desktop, mobil og fuldt originalupload til PDF/ZIP bestået; 13 maskerede skærmbilleder. |
 | 3: godkendt leverance | Afventer implementering | Versionsbundet godkendelse, roller og accepterede forbehold. Ingen eksisterende kladde er gjort godkendt. |
 | 4: Før/Efter og beplantning | Afventer implementering og fagmateriale | Parrede fotos samt kontrollerede delstrækningspolygoner. Ukendt areal bevares som ukendt. |
 | 5: kundeadgang og drift | Afventer implementering/prøver | Faktisk onboarding, genopretning inkl. filer, alarm og ansvarlig. |
@@ -21,14 +21,15 @@ Faglig og kommunal accept kræver de ansvarliges faktiske vurdering; de kan ikke
 
 ## Kontroller under udførelse
 
-- Bevaringskontrol bestået: eksisterende routes og 79 inputbindinger/handlers i redigerede skærme bevaret. 76 ændrede filer på kontrollens tidspunkt; ingen motor-, service-, API-, database- eller afhængighedsændring.
+- Bevaringskontrol bestået: eksisterende routes og 79 inputbindinger/handlers i redigerede skærme bevaret; ingen motor-, service-, API-, database- eller afhængighedsændring.
 - Typekontrol bestået efter statusrettelsen.
 - Global lint bestået: 0 fejl og 23 eksisterende advarsler.
 - Samlet testsuite bestået: 172 filer og 2.790 tests, kørt serielt på redesignets UI-kode.
-- Staging-build og kontrol af den byggede konfiguration bestået. Lokal forhåndsvisning på port 8787; ingen publicering.
+- Staging-build og kontrol af den byggede konfiguration bestået på applikationscommit `ebe8e86`; ingen publicering.
 - Lokal maskine har været presset på hukommelse. Kontroller køres adskilt; en afbrudt kørsel tæller ikke som produktfejl eller PASS.
 - Den lokale filkontrol fandt manglende serveradgang til originaler. Online staging genleverede uændret PDF med seks fotos. Efter Jespers udtrykkelige tilladelse blev en midlertidig Cloudflare-testsession startet; både navigation og identisk PDF bestod dér. Ingen erstatning af online staging.
-- Den seneste genoptagelsesrettelse og den fulde upload-til-ZIP-prøve skal bestå på samme UI-version før endelig teknisk GO. Se `REDESIGN_GO_NO_GO.md`.
+- Den seneste genoptagelsesrettelse, identisk PDF med seks fotos og fuld originalupload til ZIP er bestået på samme UI-version `ebe8e86`. Ny sag gennem browseren er også bestået. Se `REDESIGN_GO_NO_GO.md` og den maskerede testkvittering.
+- PR-CI på `e6cebd3` er grøn for både app og database/samtidighed; databaseprøven omfattede 814 pgTAP-tests. PR #17 er til gennemgang mod demogrenen, uden sammenlægning eller publicering.
 
 ## Fundregnskab
 
@@ -37,7 +38,7 @@ Status gælder UI-leverancen, ikke produktionsklarhed. Detaljer og oprindelige k
 | Fund | Status efter UI-arbejdet | Ansvar / resterende accept |
 |---|---|---|
 | F01: svært at forstå formålet | Ny startside og seks trin implementeret | Produktansvarlig: observeret 10-sekunders brugerprøve. |
-| F02: undersøgelse svær at genoptage | Synligt valg; seks fotopunkter genfundet i browser | Udvikler: endelig regression inkl. ugyldigt bogmærke. |
+| F02: undersøgelse svær at genoptage | Synligt valg; seks fotopunkter og ugyldigt bogmærkes genoptagelsesvej browserprøvet | Teknisk regression bestået; kommunal brugeraccept afventer. |
 | F03: to oprettelsesveje | Eksisterende handlinger samlet under forløbet og avancerede indstillinger | Produktansvarlig: prøv ny sag uden vejledning. Ingen handling fjernet. |
 | F04: uklar status | Gemt evidens, indlæsning og fejl adskilt | Udvikler: ingen besøgsbaseret godkendelse; fagperson godkender fortsat indhold særskilt. |
 | F05: mangler svære at handle på | Ventepunkter og vejledning synliggjort | Faglig ansvarlig: definér tildeling og accept af forbehold i pakke 3. |

@@ -10,9 +10,9 @@ Disse billeder viser den eksisterende Haderslev-staging, ikke det lokale redesig
 
 [Sanitiseret kontrolkvittering](audit-staging-2026-10-22.json) registrerer kontroltid, seks viste fotopunkter, blokeret prototypeadgang, nul observerede browserfejl og kontrolsummen på den faktisk genhentede PDF. Rapportfil, private originaler, signed URLs, legitimationsoplysninger og private tekstudtræk er ikke lagt i Git.
 
-## Nyt design, lokal preview
+## Nyt design, godkendt midlertidig testsession
 
-De følgende 12 billeder viser den nye UI-version på den eksisterende Bykær-sag med læseadgang. De er taget under den lokale navigationsprøve; de viser ikke en publiceret version. Desktop er 1440 × 1000 og mobil 375 × 812. Kontooplysninger, private originaler og kortgeometri er maskeret. Grå felter er masker, ikke manglende UI. Siden kan være rullet til det relevante indhold.
+De følgende 13 billeder viser den nye UI-version på den eksisterende Bykær-sag med læseadgang. De er taget gennem localhost:8788 i den midlertidige Cloudflare-testsession, som Jesper godkendte; de viser ikke en publiceret version. Desktop er 1440 × 1000 og mobil 375 × 812. Kontooplysninger, private originaler og kortgeometri er maskeret. Grå felter er masker, ikke manglende UI. Siden kan være rullet til det relevante indhold.
 
 | Skærm | Billede |
 |---|---|
@@ -27,5 +27,6 @@ De følgende 12 billeder viser den nye UI-version på den eksisterende Bykær-sa
 | Avancerede indstillinger og nulstilling | [Desktop](09-avancerede-indstillinger.png) |
 | Kilder | [Desktop](10-kilder-desktop.png) |
 | Seks trin og næste handling | [Mobil](12-sagsforloeb-mobil.png) |
+| Genoptagelse efter ugyldigt undersøgelseslink | [Desktop](13-ugyldigt-undersoegelseslink.png) |
 
-Se [redesignets go/no-go](../REDESIGN_GO_NO_GO.md) for de præcise testresultater og den blokerede filintegritetskontrol. Skærmbilleder eller bestået navigation beviser ikke, at upload, rapportens billeder, faglig godkendelse eller produktionsdrift er frigivet.
+Se [redesignets go/no-go](../REDESIGN_GO_NO_GO.md) og [testkvitteringen](redesign-qa-2026-10-22.json) for bestået navigation, filintegritet, oprettelse og originalupload til PDF/ZIP. Skærmbilleder og tekniske tests dokumenterer ikke faglig godkendelse, kommunal brugeraccept eller produktionsdrift.
