@@ -31,7 +31,7 @@ describe("source-bound verification drafts", () => {
 
   it("keeps uncollected public sources as data gaps, without deriving drone findings", async () => {
     const plan = await createDraftVerificationPlan(await makeSnapshot());
-    expect(plan.baselineDataGaps).toHaveLength(6);
+    expect(plan.baselineDataGaps).toHaveLength(12);
     expect(
       plan.questions.every(
         (question) =>

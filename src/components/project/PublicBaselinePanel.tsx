@@ -22,6 +22,8 @@ const statusLabels: Record<string, string> = {
   timeout: "Tidsgrænse overskredet",
   failed: "Hentning fejlede",
 };
+const availabilityLabel = (status: string) =>
+  status === "complete" ? "hentet" : status === "partial" ? "delvist" : "ikke tilgængelig";
 
 const coverageLabels: Record<string, string> = {
   complete: "fuld",
@@ -38,12 +40,18 @@ const evidenceLabels: Record<string, string> = {
   preview: "Foreløbigt eller manglende grundlag",
 };
 
-function readableError(error: unknown): string {
-  return error instanceof Error ? error.message : "Datagrundlaget kunne ikke hentes. Prøv igen.";
+function readableError(): string {
+  return "Datagrundlaget kunne ikke åbnes eller gemmes. Kontrollér adgangen til sagen, og prøv igen.";
 }
 
 /** Opening a saved version reads its manifest; only an explicit action fetches new sources. */
-export function PublicBaselinePanel({ project }: { project: Project }) {
+export function PublicBaselinePanel({
+  project,
+  canPersist = false,
+}: {
+  project: Project;
+  canPersist?: boolean;
+}) {
   const hasGeometry = validateProjectPolygon(project.geometry_polygon).valid;
   const today = new Date().toISOString().slice(0, 10);
   const [dateFrom, setDateFrom] = useState(project.start_date?.slice(0, 10) ?? today);
@@ -101,53 +109,61 @@ export function PublicBaselinePanel({ project }: { project: Project }) {
             Vælg den periode, undersøgelsen skal omfatte. En gemt version bevarer sine kilder og
             geometri; nye oplysninger gemmes i en ny version.
           </p>
-          <div className="text-sm space-y-1">
-            {!hasGeometry && (
-              <p>Afgræns først projektområdet, og vælg den officielle vandløbsreference.</p>
-            )}
-            <Link
-              to="/app/projects/geometry/$slug"
-              params={{ slug: project.slug ?? project.id }}
-              className="underline"
-            >
-              Afgræns område og vælg vandløbsreference
-            </Link>
-          </div>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="text-sm space-y-1">
-              <span className="block">Fra dato</span>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
-                disabled={create.isPending}
-                className="rounded border bg-background p-2"
-              />
-            </label>
-            <label className="text-sm space-y-1">
-              <span className="block">Til dato</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
-                disabled={create.isPending}
-                className="rounded border bg-background p-2"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => create.mutate()}
-              disabled={
-                create.isPending || !hasGeometry || !dateFrom || !dateTo || dateFrom > dateTo
-              }
-              className="rounded bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50"
-            >
-              {create.isPending ? "Henter datagrundlag …" : "Hent og gem ny version"}
-            </button>
-          </div>
+          {canPersist && (
+            <div className="text-sm space-y-1">
+              {!hasGeometry && (
+                <p>Afgræns først projektområdet, og vælg den officielle vandløbsreference.</p>
+              )}
+              <Link
+                to="/app/projects/geometry/$slug"
+                params={{ slug: project.slug ?? project.id }}
+                className="underline"
+              >
+                Afgræns område og vælg vandløbsreference
+              </Link>
+            </div>
+          )}
+          {canPersist ? (
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="text-sm space-y-1">
+                <span className="block">Fra dato</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                  disabled={create.isPending}
+                  className="rounded border bg-background p-2"
+                />
+              </label>
+              <label className="text-sm space-y-1">
+                <span className="block">Til dato</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                  disabled={create.isPending}
+                  className="rounded border bg-background p-2"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => create.mutate()}
+                disabled={
+                  create.isPending || !hasGeometry || !dateFrom || !dateTo || dateFrom > dateTo
+                }
+                className="rounded bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50"
+              >
+                {create.isPending ? "Henter datagrundlag …" : "Hent og gem ny version"}
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Du har læseadgang til sagens gemte kildeversioner.
+            </p>
+          )}
           {error && (
             <div role="alert" className="text-sm text-destructive">
-              {readableError(error)}
+              {readableError()}
             </div>
           )}
           {versions.isPending && (
@@ -195,9 +211,17 @@ export function PublicBaselinePanel({ project }: { project: Project }) {
                       {source.provider} · {source.dataset}
                     </strong>
                     <Pill tone={source.status === "complete" ? "info" : "warning"}>
-                      {statusLabels[source.status] ?? source.status}
+                      {availabilityLabel(source.status)}
                     </Pill>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {statusLabels[source.status] ?? "Kildestatus ukendt"}
+                    {source.retrieval?.mode === "saved_fallback"
+                      ? " · Gemt kilde"
+                      : source.retrieval?.mode === "cache"
+                        ? " · Genbrugt kildesvar"
+                        : ""}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {source.mode === "error" ? "Kontrolleret" : "Hentet"}{" "}
                     {new Date(source.fetchedAt).toLocaleString("da-DK")} ·{" "}

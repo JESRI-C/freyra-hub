@@ -202,7 +202,7 @@ describe("immutable public baseline service contract", () => {
       quality: { evidenceKind: "official_registration" },
       coverage: { temporal: "unknown" },
     });
-    expect(manifest.sources.slice(1)).toHaveLength(6);
+    expect(manifest.sources.slice(1)).toHaveLength(12);
     for (const source of manifest.sources.slice(1)) {
       expect(source).toMatchObject({
         mode: "error",

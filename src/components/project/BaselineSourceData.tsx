@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  isSafeSentinelThumbnailUrl,
+  selectSentinelPreview,
+} from "@/services/baseline/sentinel-preview";
+import { SavedOrthophotoPreview } from "./SavedOrthophotoPreview";
 import type { PublicBaselineSource } from "@/services/baseline/public-baseline-types";
 import { parseSavedWaterPlanNatureSource } from "@/services/baseline/water-plan-nature-saved-payload";
 import { parseSavedPublicMonitoringStationsSource } from "@/services/baseline/public-monitoring-stations-saved-payload";
@@ -96,6 +101,13 @@ const SentinelCatalog = z.object({
         datetime: Timestamp,
         platform: z.string().max(100).nullable(),
         globalCloudCoverPct: z.number().finite().min(0).max(100).nullable(),
+        thumbnail: z
+          .object({
+            href: z.string().refine(isSafeSentinelThumbnailUrl),
+            mediaType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+          })
+          .nullable()
+          .optional(),
         localQuality: z.object({
           cloud: z.literal("pending"),
           shadow: z.literal("pending"),
@@ -457,6 +469,7 @@ function SentinelData({ source }: { source: PublicBaselineSource }) {
   const parsed = SentinelCatalog.safeParse(source.payload);
   if (!parsed.success) return <InvalidPayload />;
   const { scenes, catalogComplete } = parsed.data;
+  const preview = selectSentinelPreview(scenes, source.query.requestedFrom);
   if (
     source.coverage.returnedCount !== scenes.length ||
     (source.status === "no_coverage" && scenes.length > 0)
@@ -468,6 +481,30 @@ function SentinelData({ source }: { source: PublicBaselineSource }) {
         Scenerne er geografiske kandidater. Lokal kontrol af skyer, skygger og manglende pixels
         afventer; der er ingen godkendt NDVI eller lokal måling.
       </p>
+      {preview?.thumbnail ? (
+        <figure className="rounded border p-2">
+          <img
+            src={preview.thumbnail.href}
+            alt={`Sentinel-2 oversigtsbillede ${preview.id}`}
+            className="max-h-80 w-full object-contain"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+          <figcaption className="mt-2 text-xs text-muted-foreground">
+            {preview.globalCloudCoverPct === 0
+              ? "Nærmeste scene med 0 % skyer i kataloget"
+              : "Nærmeste scene med højst 10 % skyer i kataloget"}{" "}
+            · {dateText(preview.datetime)} · Hele scenen, ikke et udsnit af vandløbet. Lokal
+            skyfrihed og pixelkvalitet er ikke verificeret.
+            {!catalogComplete && " Udvalgt blandt de hentede scener; en nærmere scene kan mangle."}
+          </figcaption>
+        </figure>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Intet tilgængeligt kildebillede med lav global skydækning i de hentede scener. Skyfri
+          scene og NDVI-pixelanalyse afventer.
+        </p>
+      )}
       {!catalogComplete && (
         <p className="text-xs text-amber-800 dark:text-amber-300">
           Kun en del af scenekataloget er hentet. Flere scener kan findes i perioden.
@@ -970,6 +1007,10 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
       "orthophoto-terrain",
       "water-plan-nature",
       "public-monitoring-stations",
+      "orthophoto-preview",
+      "planting-markblocks",
+      "planting-lowland",
+      "planting-woodland",
     ].includes(source.id)
   )
     return null;
@@ -984,7 +1025,7 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
       </p>
     );
   }
-  if (source.mode === "error" || source.error) {
+  if (source.mode === "error" || (source.error && source.retrieval?.mode !== "saved_fallback")) {
     return (
       <p role="alert" className="text-sm text-destructive">
         Kilden kunne ikke hentes. Der vises ingen dataværdier fra denne hentning.
@@ -993,6 +1034,17 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
   }
   if (source.id === "dmi-historical") return <DmiData source={source} />;
   if (source.id === "sentinel-2-scenes") return <SentinelData source={source} />;
+  if (source.id === "orthophoto-preview") return <SavedOrthophotoPreview source={source} />;
+  if (source.id.startsWith("planting-"))
+    return (
+      <p className="text-sm text-muted-foreground">
+        {source.coverage.returnedCount ?? "Ukendt antal"} gemte registergeometrier. Se arealerne i
+        beplantningsvisningen.{" "}
+        {source.coverage.paginationComplete
+          ? "Alle poster i det afgrænsede opslag er modtaget."
+          : "Registerudsnittet er ufuldstændigt."}
+      </p>
+    );
   if (source.id === "water-plan-nature") return <WaterPlanNatureData source={source} />;
   if (source.id === "public-monitoring-stations")
     return <PublicMonitoringStationsData source={source} />;
