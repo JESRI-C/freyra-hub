@@ -166,12 +166,11 @@ function MunicipalProjectPage() {
   const initialProject = Route.useLoaderData();
   const { slug } = Route.useParams();
   const cache = useQueryClient();
-  const { data: refreshedProject } = useQuery({
+  const { data: project, isError } = useQuery({
     queryKey: ["project-by-slug", slug],
     queryFn: () => getProjectBySlug(slug),
     initialData: initialProject,
   });
-  const project = refreshedProject ?? initialProject;
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const step =
@@ -181,6 +180,8 @@ function MunicipalProjectPage() {
       : search.tab === "grundlag"
         ? "datagrundlag"
         : "billeder");
+  if (isError || !project)
+    return <p className="p-6">Sagen kunne ikke åbnes. Kontrollér din adgang, og prøv igen.</p>;
   return (
     <MunicipalCaseWorkspace
       project={project}

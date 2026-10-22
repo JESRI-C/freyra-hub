@@ -36,7 +36,7 @@ Punktkortet er P02→DJI_0040.JPG, P06→DJI_0060.JPG, P11→DJI_0103.JPG, P14�
 
 Sagens ID bestemmes af arbejdspladsen. Upload-ID bestemmes af sag, bruger, fotopunkt og filhash. Genkørsel med samme operator/originaler genbruger dem; ændrede originaler overskriver ikke tidligere evidens. Alle seks originaler genhentes og hashes efter upload. Kvittering: ignoreret `tmp/haderslev-seed.json` eller `--output`.
 
-Åbn sagen → Billeder → **Kontrollér og åbn de gemte originaler**. Dette kører den normale servervalidering og tilknytning. Fortsæt til Datagrundlag og bekræft sted/dato og officiel reference. Kamerapositioner er ikke verificerede billedfootprints. AOI, A–E og faglige beslutninger opfindes ikke af seedet.
+Åbn sagen → Billeder → **Kontrollér og åbn de gemte originaler**. Dette kører den normale servervalidering og tilknytning. Fortsæt til Datagrundlag → Billedgruppe → **Alle seriens fotopunkter — 6 fotos**. Billederne ligger i to GPS-grupper; det samlede valg er eksplicit og begrænset til 5 km diagonal og 10 km². Vælg den entydige officielle Bykær Bæk-reference, bekræft 24.08.2026 og kontrollér **6 af seriens 6 fotos** før gemning. Søgeområdet beregnes fra de faktiske GPS-positioner; det er ikke en godkendt kommunal strækning eller et billedfootprint. A–E og faglige beslutninger opfindes ikke af seedet.
 
 ## Kommunal læser og rigtige brugere
 
