@@ -187,11 +187,22 @@ function Workspace({
     execution.current.key = key;
     execution.current.generation++;
   }
+  // A saved round is pinned to its own baseline and plan. Refreshing today's
+  // project geometry/reference must not cancel a read of those immutable inputs.
+  const selectionKey = JSON.stringify([actorId, project.id, selectedRoundId]);
+  const selectionExecution = useRef({ key: selectionKey, generation: 0, alive: true });
+  if (selectionExecution.current.key !== selectionKey) {
+    selectionExecution.current.key = selectionKey;
+    selectionExecution.current.generation++;
+  }
   useEffect(() => {
     const value = execution.current;
+    const selection = selectionExecution.current;
     value.alive = true;
+    selection.alive = true;
     return () => {
       value.alive = false;
+      selection.alive = false;
     };
   }, []);
   const current = () => {
@@ -263,7 +274,11 @@ function Workspace({
     enabled: !!selectedRoundId && !!access.data && !access.error,
     retry: false,
     queryFn: async (): Promise<StreamInspectionResult> => {
-      const isCurrent = current();
+      const generation = selectionExecution.current.generation;
+      const isCurrent = () =>
+        selectionExecution.current.alive &&
+        selectionExecution.current.key === selectionKey &&
+        selectionExecution.current.generation === generation;
       const fresh = await getAccess({ data: { projectId: project.id } });
       if (!isCurrent() || fresh.userId !== actorId || fresh.projectId !== project.id)
         throw new Error("Brugeren eller sagen er ændret. Genåbn undersøgelsen.");
@@ -374,14 +389,11 @@ function Workspace({
     [mapReference],
   );
   const failure = [
-    reference.error,
+    ...(selectedRoundId ? [] : [reference.error, scope.error, completed.error, prepare.error]),
     access.error,
     photoAccess.error,
-    scope.error,
-    completed.error,
     rounds.error,
     selected.error,
-    prepare.error,
   ].find(Boolean);
   const error = failure
     ? "Undersøgelsen kunne ikke åbnes eller gemmes. Kontrollér din adgang og det valgte område, og prøv igen."
@@ -467,7 +479,7 @@ function Workspace({
             <p className="text-sm text-muted-foreground">
               {photoCount === undefined
                 ? "Billedoversigten hentes særskilt."
-                : `${photoCount} dronefotos modtaget i sagen`}
+                : `${photoCount} dronefotos klargjort i sagen`}
             </p>
           </div>
           {photoAccess.isSuccess &&

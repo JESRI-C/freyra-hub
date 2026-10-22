@@ -491,6 +491,70 @@ describe("guided drone survey workspace", () => {
     },
   );
 
+  it.each(["reference", "project geometry", "project name"])(
+    "reopens a pinned saved round while the current %s refreshes",
+    async (field) => {
+      props.selectedRoundId = result.round.id;
+      tree();
+      const pending = deferred<typeof result.round>();
+      state.getRound.mockReturnValueOnce(pending.promise);
+      const read = query("inspection-selection").queryFn();
+      await Promise.resolve();
+      expect(state.getRound).toHaveBeenCalledOnce();
+      if (field === "reference")
+        setData("official-watercourse-reach", {
+          ...result.snapshot.manifest.reference,
+          id: OTHER_ROUND,
+        });
+      if (field === "project geometry")
+        props.project = { ...props.project, geometry_polygon: null };
+      if (field === "project name") props.project = { ...props.project, name: "Refreshed project" };
+      tree();
+      pending.resolve(result.round);
+      await expect(read).resolves.toEqual(result);
+      expect(state.getBaseline).toHaveBeenCalledExactlyOnceWith({
+        data: { projectId: props.project.id, snapshotId: result.round.baselineId },
+      });
+      expect(state.start).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["round change and return", "unmount"])(
+    "still cancels a pinned read after %s",
+    async (change) => {
+      props.selectedRoundId = result.round.id;
+      tree();
+      const pending = deferred<typeof result.round>();
+      state.getRound.mockReturnValueOnce(pending.promise);
+      const read = query("inspection-selection").queryFn();
+      await Promise.resolve();
+      if (change === "unmount") unmount();
+      else {
+        props.selectedRoundId = OTHER_ROUND;
+        tree();
+        props.selectedRoundId = result.round.id;
+        tree();
+      }
+      pending.resolve(result.round);
+      await expect(read).rejects.toThrow();
+      expect(state.getBaseline).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps a selected frozen review independent of errors loading the current editable scope", () => {
+    props.selectedRoundId = result.round.id;
+    props.phase = "gennemgang";
+    setData("inspection-selection", result);
+    state.queryState.set("official-watercourse-reach", {
+      error: new Error("Current reference unavailable"),
+    });
+    state.queryState.set("inspection-scope", { error: new Error("Current area changed") });
+    state.queryState.set("inspection-completed", { error: new Error("Current retry changed") });
+    const node = tree();
+    expect(find(node, (element) => element.type === PhotoPointVerificationPanel)).not.toBeNull();
+    expect(text(node)).not.toContain("Undersøgelsen kunne ikke åbnes eller gemmes");
+  });
+
   it.each(["baseline", "plan"])("rejects a mismatched saved %s hash", async (part) => {
     props.selectedRoundId = result.round.id;
     if (part === "baseline")
