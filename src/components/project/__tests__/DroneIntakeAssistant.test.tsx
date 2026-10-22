@@ -133,6 +133,65 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe("upload-event-only intake assistant lifecycle", () => {
+  it.each(["pending", "too_broad"])(
+    "offers all-series selection explicitly and preserves the first group by default (%s)",
+    async (status) => {
+      const ids = [MEDIA, "30000000-0000-4000-8000-000000000002"];
+      const polygon = {
+        type: "Polygon",
+        coordinates: [
+          [
+            [9, 55],
+            [9.1, 55],
+            [9.1, 55.1],
+            [9, 55.1],
+            [9, 55],
+          ],
+        ],
+      };
+      state.localize.mockResolvedValue({
+        projectId: PROJECT,
+        actorId: ACTOR,
+        photos: ids.map((mediaId) => ({
+          mediaId,
+          status: "located",
+          cameraPosition: { longitude: 9.05, latitude: 55.05 },
+          capturedAtUtc: "2026-08-24T10:00:00Z",
+        })),
+        clusters: ids.map((id, index) => ({
+          id: `group${index}`,
+          mediaIds: [id],
+          suggestedPolygon: polygon,
+          searchStatus: "complete",
+          candidates: [],
+          suggestedReferenceId: null,
+        })),
+        combinedCluster: {
+          id: "all-series",
+          mediaIds: ids,
+          suggestedPolygon: polygon,
+          searchStatus: status,
+          candidates: [],
+          suggestedReferenceId: null,
+        },
+      });
+      const selected = { ...batch, mediaIds: ids, receivedCount: 2 };
+      render(selected);
+      const cleanup = state.effects[0]();
+      await flush();
+      const markup = render(selected);
+      expect(markup).toContain("Alle seriens fotopunkter");
+      expect(markup).toContain('<option value="group0" selected=""');
+      expect(markup).not.toContain("Du har valgt alle seriens fotopunkter");
+      if (status === "too_broad") expect(markup).toMatch(/<option value="all-series" disabled=""/);
+      expect(state.localize).toHaveBeenCalledExactlyOnceWith({
+        data: { projectId: PROJECT, mediaIds: ids, expectedCallerUserId: ACTOR },
+      });
+      expect(state.prepared).not.toHaveBeenCalled();
+      expect(state.run).not.toHaveBeenCalled();
+      cleanup?.();
+    },
+  );
   it("prefills the local day for clean GPS photos but requires explicit date confirmation before sources or AI", async () => {
     state.queryData = {
       "drone-intake-project": project,

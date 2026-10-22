@@ -93,6 +93,56 @@ async function fixture() {
   return { deps, original };
 }
 describe("authorized canonical-original localization boundary", () => {
+  it("queries the full server-validated camera bounds only after explicit all-photos selection", async () => {
+    const { deps } = await fixture();
+    const originals = await Promise.all(
+      [9.26, 9.2601, 9.2602, 9.2603, 9.28, 9.2801].map((lng, index) => rows(index + 1, lng)),
+    );
+    deps.loadRows.mockImplementation(
+      async (_client, _project, id) => originals.find((row) => row.media.id === id)!,
+    );
+    const input = { ...INPUT, mediaIds: originals.map((row) => row.media.id) };
+    const initial = await executeLocalizeDroneOriginals(input, ACTOR_ID, CLIENT, deps);
+    expect(initial.clusters.map((cluster) => cluster.mediaIds.length)).toEqual([4, 2]);
+    expect(deps.findWatercourses).toHaveBeenCalledTimes(2);
+    expect(initial.combinedCluster?.searchStatus).toBe("pending");
+    deps.findWatercourses.mockClear();
+    const combined = await executeLocalizeDroneOriginals(
+      { ...input, selection: "all_photos" },
+      ACTOR_ID,
+      CLIENT,
+      deps,
+    );
+    expect(deps.findWatercourses).toHaveBeenCalledExactlyOnceWith(
+      combined.combinedCluster?.searchBounds,
+    );
+    expect(combined.combinedCluster?.mediaIds).toHaveLength(6);
+    expect(combined.combinedCluster?.searchStatus).toBe("complete");
+    expect(combined.clusters.map((cluster) => cluster.searchStatus)).toEqual([
+      "pending",
+      "pending",
+    ]);
+    expect(JSON.stringify(combined)).not.toMatch(/PRIVATE-SERIAL|storage_path|signedUrl|intents/);
+  });
+  it("does not fetch a combined source query for distant or missing GPS originals", async () => {
+    for (const longitude of [10.5, null]) {
+      const { deps } = await fixture();
+      const originals = await Promise.all([rows(1, 9.26), rows(2, longitude)]);
+      deps.loadRows.mockImplementation(
+        async (_client, _project, id) => originals.find((row) => row.media.id === id)!,
+      );
+      const result = await executeLocalizeDroneOriginals(
+        { ...INPUT, mediaIds: originals.map((row) => row.media.id), selection: "all_photos" },
+        ACTOR_ID,
+        CLIENT,
+        deps,
+      );
+      expect(deps.findWatercourses).not.toHaveBeenCalled();
+      expect(result.combinedCluster?.searchStatus).toBe(
+        longitude === null ? undefined : "too_broad",
+      );
+    }
+  });
   it("allows a viewer to read proposals while checking access before privileged or external reads", async () => {
     const { deps } = await fixture();
     const result = await executeLocalizeDroneOriginals(INPUT, ACTOR_ID, CLIENT, deps);

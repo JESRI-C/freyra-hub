@@ -176,7 +176,10 @@ function Intake({
   const displayedProject = savedProject.data ?? project;
   const hasExistingArea = validateProjectPolygon(displayedProject.geometry_polygon).valid;
   const cluster =
-    localization?.clusters.find((item) => item.id === clusterId) ?? localization?.clusters[0];
+    (localization?.combinedCluster?.id === clusterId ? localization.combinedCluster : undefined) ??
+    localization?.clusters.find((item) => item.id === clusterId) ??
+    localization?.clusters[0];
+  const allSeriesSelected = !!cluster && cluster.id === localization?.combinedCluster?.id;
   const usingProposedArea = !hasExistingArea || useProposedArea;
   const effectiveReferenceId = droneIntakeEffectiveReference({
     explicitReferenceId: referenceId,
@@ -246,14 +249,23 @@ function Intake({
   const preparationKeyRef = useRef(preparationKey);
   preparationKeyRef.current = preparationKey;
 
-  async function locate(isCurrent = current()) {
+  async function locate(
+    isCurrent = current(),
+    selection?: "all_photos",
+    preferredClusterId?: string,
+  ) {
     if (!isCurrent() || locationBusy.current) return;
     locationBusy.current = true;
     setLocalizing(true);
     setLocationError(null);
     try {
       const result = await localize({
-        data: { projectId: project.id, mediaIds: batch.mediaIds, expectedCallerUserId: actorId },
+        data: {
+          projectId: project.id,
+          mediaIds: batch.mediaIds,
+          expectedCallerUserId: actorId,
+          ...(selection ? { selection } : {}),
+        },
       });
       if (!isCurrent()) return;
       if (
@@ -264,7 +276,14 @@ function Intake({
       )
         throw new Error("Stedforslaget matcher ikke denne billedserie og bruger.");
       setLocalization(result);
-      setClusterId(result.clusters[0]?.id ?? "");
+      setClusterId(
+        selection === "all_photos"
+          ? (result.combinedCluster?.id ?? "")
+          : (result.clusters.find((item) => item.id === preferredClusterId)?.id ??
+              result.clusters[0]?.id ??
+              ""),
+      );
+      if (selection === "all_photos") setUseProposedArea(true);
       setReferenceId("");
       setIncludeUnlocated(false);
       setRecordingDate(droneIntakeRecordingDate(result) ?? "");
@@ -615,7 +634,7 @@ function Intake({
           </p>
         )}
         {localization && (
-          <fieldset disabled={preparing || !!prepared} className="space-y-4">
+          <fieldset disabled={localizing || preparing || !!prepared} className="space-y-4">
             <legend className="mb-2 font-medium">
               <MapPin className="mr-1 inline h-4 w-4" />
               Bekræft sted og optagedato
@@ -627,8 +646,18 @@ function Intake({
                   className="mt-1 block w-full rounded-md border bg-background p-2"
                   value={cluster?.id ?? ""}
                   onChange={(event) => {
-                    setClusterId(event.target.value);
-                    setReferenceId("");
+                    const id = event.target.value;
+                    if (id === localization.combinedCluster?.id) {
+                      void locate(current(), "all_photos");
+                    } else if (
+                      localization.clusters.find((item) => item.id === id)?.searchStatus ===
+                      "pending"
+                    ) {
+                      void locate(current(), undefined, id);
+                    } else {
+                      setClusterId(id);
+                      setReferenceId("");
+                    }
                   }}
                 >
                   {localization.clusters.map((item, index) => (
@@ -637,8 +666,34 @@ function Intake({
                       {item.isolated ? " — ligger alene" : ""}
                     </option>
                   ))}
+                  {localization.combinedCluster && (
+                    <option
+                      value={localization.combinedCluster.id}
+                      disabled={localization.combinedCluster.searchStatus === "too_broad"}
+                    >
+                      Alle seriens fotopunkter — {localization.combinedCluster.mediaIds.length}{" "}
+                      fotos
+                      {localization.combinedCluster.searchStatus === "too_broad"
+                        ? " — området er for stort"
+                        : ""}
+                    </option>
+                  )}
                 </select>
               </label>
+            )}
+            {allSeriesSelected && (
+              <p className="rounded border bg-muted/40 p-3 text-sm">
+                Du har valgt alle seriens fotopunkter. Søgeområdet bygger på originalernes faktiske
+                GPS-positioner med 100 m kant. Det er ikke billeddækning eller en fagligt godkendt
+                afgrænsning af sagen eller delstrækning A–E. Vælg den officielle vandløbsreference
+                og bekræft datoen, før området gemmes.
+              </p>
+            )}
+            {localization.combinedCluster?.searchStatus === "too_broad" && (
+              <p className="text-sm text-amber-700">
+                Seriens samlede søgning overstiger 5 km i diagonal eller 10 km². Vælg en mindre
+                billedgruppe; fjernliggende fotopunkter sammenlægges ikke automatisk.
+              </p>
             )}
             {cluster && searchLabels[cluster.searchStatus] && (
               <p className="text-sm text-amber-700">{searchLabels[cluster.searchStatus]}</p>
