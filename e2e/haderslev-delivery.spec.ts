@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID, createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 
 const required = (name: string) => {
@@ -14,6 +14,14 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   page,
   baseURL,
 }, testInfo) => {
+  // Keep a credential-free checkpoint even if a local browser worker is interrupted.
+  const checkpoint = async (stage: string) => {
+    await mkdir(testInfo.outputDir, { recursive: true });
+    await writeFile(
+      testInfo.outputPath("last-stage.json"),
+      JSON.stringify({ stage, at: new Date().toISOString() }),
+    );
+  };
   // Fail instead of silently skipping the acceptance test when configuration is missing.
   const email = required("HADERSLEV_OPERATOR_EMAIL"),
     password = required("HADERSLEV_OPERATOR_PASSWORD");
@@ -45,16 +53,22 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
       "Isoleret browserprøve. Ingen faglig godkendelse; må ikke afleveres som kommunens sag.",
   });
   expect(created.error).toBeNull();
+  await checkpoint("testcase_created");
   await page.addInitScript(
     ({ orgId, id }) =>
       localStorage.setItem("freyra-auth-selection-v1", JSON.stringify({ orgId, projectId: id })),
     { orgId, id },
   );
   await page.goto(`/login?next=${encodeURIComponent(`/app/projects/${slug}`)}`);
+  await checkpoint("login_email");
   await page.locator('input[type="email"]').fill(email);
+  await checkpoint("login_password");
   await page.locator('input[type="password"]').fill(password);
+  await checkpoint("login_submit");
   await page.getByRole("button", { name: "Log ind", exact: true }).click();
+  await checkpoint("login_navigation");
   await expect(page.getByRole("navigation", { name: "Sagens fem trin" })).toBeVisible();
+  await checkpoint("upload_original");
   await expect(page.getByText("Finansiering og effekt", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Tilføj dronebilleder", exact: true }).click();
   await page
@@ -66,6 +80,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(page.getByRole("button", { name: "Luk", exact: true })).toHaveCount(0, {
     timeout: 180_000,
   });
+  await checkpoint("localization");
   await page
     .getByRole("navigation", { name: "Sagens fem trin" })
     .getByRole("button", { name: /Datagrundlag/ })
@@ -91,10 +106,38 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   });
   await expect(prepare).toBeEnabled();
   await prepare.click();
+  await checkpoint("public_data_and_round");
   await expect(page).toHaveURL(/round=[0-9a-f-]{36}/, { timeout: 240_000 });
   const roundId = new URL(page.url()).searchParams.get("round");
-  // Finish the bounded initial AI work before moving, including safe fallback/unavailable UI.
-  await expect(page.getByText(/1 af 1 billedudkast gennemgået/)).toBeVisible({ timeout: 300_000 });
+  await checkpoint("image_assessment");
+  // Await the bounded attempt's actual terminal state. A missing valid result is
+  // explicit manual follow-up, never a successful AI assessment or an extra retry.
+  const completedAi = page.getByText(/1 af 1 billedudkast gennemgået/);
+  const skipUnavailableAi = page.getByRole("button", {
+    name: "Spring dette foto over og fortsæt",
+    exact: true,
+  });
+  await expect
+    .poll(async () => (await completedAi.isVisible()) || (await skipUnavailableAi.isVisible()), {
+      timeout: 300_000,
+    })
+    .toBe(true);
+  const manualFollowUp = !(await completedAi.isVisible());
+  if (manualFollowUp) {
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Originalerne er bevaret" }),
+    ).toBeVisible();
+    await skipUnavailableAi.click();
+    await expect(page.getByText(/1 fotos er sprunget over i denne arbejdsgang/)).toBeVisible();
+    await expect(skipUnavailableAi).toHaveCount(0);
+  }
+  await testInfo.attach("billedvurdering-status", {
+    body: JSON.stringify({
+      status: manualFollowUp ? "manual_follow_up" : "valid_saved_assessment",
+    }),
+    contentType: "application/json",
+  });
+  await checkpoint("photo_review");
   await page
     .getByRole("navigation", { name: "Sagens fem trin" })
     .getByRole("button", { name: /Gennemgang/ })
@@ -112,7 +155,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await review
     .getByLabel("Navn og faglig rolle")
     .fill("Automatisk teknisk prøve – ingen faglig godkendelse");
-  await review.getByLabel("Beslutning", { exact: true }).selectOption("rejected");
+  await review.getByRole("combobox", { name: "Beslutning", exact: true }).selectOption("rejected");
   await review
     .getByLabel("Begrundelse og manglende data")
     .fill(
@@ -122,6 +165,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(
     review.getByRole("status").filter({ hasText: "Faglig afvisning gemt" }),
   ).toBeVisible();
+  await checkpoint("audit_and_planting");
   // Utility navigation must preserve the exact reviewed round.
   await page.getByRole("link", { name: "Revisionsspor", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`round=${roundId}`));
@@ -137,6 +181,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
     .getByRole("button", { name: /Rapport og aflevering/ })
     .click();
   const downloading = page.waitForEvent("download", { timeout: 180_000 });
+  await checkpoint("report_and_zip");
   await page.getByRole("button", { name: "Dan rapport og hent afleveringspakke" }).click();
   const download = await downloading;
   expect(download.suggestedFilename()).toMatch(/\.zip$/);
@@ -180,5 +225,6 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
     }),
     contentType: "application/json",
   });
-  await client.auth.signOut();
+  await client.auth.signOut({ scope: "local" });
+  await checkpoint("completed");
 });

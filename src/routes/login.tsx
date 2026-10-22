@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   Lock,
   Mail,
@@ -26,6 +26,9 @@ export const Route = createFileRoute("/login")({
 });
 
 type Mode = "signin" | "signup" | "forgot";
+const subscribeToHydration = () => () => {};
+const clientHydrated = () => true;
+const serverHydrated = () => false;
 
 // Oversæt engelske Supabase-fejlbeskeder til klar dansk
 function translateError(message: string): string {
@@ -46,6 +49,9 @@ function translateError(message: string): string {
 }
 
 function LoginPage() {
+  // SSR controls remain disabled until React owns their value and event handlers.
+  // Otherwise fast input/autofill can be erased by the initial hydration render.
+  const hydrated = useSyncExternalStore(subscribeToHydration, clientHydrated, serverHydrated);
   const { user, loading, refreshing, authError, refresh } = useAuth();
   const navigate = useNavigate();
   const { next } = Route.useSearch();
@@ -60,11 +66,13 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const controlsDisabled = !hydrated || busy || loading || refreshing;
 
   if (destination) return <Navigate to={destination} />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (controlsDisabled) return;
     setBusy(true);
     try {
       if (mode === "signin") {
@@ -114,6 +122,7 @@ function LoginPage() {
   };
 
   const handleGoogle = async () => {
+    if (controlsDisabled) return;
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
@@ -219,6 +228,11 @@ function LoginPage() {
   return (
     <SplitShell stats={stats}>
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-5">
+        {!hydrated && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Gør login klar …
+          </p>
+        )}
         <div className="lg:hidden flex items-center gap-2 mb-2">
           <img src={logoMark} alt="Freyra" className="h-9 w-9 object-contain" />
           <span className="font-semibold">Freyra</span>
@@ -241,6 +255,7 @@ function LoginPage() {
           <Field label="Fulde navn" icon={<User className="h-4 w-4" />}>
             <input
               type="text"
+              disabled={controlsDisabled}
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -260,6 +275,7 @@ function LoginPage() {
         >
           <input
             type="email"
+            disabled={controlsDisabled}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -278,6 +294,7 @@ function LoginPage() {
                 {!isSignup && (
                   <button
                     type="button"
+                    disabled={controlsDisabled}
                     onClick={() => setMode("forgot")}
                     className="text-xs text-primary hover:underline font-normal"
                   >
@@ -295,6 +312,7 @@ function LoginPage() {
           >
             <input
               type={showPassword ? "text" : "password"}
+              disabled={controlsDisabled}
               required
               minLength={6}
               value={password}
@@ -305,6 +323,7 @@ function LoginPage() {
             />
             <button
               type="button"
+              disabled={controlsDisabled}
               onClick={() => setShowPassword((s) => !s)}
               className="absolute right-2 top-[30px] p-1.5 text-muted-foreground hover:text-foreground rounded-md"
               aria-label={showPassword ? "Skjul adgangskode" : "Vis adgangskode"}
@@ -319,6 +338,7 @@ function LoginPage() {
           <Field label="Bekræft adgangskode" icon={<Lock className="h-4 w-4" />}>
             <input
               type={showPassword ? "text" : "password"}
+              disabled={controlsDisabled}
               required
               minLength={6}
               value={confirmPassword}
@@ -341,7 +361,7 @@ function LoginPage() {
             <p>{authError}</p>
             <button
               type="button"
-              disabled={loading || refreshing}
+              disabled={controlsDisabled}
               onClick={() => void refresh().catch(() => undefined)}
               className="mt-2 font-medium underline underline-offset-2 disabled:opacity-60"
             >
@@ -352,7 +372,7 @@ function LoginPage() {
 
         <button
           type="submit"
-          disabled={busy || loading || refreshing}
+          disabled={controlsDisabled}
           className="w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-medium shadow-soft hover:opacity-95 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {(busy || loading || refreshing) && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -373,7 +393,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={handleGoogle}
-              disabled={busy || loading || refreshing}
+              disabled={controlsDisabled}
               className="w-full rounded-xl border border-input bg-card py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <svg className="h-4 w-4" viewBox="0 0 48 48" aria-hidden="true">
@@ -404,6 +424,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={() => setMode("signin")}
+              disabled={controlsDisabled}
               className="text-primary hover:underline font-medium inline-flex items-center gap-1"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Tilbage til log ind
@@ -414,6 +435,7 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={() => setMode("signin")}
+                disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
                 Log ind
@@ -425,6 +447,7 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={() => setMode("signup")}
+                disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
                 Opret en konto
