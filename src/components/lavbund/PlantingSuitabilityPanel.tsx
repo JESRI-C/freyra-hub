@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap } from "leaflet";
+import { useAuth } from "@/lib/auth";
 import { getProjectBaseline, listProjectBaselines } from "@/lib/public-baseline.functions";
+import { getSurveyRound } from "@/lib/survey-round.functions";
 import { buildPlantingFromBaseline } from "@/services/planting/planting-baseline";
 import { PLANTING_LITERATURE } from "@/services/planting/planting-literature";
 import {
@@ -10,6 +13,7 @@ import {
   type Suitability,
 } from "@/services/planting/planting-suitability";
 import { Card, CardHeader } from "@/components/ui-bits";
+import { loadPlantingContext } from "./planting-context";
 import "leaflet/dist/leaflet.css";
 
 const COLORS: Record<Suitability, string> = {
@@ -23,25 +27,39 @@ const formatHa = (value: number | null) =>
     ? "Ukendt"
     : value.toLocaleString("da-DK", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-export function PlantingSuitabilityPanel({ projectId }: { projectId: string | null }) {
+export function PlantingSuitabilityPanel({
+  projectId,
+  selectedRoundId,
+}: {
+  projectId: string | null;
+  selectedRoundId?: string;
+}) {
+  const { user } = useAuth();
+  const getBaseline = useServerFn(getProjectBaseline);
+  const listBaselines = useServerFn(listProjectBaselines);
+  const getRound = useServerFn(getSurveyRound);
   const [bufferM, setBufferM] = useState<10 | 20>(10);
   const [showLayer, setShowLayer] = useState(true);
   const query = useQuery({
-    queryKey: ["planting-suitability", projectId],
-    enabled: !!projectId,
+    queryKey: ["planting-suitability", user?.id, projectId, selectedRoundId ?? "latest"],
+    enabled: !!user && !!projectId,
     staleTime: 60_000,
+    retry: false,
     queryFn: async () => {
-      if (!projectId) return null;
-      const versions = await listProjectBaselines({ data: { projectId } });
-      const latest = versions[0];
-      if (!latest) return null;
-      const snapshot = await getProjectBaseline({ data: { projectId, snapshotId: latest.id } });
+      if (!user || !projectId) return null;
+      const snapshot = await loadPlantingContext(projectId, selectedRoundId, {
+        listBaselines: (id) => listBaselines({ data: { projectId: id } }),
+        getBaseline: (id, snapshotId) => getBaseline({ data: { projectId: id, snapshotId } }),
+        getRound: (id, roundVersionId) => getRound({ data: { projectId: id, roundVersionId } }),
+      });
       if (!snapshot) return null;
       return { snapshot, result: buildPlantingFromBaseline(snapshot) };
     },
   });
-  const result = query.data?.result;
-  const snapshot = query.data?.snapshot;
+  // React Query retains cached data after a failed refetch. Never display it after access fails.
+  const visible = user && projectId && !query.isError ? query.data : undefined;
+  const result = visible?.result;
+  const snapshot = visible?.snapshot;
 
   return (
     <Card>
@@ -57,6 +75,7 @@ export function PlantingSuitabilityPanel({ projectId }: { projectId: string | nu
             Kobl lavbundsprojektet til kommunens sag for at bruge dens gemte offentlige data.
           </p>
         )}
+        {!user && <p role="status">Log ind for at se sagens beplantningsskitse.</p>}
         {query.isLoading && <p role="status">Indlæser gemt datagrundlag…</p>}
         {query.isError && (
           <p role="status">
@@ -64,7 +83,7 @@ export function PlantingSuitabilityPanel({ projectId }: { projectId: string | nu
             sagen.
           </p>
         )}
-        {projectId && query.isSuccess && !result && (
+        {user && projectId && query.isSuccess && !result && (
           <p role="status">
             Der er endnu ingen gemt kildeversion. Hent først offentlige data i kommunens sag.
           </p>
@@ -72,9 +91,12 @@ export function PlantingSuitabilityPanel({ projectId }: { projectId: string | nu
         {result && snapshot && (
           <>
             <p className="text-xs text-muted-foreground">
-              Datagrundlag v{snapshot.version} · gemt{" "}
-              {new Date(snapshot.createdAt).toLocaleString("da-DK")} · skitsens kildedækning:{" "}
-              {STATUS[result.status]}. Registerlag er ikke verificeret som tilstanden på flyvedagen.
+              {selectedRoundId !== undefined
+                ? "Den valgte undersøgelses datagrundlag"
+                : "Seneste gemte kildeversion, uafhængigt af en valgt undersøgelse"}{" "}
+              · v{snapshot.version} · gemt {new Date(snapshot.createdAt).toLocaleString("da-DK")} ·
+              skitsens kildedækning: {STATUS[result.status]}. Registerlag er ikke verificeret som
+              tilstanden på flyvedagen.
             </p>
             <div className="flex flex-wrap gap-4 items-center">
               <label className="inline-flex gap-2 items-center text-sm">

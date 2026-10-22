@@ -274,7 +274,10 @@ export function MunicipalCaseWorkspace({
             )}
             {step === "beplantning" && (
               <>
-                <PlantingSuitabilityPanel projectId={project.id} />
+                <PlantingSuitabilityPanel
+                  projectId={project.id}
+                  selectedRoundId={selectedRoundId}
+                />
                 <Link
                   to="/app/lavbund/$projektId/kort"
                   params={{ projektId: project.id }}
