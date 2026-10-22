@@ -1,3 +1,7 @@
+import { StartActions } from "@/components/redesign/StartActions";
+import { WorkspaceTools } from "@/components/redesign/WorkspaceTools";
+import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
+import type { MunicipalStep } from "@/components/project/MunicipalCaseWorkspace";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
@@ -63,6 +67,8 @@ function ProjectsIndexPage() {
   const canCreate = canCreateProject(currentOrg?.role);
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [startStep, setStartStep] = useState<MunicipalStep | null>(null);
+  const caseList = useRef<HTMLElement>(null);
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<CreateProjectForm>(FORM_DEFAULTS);
@@ -266,166 +272,216 @@ function ProjectsIndexPage() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5 pb-16">
-      <PageHeader
-        title={DEMO_MODE ? "Sager" : "Projektoversigt"}
-        description="Fra de første dronebilleder til en samlet, sporbar aflevering"
-        actions={
-          <div className="flex items-center gap-2">
-            <Pill tone="info">{summaries.length} sager</Pill>
-            <button
-              onClick={() => canCreate && setShowCreateModal(true)}
-              disabled={!canCreate}
-              title={
-                canCreate
-                  ? "Opret et projekt"
-                  : "Kun ejer, administrator eller redaktør kan oprette projekter"
-              }
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Opret sag
-            </button>
-          </div>
-        }
+      <StartActions
+        canCreate={canCreate}
+        selected={startStep}
+        onChoose={(action) => {
+          if (action === "new") {
+            if (canCreate) setShowCreateModal(true);
+          } else {
+            setStartStep(action);
+            requestAnimationFrame(() => {
+              caseList.current?.scrollIntoView({ behavior: "instant", block: "start" });
+              caseList.current?.focus();
+            });
+          }
+        }}
       />
-
-      {/* Stat bar — klikbare filtre */}
-      {!DEMO_MODE && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Projekter i alt"
-            value={String(summaries.length)}
-            icon={<FolderOpen className="h-5 w-5" />}
-            onClick={clearFilters}
-            active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
-          />
-          <StatCard
-            label="Aktive datakilder"
-            value={String(totalSites)}
-            icon={<Leaf className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Åbne handlinger"
-            value={String(totalOpenActions)}
-            icon={<AlertCircle className="h-5 w-5" />}
-            accent="bg-amber-100 text-amber-700"
-            onClick={() => {
-              setOpenActionsOnly((v) => !v);
-              setHighReadinessOnly(false);
-            }}
-            active={openActionsOnly}
-          />
-          <StatCard
-            label="Gns. rapportklarhed"
-            value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
-            icon={<BarChart2 className="h-5 w-5" />}
-            onClick={() => {
-              setHighReadinessOnly((v) => !v);
-              setOpenActionsOnly(false);
-            }}
-            active={highReadinessOnly}
-          />
-        </div>
-      )}
-
-      {/* Search + filter */}
-      <Card className="p-4 space-y-3">
-        <div className="flex items-center gap-2 bg-muted/40 border rounded-xl px-3 py-2.5">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Søg efter sagsnavn, placering eller type…"
-            className="flex-1 bg-transparent outline-none text-sm"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f}
-              onClick={() => setStatusFilter(f)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                statusFilter === f
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "hover:bg-muted"
-              }`}
-            >
-              {f}
+      <section
+        ref={caseList}
+        tabIndex={-1}
+        className="scroll-mt-20 space-y-5"
+        aria-label="Dine sager"
+      >
+        {startStep && (
+          <div
+            role="status"
+            className="rounded-lg border border-primary/30 bg-secondary p-4 text-sm"
+          >
+            <strong>Vælg den sag, du vil arbejde med.</strong> Genvejen åbner{" "}
+            {startStep === "baseline"
+              ? "baseline"
+              : startStep === "rapport"
+                ? "rapporten"
+                : startStep === "beplantning"
+                  ? "beplantning"
+                  : "billederne"}{" "}
+            i den valgte sag.{" "}
+            <button className="ml-2 underline" onClick={() => setStartStep(null)}>
+              Vis hele sagsforløbet
             </button>
-          ))}
-          {(openActionsOnly || highReadinessOnly || statusFilter !== "Alle" || q) && (
-            <button
-              onClick={clearFilters}
-              className="ml-auto text-xs px-3 py-1.5 rounded-full border hover:bg-muted inline-flex items-center gap-1"
-            >
-              <X className="h-3 w-3" /> Nulstil filtre
-            </button>
-          )}
-        </div>
-        {(openActionsOnly || highReadinessOnly) && (
-          <div className="flex flex-wrap gap-1.5 text-xs">
-            {openActionsOnly && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-1">
-                Kun med åbne handlinger
-                <button onClick={() => setOpenActionsOnly(false)}>
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            )}
-            {highReadinessOnly && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-1">
-                Rapportklarhed ≥ 80%
-                <button onClick={() => setHighReadinessOnly(false)}>
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            )}
           </div>
         )}
-      </Card>
-
-      {/* Result count */}
-      <div className="text-sm text-muted-foreground">
-        Viser <span className="font-medium text-foreground">{filtered.length}</span> af{" "}
-        {summaries.length} sager
-      </div>
-
-      {/* Project grid */}
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((s) =>
-            DEMO_MODE ? (
-              <Link
-                key={s.project.id}
-                to="/app/projects/$slug"
-                params={{ slug: s.project.slug ?? s.project.id }}
-                search={{ step: "billeder" }}
-                className="group flex min-h-48 flex-col rounded-xl border bg-card p-6 transition hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
+        <PageHeader
+          title={DEMO_MODE ? "Sager" : "Projektoversigt"}
+          description="Fra de første dronebilleder til en samlet, sporbar aflevering"
+          actions={
+            <div className="flex items-center gap-2">
+              <Pill tone="info">{summaries.length} sager</Pill>
+              <button
+                onClick={() => canCreate && setShowCreateModal(true)}
+                disabled={!canCreate}
+                title={
+                  canCreate
+                    ? "Opret et projekt"
+                    : "Kun ejer, administrator eller redaktør kan oprette projekter"
+                }
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               >
-                <span className="text-xs text-muted-foreground">
-                  {s.project.municipality ?? "Område afventer"}
+                <Plus className="h-4 w-4" />
+                Opret sag
+              </button>
+            </div>
+          }
+        />
+
+        {/* Stat bar — klikbare filtre */}
+        {!DEMO_MODE && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Projekter i alt"
+              value={String(summaries.length)}
+              icon={<FolderOpen className="h-5 w-5" />}
+              onClick={clearFilters}
+              active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
+            />
+            <StatCard
+              label="Aktive datakilder"
+              value={String(totalSites)}
+              icon={<Leaf className="h-5 w-5" />}
+            />
+            <StatCard
+              label="Åbne handlinger"
+              value={String(totalOpenActions)}
+              icon={<AlertCircle className="h-5 w-5" />}
+              accent="bg-amber-100 text-amber-700"
+              onClick={() => {
+                setOpenActionsOnly((v) => !v);
+                setHighReadinessOnly(false);
+              }}
+              active={openActionsOnly}
+            />
+            <StatCard
+              label="Gns. rapportklarhed"
+              value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
+              icon={<BarChart2 className="h-5 w-5" />}
+              onClick={() => {
+                setHighReadinessOnly((v) => !v);
+                setOpenActionsOnly(false);
+              }}
+              active={highReadinessOnly}
+            />
+          </div>
+        )}
+
+        {/* Search + filter */}
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2 bg-muted/40 border rounded-xl px-3 py-2.5">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Søg efter sagsnavn, placering eller type…"
+              className="flex-1 bg-transparent outline-none text-sm"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  statusFilter === f
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "hover:bg-muted"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+            {(openActionsOnly || highReadinessOnly || statusFilter !== "Alle" || q) && (
+              <button
+                onClick={clearFilters}
+                className="ml-auto text-xs px-3 py-1.5 rounded-full border hover:bg-muted inline-flex items-center gap-1"
+              >
+                <X className="h-3 w-3" /> Nulstil filtre
+              </button>
+            )}
+          </div>
+          {(openActionsOnly || highReadinessOnly) && (
+            <div className="flex flex-wrap gap-1.5 text-xs">
+              {openActionsOnly && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-1">
+                  Kun med åbne handlinger
+                  <button onClick={() => setOpenActionsOnly(false)}>
+                    <X className="h-3 w-3" />
+                  </button>
                 </span>
-                <h2 className="mt-3 text-xl font-semibold">{s.project.name}</h2>
-                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                  {s.project.description ?? "Åbn sagen for at se billeder, kilder og rapporter."}
-                </p>
-                <span className="mt-auto pt-6 text-sm font-medium text-primary">
-                  Åbn sagsforløb →
+              )}
+              {highReadinessOnly && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-1">
+                  Rapportklarhed ≥ 80%
+                  <button onClick={() => setHighReadinessOnly(false)}>
+                    <X className="h-3 w-3" />
+                  </button>
                 </span>
-              </Link>
-            ) : (
-              <ProjectMonitorCard key={s.project.id} summary={s} />
-            ),
+              )}
+            </div>
           )}
-        </div>
-      ) : (
-        <Card className="py-12 text-center">
-          <CardHeader
-            title="Ingen sager fundet"
-            subtitle="Prøv at justere din søgning eller filtrering"
-          />
         </Card>
-      )}
+
+        {/* Result count */}
+        <div className="text-sm text-muted-foreground">
+          Viser <span className="font-medium text-foreground">{filtered.length}</span> af{" "}
+          {summaries.length} sager
+        </div>
+
+        {/* Project grid */}
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map((s) =>
+              DEMO_MODE || startStep ? (
+                <Link
+                  key={s.project.id}
+                  to="/app/projects/$slug"
+                  params={{ slug: s.project.slug ?? s.project.id }}
+                  search={{ step: startStep ?? "billeder" }}
+                  className="group flex min-h-48 flex-col rounded-xl border bg-card p-6 transition hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span className="text-xs text-muted-foreground">
+                    {s.project.municipality ?? "Område afventer"}
+                  </span>
+                  <h2 className="mt-3 text-xl font-semibold">{s.project.name}</h2>
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    {s.project.description ?? "Åbn sagen for at se billeder, kilder og rapporter."}
+                  </p>
+                  <span className="mt-auto pt-6 text-sm font-medium text-primary">
+                    Åbn sagsforløb →
+                  </span>
+                </Link>
+              ) : (
+                <ProjectMonitorCard key={s.project.id} summary={s} />
+              ),
+            )}
+          </div>
+        ) : (
+          <Card className="py-12 text-center">
+            <CardHeader
+              title={
+                summaries.length ? "Ingen sager matcher din søgning" : "Din første sag begynder her"
+              }
+              subtitle={
+                summaries.length
+                  ? "Prøv et kortere sagsnavn, eller nulstil filtrene."
+                  : canCreate
+                    ? "Vælg Start en ny sag ovenfor. Giv sagen et navn, og tilføj derefter originalfotos."
+                    : "Bed den ansvarlige om adgang til den sag, du skal arbejde med."
+              }
+            />
+          </Card>
+        )}
+      </section>
+      <WorkspaceTools />
 
       {/* ── Create project modal ────────────────────────────────────────────────── */}
       {showCreateModal && (
@@ -433,11 +489,17 @@ function ProjectsIndexPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="bg-card rounded-2xl shadow-xl border w-full max-w-lg">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Opret ny sag"
+            className="bg-card rounded-2xl shadow-xl border w-full max-w-lg max-h-[90dvh] overflow-y-auto"
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-semibold text-base">Opret ny sag</h2>
               <button
+                aria-label="Luk oprettelse"
                 onClick={closeModal}
                 className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
               >
@@ -449,10 +511,12 @@ function ProjectsIndexPage() {
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {/* Name */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">
+                <label htmlFor="case-name" className="text-sm font-medium">
                   Projektnavn <span className="text-destructive">*</span>
                 </label>
                 <input
+                  id="case-name"
+                  autoFocus
                   required
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -461,67 +525,87 @@ function ProjectsIndexPage() {
                 />
               </div>
 
-              {/* Description */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Beskrivelse</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Kort beskrivelse af projektet…"
-                  rows={3}
-                  className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-                />
-              </div>
-
-              {/* Type + Location */}
-              <div className="grid grid-cols-2 gap-3">
+              <AdvancedSettings
+                description="Beskriv og klassificér sagen. Standard: Naturgenopretning og Planlægning; beskrivelse og placering er tomme. Gemmes først, når du opretter sagen."
+                onReset={() => setForm((current) => ({ ...FORM_DEFAULTS, name: current.name }))}
+                disabled={submitting || !!storedProjectId}
+              >
+                {/* Description */}
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Projekttype</label>
-                  <select
-                    value={form.projectType}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, projectType: e.target.value as ProjectType }))
-                    }
-                    className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                  >
-                    {PROJECT_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Placering</label>
-                  <input
-                    value={form.location}
-                    onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="Kommune eller lokalitet"
-                    className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                  <label htmlFor="case-description" className="text-sm font-medium">
+                    Beskrivelse
+                  </label>
+                  <textarea
+                    id="case-description"
+                    value={form.description}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    placeholder="Kort beskrivelse af projektet…"
+                    rows={3}
+                    className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 resize-none"
                   />
                 </div>
-              </div>
 
-              {/* Status */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Status</label>
-                <div className="flex gap-2">
-                  {(["Planlægning", "Aktiv", "Afsluttet"] as ProjectStatus[]).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setForm((f) => ({ ...f, status: s }))}
-                      className={`flex-1 rounded-xl border py-2 text-xs font-medium transition-colors ${
-                        form.status === s
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "hover:bg-muted"
-                      }`}
+                {/* Type + Location */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label htmlFor="case-type" className="text-sm font-medium">
+                      Projekttype
+                    </label>
+                    <select
+                      id="case-type"
+                      value={form.projectType}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, projectType: e.target.value as ProjectType }))
+                      }
+                      className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                     >
-                      {s}
-                    </button>
-                  ))}
+                      {PROJECT_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="case-location" className="text-sm font-medium">
+                      Placering
+                    </label>
+                    <input
+                      id="case-location"
+                      value={form.location}
+                      onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                      placeholder="Kommune eller lokalitet"
+                      className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Beskrivelsen forklarer formålet. Projekttypen klassificerer sagen. Placering
+                  angiver kommune eller lokalitet. Status beskriver sagens fase og er ikke en faglig
+                  godkendelse.
+                </p>
+                {/* Status */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Status</label>
+                  <div className="flex gap-2">
+                    {(["Planlægning", "Aktiv", "Afsluttet"] as ProjectStatus[]).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, status: s }))}
+                        className={`flex-1 rounded-xl border py-2 text-xs font-medium transition-colors ${
+                          form.status === s
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </AdvancedSettings>
 
               {formError && (
                 <div

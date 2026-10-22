@@ -15,12 +15,19 @@ function AppLayout() {
   if (!user) return <Navigate to="/login" />;
   if (!orgId) return <Navigate to="/select" />;
 
-  if (DEMO_MODE && !isMunicipalRoute(path)) return <Navigate to="/app/projects" />;
+  if (DEMO_MODE && path !== "/app/sources" && !isMunicipalRoute(path))
+    return <Navigate to="/app/projects" />;
 
   return (
     <div className="min-h-screen flex bg-background">
+      <a
+        href="#workspace-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded focus:bg-card focus:p-3"
+      >
+        Gå til indhold
+      </a>
       <AppSidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div id="workspace-content" tabIndex={-1} className="flex-1 min-w-0 flex flex-col">
         <GlobalContextBar />
         <Outlet />
       </div>

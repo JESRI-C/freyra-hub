@@ -13,7 +13,7 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/reports")({
-  head: () => ({ meta: [{ title: "Report Engine — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Report Engine — Freyra" }] }),
   component: ReportsLayout,
 });
 

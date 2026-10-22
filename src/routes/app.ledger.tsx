@@ -12,7 +12,7 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/ledger")({
-  head: () => ({ meta: [{ title: "Documentation & Audit Trail — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Documentation & Audit Trail — Freyra" }] }),
   component: LedgerLayout,
 });
 

@@ -23,7 +23,9 @@ vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options: unknown) => ({
     options,
     useParams: () => ({ slug: "pilot" }),
-    useSearch: () => ({}),
+    // The retained full-app overview is now opened through Flere sagsværktøjer.
+    // Exercise the same evidence guards on that explicit tab.
+    useSearch: () => ({ tab: "overblik" }),
     useNavigate: () => vi.fn(),
   }),
   notFound: () => new Error("not found"),

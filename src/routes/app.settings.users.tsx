@@ -6,7 +6,7 @@ import { USERS, ROLES, type AdminUser } from "@/lib/settings-data";
 import { Users, UserPlus, Search, Mail, ShieldCheck, Clock, KeyRound, X } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/users")({
-  head: () => ({ meta: [{ title: "Brugere & roller — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Brugere & roller — Freyra" }] }),
   component: UsersPage,
 });
 

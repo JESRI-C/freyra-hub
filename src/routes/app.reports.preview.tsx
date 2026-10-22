@@ -146,7 +146,7 @@ function PreviewPage({ idx }: { idx: number }) {
   if (idx === 0)
     return (
       <ReportMasthead
-        kicker="GoFreyra · Naturimpact-rapport"
+        kicker="Freyra · Naturimpact-rapport"
         title="Skallebæk Biodiversity Pilot"
         subtitle="Naturimpact og ESG-status"
         badge={<Chip tone="success">Klar til intern brug · 82%</Chip>}

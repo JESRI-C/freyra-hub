@@ -5,7 +5,7 @@ import { PLAN, USAGE, PLANS, INVOICES } from "@/lib/settings-data";
 import { CreditCard, Zap, ArrowUpRight, Mail, FileText, Info, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/billing")({
-  head: () => ({ meta: [{ title: "Abonnement — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Abonnement — Freyra" }] }),
   component: BillingPage,
 });
 

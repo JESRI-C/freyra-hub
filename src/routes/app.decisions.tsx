@@ -11,7 +11,7 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/decisions")({
-  head: () => ({ meta: [{ title: "Project Intelligence — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Project Intelligence — Freyra" }] }),
   component: DecisionsLayout,
 });
 

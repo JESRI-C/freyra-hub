@@ -33,7 +33,7 @@ const TABS = [
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/construction/projects/$slug")({
-  head: () => ({ meta: [{ title: "Byggeprojekt — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Byggeprojekt — Freyra" }] }),
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     const summary = await queryClient.ensureQueryData({
       queryKey: ["construction-project", slug],

@@ -13,7 +13,7 @@ import { ALERT_RULES, type AlertRule } from "@/lib/settings-data";
 import { Bell, Mail, MonitorSmartphone, Settings as SettingsIcon, Users } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/notifications")({
-  head: () => ({ meta: [{ title: "Notifikationer — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Notifikationer — Freyra" }] }),
   component: NotificationsPage,
 });
 

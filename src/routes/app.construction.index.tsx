@@ -15,7 +15,7 @@ const constructionProjectsQuery = {
 };
 
 export const Route = createFileRoute("/app/construction/")({
-  head: () => ({ meta: [{ title: "Byggeri & Natur — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Byggeri & Natur — Freyra" }] }),
   loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(constructionProjectsQuery),
   component: ConstructionIndexPage,
 });

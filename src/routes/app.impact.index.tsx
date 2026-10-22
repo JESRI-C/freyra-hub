@@ -37,7 +37,7 @@ import { ACTIVITY_FEED, CRITICAL_ACTIONS, PROJECT_FACTS } from "@/lib/platform-d
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 
 export const Route = createFileRoute("/app/impact/")({
-  head: () => ({ meta: [{ title: "Impact Exchange — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Impact Exchange — Freyra" }] }),
   component: OverviewPage,
 });
 

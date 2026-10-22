@@ -36,7 +36,7 @@ import { useLiveActivityFeed, useLiveCriticalActions } from "@/lib/platform-live
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 
 export const Route = createFileRoute("/app/ledger/")({
-  head: () => ({ meta: [{ title: "ESG Ledger — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "ESG Ledger — Freyra" }] }),
   component: OverviewPage,
 });
 

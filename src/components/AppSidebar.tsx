@@ -1,25 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
-import {
-  LayoutDashboard,
-  FolderOpen,
-  FileText,
-  Database,
-  Coins,
-  Globe,
-  Settings,
-  ChevronsUpDown,
-  Map,
-  Building2,
-  Cable,
-  Brain,
-  BookCheck,
-  Users,
-  FlaskConical,
-  Droplets,
-  Menu,
-} from "lucide-react";
-import { DEMO_MODE } from "@/lib/demo-mode";
+import { FolderOpen, Database, ChevronsUpDown, Menu } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import logoMark from "@/assets/gofreyra-logo.png";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -27,55 +8,15 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 type SidebarItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
 type SidebarGroup = { label: string; items: SidebarItem[] };
 
-const ALL_GROUPS: SidebarGroup[] = [
+const GROUPS: SidebarGroup[] = [
   {
-    label: "Arbejdsflow",
+    label: "Dit arbejde",
     items: [
-      { to: "/app/overview", label: "Overblik", icon: LayoutDashboard },
-      { to: "/app/projects", label: "Naturprojekter", icon: FolderOpen },
-      { to: "/app/reports", label: "Rapporter", icon: FileText },
-    ],
-  },
-  {
-    label: "Projektværktøjer",
-    items: [
-      { to: "/app/connect/map", label: "Kort & zoner", icon: Map },
-      { to: "/app/construction", label: "Byggeri & natur", icon: Building2 },
-      { to: "/app/connect", label: "Overvågning og feltdata", icon: Cable },
-      { to: "/app/lavbund", label: "Kort og beplantning", icon: Droplets },
-      { to: "/app/decisions", label: "Projektindsigt", icon: Brain },
-      { to: "/app/ledger", label: "Dokumentation & audit", icon: BookCheck },
-    ],
-  },
-  {
-    label: "Data & metoder",
-    items: [{ to: "/app/connect/registry", label: "Data & metoder", icon: Database }],
-  },
-  {
-    label: "Finansiering & impact",
-    items: [
-      { to: "/app/impact", label: "Finansiering og effekt", icon: Coins },
-      { to: "/app/public-impact", label: "Offentlig effekt", icon: Globe },
-    ],
-  },
-  {
-    label: "Administration",
-    items: [
-      { to: "/app/settings", label: "Indstillinger", icon: Settings },
-      { to: "/app/settings/users", label: "Brugere & roller", icon: Users },
-      { to: "/app/system-test", label: "Systemtest", icon: FlaskConical },
+      { to: "/app/projects", label: "Sager", icon: FolderOpen },
+      { to: "/app/sources", label: "Kilder", icon: Database },
     ],
   },
 ];
-
-const GROUPS: SidebarGroup[] = DEMO_MODE
-  ? [
-      {
-        label: "Kommunens arbejde",
-        items: [{ to: "/app/projects", label: "Sager", icon: FolderOpen }],
-      },
-    ]
-  : ALL_GROUPS;
 
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -98,7 +39,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         onClick={onNavigate}
         className="mx-3 mt-3 rounded-xl bg-sidebar-accent/60 hover:bg-sidebar-accent transition border border-sidebar-border p-3 flex items-center gap-3"
       >
-        <div className="h-8 w-8 shrink-0 rounded-lg bg-leaf/30 text-leaf grid place-items-center text-xs font-semibold">
+        <div className="h-8 w-8 shrink-0 rounded-lg bg-leaf/30 text-sidebar-foreground grid place-items-center text-xs font-semibold">
           {org?.name.slice(0, 2).toUpperCase() ?? "—"}
         </div>
         <div className="flex-1 min-w-0">
@@ -110,7 +51,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         <ChevronsUpDown className="h-4 w-4 shrink-0 text-sidebar-muted" />
       </Link>
 
-      <nav className="flex-1 p-3 overflow-y-auto">
+      <nav aria-label="Hovedmenu" className="flex-1 p-3 overflow-y-auto">
         {GROUPS.map((group) => (
           <div key={group.label} className="mb-3">
             <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
@@ -119,6 +60,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const active =
+                  (item.to === "/app/projects" && path !== "/app/sources") ||
                   path === item.to ||
                   (item.to !== "/app/settings" && path.startsWith(item.to + "/")) ||
                   (item.to === "/app/settings" && path === "/app/settings");
@@ -127,10 +69,11 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                   <Link
                     key={item.to}
                     to={item.to}
+                    aria-current={active ? "page" : undefined}
                     onClick={onNavigate}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${
                       active
-                        ? "bg-leaf text-leaf-foreground font-medium shadow-soft"
+                        ? "bg-white text-primary font-medium shadow-soft"
                         : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     }`}
                   >
@@ -145,6 +88,13 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border">
+        <Link
+          to="/select"
+          onClick={onNavigate}
+          className="mb-4 block text-xs text-sidebar-foreground underline underline-offset-4"
+        >
+          Arbejdsplads og log ud
+        </Link>
         <div className="rounded-xl bg-sidebar-accent/60 border border-sidebar-border p-3">
           <div className="text-xs text-sidebar-muted">Fra billeder til aflevering</div>
           <div className="text-sm font-medium mt-0.5">Én samlet sag</div>
@@ -159,7 +109,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppSidebar() {
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border">
+    <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-sidebar-border">
       <SidebarBody />
     </aside>
   );
@@ -179,7 +129,7 @@ export function MobileSidebarTrigger() {
         <button
           type="button"
           aria-label="Åbn menu"
-          className="md:hidden h-9 w-9 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
+          className="md:hidden h-11 w-11 grid place-items-center rounded-xl border bg-card hover:bg-muted transition"
         >
           <Menu className="h-4 w-4" />
         </button>

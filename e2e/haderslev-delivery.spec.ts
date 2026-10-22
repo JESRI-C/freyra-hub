@@ -67,7 +67,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await checkpoint("login_submit");
   await page.getByRole("button", { name: "Log ind", exact: true }).click();
   await checkpoint("login_navigation");
-  await expect(page.getByRole("navigation", { name: "Sagens fem trin" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Sagens seks trin" })).toBeVisible();
   await checkpoint("upload_original");
   await expect(page.getByText("Finansiering og effekt", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Tilføj dronebilleder", exact: true }).click();
@@ -82,9 +82,14 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   });
   await checkpoint("localization");
   await page
-    .getByRole("navigation", { name: "Sagens fem trin" })
+    .getByRole("navigation", { name: "Sagens seks trin" })
     .getByRole("button", { name: /Datagrundlag/ })
     .click();
+  // Settings are collapsed first. Opening them must preserve the EXIF-derived date.
+  const intakeSettings = page
+    .locator("details.advanced-settings")
+    .filter({ hasText: "Billedgruppe vælger fotos" });
+  await intakeSettings.locator(":scope > summary").click();
   // The label also contains explanatory text about the date and its timezone.
   await expect(page.getByLabel(/^Optagedato/)).toHaveValue("2026-08-24");
   const watercourse = page.getByRole("combobox", { name: /^Vandløb/ });
@@ -144,8 +149,8 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   });
   await checkpoint("photo_review");
   await page
-    .getByRole("navigation", { name: "Sagens fem trin" })
-    .getByRole("button", { name: /Gennemgang/ })
+    .getByRole("navigation", { name: "Sagens seks trin" })
+    .getByRole("button", { name: /Verificering/ })
     .click();
   const review = page.getByRole("region", { name: "Verifikation pr. fotopunkt" });
   await expect(review.getByText("Originalt dronefoto", { exact: true })).toBeVisible();
@@ -180,13 +185,13 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await page.getByRole("button", { name: "Tilbage til sagsforløbet" }).click();
   await expect(review.getByText("Originalt dronefoto", { exact: true })).toBeVisible();
   await page
-    .getByRole("navigation", { name: "Sagens fem trin" })
+    .getByRole("navigation", { name: "Sagens seks trin" })
     .getByRole("button", { name: /Beplantning/ })
     .click();
   await expect(page.getByText("Skitse – kræver faglig validering", { exact: true })).toBeVisible();
   await page
-    .getByRole("navigation", { name: "Sagens fem trin" })
-    .getByRole("button", { name: /Rapport og aflevering/ })
+    .getByRole("navigation", { name: "Sagens seks trin" })
+    .getByRole("button", { name: /Rapport/ })
     .click();
   const downloading = page.waitForEvent("download", { timeout: 180_000 });
   await checkpoint("report_and_zip");

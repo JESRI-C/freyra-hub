@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/reports/library")({
-  head: () => ({ meta: [{ title: "Rapportbibliotek — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Rapportbibliotek — Freyra" }] }),
   component: isDemoDataEnabled ? LibraryPage : ReportWorkspaceNotice,
 });
 

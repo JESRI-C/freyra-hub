@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSystemTestRouteImport } from './routes/app.system-test'
+import { Route as AppSourcesRouteImport } from './routes/app.sources'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppPublicImpactRouteImport } from './routes/app.public-impact'
@@ -137,6 +138,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppSystemTestRoute = AppSystemTestRouteImport.update({
   id: '/system-test',
   path: '/system-test',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSourcesRoute = AppSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -577,6 +583,7 @@ export interface FileRoutesByFullPath {
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -661,6 +668,7 @@ export interface FileRoutesByTo {
   '/app/data': typeof AppDataRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/public-impact': typeof AppPublicImpactRoute
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -753,6 +761,7 @@ export interface FileRoutesById {
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -846,6 +855,7 @@ export interface FileRouteTypes {
     | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
+    | '/app/sources'
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -930,6 +940,7 @@ export interface FileRouteTypes {
     | '/app/data'
     | '/app/overview'
     | '/app/public-impact'
+    | '/app/sources'
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -1021,6 +1032,7 @@ export interface FileRouteTypes {
     | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
+    | '/app/sources'
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -1166,6 +1178,13 @@ declare module '@tanstack/react-router' {
       path: '/system-test'
       fullPath: '/app/system-test'
       preLoaderRoute: typeof AppSystemTestRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/sources': {
+      id: '/app/sources'
+      path: '/sources'
+      fullPath: '/app/sources'
+      preLoaderRoute: typeof AppSourcesRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/settings': {
@@ -1944,6 +1963,7 @@ interface AppRouteChildren {
   AppPublicImpactRoute: typeof AppPublicImpactRoute
   AppReportsRoute: typeof AppReportsRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppSourcesRoute: typeof AppSourcesRoute
   AppSystemTestRoute: typeof AppSystemTestRoute
   AppProjectsSlugRoute: typeof AppProjectsSlugRoute
   AppConstructionIndexRoute: typeof AppConstructionIndexRoute
@@ -1964,6 +1984,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPublicImpactRoute: AppPublicImpactRoute,
   AppReportsRoute: AppReportsRouteWithChildren,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppSourcesRoute: AppSourcesRoute,
   AppSystemTestRoute: AppSystemTestRoute,
   AppProjectsSlugRoute: AppProjectsSlugRoute,
   AppConstructionIndexRoute: AppConstructionIndexRoute,

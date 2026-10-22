@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Activity, ChevronsUpDown, Bell, Sparkles } from "lucide-react";
+import { Activity, ChevronsUpDown, Sparkles } from "lucide-react";
 import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
 import { isDemoDataEnabled as isOfflineDemoMode } from "@/lib/data-mode";
 import { DemoModeBadge } from "@/components/platform/Primitives";
+import { ActivityTray } from "@/components/redesign/ActivityTray";
 import { MobileSidebarTrigger } from "@/components/AppSidebar";
 
 export function GlobalContextBar() {
@@ -62,17 +63,7 @@ export function GlobalContextBar() {
               <Sparkles className="h-3.5 w-3.5 text-primary" /> Start demo
             </Link>
           )}
-          {!DEMO_MODE && (
-            <button
-              className="relative h-7 w-7 grid place-items-center rounded-lg border bg-background hover:bg-muted"
-              title="Notifikationer"
-            >
-              <Bell className="h-3.5 w-3.5" />
-              {isOfflineDemoMode && (
-                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-destructive" />
-              )}
-            </button>
-          )}
+          <ActivityTray projectId={project?.id} />
         </div>
       </div>
     </div>

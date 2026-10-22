@@ -113,7 +113,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
         className="w-full flex items-center gap-2 px-5 py-3.5 text-sm font-medium hover:bg-muted/30 transition"
       >
         <Pencil className="h-4 w-4 text-primary" />
-        Redigér beregningsgrundlag
+        Avancerede indstillinger
         <span className="text-xs text-muted-foreground font-normal">
           — arealfordeling, tiltag, vandspejl, afvigelser
         </span>
@@ -126,6 +126,11 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
 
       {open && (
         <div className="px-5 pb-5 space-y-5 border-t pt-4">
+          <p className="text-sm leading-6 text-muted-foreground">
+            Redigér beregningsgrundlag. Felter, enheder og faktorer er uændrede. Nulstil til
+            standard gendanner sagens senest gemte grundlag lokalt; der gemmes først, når du vælger
+            Gem grundlag.
+          </p>
           {/* ── Stamdata ─────────────────────────────────────────────────── */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <label className="space-y-1">
@@ -389,7 +394,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
               onClick={() => setDraft(structuredClone(projekt))}
               className="rounded-lg border px-3 py-1.5 text-sm hover:bg-muted/40"
             >
-              Nulstil
+              Nulstil til standard
             </button>
             <button
               type="button"

@@ -137,9 +137,14 @@ export const Route = createFileRoute("/app/projects/$slug")({
     if (!project) throw notFound();
     return project;
   },
-  component: DEMO_MODE ? MunicipalProjectPage : ProjectDetailPage,
+  component: ProjectPage,
   notFoundComponent: () => (
-    <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>
+    <div className="space-y-3 p-6 text-center text-muted-foreground">
+      <p>Sagen kunne ikke findes med din aktuelle adgang.</p>
+      <Link to="/app/projects" className="text-primary underline">
+        Gå til Sager, og vælg en sag, du har adgang til.
+      </Link>
+    </div>
   ),
 });
 
@@ -161,6 +166,17 @@ const TABS = [
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+
+function ProjectPage() {
+  const search = Route.useSearch();
+  // Existing full-app tabs and deep links retain their exact components and handlers.
+  // The default and explicit steps use the guided presentation in both modes.
+  return !DEMO_MODE && search.tab && !search.step ? (
+    <ProjectDetailPage />
+  ) : (
+    <MunicipalProjectPage />
+  );
+}
 
 function MunicipalProjectPage() {
   const initialProject = Route.useLoaderData();
@@ -414,9 +430,7 @@ function ProjectDetailPage() {
         tabs={DEMO_MODE ? TABS.filter((tab) => MUNICIPAL_PROJECT_TABS.has(tab.id)) : TABS}
         activeTab={search.tab ?? "arbejde"}
         primaryTabIds={["arbejde", "rapporter"]}
-        onTabChange={(tab) =>
-          void navigate({ search: (previous) => ({ ...previous, tab }), replace: true })
-        }
+        onTabChange={(tab) => void navigate({ search: { ...search, tab }, replace: true })}
       >
         {(active) => (
           <>
@@ -426,13 +440,13 @@ function ProjectDetailPage() {
                 selectedRoundId={search.round}
                 onSelectRound={(round) =>
                   void navigate({
-                    search: (previous) => ({ ...previous, tab: "arbejde", round }),
+                    search: { ...search, tab: "arbejde", round },
                     replace: true,
                   })
                 }
                 onOpenDelivery={() =>
                   void navigate({
-                    search: (previous) => ({ ...previous, tab: "rapporter" }),
+                    search: { ...search, tab: "rapporter" },
                     replace: true,
                   })
                 }

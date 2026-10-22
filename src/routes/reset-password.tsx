@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import logoMark from "@/assets/gofreyra-logo.png";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Nulstil adgangskode — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Nulstil adgangskode — Freyra" }] }),
   component: ResetPasswordPage,
 });
 
@@ -77,8 +77,8 @@ function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <div className="w-full max-w-md space-y-6">
         <div className="flex items-center gap-2 justify-center mb-2">
-          <img src={logoMark} alt="GoFreyra" className="h-10 w-10 object-contain" />
-          <span className="font-semibold text-lg">GoFreyra</span>
+          <img src={logoMark} alt="Freyra" className="h-10 w-10 object-contain" />
+          <span className="font-semibold text-lg">Freyra</span>
         </div>
 
         {!ready ? (
@@ -115,7 +115,7 @@ function ResetPasswordPage() {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Vælg ny adgangskode</h2>
               <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-                Vælg en ny adgangskode til din GoFreyra-konto. Den skal være mindst 6 tegn.
+                Vælg en ny adgangskode til din Freyra-konto. Den skal være mindst 6 tegn.
               </p>
             </div>
 
