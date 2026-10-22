@@ -109,31 +109,36 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await checkpoint("public_data_and_round");
   await expect(page).toHaveURL(/round=[0-9a-f-]{36}/, { timeout: 240_000 });
   const roundId = new URL(page.url()).searchParams.get("round");
-  await checkpoint("image_assessment");
-  // Await the bounded attempt's actual terminal state. A missing valid result is
-  // explicit manual follow-up, never a successful AI assessment or an extra retry.
-  const completedAi = page.getByText(/1 af 1 billedudkast gennemgået/);
-  const skipUnavailableAi = page.getByRole("button", {
-    name: "Spring dette foto over og fortsæt",
-    exact: true,
-  });
-  await expect
-    .poll(async () => (await completedAi.isVisible()) || (await skipUnavailableAi.isVisible()), {
-      timeout: 300_000,
-    })
-    .toBe(true);
-  const manualFollowUp = !(await completedAi.isVisible());
-  if (manualFollowUp) {
-    await expect(
-      page.getByRole("alert").filter({ hasText: "Originalerne er bevaret" }),
-    ).toBeVisible();
-    await skipUnavailableAi.click();
-    await expect(page.getByText(/1 fotos er sprunget over i denne arbejdsgang/)).toBeVisible();
-    await expect(skipUnavailableAi).toHaveCount(0);
-  }
+  await checkpoint("manual_image_review_in_demo");
+  // The municipal release explicitly withholds unstable image automation. Wait
+  // for real photo binding, then prove this new case has made no AI attempts.
+  await expect(
+    page.getByText(
+      "Automatisk billedvurdering er ikke frigivet til kommunal brug. Sammenhold originalfoto og offentlige kilder i Gennemgang.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/1 fotos er tilknyttet den gemte undersøgelse.*Gennemgang/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: /Fortsæt billedanalysen|Analyser de næste|Spring dette foto over og fortsæt/,
+    }),
+  ).toHaveCount(0);
+  const assertNoAiAttempts = async () => {
+    const inspections = await client
+      .from("drone_image_inspections")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", id);
+    expect(inspections.error).toBeNull();
+    expect(inspections.count, "DEMO_MODE must not start image-model attempts").toBe(0);
+  };
+  await assertNoAiAttempts();
   await testInfo.attach("billedvurdering-status", {
     body: JSON.stringify({
-      status: manualFollowUp ? "manual_follow_up" : "valid_saved_assessment",
+      status: "manual_review_in_demo",
+      aiAttempts: 0,
     }),
     contentType: "application/json",
   });
@@ -144,6 +149,9 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
     .click();
   const review = page.getByRole("region", { name: "Verifikation pr. fotopunkt" });
   await expect(review.getByText("Originalt dronefoto", { exact: true })).toBeVisible();
+  await expect(
+    review.getByText(/Ingen gyldig gemt AI-vurdering.*Punktet kan gennemgås manuelt/),
+  ).toBeVisible();
   await review.getByRole("button", { name: "Vis originalfoto", exact: true }).click();
   const originalPhoto = review.getByRole("img", { name: /Originalfoto/ });
   await expect(originalPhoto).toBeVisible();
@@ -209,6 +217,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   }
   const report = JSON.parse(entries.get("rapportgrundlag.json")!.toString());
   expect(report.manifest.photos).toHaveLength(1);
+  expect(report.manifest.photos[0].inspections).toEqual([]);
   expect(report.manifest.projectId).toBe(id);
   expect(report.manifest.photoPointReviews).toHaveLength(1);
   expect(report.manifest.photoPointReviews[0].review.decision).toBe("rejected");
@@ -216,6 +225,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   expect(entries.has("beplantningsskitse.json")).toBe(true);
   await page.reload();
   await expect(page.getByRole("button", { name: "Hent samlet PDF" })).toBeEnabled();
+  await assertNoAiAttempts();
   await testInfo.attach("kontrol", {
     body: JSON.stringify({
       projectId: id,
