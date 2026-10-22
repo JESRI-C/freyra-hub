@@ -6,6 +6,7 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
+import { municipalBuildMetadataPlugin } from "./scripts/municipal-build-metadata.mjs";
 
 // The MCP plugin generates development routes. Its current path-containment
 // check mixes slash styles on Windows, where the generated routes already live
@@ -39,6 +40,9 @@ export default defineConfig({
     optimizeDeps: {
       include: ["leaflet"],
     },
-    plugins: process.platform === "win32" ? [] : [mcpDevPlugin],
+    plugins: [
+      municipalBuildMetadataPlugin(),
+      ...(process.platform === "win32" ? [] : [mcpDevPlugin]),
+    ],
   },
 });

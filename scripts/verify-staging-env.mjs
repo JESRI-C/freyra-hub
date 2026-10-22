@@ -2,6 +2,10 @@ import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { loadEnv } from "vite";
+import {
+  MUNICIPAL_BUILD_METADATA_FILE,
+  municipalDemoProblems,
+} from "./municipal-build-metadata.mjs";
 
 const STAGING_REF = "xdvqdzdpyceojbdknofi";
 const LEGACY_REF = "ikrmcetjutqcjtwfhzfv";
@@ -12,6 +16,8 @@ const SUPABASE_HOST_PATTERN = /https:\/\/([a-z0-9]{20})\.supabase\.co/g;
 const env = loadEnv("staging", process.cwd(), "");
 
 const errors = [];
+const requireMunicipalDemo = process.argv.includes("--require-municipal-demo");
+if (requireMunicipalDemo) errors.push(...municipalDemoProblems(env));
 const required = [
   "VITE_SUPABASE_URL",
   "VITE_SUPABASE_PUBLISHABLE_KEY",
@@ -102,6 +108,16 @@ async function verifyBundle() {
     }
   }
   if (!stagingRefFound) errors.push("staging-ref blev ikke fundet i build-output");
+  if (requireMunicipalDemo) {
+    try {
+      const metadata = JSON.parse(
+        await readFile(path.join(outputDirectory, "public", MUNICIPAL_BUILD_METADATA_FILE), "utf8"),
+      );
+      errors.push(...municipalDemoProblems(env, metadata));
+    } catch {
+      errors.push("Kommunetilstandens buildmetadata mangler eller er ugyldige; byg staging på ny");
+    }
+  }
 }
 
 async function preparePreviewBindings() {
