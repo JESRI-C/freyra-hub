@@ -13,11 +13,11 @@ Bykær Bæk er den konkrete sag. Flyvningen er 24.08.2026, DJI FC3411. P02, P06,
 | Prioritet | Leverance | Accept |
 |---|---|---|
 | 1 | Ren sag og seks originaler; gentageligt seed | Samme sag og upload-ID ved genkørsel; SHA-256 matcher efter genlæsning |
-| 2 | Stabil billedvurdering | Skema, begrænset syntaksreparation, ét automatisk genforsøg; kun gyldigt, præcist matchende gemt resultat som fallback |
+| 2 | Manuel billedsammenligning i kommunens forløb | DEMO gemmer runde og fototilknytninger uden AI-kald; manuel sammenligning og eventuelle gemte vurderingers begrænsninger vises. Automatisk AI er ikke frigivet |
 | 3 | Offentlige kilder | Hentet/delvist/ikke tilgængelig, tidsgrænse, gemt kildeversion og oprindelig hentedato; Sentinel-billede når tilgængeligt |
 | 4 | Faglig gennemgang | Foto og offentligt grundlag sammen; bekræftelse/afvisning med begrundelse gemmes uændret i revisionssporet |
 | 5 | Beplantningsskitse | 10/20 m, §3/skov fratrukket, lavbund markeret, markblok-kandidater; ingen opdigtede arealer eller lokale effekter |
-| 6 | Rapport og adgang | Én knap til PDF/ZIP med hashes; kommunal læser afgrænset med RLS og faktisk loginprøve |
+| 6 | Rapport og adgang | Én knap til dansk PDF/ZIP med hashes fra generator v3; historiske v1/v2-rapporter genåbnes uændret; kommunal læser afgrænset med RLS og faktisk loginprøve |
 | 7 | Drift og brugerrejse | Grønne kode-/DB-kontroller, gennemført browserforløb, backup/genopretning og fejlmonitorering |
 
 ## Beslutningspunkter
@@ -35,4 +35,6 @@ Manglende RLS-accept, backup/genopretningsbevis, fungerende kommunelogin eller g
 
 ## Roadmap efter leverancen
 
-NDVI-pixelanalyse, målte lokale effekter, før/efter-serier, sensorer, automatisk arts- og plejeplan og generel produktionslancering er uden for leverancen. Arealer pr. A–E afventer godkendte delstrækningsgeometrier, hvis disse ikke foreligger. Manglende kildelag og manglende ortofotopixels forbliver synlige datamangler, til de er verificeret.
+Automatisk billedvurdering afventer dokumenteret billedkvalitet og stabile svar. [Seks-fotoprøven](HADERSLEV_KONTROL_2026-10-22.md) gav fire gyldige kvalitetsafvisninger og to ugyldige svar, altså ingen brugbare AI-observationer. AI-start og genforsøg er derfor skjult i `DEMO_MODE`; gemte resultater, datamangler og manuel faglig gennemgang bevares. Skema, begrænset syntaksreparation, ét genforsøg og fallback til et gyldigt resultat for præcis samme evidens bevares uden for DEMO. Den nye kommunale afgrænsning og rapportgenerator v3 kræver en samlet prøve på den valgte release.
+
+NDVI-pixelanalyse, målte lokale effekter, før/efter-serier, sensorer, automatisk arts- og plejeplan og generel produktionslancering er uden for leverancen. Arealer pr. A–E afventer godkendte delstrækningsgeometrier. Ukendte hektartotaler er accepteret indtil senere faglig afgrænsning og er ikke i sig selv en leveranceblokering. Manglende kildelag og manglende ortofotopixels forbliver synlige datamangler, til de er verificeret.

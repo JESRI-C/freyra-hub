@@ -10,6 +10,8 @@ Kontrollér de seks originaler fra 24.08.2026 (DJI FC3411): P02/DJI_0040, P06/DJ
 
 Hav den seneste gennemgåede PDF/ZIP og tilhørende SHA-256 lokalt. Test dem uden netværk. Gemte versioner i Freyra kræver fortsat adgang til appen; den lokale pakke er plan B uden netværk. Hav kommunens læselogin klar i en separat browserprofil. Adgangskoder må ikke ligge i denne fil, Git, præsentationen eller PR'en.
 
+Nye rapporter bruger generator v3 med dansk præsentation af gemte AI-kategorier og uændret originalt evidensgrundlag. Sagens rapportnummer tælles separat. Historiske v1/v2-rapporter genåbnes uændret, også hvor en ældre kladde har engelsk AI-prosa. Kontrollér en ny pakke fra den valgte release; de daterede prøver i [kontrolnotatet](HADERSLEV_KONTROL_2026-10-22.md) er ikke en godkendelse af kommende releases.
+
 ## Klik for klik — cirka 15 minutter
 
 Ved første klargøring vælges **Datagrundlag → Billedgruppe → Alle seriens fotopunkter — 6 fotos**. De seks GPS-positioner fordeler sig på to grupper. Vælg den officielle **Bykær Bæk** og kræv **6 af seriens 6 fotos**, før området bekræftes. Det samlede GPS-søgeområde er ikke en fagligt godkendt strækningsgrænse. Genåbn den gemte undersøgelse ved senere gennemgang.
@@ -33,9 +35,9 @@ Registrér faktisk dato, ansvarlig, versions-ID og bevislink for hver kontrol. T
 | Databasebackup | Aktuel backup med tidsstempel og dokumenteret genopretning til isoleret miljø; private Storage-originaler indgår i særskilt backup | Kræver driftsansvarligs dokumentation; en SQL-migration eller filhash er ikke backup |
 | Kommunal RLS | Eget login kan læse tildelte sager og rapporter; fremmed sag og alle skrivninger afvises, også ved direkte API-kald | Eksisterende læsetestkonto tilknyttet og RLS-prøvet 22.10, se [kvittering](HADERSLEV_READER_RLS_2026-10-22.md). Rapportdownload og rigtige kommunebrugere prøves på endelig release |
 | Seks originaler | Servervalideret GPS/dato, readback-hash, korrekt sag og ingen rapportbilleder som evidens | Lokal originalkontrol og staging-upload gennemført 22.10; browser-/serverforløb dokumenteres separat |
-| Kilder og AI | Kildestatus pr. lag og dateret fallback; AI returnerer gyldigt resultat eller ærlig manuel/gemt status | Adapterprøver og automatiske kontroller er ikke samlet live-accept af seks-fotosagen eller faglig accept; kontrollér den valgte version |
+| Kilder og billedgennemgang | Kildestatus pr. lag og dateret fallback; DEMO-forløbet starter ingen AI-kald og viser manuel gennemgang samt eventuelle gemte resultaters begrænsninger | Den tidligere seks-fotoprøve gav ingen brugbare AI-observationer. Nyt DEMO-forløb og nye adaptere skal prøves samlet på den valgte release; kodetests er ikke faglig accept |
 | Fagligt ansvar og mangler | Navngiven reviewer og accept af det viste grundlag og dets datamangler | Ukendte A–E-hektar er accepteret indtil faglig afgrænsning. Godkendte A–E-geometrier er ikke et ubetinget krav før mødet; de må ikke erstattes af automatisk ligedeling eller den uafklarede 83 m-oplysning |
-| Rapportpakke | Faktisk browserdownload, PDF kan åbnes, ZIP-filernes SHA-256 matcher, rapport genåbnes uændret | Skal gentages på valgt release og kommunelogin |
+| Rapportpakke | Faktisk browserdownload fra generator v3, dansk PDF, ZIP-filernes SHA-256 matcher, rapport genåbnes uændret | Skal gentages på valgt release og kommunelogin; tidligere rapportprøver står i kontrolnotatet |
 | Fejlovervågning | Workers-fejl og Supabase-adgangsfejl kan ses af ansvarlig; kendt kontakt og afprøvet alarm-/håndteringsvej | Aktiv logning alene beviser ikke en afprøvet alarm |
 | Kvalitet | Alle eksisterende tests, ændrede filers lint, typekontrol, build, DB/RLS og Playwright-forløb på PR-head består | Se PR'ens konkrete checkresultater; et skip tæller ikke som PASS |
 | Varig drift | Navngiven driftsansvarlig, kendt stagingadresse, aftalt opbevaring og support efter mødet | Afklares med Jesper før aflevering |

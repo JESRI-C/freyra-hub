@@ -10,6 +10,8 @@ Sæt `VITE_DEMO_MODE=true` i ignoreret `.env.staging` **før build**. Koden eksp
 
 Automatisk billed-AI er ikke frigivet til kommunal brug og ligger i roadmap. Med `DEMO_MODE=true` oprettes datagrundlag, runde og fototilknytninger uden modelkald; start/genforsøg til AI vises ikke. Sammenhold originaler og offentlige kilder manuelt i **Gennemgang**. Gemte AI-resultater, deres begrænsninger og faglige beslutninger bevares. Prøven af de seks originaler gav fire gyldige kvalitetsafvisninger og to ugyldige svar: ingen brugbare AI-observationer. Uden demoflaget bevares det eksisterende automatiske flow med afgrænset genforsøg og gemt fallback.
 
+Nye rapporter bruger generatoren `municipal-evidence-report/v3`, som viser gemte AI-kategorier med faste danske formuleringer. Oprindelig AI-JSON og proveniens bevares. Historiske rapporter fra v1/v2 genåbnes uændret; generatorens version er adskilt fra sagens løbende rapportnummer. Den nye kombination af DEMO-forløb og rapportgenerator skal browserprøves på den valgte release. [Kontrolnotatet](docs/HADERSLEV_KONTROL_2026-10-22.md) angiver, hvilken tidligere release der faktisk er prøvet.
+
 ```powershell
 npm ci
 npm run typecheck
