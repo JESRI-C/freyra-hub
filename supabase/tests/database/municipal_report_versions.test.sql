@@ -507,6 +507,23 @@ select throws_ok($q$select pg_temp.save_report('ed900000-0000-4000-8000-00000000
 reset role;
 select is((select jsonb_agg(to_jsonb(r) order by id) from public.municipal_report_versions r where generator_version='municipal-evidence-report/v1'),(select value from report_v1_before_v2),'adding v2 never rewrites historical v1 rows or hashes');
 
+-- V3 changes derived Danish prose only; its evidence and authority guards stay the same.
+create temporary table historical_reports_before_v3 as
+  select jsonb_agg(to_jsonb(r) order by id) as value from public.municipal_report_versions r;
+create function pg_temp.report_manifest_v3() returns jsonb language sql as $$
+  select jsonb_set(pg_temp.report_manifest_v2_review(),'{generatorVersion}','"municipal-evidence-report/v3"')
+$$;
+set local role service_role;
+select lives_ok($q$select pg_temp.save_report('ed920000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',pg_temp.report_manifest_v3())$q$,'v3 accepts the same frozen planting and exact review evidence');
+select is((select generator_version from public.municipal_report_versions where request_id='ed920000-0000-4000-8000-000000000001'),'municipal-evidence-report/v3','v3 generator is stored explicitly');
+select lives_ok($q$select pg_temp.save_report('ed920000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',pg_temp.report_manifest_v3())$q$,'v3 identical request replay returns the same immutable version');
+select throws_ok($q$select pg_temp.save_report('ed920000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',pg_temp.report_manifest_v3()-'planting')$q$,'23514',null,'v3 still requires planting evidence');
+select throws_ok($q$select pg_temp.save_report('ed920000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v3(),'{planting,baselineSha256}',to_jsonb(repeat('f',64))))$q$,'23514',null,'v3 still rejects a foreign planting baseline hash');
+select throws_ok($q$select pg_temp.save_report('ed920000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v3(),'{photoPointReviews,0,review,note}','"Forged note"'))$q$,'23514',null,'v3 still rejects modified professional review evidence');
+select throws_ok($q$select pg_temp.save_report('ed920000-0000-4000-8000-000000000099','e1000000-0000-4000-8000-000000000001',jsonb_set(pg_temp.report_manifest_v3(),'{generatorVersion}','"municipal-evidence-report/v4"'))$q$,'23514',null,'unknown generator versions remain rejected');
+reset role;
+select is((select jsonb_agg(to_jsonb(r) order by id) from public.municipal_report_versions r where generator_version in ('municipal-evidence-report/v1','municipal-evidence-report/v2')),(select value from historical_reports_before_v3),'adding v3 never rewrites historical v1/v2 rows or hashes');
+
 delete from public.project_members where project_id='e2000000-0000-4000-8000-000000000001' and user_id='e1000000-0000-4000-8000-000000000001';
 set local role service_role;
 select throws_ok($q$select pg_temp.save_report()$q$,'42501',null,'revoked writer cannot retry prior request');
@@ -517,7 +534,7 @@ select set_config('request.jwt.claim.sub','e1000000-0000-4000-8000-000000000002'
 select is((select count(*) from public.municipal_report_versions),0::bigint,'unchanged JWT loses report read after revoke');
 select is((select count(*) from public.municipal_report_latest_answers),0::bigint,'unchanged JWT loses latest answer view after revoke');
 reset role;
-select is((select count(*) from public.municipal_report_versions),4::bigint,'failed attempts leave exactly two v1 and two v2 immutable versions');
+select is((select count(*) from public.municipal_report_versions),5::bigint,'failed attempts leave two v1, two v2 and one v3 immutable versions');
 select is(jsonb_build_object(
   'baselines',(select jsonb_agg(to_jsonb(r) order by id) from public.project_baseline_snapshots r),
   'plans',(select jsonb_agg(to_jsonb(r) order by id) from public.verification_plan_versions r),
