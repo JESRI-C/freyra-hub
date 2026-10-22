@@ -1,0 +1,68 @@
+# Freyra — Haderslev 27.10.2026
+
+[Aktuel plan](docs/HADERSLEV_PLAN_2026-11-10.md) · [15-minutters mødemanuskript og go/no-go](docs/HADERSLEV_DEMO_2710.md)
+
+Arbejde på `codex/haderslev-demo-2710`, PR mod `codex/haderslev-delivery`. Ingen merge til main eller skift til produktion.
+
+## Kommunens brugerflade
+
+Sæt `VITE_DEMO_MODE=true` i ignoreret `.env.staging` **før build**. Koden eksponerer flaget som `DEMO_MODE`. Sagen samles i Billeder → Datagrundlag → Gennemgang → Beplantning → Rapport og aflevering. Irrelevante moduler skjules også ved direkte navigation. Flaget ændrer ingen adgangsrettigheder og må ikke forveksles med `VITE_APP_DATA_MODE=demo`: kommunens sag bruger altid faktiske data og RLS.
+
+```powershell
+npm ci
+npm run typecheck
+npm run lint
+npm test -- --maxWorkers=1 --no-file-parallelism
+npm run build:staging
+```
+
+## Idempotent sag og originaler
+
+Originalfotos ligger ikke i Git. Scriptet kræver en lokal mappe og ændrer ingen originaler. Alle seks filer kontrolleres **før nogen skrivning**: kamera, lokal EXIF-dato, EXIF/XMP-GPS, faktiske JPEG-pixelmål mod EXIF og seks forskellige SHA-256. Nedskalerede rapportbilleder afvises.
+
+```powershell
+# Lokal kontrol uden upload:
+npm run seed:haderslev -- "D:/originaler/Bykaer"
+# Anvend på den udtrykkeligt valgte stagingarbejdsplads:
+node --env-file=.env.staging.local scripts/seed-haderslev-demo.mjs "D:/originaler/Bykaer" --org "ARBEJDSPLADSENS-UUID" --apply
+```
+
+Den ignorerede miljøfil skal have `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `HADERSLEV_STAGING_PROJECT_REF=xdvqdzdpyceojbdknofi`, `HADERSLEV_OPERATOR_EMAIL` og `HADERSLEV_OPERATOR_PASSWORD`. Brug en operator med skriverettighed til arbejdspladsen. Ingen nøgler/adgangskoder i kommandolinjen eller Git. Produktion må ikke vælges.
+
+Punktkortet er P02→DJI_0040.JPG, P06→DJI_0060.JPG, P11→DJI_0103.JPG, P14→DJI_0123.JPG, P17→DJI_0135.JPG og P20→DJI_0149.JPG. Ved omdøbte filer bruges `--points sti/points.json` med samme seks punktnøgler og relative JPEG-stier. Stier uden for originalmappen afvises. Datoen er 24.08.2026, kameraet DJI FC3411.
+
+Sagens ID bestemmes af arbejdspladsen. Upload-ID bestemmes af sag, bruger, fotopunkt og filhash. Genkørsel med samme operator/originaler genbruger dem; ændrede originaler overskriver ikke tidligere evidens. Alle seks originaler genhentes og hashes efter upload. Kvittering: ignoreret `tmp/haderslev-seed.json` eller `--output`.
+
+Åbn sagen → Billeder → **Kontrollér og åbn de gemte originaler**. Dette kører den normale servervalidering og tilknytning. Fortsæt til Datagrundlag og bekræft sted/dato og officiel reference. Kamerapositioner er ikke verificerede billedfootprints. AOI, A–E og faglige beslutninger opfindes ikke af seedet.
+
+## Kommunal læser og rigtige brugere
+
+Rollen genbruger `viewer`: organisationsmedlemskab `viewer` giver ikke adgang til alle organisationens sager; hver aftalt sag kræver et særskilt `project_members`-medlemskab med `viewer`. Org-owner/admin har bredere adgang og må ikke bruges som kommunens læsekonto. RLS gælder også ved direkte API-kald.
+
+1. Opret den rigtige bruger i **stagingprojektets Supabase Auth** med aftalt e-mail og sikker aktivering. Brug en separat kommunekonto, hvis en eksisterende medarbejder allerede har bredere rettigheder.
+2. Sæt `SUPABASE_SERVICE_ROLE_KEY` i en ignoreret lokal miljøfil uden `VITE_`-prefix. Kør scriptet fra et betroet administratormiljø. Scriptet sender ingen invitation.
+3. Gentag sagsmedlemskab pr. faktisk aftalt sag. Test normalt login, egne rapporter og fremmed sag. Projekt-, foto-, vurderings- og rapportskrivninger skal afvises. Genprøv efter genindlæsning og ophævet medlemskab.
+
+```powershell
+node --env-file=.env.staging.local scripts/provision-municipal-reader.mjs --project "SAGENS-UUID" --email "kommunens-aftalte-adresse" --output tmp/private-haderslev/kommune.json
+# Særskilt testkonto. Ingen e-mail sendes. Tilfældig kode gemmes kun lokalt:
+node --env-file=.env.staging.local scripts/provision-municipal-reader.mjs --project "SAGENS-UUID" --email "haderslev-laeseproeve@freyra.invalid" --test
+```
+
+Scriptet kræver eksakt stagingmål og genlæser roller. Ny testkonto prøves med en almindelig brugerklient: præcis tildelt sag synlig, skrivning afvist. Private kvitteringer og adgangskoder må ikke deles i PR eller mødemateriale. En `.invalid`-konto er kun til teknisk prøve; kommunen skal have egne reelle brugere med fungerende aktivering.
+
+## Browserprøve med Playwright
+
+`npm run test:e2e` bruger rigtige uploads, kilder og browserdownloads uden mocks. Kræver den nye stagingbuild med `VITE_DEMO_MODE=true`, migrationerne og serverbindingerne. Prøven opretter en separat `TEKNISK E2E`-sag, uploader P02-originalen, kræver en entydig Bykær-reference, registrerer en tydeligt teknisk **afvisning** og kontrollerer PDF samt alle ZIP-filhashes. Den udgiver ingen faglig godkendelse; testsagen bevares til inspektion.
+
+```powershell
+npx playwright install chromium
+# Indlæs nedenstående miljøvariabler i processen fra jeres sikre lokale opsætning.
+npm run test:e2e
+```
+
+Kræver `HADERSLEV_E2E_BASE_URL` (localhost eller navngiven staging-Worker), `HADERSLEV_E2E_ORG_ID`, `HADERSLEV_ORIGINALS_DIR` samt operator-/Supabase-variablerne ovenfor. Manglende opsætning fejler, ikke et grønt skip. Downloads og screenshots gemmes under ignoreret `tmp/`; trace er slået fra af hensyn til private originaler/tokens. Gentag på endelig release og supplér med kommunens læselogin.
+
+## Drift
+
+Servernøgler, herunder `SUPABASE_SERVICE_ROLE_KEY`, `DATAFORDELER_API_KEY` og eventuelle `DMI_API_KEY`/Copernicus-credentials, holdes i staging-Workerens secrets. Manglende kildeadgang vises som datamangel. Der må ikke lægges hemmelige nøgler i browservariabler. Backup/genopretning, varig stagingdrift, fejlalarm og faglig accept er særskilte go/no-go-krav i manuskriptet.
