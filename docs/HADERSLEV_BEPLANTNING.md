@@ -10,7 +10,9 @@ Geometrien beregnes geodætisk i WGS84 med Turf og klippes til sagens projektpol
 
 A–E opgøres kun med bekræftede, entydige delstrækningspolygoner og komplet geometrisk dækning af samtlige nødvendige lag. Ellers står ha som **ukendt**, ikke nul. Dronefotoets GPS må ikke bruges som opdigtet delstrækningsgrænse. De nuværende §3-udtræk har ufuldstændig dækningsdokumentation, og skovregisteret omfatter ikke nødvendigvis alle træer. En livevisning kan derfor være en betinget skitse, selv om kilderne svarer.
 
-Systemet kan læse en fagligt godkendt kilde `municipal-reaches` i samme immutable baseline. Payloadkontrakten er `freyra.municipal-reaches/v1`, `crs: EPSG:4326`, `approvedBy`, `approvedAt` og `reaches` med ID A–E og Polygon/MultiPolygon. Kilden skal have officielt registreringsgrundlag, kontrolsum og gyldig kildeproveniens. Der er endnu ingen særskilt brugerflade til at importere disse grænser; godkendte A–E-geometrier og deres import er en forudsætning for de konkrete hektartotaler.
+Beregningskoden har en **læsekontrakt**, som kan fortolke kilden `municipal-reaches`, hvis den allerede findes i en gemt baseline. Kontrakten er `freyra.municipal-reaches/v1`, `crs: EPSG:4326`, `approvedBy`, `approvedAt` og `reaches` med ID A–E og Polygon/MultiPolygon. **Der findes endnu ingen færdig CLI, API eller brugerflade, som sikkert importerer og versionerer dette grundlag.** Den generelle serverfunktion til at gemme baselines er ikke en godkendelses- eller importfunktion, og felterne `approvedBy` og `approvedAt` er ikke i sig selv bevis for en faglig godkendelse.
+
+Konkrete hektartotaler forudsætter både modtagelse af reelle, fagligt godkendte A–E-geometrier med dokumenteret proveniens og en importfunktion med adgangskontrol, geometrivalidering, kontrolsummer og en ny baselineversion. Eksisterende rapporter og undersøgelser skal beholde deres oprindelige kildehenvisninger. Import af A–E alene løser ikke de øvrige dækningshuller: ha forbliver ukendt, indtil de nødvendige natur- og trædækkelag også har dokumenteret komplet geometrisk dækning.
 
 ## Litteratur og rapport
 
