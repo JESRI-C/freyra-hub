@@ -3,13 +3,12 @@
 Sidst opdateret: 2026-07-05
 
 Se `nature-projects-audit.md` for fane-for-fane status. Dette dokument
-beskriver _hvad_ der bygges i hver fase, _hvilke filer_ der ændres og
-_hvordan_ det testes.
+beskriver *hvad* der bygges i hver fase, *hvilke filer* der ændres og
+*hvordan* det testes.
 
 ## Overordnet strategi
 
 Vi bygger i faser. Hver fase skal levere:
-
 - Konkret UI som brugeren kan bruge fra dag 1
 - Ingen døde knapper introduceres
 - Migrations kører før koden der bruger dem
@@ -27,7 +26,6 @@ Formål: Overblik-fanen leverer det den lover, projekt-header er fuldt
 funktionel, ingen døde tællere.
 
 ### Ændrede filer
-
 - `src/components/project/ProjectHeader.tsx` — tællere bliver `<Link>` med
   søgeparametre; status-dropdown; edit-projekt-dialog
 - `src/components/project/IndicatorCard.tsx` — klik åbner detalje-drawer;
@@ -39,11 +37,9 @@ funktionel, ingen døde tællere.
 - Ny `src/components/project/EditProjectDialog.tsx`
 
 ### DB
-
 Ingen migrations. `projects` har allerede alle nødvendige felter.
 
 ### Test
-
 - Klik på "3 sites" i header → viser sites-fanen
 - Klik på "Aktiv" i header → dropdown skifter til "Kladde", audit-event vises
 - Klik på KPI-kort → drawer åbner med indikatorens seneste værdi og kilde
@@ -53,7 +49,6 @@ Ingen migrations. `projects` har allerede alle nødvendige felter.
 ## Fase 2 — Sites
 
 ### Ændrede filer
-
 - `src/services/sites-service.ts` (ny) — CRUD, arkivér, geometri
 - `src/lib/supabase/queries.ts` — nye sites-queries
 - `src/components/sites/SiteList.tsx` (ny) — grid + filtre + søgning
@@ -65,9 +60,7 @@ Ingen migrations. `projects` har allerede alle nødvendige felter.
 - `src/routes/app.projects.$slug.tsx` — udskift Sites-fane med `<SiteList>`
 
 ### DB
-
 Migration `add_sites_geometry_and_status`:
-
 ```sql
 alter table public.sites
   add column geometry_polygon jsonb,
@@ -80,11 +73,9 @@ alter table public.sites
   add column tags text[];
 create index sites_project_status_idx on public.sites (project_id, status);
 ```
-
 GRANTs og policies opdateres (allerede scoped til projektejer via RLS).
 
 ### Test
-
 - Opret site manuelt → optræder i liste + audit
 - Åbn site → drawer viser 0 datakilder, 0 handlinger
 - Tegn site-geometri → gemmes, areal beregnes, vises på oversigtskort
@@ -95,7 +86,6 @@ GRANTs og policies opdateres (allerede scoped til projektejer via RLS).
 ## Fase 3 — Datakilder-wizard og sync-log
 
 ### Ændrede filer
-
 - `src/services/data-sources-service.ts` — udvid med `triggerSync`,
   `testConnection`, `getRuns`
 - `src/components/data-sources/AddDataSourceWizard.tsx` (ny) — 4-trins
@@ -105,9 +95,7 @@ GRANTs og policies opdateres (allerede scoped til projektejer via RLS).
   eller markerer sync som "manuel"
 
 ### DB
-
 Migration `add_data_source_runs_and_config`:
-
 ```sql
 create table public.data_source_runs (
   id uuid primary key default gen_random_uuid(),
@@ -132,7 +120,6 @@ alter table public.data_sources
 ```
 
 ### Test
-
 - Wizard opret upload-kilde → CSV-preview → import kører → run gemmes
 - "Sync nu" på API-kilde → run oprettes, evt. fejl vises i log
 - Datakvalitet vises med breakdown
@@ -142,15 +129,12 @@ alter table public.data_sources
 ## Fase 4 — Indikator-tidsserie
 
 ### Ændrede filer
-
 - `src/services/indicators-service.ts` — nye funktioner til measurements
 - `src/components/indicators/IndicatorDetail.tsx` (ny) — graf via `recharts`
 - `src/components/indicators/IndicatorConfigDialog.tsx` (ny)
 
 ### DB
-
 Migration `add_indicator_definitions_and_measurements`:
-
 ```sql
 create table public.indicator_definitions (
   id uuid primary key default gen_random_uuid(),
@@ -182,7 +166,6 @@ create index measurements_indicator_time_idx
 ```
 
 ### Test
-
 - Åbn indikator → historisk graf med data points fra `measurements`
 - Skift periode (30d/90d/12m) → graf opdateres
 - Threshold-linjer vises
@@ -194,9 +177,7 @@ create index measurements_indicator_time_idx
 ## Fase 5 — Handlinger++
 
 ### DB
-
 Migration `add_action_evidence_and_metadata`:
-
 ```sql
 create table public.action_evidence (
   id uuid primary key default gen_random_uuid(),
@@ -220,7 +201,6 @@ alter table public.actions
 ```
 
 ### Test
-
 - Opret handling med "kræver bevis" → kan ikke afsluttes uden evidens
 - Vedhæft foto ved afslutning → foto vises i handling og medie-galleri
 - Filter på site/status/prioritet virker
@@ -230,9 +210,7 @@ alter table public.actions
 ## Fase 6 — Dokumentation & generator
 
 ### DB
-
 Migration `add_documents_table`:
-
 ```sql
 create table public.documents (
   id uuid primary key default gen_random_uuid(),
@@ -256,7 +234,6 @@ create table public.documents (
 ```
 
 ### Kode
-
 - `src/lib/document-generator.functions.ts` (ny server function) — genererer
   PDF via `@react-pdf/renderer` eller HTML→print
 - `src/components/documents/DocumentList.tsx` (ny)
@@ -264,7 +241,6 @@ create table public.documents (
 - `src/components/documents/DocumentationScore.tsx` (ny)
 
 ### Test
-
 - "Generér projektstatusrapport" → PDF downloades + gemmes som `documents`-row
 - Score falder når foto mangler for seneste handling
 
@@ -273,7 +249,6 @@ create table public.documents (
 ## Fase 7 — Medier++
 
 ### DB
-
 ```sql
 alter table public.project_media
   add column action_id uuid references public.actions on delete set null,
@@ -284,7 +259,6 @@ alter table public.project_media
 ```
 
 ### Kode
-
 - `src/components/project-workspace/MediaLightbox.tsx` (ny)
 - `src/components/project-workspace/BeforeAfterCompare.tsx` (ny)
 
@@ -293,7 +267,6 @@ alter table public.project_media
 ## Fase 8 — Audit-forbedringer
 
 ### DB
-
 ```sql
 alter table public.audit_events
   add column entity_type text,
@@ -303,7 +276,6 @@ alter table public.audit_events
 ```
 
 ### Kode
-
 - Alle skrive-services udvides så de også skriver før/efter
 - Filter-panel + eksport-knap
 
@@ -312,7 +284,6 @@ alter table public.audit_events
 ## Fase 9 — Roller
 
 ### DB
-
 ```sql
 create type public.project_role as enum
   ('admin','project_manager','editor','field','viewer','external');

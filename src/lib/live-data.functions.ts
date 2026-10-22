@@ -12,7 +12,7 @@ import {
   dataforsyningenClient,
   copernicusClient,
 } from "@/services/live-data";
-import { errorResponse, type ConnectorResponse } from "@/services/live-data/live-data-client";
+import type { ConnectorResponse } from "@/services/live-data/live-data-client";
 import type { DmiWeatherData } from "@/services/live-data/connectors/dmi-client";
 import type { MiljoeportalData } from "@/services/live-data/connectors/miljoeportal-client";
 import type { DataforsyningenData } from "@/services/live-data/connectors/dataforsyningen-client";
@@ -21,7 +21,9 @@ import type { CopernicusData } from "@/services/live-data/connectors/copernicus-
 const GeometrySchema = z.object({
   geometry: z.object({
     polygon: z.unknown().nullable(),
-    centroid: z.object({ lat: z.number(), lng: z.number() }).nullable(),
+    centroid: z
+      .object({ lat: z.number(), lng: z.number() })
+      .nullable(),
     areaHa: z.number().nullable(),
     hasValidGeometry: z.boolean(),
     geometrySource: z.string(),
@@ -46,18 +48,10 @@ export const fetchProjectLiveData = createServerFn({ method: "POST" })
     const geometry = data.geometry as ProjectGeometry;
 
     const [weather, nature, places, satellite] = await Promise.all([
-      dmiClient
-        .fetchByGeometry(geometry)
-        .catch((error: unknown) => errorResponse<DmiWeatherData>(error)),
-      miljoeportalClient
-        .fetchByGeometry(geometry)
-        .catch((error: unknown) => errorResponse<MiljoeportalData>(error)),
-      dataforsyningenClient
-        .fetchByGeometry(geometry)
-        .catch((error: unknown) => errorResponse<DataforsyningenData>(error)),
-      copernicusClient
-        .fetchByGeometry(geometry)
-        .catch((error: unknown) => errorResponse<CopernicusData>(error)),
+      dmiClient.fetchByGeometry(geometry).catch(() => dmiClient.fetchPreview()),
+      miljoeportalClient.fetchByGeometry(geometry).catch(() => miljoeportalClient.fetchPreview()),
+      dataforsyningenClient.fetchByGeometry(geometry).catch(() => dataforsyningenClient.fetchPreview()),
+      copernicusClient.fetchByGeometry(geometry).catch(() => copernicusClient.fetchPreview()),
     ]);
 
     return { weather, nature, places, satellite };

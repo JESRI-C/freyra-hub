@@ -16,8 +16,6 @@ import {
 import { Card, PageHeader, Pill, Bars } from "@/components/ui-bits";
 import { ConnectionHealthCard, Drawer, Section, Chip } from "@/components/connect/Primitives";
 import { INTEGRATIONS } from "@/lib/connect-data";
-import { isDemoDataEnabled } from "@/lib/data-mode";
-import { PendingSourceModule } from "@/components/connect/PendingSourceModule";
 
 export const Route = createFileRoute("/app/connect/integrations")({
   component: Page,
@@ -115,14 +113,8 @@ const ACTIVE = [
 ];
 
 function Page() {
-  const [selected, setSelected] = useState<(typeof ACTIVE)[number] | null>(null);
-  if (!isDemoDataEnabled)
-    return (
-      <PendingSourceModule
-        title="Integrationer"
-        description="Forbindelser til projektets datakilder"
-      />
-    );
+  const [selected, setSelected] = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useState<any>(null);
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">

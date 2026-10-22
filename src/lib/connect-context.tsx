@@ -7,7 +7,6 @@
 import { useMemo, useCallback } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
-import { findConnectProjectById, resolveConnectProject } from "@/lib/connect-project-selection";
 
 export type ConnectRangeKey = "24h" | "7d" | "30d" | "90d" | "12m" | "all" | "custom";
 
@@ -71,7 +70,8 @@ export function useConnectContext() {
   const search = searchRaw as unknown as Record<string, unknown>;
   const auth = useAuth();
 
-  const requestedProjectId = typeof search.project === "string" ? search.project : null;
+  const projectId =
+    (typeof search.project === "string" && search.project) || auth.currentProject?.id || null;
 
   const rangeKey: ConnectRangeKey =
     (typeof search.range === "string" && (search.range as ConnectRangeKey)) || "30d";
@@ -84,28 +84,14 @@ export function useConnectContext() {
   );
 
   const projects = useMemo(() => auth.currentOrg?.projects ?? [], [auth.currentOrg]);
-  const project = useMemo(
-    () => resolveConnectProject(projects, requestedProjectId, auth.currentProject?.id),
-    [auth.currentProject?.id, projects, requestedProjectId],
-  );
-  const projectId = project?.id ?? null;
+  const project = projects.find((p) => p.id === projectId) ?? projects[0] ?? null;
 
   const setProject = useCallback(
     (id: string) => {
-      const selectedProject = findConnectProjectById(projects, id);
-      if (!selectedProject) return;
-
-      auth.selectProject(selectedProject.id);
-      void navigate({
-        to: ".",
-        search: (prev: Record<string, unknown>) =>
-          ({
-            ...prev,
-            project: selectedProject.id,
-          }) as never,
-      });
+      auth.selectProject(id);
+      void navigate({ to: ".", search: (prev: Record<string, unknown>) => ({ ...prev, project: id }) as never });
     },
-    [auth, navigate, projects],
+    [auth, navigate],
   );
 
   const setRange = useCallback(

@@ -36,6 +36,8 @@ function Page() {
         context={`Samlet risikoscore: ${overall} (${level}). Risikokategorier: ${RISK_CATEGORIES.map((r) => `${r.name}=${r.score}`).join(", ")}. Aktive mitigationer: ${MITIGATIONS.length}. Tidslinje-punkter: ${RISK_TIMELINE.length}.`}
       />
 
+
+
       {/* Overall risk */}
       <div className="grid lg:grid-cols-3 gap-5">
         <Card className="p-6 flex flex-col items-center text-center">

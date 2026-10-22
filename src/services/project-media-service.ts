@@ -1,5 +1,4 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
-import { isDemoDataEnabled } from "@/lib/data-mode";
 import type {
   ProjectMediaItem,
   MediaCategory,
@@ -7,13 +6,11 @@ import type {
   MediaStatus,
 } from "@/lib/platform/media-types";
 import { getProjectMedia as getSeedMedia } from "@/data/project-media";
-import { getCanonicalDroneMediaUrl } from "@/lib/canonical-drone-media.functions";
-import { canonicalDroneMediaReference } from "./monitoring/canonical-drone-media-reference";
 
 // Minimal interface for an untyped Supabase query builder, used to access the
 // project_media table which is not yet in the generated Database types.
 interface UntypedQueryBuilder {
-  select(columns?: string, options?: { count: "exact"; head: true }): UntypedQueryBuilder;
+  select(columns?: string): UntypedQueryBuilder;
   insert(values: Record<string, unknown>): UntypedQueryBuilder;
   update(values: Record<string, unknown>): UntypedQueryBuilder;
   delete(): UntypedQueryBuilder;
@@ -21,13 +18,7 @@ interface UntypedQueryBuilder {
   limit(count: number): UntypedQueryBuilder;
   order(column: string, opts?: { ascending: boolean }): UntypedQueryBuilder;
   single(): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
-  then(
-    resolve: (value: {
-      data: unknown;
-      count?: number | null;
-      error: { message: string } | null;
-    }) => void,
-  ): void;
+  then(resolve: (value: { data: unknown; error: { message: string } | null }) => void): void;
 }
 
 interface UntypedDb {
@@ -57,51 +48,9 @@ export interface MediaServiceResult<T> {
 }
 
 const BUCKET = "project-media";
-const SIGNED_URL_TTL_SECONDS = 5 * 60;
-
-function getAuthorizedMediaPath(row: Record<string, unknown>): string | null {
-  const projectId = typeof row["project_id"] === "string" ? row["project_id"] : "";
-  const filePath = typeof row["file_path"] === "string" ? row["file_path"] : "";
-  const segments = filePath.split("/");
-
-  if (
-    !projectId ||
-    !filePath ||
-    filePath.startsWith("/") ||
-    filePath.includes("\\") ||
-    segments.some((segment) => !segment || segment === "." || segment === "..")
-  ) {
-    return null;
-  }
-
-  const hasLegacyProjectScope = segments[0] === projectId;
-  const hasCanonicalProjectScope =
-    segments[0] === "organizations" && segments[2] === "projects" && segments[3] === projectId;
-
-  return hasLegacyProjectScope || hasCanonicalProjectScope ? filePath : null;
-}
-
-async function createMediaSignedUrl(filePath: string): Promise<MediaServiceResult<string>> {
-  if (!isSupabaseConfigured || supabase === null) {
-    return { data: null, error: "Supabase ikke konfigureret" };
-  }
-
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
-
-  if (error || !data?.signedUrl) {
-    return {
-      data: null,
-      error: error?.message ?? "Storage returnerede ingen signeret URL",
-    };
-  }
-
-  return { data: data.signedUrl, error: null };
-}
 
 // Map a DB row (snake_case) to ProjectMediaItem (camelCase)
-function rowToMediaItem(row: Record<string, unknown>, signedUrl: string): ProjectMediaItem {
+function rowToMediaItem(row: Record<string, unknown>): ProjectMediaItem {
   const lat = row["lat"] as number | null | undefined;
   const lng = row["lng"] as number | null | undefined;
   const altitudeM = row["altitude_m"] as number | null | undefined;
@@ -124,9 +73,8 @@ function rowToMediaItem(row: Record<string, unknown>, signedUrl: string): Projec
     description: row["description"] != null ? String(row["description"]) : undefined,
     category: row["category"] as MediaCategory,
     source: row["source"] as MediaSource,
-    // Live media URLs are always short-lived and are never read from persisted
-    // `url`/`thumbnail_url` values. Those columns may contain legacy public URLs.
-    url: signedUrl,
+    url: String(row["url"]),
+    thumbnailUrl: row["thumbnail_url"] != null ? String(row["thumbnail_url"]) : undefined,
     uploadedAt: String(row["uploaded_at"]),
     capturedAt: row["captured_at"] != null ? String(row["captured_at"]) : undefined,
     coordinates,
@@ -140,83 +88,12 @@ function rowToMediaItem(row: Record<string, unknown>, signedUrl: string): Projec
   };
 }
 
-async function materializePrivateMedia(
-  row: Record<string, unknown>,
-  expectedProjectId?: string,
-): Promise<MediaServiceResult<ProjectMediaItem>> {
-  if (expectedProjectId && row["project_id"] !== expectedProjectId)
-    return { data: null, error: "Medierækken matcher ikke det valgte projekt." };
-  const bucket = row["storage_bucket"] ?? BUCKET;
-  if (bucket === "monitoring-uploads") {
-    try {
-      const reference = canonicalDroneMediaReference(
-        row,
-        String(row["project_id"]),
-        String(row["id"]),
-      );
-      // Browser-supplied buckets/paths are not inputs. The server loads the
-      // caller's RLS row, checks the exact object twice and signs via caller RLS.
-      const result = await getCanonicalDroneMediaUrl({
-        data: { projectId: reference.project_id, mediaId: reference.id },
-      });
-      if (
-        result.projectId !== reference.project_id ||
-        result.mediaId !== reference.id ||
-        result.originalSha256 !== reference.original_sha256 ||
-        result.expiresInSeconds !== 60 ||
-        result.reportEligible !== false ||
-        result.georeferenced !== false
-      )
-        throw new Error("Originalreference kunne ikke bekræftes");
-      return {
-        data: rowToMediaItem({ ...row, is_report_ready: false }, result.signedUrl),
-        error: null,
-      };
-    } catch {
-      return {
-        data: null,
-        error:
-          "Den kanoniske original kunne ikke læses. Filversion eller projektadgang skal kontrolleres; prøv igen.",
-      };
-    }
-  }
-  if (bucket !== BUCKET || row["original_role"] != null)
-    return {
-      data: null,
-      error: "Projektmediet har en ugyldig Storage-bucket eller originalreference.",
-    };
-  const filePath = getAuthorizedMediaPath(row);
-  if (!filePath) {
-    return { data: null, error: "Medierækken har en ugyldig eller forkert scoped Storage-sti" };
-  }
-
-  const signedUrl = await createMediaSignedUrl(filePath);
-  if (!signedUrl.data) return { data: null, error: signedUrl.error };
-
-  return { data: rowToMediaItem(row, signedUrl.data), error: null };
-}
-
-// Demo media is available only by explicit offline choice.
-/** Count promoted originals through caller RLS without downloading or signing every photo. */
-export async function countCanonicalProjectOriginals(projectId: string): Promise<number> {
-  if (!isSupabaseConfigured || !supabase) throw new Error("Billederne kunne ikke hentes.");
-  const { count, error } = await getDb()!
-    .from("project_media")
-    .select("id", { count: "exact", head: true })
-    .eq("project_id", projectId)
-    .eq("original_role", "drone_original")
-    .eq("storage_bucket", "monitoring-uploads");
-  if (error || count == null) throw new Error("Billederne kunne ikke hentes.");
-  return count;
-}
-
+// List media for a project — falls back to seed data if Supabase not configured
 export async function listProjectMedia(
   projectId: string,
 ): Promise<MediaServiceResult<ProjectMediaItem[]>> {
   if (!isSupabaseConfigured || supabase === null) {
-    return isDemoDataEnabled
-      ? { data: getSeedMedia(projectId), error: null }
-      : { data: null, error: "Kundedatabasen er ikke konfigureret." };
+    return { data: getSeedMedia(projectId), error: null };
   }
 
   const { data, error } = await getDb()!
@@ -230,18 +107,7 @@ export async function listProjectMedia(
   }
 
   const rows = (data ?? []) as Record<string, unknown>[];
-  const materialized = await Promise.all(
-    rows.map((row) => materializePrivateMedia(row, projectId)),
-  );
-  const signingFailure = materialized.find((result) => result.data === null);
-  if (signingFailure) {
-    return { data: null, error: signingFailure.error ?? "Kunne ikke signere projektmedie" };
-  }
-
-  return {
-    data: materialized.map((result) => result.data as ProjectMediaItem),
-    error: null,
-  };
+  return { data: rows.map(rowToMediaItem), error: null };
 }
 
 // Upload a file to storage and insert a DB record
@@ -250,10 +116,23 @@ export async function uploadProjectMedia(
   input: UploadMediaInput,
 ): Promise<MediaServiceResult<ProjectMediaItem>> {
   if (!isSupabaseConfigured || supabase === null) {
-    return {
-      data: null,
-      error: "Upload kræver en konfigureret kundedatabase. Filen er ikke gemt.",
+    // Preview mode — construct a mock item without actual upload
+    const mockItem: ProjectMediaItem = {
+      id: `mock-${Date.now()}`,
+      projectId: input.projectId,
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      source: input.source,
+      url: URL.createObjectURL(input.file),
+      uploadedAt: new Date().toISOString(),
+      capturedAt: input.capturedAt,
+      coordinates: input.coordinates,
+      isReportReady: input.isReportReady,
+      tags: input.tags,
+      status: "uploaded",
     };
+    return { data: mockItem, error: null };
   }
 
   // Build storage path
@@ -263,7 +142,7 @@ export async function uploadProjectMedia(
 
   // Upload file to storage
   const { error: storageError } = await supabase.storage.from(BUCKET).upload(filePath, input.file, {
-    cacheControl: "300",
+    cacheControl: "3600",
     upsert: false,
     contentType: input.file.type || undefined,
   });
@@ -271,6 +150,9 @@ export async function uploadProjectMedia(
   if (storageError) {
     return { data: null, error: storageError.message };
   }
+
+  // Get public URL
+  const publicUrl = getMediaPublicUrl(filePath) ?? "";
 
   // Insert DB record
   const insertPayload = {
@@ -280,9 +162,7 @@ export async function uploadProjectMedia(
     category: input.category,
     source: input.source,
     file_path: filePath,
-    // `url` is kept only for compatibility with the current non-null schema.
-    // The live application ignores persisted URL fields and signs `file_path`.
-    url: "",
+    url: publicUrl,
     thumbnail_url: null,
     captured_at: input.capturedAt ?? null,
     lat: input.coordinates?.lat ?? null,
@@ -302,18 +182,13 @@ export async function uploadProjectMedia(
     .select()
     .single();
 
-  if (insertError || !insertData) {
-    const { error: cleanupError } = await supabase.storage.from(BUCKET).remove([filePath]);
-    const insertMessage = insertError?.message ?? "Databasen returnerede ikke det oprettede medie";
-    return {
-      data: null,
-      error: cleanupError
-        ? `${insertMessage}; Storage-oprydning fejlede: ${cleanupError.message}`
-        : insertMessage,
-    };
+  if (insertError) {
+    // Best-effort cleanup of the uploaded file
+    await supabase.storage.from(BUCKET).remove([filePath]);
+    return { data: null, error: insertError.message };
   }
 
-  return materializePrivateMedia(insertData as Record<string, unknown>, input.projectId);
+  return { data: rowToMediaItem(insertData as Record<string, unknown>), error: null };
 }
 
 // Update metadata (title, description, isReportReady, tags)
@@ -338,64 +213,41 @@ export async function updateProjectMedia(
     .select()
     .single();
 
-  if (error || !data) {
-    return {
-      data: null,
-      error: error?.message ?? "Databasen returnerede ikke det opdaterede medie",
-    };
+  if (error) {
+    return { data: null, error: error.message };
   }
 
-  return materializePrivateMedia(data as Record<string, unknown>);
+  return { data: rowToMediaItem(data as Record<string, unknown>), error: null };
 }
 
 // Delete a media item (removes storage file + DB record)
-export async function deleteProjectMedia(id: string): Promise<MediaServiceResult<void>> {
+export async function deleteProjectMedia(
+  id: string,
+  filePath: string,
+): Promise<MediaServiceResult<void>> {
   if (!isSupabaseConfigured || supabase === null) {
     return { data: null, error: "Supabase ikke konfigureret" };
   }
 
-  // RLS authorizes this row lookup. Never trust a path supplied by a caller.
-  const { data: mediaRow, error: lookupError } = await getDb()!
-    .from("project_media")
-    .select("id,project_id,file_path,storage_bucket,original_role")
-    .eq("id", id)
-    .single();
-
-  if (lookupError || !mediaRow) {
-    return { data: null, error: lookupError?.message ?? "Projektmediet blev ikke fundet" };
-  }
-
-  if (mediaRow["storage_bucket"] === "monitoring-uploads" || mediaRow["original_role"] != null)
-    return {
-      data: null,
-      error:
-        "Kanoniske droneoriginaler og deres dubletproveniens kan ikke slettes gennem mediegalleriet.",
-    };
-  if (mediaRow["storage_bucket"] != null && mediaRow["storage_bucket"] !== BUCKET)
-    return { data: null, error: "Projektmediet har en ugyldig Storage-bucket." };
-
-  const filePath = getAuthorizedMediaPath(mediaRow);
-  if (!filePath) {
-    return { data: null, error: "Projektmediet har en ugyldig eller forkert scoped Storage-sti" };
-  }
-
-  // Remove the object while the metadata row still exists, so a project-aware
-  // Storage DELETE policy can authorize the operation.
-  const { error: storageError } = await supabase.storage.from(BUCKET).remove([filePath]);
-  if (storageError) {
-    return { data: null, error: storageError.message };
-  }
-
-  const { error: dbError } = await getDb()!
-    .from("project_media")
-    .delete()
-    .eq("id", id)
-    .select("id")
-    .single();
+  // Delete DB record first
+  const { error: dbError } = await getDb()!.from("project_media").delete().eq("id", id);
 
   if (dbError) {
     return { data: null, error: dbError.message };
   }
 
+  // Remove storage file (best-effort)
+  if (filePath) {
+    await supabase.storage.from(BUCKET).remove([filePath]);
+  }
+
   return { data: undefined, error: null };
+}
+
+// Get public URL for a storage path
+export function getMediaPublicUrl(filePath: string): string | null {
+  if (!isSupabaseConfigured || supabase === null) return null;
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+  return data.publicUrl;
 }

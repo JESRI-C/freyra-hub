@@ -73,11 +73,15 @@ export function ActionItem({
             <span className="text-sm font-medium">{action.title}</span>
             <Pill tone={tone === "neutral" ? "default" : tone}>{action.priority ?? "Lav"}</Pill>
             <span className="text-xs text-muted-foreground">{action.status}</span>
-            {action.action_type && <Pill tone="info">{action.action_type}</Pill>}
+            {action.action_type && (
+              <Pill tone="info">{action.action_type}</Pill>
+            )}
             {requiresEvidence && (
               <span
                 className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
-                  canComplete ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                  canComplete
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-amber-50 text-amber-700"
                 }`}
               >
                 <ShieldAlert className="h-3 w-3" />
@@ -130,9 +134,7 @@ export function ActionItem({
                 className="flex-1 text-xs border rounded px-2 py-1 bg-background"
                 autoFocus
               />
-              <Button size="sm" onClick={handleComplete}>
-                Bekræft
-              </Button>
+              <Button size="sm" onClick={handleComplete}>Bekræft</Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -180,7 +182,11 @@ export function ActionItem({
         </div>
       </div>
 
-      <ActionEvidenceDialog action={action} open={evidenceOpen} onOpenChange={setEvidenceOpen} />
+      <ActionEvidenceDialog
+        action={action}
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+      />
     </>
   );
 }

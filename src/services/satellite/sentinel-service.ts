@@ -118,7 +118,10 @@ export async function findScenes(
     tileName: f.properties["s2:mgrs_tile"] ?? "–",
     b04Url: f.assets?.["B04"]?.href ?? f.assets?.["red"]?.href ?? null,
     b08Url: f.assets?.["B08"]?.href ?? f.assets?.["nir"]?.href ?? null,
-    thumbnailUrl: f.assets?.["thumbnail"]?.href ?? f.assets?.["overview"]?.href ?? null,
+    thumbnailUrl:
+      f.assets?.["thumbnail"]?.href ??
+      f.assets?.["overview"]?.href ??
+      null,
     bbox: f.bbox,
     epsg: f.properties["proj:epsg"] ?? null,
   }));
@@ -198,10 +201,7 @@ async function estimateNdviFromThumbnail(thumbnailUrl: string): Promise<number |
   ctx.drawImage(img, 0, 0);
   const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
-  let totalR = 0,
-    totalG = 0,
-    totalB = 0,
-    count = 0;
+  let totalR = 0, totalG = 0, totalB = 0, count = 0;
   for (let i = 0; i < data.length; i += 4) {
     totalR += data[i];
     totalG += data[i + 1];
@@ -262,18 +262,9 @@ export async function runNdviPipeline(
 
     if (scenes.length === 0) {
       // Prøv igen med højere skydækning-tolerance
-      const fallbackScenes = await findScenes(lat, lng, {
-        maxCloudCover: 80,
-        limit: 5,
-        daysBack: 180,
-      });
+      const fallbackScenes = await findScenes(lat, lng, { maxCloudCover: 80, limit: 5, daysBack: 180 });
       if (fallbackScenes.length === 0) {
-        return {
-          scenes: [],
-          bestScene: null,
-          ndvi: null,
-          error: "Ingen scener fundet inden for 180 dage",
-        };
+        return { scenes: [], bestScene: null, ndvi: null, error: "Ingen scener fundet inden for 180 dage" };
       }
       const best = fallbackScenes[0];
       const ndvi = await computeNdvi(best, { lat, lng });

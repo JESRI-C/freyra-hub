@@ -1,15 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  X,
-  ChevronLeft,
-  ChevronRight,
-  MapPin,
-  Compass,
-  Calendar,
-  Tag,
-  Camera,
-  Layers,
-} from "lucide-react";
+import { X, ChevronLeft, ChevronRight, MapPin, Compass, Calendar, Tag, Camera, Layers } from "lucide-react";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
 import { BeforeAfterCompare } from "./BeforeAfterCompare";
@@ -47,7 +37,10 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
   const dateLabel = new Date(item.capturedAt ?? item.uploadedAt).toLocaleString("da-DK");
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 flex items-stretch" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/85 flex items-stretch"
+      onClick={onClose}
+    >
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -88,12 +81,7 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
       >
         <div className="flex-1 flex items-center justify-center p-4 lg:p-10 min-h-0">
           {compare && before ? (
-            <BeforeAfterCompare
-              beforeUrl={before.url}
-              afterUrl={item.url}
-              beforeLabel="Før"
-              afterLabel="Nu"
-            />
+            <BeforeAfterCompare beforeUrl={before.url} afterUrl={item.url} beforeLabel="Før" afterLabel="Nu" />
           ) : (
             <img
               src={item.url}
@@ -186,15 +174,7 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
   );
 }
 
-function Row({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}) {
+function Row({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2">
       <span className="text-muted-foreground mt-0.5">{icon}</span>

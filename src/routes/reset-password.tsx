@@ -100,8 +100,8 @@ function ResetPasswordPage() {
             </div>
             <h2 className="text-2xl font-semibold tracking-tight">Ugyldigt eller udløbet link</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Nulstillingslinket er enten forkert, brugt eller udløbet. Bed om et nyt link fra log
-              ind-siden.
+              Nulstillingslinket er enten forkert, brugt eller udløbet.
+              Bed om et nyt link fra log ind-siden.
             </p>
             <button
               onClick={() => navigate({ to: "/login" })}

@@ -1,35 +1,30 @@
-import { createFileRoute, Link, Outlet, useRouterState, Navigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useRouterState,
+  Navigate,
+} from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Map, Leaf, Droplets, BookCheck, FileText, ArrowLeft, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Pill } from "@/components/ui-bits";
 import { getProject, getLinkedProjectId, setLinkedProject } from "@/services/lavbundService";
-import { getProjects as getCoreProjects, getProjectBySlug } from "@/services/projects-service";
+import { getProjects as getCoreProjects } from "@/services/projects-service";
 import { ledgerAppend } from "@/services/ledgerService";
-import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
 import type { ProjektStatus } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId")({
-  head: () => ({ meta: [{ title: "Kort og beplantning — Freyra" }] }),
+  head: () => ({ meta: [{ title: "LavbundsMRV — Projekt" }] }),
   component: ProjektLayout,
 });
 
 const TABS = [
-  { to: "/app/lavbund/$projektId/kort", suffix: "kort", label: "Kort og beplantning", icon: Map },
+  { to: "/app/lavbund/$projektId/kort", suffix: "kort", label: "Feltkort & tidsserie", icon: Map },
   { to: "/app/lavbund/$projektId/klima", suffix: "klima", label: "Klima · CO₂", icon: Leaf },
-  {
-    to: "/app/lavbund/$projektId/fosfor",
-    suffix: "fosfor",
-    label: "Fosfor · brinkerosion",
-    icon: Droplets,
-  },
-  {
-    to: "/app/lavbund/$projektId/revisionsspor",
-    suffix: "revisionsspor",
-    label: "Revisionsspor",
-    icon: BookCheck,
-  },
+  { to: "/app/lavbund/$projektId/fosfor", suffix: "fosfor", label: "Fosfor · brinkerosion", icon: Droplets },
+  { to: "/app/lavbund/$projektId/revisionsspor", suffix: "revisionsspor", label: "Revisionsspor", icon: BookCheck },
   { to: "/app/lavbund/$projektId/rapport", suffix: "rapport", label: "Rapport", icon: FileText },
 ] as const;
 
@@ -56,12 +51,6 @@ function ProjektLayout() {
     queryFn: () => getProject(projektId),
   });
 
-  const core = useQuery({
-    queryKey: ["core-project", projektId],
-    queryFn: () => getProjectBySlug(projektId),
-    enabled: DEMO_MODE && !q.isLoading && !q.data,
-    retry: false,
-  });
   // Redirect /app/lavbund/:id → /app/lavbund/:id/kort
   if (path === `/app/lavbund/${projektId}` || path === `/app/lavbund/${projektId}/`) {
     return <Navigate to="/app/lavbund/$projektId/kort" params={{ projektId }} />;
@@ -73,16 +62,14 @@ function ProjektLayout() {
         <div className="w-full px-4 sm:px-6 py-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <Link
-              to={DEMO_MODE ? "/app/projects" : "/app/lavbund"}
+              to="/app/lavbund"
               className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Alle sager
+              <ArrowLeft className="h-3.5 w-3.5" /> Alle lavbundsprojekter
             </Link>
             <div className="mt-1 flex items-center gap-3 flex-wrap">
               <h1 className="text-lg font-semibold tracking-tight truncate">
-                {q.data?.navn ??
-                  core.data?.name ??
-                  (q.isLoading || core.isLoading ? "Indlæser…" : "Sag ikke tilgængelig")}
+                {q.data?.navn ?? (q.isLoading ? "Indlæser…" : "Ukendt projekt")}
               </h1>
               {q.data && (
                 <>
@@ -94,11 +81,11 @@ function ProjektLayout() {
               )}
             </div>
           </div>
-          {!DEMO_MODE && <LinkTilKerneprojekt projektId={projektId} />}
+          <LinkTilKerneprojekt projektId={projektId} />
         </div>
         <div className="w-full px-4 sm:px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
-            {TABS.filter((t) => !DEMO_MODE || ["kort"].includes(t.suffix)).map((t) => {
+            {TABS.map((t) => {
               const full = `/app/lavbund/${projektId}/${t.suffix}`;
               const active = path.startsWith(full);
               const Icon = t.icon;
@@ -128,7 +115,7 @@ function ProjektLayout() {
 }
 
 /**
- * Kobling til Freyra-kerneprojekt: når sat, skubber bogførte snapshots den
+ * Kobling til GoFreyra-kerneprojekt: når sat, skubber bogførte snapshots den
  * verificerede CO₂-effekt til projektets co2e_reduced-indicator på dashboardet.
  */
 function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
@@ -154,7 +141,9 @@ function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
       });
       await qc.invalidateQueries({ queryKey: ["lavbund", "linked", projektId] });
       toast.success(
-        coreId ? "Koblet — næste bogføring opdaterer projektets CO₂-indicator" : "Kobling fjernet",
+        coreId
+          ? "Koblet — næste bogføring opdaterer projektets CO₂-indicator"
+          : "Kobling fjernet",
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Kunne ikke opdatere kobling");
@@ -164,7 +153,7 @@ function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
   return (
     <label className="hidden sm:flex flex-col items-end gap-1 text-[11px] text-muted-foreground shrink-0">
       <span className="inline-flex items-center gap-1">
-        <Link2 className="h-3 w-3" /> Kobling til Freyra-projekt
+        <Link2 className="h-3 w-3" /> Kobling til GoFreyra-projekt
       </span>
       <select
         value={linked.data ?? ""}

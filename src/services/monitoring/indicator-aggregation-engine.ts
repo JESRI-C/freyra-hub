@@ -124,8 +124,7 @@ export async function runIndicatorAggregation(
   projectId: string,
   opts: { client?: Client } = {},
 ): Promise<AggregationRunResult> {
-  const client =
-    opts.client ?? (isSupabaseConfigured ? (browserClient as unknown as Client) : null);
+  const client = opts.client ?? (isSupabaseConfigured ? (browserClient as unknown as Client) : null);
   if (!client) return { projectId, indicatorsUpdated: 0, dataQualityScore: null, skipped: true };
 
   const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();

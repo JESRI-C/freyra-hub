@@ -8,14 +8,8 @@ import jsPDF from "jspdf";
 interface UntypedDb {
   from(table: string): {
     select: (cols?: string) => {
-      eq: (
-        col: string,
-        val: unknown,
-      ) => {
-        order: (
-          col: string,
-          opts: { ascending: boolean },
-        ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+      eq: (col: string, val: unknown) => {
+        order: (col: string, opts: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
       };
     };
     insert: (values: Record<string, unknown>) => {
@@ -30,7 +24,7 @@ interface UntypedDb {
 }
 
 function getDb(): UntypedDb | null {
-  return isSupabaseConfigured ? (supabase as unknown as UntypedDb) : null;
+  return (isSupabaseConfigured ? (supabase as unknown as UntypedDb) : null);
 }
 
 export async function listDocuments(projectId: string): Promise<ProjectDocument[]> {
@@ -50,11 +44,7 @@ export async function deleteDocument(id: string): Promise<void> {
   if (!db) return;
   const { error } = await db.from("documents").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  await logAuditEvent({
-    event_type: "document.deleted",
-    title: "Dokument slettet",
-    description: id,
-  });
+  await logAuditEvent({ event_type: "document.deleted", title: "Dokument slettet", description: id });
 }
 
 export interface GenerateReportInput {
@@ -72,9 +62,7 @@ export interface GenerateReportOutput {
   fileName: string;
 }
 
-export async function generateProjectReport(
-  input: GenerateReportInput,
-): Promise<GenerateReportOutput> {
+export async function generateProjectReport(input: GenerateReportInput): Promise<GenerateReportOutput> {
   const { project, sites, actions, indicators, reportType } = input;
   const title = input.title || defaultTitle(reportType, project.name);
   const fileName = `${slug(title)}-v1.pdf`;
@@ -85,33 +73,18 @@ export async function generateProjectReport(
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(20);
-  const titleLines = pdf.splitTextToSize(`Kladde: ${title}`, w - 80);
-  pdf.text(titleLines, 40, y);
-  y += titleLines.length * 23;
+  pdf.text(title, 40, y);
+  y += 18;
 
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(10);
   pdf.setTextColor(120);
   pdf.text(`Genereret ${new Date().toLocaleString("da-DK")}`, 40, y);
-  y += 18;
+  y += 24;
   pdf.setTextColor(20);
-  pdf.setFontSize(10);
-  for (const notice of [
-    "Rapporteringsperiode: ikke fastlagt.",
-    "Fagligt review: ikke dokumenteret for denne kladde.",
-    "Grundlag: aktuelle projektregistreringer, ikke en låst rapportversion.",
-    "Droneobservationer og kilde-/fotoreferencer indgår ikke i denne oversigt.",
-    "PDF-filen arkiveres ikke på projektet og kan ikke genhentes herfra.",
-  ]) {
-    const lines = pdf.splitTextToSize(notice, w - 80);
-    pdf.text(lines, 40, y);
-    y += lines.length * 14;
-  }
-  y += 14;
 
   // Project summary
-  section(pdf, "Projekt", y);
-  y += 30;
+  section(pdf, "Projekt", y); y += 18;
   y = kv(pdf, "Navn", project.name, y);
   y = kv(pdf, "Type", project.project_type || "—", y);
   y = kv(pdf, "Status", project.status || "—", y);
@@ -120,35 +93,23 @@ export async function generateProjectReport(
   y += 8;
 
   // Sites
-  y = ensure(pdf, y, 40);
-  section(pdf, `Registrerede sites (${sites.length})`, y);
-  y += 30;
+  section(pdf, `Sites (${sites.length})`, y); y += 18;
   if (sites.length === 0) {
-    pdf.setFontSize(10);
-    pdf.text("Ingen sites registreret.", 40, y);
-    y += 14;
+    pdf.setFontSize(10); pdf.text("Ingen sites registreret.", 40, y); y += 14;
   } else {
     for (const s of sites.slice(0, 15)) {
       y = ensure(pdf, y);
       pdf.setFontSize(10);
-      pdf.text(
-        `• ${s.name}${s.site_type ? ` (${s.site_type})` : ""}${s.area_ha ? ` – ${s.area_ha} ha` : ""}`,
-        40,
-        y,
-      );
+      pdf.text(`• ${s.name}${s.site_type ? ` (${s.site_type})` : ""}${s.area_ha ? ` – ${s.area_ha} ha` : ""}`, 40, y);
       y += 14;
     }
   }
   y += 8;
 
   // Indicators
-  y = ensure(pdf, y, 40);
-  section(pdf, `Registrerede indikatorer (${indicators.length})`, y);
-  y += 30;
+  section(pdf, `Indikatorer (${indicators.length})`, y); y += 18;
   if (indicators.length === 0) {
-    pdf.setFontSize(10);
-    pdf.text("Ingen indikatorer defineret.", 40, y);
-    y += 14;
+    pdf.setFontSize(10); pdf.text("Ingen indikatorer defineret.", 40, y); y += 14;
   } else {
     for (const i of indicators) {
       y = ensure(pdf, y);
@@ -161,18 +122,13 @@ export async function generateProjectReport(
   y += 8;
 
   // Actions
-  y = ensure(pdf, y, 40);
-  section(pdf, `Registrerede handlinger (${actions.length})`, y);
-  y += 30;
+  section(pdf, `Handlinger (${actions.length})`, y); y += 18;
   const grouped = groupByStatus(actions);
   for (const [status, items] of Object.entries(grouped)) {
     y = ensure(pdf, y);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(11);
-    pdf.text(`${status} (${items.length})`, 40, y);
-    y += 14;
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(11);
+    pdf.text(`${status} (${items.length})`, 40, y); y += 14;
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
     for (const a of items.slice(0, 20)) {
       y = ensure(pdf, y);
       const line = `• ${a.title}${a.priority ? ` [${a.priority}]` : ""}${a.due_date ? ` — frist ${a.due_date}` : ""}`;
@@ -186,13 +142,8 @@ export async function generateProjectReport(
   const pages = pdf.getNumberOfPages();
   for (let p = 1; p <= pages; p++) {
     pdf.setPage(p);
-    pdf.setFontSize(8);
-    pdf.setTextColor(150);
-    pdf.text(
-      `GoFreyra - KLADDE - fagligt review ikke dokumenteret - Side ${p}/${pages}`,
-      40,
-      pdf.internal.pageSize.getHeight() - 20,
-    );
+    pdf.setFontSize(8); pdf.setTextColor(150);
+    pdf.text(`GoFreyra · ${title} · Side ${p}/${pages}`, 40, pdf.internal.pageSize.getHeight() - 20);
   }
 
   const blob = pdf.output("blob");
@@ -238,46 +189,28 @@ export async function generateProjectReport(
 
 function defaultTitle(t: string, name: string) {
   const d = new Date().toISOString().slice(0, 10);
-  const label =
-    t === "authority"
-      ? "Myndighedsrapport"
-      : t === "indicator"
-        ? "Indikatorrapport"
-        : "Projektstatusrapport";
+  const label = t === "authority" ? "Myndighedsrapport" : t === "indicator" ? "Indikatorrapport" : "Projektstatusrapport";
   return `${label} – ${name} – ${d}`;
 }
 
 function slug(s: string) {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function section(pdf: jsPDF, label: string, y: number) {
-  pdf.setDrawColor(200);
-  pdf.line(40, y - 4, pdf.internal.pageSize.getWidth() - 40, y - 4);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.text(label, 40, y + 10);
-  pdf.setFont("helvetica", "normal");
+  pdf.setDrawColor(200); pdf.line(40, y - 4, pdf.internal.pageSize.getWidth() - 40, y - 4);
+  pdf.setFont("helvetica", "bold"); pdf.setFontSize(13); pdf.text(label, 40, y + 10);
 }
 
 function kv(pdf: jsPDF, k: string, v: string, y: number) {
   y = ensure(pdf, y);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(10);
-  pdf.text(`${k}:`, 40, y);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(v, 120, y);
+  pdf.setFont("helvetica", "bold"); pdf.setFontSize(10); pdf.text(`${k}:`, 40, y);
+  pdf.setFont("helvetica", "normal"); pdf.text(v, 120, y);
   return y + 14;
 }
 
-function ensure(pdf: jsPDF, y: number, requiredHeight = 0) {
-  if (y + requiredHeight > pdf.internal.pageSize.getHeight() - 60) {
-    pdf.addPage();
-    return 56;
-  }
+function ensure(pdf: jsPDF, y: number) {
+  if (y > pdf.internal.pageSize.getHeight() - 60) { pdf.addPage(); return 56; }
   return y;
 }
 
@@ -317,25 +250,12 @@ export function computeDocumentationScore(input: {
   const missingEvidence = recentActions.filter((a) => (evidenceCountByAction[a.id] ?? 0) === 0);
 
   const items = [
-    {
-      label: "Projektbeskrivelse",
-      ok: !!project.description && project.description.length > 20,
-      weight: 10,
-    },
+    { label: "Projektbeskrivelse", ok: !!project.description && project.description.length > 20, weight: 10 },
     { label: "Mindst ét site defineret", ok: sites.length > 0, weight: 15 },
     { label: "Mindst én indikator", ok: indicators.length > 0, weight: 15 },
-    {
-      label: "Indikatorer med tærskler",
-      ok: indicators.some((i) => i.threshold_warning != null || i.threshold_critical != null),
-      weight: 10,
-    },
+    { label: "Indikatorer med tærskler", ok: indicators.some((i) => i.threshold_warning != null || i.threshold_critical != null), weight: 10 },
     { label: "Aktive handlinger", ok: actions.some((a) => a.status !== "Færdig"), weight: 10 },
-    {
-      label: "Foto/evidens på seneste 5 færdige handlinger",
-      ok: recentActions.length > 0 && missingEvidence.length === 0,
-      weight: 20,
-      hint: missingEvidence.length ? `${missingEvidence.length} mangler` : undefined,
-    },
+    { label: "Foto/evidens på seneste 5 færdige handlinger", ok: recentActions.length > 0 && missingEvidence.length === 0, weight: 20, hint: missingEvidence.length ? `${missingEvidence.length} mangler` : undefined },
     { label: "Mindst én genereret rapport", ok: documents.length > 0, weight: 10 },
     { label: "Areal / geografi opgivet", ok: !!project.geometry_area_ha, weight: 10 },
   ];

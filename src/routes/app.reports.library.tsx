@@ -1,5 +1,3 @@
-import { isDemoDataEnabled } from "@/lib/data-mode";
-import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Card, StatCard } from "@/components/ui-bits";
@@ -29,7 +27,7 @@ import {
 
 export const Route = createFileRoute("/app/reports/library")({
   head: () => ({ meta: [{ title: "Rapportbibliotek — GoFreyra" }] }),
-  component: isDemoDataEnabled ? LibraryPage : ReportWorkspaceNotice,
+  component: LibraryPage,
 });
 
 const SAVED_FILTERS = [

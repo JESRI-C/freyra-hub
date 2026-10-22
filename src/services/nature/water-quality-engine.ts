@@ -11,14 +11,8 @@
  *   5. Projekttype (forurensningskilder)
  */
 
-import {
-  type SoilProfile,
-  type TerrainProfile,
-  fetchSoilProfile,
-  fetchTerrainProfile,
-} from "./geus-service";
+import { type SoilProfile, type TerrainProfile, fetchSoilProfile, fetchTerrainProfile } from "./geus-service";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
-import { isDemoDataEnabled } from "@/lib/data-mode";
 import { saveIndicator } from "@/services/indicators-service";
 import { logAuditEvent } from "@/services/audit-service";
 
@@ -28,12 +22,12 @@ export type RiskLevel = "Meget lav" | "Lav" | "Moderat" | "Høj" | "Meget høj";
 
 export interface WaterQualityRisk {
   overall: RiskLevel;
-  score: number; // 0-100 (høj = høj risiko)
+  score: number;           // 0-100 (høj = høj risiko)
   components: {
-    soilRunoff: number; // 0-100
+    soilRunoff: number;    // 0-100
     slopeAcceleration: number;
     watercourseProximity: number;
-    vegetationBuffer: number; // lav score = god buffer = lav risiko
+    vegetationBuffer: number;  // lav score = god buffer = lav risiko
     projectImpact: number;
   };
   nearestWatercourseM: number | null;
@@ -94,11 +88,9 @@ async function fetchNearestWatercourseDistance(lat: number, lng: number): Promis
       coords.forEach(([wLng, wLat]) => {
         const dLat = ((wLat - lat) * Math.PI) / 180;
         const dLng = ((wLng - lng) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) ** 2 +
-          Math.cos((lat * Math.PI) / 180) *
-            Math.cos((wLat * Math.PI) / 180) *
-            Math.sin(dLng / 2) ** 2;
+        const a = Math.sin(dLat / 2) ** 2 +
+                  Math.cos((lat * Math.PI) / 180) * Math.cos((wLat * Math.PI) / 180) *
+                  Math.sin(dLng / 2) ** 2;
         const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         if (dist < minDistM) minDistM = dist;
       });
@@ -115,12 +107,13 @@ async function fetchNearestWatercourseDistance(lat: number, lng: number): Promis
 function scoreRunoffRisk(soil: SoilProfile): number {
   // Lav infiltration = høj afstrømningsrisiko
   const base: Record<string, number> = {
-    high: 20, // sand: hurtig infiltration, men ingen filtrering
-    medium: 50, // leret sand: moderat
-    low: 80, // ler/organisk: langsom infiltration, høj overflade-afstrømning
+    high: 20,    // sand: hurtig infiltration, men ingen filtrering
+    medium: 50,  // leret sand: moderat
+    low: 80,     // ler/organisk: langsom infiltration, høj overflade-afstrømning
   };
   // Ler giver høj afstrømningsrisiko
-  const soilExtra = soil.dominantClass === "clay" ? 10 : soil.dominantClass === "organic" ? -10 : 0; // organisk filtrerer godt
+  const soilExtra = soil.dominantClass === "clay" ? 10 :
+                    soil.dominantClass === "organic" ? -10 : 0; // organisk filtrerer godt
   return Math.min(100, (base[soil.infiltrationRate] ?? 50) + soilExtra);
 }
 
@@ -132,7 +125,7 @@ function scoreSlopeRisk(terrain: TerrainProfile): number {
 
 function scoreProximityRisk(distanceM: number | null): number {
   if (distanceM === null) return 40; // ukendt = moderat risiko
-  if (distanceM < 50) return 95;
+  if (distanceM < 50)  return 95;
   if (distanceM < 100) return 80;
   if (distanceM < 200) return 60;
   if (distanceM < 500) return 35;
@@ -201,11 +194,6 @@ export async function runWaterQualityAnalysis(
   projectType: string | null,
   ndvi?: number | null,
 ): Promise<WaterQualityResult> {
-  // Enforce this at the engine boundary so independent UI hooks cannot persist
-  // a customer assessment built from preview soil/terrain and missing NDVI.
-  if (!isDemoDataEnabled) {
-    throw new Error("Projektanalysen afventer et valideret offentligt datagrundlag.");
-  }
   const [soil, terrain, watercourseDistM] = await Promise.all([
     fetchSoilProfile(lat, lng),
     fetchTerrainProfile(lat, lng),
@@ -213,20 +201,20 @@ export async function runWaterQualityAnalysis(
   ]);
 
   const components: WaterQualityRisk["components"] = {
-    soilRunoff: scoreRunoffRisk(soil),
-    slopeAcceleration: scoreSlopeRisk(terrain),
+    soilRunoff:           scoreRunoffRisk(soil),
+    slopeAcceleration:    scoreSlopeRisk(terrain),
     watercourseProximity: scoreProximityRisk(watercourseDistM),
-    vegetationBuffer: scoreVegetationBuffer(ndvi ?? null),
-    projectImpact: scoreProjectImpact(projectType),
+    vegetationBuffer:     scoreVegetationBuffer(ndvi ?? null),
+    projectImpact:        scoreProjectImpact(projectType),
   };
 
   // Vægtet score
   const score = Math.round(
-    components.soilRunoff * 0.2 +
-      components.slopeAcceleration * 0.2 +
-      components.watercourseProximity * 0.3 +
-      components.vegetationBuffer * 0.15 +
-      components.projectImpact * 0.15,
+    components.soilRunoff          * 0.20 +
+    components.slopeAcceleration   * 0.20 +
+    components.watercourseProximity * 0.30 +
+    components.vegetationBuffer    * 0.15 +
+    components.projectImpact       * 0.15,
   );
 
   const overall = scoreToLevel(score);
@@ -287,9 +275,7 @@ export async function runWaterQualityAnalysis(
           `Jordbund: ${soil.soilLabel}`,
           `Hældning: ${terrain.aspect}`,
           mitigationRequired ? "⚠️ Afhjælpning påkrævet" : null,
-        ]
-          .filter(Boolean)
-          .join(" · "),
+        ].filter(Boolean).join(" · "),
         actor: "Vandkvalitetsmotor",
         source: "automated",
       });

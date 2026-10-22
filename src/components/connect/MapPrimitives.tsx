@@ -379,11 +379,10 @@ export function MapCanvas({
     }
     if (layers.satellite) {
       // visual NDVI hint rectangle
-      L.rectangle([vbToLatLng(40, 40), vbToLatLng(560, 360)], {
-        color: "#84cc16",
-        weight: 0,
-        fillOpacity: 0.07,
-      }).addTo(og);
+      L.rectangle(
+        [vbToLatLng(40, 40), vbToLatLng(560, 360)],
+        { color: "#84cc16", weight: 0, fillOpacity: 0.07 },
+      ).addTo(og);
     }
     if (layers.gaps) {
       [
@@ -538,8 +537,7 @@ export function MapCanvas({
           Alert
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ background: "#86efac" }} />{" "}
-          Feltobservation
+          <span className="h-2 w-2 rounded-full" style={{ background: "#86efac" }} /> Feltobservation
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full" style={{ background: "#3b82f6" }} /> Vandprøve
@@ -551,6 +549,7 @@ export function MapCanvas({
     </div>
   );
 }
+
 
 // ---------- Zone card ----------
 export function ZoneCard({

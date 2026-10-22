@@ -8,7 +8,6 @@ har `id uuid default gen_random_uuid()`, `created_at`, `updated_at` hvor
 relevant, og en `updated_at`-trigger.
 
 Alle nye tabeller får:
-
 ```sql
 grant select, insert, update, delete on public.<t> to authenticated;
 grant all on public.<t> to service_role;
@@ -29,7 +28,6 @@ alter table public.<t> enable row level security;
 ## Sites (udvidelse)
 
 Efter Fase 2:
-
 ```
 sites
 - id
@@ -210,7 +208,6 @@ project_members (ny)
 ```
 
 Security-definer function:
-
 ```sql
 create function public.has_project_role(_project_id uuid, _user_id uuid, _role project_role)
 returns boolean language sql stable security definer set search_path = public as $$
@@ -225,7 +222,6 @@ RLS på alle projektnære tabeller ændres til at bruge `has_project_role` eller
 ## Indekser
 
 Vigtige:
-
 - `sites (project_id, status)`
 - `indicators (project_id, category)`
 - `indicator_measurements (project_indicator_id, measured_at desc)`

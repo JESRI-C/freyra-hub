@@ -12,8 +12,6 @@ import {
   Chip,
 } from "@/components/connect/Primitives";
 import { LIVE_OBSERVATIONS, PROJECTS, MEASUREMENTS } from "@/lib/connect-data";
-import { isDemoDataEnabled } from "@/lib/data-mode";
-import { PendingSourceModule } from "@/components/connect/PendingSourceModule";
 
 export const Route = createFileRoute("/app/connect/live")({
   component: Page,
@@ -23,7 +21,8 @@ function Page() {
   const [project, setProject] = useState<string>("Alle");
   const [measurement, setMeasurement] = useState<string>("Alle");
   const [status, setStatus] = useState<string>("Alle");
-  const [selected, setSelected] = useState<(typeof LIVE_OBSERVATIONS)[number] | null>(null);
+  const [selected, setSelected] = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  useState<any>(null);
 
   const filtered = useMemo(
     () =>
@@ -35,13 +34,6 @@ function Page() {
       ),
     [project, measurement, status],
   );
-  if (!isDemoDataEnabled)
-    return (
-      <PendingSourceModule
-        title="Live data"
-        description="Observationer fra projektets tilsluttede datakilder"
-      />
-    );
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">

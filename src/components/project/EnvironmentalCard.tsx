@@ -27,28 +27,26 @@ export function EnvironmentalCard({ project }: EnvironmentalCardProps) {
     soilLabel,
     soilClass,
     isLoading,
-    error,
     runAll,
     isRunning,
   } = useEnvironmentalAnalysis(project, ndvi);
 
   const hasGeometry =
-    project.geometry_centroid_lat != null && project.geometry_centroid_lng != null;
+    project.geometry_centroid_lat != null &&
+    project.geometry_centroid_lng != null;
 
   const co2Display = annualCO2 != null ? `${annualCO2.toFixed(1)} t/år` : null;
   const co2TotalDisplay = totalCO2_30yr != null ? `${totalCO2_30yr.toFixed(0)} t (30 år)` : null;
 
   const waterRiskLabel = waterRisk ?? null;
   const waterRiskTone =
-    waterRisk == null
-      ? "default"
-      : waterRisk === "Meget høj"
+    waterRisk === "Meget høj"
+      ? "danger"
+      : waterRisk === "Høj"
         ? "danger"
-        : waterRisk === "Høj"
-          ? "danger"
-          : waterRisk === "Moderat"
-            ? "warning"
-            : "success";
+        : waterRisk === "Moderat"
+          ? "warning"
+          : "success";
 
   return (
     <Card>
@@ -84,12 +82,6 @@ export function EnvironmentalCard({ project }: EnvironmentalCardProps) {
           <p className="text-sm text-muted-foreground">Henter miljødata …</p>
         )}
 
-        {hasGeometry && error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
-
         {hasGeometry && (
           <>
             {/* CO₂-binding */}
@@ -100,14 +92,12 @@ export function EnvironmentalCard({ project }: EnvironmentalCardProps) {
                   <div className="text-sm font-medium">CO₂-binding</div>
                   {co2Display && (
                     <div className="text-xs text-muted-foreground">
-                      Årlig sekvestrering:{" "}
-                      <span className="text-foreground font-medium">{co2Display}</span>
+                      Årlig sekvestrering: <span className="text-foreground font-medium">{co2Display}</span>
                     </div>
                   )}
                   {co2TotalDisplay && (
                     <div className="text-xs text-muted-foreground">
-                      Total (30 år):{" "}
-                      <span className="text-foreground font-medium">{co2TotalDisplay}</span>
+                      Total (30 år): <span className="text-foreground font-medium">{co2TotalDisplay}</span>
                     </div>
                   )}
                   {vegetationType && (
@@ -127,14 +117,12 @@ export function EnvironmentalCard({ project }: EnvironmentalCardProps) {
                   <div className="text-sm font-medium">Vandkvalitetsrisiko</div>
                   {waterRiskLabel && (
                     <div className="text-xs text-muted-foreground">
-                      Samlet risiko:{" "}
-                      <span className="text-foreground font-medium">{waterRiskLabel}</span>
+                      Samlet risiko: <span className="text-foreground font-medium">{waterRiskLabel}</span>
                     </div>
                   )}
                   {watercourseDistM != null && (
                     <div className="text-xs text-muted-foreground">
-                      Nærmeste vandløb:{" "}
-                      <span className="text-foreground">{watercourseDistM.toFixed(0)} m</span>
+                      Nærmeste vandløb: <span className="text-foreground">{watercourseDistM.toFixed(0)} m</span>
                     </div>
                   )}
                   {mitigationRequired && (
@@ -161,8 +149,7 @@ export function EnvironmentalCard({ project }: EnvironmentalCardProps) {
                   <div className="text-sm font-medium">Jordbund</div>
                   {soilLabel && (
                     <div className="text-xs text-muted-foreground">
-                      Dominant type:{" "}
-                      <span className="text-foreground font-medium">{soilLabel}</span>
+                      Dominant type: <span className="text-foreground font-medium">{soilLabel}</span>
                     </div>
                   )}
                   {soilClass && (
@@ -174,7 +161,7 @@ export function EnvironmentalCard({ project }: EnvironmentalCardProps) {
               </div>
             )}
 
-            {!annualCO2 && !waterRiskLabel && !soilLabel && !isLoading && !error && (
+            {!annualCO2 && !waterRiskLabel && !soilLabel && !isLoading && (
               <p className="text-sm text-muted-foreground">
                 Ingen miljødata tilgængelig for dette projekt.
               </p>

@@ -1,5 +1,3 @@
-import { isDemoDataEnabled } from "@/lib/data-mode";
-import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { GripVertical, Trash2, Sparkles, Eye, Send, Filter, ChevronDown } from "lucide-react";
@@ -9,7 +7,7 @@ import { Section, Chip, ReadinessBar } from "@/components/reports/Primitives";
 import { SECTION_LIBRARY, type SectionDef } from "@/lib/reports-data";
 
 export const Route = createFileRoute("/app/reports/builder")({
-  component: isDemoDataEnabled ? Page : ReportWorkspaceNotice,
+  component: Page,
 });
 
 const GROUPS = [
@@ -89,6 +87,7 @@ function Page() {
       />
 
       <div className="grid lg:grid-cols-[280px_1fr_320px] gap-4">
+
         {/* LEFT: Library */}
         <Card className="p-3">
           <div className="text-xs font-semibold text-muted-foreground px-2 mb-2">
@@ -259,15 +258,13 @@ function Page() {
               </div>
 
               <div className="mt-4 space-y-2 text-sm">
-                {(
-                  [
-                    ["Inkludér tekst", true],
-                    ["Inkludér diagrammer", active.charts > 0],
-                    ["Inkludér tabeller", true],
-                    ["Inkludér AI-resumé", true],
-                    ["Inkludér rådata", false],
-                  ] as const
-                ).map(([l, def]) => (
+                {([
+                  ["Inkludér tekst", true],
+                  ["Inkludér diagrammer", active.charts > 0],
+                  ["Inkludér tabeller", true],
+                  ["Inkludér AI-resumé", true],
+                  ["Inkludér rådata", false],
+                ] as const).map(([l, def]) => (
                   <label key={l} className="flex items-center justify-between py-1">
                     <span>{l}</span>
                     <input type="checkbox" defaultChecked={def} />

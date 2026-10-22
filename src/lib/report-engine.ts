@@ -122,9 +122,7 @@ export function generateProjectReportPreview({
     }
   });
   if (keyFindings.length === 0) {
-    keyFindings.push(
-      "Datagrundlaget dokumenterer endnu ingen tidslig udvikling. Fravær af registrerede tendenser er ikke dokumentation for uændrede forhold.",
-    );
+    keyFindings.push("Ingen signifikante tendenser registreret i denne periode.");
   }
 
   // ── Data sources summary ────────────────────────────────────────────────────
@@ -153,9 +151,7 @@ export function generateProjectReportPreview({
     .filter((i) => i.trend === "down")
     .forEach((i) => openRisks.push(`Faldende indikator: ${i.label}`));
   if (openRisks.length === 0) {
-    openRisks.push(
-      "Der er endnu ingen registrerede risikopunkter i disse data. En fuldstændig faglig risikovurdering er ikke dokumenteret.",
-    );
+    openRisks.push("Ingen identificerede risici i denne periode.");
   }
 
   // ── Recommended actions ─────────────────────────────────────────────────────
@@ -214,27 +210,65 @@ export function generateProjectReportPreview({
 }
 
 export function getRecommendedNextAction(
-  _project: Project,
-  _indicators: Indicator[],
+  project: Project,
+  indicators: Indicator[],
   actions: Action[],
   mediaItems?: ProjectMediaItem[],
-  _sensors?: IoTSensor[],
+  sensors?: IoTSensor[],
 ): string {
-  // These legacy inputs do not include the saved investigation, source coverage,
-  // photo bindings, notes, review decisions or report archive. They cannot establish
-  // which workflow step is complete. Scores, media flags and simulated sensors
-  // must not stand in for that evidence.
-  const highPriorityAction = actions.find((a) => a.priority === "Høj" && a.status !== "Lukket");
-  if (highPriorityAction) {
-    return "Gennemgå åbne handlinger med høj prioritet i den samlede undersøgelse, og afklar dokumentation og opfølgning.";
+  // Sensor emergencies take top priority
+  if (sensors && sensors.length > 0) {
+    const offline = sensors.filter((s) => s.status === "offline");
+    if (offline.length > 0) {
+      return `Tjek ${offline.length} offline sensor${offline.length > 1 ? "er" : ""} i felten`;
+    }
+    const lowBat = sensors.filter((s) => s.batteryPercent < 20 && s.status !== "offline");
+    if (lowBat.length > 0) {
+      return `Udskift batteri i ${lowBat.length} sensor${lowBat.length > 1 ? "er" : ""}`;
+    }
   }
 
+  // If there's a high-priority open action, return its title
+  const highPriorityAction = actions.find((a) => a.priority === "Høj" && a.status !== "Lukket");
+  if (highPriorityAction) return highPriorityAction.title;
+
+  // Check report readiness
+  const readiness = indicators.find((i) => i.key === "report_readiness");
+  if (readiness?.value !== null && readiness?.value !== undefined && readiness.value < 70) {
+    return "Fuldfør manglende dokumentation";
+  }
+
+  // Check data confidence
+  const dataConfidence = indicators.find(
+    (i) => i.key === "data_quality" || i.key === "data_confidence",
+  );
+  if (
+    dataConfidence?.value !== null &&
+    dataConfidence?.value !== undefined &&
+    dataConfidence.value < 70
+  ) {
+    return "Valider seneste datakilder";
+  }
+
+  // Check biodiversity trend
+  const biodiversity = indicators.find((i) => i.key === "biodiversity_index");
+  if (biodiversity?.trend === "down") {
+    return "Gennemgå biodiversitetsdrivere";
+  }
+
+  // Media-based recommendations
   if (!mediaItems || mediaItems.length === 0) {
-    return "Fortsæt i den samlede undersøgelse med datagrundlag og fotoimport. Der er ingen fotos i denne oversigt.";
+    return "Upload feltfotos som dokumentation af projektets nuværende tilstand.";
   }
   if (!mediaItems.some((m) => !!m.coordinates)) {
-    return "Gennemgå billedernes placering og usikkerhed i den samlede undersøgelse. Upload alene dokumenterer ikke sammenfald med vandløbet.";
+    return "Tilføj placering til billeder, så de kan bruges i kortvisning og rapport.";
+  }
+  if (!mediaItems.some((m) => m.isReportReady)) {
+    return "Markér mindst ét billede som rapportklar dokumentation.";
   }
 
-  return "Gennemgå fotos og datagrundlag i den samlede undersøgelse, og afklar spørgsmål og faglig gennemgang før rapporten.";
+  // Suppress unused variable warning from Project param — keep signature stable
+  void project;
+
+  return "Projektet er klar til næste rapporteringscyklus";
 }

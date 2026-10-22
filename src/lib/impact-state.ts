@@ -11,9 +11,7 @@ export function usePortfolio() {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) setIds(JSON.parse(raw));
-    } catch {
-      // Unavailable storage or invalid JSON keeps the initial portfolio.
-    }
+    } catch {}
     setHydrated(true);
   }, []);
   useEffect(() => {
@@ -32,9 +30,7 @@ export function useCompare() {
     try {
       const raw = sessionStorage.getItem(COMPARE_KEY);
       if (raw) setIds(JSON.parse(raw));
-    } catch {
-      // Unavailable storage or invalid JSON keeps the comparison empty.
-    }
+    } catch {}
   }, []);
   useEffect(() => {
     sessionStorage.setItem(COMPARE_KEY, JSON.stringify(ids));

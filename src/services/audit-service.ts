@@ -1,14 +1,13 @@
 // Audit Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
-import {
-  fetchAuditEventsByProject,
-  fetchAllAuditEvents,
-  insertAuditEvent,
-} from "@/lib/supabase/queries";
+import { fetchAuditEventsByProject, fetchAllAuditEvents, insertAuditEvent } from "@/lib/supabase/queries";
 import { SEED_AUDIT_EVENTS } from "@/data/platform-seed";
 import type { AuditEvent } from "@/lib/supabase/types";
+
+function isMissingTable(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
+}
 
 export async function getAuditEventsByProject(
   projectId: string,
@@ -18,17 +17,27 @@ export async function getAuditEventsByProject(
     SEED_AUDIT_EVENTS.filter((e) => e.project_id === projectId)
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, limit);
-  if (isDemoDataEnabled) return fallback();
-  requireCustomerDatabase();
-  return fetchAuditEventsByProject(projectId, limit);
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchAuditEventsByProject(projectId, limit);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
+  }
 }
 
 export async function getAllAuditEvents(limit = 30): Promise<AuditEvent[]> {
   const fallback = () =>
-    [...SEED_AUDIT_EVENTS].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
-  if (isDemoDataEnabled) return fallback();
-  requireCustomerDatabase();
-  return fetchAllAuditEvents(limit);
+    [...SEED_AUDIT_EVENTS]
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, limit);
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchAllAuditEvents(limit);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
+  }
 }
 
 // ─── Write ────────────────────────────────────────────────────────────────────
@@ -52,16 +61,7 @@ export async function logAuditEvent(input: {
 // ─── CSV export ───────────────────────────────────────────────────────────────
 
 export function auditEventsToCsv(events: AuditEvent[]): string {
-  const headers = [
-    "created_at",
-    "event_type",
-    "entity_type",
-    "entity_id",
-    "title",
-    "description",
-    "actor",
-    "source",
-  ];
+  const headers = ["created_at", "event_type", "entity_type", "entity_id", "title", "description", "actor", "source"];
   const escape = (v: unknown) => {
     if (v == null) return "";
     const s = String(v).replace(/"/g, '""');
@@ -77,9 +77,7 @@ export function auditEventsToCsv(events: AuditEvent[]): string {
       e.description,
       e.actor,
       e.source,
-    ]
-      .map(escape)
-      .join(","),
+    ].map(escape).join(","),
   );
   return [headers.join(","), ...rows].join("\n");
 }

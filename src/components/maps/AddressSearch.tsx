@@ -47,11 +47,7 @@ export function AddressSearch({
   useEffect(() => {
     const query = q.trim();
     setError(null);
-    if (query.length < 2) {
-      setItems([]);
-      setOpen(false);
-      return;
-    }
+    if (query.length < 2) { setItems([]); setOpen(false); return; }
     const t = setTimeout(async () => {
       const id = ++reqIdRef.current;
       setLoading(true);
@@ -81,18 +77,12 @@ export function AddressSearch({
   }, []);
 
   const pick = async (item: PlaceSuggestion) => {
-    let lat = item.lat,
-      lng = item.lng;
+    let lat = item.lat, lng = item.lng;
     if ((lat == null || lng == null) && item.href) {
       try {
         const r = await resolve({ data: { href: item.href } });
-        if (r) {
-          lat = r.lat;
-          lng = r.lng;
-        }
-      } catch {
-        /* ignore */
-      }
+        if (r) { lat = r.lat; lng = r.lng; }
+      } catch { /* ignore */ }
     }
     if (lat == null || lng == null) {
       setError("Kunne ikke slå koordinater op for dette forslag");
@@ -124,19 +114,11 @@ export function AddressSearch({
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => items.length > 0 && setOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              submit();
-              return;
-            }
+            if (e.key === "Enter") { e.preventDefault(); submit(); return; }
             if (!open) return;
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              setHighlight((h) => Math.min(h + 1, items.length - 1));
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              setHighlight((h) => Math.max(h - 1, 0));
-            } else if (e.key === "Escape") setOpen(false);
+            if (e.key === "ArrowDown") { e.preventDefault(); setHighlight((h) => Math.min(h + 1, items.length - 1)); }
+            else if (e.key === "ArrowUp") { e.preventDefault(); setHighlight((h) => Math.max(h - 1, 0)); }
+            else if (e.key === "Escape") setOpen(false);
           }}
           placeholder={placeholder}
           className="w-full pl-9 pr-9 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -147,11 +129,7 @@ export function AddressSearch({
         {q && !loading && (
           <button
             type="button"
-            onClick={() => {
-              setQ("");
-              setItems([]);
-              setOpen(false);
-            }}
+            onClick={() => { setQ(""); setItems([]); setOpen(false); }}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
             aria-label="Ryd søgning"
           >
@@ -168,10 +146,7 @@ export function AddressSearch({
             <li
               key={`${it.type}-${i}-${it.tekst}`}
               onMouseEnter={() => setHighlight(i)}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                void pick(it);
-              }}
+              onMouseDown={(e) => { e.preventDefault(); void pick(it); }}
               className={`px-3 py-2 cursor-pointer flex items-center gap-2 ${
                 i === highlight ? "bg-primary/10" : "hover:bg-muted"
               }`}

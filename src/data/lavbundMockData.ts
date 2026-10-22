@@ -161,7 +161,8 @@ function genererReadings(p: LavbundsProjekt, mps: Maalepunkt[]): VandstandsReadi
     for (let m = 0; m < 24; m++) {
       const rampe = Math.min(1, m / 6);
       const seson = Math.sin(((m % 12) / 12) * Math.PI * 2) * 0.11;
-      const dybde = p.vandspejlFoerM - (p.vandspejlFoerM - (0.28 + gradient)) * rampe + seson;
+      const dybde =
+        p.vandspejlFoerM - (p.vandspejlFoerM - (0.28 + gradient)) * rampe + seson;
       const d = new Date(start);
       d.setMonth(d.getMonth() + m);
       rows.push({

@@ -1,45 +1,34 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
-// This is the canonical publishable-key app client. Interactive browser auth
-// persists only in the browser; privileged or request-authenticated server
-// code must use an explicit server/request-scoped client instead.
-function readBrowserEnv(name: string): string {
-  return ((import.meta.env[name] as string | undefined) ?? "").trim();
-}
-
-const supabaseUrl = readBrowserEnv("VITE_SUPABASE_URL");
+// Reads env vars injected by Vite (VITE_ prefix).
+// Falls back gracefully so the app still boots locally without a Supabase project.
+const supabaseUrl = (import.meta.env["VITE_SUPABASE_URL"] as string | undefined) ?? "";
+// Lovable Cloud bruger VITE_SUPABASE_PUBLISHABLE_KEY — vi læser begge så det virker lokalt og i Lovable
 const supabaseKey =
-  readBrowserEnv("VITE_SUPABASE_PUBLISHABLE_KEY") || readBrowserEnv("VITE_SUPABASE_ANON_KEY") || "";
+  (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ??
+  (import.meta.env["VITE_SUPABASE_ANON_KEY"] as string | undefined) ??
+  "";
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
-const isBrowserRuntime = typeof window !== "undefined";
 
-const browserClient: SupabaseClient<Database> | null = isSupabaseConfigured
-  ? createClient<Database>(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: isBrowserRuntime,
-        autoRefreshToken: isBrowserRuntime,
-        detectSessionInUrl: isBrowserRuntime,
-      },
-    })
-  : null;
+// Singleton — safe to import from any module.
+let _client: SupabaseClient<Database> | null = null;
 
 export function getSupabaseClient(): SupabaseClient<Database> | null {
-  return browserClient;
+  if (!isSupabaseConfigured) return null;
+  if (!_client) {
+    _client = createClient<Database>(supabaseUrl, supabaseKey, {
+      auth: { persistSession: true, autoRefreshToken: true },
+    });
+  }
+  return _client;
 }
 
-export function requireSupabaseClient(): SupabaseClient<Database> {
-  if (browserClient) return browserClient;
-
-  throw new Error(
-    "Missing browser Supabase environment variable(s): VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY).",
-  );
-}
-
-export function requireSupabaseUrl(): string {
-  if (supabaseUrl) return supabaseUrl;
-  throw new Error("Missing browser Supabase environment variable: VITE_SUPABASE_URL.");
-}
-
-export const supabase = browserClient;
+// Convenience re-export so call sites can write:
+//   import { supabase } from "@/lib/supabase/client"
+export const supabase = isSupabaseConfigured
+  ? createClient<Database>(supabaseUrl, supabaseKey, {
+      auth: { persistSession: true, autoRefreshToken: true },
+    })
+  : null;

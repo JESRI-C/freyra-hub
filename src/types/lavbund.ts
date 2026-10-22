@@ -3,12 +3,21 @@
 // officielle tal og må ikke ændres.
 
 export type Kulstofklasse = ">12" | "6-12" | "<6";
-export type Arealanvendelse = "Omdrift" | "Permanent græs" | "Natur" | "Øvrige IMK-arealer";
+export type Arealanvendelse =
+  | "Omdrift"
+  | "Permanent græs"
+  | "Natur"
+  | "Øvrige IMK-arealer";
 export type Landskabstype = "moraene" | "hedeslette";
 export type Vandloebsform = "udrettet" | "slynget";
 export type VandloebsType = 1 | 2 | 3;
 export type Georegion = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-export type ProjektStatus = "planlagt" | "etablering" | "maaling" | "verificeret" | "overdraget";
+export type ProjektStatus =
+  | "planlagt"
+  | "etablering"
+  | "maaling"
+  | "verificeret"
+  | "overdraget";
 export type Opmaalingsintensitet = "minimal" | "standard" | "intensiv";
 
 /** Anvendelsesområde — HÅRD grænse. Jf. v12-vejledningen egner metoden sig IKKE

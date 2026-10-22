@@ -1,23 +1,21 @@
 // Data Sources Service
 
-import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { fetchDataSourcesByProject, fetchAllDataSources } from "@/lib/supabase/queries";
 import { SEED_DATA_SOURCES } from "@/data/platform-seed";
 import type { DataSource } from "@/lib/supabase/types";
 
 export async function getDataSourcesByProjectAsync(projectId: string): Promise<DataSource[]> {
-  if (isDemoDataEnabled) {
+  if (!isSupabaseConfigured) {
     return SEED_DATA_SOURCES.filter((d) => d.project_id === projectId);
   }
-  requireCustomerDatabase();
   return fetchDataSourcesByProject(projectId);
 }
 
 export async function getAllDataSources(): Promise<DataSource[]> {
-  if (isDemoDataEnabled) {
+  if (!isSupabaseConfigured) {
     return [...SEED_DATA_SOURCES].sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
-  requireCustomerDatabase();
   return fetchAllDataSources();
 }
 

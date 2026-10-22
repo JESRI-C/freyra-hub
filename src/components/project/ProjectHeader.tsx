@@ -24,7 +24,6 @@ function statusTone(status: string | null): "success" | "warning" | "info" | "de
 
 interface ProjectHeaderProps {
   project: Project;
-  canEdit?: boolean;
   sitesCount: number;
   activeDataSourcesCount: number;
   openActionsCount: number;
@@ -32,7 +31,6 @@ interface ProjectHeaderProps {
 
 export function ProjectHeader({
   project,
-  canEdit = false,
   sitesCount,
   activeDataSourcesCount,
   openActionsCount,
@@ -61,7 +59,6 @@ export function ProjectHeader({
   }
 
   async function changeStatus(next: string) {
-    if (!canEdit) return;
     if (next === project.status) {
       setStatusOpen(false);
       return;
@@ -75,8 +72,8 @@ export function ProjectHeader({
       await updateProjectDetails(project.id, { status: next });
       toast.success(`Status ændret til: ${next}`);
       await invalidate();
-    } catch {
-      toast.error("Status kunne ikke ændres. Kontrollér din adgang og prøv igen.");
+    } catch (err) {
+      toast.error(`Kunne ikke ændre status: ${(err as Error).message}`);
     } finally {
       setSavingStatus(false);
       setStatusOpen(false);
@@ -116,14 +113,14 @@ export function ProjectHeader({
             <button
               type="button"
               onClick={() => setStatusOpen((v) => !v)}
-              disabled={savingStatus || !canEdit}
+              disabled={savingStatus}
               className="inline-flex items-center gap-1 disabled:opacity-60"
-              aria-label={canEdit ? "Skift status" : "Sagens status"}
+              aria-label="Skift status"
             >
               <Pill tone={statusTone(project.status)}>
                 <span className="inline-flex items-center gap-1">
                   {savingStatus ? "Gemmer…" : (project.status ?? "Ukendt status")}
-                  {canEdit && <ChevronDown className="h-3 w-3" />}
+                  <ChevronDown className="h-3 w-3" />
                 </span>
               </Pill>
             </button>
@@ -143,16 +140,14 @@ export function ProjectHeader({
             )}
           </div>
 
-          {canEdit && (
-            <button
-              type="button"
-              onClick={() => setEditOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Rediger
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Rediger
+          </button>
         </div>
       </div>
 
@@ -179,7 +174,7 @@ export function ProjectHeader({
               : ""}
           </div>
         )}
-        <span>{sitesCount} fotopunkter</span>
+        <span>{sitesCount} sites</span>
         <span>{activeDataSourcesCount} aktive datakilder</span>
         {openActionsCount > 0 && (
           <span className="text-amber-600 font-medium">{openActionsCount} åbne handlinger</span>
@@ -252,8 +247,8 @@ function EditProjectDialog({
       });
       toast.success("Projekt opdateret");
       await onSaved();
-    } catch {
-      setErr("Projektet kunne ikke gemmes. Kontrollér din adgang og prøv igen.");
+    } catch (e2) {
+      setErr((e2 as Error).message);
     } finally {
       setSaving(false);
     }
@@ -267,10 +262,7 @@ function EditProjectDialog({
       <div className="bg-card rounded-2xl shadow-xl border w-full max-w-lg max-h-[90vh] overflow-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-card">
           <h2 className="font-semibold text-base">Rediger projekt</h2>
-          <button
-            onClick={onClose}
-            className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
-          >
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -293,28 +285,16 @@ function EditProjectDialog({
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Projekttype">
-              <select
-                value={projectType}
-                onChange={(e) => setProjectType(e.target.value)}
-                className="input-base"
-              >
+              <select value={projectType} onChange={(e) => setProjectType(e.target.value)} className="input-base">
                 {PROJECT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </Field>
             <Field label="Status">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="input-base"
-              >
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="input-base">
                 {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </Field>
@@ -351,17 +331,11 @@ function EditProjectDialog({
           </div>
 
           {err && (
-            <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-              {err}
-            </div>
+            <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{err}</div>
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border px-4 py-2 text-sm hover:bg-muted"
-            >
+            <button type="button" onClick={onClose} className="rounded-xl border px-4 py-2 text-sm hover:bg-muted">
               Annuller
             </button>
             <button
@@ -390,15 +364,7 @@ function EditProjectDialog({
   );
 }
 
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium">

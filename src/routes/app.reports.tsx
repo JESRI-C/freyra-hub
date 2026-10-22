@@ -1,4 +1,3 @@
-import { isDemoDataEnabled } from "@/lib/data-mode";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -33,18 +32,13 @@ function ReportsLayout() {
   return (
     <>
       <AppTopbar
-        title="Rapporter"
-        showWorkspaceTools={isDemoDataEnabled}
-        subtitle={
-          isDemoDataEnabled
-            ? "Eksempelvisning med opdigtede rapportdata"
-            : "Projektets registreringer og status for rapportarbejdet"
-        }
+        title="Report Engine"
+        subtitle="Generér Green Tripart-, lodsejer-, metode- og myndighedsnotater fra projektets data"
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
-            {TABS.filter((tab) => isDemoDataEnabled || tab.exact).map((t) => {
+            {TABS.map((t) => {
               const active = t.exact ? path === t.to : path.startsWith(t.to);
               const Icon = t.icon;
               return (
@@ -60,12 +54,6 @@ function ReportsLayout() {
           </nav>
         </div>
       </div>
-      {isDemoDataEnabled && (
-        <div role="note" className="max-w-[1400px] mx-auto px-6 pt-4 text-sm text-amber-800">
-          Offline eksempelvisning. Fund, tal, navne og godkendelser er opdigtede og gælder ingen
-          kundesag.
-        </div>
-      )}
       <Outlet />
     </>
   );

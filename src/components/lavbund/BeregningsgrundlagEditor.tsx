@@ -7,16 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Plus,
-  Trash2,
-  Save,
-  AlertTriangle,
-  CheckCircle2,
-  Pencil,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { Plus, Trash2, Save, AlertTriangle, CheckCircle2, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { saveProject } from "@/services/lavbundService";
 import { ledgerAppend } from "@/services/ledgerService";
@@ -117,11 +108,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
         <span className="text-xs text-muted-foreground font-normal">
           — arealfordeling, tiltag, vandspejl, afvigelser
         </span>
-        {open ? (
-          <ChevronUp className="h-4 w-4 ml-auto" />
-        ) : (
-          <ChevronDown className="h-4 w-4 ml-auto" />
-        )}
+        {open ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
       </button>
 
       {open && (
@@ -130,19 +117,11 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <label className="space-y-1">
               <span className="font-medium">Projektnavn</span>
-              <input
-                className={inputCls}
-                value={draft.navn}
-                onChange={(e) => set("navn", e.target.value)}
-              />
+              <input className={inputCls} value={draft.navn} onChange={(e) => set("navn", e.target.value)} />
             </label>
             <label className="space-y-1">
               <span className="font-medium">Kommune</span>
-              <input
-                className={inputCls}
-                value={draft.kommune}
-                onChange={(e) => set("kommune", e.target.value)}
-              />
+              <input className={inputCls} value={draft.kommune} onChange={(e) => set("kommune", e.target.value)} />
             </label>
             <label className="space-y-1">
               <span className="font-medium">Status</span>
@@ -152,9 +131,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
                 onChange={(e) => set("status", e.target.value as ProjektStatus)}
               >
                 {STATUSSER.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
+                  <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
             </label>
@@ -204,9 +181,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
               <input
                 className={numCls}
                 inputMode="decimal"
-                value={
-                  draft.publiceretExAnteTonPrHa != null ? String(draft.publiceretExAnteTonPrHa) : ""
-                }
+                value={draft.publiceretExAnteTonPrHa != null ? String(draft.publiceretExAnteTonPrHa) : ""}
                 placeholder="—"
                 onChange={(e) =>
                   set(
@@ -220,9 +195,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
 
           {/* ── Tiltag ───────────────────────────────────────────────────── */}
           <div>
-            <div className="text-xs font-semibold mb-2">
-              Hydrologiske tiltag (metoden kræver aktiv udtagning)
-            </div>
+            <div className="text-xs font-semibold mb-2">Hydrologiske tiltag (metoden kræver aktiv udtagning)</div>
             <div className="flex flex-wrap gap-2">
               {(Object.keys(TILTAG_LABEL) as (keyof Tiltag)[]).map((k) => (
                 <label
@@ -261,12 +234,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
                 onClick={() =>
                   set("arealFordeling", [
                     ...draft.arealFordeling,
-                    {
-                      kulstofklasse: ">12",
-                      arealanvendelse: "Permanent græs",
-                      buffer: false,
-                      hektar: 0,
-                    },
+                    { kulstofklasse: ">12", arealanvendelse: "Permanent græs", buffer: false, hektar: 0 },
                   ])
                 }
                 className="inline-flex items-center gap-1 text-xs rounded-lg border px-2.5 py-1 hover:bg-muted/40"
@@ -280,9 +248,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
                   <tr>
                     <th className="text-left py-1.5 pr-2 font-medium">Kulstofklasse (% C)</th>
                     <th className="text-left py-1.5 pr-2 font-medium">Arealanvendelse</th>
-                    <th className="text-center py-1.5 pr-2 font-medium">
-                      Bufferzone (halv effekt)
-                    </th>
+                    <th className="text-center py-1.5 pr-2 font-medium">Bufferzone (halv effekt)</th>
                     <th className="text-right py-1.5 pr-2 font-medium">Hektar</th>
                     <th className="py-1.5" />
                   </tr>
@@ -294,14 +260,10 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
                         <select
                           className={inputCls}
                           value={r.kulstofklasse}
-                          onChange={(e) =>
-                            setRække(i, { kulstofklasse: e.target.value as Kulstofklasse })
-                          }
+                          onChange={(e) => setRække(i, { kulstofklasse: e.target.value as Kulstofklasse })}
                         >
                           {KLASSER.map((k) => (
-                            <option key={k} value={k}>
-                              {k}
-                            </option>
+                            <option key={k} value={k}>{k}</option>
                           ))}
                         </select>
                       </td>
@@ -309,14 +271,10 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
                         <select
                           className={inputCls}
                           value={r.arealanvendelse}
-                          onChange={(e) =>
-                            setRække(i, { arealanvendelse: e.target.value as Arealanvendelse })
-                          }
+                          onChange={(e) => setRække(i, { arealanvendelse: e.target.value as Arealanvendelse })}
                         >
                           {ANVENDELSER.map((a) => (
-                            <option key={a} value={a}>
-                              {a}
-                            </option>
+                            <option key={a} value={a}>{a}</option>
                           ))}
                         </select>
                       </td>
@@ -340,10 +298,7 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
                         <button
                           type="button"
                           onClick={() =>
-                            set(
-                              "arealFordeling",
-                              draft.arealFordeling.filter((_, j) => j !== i),
-                            )
+                            set("arealFordeling", draft.arealFordeling.filter((_, j) => j !== i))
                           }
                           className="text-destructive/70 hover:text-destructive"
                         >
@@ -361,19 +316,14 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
                 {draft.samletArealHa.toFixed(2)} ha
               </span>
               {co2.arealTjek === "ok" ? (
-                <Pill tone="success">
-                  <CheckCircle2 className="h-3 w-3" /> Arealtjek OK
-                </Pill>
+                <Pill tone="success"><CheckCircle2 className="h-3 w-3" /> Arealtjek OK</Pill>
               ) : (
-                <Pill tone="danger">
-                  <AlertTriangle className="h-3 w-3" /> Afstem arealfordeling (±0,05 ha)
-                </Pill>
+                <Pill tone="danger"><AlertTriangle className="h-3 w-3" /> Afstem arealfordeling (±0,05 ha)</Pill>
               )}
               <span className="ml-auto">
                 Live-beregnet krediteret:{" "}
                 <strong className="text-primary tabular-nums">
-                  {co2.krediteretTotal.toLocaleString("da-DK", { maximumFractionDigits: 1 })} t
-                  CO₂e/år
+                  {co2.krediteretTotal.toLocaleString("da-DK", { maximumFractionDigits: 1 })} t CO₂e/år
                 </strong>{" "}
                 ({co2.krediteretTonPrHa.toFixed(1)} t/ha)
               </span>
@@ -381,7 +331,10 @@ export function BeregningsgrundlagEditor({ projekt }: { projekt: LavbundsProjekt
           </div>
 
           {/* ── Afvigelser ───────────────────────────────────────────────── */}
-          <AfvigelsesEditor afvigelser={draft.afvigelser} onChange={(a) => set("afvigelser", a)} />
+          <AfvigelsesEditor
+            afvigelser={draft.afvigelser}
+            onChange={(a) => set("afvigelser", a)}
+          />
 
           <div className="flex justify-end gap-2 pt-1">
             <button
@@ -434,10 +387,7 @@ function AfvigelsesEditor({
   return (
     <div>
       <div className="text-xs font-semibold mb-2">
-        Afvigelser{" "}
-        <span className="font-normal text-muted-foreground">
-          — åbne afvigelser reducerer verificeret effekt
-        </span>
+        Afvigelser <span className="font-normal text-muted-foreground">— åbne afvigelser reducerer verificeret effekt</span>
       </div>
       <div className="space-y-1.5">
         {afvigelser.map((a, i) => (

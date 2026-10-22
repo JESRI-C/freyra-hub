@@ -1,34 +1,26 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bits";
-import { getAllNatureProjectSummaries, getProjects } from "@/services/projects-service";
+import { getAllNatureProjectSummaries } from "@/services/projects-service";
 import { ProjectMonitorCard } from "@/components/project/ProjectMonitorCard";
 import { Leaf, FolderOpen, AlertCircle, BarChart2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
-import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
-import {
-  canCreateProject,
-  insertProjectWithoutRepresentation,
-  ProjectCreateConfirmationError,
-  projectCreateErrorMessage,
-  type ProjectsInsertClient,
-} from "@/lib/project-create";
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/projects/")({
-  head: () => ({ meta: [{ title: "Projektoversigt — Freyra" }] }),
+  head: () => ({ meta: [{ title: "Projektoversigt — GoFreyra" }] }),
   component: ProjectsIndexPage,
 });
+
 
 const STATUS_FILTERS = ["Alle", "Under verifikation", "Verificeret", "Afsluttet"];
 
 const PROJECT_TYPES = [
-  "Vandløbsmonitorering",
   "Naturgenopretning",
   "Biodiversitet",
   "Kystbeskyttelse",
@@ -58,40 +50,23 @@ const FORM_DEFAULTS: CreateProjectForm = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProjectsIndexPage() {
-  const { currentOrg, refresh, user } = useAuth();
+  const { currentOrg, selectProject, refresh } = useAuth();
   const orgId = currentOrg?.id ?? "";
-  const canCreate = canCreateProject(currentOrg?.role);
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<CreateProjectForm>(FORM_DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
-  const submissionGuard = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [storedProjectId, setStoredProjectId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
   const { data: querySummaries } = useSuspenseQuery({
-    queryKey: [DEMO_MODE ? "municipal-project-list" : "nature-project-summaries", orgId, user?.id],
-    queryFn: async () => {
-      if (!DEMO_MODE) return getAllNatureProjectSummaries(orgId);
-      // Municipal cards show only project metadata; no per-case indicator,
-      // report or audit queries are needed for this navigation screen.
-      const projects = await getProjects(orgId);
-      return projects.map(
-        (project): NatureProjectSummary => ({
-          project,
-          indicators: [],
-          activeDataSources: 0,
-          openActions: 0,
-          latestAuditEvent: null,
-          latestReport: null,
-        }),
-      );
-    },
+    queryKey: ["nature-project-summaries", orgId],
+    queryFn: () => getAllNatureProjectSummaries(orgId),
   });
+
 
   // Prepend any locally created projects so they appear immediately
   const summaries = useMemo(
@@ -153,43 +128,42 @@ function ProjectsIndexPage() {
 
   function closeModal() {
     setShowCreateModal(false);
-    // A committed project awaiting confirmation remains recoverable if the
-    // dialog is closed and reopened; it must not become a fresh create.
-    if (!storedProjectId) {
-      setForm(FORM_DEFAULTS);
-      setFormError(null);
-    }
+    setForm(FORM_DEFAULTS);
+    setFormError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (submissionGuard.current || storedProjectId) return;
     if (!form.name.trim()) return;
     if (!orgId) {
       setFormError("Ingen organisation valgt. Gå tilbage til Vælg arbejdsplads.");
       return;
     }
-    if (!canCreate) {
-      setFormError(
-        "Du har ikke rettighed til at oprette projekter i denne organisation. Kontakt en ejer eller administrator.",
-      );
-      return;
-    }
-    submissionGuard.current = true;
     setSubmitting(true);
     setFormError(null);
 
     const now = new Date().toISOString();
 
-    let inserted: { id: string; slug: string | null };
     try {
       if (!isSupabaseConfigured || !supabase) {
         throw new Error("Backend er ikke konfigureret.");
       }
 
-      inserted = await insertProjectWithoutRepresentation(
-        supabase as unknown as ProjectsInsertClient,
-        {
+      const db = supabase as unknown as {
+        from: (t: string) => {
+          insert: (v: Record<string, unknown>) => {
+            select: (cols: string) => {
+              single: () => Promise<{
+                data: { id: string; slug: string | null } | null;
+                error: { message: string } | null;
+              }>;
+            };
+          };
+        };
+      };
+      const { data: inserted, error } = await db
+        .from("projects")
+        .insert({
           organization_id: orgId,
           name: form.name.trim(),
           description: form.description.trim() || null,
@@ -197,136 +171,113 @@ function ProjectsIndexPage() {
           location_name: form.location.trim() || null,
           status: form.status,
           country: "Denmark",
+        })
+        .select("id, slug")
+        .single();
+      if (error) throw new Error(error.message);
+      if (!inserted) throw new Error("Ingen data returneret");
+      const newId = inserted.id;
+      const newSlug = inserted.slug ?? newId;
+
+      // Optimistic local summary so it appears instantly on return
+      const newSummary: NatureProjectSummary = {
+        project: {
+          id: newId,
+          organization_id: orgId,
+          name: form.name.trim(),
+          slug: inserted.slug,
+          project_type: form.projectType,
+          location_name: form.location.trim() || null,
+          municipality: null,
+          country: "Denmark",
+          status: form.status,
+          start_date: null,
+          end_date: null,
+          description: form.description.trim() || null,
+          created_at: now,
+          geometry_polygon: null,
+          geometry_centroid_lat: null,
+          geometry_centroid_lng: null,
+          geometry_area_ha: null,
+          geometry_source: "none",
         },
-      );
+        indicators: [],
+        activeDataSources: 0,
+        openActions: 0,
+        latestAuditEvent: null,
+        latestReport: null,
+      };
+
+      setLocalSummaries((prev) => [newSummary, ...prev]);
+      selectProject(newId);
+      await refresh();
+      closeModal();
+      showToast("Projekt oprettet");
+      navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Kunne ikke oprette projekt";
       console.error("Kunne ikke oprette projekt:", err);
-      if (err instanceof ProjectCreateConfirmationError) setStoredProjectId(err.projectId);
-      setFormError(projectCreateErrorMessage(err));
-      submissionGuard.current = err instanceof ProjectCreateConfirmationError;
+      setFormError(msg);
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    const newId = inserted.id;
-    const newSlug = inserted.slug ?? newId;
-
-    // Optimistic local summary so it appears instantly on return
-    const newSummary: NatureProjectSummary = {
-      project: {
-        id: newId,
-        organization_id: orgId,
-        name: form.name.trim(),
-        slug: inserted.slug,
-        project_type: form.projectType,
-        location_name: form.location.trim() || null,
-        municipality: null,
-        country: "Denmark",
-        status: form.status,
-        start_date: null,
-        end_date: null,
-        description: form.description.trim() || null,
-        created_at: now,
-        geometry_polygon: null,
-        geometry_centroid_lat: null,
-        geometry_centroid_lng: null,
-        geometry_area_ha: null,
-        geometry_source: "none",
-      },
-      indicators: [],
-      activeDataSources: 0,
-      openActions: 0,
-      latestAuditEvent: null,
-      latestReport: null,
-    };
-
-    setLocalSummaries((prev) => [newSummary, ...prev]);
-    closeModal();
-    showToast("Projekt oprettet");
-
-    // The insert is committed at this point. A refresh failure must not be
-    // presented as a failed create, because retrying would create a duplicate.
-    try {
-      const { projectSelected } = await refresh({ selectProjectId: newId });
-      if (!projectSelected) {
-        showToast("Projektet er oprettet. Genindlæs siden for at opdatere projektvalget.");
-      }
-    } catch (refreshError) {
-      console.error(
-        "Projektet blev oprettet, men projektlisten kunne ikke opdateres:",
-        refreshError,
-      );
-      showToast("Projektet er oprettet. Genindlæs siden for at opdatere projektlisten.");
-    }
-
-    submissionGuard.current = false;
-    setSubmitting(false);
-    navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
   }
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5 pb-16">
       <PageHeader
-        title={DEMO_MODE ? "Sager" : "Projektoversigt"}
-        description="Fra de første dronebilleder til en samlet, sporbar aflevering"
+        title="Projektoversigt"
+        description="Alle naturprojekter i din organisation"
         actions={
           <div className="flex items-center gap-2">
-            <Pill tone="info">{summaries.length} sager</Pill>
+            <Pill tone="info">{summaries.length} projekter</Pill>
             <button
-              onClick={() => canCreate && setShowCreateModal(true)}
-              disabled={!canCreate}
-              title={
-                canCreate
-                  ? "Opret et projekt"
-                  : "Kun ejer, administrator eller redaktør kan oprette projekter"
-              }
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               <Plus className="h-4 w-4" />
-              Opret sag
+              Opret projekt
             </button>
           </div>
         }
       />
 
       {/* Stat bar — klikbare filtre */}
-      {!DEMO_MODE && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Projekter i alt"
-            value={String(summaries.length)}
-            icon={<FolderOpen className="h-5 w-5" />}
-            onClick={clearFilters}
-            active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
-          />
-          <StatCard
-            label="Aktive datakilder"
-            value={String(totalSites)}
-            icon={<Leaf className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Åbne handlinger"
-            value={String(totalOpenActions)}
-            icon={<AlertCircle className="h-5 w-5" />}
-            accent="bg-amber-100 text-amber-700"
-            onClick={() => {
-              setOpenActionsOnly((v) => !v);
-              setHighReadinessOnly(false);
-            }}
-            active={openActionsOnly}
-          />
-          <StatCard
-            label="Gns. rapportklarhed"
-            value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
-            icon={<BarChart2 className="h-5 w-5" />}
-            onClick={() => {
-              setHighReadinessOnly((v) => !v);
-              setOpenActionsOnly(false);
-            }}
-            active={highReadinessOnly}
-          />
-        </div>
-      )}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Projekter i alt"
+          value={String(summaries.length)}
+          icon={<FolderOpen className="h-5 w-5" />}
+          onClick={clearFilters}
+          active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
+        />
+        <StatCard
+          label="Aktive datakilder"
+          value={String(totalSites)}
+          icon={<Leaf className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Åbne handlinger"
+          value={String(totalOpenActions)}
+          icon={<AlertCircle className="h-5 w-5" />}
+          accent="bg-amber-100 text-amber-700"
+          onClick={() => {
+            setOpenActionsOnly((v) => !v);
+            setHighReadinessOnly(false);
+          }}
+          active={openActionsOnly}
+        />
+        <StatCard
+          label="Gns. rapportklarhed"
+          value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
+          icon={<BarChart2 className="h-5 w-5" />}
+          onClick={() => {
+            setHighReadinessOnly((v) => !v);
+            setOpenActionsOnly(false);
+          }}
+          active={highReadinessOnly}
+        />
+      </div>
 
       {/* Search + filter */}
       <Card className="p-4 space-y-3">
@@ -335,7 +286,7 @@ function ProjectsIndexPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Søg efter sagsnavn, placering eller type…"
+            placeholder="Søg efter projektnavn, placering eller type…"
             className="flex-1 bg-transparent outline-none text-sm"
           />
         </div>
@@ -367,61 +318,37 @@ function ProjectsIndexPage() {
             {openActionsOnly && (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-1">
                 Kun med åbne handlinger
-                <button onClick={() => setOpenActionsOnly(false)}>
-                  <X className="h-3 w-3" />
-                </button>
+                <button onClick={() => setOpenActionsOnly(false)}><X className="h-3 w-3" /></button>
               </span>
             )}
             {highReadinessOnly && (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-1">
                 Rapportklarhed ≥ 80%
-                <button onClick={() => setHighReadinessOnly(false)}>
-                  <X className="h-3 w-3" />
-                </button>
+                <button onClick={() => setHighReadinessOnly(false)}><X className="h-3 w-3" /></button>
               </span>
             )}
           </div>
         )}
       </Card>
 
+
       {/* Result count */}
       <div className="text-sm text-muted-foreground">
         Viser <span className="font-medium text-foreground">{filtered.length}</span> af{" "}
-        {summaries.length} sager
+        {summaries.length} projekter
       </div>
 
       {/* Project grid */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((s) =>
-            DEMO_MODE ? (
-              <Link
-                key={s.project.id}
-                to="/app/projects/$slug"
-                params={{ slug: s.project.slug ?? s.project.id }}
-                search={{ step: "billeder" }}
-                className="group flex min-h-48 flex-col rounded-xl border bg-card p-6 transition hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
-              >
-                <span className="text-xs text-muted-foreground">
-                  {s.project.municipality ?? "Område afventer"}
-                </span>
-                <h2 className="mt-3 text-xl font-semibold">{s.project.name}</h2>
-                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                  {s.project.description ?? "Åbn sagen for at se billeder, kilder og rapporter."}
-                </p>
-                <span className="mt-auto pt-6 text-sm font-medium text-primary">
-                  Åbn sagsforløb →
-                </span>
-              </Link>
-            ) : (
-              <ProjectMonitorCard key={s.project.id} summary={s} />
-            ),
-          )}
+          {filtered.map((s) => (
+            <ProjectMonitorCard key={s.project.id} summary={s} />
+          ))}
         </div>
       ) : (
         <Card className="py-12 text-center">
           <CardHeader
-            title="Ingen sager fundet"
+            title="Ingen projekter fundet"
             subtitle="Prøv at justere din søgning eller filtrering"
           />
         </Card>
@@ -436,7 +363,7 @@ function ProjectsIndexPage() {
           <div className="bg-card rounded-2xl shadow-xl border w-full max-w-lg">
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b">
-              <h2 className="font-semibold text-base">Opret ny sag</h2>
+              <h2 className="font-semibold text-base">Opret nyt projekt</h2>
               <button
                 onClick={closeModal}
                 className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
@@ -456,7 +383,7 @@ function ProjectsIndexPage() {
                   required
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Projektets navn"
+                  placeholder="F.eks. Vejle Ådal Genopretning"
                   className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
@@ -496,7 +423,7 @@ function ProjectsIndexPage() {
                   <input
                     value={form.location}
                     onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="Kommune eller lokalitet"
+                    placeholder="F.eks. Vejle"
                     className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>
@@ -524,22 +451,8 @@ function ProjectsIndexPage() {
               </div>
 
               {formError && (
-                <div
-                  role="alert"
-                  className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2"
-                >
+                <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
                   {formError}
-                  {storedProjectId && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate({ to: "/app/projects/$slug", params: { slug: storedProjectId } })
-                      }
-                      className="block mt-2 underline"
-                    >
-                      Åbn gemt projekt
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -554,9 +467,7 @@ function ProjectsIndexPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={
-                    submitting || Boolean(storedProjectId) || !form.name.trim() || !canCreate
-                  }
+                  disabled={submitting || !form.name.trim()}
                   className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
                   {submitting ? "Opretter…" : "Opret projekt"}

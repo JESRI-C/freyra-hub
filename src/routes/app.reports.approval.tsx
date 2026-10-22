@@ -1,5 +1,3 @@
-import { isDemoDataEnabled } from "@/lib/data-mode";
-import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Card, StatCard } from "@/components/ui-bits";
@@ -24,7 +22,7 @@ import {
 
 export const Route = createFileRoute("/app/reports/approval")({
   head: () => ({ meta: [{ title: "Godkendelse & eksport — GoFreyra" }] }),
-  component: isDemoDataEnabled ? ApprovalPage : ReportWorkspaceNotice,
+  component: ApprovalPage,
 });
 
 const STEPS = ["Kladde", "Datatjek", "Intern review", "Godkendelse", "Eksport", "Arkivering"];

@@ -8,6 +8,7 @@ import { logAuditEvent } from "./audit-service";
 
 type Client = SupabaseClient<Database>;
 
+
 type Device = Database["public"]["Tables"]["monitoring_devices"]["Row"];
 type Measurement = Database["public"]["Tables"]["device_measurements"]["Row"];
 type AlertInsert = Database["public"]["Tables"]["monitoring_alerts"]["Insert"];
@@ -42,17 +43,15 @@ function cond(rule: AlertRule): Record<string, unknown> {
   return (rule.condition ?? {}) as Record<string, unknown>;
 }
 
-export const alertEvaluators: Record<
-  string,
-  (rule: AlertRule, ctx: AlertContext) => DetectedAlert[]
-> = {
+export const alertEvaluators: Record<string, (rule: AlertRule, ctx: AlertContext) => DetectedAlert[]> = {
   device_offline: (rule, ctx) => {
     const c = cond(rule);
     const defaultMinutes = num(c.max_minutes, 0);
     const out: DetectedAlert[] = [];
     for (const d of ctx.devices) {
-      const expected =
-        defaultMinutes > 0 ? defaultMinutes : Math.max(60, (d.expected_interval_minutes ?? 60) * 2);
+      const expected = defaultMinutes > 0
+        ? defaultMinutes
+        : Math.max(60, (d.expected_interval_minutes ?? 60) * 2);
       const t = d.last_seen_at ? new Date(d.last_seen_at).getTime() : 0;
       const cutoff = ctx.now.getTime() - expected * 60_000;
       if (!t || t < cutoff) {
@@ -222,23 +221,14 @@ export async function runAlertEvaluation(
   opts?: { windowMinutes?: number; client?: Client },
 ): Promise<AlertRunResult> {
   const client = (opts?.client ?? browserClient) as Client | null;
-  if (!client || (!opts?.client && !isSupabaseConfigured))
-    throw new Error("Supabase not configured");
+  if (!client || (!opts?.client && !isSupabaseConfigured)) throw new Error("Supabase not configured");
   const windowMinutes = opts?.windowMinutes ?? 24 * 60;
   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
 
   const [rulesRes, devicesRes, issuesCountRes] = await Promise.all([
-    client
-      .from("alert_rules")
-      .select("*")
-      .or(`project_id.eq.${projectId},project_id.is.null`)
-      .eq("is_active", true),
+    client.from("alert_rules").select("*").or(`project_id.eq.${projectId},project_id.is.null`).eq("is_active", true),
     client.from("monitoring_devices").select("*").eq("project_id", projectId),
-    client
-      .from("data_quality_issues")
-      .select("id", { count: "exact", head: true })
-      .eq("project_id", projectId)
-      .eq("status", "open"),
+    client.from("data_quality_issues").select("id", { count: "exact", head: true }).eq("project_id", projectId).eq("status", "open"),
   ]);
   if (rulesRes.error) throw rulesRes.error;
   if (devicesRes.error) throw devicesRes.error;
@@ -275,13 +265,9 @@ export async function runAlertEvaluation(
     .eq("project_id", projectId)
     .in("status", ["active", "acknowledged"]);
   const openKeys = new Set(
-    (
-      (openAlertsRaw ?? []) as Array<{
-        alert_rule_id: string | null;
-        alert_type: string;
-        source_id: string | null;
-      }>
-    ).map((a) => `${a.alert_rule_id ?? ""}|${a.alert_type}|${a.source_id ?? ""}`),
+    ((openAlertsRaw ?? []) as Array<{ alert_rule_id: string | null; alert_type: string; source_id: string | null }>).map(
+      (a) => `${a.alert_rule_id ?? ""}|${a.alert_type}|${a.source_id ?? ""}`,
+    ),
   );
 
   const inserts: AlertInsert[] = [];
@@ -312,12 +298,11 @@ export async function runAlertEvaluation(
 
   let fired = 0;
   if (inserts.length > 0) {
-    const { error, count } = await client
-      .from("monitoring_alerts")
-      .insert(inserts as never, { count: "exact" });
+    const { error, count } = await client.from("monitoring_alerts").insert(inserts as never, { count: "exact" });
     if (error) throw error;
     fired = count ?? inserts.length;
   }
+
 
   const summary: AlertRunResult = {
     ruleCount: rules.length,

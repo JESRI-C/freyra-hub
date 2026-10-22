@@ -111,6 +111,7 @@ function ConstructionProjectDetailPage() {
                   </div>
                 </Card>
 
+
                 {/* Compliance mapping */}
                 <ComplianceMappingCard summary={summary} />
 

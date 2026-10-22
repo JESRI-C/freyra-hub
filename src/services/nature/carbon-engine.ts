@@ -15,54 +15,50 @@
 
 import { fetchSoilProfile, type SoilProfile, type SoilClass } from "./geus-service";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
-import { isDemoDataEnabled } from "@/lib/data-mode";
 import { saveIndicator } from "@/services/indicators-service";
 import { logAuditEvent } from "@/services/audit-service";
 
 // ─── CO₂-sekvestreringsfaktorer (t CO₂/ha/år) ────────────────────────────────
 // Kilde: IPCC 2006 GL Supplement 2019, tabel 2.10 + DCE 2023
 
-const SEQUESTRATION_RATES: Record<
-  string,
-  {
-    aboveground: number; // overjordisk biomasse
-    belowground: number; // rodzone
-    soil: number; // jordbund (SOC)
-    label: string;
-  }
-> = {
+const SEQUESTRATION_RATES: Record<string, {
+  aboveground: number;  // overjordisk biomasse
+  belowground: number;  // rodzone
+  soil: number;         // jordbund (SOC)
+  label: string;
+}> = {
   // Naturgenopretning
-  oak_woodland: { aboveground: 4.2, belowground: 1.2, soil: 0.8, label: "Egeskov" },
-  mixed_forest: { aboveground: 5.8, belowground: 1.5, soil: 0.9, label: "Blandet skov" },
-  wetland_restored: { aboveground: 1.2, belowground: 0.4, soil: 8.5, label: "Genvådnet mose/eng" },
-  grassland: { aboveground: 0.8, belowground: 0.6, soil: 1.2, label: "Permanent græsland" },
-  heathland: { aboveground: 0.6, belowground: 0.3, soil: 0.9, label: "Hede" },
-  riparian: { aboveground: 3.5, belowground: 1.1, soil: 2.1, label: "Ådalsnatur" },
-  coastal_meadow: { aboveground: 0.9, belowground: 0.5, soil: 1.8, label: "Strandeng" },
+  oak_woodland:      { aboveground: 4.2, belowground: 1.2, soil: 0.8, label: "Egeskov" },
+  mixed_forest:      { aboveground: 5.8, belowground: 1.5, soil: 0.9, label: "Blandet skov" },
+  wetland_restored:  { aboveground: 1.2, belowground: 0.4, soil: 8.5, label: "Genvådnet mose/eng" },
+  grassland:         { aboveground: 0.8, belowground: 0.6, soil: 1.2, label: "Permanent græsland" },
+  heathland:         { aboveground: 0.6, belowground: 0.3, soil: 0.9, label: "Hede" },
+  riparian:          { aboveground: 3.5, belowground: 1.1, soil: 2.1, label: "Ådalsnatur" },
+  coastal_meadow:    { aboveground: 0.9, belowground: 0.5, soil: 1.8, label: "Strandeng" },
   // Biodiversitetsprojekter
-  biodiversity_mix: { aboveground: 2.8, belowground: 0.9, soil: 1.4, label: "Biodiversitetsareal" },
+  biodiversity_mix:  { aboveground: 2.8, belowground: 0.9, soil: 1.4, label: "Biodiversitetsareal" },
   // Rewilding
-  rewilding: { aboveground: 3.2, belowground: 1.0, soil: 2.8, label: "Rewilding" },
+  rewilding:         { aboveground: 3.2, belowground: 1.0, soil: 2.8, label: "Rewilding" },
 };
 
 // Jord-boosterfaktor: organisk jord øger kulstoflagring markant
 const SOIL_MULTIPLIERS: Record<SoilClass, number> = {
-  organic: 2.4,
-  humus: 1.6,
-  clay: 1.1,
+  organic:    2.4,
+  humus:      1.6,
+  clay:       1.1,
   sandy_clay: 1.0,
-  sand: 0.7,
-  chalk: 0.6,
-  unknown: 1.0,
+  sand:       0.7,
+  chalk:      0.6,
+  unknown:    1.0,
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface CarbonEstimate {
-  annualSequestration: number; // t CO₂/år (år 1-10 gennemsnit)
-  peakSequestration: number; // t CO₂/år (år 20-30 ved modenhed)
-  totalOver30Years: number; // samlet t CO₂ over 30 år
-  soilCarbonPool: number; // eksisterende jordbunds-C pool (t CO₂/ha)
+  annualSequestration: number;   // t CO₂/år (år 1-10 gennemsnit)
+  peakSequestration: number;     // t CO₂/år (år 20-30 ved modenhed)
+  totalOver30Years: number;      // samlet t CO₂ over 30 år
+  soilCarbonPool: number;        // eksisterende jordbunds-C pool (t CO₂/ha)
   vegetationType: string;
   soilClass: SoilClass;
   methodology: string;
@@ -91,8 +87,7 @@ function inferVegetationType(
   const pt = (projectType ?? "").toLowerCase();
 
   if (pt.includes("skov") || pt.includes("forest")) return "mixed_forest";
-  if (pt.includes("mose") || pt.includes("vådområde") || pt.includes("wetland"))
-    return "wetland_restored";
+  if (pt.includes("mose") || pt.includes("vådområde") || pt.includes("wetland")) return "wetland_restored";
   if (pt.includes("eng") || pt.includes("strandeng")) return "coastal_meadow";
   if (pt.includes("hede")) return "heathland";
   if (pt.includes("rewilding")) return "rewilding";
@@ -127,27 +122,20 @@ export function computeCarbonEstimate(
   const maturityFactor = Math.min(1, (projectAgeYears + 2) / 25);
 
   const rawAnnual = (rates.aboveground + rates.belowground + rates.soil) * soilMult;
-  const annualSequestration =
-    Math.round(rawAnnual * areaHa * (0.4 + maturityFactor * 0.6) * 10) / 10;
+  const annualSequestration = Math.round(rawAnnual * areaHa * (0.4 + maturityFactor * 0.6) * 10) / 10;
   const peakSequestration = Math.round(rawAnnual * areaHa * 10) / 10;
 
   // Kumulative over 30 år (trapez-integration)
-  const totalOver30Years =
-    Math.round(
-      areaHa *
-        soilMult *
-        (rates.aboveground * 30 * 0.75 + // ~75% af peak-rate gennemsnit
-          rates.belowground * 30 * 0.7 +
-          rates.soil * 30 * 0.85) * // jordbund sekvestrerer mere stabilt
-        10,
-    ) / 10;
+  const totalOver30Years = Math.round(
+    areaHa * soilMult * (
+      rates.aboveground * 30 * 0.75 +  // ~75% af peak-rate gennemsnit
+      rates.belowground * 30 * 0.70 +
+      rates.soil * 30 * 0.85            // jordbund sekvestrerer mere stabilt
+    ) * 10
+  ) / 10;
 
-  const confidence =
-    soil.mode === "live" && ndvi != null
-      ? "high"
-      : soil.mode === "live" || ndvi != null
-        ? "medium"
-        : "low";
+  const confidence = soil.mode === "live" && ndvi != null ? "high" :
+                     soil.mode === "live" || ndvi != null ? "medium" : "low";
 
   return {
     annualSequestration,
@@ -178,11 +166,6 @@ export async function runCarbonAnalysis(
   ndvi?: number | null,
   startDate?: string | null,
 ): Promise<CarbonEngineResult> {
-  // Customer estimates require the validated baseline contract planned for the
-  // public-data pipeline; a centroid and legacy defaults cannot authorize it.
-  if (!isDemoDataEnabled) {
-    throw new Error("Projektanalysen afventer et valideret offentligt datagrundlag.");
-  }
   const soil = await fetchSoilProfile(lat, lng);
 
   const projectAgeYears = startDate

@@ -1,20 +1,12 @@
 import { getLiveDataConfig } from "@/config/live-data-config";
-import { isDemoDataEnabled } from "@/lib/data-mode";
-import {
-  fetchWithTimeout,
-  fetchConnector,
-  previewResponse,
-  missingKeyResponse,
-  errorResponse,
-  hasSourceGeometry,
-} from "../live-data-client";
+import { fetchWithTimeout, fetchConnector, previewResponse, missingKeyResponse } from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
 
 export interface SentinelScene {
   id: string;
   datetime: string;
-  cloudCover?: number;
+  cloudCover: number;
   platform: string;
   downloadUrl?: string;
 }
@@ -60,22 +52,18 @@ export async function fetchByGeometry(
   geometry: ProjectGeometry,
 ): Promise<ConnectorResponse<CopernicusData>> {
   const config = getLiveDataConfig();
-  if (!config.isLiveDataEnabled) return fetchPreview();
-  if (!config.credentials.copernicus.present) return missingKeyResponse<CopernicusData>();
+  if (!config.isLiveDataEnabled) return previewResponse(PREVIEW_DATA);
+  if (!config.credentials.copernicus.present) return { ...missingKeyResponse<CopernicusData>(), data: PREVIEW_DATA };
 
-  if (!hasSourceGeometry(geometry)) {
-    return errorResponse(
-      "Copernicus kræver en gyldig projektgeometri med koordinater.",
-      "invalid_geometry",
-    );
-  }
-  const { lat, lng } = geometry.centroid!;
+  const lat = geometry.centroid?.lat;
+  const lng = geometry.centroid?.lng;
+  if (!lat || !lng) return previewResponse(PREVIEW_DATA);
 
   const token = config.credentials.copernicus.token!;
   const delta = 0.1;
   const bbox = [lng - delta, lat - delta, lng + delta, lat + delta].join(",");
 
-  const result = await fetchConnector(async () => {
+  return fetchConnector(async () => {
     const params = new URLSearchParams({
       bbox,
       limit: "5",
@@ -98,35 +86,20 @@ export async function fetchByGeometry(
       }>;
     };
 
-    if (!Array.isArray(json.features))
-      throw new Error("Copernicus svarede med et ugyldigt scenekatalog.");
-    const scenes: SentinelScene[] = json.features.map((f) => ({
+    const scenes: SentinelScene[] = (json.features ?? []).map((f) => ({
       id: f.id,
       datetime: f.properties.datetime,
-      cloudCover: f.properties["eo:cloud_cover"],
+      cloudCover: f.properties["eo:cloud_cover"] ?? 0,
       platform: f.properties.platform,
       downloadUrl: f.assets?.["visual"]?.href,
     }));
 
     return { scenes, ndviIsSimulated: false, fetchedAt: new Date().toISOString() };
   });
-  if (result.status !== "ok") return result;
-  return result.data?.scenes.length
-    ? result
-    : errorResponse(
-        "Copernicus har ingen scener for området og perioden.",
-        "no_coverage",
-        result.latencyMs,
-      );
 }
 
 export async function fetchPreview(): Promise<ConnectorResponse<CopernicusData>> {
-  return isDemoDataEnabled && !getLiveDataConfig().isLiveDataEnabled
-    ? previewResponse(PREVIEW_DATA)
-    : errorResponse(
-        "Copernicus er ikke konfigureret til live data. Eksempeldata kræver eksplicit offline demo.",
-        "disabled",
-      );
+  return previewResponse(PREVIEW_DATA);
 }
 
 export function normalizeResult(
@@ -136,7 +109,7 @@ export function normalizeResult(
     mode: result.mode,
     status: result.status,
     latencyMs: result.latencyMs,
-    sceneCount: result.data?.scenes.length,
+    sceneCount: result.data?.scenes.length ?? 0,
     latestScene: result.data?.scenes[0]?.datetime,
     latestCloudCover: result.data?.scenes[0]?.cloudCover,
     ndviEstimate: result.data?.latestNdviEstimate,

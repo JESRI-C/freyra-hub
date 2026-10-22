@@ -1,33 +1,12 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { DEMO_MODE, MUNICIPAL_PROJECT_TABS } from "@/lib/demo-mode";
-import { isDemoDataEnabled } from "@/lib/data-mode";
-import {
-  ShieldCheck,
-  RefreshCw,
-  Eye,
-  FileText,
-  AlertTriangle,
-  Activity,
-  MapPin,
-  Images,
-  CheckCircle2,
-} from "lucide-react";
+import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity, MapPin } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
-import {
-  MunicipalCaseWorkspace,
-  MUNICIPAL_STEPS,
-  type MunicipalStep,
-} from "@/components/project/MunicipalCaseWorkspace";
-import { DroneSurveyWorkspace } from "@/components/project/DroneSurveyWorkspace";
-import { PublicBaselinePanel } from "@/components/project/PublicBaselinePanel";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
 import { IndicatorDetail } from "@/components/indicators/IndicatorDetail";
 import { SitesPanel } from "@/components/project/SitesPanel";
@@ -41,9 +20,6 @@ import { DocumentationScore } from "@/components/documents/DocumentationScore";
 import { computeDocumentationScore, listDocuments } from "@/services/documents-service";
 
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
-import { ProjectReportRecords } from "@/components/reports/ProjectReportRecords";
-import { MunicipalReportPanel } from "@/components/reports/MunicipalReportPanel";
-import { DroneImageInspectionPanel } from "@/components/project/DroneImageInspectionPanel";
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import { BiodiversityCard } from "@/components/project/BiodiversityCard";
@@ -53,7 +29,7 @@ import {
   getDataSourcesByProject,
 } from "@/services/projects-service";
 import { getIndicatorsByProject } from "@/services/indicators-service";
-import { getReportsByProject } from "@/services/reports-service";
+import { getReportsByProject, reportStatusTone } from "@/services/reports-service";
 import { getAuditEventsByProject, auditEventIcon } from "@/services/audit-service";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "@/components/project/ProjectMembersPanel";
@@ -72,7 +48,6 @@ import { getEvidenceFilesByProject } from "@/services/evidence-service";
 import { getObservationsByProject, observationTypeLabel } from "@/services/observations-service";
 import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/report-engine";
 import { listProjectMedia } from "@/services/project-media-service";
-import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
 import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
@@ -85,7 +60,7 @@ import {
   formatLastSync,
 } from "@/services/data-sources-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
-import { resolveProjectGeometry, validateProjectPolygon } from "@/services/geo-service";
+import { resolveProjectGeometry } from "@/services/geo-service";
 import { ProjectEnvironmentalDashboard } from "@/components/data-foundation/ProjectEnvironmentalDashboard";
 import type { Action } from "@/lib/supabase/types";
 
@@ -109,26 +84,7 @@ function AuditIcon({ name }: { name: string }) {
 }
 
 export const Route = createFileRoute("/app/projects/$slug")({
-  validateSearch: (
-    search: Record<string, unknown>,
-  ): { tab?: string; round?: string; step?: MunicipalStep } => ({
-    ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
-      ? { step: search.step as MunicipalStep }
-      : {}),
-    ...(typeof search.tab === "string" &&
-    TABS.some((tab) => tab.id === search.tab && (!DEMO_MODE || MUNICIPAL_PROJECT_TABS.has(tab.id)))
-      ? { tab: search.tab }
-      : {}),
-    ...(typeof search.round === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.round)
-      ? { round: search.round.toLowerCase() }
-      : {}),
-  }),
-  head: () => ({ meta: [{ title: "Projekt — Freyra" }] }),
-  // Project reads depend on the browser-persisted Supabase session. Rendering
-  // this route on the server would execute all suspense queries without the
-  // user's JWT and can turn a valid deep-link into a false RLS 404.
-  ssr: false,
+  head: () => ({ meta: [{ title: "Projekt — GoFreyra" }] }),
   loader: async ({ context: { queryClient }, params: { slug } }) => {
     const project = await queryClient.ensureQueryData({
       queryKey: ["project-by-slug", slug],
@@ -137,77 +93,36 @@ export const Route = createFileRoute("/app/projects/$slug")({
     if (!project) throw notFound();
     return project;
   },
-  component: DEMO_MODE ? MunicipalProjectPage : ProjectDetailPage,
+  component: ProjectDetailPage,
   notFoundComponent: () => (
     <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>
   ),
 });
 
 const TABS = [
-  { id: "arbejde", label: "Undersøgelse" },
-  { id: "rapporter", label: "Rapport og levering" },
-  { id: "grundlag", label: "Grundlag" },
   { id: "overblik", label: "Overblik" },
-  { id: "sites", label: "Fotopunkter" },
+  { id: "sites", label: "Sites" },
   { id: "datakilder", label: "Datakilder" },
   { id: "indikatorer", label: "Indikatorer" },
   { id: "handlinger", label: "Handlinger" },
-  { id: "audit", label: "Revisionsspor" },
+  { id: "audit", label: "Audit trail" },
   { id: "roller", label: "Roller" },
   { id: "dokumentation", label: "Dokumentation" },
   { id: "medier", label: "Medier" },
+  { id: "rapporter", label: "Rapporter" },
   { id: "miljodata", label: "Miljødata" },
   { id: "livekort", label: "Livekort" },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-function MunicipalProjectPage() {
-  const project = Route.useLoaderData();
-  const search = Route.useSearch();
-  const navigate = Route.useNavigate();
-  const step =
-    search.step ??
-    (search.tab === "rapporter"
-      ? "rapport"
-      : search.tab === "grundlag"
-        ? "datagrundlag"
-        : "billeder");
-  return (
-    <MunicipalCaseWorkspace
-      project={project}
-      step={step}
-      selectedRoundId={search.round}
-      utility={search.tab === "audit" || search.tab === "roller" ? search.tab : undefined}
-      onStep={(next) => void navigate({ search: { step: next, round: search.round } })}
-      onRound={(round) => void navigate({ search: { step, round } })}
-    />
-  );
-}
-
 function ProjectDetailPage() {
   const { slug } = Route.useParams();
-  const search = Route.useSearch();
-  const navigate = Route.useNavigate();
 
   const { data: project } = useSuspenseQuery({
     queryKey: ["project-by-slug", slug],
     queryFn: () => getProjectBySlug(slug),
   });
-
-  const { user: accessUser } = useAuth();
-  const loadAccess = useServerFn(getSurveyRoundAccess);
-  const actualAccess = useQuery({
-    queryKey: ["municipal-case-access", accessUser?.id, project?.id],
-    queryFn: () => loadAccess({ data: { projectId: project!.id } }),
-    enabled: !!project && !!accessUser,
-    retry: false,
-  });
-  const canEdit =
-    actualAccess.data?.userId === accessUser?.id &&
-    !!actualAccess.data?.canPersist &&
-    !actualAccess.isError &&
-    !actualAccess.isFetching;
 
   // projectId is always set when project exists; hooks below use it unconditionally
   const projectId = project?.id ?? "";
@@ -268,27 +183,28 @@ function ProjectDetailPage() {
 
   // A project has "real" geometry only when a polygon has been drawn or uploaded —
   // a centroid alone (from location name) is not enough to run area-based analyses.
-  const hasRealGeometry = validateProjectPolygon(project?.geometry_polygon).valid;
+  const hasRealGeometry = project?.geometry_polygon != null;
 
-  const {
-    data: mediaItems,
-    error: mediaError,
-    isFetching: mediaLoading,
-  } = useSuspenseQuery({
-    queryKey: ["project-media", projectId],
-    queryFn: async () => {
-      const result = await listProjectMedia(projectId);
-      if (result.error) throw new Error("Projektets medier kunne ikke hentes. Prøv igen senere.");
-      return result.data ?? [];
-    },
-  });
+  // Async media state
+  const [mediaItems, setMediaItems] = useState<
+    import("@/lib/platform/media-types").ProjectMediaItem[]
+  >([]);
+  const [mediaLoading, setMediaLoading] = useState(true);
 
-  const droneUploadsQuery = useQuery({
-    queryKey: ["drone-upload-map-overview", projectId],
-    queryFn: () => getDroneUploadMapOverview(projectId),
-    enabled: !!projectId,
-  });
-  const droneUploadOverview = droneUploadsQuery.data;
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    setMediaLoading(true);
+    listProjectMedia(projectId).then((result) => {
+      if (!cancelled) {
+        setMediaItems(result.data ?? []);
+        setMediaLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   // Local action state (optimistic UI)
   const [localActions, setLocalActions] = useState<Action[]>(actions);
@@ -299,26 +215,6 @@ function ProjectDetailPage() {
     setLocalActions(actions);
   }, [actions]);
 
-  const [selectedIndicator, setSelectedIndicator] = useState<(typeof indicators)[number] | null>(
-    null,
-  );
-  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
-  const [actionFilterSite, setActionFilterSite] = useState<string>("");
-  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
-  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
-  const filteredActions = localActions.filter((a) => {
-    if (actionFilterSite && a.site_id !== actionFilterSite) return false;
-    if (actionFilterStatus && a.status !== actionFilterStatus) return false;
-    if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
-    return true;
-  });
-  const openIndicator = (ind: (typeof indicators)[number]) => {
-    setSelectedIndicator(ind);
-    setIndicatorDetailOpen(true);
-  };
-
-  // A failed background media refresh must not feed stale/empty evidence to the report preview.
-  if (mediaError) throw mediaError;
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
   }
@@ -360,9 +256,8 @@ function ProjectDetailPage() {
     }
   };
 
-  // Generated sensor readings are available only in explicit offline demo.
-  const sensors =
-    isDemoDataEnabled && geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
+  // IoT sensors — generated deterministically from project id + centroid
+  const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
 
   // Report preview
   const reportPreview = generateProjectReportPreview({
@@ -378,74 +273,42 @@ function ProjectDetailPage() {
     sensors,
   });
 
-  const nextAction = getRecommendedNextAction(
-    project,
-    indicators,
-    localActions,
-    mediaItems,
-    sensors,
-  );
+  const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors);
   const sensorActions = suggestSensorActions(sensors);
+
+  const [selectedIndicator, setSelectedIndicator] = useState<typeof indicators[number] | null>(null);
+  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
+  const [actionFilterSite, setActionFilterSite] = useState<string>("");
+  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
+  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
+  const filteredActions = localActions.filter((a) => {
+    if (actionFilterSite && a.site_id !== actionFilterSite) return false;
+    if (actionFilterStatus && a.status !== actionFilterStatus) return false;
+    if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
+    return true;
+  });
+  const openIndicator = (ind: typeof indicators[number]) => {
+    setSelectedIndicator(ind);
+    setIndicatorDetailOpen(true);
+  };
+
 
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
       <ProjectHeader
-        canEdit={canEdit}
         project={project}
         sitesCount={sites.length}
         activeDataSourcesCount={activeDataSourcesCount}
         openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
       />
 
-      <ProjectTabs
-        tabs={DEMO_MODE ? TABS.filter((tab) => MUNICIPAL_PROJECT_TABS.has(tab.id)) : TABS}
-        activeTab={search.tab ?? "arbejde"}
-        primaryTabIds={["arbejde", "rapporter"]}
-        onTabChange={(tab) =>
-          void navigate({ search: (previous) => ({ ...previous, tab }), replace: true })
-        }
-      >
+      <ProjectTabs tabs={TABS}>
         {(active) => (
           <>
-            {active === "arbejde" && (
-              <DroneSurveyWorkspace
-                project={project}
-                selectedRoundId={search.round}
-                onSelectRound={(round) =>
-                  void navigate({
-                    search: (previous) => ({ ...previous, tab: "arbejde", round }),
-                    replace: true,
-                  })
-                }
-                onOpenDelivery={() =>
-                  void navigate({
-                    search: (previous) => ({ ...previous, tab: "rapporter" }),
-                    replace: true,
-                  })
-                }
-                photoCount={droneUploadOverview?.receivedDroneUploads}
-                onPhotosChanged={async () => {
-                  await Promise.all([
-                    droneUploadsQuery.refetch(),
-                    queryClient.invalidateQueries({ queryKey: ["project-media", projectId] }),
-                    queryClient.invalidateQueries({ queryKey: ["survey-round-media-candidates"] }),
-                  ]);
-                }}
-              />
-            )}
             {/* ── Overblik ─────────────────────────────────────────────────── */}
-            {active === "grundlag" && (
-              <PublicBaselinePanel key={project.id} project={project} canPersist={canEdit} />
-            )}
             {active === "overblik" && (
               <div className="space-y-5">
                 {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
-                <DroneBeforeIntakeCard
-                  slug={slug}
-                  projectId={projectId}
-                  organizationId={project.organization_id}
-                  hasRealGeometry={hasRealGeometry}
-                />
                 {/* Recommended next action */}
                 <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
                   <Activity className="h-5 w-5 text-primary shrink-0" />
@@ -461,6 +324,7 @@ function ProjectDetailPage() {
                     <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
                   ))}
                 </div>
+
 
                 {/* Recent observations */}
                 {observations.length > 0 && (
@@ -521,10 +385,12 @@ function ProjectDetailPage() {
             {/* ── Sites ──────────────────────────────────────────────────── */}
             {active === "sites" && <SitesPanel projectId={projectId} sites={sites} />}
 
+
             {/* ── Datakilder ─────────────────────────────────────────────── */}
             {active === "datakilder" && (
               <DataSourcesPanel projectId={projectId} sites={sites} dataSources={dataSources} />
             )}
+
 
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
@@ -565,7 +431,9 @@ function ProjectDetailPage() {
                     <CardHeader
                       title="Sensor-anbefalinger"
                       subtitle="Automatisk afledt fra IoT-feltdata"
-                      action={<Pill tone="warning">{sensorActions.length} forslag</Pill>}
+                      action={
+                        <Pill tone="warning">{sensorActions.length} forslag</Pill>
+                      }
                     />
                     <div className="px-5 pb-3 divide-y">
                       {sensorActions.map((sa, i) => (
@@ -623,9 +491,7 @@ function ProjectDetailPage() {
                     >
                       <option value="">Alle sites</option>
                       {sites.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
+                        <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
                     <select
@@ -664,9 +530,7 @@ function ProjectDetailPage() {
 
                   <div className="px-5 pb-3">
                     {filteredActions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">
-                        Ingen handlinger matcher filter
-                      </p>
+                      <p className="text-sm text-muted-foreground py-4">Ingen handlinger matcher filter</p>
                     ) : (
                       filteredActions.map((action) => (
                         <ActionItem
@@ -681,9 +545,7 @@ function ProjectDetailPage() {
                             if (actualImpact) {
                               try {
                                 await completeAction(id, projectId, actualImpact);
-                                await queryClient.invalidateQueries({
-                                  queryKey: ["actions", projectId],
-                                });
+                                await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
                                 toast.success("Handling afsluttet");
                               } catch (e) {
                                 toast.error((e as Error).message);
@@ -768,10 +630,7 @@ function ProjectDetailPage() {
                   <ProjectMediaUploadPanel
                     projectId={projectId}
                     projectCentroid={geometry.centroid ?? undefined}
-                    onUploadComplete={() =>
-                      void queryClient.invalidateQueries({ queryKey: ["project-media", projectId] })
-                    }
-                    onDroneBatchImported={() => void droneUploadsQuery.refetch()}
+                    onUploadComplete={(item) => setMediaItems((prev) => [item, ...prev])}
                   />
                 </div>
               </div>
@@ -780,26 +639,42 @@ function ProjectDetailPage() {
             {/* ── Rapporter ──────────────────────────────────────────────── */}
             {active === "rapporter" && (
               <div className="space-y-4">
-                <MunicipalReportPanel projectId={projectId} />
-                <DroneImageInspectionPanel projectId={projectId} />
-                <details>
-                  <summary className="cursor-pointer text-sm text-muted-foreground">
-                    Øvrige projektoversigter og dokumenter
-                  </summary>
-                  <div className="mt-4 space-y-4">
-                    <ProjectReportRecords projectId={projectId} reports={reports} />
-                    <ReportPreviewCard preview={reportPreview} />
-                    <DokumentationTab
-                      projectId={projectId}
-                      project={project}
-                      sites={sites}
-                      actions={localActions}
-                      indicators={indicators}
-                      evidenceFiles={evidenceFiles}
-                      delivery
+                {/* Existing reports */}
+                {reports.length > 0 && (
+                  <Card>
+                    <CardHeader
+                      title="Eksisterende rapporter"
+                      action={<Pill tone="info">{reports.length}</Pill>}
                     />
-                  </div>
-                </details>
+                    <div className="px-5 pb-4 divide-y">
+                      {reports.map((r) => {
+                        const tone = reportStatusTone(r.status);
+                        return (
+                          <div key={r.id} className="py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{r.title}</span>
+                              <Pill tone={tone === "neutral" ? "default" : tone}>
+                                {r.status ?? "Kladde"}
+                              </Pill>
+                            </div>
+                            {r.summary && (
+                              <p className="text-xs text-muted-foreground mt-1">{r.summary}</p>
+                            )}
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {r.period_start && r.period_end
+                                ? `${r.period_start} – ${r.period_end}`
+                                : ""}
+                              {r.report_type ? ` · ${r.report_type}` : ""}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Report preview */}
+                <ReportPreviewCard preview={reportPreview} />
               </div>
             )}
 
@@ -842,7 +717,6 @@ function ProjectDetailPage() {
                   projectId={projectId}
                   height={500}
                   mediaItems={mediaItems}
-                  droneUploadPoints={droneUploadOverview?.points ?? []}
                   sensors={sensors}
                   dmiData={
                     environmentalCtx?.liveData?.weather
@@ -862,11 +736,7 @@ function ProjectDetailPage() {
                   <Card className="py-10 text-center">
                     <CardHeader
                       title="Ingen sensorer"
-                      subtitle={
-                        isDemoDataEnabled
-                          ? "Tilknyt en projektgeometri for at se eksempelsensorer"
-                          : "Der er ingen tilknyttede sensorer i denne visning."
-                      }
+                      subtitle="Tilknyt en projektgeometri for at aktivere IoT-sensorlaget"
                     />
                   </Card>
                 )}
@@ -996,9 +866,7 @@ function CreateActionForm({
             >
               <option value="">Intet site</option>
               {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
+                <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
             <input
@@ -1016,9 +884,7 @@ function CreateActionForm({
           >
             <option value="">Ingen tilknyttet indikator</option>
             {indicators.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.label}
-              </option>
+              <option key={i.id} value={i.id}>{i.label}</option>
             ))}
           </select>
           <input
@@ -1084,8 +950,8 @@ function GeometryRequiredBanner({
           <div className="text-sm font-semibold">Projektområde mangler</div>
           <p className="text-sm text-muted-foreground mt-1">
             {variant === "detailed"
-              ? "Afgræns projektet på kortet eller med GeoJSON. Hent derefter offentlige data under Grundlag og kontrollér dækning og kvalitet før analyse."
-              : "Definér projektets afgrænsning som grundlag for kildehentning og verifikation."}
+              ? "For at beregne NDVI, biodiversitet og miljøpåvirkning skal projektets afgrænsning defineres. Tegn polygonen på kortet, eller upload en GeoJSON-fil — beregningerne aktiveres straks efter."
+              : "Definér projektets afgrænsning før beregninger kan køre."}
           </p>
           <div className="mt-3">
             <Link
@@ -1103,77 +969,6 @@ function GeometryRequiredBanner({
   );
 }
 
-function DroneBeforeIntakeCard({
-  slug,
-  projectId,
-  organizationId,
-  hasRealGeometry,
-}: {
-  slug: string;
-  projectId: string;
-  organizationId: string | null;
-  hasRealGeometry: boolean;
-}) {
-  const { orgId, selectOrg } = useAuth();
-
-  return (
-    <Card className="border-primary/25 bg-primary/5 p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-            <Images className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold">Start vandløbets FØR-dokumentation</div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Bind projektområdet og de originale dronebilleder sammen, før grødeskæringen
-              dokumenteres.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 ${
-                  hasRealGeometry
-                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                    : "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
-                }`}
-              >
-                {hasRealGeometry && <CheckCircle2 className="h-3.5 w-3.5" />}
-                1. Projektområde {hasRealGeometry ? "gemt" : "mangler"}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-muted-foreground">
-                2. Upload FØR-dronefotos
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {hasRealGeometry ? (
-          <Link
-            to="/app/connect/upload"
-            search={{ project: projectId } as never}
-            onClick={() => {
-              if (organizationId && organizationId !== orgId) selectOrg(organizationId);
-            }}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-          >
-            <Images className="h-4 w-4" />
-            Upload FØR-dronefotos
-          </Link>
-        ) : (
-          <Link
-            to="/app/projects/geometry/$slug"
-            params={{ slug }}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-background px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10"
-          >
-            <MapPin className="h-4 w-4" />
-            Definér område først
-          </Link>
-        )}
-      </div>
-    </Card>
-  );
-}
-
 // ─── Dokumentation Tab ────────────────────────────────────────────────────────
 
 function DokumentationTab({
@@ -1183,7 +978,6 @@ function DokumentationTab({
   actions,
   indicators,
   evidenceFiles,
-  delivery = false,
 }: {
   projectId: string;
   project: import("@/lib/supabase/types").Project;
@@ -1191,7 +985,6 @@ function DokumentationTab({
   actions: Action[];
   indicators: import("@/lib/supabase/types").Indicator[];
   evidenceFiles: import("@/lib/supabase/types").EvidenceFile[];
-  delivery?: boolean;
 }) {
   const { data: documents = [] } = useQuery({
     queryKey: ["documents", projectId],
@@ -1223,24 +1016,11 @@ function DokumentationTab({
 
   return (
     <div className="space-y-4">
-      {delivery && (
-        <Card className="p-5">
-          <h3 className="font-semibold">Afleveringen er endnu ikke klar</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            PDF-knappen henter en foreløbig projektkladde. Den samlede rapport med daterede kilder,
-            fotonoter, faglig godkendelse og en låst rapportversion er stadig under udvikling.
-          </p>
-        </Card>
-      )}
-      <div className={delivery ? "space-y-4" : "grid lg:grid-cols-[1fr_360px] gap-4"}>
+      <div className="grid lg:grid-cols-[1fr_360px] gap-4">
         <Card>
           <CardHeader
-            title={delivery ? "Projektkladde og eksisterende dokumenter" : "Genererede dokumenter"}
-            subtitle={
-              delivery
-                ? "En kladde kræver fortsat kontrol før aflevering"
-                : "Rapporter, notater og eksporter til myndigheder og partnere"
-            }
+            title="Genererede dokumenter"
+            subtitle="Rapporter, notater og eksporter til myndigheder og partnere"
             action={
               <div className="flex items-center gap-2">
                 <Pill tone="info">{documents.length}</Pill>
@@ -1257,17 +1037,12 @@ function DokumentationTab({
             <DocumentList projectId={projectId} />
           </div>
         </Card>
-        {!delivery && (
-          <Card>
-            <CardHeader
-              title="Dokumentationsscore"
-              subtitle="Hvor komplet er projektets dokumentation"
-            />
-            <div className="px-5 pb-5">
-              <DocumentationScore score={score} />
-            </div>
-          </Card>
-        )}
+        <Card>
+          <CardHeader title="Dokumentationsscore" subtitle="Hvor komplet er projektets dokumentation" />
+          <div className="px-5 pb-5">
+            <DocumentationScore score={score} />
+          </div>
+        </Card>
       </div>
 
       <Card>
@@ -1299,6 +1074,10 @@ function RollerTab({ projectId }: { projectId: string }) {
   });
   const permissions = permissionsFor(role ?? null);
   return (
-    <ProjectMembersPanel projectId={projectId} currentUserId={userId} permissions={permissions} />
+    <ProjectMembersPanel
+      projectId={projectId}
+      currentUserId={userId}
+      permissions={permissions}
+    />
   );
 }

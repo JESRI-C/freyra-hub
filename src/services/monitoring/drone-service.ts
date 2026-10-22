@@ -19,11 +19,7 @@ export async function listFlights(projectId: string): Promise<DroneFlight[]> {
 
 export async function createFlight(input: DroneFlightInsert): Promise<DroneFlight> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase
-    .from("drone_flights")
-    .insert(input as never)
-    .select("*")
-    .single();
+  const { data, error } = await supabase.from("drone_flights").insert(input as never).select("*").single();
   if (error) throw error;
   return data as DroneFlight;
 }

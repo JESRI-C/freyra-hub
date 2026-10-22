@@ -11,7 +11,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { runCarbonAnalysis } from "@/services/nature/carbon-engine";
 import { runWaterQualityAnalysis } from "@/services/nature/water-quality-engine";
 import { fetchSoilProfile, fetchTerrainProfile } from "@/services/nature/geus-service";
-import { isDemoDataEnabled } from "@/lib/data-mode";
 import type { Project } from "@/lib/supabase/types";
 
 export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number | null) {
@@ -24,16 +23,13 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
   // CO₂-binding
   const carbonQuery = useQuery({
     queryKey: ["carbon", project?.id, ndvi],
-    queryFn: () =>
-      runCarbonAnalysis(
-        project!.id,
-        lat!,
-        lng!,
-        project!.geometry_area_ha ?? 1,
-        project!.project_type,
-        ndvi,
-        project!.start_date,
-      ),
+    queryFn: () => runCarbonAnalysis(
+      project!.id, lat!, lng!,
+      project!.geometry_area_ha ?? 1,
+      project!.project_type,
+      ndvi,
+      project!.start_date,
+    ),
     enabled,
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
@@ -42,7 +38,11 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
   // Vandkvalitetsrisiko
   const waterQuery = useQuery({
     queryKey: ["water-quality", project?.id, ndvi],
-    queryFn: () => runWaterQualityAnalysis(project!.id, lat!, lng!, project!.project_type, ndvi),
+    queryFn: () => runWaterQualityAnalysis(
+      project!.id, lat!, lng!,
+      project!.project_type,
+      ndvi,
+    ),
     enabled,
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
@@ -51,16 +51,10 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
   // Jordbundsprofil (raw, til visning)
   const soilQuery = useQuery({
     queryKey: ["soil", lat, lng],
-    queryFn: async () => {
-      if (!isDemoDataEnabled) {
-        throw new Error("Projektanalysen afventer et valideret offentligt datagrundlag.");
-      }
-      const [soil, terrain] = await Promise.all([
-        fetchSoilProfile(lat!, lng!),
-        fetchTerrainProfile(lat!, lng!),
-      ]);
-      return { soil, terrain };
-    },
+    queryFn: () => Promise.all([
+      fetchSoilProfile(lat!, lng!),
+      fetchTerrainProfile(lat!, lng!),
+    ]).then(([soil, terrain]) => ({ soil, terrain })),
     enabled,
     staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dage — jordbund ændrer sig ikke
     retry: 1,
@@ -71,29 +65,17 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
     mutationFn: async () => {
       if (!project || !lat || !lng) return;
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["carbon", project.id] }, { throwOnError: true }),
-        queryClient.invalidateQueries(
-          { queryKey: ["water-quality", project.id] },
-          { throwOnError: true },
-        ),
-        queryClient.invalidateQueries({ queryKey: ["soil", lat, lng] }, { throwOnError: true }),
+        queryClient.invalidateQueries({ queryKey: ["carbon", project.id] }),
+        queryClient.invalidateQueries({ queryKey: ["water-quality", project.id] }),
+        queryClient.invalidateQueries({ queryKey: ["soil", lat, lng] }),
       ]);
     },
   });
 
-  const sourceError =
-    refreshMutation.error ?? carbonQuery.error ?? waterQuery.error ?? soilQuery.error;
-  const errorMessage = sourceError
-    ? sourceError instanceof Error
-      ? sourceError.message
-      : typeof (sourceError as { message?: unknown }).message === "string"
-        ? (sourceError as { message: string }).message
-        : "Projektanalysen kunne ikke gennemføres. Prøv igen."
-    : (carbonQuery.data?.error ?? waterQuery.data?.error ?? null);
-  const carbon = errorMessage ? null : (carbonQuery.data?.estimate ?? null);
-  const water = errorMessage ? null : (waterQuery.data?.risk ?? null);
-  const soil = errorMessage ? null : (soilQuery.data?.soil ?? null);
-  const terrain = errorMessage ? null : (soilQuery.data?.terrain ?? null);
+  const carbon = carbonQuery.data?.estimate ?? null;
+  const water = waterQuery.data?.risk ?? null;
+  const soil = soilQuery.data?.soil ?? null;
+  const terrain = soilQuery.data?.terrain ?? null;
 
   return {
     // CO₂
@@ -121,8 +103,6 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
     carbonLoading: carbonQuery.isLoading,
     waterLoading: waterQuery.isLoading,
     soilLoading: soilQuery.isLoading,
-    isError: !!errorMessage,
-    error: errorMessage,
 
     // Actions
     runAll: () => refreshMutation.mutate(),
@@ -144,10 +124,11 @@ export function computeOverallEnvironmentalScore(params: {
   const weights = { biodiversity: 0.35, vegetation: 0.25, water: 0.25, carbon: 0.15 };
 
   const biodiversityPart = (params.biodiversityScore ?? 50) * weights.biodiversity;
-  const vegetationPart = (params.ndvi ?? 0.4) * 100 * weights.vegetation;
+  const vegetationPart = ((params.ndvi ?? 0.4) * 100) * weights.vegetation;
   const waterPart = (100 - (params.waterRiskScore ?? 50)) * weights.water; // inverter: lav risiko = høj score
-  const carbonPer =
-    params.co2Annual !== null ? Math.min(100, (params.co2Annual / params.areaHa) * 15) : 40;
+  const carbonPer = params.co2Annual !== null
+    ? Math.min(100, (params.co2Annual / params.areaHa) * 15)
+    : 40;
   const carbonPart = carbonPer * weights.carbon;
 
   const score = Math.round(biodiversityPart + vegetationPart + waterPart + carbonPart);

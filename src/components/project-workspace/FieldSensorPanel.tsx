@@ -92,9 +92,7 @@ export function FieldSensorPanel({ sensors, className }: FieldSensorPanelProps) 
             {offline} offline
           </span>
         )}
-        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-          SIMULERET
-        </span>
+        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">SIMULERET</span>
       </div>
 
       <div className="divide-y border-t">

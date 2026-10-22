@@ -33,10 +33,7 @@ export function DataSourceWizard({ projectId, sites, onClose, onCreated }: Props
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const activeSites = useMemo(
-    () => sites.filter((s) => (s.status ?? "active") === "active"),
-    [sites],
-  );
+  const activeSites = useMemo(() => sites.filter((s) => (s.status ?? "active") === "active"), [sites]);
   const canGoStep1 = true; // site is optional (project-level source allowed)
   const canGoStep2 = !!sourceType;
 
@@ -105,10 +102,7 @@ export function DataSourceWizard({ projectId, sites, onClose, onCreated }: Props
               Trin {step + 1} af 4 · {["Site", "Type", "Konfiguration", "Bekræft"][step]}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
-          >
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -123,8 +117,12 @@ export function DataSourceWizard({ projectId, sites, onClose, onCreated }: Props
 
         {/* Body */}
         <div className="flex-1 overflow-auto p-5 space-y-4">
-          {step === 0 && <SiteStep sites={activeSites} siteId={siteId} onChange={setSiteId} />}
-          {step === 1 && <TypeStep sourceType={sourceType} onChange={setSourceType} />}
+          {step === 0 && (
+            <SiteStep sites={activeSites} siteId={siteId} onChange={setSiteId} />
+          )}
+          {step === 1 && (
+            <TypeStep sourceType={sourceType} onChange={setSourceType} />
+          )}
           {step === 2 && sourceType && (
             <ConfigStep
               sourceType={sourceType}
@@ -142,9 +140,7 @@ export function DataSourceWizard({ projectId, sites, onClose, onCreated }: Props
           )}
           {step === 3 && sourceType && (
             <ConfirmStep
-              siteName={
-                activeSites.find((s) => s.id === siteId)?.name ?? "Projekt-niveau (intet site)"
-              }
+              siteName={activeSites.find((s) => s.id === siteId)?.name ?? "Projekt-niveau (intet site)"}
               sourceType={sourceType}
               name={name}
               description={description}
@@ -184,11 +180,7 @@ export function DataSourceWizard({ projectId, sites, onClose, onCreated }: Props
               disabled={saving}
               className="inline-flex items-center gap-1 rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
             >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               Opret datakilde
             </button>
           )}
@@ -200,20 +192,11 @@ export function DataSourceWizard({ projectId, sites, onClose, onCreated }: Props
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
-function SiteStep({
-  sites,
-  siteId,
-  onChange,
-}: {
-  sites: Site[];
-  siteId: string | null;
-  onChange: (v: string | null) => void;
-}) {
+function SiteStep({ sites, siteId, onChange }: { sites: Site[]; siteId: string | null; onChange: (v: string | null) => void }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Vælg hvilket site datakilden dækker. Vælg <em>Projekt-niveau</em> hvis kilden dækker hele
-        projektet.
+        Vælg hvilket site datakilden dækker. Vælg <em>Projekt-niveau</em> hvis kilden dækker hele projektet.
       </p>
       <div className="space-y-2">
         <SiteOption
@@ -242,17 +225,7 @@ function SiteStep({
   );
 }
 
-function SiteOption({
-  selected,
-  onClick,
-  title,
-  subtitle,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  title: string;
-  subtitle: string;
-}) {
+function SiteOption({ selected, onClick, title, subtitle }: { selected: boolean; onClick: () => void; title: string; subtitle: string }) {
   return (
     <button
       onClick={onClick}
@@ -266,18 +239,10 @@ function SiteOption({
   );
 }
 
-function TypeStep({
-  sourceType,
-  onChange,
-}: {
-  sourceType: DataSourceType | null;
-  onChange: (t: DataSourceType) => void;
-}) {
+function TypeStep({ sourceType, onChange }: { sourceType: DataSourceType | null; onChange: (t: DataSourceType) => void }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Vælg hvilken type datakilde du opretter. Feltkravene tilpasses.
-      </p>
+      <p className="text-sm text-muted-foreground">Vælg hvilken type datakilde du opretter. Feltkravene tilpasses.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {DATA_SOURCE_TYPES.map((t) => (
           <button
@@ -315,30 +280,16 @@ function ConfigStep(p: ConfigStepProps) {
   return (
     <div className="space-y-4">
       <Field label="Navn på datakilde" required error={p.errors.name}>
-        <input
-          value={p.name}
-          onChange={(e) => p.onName(e.target.value)}
-          className="input-base"
-          placeholder="F.eks. DMI regnmålere — Vejle"
-        />
+        <input value={p.name} onChange={(e) => p.onName(e.target.value)} className="input-base" placeholder="F.eks. DMI regnmålere — Vejle" />
       </Field>
       <Field label="Beskrivelse" error={p.errors.description}>
-        <textarea
-          value={p.description}
-          onChange={(e) => p.onDescription(e.target.value)}
-          rows={2}
-          className="input-base resize-none"
-        />
+        <textarea value={p.description} onChange={(e) => p.onDescription(e.target.value)} rows={2} className="input-base resize-none" />
       </Field>
 
       {p.sourceType === "file_upload" && (
         <>
           <Field label="Format" required error={p.errors["config.format"]}>
-            <select
-              className="input-base"
-              value={String(p.config.format ?? "")}
-              onChange={(e) => set("format", e.target.value)}
-            >
+            <select className="input-base" value={String(p.config.format ?? "")} onChange={(e) => set("format", e.target.value)}>
               <option value="">Vælg…</option>
               <option value="csv">CSV</option>
               <option value="geojson">GeoJSON</option>
@@ -346,19 +297,10 @@ function ConfigStep(p: ConfigStepProps) {
             </select>
           </Field>
           <Field label="Filnavn / reference" required error={p.errors["config.file_ref"]}>
-            <input
-              className="input-base"
-              value={String(p.config.file_ref ?? "")}
-              onChange={(e) => set("file_ref", e.target.value)}
-              placeholder="baseline_2025.csv"
-            />
+            <input className="input-base" value={String(p.config.file_ref ?? "")} onChange={(e) => set("file_ref", e.target.value)} placeholder="baseline_2025.csv" />
           </Field>
           <Field label="Opdaterings­frekvens" error={p.errors["config.frequency"]}>
-            <select
-              className="input-base"
-              value={String(p.config.frequency ?? "once")}
-              onChange={(e) => set("frequency", e.target.value)}
-            >
+            <select className="input-base" value={String(p.config.frequency ?? "once")} onChange={(e) => set("frequency", e.target.value)}>
               <option value="once">Engangs-upload</option>
               <option value="weekly">Ugentlig</option>
               <option value="monthly">Månedlig</option>
@@ -370,52 +312,26 @@ function ConfigStep(p: ConfigStepProps) {
       {p.sourceType === "api_endpoint" && (
         <>
           <Field label="Udbyder" required error={p.errors["config.provider"]}>
-            <input
-              className="input-base"
-              value={String(p.config.provider ?? "")}
-              onChange={(e) => set("provider", e.target.value)}
-              placeholder="DMI, Miljøportalen, DataFordeleren…"
-            />
+            <input className="input-base" value={String(p.config.provider ?? "")} onChange={(e) => set("provider", e.target.value)} placeholder="DMI, Miljøportalen, DataFordeleren…" />
           </Field>
           <Field label="Endpoint-URL (HTTPS)" required error={p.errors["config.url"]}>
-            <input
-              className="input-base"
-              value={String(p.config.url ?? "")}
-              onChange={(e) => set("url", e.target.value)}
-              placeholder="https://api.example.dk/…"
-            />
+            <input className="input-base" value={String(p.config.url ?? "")} onChange={(e) => set("url", e.target.value)} placeholder="https://api.example.dk/…" />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Auth-type" error={p.errors["config.auth_type"]}>
-              <select
-                className="input-base"
-                value={String(p.config.auth_type ?? "none")}
-                onChange={(e) => set("auth_type", e.target.value)}
-              >
+              <select className="input-base" value={String(p.config.auth_type ?? "none")} onChange={(e) => set("auth_type", e.target.value)}>
                 <option value="none">Ingen</option>
                 <option value="api_key">API-nøgle</option>
                 <option value="bearer">Bearer-token</option>
               </select>
             </Field>
             <Field label="Refresh (min)" error={p.errors["config.refresh_interval_minutes"]}>
-              <input
-                type="number"
-                min={5}
-                max={10080}
-                className="input-base"
-                value={String(p.config.refresh_interval_minutes ?? 1440)}
-                onChange={(e) => set("refresh_interval_minutes", Number(e.target.value))}
-              />
+              <input type="number" min={5} max={10080} className="input-base" value={String(p.config.refresh_interval_minutes ?? 1440)} onChange={(e) => set("refresh_interval_minutes", Number(e.target.value))} />
             </Field>
           </div>
           {String(p.config.auth_type ?? "none") !== "none" && (
             <Field label="Secret-navn (reference)" required error={p.errors["config.api_key_ref"]}>
-              <input
-                className="input-base"
-                value={String(p.config.api_key_ref ?? "")}
-                onChange={(e) => set("api_key_ref", e.target.value)}
-                placeholder="fx DMI_API_KEY"
-              />
+              <input className="input-base" value={String(p.config.api_key_ref ?? "")} onChange={(e) => set("api_key_ref", e.target.value)} placeholder="fx DMI_API_KEY" />
             </Field>
           )}
         </>
@@ -424,11 +340,7 @@ function ConfigStep(p: ConfigStepProps) {
       {p.sourceType === "satellite" && (
         <>
           <Field label="Udbyder" required error={p.errors["config.provider"]}>
-            <select
-              className="input-base"
-              value={String(p.config.provider ?? "")}
-              onChange={(e) => set("provider", e.target.value)}
-            >
+            <select className="input-base" value={String(p.config.provider ?? "")} onChange={(e) => set("provider", e.target.value)}>
               <option value="">Vælg…</option>
               <option value="sentinel-2">Sentinel-2</option>
               <option value="landsat-8">Landsat-8</option>
@@ -436,33 +348,14 @@ function ConfigStep(p: ConfigStepProps) {
             </select>
           </Field>
           <Field label="Tile-ID eller bbox" required error={p.errors["config.tile_or_bbox"]}>
-            <input
-              className="input-base"
-              value={String(p.config.tile_or_bbox ?? "")}
-              onChange={(e) => set("tile_or_bbox", e.target.value)}
-              placeholder="T32VNH eller 9.4,55.5,9.8,55.8"
-            />
+            <input className="input-base" value={String(p.config.tile_or_bbox ?? "")} onChange={(e) => set("tile_or_bbox", e.target.value)} placeholder="T32VNH eller 9.4,55.5,9.8,55.8" />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Revisit (dage)" error={p.errors["config.revisit_days"]}>
-              <input
-                type="number"
-                min={1}
-                max={30}
-                className="input-base"
-                value={String(p.config.revisit_days ?? 5)}
-                onChange={(e) => set("revisit_days", Number(e.target.value))}
-              />
+              <input type="number" min={1} max={30} className="input-base" value={String(p.config.revisit_days ?? 5)} onChange={(e) => set("revisit_days", Number(e.target.value))} />
             </Field>
             <Field label="Maks skydække (%)" error={p.errors["config.cloud_cover_max"]}>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                className="input-base"
-                value={String(p.config.cloud_cover_max ?? 20)}
-                onChange={(e) => set("cloud_cover_max", Number(e.target.value))}
-              />
+              <input type="number" min={0} max={100} className="input-base" value={String(p.config.cloud_cover_max ?? 20)} onChange={(e) => set("cloud_cover_max", Number(e.target.value))} />
             </Field>
           </div>
         </>
@@ -471,40 +364,21 @@ function ConfigStep(p: ConfigStepProps) {
       {p.sourceType === "iot_sensor" && (
         <>
           <Field label="Sensortype" required error={p.errors["config.sensor_type"]}>
-            <input
-              className="input-base"
-              value={String(p.config.sensor_type ?? "")}
-              onChange={(e) => set("sensor_type", e.target.value)}
-              placeholder="Jordfugt, vandstand, temp…"
-            />
+            <input className="input-base" value={String(p.config.sensor_type ?? "")} onChange={(e) => set("sensor_type", e.target.value)} placeholder="Jordfugt, vandstand, temp…" />
           </Field>
           <Field label="Device-ID" required error={p.errors["config.device_id"]}>
-            <input
-              className="input-base"
-              value={String(p.config.device_id ?? "")}
-              onChange={(e) => set("device_id", e.target.value)}
-              placeholder="fx eui-70b3d57ed0…"
-            />
+            <input className="input-base" value={String(p.config.device_id ?? "")} onChange={(e) => set("device_id", e.target.value)} placeholder="fx eui-70b3d57ed0…" />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Protokol" error={p.errors["config.protocol"]}>
-              <select
-                className="input-base"
-                value={String(p.config.protocol ?? "mqtt")}
-                onChange={(e) => set("protocol", e.target.value)}
-              >
+              <select className="input-base" value={String(p.config.protocol ?? "mqtt")} onChange={(e) => set("protocol", e.target.value)}>
                 <option value="mqtt">MQTT</option>
                 <option value="http">HTTP</option>
                 <option value="lora">LoRaWAN</option>
               </select>
             </Field>
             <Field label="Måleenhed" required error={p.errors["config.unit"]}>
-              <input
-                className="input-base"
-                value={String(p.config.unit ?? "")}
-                onChange={(e) => set("unit", e.target.value)}
-                placeholder="%, °C, m³/h…"
-              />
+              <input className="input-base" value={String(p.config.unit ?? "")} onChange={(e) => set("unit", e.target.value)} placeholder="%, °C, m³/h…" />
             </Field>
           </div>
         </>
@@ -514,19 +388,10 @@ function ConfigStep(p: ConfigStepProps) {
         <>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Måleenhed" required error={p.errors["config.unit"]}>
-              <input
-                className="input-base"
-                value={String(p.config.unit ?? "")}
-                onChange={(e) => set("unit", e.target.value)}
-                placeholder="stk, %, cm…"
-              />
+              <input className="input-base" value={String(p.config.unit ?? "")} onChange={(e) => set("unit", e.target.value)} placeholder="stk, %, cm…" />
             </Field>
             <Field label="Frekvens" error={p.errors["config.frequency"]}>
-              <select
-                className="input-base"
-                value={String(p.config.frequency ?? "monthly")}
-                onChange={(e) => set("frequency", e.target.value)}
-              >
+              <select className="input-base" value={String(p.config.frequency ?? "monthly")} onChange={(e) => set("frequency", e.target.value)}>
                 <option value="daily">Daglig</option>
                 <option value="weekly">Ugentlig</option>
                 <option value="monthly">Månedlig</option>
@@ -535,12 +400,7 @@ function ConfigStep(p: ConfigStepProps) {
             </Field>
           </div>
           <Field label="Ansvarlig" error={p.errors["config.responsible"]}>
-            <input
-              className="input-base"
-              value={String(p.config.responsible ?? "")}
-              onChange={(e) => set("responsible", e.target.value)}
-              placeholder="Navn eller rolle"
-            />
+            <input className="input-base" value={String(p.config.responsible ?? "")} onChange={(e) => set("responsible", e.target.value)} placeholder="Navn eller rolle" />
           </Field>
         </>
       )}
@@ -550,28 +410,16 @@ function ConfigStep(p: ConfigStepProps) {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-medium">Test forbindelse</div>
-            <div className="text-xs text-muted-foreground">
-              Bekræfter at kilden er nåbar/konfigureret — kan springes over.
-            </div>
+            <div className="text-xs text-muted-foreground">Bekræfter at kilden er nåbar/konfigureret — kan springes over.</div>
           </div>
-          <button
-            onClick={p.onTest}
-            disabled={p.testing}
-            className="inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
-          >
+          <button onClick={p.onTest} disabled={p.testing} className="inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50">
             {p.testing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Kør test
           </button>
         </div>
         {p.testResult && (
-          <div
-            className={`mt-2 rounded-xl px-3 py-2 text-xs flex items-start gap-2 ${p.testResult.ok ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}
-          >
-            {p.testResult.ok ? (
-              <CheckCircle2 className="h-4 w-4 mt-0.5" />
-            ) : (
-              <AlertTriangle className="h-4 w-4 mt-0.5" />
-            )}
+          <div className={`mt-2 rounded-xl px-3 py-2 text-xs flex items-start gap-2 ${p.testResult.ok ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
+            {p.testResult.ok ? <CheckCircle2 className="h-4 w-4 mt-0.5" /> : <AlertTriangle className="h-4 w-4 mt-0.5" />}
             <div>{p.testResult.message}</div>
           </div>
         )}
@@ -586,17 +434,7 @@ function ConfigStep(p: ConfigStepProps) {
   );
 }
 
-function Field({
-  label,
-  required,
-  error,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium">
@@ -632,30 +470,21 @@ function ConfirmStep({
         <Row label="Type" value={typeLabel} />
         <Row label="Navn" value={name || "—"} />
         {description && <Row label="Beskrivelse" value={description} />}
-        <Row
-          label="Status ved oprettelse"
-          value={status === "online" ? "Online" : "Kræver handling"}
-        />
+        <Row label="Status ved oprettelse" value={
+          status === "online" ? "Online" : "Kræver handling"
+        } />
       </div>
 
       <div>
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-          Konfiguration
-        </div>
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Konfiguration</div>
         <div className="rounded-xl border bg-muted/10 p-3 text-xs font-mono max-h-64 overflow-auto whitespace-pre-wrap break-all">
           {JSON.stringify(config, null, 2)}
         </div>
       </div>
 
       {testResult && (
-        <div
-          className={`rounded-xl px-3 py-2 text-xs flex items-start gap-2 ${testResult.ok ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}
-        >
-          {testResult.ok ? (
-            <CheckCircle2 className="h-4 w-4 mt-0.5" />
-          ) : (
-            <AlertTriangle className="h-4 w-4 mt-0.5" />
-          )}
+        <div className={`rounded-xl px-3 py-2 text-xs flex items-start gap-2 ${testResult.ok ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
+          {testResult.ok ? <CheckCircle2 className="h-4 w-4 mt-0.5" /> : <AlertTriangle className="h-4 w-4 mt-0.5" />}
           <div>{testResult.message}</div>
         </div>
       )}

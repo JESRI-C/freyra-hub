@@ -1,22 +1,6 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  clearQueryCacheForAuthTransition,
-  clearQueryCacheForLogout,
-  type AuthUserId,
-} from "@/lib/auth-query-cache";
-import { createDeferredLatestTask, shouldBootstrapAuthSession } from "@/lib/auth-session-bootstrap";
-import { findAuthorizedProjectSelection } from "@/lib/auth-project-selection";
 
 export type AppUser = {
   id: string;
@@ -45,8 +29,6 @@ export type Organization = {
 
 type AuthState = {
   loading: boolean;
-  refreshing: boolean;
-  authError: string | null;
   session: Session | null;
   user: AppUser | null;
   organizations: Organization[];
@@ -57,25 +39,19 @@ type AuthState = {
   logout: () => Promise<void>;
   selectOrg: (id: string) => void;
   selectProject: (id: string) => void;
-  refresh: (options?: AuthRefreshOptions) => Promise<AuthRefreshResult>;
+  refresh: () => Promise<void>;
 };
-
-type AuthRefreshOptions = { selectProjectId?: string };
-type AuthRefreshResult = { projectSelected: boolean };
 
 const AuthCtx = createContext<AuthState | null>(null);
 const KEY = "freyra-auth-selection-v1";
-type AuthBootstrapRequest = { session: Session | null; revision: number };
 
 function initials(name: string) {
-  return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((s) => s[0]?.toUpperCase() ?? "")
-      .join("") || "??"
-  );
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase() ?? "")
+    .join("") || "??";
 }
 
 function statusLabel(raw: string | null | undefined): string {
@@ -87,18 +63,12 @@ function statusLabel(raw: string | null | undefined): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AppUser | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
-  const activeUserIdRef = useRef<AuthUserId>(undefined);
-  const authRevisionRef = useRef(0);
-  const refreshGenerationRef = useRef(0);
 
   // Restore selected org/project from localStorage
   useEffect(() => {
@@ -109,9 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOrgId(s.orgId ?? null);
         setProjectId(s.projectId ?? null);
       }
-    } catch {
-      // Ignore malformed legacy selections; memberships are loaded from Supabase below.
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -119,215 +87,120 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(KEY, JSON.stringify({ orgId, projectId }));
   }, [orgId, projectId]);
 
-  const resetTenantState = useCallback(() => {
-    setUser(null);
-    setOrganizations([]);
-    setOrgId(null);
-    setProjectId(null);
-  }, []);
+  const loadUserData = useCallback(async (currentSession: Session | null) => {
+    if (!currentSession?.user) {
+      setUser(null);
+      setOrganizations([]);
+      return;
+    }
 
-  const loadUserData = useCallback(
-    async (
-      currentSession: Session | null,
-      isCurrent: () => boolean,
-      options?: AuthRefreshOptions,
-    ): Promise<AuthRefreshResult> => {
-      if (!currentSession?.user) {
-        if (!isCurrent() || activeUserIdRef.current !== null) {
-          return { projectSelected: false };
-        }
-        setUser(null);
-        setOrganizations([]);
-        return { projectSelected: false };
-      }
+    const uid = currentSession.user.id;
 
-      const uid = currentSession.user.id;
+    // Profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, avatar_url")
+      .eq("id", uid)
+      .maybeSingle();
 
-      // Profile
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, email, full_name, avatar_url")
-        .eq("id", uid)
-        .maybeSingle();
-      if (profileError) throw profileError;
+    // Memberships + organizations
+    const { data: memberships } = await supabase
+      .from("organization_memberships")
+      .select("role, organization:organizations(id, name, type, country)")
+      .eq("user_id", uid);
 
-      // Memberships + organizations
-      const { data: memberships, error: membershipsError } = await supabase
-        .from("organization_memberships")
-        .select("role, organization:organizations(id, name, type, country)")
-        .eq("user_id", uid);
-      if (membershipsError) throw membershipsError;
+    const orgIds = (memberships ?? [])
+      .map((m) => (m.organization as { id?: string } | null)?.id)
+      .filter((x): x is string => !!x);
 
-      const orgIds = (memberships ?? [])
-        .map((m) => (m.organization as { id?: string } | null)?.id)
-        .filter((x): x is string => !!x);
-
-      // Projects for those orgs
-      const projectsByOrg: Record<string, OrgProject[]> = {};
-      if (orgIds.length > 0) {
-        const { data: projects, error: projectsError } = await supabase
-          .from("projects")
-          .select("id, name, slug, status, location_name, municipality, organization_id")
-          .in("organization_id", orgIds);
-        if (projectsError) throw projectsError;
-        for (const p of (projects ?? []) as Array<{
-          id: string;
-          name: string;
-          slug: string | null;
-          status: string | null;
-          location_name: string | null;
-          municipality: string | null;
-          organization_id: string | null;
-        }>) {
-          if (!p.organization_id) continue;
-          (projectsByOrg[p.organization_id] ??= []).push({
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            location: p.location_name || p.municipality || "—",
-            status: statusLabel(p.status),
-          });
-        }
-      }
-
-      const orgs: Organization[] = [];
-      for (const m of (memberships ?? []) as Array<{
-        role: string;
-        organization: {
-          id: string;
-          name: string;
-          type: string | null;
-          country: string | null;
-        } | null;
+    // Projects for those orgs
+    const projectsByOrg: Record<string, OrgProject[]> = {};
+    if (orgIds.length > 0) {
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("id, name, slug, status, location_name, municipality, organization_id")
+        .in("organization_id", orgIds);
+      for (const p of (projects ?? []) as Array<{
+        id: string;
+        name: string;
+        slug: string | null;
+        status: string | null;
+        location_name: string | null;
+        municipality: string | null;
+        organization_id: string | null;
       }>) {
-        const o = m.organization;
-        if (!o) continue;
-        orgs.push({
-          id: o.id,
-          name: o.name,
-          description: [o.type, o.country].filter(Boolean).join(" · "),
-          projects: projectsByOrg[o.id] ?? [],
-          role: m.role,
+        if (!p.organization_id) continue;
+        (projectsByOrg[p.organization_id] ??= []).push({
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          location: p.location_name || p.municipality || "—",
+          status: statusLabel(p.status),
         });
       }
+    }
 
-      const displayName =
-        profile?.full_name ||
-        (currentSession.user.user_metadata?.full_name as string | undefined) ||
-        (currentSession.user.email?.split("@")[0] ?? "Bruger");
-
-      const primaryRole = orgs[0]?.role ?? "Member";
-
-      // Discard results from an earlier account if auth changed while the
-      // profile, memberships, or projects were loading.
-      if (!isCurrent() || activeUserIdRef.current !== uid) {
-        return { projectSelected: false };
-      }
-
-      setUser({
-        id: uid,
-        name: displayName,
-        email: profile?.email || currentSession.user.email || "",
-        role: primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1),
-        initials: initials(displayName),
-        avatar_url: profile?.avatar_url ?? null,
+    const orgs: Organization[] = [];
+    for (const m of (memberships ?? []) as Array<{
+      role: string;
+      organization: { id: string; name: string; type: string | null; country: string | null } | null;
+    }>) {
+      const o = m.organization;
+      if (!o) continue;
+      orgs.push({
+        id: o.id,
+        name: o.name,
+        description: [o.type, o.country].filter(Boolean).join(" · "),
+        projects: projectsByOrg[o.id] ?? [],
+        role: m.role,
       });
-      setOrganizations(orgs);
+    }
 
-      const requestedSelection = options?.selectProjectId
-        ? findAuthorizedProjectSelection(orgs, options.selectProjectId)
-        : null;
+    const displayName =
+      profile?.full_name ||
+      (currentSession.user.user_metadata?.full_name as string | undefined) ||
+      (currentSession.user.email?.split("@")[0] ?? "Bruger");
 
-      if (requestedSelection) {
-        setOrgId(requestedSelection.orgId);
-        setProjectId(requestedSelection.projectId);
-        return { projectSelected: true };
-      }
+    const primaryRole = orgs[0]?.role ?? "Member";
 
-      // Never retain another project's context when a requested project was not
-      // present in the freshly RLS-filtered tenant data.
-      if (options?.selectProjectId) setProjectId(null);
+    setUser({
+      id: uid,
+      name: displayName,
+      email: profile?.email || currentSession.user.email || "",
+      role: primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1),
+      initials: initials(displayName),
+      avatar_url: profile?.avatar_url ?? null,
+    });
+    setOrganizations(orgs);
 
-      // Auto-select first org if none set / stale
-      setOrgId((prev) => {
-        if (prev && orgs.some((o) => o.id === prev)) return prev;
-        return orgs[0]?.id ?? null;
-      });
-      return { projectSelected: false };
-    },
-    [],
-  );
-
-  const applySession = useCallback(
-    (nextSession: Session | null, isCurrent: () => boolean, options?: AuthRefreshOptions) => {
-      if (!isCurrent()) return Promise.resolve({ projectSelected: false });
-      const nextUserId = nextSession?.user?.id ?? null;
-      const didChange = clearQueryCacheForAuthTransition(
-        queryClient,
-        activeUserIdRef.current,
-        nextUserId,
-      );
-
-      activeUserIdRef.current = nextUserId;
-      if (didChange) resetTenantState();
-      setSession(nextSession);
-
-      return loadUserData(nextSession, isCurrent, options);
-    },
-    [loadUserData, queryClient, resetTenantState],
-  );
+    // Auto-select first org if none set / stale
+    setOrgId((prev) => {
+      if (prev && orgs.some((o) => o.id === prev)) return prev;
+      return orgs[0]?.id ?? null;
+    });
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    const bootstrap = createDeferredLatestTask<AuthBootstrapRequest>({
-      run: async (request, isLatestScheduledTask) => {
-        await applySession(
-          request.session,
-          () => isLatestScheduledTask() && authRevisionRef.current === request.revision,
-        );
-      },
-      onPendingChange: (pending) => {
-        if (!mounted) return;
-        if (pending) setAuthError(null);
-        setLoading(pending);
-      },
-      onError: (error) => {
-        if (!mounted) return;
-        activeUserIdRef.current = undefined;
-        resetTenantState();
-        setAuthError("Vi kunne ikke indlæse din konto og organisationer. Prøv igen.");
-        console.error("Auth bootstrap failed", error);
-      },
-    });
-
-    // Supabase auth callbacks must stay synchronous. Any async Supabase query
-    // started inside this callback can deadlock the auth client, so defer the
-    // profile and tenant bootstrap until after the callback returns.
+    // Subscribe first, then hydrate
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       if (!mounted) return;
-      const nextUserId = s?.user?.id ?? null;
+      setSession(s);
+      void loadUserData(s);
+    });
 
-      // Token refresh and repeated same-user events only update the session;
-      // tenant data already belongs to this identity and must not flash-load.
-      if (!shouldBootstrapAuthSession(activeUserIdRef.current, nextUserId)) {
-        setSession(s);
-        return;
-      }
-
-      refreshGenerationRef.current += 1;
-      setRefreshing(false);
-      const revision = ++authRevisionRef.current;
-      bootstrap.schedule({ session: s, revision });
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      void loadUserData(data.session).finally(() => mounted && setLoading(false));
     });
 
     return () => {
       mounted = false;
-      bootstrap.cancel();
-      activeUserIdRef.current = undefined;
       sub.subscription.unsubscribe();
     };
-  }, [applySession, resetTenantState]);
+  }, [loadUserData]);
 
   const currentOrg = organizations.find((o) => o.id === orgId) ?? null;
   const currentProject = currentOrg?.projects.find((p) => p.id === projectId) ?? null;
@@ -336,8 +209,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthCtx.Provider
       value={{
         loading,
-        refreshing,
-        authError,
         session,
         user,
         organizations,
@@ -346,50 +217,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentOrg,
         currentProject,
         logout: async () => {
-          authRevisionRef.current += 1;
-          refreshGenerationRef.current += 1;
-          activeUserIdRef.current = null;
-          setRefreshing(false);
-          setAuthError(null);
-          clearQueryCacheForLogout(queryClient);
-          resetTenantState();
-          setSession(null);
-
-          const { error } = await supabase.auth.signOut();
-          if (error) throw error;
+          await supabase.auth.signOut();
+          setOrgId(null);
+          setProjectId(null);
         },
         selectOrg: (id) => {
-          if (!organizations.some((organization) => organization.id === id)) return;
           setOrgId(id);
           setProjectId(null);
         },
-        selectProject: (id) => {
-          const selection = findAuthorizedProjectSelection(organizations, id);
-          if (!selection) return;
-          setOrgId(selection.orgId);
-          setProjectId(selection.projectId);
-        },
-        refresh: async (options) => {
-          const authRevision = authRevisionRef.current;
-          const refreshGeneration = ++refreshGenerationRef.current;
-          const isCurrent = () =>
-            authRevisionRef.current === authRevision &&
-            refreshGenerationRef.current === refreshGeneration;
-
-          setRefreshing(true);
-          setAuthError(null);
-          try {
-            return await applySession(session, isCurrent, options);
-          } catch (error) {
-            if (!isCurrent()) return { projectSelected: false };
-            activeUserIdRef.current = undefined;
-            resetTenantState();
-            setAuthError("Vi kunne ikke indlæse din konto og organisationer. Prøv igen.");
-            throw error;
-          } finally {
-            if (isCurrent()) setRefreshing(false);
-          }
-        },
+        selectProject: (id) => setProjectId(id),
+        refresh: () => loadUserData(session),
       }}
     >
       {children}
@@ -409,9 +246,6 @@ export function useAuth() {
 export function getCurrentOrg(_orgId: string | null): Organization | null {
   return null;
 }
-export function getCurrentProject(
-  _orgId: string | null,
-  _projectId: string | null,
-): OrgProject | null {
+export function getCurrentProject(_orgId: string | null, _projectId: string | null): OrgProject | null {
   return null;
 }

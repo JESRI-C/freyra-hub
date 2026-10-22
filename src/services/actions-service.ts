@@ -1,7 +1,6 @@
 // Actions Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import {
   fetchOpenActionsByProject,
   fetchAllOpenActions,
@@ -17,14 +16,22 @@ import { SEED_ACTIONS } from "@/data/platform-seed";
 import type { IoTSensor } from "@/services/iot-simulation-service";
 import type { Action, ActionEvidence } from "@/lib/supabase/types";
 
+function isMissingTable(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
+}
+
 export async function getOpenActionsByProject(projectId: string): Promise<Action[]> {
   const fallback = () =>
-    SEED_ACTIONS.filter((a) => a.project_id === projectId && a.status !== "Lukket").sort((a, b) =>
-      (a.due_date ?? "").localeCompare(b.due_date ?? ""),
+    SEED_ACTIONS.filter((a) => a.project_id === projectId && a.status !== "Lukket").sort(
+      (a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""),
     );
-  if (isDemoDataEnabled) return fallback();
-  requireCustomerDatabase();
-  return fetchOpenActionsByProject(projectId);
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchOpenActionsByProject(projectId);
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
+  }
 }
 
 export async function getAllOpenActions(): Promise<Action[]> {
@@ -32,9 +39,13 @@ export async function getAllOpenActions(): Promise<Action[]> {
     SEED_ACTIONS.filter((a) => a.status !== "Lukket").sort((a, b) =>
       (a.due_date ?? "").localeCompare(b.due_date ?? ""),
     );
-  if (isDemoDataEnabled) return fallback();
-  requireCustomerDatabase();
-  return fetchAllOpenActions();
+  if (!isSupabaseConfigured) return fallback();
+  try {
+    return await fetchAllOpenActions();
+  } catch (err) {
+    if (isMissingTable(err)) return fallback();
+    throw err;
+  }
 }
 
 // ─── Write ────────────────────────────────────────────────────────────────────
@@ -104,28 +115,17 @@ export async function completeAction(
     actor: "Bruger",
     source: "manual",
     before_data: { status: "I gang" },
-    after_data: {
-      status: "Lukket",
-      completed_at: completedAt,
-      ...(actual_impact ? { actual_impact } : {}),
-    },
+    after_data: { status: "Lukket", completed_at: completedAt, ...(actual_impact ? { actual_impact } : {}) },
   });
 }
 
 export async function updateActionDetails(
   id: string,
   input: Partial<{
-    title: string;
-    description: string;
-    priority: string;
-    due_date: string;
-    owner: string;
-    status: string;
-    site_id: string | null;
-    action_type: string | null;
-    linked_indicator_id: string | null;
-    expected_impact: string | null;
-    actual_impact: string | null;
+    title: string; description: string; priority: string; due_date: string;
+    owner: string; status: string; site_id: string | null;
+    action_type: string | null; linked_indicator_id: string | null;
+    expected_impact: string | null; actual_impact: string | null;
     requires_evidence: boolean;
   }>,
   projectId?: string,
@@ -147,9 +147,13 @@ export async function updateActionDetails(
 // ─── Action Evidence ──────────────────────────────────────────────────────────
 
 export async function getActionEvidence(actionId: string): Promise<ActionEvidence[]> {
-  if (isDemoDataEnabled) return [];
-  requireCustomerDatabase();
-  return fetchActionEvidence(actionId);
+  if (!isSupabaseConfigured) return [];
+  try {
+    return await fetchActionEvidence(actionId);
+  } catch (err) {
+    if (isMissingTable(err)) return [];
+    throw err;
+  }
 }
 
 export async function addActionEvidence(input: {

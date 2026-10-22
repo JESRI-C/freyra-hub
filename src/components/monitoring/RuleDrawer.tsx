@@ -6,11 +6,7 @@ import { useState } from "react";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Drawer } from "@/components/connect/Primitives";
 import { RULE_TYPES, createRule } from "@/services/monitoring/quality-rules-service";
-import {
-  ALERT_TRIGGER_TYPES,
-  ALERT_SEVERITIES,
-  createAlertRule,
-} from "@/services/monitoring/alert-rules-service";
+import { ALERT_TRIGGER_TYPES, ALERT_SEVERITIES, createAlertRule } from "@/services/monitoring/alert-rules-service";
 
 interface Props {
   open: boolean;
@@ -23,9 +19,7 @@ interface Props {
 export function RuleDrawer({ open, onClose, variant, projectId, onCreated }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<string>(
-    variant === "quality" ? "missing_value" : "device_offline",
-  );
+  const [type, setType] = useState<string>(variant === "quality" ? "missing_value" : "device_offline");
   const [severity, setSeverity] = useState<string>("medium");
   const [thresholdText, setThresholdText] = useState("{}");
   const [busy, setBusy] = useState(false);
@@ -33,34 +27,19 @@ export function RuleDrawer({ open, onClose, variant, projectId, onCreated }: Pro
   const [done, setDone] = useState(false);
 
   const reset = () => {
-    setName("");
-    setDescription("");
-    setThresholdText("{}");
-    setSeverity("medium");
-    setBusy(false);
-    setError(null);
-    setDone(false);
+    setName(""); setDescription(""); setThresholdText("{}");
+    setSeverity("medium"); setBusy(false); setError(null); setDone(false);
     setType(variant === "quality" ? "missing_value" : "device_offline");
   };
 
-  const handleClose = () => {
-    reset();
-    onClose();
-  };
+  const handleClose = () => { reset(); onClose(); };
 
   const submit = async () => {
     setError(null);
-    if (!name.trim()) {
-      setError("Navn er påkrævet.");
-      return;
-    }
+    if (!name.trim()) { setError("Navn er påkrævet."); return; }
     let threshold: Record<string, unknown> = {};
-    try {
-      threshold = thresholdText.trim() ? JSON.parse(thresholdText) : {};
-    } catch {
-      setError("Threshold skal være gyldig JSON.");
-      return;
-    }
+    try { threshold = thresholdText.trim() ? JSON.parse(thresholdText) : {}; }
+    catch { setError("Threshold skal være gyldig JSON."); return; }
 
     setBusy(true);
     try {
@@ -100,16 +79,10 @@ export function RuleDrawer({ open, onClose, variant, projectId, onCreated }: Pro
       open={open}
       onClose={handleClose}
       title={variant === "quality" ? "Ny kvalitetsregel" : "Ny alarmregel"}
-      subtitle={
-        variant === "quality"
-          ? "Reglen kører løbende mod nye målinger"
-          : "Fyres når betingelsen matcher"
-      }
+      subtitle={variant === "quality" ? "Reglen kører løbende mod nye målinger" : "Fyres når betingelsen matcher"}
       footer={
         <>
-          <button onClick={handleClose} className="text-xs rounded-lg border bg-card px-3 py-1.5">
-            Luk
-          </button>
+          <button onClick={handleClose} className="text-xs rounded-lg border bg-card px-3 py-1.5">Luk</button>
           {!done && (
             <button
               onClick={submit}
@@ -119,11 +92,7 @@ export function RuleDrawer({ open, onClose, variant, projectId, onCreated }: Pro
               {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Opret regel
             </button>
           )}
-          {done && (
-            <button onClick={reset} className="text-xs rounded-lg border bg-card px-3 py-1.5">
-              Opret en til
-            </button>
-          )}
+          {done && <button onClick={reset} className="text-xs rounded-lg border bg-card px-3 py-1.5">Opret en til</button>}
         </>
       }
     >
@@ -145,45 +114,23 @@ export function RuleDrawer({ open, onClose, variant, projectId, onCreated }: Pro
             </div>
           )}
           <Field label="Navn">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
-              placeholder="fx 'GPS mangler på feltregistrering'"
-            />
+            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border bg-card px-3 py-2 text-sm" placeholder="fx 'GPS mangler på feltregistrering'" />
           </Field>
           <Field label="Beskrivelse (valgfri)">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
-            />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full rounded-lg border bg-card px-3 py-2 text-sm" />
           </Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label={variant === "quality" ? "Regeltype" : "Trigger"}>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
-              >
+              <select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-lg border bg-card px-3 py-2 text-sm">
                 {options.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
+                  <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </Field>
             <Field label="Severity">
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value)}
-                className="w-full rounded-lg border bg-card px-3 py-2 text-sm"
-              >
+              <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="w-full rounded-lg border bg-card px-3 py-2 text-sm">
                 {ALERT_SEVERITIES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </Field>
@@ -194,9 +141,7 @@ export function RuleDrawer({ open, onClose, variant, projectId, onCreated }: Pro
               onChange={(e) => setThresholdText(e.target.value)}
               rows={5}
               className="w-full rounded-lg border bg-card px-3 py-2 text-xs font-mono"
-              placeholder={
-                variant === "quality" ? '{"min": 0, "max": 100}' : '{"minutes_offline": 30}'
-              }
+              placeholder={variant === "quality" ? '{"min": 0, "max": 100}' : '{"minutes_offline": 30}'}
             />
           </Field>
           <div className="text-[11px] text-muted-foreground">

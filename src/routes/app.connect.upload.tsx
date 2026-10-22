@@ -1,460 +1,116 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Sparkles, Plus } from "lucide-react";
+import { Card, PageHeader, Pill } from "@/components/ui-bits";
+import { Section, Chip } from "@/components/connect/Primitives";
 import {
-  Download,
-  FileText,
-  Images,
-  Loader2,
-  MapPin,
-  Plus,
-  ShieldAlert,
-  UploadCloud,
-} from "lucide-react";
-import { Card, PageHeader } from "@/components/ui-bits";
-import { Chip, Section } from "@/components/connect/Primitives";
-import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
+  UploadDropzone,
+  UploadQueueTable,
+  FileMetadataPanel,
+  GeospatialValidationPanel,
+  LayerPreviewCard,
+  RoutingDestinationSelector,
+  Toast,
+} from "@/components/connect/MapPrimitives";
+import { UPLOAD_TYPES, UPLOAD_QUEUE, VALIDATION_WARNINGS } from "@/lib/connect-map-data";
 import { UploadWizard } from "@/components/monitoring/UploadWizard";
 import { useConnectContext } from "@/lib/connect-context";
-import {
-  getUploadDownloadUrl,
-  isUploadDownloadAvailable,
-  listUploads,
-  uploadStatusLabel,
-} from "@/services/monitoring/uploads-service";
-import { parseDroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
-import { validateDroneOriginal } from "@/lib/drone-original-validation.functions";
-import { promoteDroneOriginal } from "@/lib/drone-original-promotion.functions";
-import { listDroneOriginalPromotionOrigins } from "@/services/monitoring/drone-original-promotion-service";
-import {
-  isOriginalCheckComplete,
-  originalCheckAvailability,
-  originalCheckStatusLabel,
-  storedOriginalCheckState,
-  type OriginalCheckState,
-} from "@/components/monitoring/drone-original-check-helpers";
-import {
-  droneOriginalPromotionStatusLabel,
-  isDroneOriginalPromotable,
-  processDroneOriginalsSequentially,
-  promotionStateFromOrigin,
-  type DroneOriginalPromotionState,
-} from "@/components/monitoring/drone-original-promotion-helpers";
+import { listUploads, uploadStatusLabel } from "@/services/monitoring/uploads-service";
 
 export const Route = createFileRoute("/app/connect/upload")({
   component: Page,
 });
 
 function Page() {
-  const { project, projectId } = useConnectContext();
-  const [genericWizardOpen, setGenericWizardOpen] = useState(false);
-  const [beforeBatchOpen, setBeforeBatchOpen] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [downloadErrors, setDownloadErrors] = useState<Record<string, string>>({});
-  const [originalChecks, setOriginalChecks] = useState<Record<string, OriginalCheckState>>({});
-  const [promotions, setPromotions] = useState<Record<string, DroneOriginalPromotionState>>({});
-  const [checkingOriginalId, setCheckingOriginalId] = useState<string | null>(null);
-  const originalCheckBusy = useRef(false);
-  const validateOriginal = useServerFn(validateDroneOriginal);
-  const promoteOriginal = useServerFn(promoteDroneOriginal);
+  const { projectId } = useConnectContext();
+  const [queue, setQueue] = useState(UPLOAD_QUEUE);
+  const [selectedId, setSelectedId] = useState<string | null>(queue[0]?.id ?? null);
+  const [routing, setRouting] = useState<string[]>(["map", "ledger"]);
+  const [toast, setToast] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const uploadsQuery = useQuery({
     queryKey: ["monitoring-uploads", projectId],
-    queryFn: () => (projectId ? listUploads({ projectId, limit: 200 }) : Promise.resolve([])),
-    enabled: Boolean(projectId),
+    queryFn: () => listUploads({ projectId, limit: 20 }),
   });
 
-  const uploads = uploadsQuery.isError ? [] : (uploadsQuery.data ?? []);
-  const visibleUploadIds = uploads.map((upload) => upload.id);
-  const promotionsQuery = useQuery({
-    queryKey: ["drone-original-promotion-origins", projectId, visibleUploadIds],
-    queryFn: () =>
-      projectId
-        ? listDroneOriginalPromotionOrigins(projectId, visibleUploadIds)
-        : Promise.resolve([]),
-    enabled: Boolean(projectId) && uploadsQuery.isSuccess,
-  });
-  const savedOrigins = promotionsQuery.isError ? [] : (promotionsQuery.data ?? []);
-  const pendingTransfer = uploads.filter(
-    (upload) => upload.status === "draft" && !upload.received_at,
-  ).length;
-  const awaitingValidation = uploads.filter(
-    (upload) =>
-      !isOriginalCheckComplete(originalChecks[upload.id] ?? storedOriginalCheckState(upload)) &&
-      (["awaiting_validation", "validating"].includes(upload.status) ||
-        (upload.status === "draft" && Boolean(upload.received_at))),
-  ).length;
-
-  const handleOriginalCheck = async (uploadId: string) => {
-    if (!projectId || originalCheckBusy.current) return;
-    const upload = uploads.find((candidate) => candidate.id === uploadId);
-    if (!upload || !originalCheckAvailability(upload, projectId).eligible) return;
-    originalCheckBusy.current = true;
-    setCheckingOriginalId(uploadId);
-    try {
-      const savedOrigin = savedOrigins.find((origin) => origin.uploadId === uploadId);
-      await processDroneOriginalsSequentially(
-        [
-          {
-            key: uploadId,
-            upload,
-            originalCheck:
-              originalChecks[uploadId] ?? storedOriginalCheckState(upload) ?? undefined,
-            promotion:
-              promotions[uploadId] ??
-              (savedOrigin ? promotionStateFromOrigin(savedOrigin) : undefined),
-          },
-        ],
-        projectId,
-        {
-          validate: (input) => validateOriginal({ data: input }),
-          promote: (input) => promoteOriginal({ data: input }),
-        },
-        {
-          onOriginalCheck: (key, state) =>
-            setOriginalChecks((current) => ({ ...current, [key]: state })),
-          onPromotion: (key, state) => setPromotions((current) => ({ ...current, [key]: state })),
-        },
-      );
-      await uploadsQuery.refetch();
-      await promotionsQuery.refetch();
-    } finally {
-      originalCheckBusy.current = false;
-      setCheckingOriginalId(null);
-    }
-  };
-
-  const handleDownload = async (uploadId: string) => {
-    if (!projectId) return;
-    setDownloadingId(uploadId);
-    setDownloadErrors((current) => {
-      const next = { ...current };
-      delete next[uploadId];
-      return next;
-    });
-
-    try {
-      const signedUrl = await getUploadDownloadUrl({ uploadId, projectId });
-      const link = document.createElement("a");
-      link.href = signedUrl;
-      link.download = "";
-      link.referrerPolicy = "no-referrer";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch {
-      setDownloadErrors((current) => ({
-        ...current,
-        [uploadId]: "Downloadlinket kunne ikke oprettes. Kontrollér din adgang, og prøv igen.",
-      }));
-    } finally {
-      setDownloadingId((current) => (current === uploadId ? null : current));
-    }
-  };
+  const selected = useMemo(
+    () => queue.find((q) => q.id === selectedId) ?? null,
+    [queue, selectedId],
+  );
 
   return (
-    <main className="mx-auto w-full max-w-[1500px] space-y-4 p-6">
+    <main className="p-6 max-w-[1500px] w-full mx-auto space-y-4">
       <PageHeader
         title="Upload center"
-        description="Modtag originale dronefiler, kortlag, feltdata og dokumentation i projektets valideringskø."
+        description="Upload dronefiler, kortlag, feltdata og dokumentation til projektets datagrundlag."
       />
 
-      <Card className="bg-gradient-to-br from-card to-leaf/15 p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      {/* Hero */}
+      <Card className="p-5 bg-gradient-to-br from-card to-leaf/15">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
               <UploadCloud className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-base font-semibold">Projektbundet dataindtag</div>
-              <div className="mt-0.5 text-sm text-muted-foreground">
-                {project
-                  ? `Valgt projekt: ${project.name}. Filer aktiveres ikke automatisk, men afventer dokumenteret servervalidering.`
-                  : "Vælg et projekt i Monitoring & Field Data, før du starter en samlet FØR-runde."}
+              <div className="text-base font-semibold">
+                Upload kortlag, drone, felt og dokumentation
+              </div>
+              <div className="text-sm text-muted-foreground mt-0.5">
+                Filer aktiveres automatisk i Smart Connect map, og kan rutes til DecisionsIQ, ESG
+                Ledger, Impact Exchange og Reports efter validering.
               </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Chip tone="primary">{uploads.length} filer</Chip>
-            {pendingTransfer > 0 && <Chip tone="muted">{pendingTransfer} ikke modtaget</Chip>}
-            <Chip tone="muted">{awaitingValidation} afventer validering</Chip>
-            {promotionsQuery.isSuccess && (
-              <Chip tone="muted">{savedOrigins.length} råoriginaler tilknyttet</Chip>
-            )}
-            {project?.slug && (
-              <Link
-                to="/app/projects/map/$slug"
-                params={{ slug: project.slug }}
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-xs"
-              >
-                <MapPin className="h-3.5 w-3.5" /> Se fotopunkter
-              </Link>
-            )}
+            <Chip tone="primary">{queue.length} filer i kø</Chip>
+            <Chip>{queue.filter((q) => q.status === "Klar").length} klar</Chip>
+            <Chip tone="muted">
+              {queue.filter((q) => q.status === "Validering").length} under validering
+            </Chip>
             <button
-              type="button"
-              onClick={() => setGenericWizardOpen(true)}
-              disabled={!projectId}
-              title={projectId ? "Upload en enkelt projektfil" : "Vælg først et projekt"}
-              className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => setWizardOpen(true)}
+              className="ml-2 text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"
             >
-              <Plus className="h-3.5 w-3.5" /> Enkelt fil
-            </button>
-            <button
-              type="button"
-              onClick={() => setBeforeBatchOpen(true)}
-              disabled={!projectId}
-              title={projectId ? "Importer FØR-dronefotos" : "Vælg først et projekt"}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Images className="h-3.5 w-3.5" /> FØR-dronefotos
+              <Plus className="h-3.5 w-3.5" /> Ny upload
             </button>
           </div>
         </div>
       </Card>
 
-      {!projectId && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          Batchimport er blokeret, fordi intet projekt er valgt. Vælg projektet i modulvælgeren, så
-          alle 120 billeder bindes til den rigtige sag.
-        </div>
-      )}
-
+      {/* Live uploads from backend */}
       <Section
         title="Live upload-kø"
-        subtitle={
-          uploadsQuery.isLoading
-            ? "Henter…"
-            : projectId
-              ? `${uploads.length} projektbundne filer i backend (op til 200 vises)`
-              : "Vælg et projekt for at hente upload-køen"
-        }
+        subtitle={uploadsQuery.isLoading ? "Henter…" : `${uploadsQuery.data?.length ?? 0} filer i backend`}
       >
         <Card>
-          {uploadsQuery.isError && (
-            <div className="border-b bg-red-50 px-4 py-3 text-sm text-red-800">
-              Upload-køen kunne ikke hentes: {String(uploadsQuery.error)}
-            </div>
-          )}
-          {promotionsQuery.isError && (
-            <div className="border-b bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
-              Kanonisk status kunne ikke hentes. Originalerne er stadig modtaget; prøv tilknytningen
-              igen ved den enkelte fil.
-            </div>
-          )}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-xs text-muted-foreground">
+                <tr className="text-left text-xs text-muted-foreground border-b">
                   <th className="px-4 py-3">Filnavn</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Størrelse</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Originalkontrol</th>
-                  <th className="px-4 py-3">Kanonisk råoriginal</th>
-                  <th className="px-4 py-3">Kameraposition</th>
-                  <th className="px-4 py-3">Tidspunkt</th>
-                  <th className="px-4 py-3 text-right">Original</th>
+                  <th className="px-4 py-3">Uploadet</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {uploads.map((upload) => {
-                  const pointResult = projectId
-                    ? parseDroneUploadMapPoint(upload, projectId)
-                    : { reason: "wrong_project" as const };
-                  const downloadAvailable = isUploadDownloadAvailable(upload);
-                  const admission = projectId
-                    ? originalCheckAvailability(upload, projectId)
-                    : { eligible: false, reason: "Vælg først et projekt." };
-                  const originalCheck =
-                    originalChecks[upload.id] ??
-                    storedOriginalCheckState(upload) ??
-                    (upload.upload_type === "drone_photo"
-                      ? {
-                          status: admission.eligible
-                            ? ("queued" as const)
-                            : ("unprocessed" as const),
-                          error: admission.reason ?? undefined,
-                        }
-                      : null);
-                  const savedOrigin = savedOrigins.find((origin) => origin.uploadId === upload.id);
-                  const promotion =
-                    promotions[upload.id] ??
-                    (savedOrigin ? promotionStateFromOrigin(savedOrigin) : null);
-                  return (
-                    <tr key={upload.id}>
-                      <td className="px-4 py-3 font-medium">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                          {upload.original_file_name}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        <Chip>{upload.upload_type}</Chip>
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {Math.round(upload.file_size / 1024)} KB
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        <Chip tone={upload.status === "imported" ? "primary" : "muted"}>
-                          {upload.status === "draft" && upload.received_at
-                            ? "Historisk fil · afventer validering"
-                            : uploadStatusLabel(upload.status)}
-                        </Chip>
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {originalCheck ? (
-                          <div className="max-w-64 space-y-1">
-                            <div className="text-muted-foreground">
-                              {originalCheckStatusLabel(originalCheck)}
-                            </div>
-                            {admission.eligible && !isOriginalCheckComplete(originalCheck) && (
-                              <button
-                                type="button"
-                                onClick={() => void handleOriginalCheck(upload.id)}
-                                disabled={checkingOriginalId !== null}
-                                aria-busy={checkingOriginalId === upload.id}
-                                className="inline-flex items-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 disabled:opacity-40"
-                              >
-                                {checkingOriginalId === upload.id && (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                )}
-                                {originalCheck.status === "failed"
-                                  ? "Prøv originalkontrol igen"
-                                  : "Kontrollér original"}
-                              </button>
-                            )}
-                            {originalCheck.error && (
-                              <p className="text-[11px] text-amber-900" role="alert">
-                                {originalCheck.error}
-                              </p>
-                            )}
-                            {isOriginalCheckComplete(originalCheck) && (
-                              <p className="text-[11px] text-muted-foreground">
-                                Ingen georeferering eller rapportgodkendelse.
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {upload.upload_type === "drone_photo" ? (
-                          <div className="max-w-64 space-y-1">
-                            <div className="text-muted-foreground">
-                              {promotion
-                                ? droneOriginalPromotionStatusLabel(promotion)
-                                : promotionsQuery.isError
-                                  ? "Tilknytning ukendt · kunne ikke hentes"
-                                  : promotionsQuery.isLoading
-                                    ? "Henter tilknytning…"
-                                    : isDroneOriginalPromotable(originalCheck)
-                                      ? "Original kontrolleret · afventer tilknytning"
-                                      : "Afventer rå originalkontrol"}
-                            </div>
-                            {admission.eligible &&
-                              isDroneOriginalPromotable(originalCheck) &&
-                              promotion?.status !== "canonical" && (
-                                <button
-                                  type="button"
-                                  onClick={() => void handleOriginalCheck(upload.id)}
-                                  disabled={checkingOriginalId !== null}
-                                  aria-busy={checkingOriginalId === upload.id}
-                                  className="inline-flex items-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 disabled:opacity-40"
-                                >
-                                  {checkingOriginalId === upload.id && (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  )}
-                                  {promotion?.status === "failed"
-                                    ? "Prøv tilknytning igen"
-                                    : "Tilknyt råoriginal"}
-                                </button>
-                              )}
-                            {promotion?.error && (
-                              <p className="text-[11px] text-amber-900" role="alert">
-                                {promotion.error}
-                              </p>
-                            )}
-                            {promotion?.status === "canonical" && (
-                              <p className="text-[11px] text-muted-foreground">
-                                Faglig gennemgang afventer. Ingen georeferering eller
-                                rapportgodkendelse.
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {isOriginalCheckComplete(originalCheck) ? (
-                          <span className="text-muted-foreground">
-                            {originalCheck?.cameraPositionEligible
-                              ? "Kameradata serverlæst · ikke et footprint"
-                              : "Kræver geografisk gennemgang"}
-                          </span>
-                        ) : "point" in pointResult ? (
-                          <span className="inline-flex items-center gap-1 text-violet-700">
-                            <MapPin className="h-3.5 w-3.5" /> GPS-kandidat
-                            <span title="Browseraflæst og ubekræftet">
-                              <ShieldAlert className="h-3 w-3" />
-                            </span>
-                          </span>
-                        ) : upload.upload_type === "drone_photo" ? (
-                          <span className="text-muted-foreground">Ikke kortklar</span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {upload.received_at ? (
-                          <>Modtaget {new Date(upload.received_at).toLocaleString()}</>
-                        ) : (
-                          <>Intent oprettet {new Date(upload.created_at).toLocaleString()}</>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs">
-                        <button
-                          type="button"
-                          onClick={() => void handleDownload(upload.id)}
-                          disabled={!downloadAvailable || downloadingId !== null}
-                          aria-label={`Hent originalfilen ${upload.original_file_name}`}
-                          aria-busy={downloadingId === upload.id}
-                          title={
-                            downloadAvailable
-                              ? "Opret et sikkert downloadlink, som udløber efter fem minutter"
-                              : "Filen kan først hentes, når overførslen er modtaget og afsluttet"
-                          }
-                          className="ml-auto inline-flex items-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {downloadingId === upload.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Download className="h-3.5 w-3.5" />
-                          )}
-                          Hent
-                        </button>
-                        {downloadErrors[upload.id] && (
-                          <p
-                            className="mt-1 max-w-56 text-left text-[11px] text-red-700"
-                            role="alert"
-                          >
-                            {downloadErrors[upload.id]}
-                          </p>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {!uploadsQuery.isLoading && uploads.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      {projectId
-                        ? "Ingen uploads endnu. Start med en enkelt fil eller en samlet FØR-runde."
-                        : "Ingen projektkø kan vises uden et valgt projekt."}
+                {(uploadsQuery.data ?? []).map((u) => (
+                  <tr key={u.id}>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-muted-foreground" />{u.original_file_name}</div>
                     </td>
+                    <td className="px-4 py-3 text-xs"><Chip>{u.upload_type}</Chip></td>
+                    <td className="px-4 py-3 text-xs">{Math.round(u.file_size / 1024)} KB</td>
+                    <td className="px-4 py-3 text-xs"><Chip tone={u.status === "imported" ? "primary" : "muted"}>{uploadStatusLabel(u.status)}</Chip></td>
+                    <td className="px-4 py-3 text-xs">{new Date(u.created_at).toLocaleString()}</td>
                   </tr>
+                ))}
+                {!uploadsQuery.isLoading && (uploadsQuery.data ?? []).length === 0 && (
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-muted-foreground">Ingen uploads endnu — tryk "Ny upload" for at komme i gang.</td></tr>
                 )}
               </tbody>
             </table>
@@ -463,20 +119,173 @@ function Page() {
       </Section>
 
       <UploadWizard
-        open={genericWizardOpen}
-        onClose={() => setGenericWizardOpen(false)}
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
         projectId={projectId}
-        onImported={() => void uploadsQuery.refetch()}
+        onImported={() => { void uploadsQuery.refetch(); setToast("Fil uploadet — se live kø nedenfor"); }}
       />
 
-      {projectId && (
-        <DroneBeforeBatchWizard
-          open={beforeBatchOpen}
-          onClose={() => setBeforeBatchOpen(false)}
-          projectId={projectId}
-          onImported={() => void uploadsQuery.refetch()}
+      {/* Dropzone */}
+      <UploadDropzone
+        onAdd={(files) => {
+          const newRows = files.map((f, i) => ({
+            id: `nu-${Date.now()}-${i}`,
+            name: f.name,
+            type: f.type,
+            size: f.size,
+            project: "Skallebæk Biodiversity Pilot",
+            zone: "—",
+            status: "Validering" as const,
+            geo: f.type !== "PDF" && f.type !== "JPG/PNG",
+            metaOk: false,
+            validationNote: "Validering i gang",
+          }));
+          setQueue([...newRows, ...queue]);
+          setToast(`${files.length} fil(er) tilføjet til kø`);
+        }}
+      />
+
+      {/* Supported types */}
+      <Section
+        title="Understøttede filtyper"
+        subtitle="Hvad kan uploades og hvordan bliver det brugt"
+      >
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+          {UPLOAD_TYPES.map((t) => (
+            <div key={t.name} className="rounded-xl border bg-card p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold">{t.name}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t.desc}</div>
+                </div>
+                {t.onMap && <Chip tone="primary">Kort</Chip>}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                <Chip>{t.geo ? "Kræver geolocation" : "Ingen geolocation"}</Chip>
+                <Chip tone="muted">{t.use}</Chip>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Upload queue */}
+      <Section title="Upload-kø" subtitle="Filer under validering, klar til map eller med fejl">
+        <UploadQueueTable
+          rows={queue}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onAction={(label) => setToast(`${label} udført (mock)`)}
         />
+      </Section>
+
+      {/* Metadata + validation */}
+      {selected && (
+        <div className="grid lg:grid-cols-2 gap-4">
+          <FileMetadataPanel name={selected.name} type={selected.type} />
+          <GeospatialValidationPanel
+            checks={[
+              { label: "Filformat valid", pass: true },
+              { label: "Koordinater detekteret", pass: selected.geo },
+              {
+                label: "Projektion genkendt (EPSG:25832)",
+                pass: selected.type !== "GeoTIFF" || selected.status !== "Fejl",
+              },
+              {
+                label: "Bounds matcher projektområde",
+                pass: !selected.validationNote.toLowerCase().includes("overlap"),
+              },
+              { label: "Påkrævet metadata komplet", pass: selected.metaOk },
+              { label: "Lag kan previewes", pass: selected.geo },
+              { label: "Klar til kortvisning", pass: selected.geo && selected.status === "Klar" },
+              { label: "Klar til ESG Ledger", pass: selected.metaOk && selected.status === "Klar" },
+              { label: "Klar til DecisionsIQ", pass: selected.geo && selected.status !== "Fejl" },
+              { label: "Klar til Reports", pass: selected.metaOk && selected.status === "Klar" },
+            ]}
+          />
+        </div>
       )}
+
+      {/* Layer preview + routing */}
+      {selected && (
+        <div className="grid lg:grid-cols-[1fr_2fr] gap-4">
+          <LayerPreviewCard coverage={selected.status === "Fejl" ? 48 : 92} />
+          <div className="rounded-xl border bg-card p-4 space-y-3">
+            <div>
+              <div className="text-sm font-semibold">Routing — hvor skal filen bruges?</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Vælg hvilke moduler filen automatisk skal aktiveres i, når validering er gennemført.
+              </div>
+            </div>
+            <RoutingDestinationSelector
+              selected={routing}
+              onToggle={(k) =>
+                setRouting(routing.includes(k) ? routing.filter((x) => x !== k) : [...routing, k])
+              }
+            />
+            <div className="pt-2 border-t flex flex-wrap items-center justify-between gap-2">
+              <div className="text-xs text-muted-foreground">
+                {routing.length} destination(er) valgt
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setToast("Filen er sat på pause")}
+                  className="text-xs rounded-lg border bg-card px-3 py-1.5"
+                >
+                  Pause
+                </button>
+                <button
+                  onClick={() => {
+                    setQueue(
+                      queue.map((q) =>
+                        q.id === selected.id ? { ...q, status: "Klar", metaOk: true } : q,
+                      ),
+                    );
+                    setToast(
+                      "Filen er tilføjet til Smart Connect og kan nu bruges som kortlag, datakilde og rapportbilag.",
+                    );
+                  }}
+                  className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5 inline-flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Gem og aktivér
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Validation warnings + AI insight */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Section title="Aktive valideringsadvarsler">
+          <ul className="text-sm space-y-2">
+            {VALIDATION_WARNINGS.map((w, i) => (
+              <li key={i} className="flex items-start gap-2 p-2.5 rounded-lg border bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning-foreground mt-0.5" />
+                <span>{w}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+        <Card className="p-5 bg-gradient-to-br from-card to-leaf/15">
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">AI upload-anbefaling</div>
+              <p className="text-sm mt-2 text-foreground/90">
+                Drone-orthomosaic for Skallebæk dækker 92% af projektarealet — restende dækning kan
+                suppleres med en ny overflyvning over Zone C. NDVI GeoTIFF-importen mangler
+                EPSG-projektion: bekræft EPSG:25832 og kør re-validering før den frigives til ESG
+                Ledger og Reports.
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Toast msg={toast} onDone={() => setToast(null)} />
     </main>
   );
 }

@@ -10,8 +10,8 @@ describe("interpretNdvi", () => {
     expect(interpretNdvi(0.45).label).toBe("Moderat vegetation");
   });
 
-  it("bevarer lav NDVI som indeksniveau uden at påstå fravær af vegetation", () => {
-    expect(interpretNdvi(0.05).label).toBe("Lav eller negativ NDVI");
+  it("klassificerer ingen vegetation under 0.1", () => {
+    expect(interpretNdvi(0.05).label).toBe("Ingen vegetation");
   });
 
   it("returnerer altid label, beskrivelse og farve", () => {

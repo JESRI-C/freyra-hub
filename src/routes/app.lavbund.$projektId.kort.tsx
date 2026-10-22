@@ -23,12 +23,10 @@ import {
 } from "@/components/lavbund/LavbundFeltkort";
 import { KULSTOF2022_WMS } from "@/data/kulstof2022";
 import { TidsserieChart } from "@/components/lavbund/TidsserieChart";
-import { PlantingSuitabilityPanel } from "@/components/lavbund/PlantingSuitabilityPanel";
-import { DEMO_MODE } from "@/lib/demo-mode";
 import type { Maalepunkt, Opmaalingsintensitet, VandstandsReading } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId/kort")({
-  head: () => ({ meta: [{ title: "Feltkort og beplantning — Freyra" }] }),
+  head: () => ({ meta: [{ title: "Feltkort & tidsserie — LavbundsMRV" }] }),
   component: KortPage,
 });
 
@@ -51,31 +49,18 @@ function KortPage() {
 
   const [projekt, maalepunkter, readings, linkedGeo] = useQueries({
     queries: [
-      {
-        queryKey: ["lavbund", "project", projektId],
-        queryFn: () => getProject(projektId),
-        enabled: !DEMO_MODE,
-      },
-      {
-        queryKey: ["lavbund", "mp", projektId],
-        queryFn: () => getMaalepunkter(projektId),
-        enabled: !DEMO_MODE,
-      },
-      {
-        queryKey: ["lavbund", "readings", projektId],
-        queryFn: () => getReadings(projektId),
-        enabled: !DEMO_MODE,
-      },
+      { queryKey: ["lavbund", "project", projektId], queryFn: () => getProject(projektId) },
+      { queryKey: ["lavbund", "mp", projektId], queryFn: () => getMaalepunkter(projektId) },
+      { queryKey: ["lavbund", "readings", projektId], queryFn: () => getReadings(projektId) },
       {
         queryKey: ["lavbund", "linked-geo", projektId],
         queryFn: async () => {
           // Geometri fra det koblede kerneprojekt: centrum + polygon til kortet.
-          const linkedId = (await getLinkedProjectId(projektId)) ?? (DEMO_MODE ? projektId : null);
+          const linkedId = await getLinkedProjectId(projektId);
           if (!linkedId) return null;
           const core = await getProjectById(linkedId).catch(() => null);
           if (!core) return null;
           return {
-            projectId: linkedId,
             center:
               core.geometry_centroid_lat != null && core.geometry_centroid_lng != null
                 ? { lat: core.geometry_centroid_lat, lng: core.geometry_centroid_lng }
@@ -122,14 +107,8 @@ function KortPage() {
     }
   };
 
-  const isLoading =
-    (!DEMO_MODE && projekt.isLoading) ||
-    linkedGeo.isLoading ||
-    (!DEMO_MODE && (maalepunkter.isLoading || readings.isLoading));
-  const isError =
-    (!DEMO_MODE && projekt.isError) ||
-    linkedGeo.isError ||
-    (!DEMO_MODE && (maalepunkter.isError || readings.isError));
+  const isLoading = projekt.isLoading || maalepunkter.isLoading || readings.isLoading;
+  const isError = projekt.isError || maalepunkter.isError || readings.isError;
 
   const filteredMp = useMemo(
     () => (maalepunkter.data ?? []).filter((m) => m.intensiteter.includes(intensitet)),
@@ -245,156 +224,147 @@ function KortPage() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
-      <PlantingSuitabilityPanel projectId={linkedGeo.data?.projectId ?? null} />
-      {!DEMO_MODE && (
-        <>
-          <Card>
-            <CardHeader
-              title="Feltkort — vandspejl efter afvandingsklasse"
-              subtitle="Interpolation efter nærmeste målepunkts seneste dybde til vandspejl."
-              action={
-                <div className="flex items-center gap-1.5">
-                  {INTENSITETER.map((i) => (
-                    <button
-                      key={i.id}
-                      type="button"
-                      onClick={() => setIntensitet(i.id)}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition ${
-                        intensitet === i.id
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-card hover:bg-muted/40"
-                      }`}
-                    >
-                      {i.label}
-                    </button>
-                  ))}
-                </div>
-              }
-            />
-            <div className="px-5 pb-4 flex flex-wrap gap-3 items-center text-xs text-muted-foreground">
-              <span>
-                {filteredMp.length} målepunkter · estimeret feltbehov{" "}
-                <strong className="text-foreground">
-                  {INTENSITETER.find((i) => i.id === intensitet)?.feltdage} dage/år
-                </strong>
-              </span>
-              <span className="inline-flex items-center gap-1 italic">
-                <Info className="h-3 w-3" /> Registrér manuel pejling eller importér HOBO-logger-CSV
-                nedenfor
-              </span>
-            </div>
-            <div className="px-5 pb-4 space-y-2">
-              <PejlingsForm projektId={projektId} maalepunkter={maalepunkter.data ?? []} />
-              <HoboImport projektId={projektId} maalepunkter={maalepunkter.data ?? []} />
-            </div>
-            <div className="px-5 pb-5">
-              <LavbundFeltkort
-                maalepunkter={filteredMp}
-                senesteDybde={senesteDybde}
-                center={mapCenter}
-                polygon={linkedGeo.data?.polygon ?? null}
-                placing={placing}
-                onPlace={placerMaalepunkt}
-                height={440}
-                wmsOverlay={visKulstof ? KULSTOF2022_WMS : null}
-                vandstandskort={visVandstand}
-                dokumentation={dokumentation}
-              />
-              <div className="mt-3 flex flex-wrap gap-2 items-center">
-                <label className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border cursor-pointer hover:bg-muted/40">
-                  <input
-                    type="checkbox"
-                    checked={visVandstand}
-                    onChange={(e) => setVisVandstand(e.target.checked)}
-                    className="h-3 w-3 accent-primary"
-                  />
-                  Vandstandskort (interpoleret)
-                </label>
-                <label className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border cursor-pointer hover:bg-muted/40">
-                  <input
-                    type="checkbox"
-                    checked={visKulstof}
-                    onChange={(e) => setVisKulstof(e.target.checked)}
-                    className="h-3 w-3 accent-primary"
-                  />
-                  {KULSTOF2022_WMS.label}
-                </label>
-                {AFVANDINGSKLASSER.map((k) => (
-                  <span
-                    key={k.navn}
-                    className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border"
-                  >
-                    <span
-                      className="h-2.5 w-2.5 rounded-full border border-white shadow-sm"
-                      style={{ backgroundColor: KLASSE_FARVE[k.navn] }}
-                    />
-                    {k.navn}
-                  </span>
-                ))}
+      <Card>
+        <CardHeader
+          title="Feltkort — vandspejl efter afvandingsklasse"
+          subtitle="Nearest-neighbour-interpolation af målepunkternes seneste dybde til vandspejl."
+          action={
+            <div className="flex items-center gap-1.5">
+              {INTENSITETER.map((i) => (
                 <button
+                  key={i.id}
                   type="button"
-                  onClick={() => setPlacing((p) => !p)}
-                  className={`ml-auto inline-flex items-center gap-1.5 text-xs rounded-lg border px-3 py-1.5 transition ${
-                    placing
+                  onClick={() => setIntensitet(i.id)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                    intensitet === i.id
                       ? "bg-primary text-primary-foreground border-primary"
-                      : "hover:bg-muted/40"
+                      : "bg-card hover:bg-muted/40"
                   }`}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  {placing ? "Annullér placering" : "Placér nyt målepunkt på kortet"}
+                  {i.label}
                 </button>
+              ))}
+            </div>
+          }
+        />
+        <div className="px-5 pb-4 flex flex-wrap gap-3 items-center text-xs text-muted-foreground">
+          <span>
+            {filteredMp.length} målepunkter · estimeret feltbehov{" "}
+            <strong className="text-foreground">
+              {INTENSITETER.find((i) => i.id === intensitet)?.feltdage} dage/år
+            </strong>
+          </span>
+          <span className="inline-flex items-center gap-1 italic">
+            <Info className="h-3 w-3" /> Registrér manuel pejling eller importér
+            HOBO-logger-CSV nedenfor
+          </span>
+        </div>
+        <div className="px-5 pb-4 space-y-2">
+          <PejlingsForm
+            projektId={projektId}
+            maalepunkter={maalepunkter.data ?? []}
+          />
+          <HoboImport
+            projektId={projektId}
+            maalepunkter={maalepunkter.data ?? []}
+          />
+        </div>
+        <div className="px-5 pb-5">
+          <LavbundFeltkort
+            maalepunkter={filteredMp}
+            senesteDybde={senesteDybde}
+            center={mapCenter}
+            polygon={linkedGeo.data?.polygon ?? null}
+            placing={placing}
+            onPlace={placerMaalepunkt}
+            height={440}
+            wmsOverlay={visKulstof ? KULSTOF2022_WMS : null}
+            vandstandskort={visVandstand}
+            dokumentation={dokumentation}
+          />
+          <div className="mt-3 flex flex-wrap gap-2 items-center">
+            <label className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border cursor-pointer hover:bg-muted/40">
+              <input
+                type="checkbox"
+                checked={visVandstand}
+                onChange={(e) => setVisVandstand(e.target.checked)}
+                className="h-3 w-3 accent-primary"
+              />
+              Vandstandskort (interpoleret)
+            </label>
+            <label className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border cursor-pointer hover:bg-muted/40">
+              <input
+                type="checkbox"
+                checked={visKulstof}
+                onChange={(e) => setVisKulstof(e.target.checked)}
+                className="h-3 w-3 accent-primary"
+              />
+              {KULSTOF2022_WMS.label}
+            </label>
+            {AFVANDINGSKLASSER.map((k) => (
+              <span
+                key={k.navn}
+                className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border"
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full border border-white shadow-sm"
+                  style={{ backgroundColor: KLASSE_FARVE[k.navn] }}
+                />
+                {k.navn}
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPlacing((p) => !p)}
+              className={`ml-auto inline-flex items-center gap-1.5 text-xs rounded-lg border px-3 py-1.5 transition ${
+                placing
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "hover:bg-muted/40"
+              }`}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {placing ? "Annullér placering" : "Placér nyt målepunkt på kortet"}
+            </button>
+          </div>
+          {visVandstand && (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Vandstandskortet interpolerer punktmålingerne (nærmeste-punkt-princip, klippet til
+              projektområdet) og er retningsgivende — flere målepunkter giver et skarpere kort.
+              Klik på et punkt for dets dokumentation (målinger, kilder, periode, position).
+            </p>
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Tidsserie — dybde til vandspejl (24 mdr.)"
+          subtitle="HOBO-logger 15-min serier + periodiske markpejlinger. Grænsen for Våd eng: 0,50 m."
+        />
+        <div className="px-5 pb-5">
+          <TidsserieChart serie={tidsserie} height={260} etableringMaaned={projekt.data?.etableringsdato?.slice(0, 7)} />
+          {stats && (
+            <>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                <StatBoks label="Årsmiddel" value={`${stats.aar.toFixed(2)} m`} />
+                <StatBoks label="Sommermiddel (maj–sep)" value={`${stats.sommer.toFixed(2)} m`} />
+                <StatBoks label="Vintermiddel (nov–mar)" value={`${stats.vinter.toFixed(2)} m`} />
               </div>
-              {visVandstand && (
+              {stats.efterEtablering && (
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  Vandstandskortet interpolerer punktmålingerne (nærmeste-punkt-princip, klippet til
-                  projektområdet) og er retningsgivende — flere målepunkter giver et skarpere kort.
-                  Klik på et punkt for dets dokumentation (målinger, kilder, periode, position).
+                  Middelværdier er opgjort efter etableringsdatoen — baseline-måneder (skraveret
+                  i grafen) indgår ikke.
                 </p>
               )}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader
-              title="Tidsserie — dybde til vandspejl (24 mdr.)"
-              subtitle="HOBO-logger 15-min serier + periodiske markpejlinger. Grænsen for Våd eng: 0,50 m."
-            />
-            <div className="px-5 pb-5">
-              <TidsserieChart
-                serie={tidsserie}
-                height={260}
-                etableringMaaned={projekt.data?.etableringsdato?.slice(0, 7)}
-              />
-              {stats && (
-                <>
-                  <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
-                    <StatBoks label="Årsmiddel" value={`${stats.aar.toFixed(2)} m`} />
-                    <StatBoks
-                      label="Sommermiddel (maj–sep)"
-                      value={`${stats.sommer.toFixed(2)} m`}
-                    />
-                    <StatBoks
-                      label="Vintermiddel (nov–mar)"
-                      value={`${stats.vinter.toFixed(2)} m`}
-                    />
-                  </div>
-                  {stats.efterEtablering && (
-                    <p className="mt-2 text-[11px] text-muted-foreground">
-                      Middelværdier er opgjort efter etableringsdatoen — baseline-måneder (skraveret
-                      i grafen) indgår ikke.
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          </Card>
-
-          {filteredMp.length === 0 && (
-            <Card className="p-8 text-center text-sm text-muted-foreground">
-              Ingen målepunkter i valgt intensitet.
-            </Card>
+            </>
           )}
-        </>
+        </div>
+      </Card>
+
+      {filteredMp.length === 0 && (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          Ingen målepunkter i valgt intensitet.
+        </Card>
       )}
     </main>
   );
@@ -568,9 +538,7 @@ export function HoboImport({
         >
           <option value="">Vælg…</option>
           {maalepunkter.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.id}
-            </option>
+            <option key={m.id} value={m.id}>{m.id}</option>
           ))}
         </select>
       </label>

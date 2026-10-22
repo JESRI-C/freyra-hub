@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { evaluateRules, type Device, type Measurement } from "@/services/monitoring/quality-engine";
+import { evaluateRules } from "@/services/monitoring/quality-engine";
 import { evaluateAlertRules } from "@/services/monitoring/alert-engine";
-import type { QualityRule } from "@/services/monitoring/quality-rules-service";
-import type { AlertRule } from "@/services/monitoring/alert-rules-service";
 
 // Minimal factory helpers.
-function device(overrides: Partial<Device> = {}): Device {
+function device(overrides: Partial<any> = {}): any {
   return {
     id: "dev-1",
     name: "Sensor A",
@@ -17,26 +15,11 @@ function device(overrides: Partial<Device> = {}): Device {
     last_seen_at: new Date().toISOString(),
     last_measurement_at: new Date().toISOString(),
     expected_interval_minutes: 60,
-    configuration: {},
-    connectivity_type: null,
-    created_at: new Date().toISOString(),
-    created_by: null,
-    external_device_id: null,
-    firmware_version: null,
-    geometry: null,
-    latitude: null,
-    longitude: null,
-    manufacturer: null,
-    model: null,
-    organization_id: null,
-    serial_number: null,
-    signal_strength: null,
-    updated_at: new Date().toISOString(),
     ...overrides,
   };
 }
 
-function measurement(overrides: Partial<Measurement> = {}): Measurement {
+function measurement(overrides: Partial<any> = {}): any {
   return {
     id: "m-1",
     device_id: "dev-1",
@@ -56,7 +39,7 @@ function measurement(overrides: Partial<Measurement> = {}): Measurement {
   };
 }
 
-function rule(overrides: Partial<QualityRule> = {}): QualityRule {
+function rule(overrides: Partial<any> = {}): any {
   return {
     id: "r-1",
     project_id: "p1",
@@ -149,7 +132,7 @@ describe("quality-engine.evaluateRules", () => {
 
 describe("alert-engine.evaluateAlertRules", () => {
   const now = new Date();
-  function arule(overrides: Partial<AlertRule> = {}): AlertRule {
+  function arule(overrides: Partial<any> = {}): any {
     return {
       id: "ar-1",
       project_id: "p1",
@@ -206,12 +189,7 @@ describe("alert-engine.evaluateAlertRules", () => {
 
   it("fires critical_reading outside interval", () => {
     const alerts = evaluateAlertRules(
-      [
-        arule({
-          trigger_type: "critical_reading",
-          condition: { critical_min: 0, critical_max: 30 },
-        }),
-      ],
+      [arule({ trigger_type: "critical_reading", condition: { critical_min: 0, critical_max: 30 } })],
       {
         devices: [device()],
         measurements: [measurement({ id: "hot", value: 99 })],
@@ -224,12 +202,10 @@ describe("alert-engine.evaluateAlertRules", () => {
   });
 
   it("skips unknown trigger types", () => {
-    const alerts = evaluateAlertRules([arule({ trigger_type: "manual" })], {
-      devices: [device()],
-      measurements: [],
-      openIssueCount: 0,
-      now,
-    });
+    const alerts = evaluateAlertRules(
+      [arule({ trigger_type: "manual" })],
+      { devices: [device()], measurements: [], openIssueCount: 0, now },
+    );
     expect(alerts).toHaveLength(0);
   });
 });

@@ -308,11 +308,7 @@ export function LavbundFeltkort({
 
   return (
     <div className="relative">
-      <div
-        ref={containerRef}
-        style={{ height }}
-        className="w-full rounded-xl border overflow-hidden"
-      />
+      <div ref={containerRef} style={{ height }} className="w-full rounded-xl border overflow-hidden" />
       {placing && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur rounded-xl shadow-lg border px-4 py-2 text-sm font-medium">
           Klik på kortet for at placere det nye målepunkt

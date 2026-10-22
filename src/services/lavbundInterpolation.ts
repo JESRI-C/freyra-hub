@@ -44,11 +44,7 @@ export function iPolygon(lat: number, lng: number, ring: number[][]): boolean {
 }
 
 /** Dybden i nærmeste målepunkt (afstand i grader, lng-skaleret med cos(lat)). */
-export function naermesteDybde(
-  punkter: VandstandsPunkt[],
-  lat: number,
-  lng: number,
-): number | null {
+export function naermesteDybde(punkter: VandstandsPunkt[], lat: number, lng: number): number | null {
   let bedst = Infinity;
   let dybde: number | null = null;
   const kLng = Math.cos((lat * Math.PI) / 180);

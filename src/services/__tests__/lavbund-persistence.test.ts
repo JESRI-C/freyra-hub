@@ -1,12 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
-// Eksplicit offline-demo bruger eksempeldata uden netværkskald.
-vi.mock("@/lib/data-mode", () => ({
-  isDemoDataEnabled: true,
-  requireCustomerDatabase: vi.fn(() => {
-    throw new Error("Offline-demo må ikke kræve kundedatabase");
-  }),
-}));
+// Tving mock-fallback-stien: uden konfigureret Supabase skal servicen levere
+// demo-data uden netværkskald.
 vi.mock("@/lib/supabase/client", () => ({
   supabase: null,
   isSupabaseConfigured: false,
@@ -51,8 +46,8 @@ describe("buildCo2Indicator", () => {
   });
 });
 
-describe("lavbundService i eksplicit offline-demo", () => {
-  it("getProjects leverer demo-projekter", async () => {
+describe("lavbundService fallback (uden Supabase i test-miljø)", () => {
+  it("getProjects falder tilbage til mock-projekter", async () => {
     const projects = await getProjects();
     expect(projects.length).toBeGreaterThan(0);
     expect(projects[0].navn).toBeTruthy();

@@ -1,5 +1,3 @@
-import { isDemoDataEnabled } from "@/lib/data-mode";
-import { ReportWorkspaceNotice } from "@/components/reports/ReportWorkspaceNotice";
 import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck, CheckCircle2, Send } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui-bits";
@@ -12,9 +10,7 @@ import {
 } from "@/components/reports/Primitives";
 import { READINESS_DIMENSIONS, MISSING_DATA } from "@/lib/reports-data";
 
-export const Route = createFileRoute("/app/reports/readiness")({
-  component: isDemoDataEnabled ? Page : ReportWorkspaceNotice,
-});
+export const Route = createFileRoute("/app/reports/readiness")({ component: Page });
 
 const LABELS = [
   { l: "Intern brug", ok: true },

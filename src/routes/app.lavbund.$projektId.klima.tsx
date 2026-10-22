@@ -163,11 +163,7 @@ function KlimaPage() {
       {(() => {
         const opn = beregnOpnaaelse(p, co2.krediteretTotal, verificeretTotal);
         const tone =
-          opn.procent >= 90
-            ? "text-primary"
-            : opn.procent >= 70
-              ? "text-amber-600"
-              : "text-destructive";
+          opn.procent >= 90 ? "text-primary" : opn.procent >= 70 ? "text-amber-600" : "text-destructive";
         const barTone =
           opn.procent >= 90 ? "bg-primary" : opn.procent >= 70 ? "bg-amber-500" : "bg-destructive";
         return (
@@ -310,8 +306,8 @@ function KlimaPage() {
         <div className="px-5 pb-5">
           <JordprofilFigur foerM={p.vandspejlFoerM} efterM={maaltMiddelEfter} />
           <p className="mt-2 text-[11px] text-muted-foreground">
-            FØR er projektets registrerede førtilstand; MÅLT er middel af {metodeStat.efter.antal}{" "}
-            målinger
+            FØR er projektets registrerede førtilstand; MÅLT er middel af{" "}
+            {metodeStat.efter.antal} målinger
             {p.etableringsdato ? " efter etableringsdatoen" : ""}. Jf. Evans m.fl. (2021,{" "}
             <em>Nature</em>): ~3 t CO₂e/ha/år pr. 10 cm ændring i vandstandsdybde.
           </p>
@@ -349,7 +345,10 @@ function KlimaPage() {
           />
           <div className="px-5 pb-5 space-y-2">
             {p.afvigelser.map((a) => (
-              <div key={a.id} className="rounded-xl border p-3 flex items-start gap-3 bg-muted/20">
+              <div
+                key={a.id}
+                className="rounded-xl border p-3 flex items-start gap-3 bg-muted/20"
+              >
                 <AlertTriangle
                   className={`h-4 w-4 mt-0.5 ${a.aaben ? "text-warning" : "text-success"}`}
                 />
@@ -409,10 +408,10 @@ function KlimaPage() {
           <Lock className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div className="text-sm space-y-2">
             <p>
-              Verificeret effekt kan bogføres i ESG Ledger og bruges til tilskudsordninger og
-              kommunens klimaregnskab, men <strong>kan ikke overføres til Impact Exchange</strong>{" "}
-              som CO₂-kvoter. Metoden (v12) er ikke godkendt til kvotehandel og afviger fra den
-              nationale opgørelse.
+              Verificeret effekt kan bogføres i ESG Ledger og bruges til tilskudsordninger
+              og kommunens klimaregnskab, men <strong>kan ikke overføres til Impact
+              Exchange</strong> som CO₂-kvoter. Metoden (v12) er ikke godkendt til
+              kvotehandel og afviger fra den nationale opgørelse.
             </p>
             <button
               type="button"
@@ -425,6 +424,8 @@ function KlimaPage() {
           </div>
         </div>
       </Card>
+
+
 
       <div className="flex justify-end">
         <button

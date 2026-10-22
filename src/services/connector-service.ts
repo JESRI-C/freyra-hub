@@ -14,8 +14,12 @@ import type {
 import { getLiveDataConfig } from "@/config/live-data-config";
 import { dmiClient, miljoeportalClient } from "@/services/live-data";
 import { fetchProjectLiveData } from "@/lib/live-data.functions";
-import { fetchParagraph3Overlap, fetchWatercourses } from "@/services/nature/paragraph3-service";
+import {
+  fetchParagraph3Overlap,
+  fetchWatercourses,
+} from "@/services/nature/paragraph3-service";
 import { fetchEnvironmentalBundle, type EnvironmentalBundle } from "@/lib/environmental.functions";
+
 
 // Check if a specific connector is configured
 function isConnectorConfigured(connector: DataConnector): boolean {
@@ -322,8 +326,7 @@ async function buildTerrainCtx(
   bundle: EnvironmentalBundle | null,
 ): Promise<EnvironmentalContextResult | null> {
   const connector = CONNECTOR_REGISTRY.find((c) => c.id === "datafordeler-dhm")!;
-  if (!bundle || bundle.terrain.elevationM === null)
-    return fetchTerrainContext(projectId).catch(() => null);
+  if (!bundle || bundle.terrain.elevationM === null) return fetchTerrainContext(projectId).catch(() => null);
   const { terrain } = bundle;
   return {
     connector,
@@ -412,13 +415,7 @@ export async function buildProjectEnvironmentalContext(
 
   const [natureCtx, satelliteCtx, rainfallCtx, groundwaterCtx, terrainCtx, protectedCtx, soilCtx] =
     await Promise.all([
-      buildNatureCtx(
-        projectId,
-        locationLabel,
-        bundle,
-        geometry?.centroid ?? null,
-        geometry?.areaHa ?? null,
-      ),
+      buildNatureCtx(projectId, locationLabel, bundle, geometry?.centroid ?? null, geometry?.areaHa ?? null),
       fetchSatelliteVegetation(projectId, locationLabel).catch(() => null),
       buildRainfallCtx(projectId, municipality, bundle),
       buildGroundwaterCtx(projectId, locationLabel, bundle),
@@ -485,6 +482,7 @@ export async function buildProjectEnvironmentalContext(
 
     const weatherResult = bundle?.weather ?? (await dmiClient.fetchPreview());
     const natureResult = bundle?.nature ?? (await miljoeportalClient.fetchPreview());
+
 
     const weatherNorm = dmiClient.normalizeResult(weatherResult);
     const natureNorm = miljoeportalClient.normalizeResult(natureResult);

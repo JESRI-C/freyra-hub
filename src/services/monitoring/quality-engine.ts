@@ -9,6 +9,7 @@ import { logAuditEvent } from "./audit-service";
 
 type Client = SupabaseClient<Database>;
 
+
 export type Measurement = Database["public"]["Tables"]["device_measurements"]["Row"];
 export type Device = Database["public"]["Tables"]["monitoring_devices"]["Row"];
 
@@ -40,11 +41,7 @@ function num(v: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function matchesScope(
-  rule: QualityRule,
-  m: Measurement,
-  devicesById: Map<string, Device>,
-): boolean {
+function matchesScope(rule: QualityRule, m: Measurement, devicesById: Map<string, Device>): boolean {
   const d = devicesById.get(m.device_id);
   if (rule.data_source_id && d?.zone_id) {
     // no direct data_source link on device; skip strict scope filter here.
@@ -57,176 +54,130 @@ function matchesScope(
 }
 
 /** Individual evaluators — each returns detected issues without persisting. */
-export const evaluators: Record<string, (rule: QualityRule, ctx: RuleContext) => DetectedIssue[]> =
-  {
-    out_of_range: (rule, ctx) => {
-      const c = cfg(rule);
-      const min = num(c.min, -Infinity);
-      const max = num(c.max, Infinity);
-      return ctx.measurements
-        .filter((m) => m.value < min || m.value > max)
-        .map((m) =>
-          mkIssue(rule, m, `Værdi ${m.value} uden for [${min}, ${max}]`, {
-            value: m.value,
-            min,
-            max,
-          }),
-        );
-    },
-    missing_gps: (rule, ctx) =>
-      ctx.measurements
-        .filter((m) => m.latitude === null || m.longitude === null)
-        .map((m) =>
-          mkIssue(rule, m, "Måling mangler GPS-koordinater", {
-            latitude: m.latitude,
-            longitude: m.longitude,
-          }),
-        ),
-    invalid_date: (rule, ctx) => {
-      const nowMs = ctx.now.getTime();
-      return ctx.measurements
-        .filter((m) => {
-          const t = new Date(m.measured_at).getTime();
-          return !Number.isFinite(t) || t > nowMs + 60_000;
-        })
-        .map((m) =>
-          mkIssue(rule, m, `Ugyldig dato: ${m.measured_at}`, { measured_at: m.measured_at }),
-        );
-    },
-    duplicate: (rule, ctx) => {
-      const seen = new Map<string, Measurement>();
-      const dupes: DetectedIssue[] = [];
-      for (const m of ctx.measurements) {
-        const key = `${m.device_id}|${m.parameter_id ?? ""}|${m.measured_at}|${m.value}`;
-        if (seen.has(key)) {
-          dupes.push(
-            mkIssue(rule, m, "Dublet af eksisterende måling", { key, first_id: seen.get(key)!.id }),
-          );
-        } else {
-          seen.set(key, m);
+export const evaluators: Record<string, (rule: QualityRule, ctx: RuleContext) => DetectedIssue[]> = {
+  out_of_range: (rule, ctx) => {
+    const c = cfg(rule);
+    const min = num(c.min, -Infinity);
+    const max = num(c.max, Infinity);
+    return ctx.measurements
+      .filter((m) => m.value < min || m.value > max)
+      .map((m) => mkIssue(rule, m, `Værdi ${m.value} uden for [${min}, ${max}]`, { value: m.value, min, max }));
+  },
+  missing_gps: (rule, ctx) =>
+    ctx.measurements
+      .filter((m) => m.latitude === null || m.longitude === null)
+      .map((m) => mkIssue(rule, m, "Måling mangler GPS-koordinater", { latitude: m.latitude, longitude: m.longitude })),
+  invalid_date: (rule, ctx) => {
+    const nowMs = ctx.now.getTime();
+    return ctx.measurements
+      .filter((m) => {
+        const t = new Date(m.measured_at).getTime();
+        return !Number.isFinite(t) || t > nowMs + 60_000;
+      })
+      .map((m) => mkIssue(rule, m, `Ugyldig dato: ${m.measured_at}`, { measured_at: m.measured_at }));
+  },
+  duplicate: (rule, ctx) => {
+    const seen = new Map<string, Measurement>();
+    const dupes: DetectedIssue[] = [];
+    for (const m of ctx.measurements) {
+      const key = `${m.device_id}|${m.parameter_id ?? ""}|${m.measured_at}|${m.value}`;
+      if (seen.has(key)) {
+        dupes.push(mkIssue(rule, m, "Dublet af eksisterende måling", { key, first_id: seen.get(key)!.id }));
+      } else {
+        seen.set(key, m);
+      }
+    }
+    return dupes;
+  },
+  identical_repeat: (rule, ctx) => {
+    const c = cfg(rule);
+    const n = Math.max(3, Math.floor(num(c.count, 5)));
+    const byDevice = groupBy(ctx.measurements, (m) => `${m.device_id}|${m.parameter_id ?? ""}`);
+    const issues: DetectedIssue[] = [];
+    for (const list of byDevice.values()) {
+      list.sort((a, b) => a.measured_at.localeCompare(b.measured_at));
+      for (let i = n - 1; i < list.length; i++) {
+        const window = list.slice(i - n + 1, i + 1);
+        if (window.every((w) => w.value === window[0].value)) {
+          issues.push(mkIssue(rule, list[i], `${n} identiske værdier i træk (${window[0].value})`, { value: window[0].value, count: n }));
         }
       }
-      return dupes;
-    },
-    identical_repeat: (rule, ctx) => {
-      const c = cfg(rule);
-      const n = Math.max(3, Math.floor(num(c.count, 5)));
-      const byDevice = groupBy(ctx.measurements, (m) => `${m.device_id}|${m.parameter_id ?? ""}`);
-      const issues: DetectedIssue[] = [];
-      for (const list of byDevice.values()) {
-        list.sort((a, b) => a.measured_at.localeCompare(b.measured_at));
-        for (let i = n - 1; i < list.length; i++) {
-          const window = list.slice(i - n + 1, i + 1);
-          if (window.every((w) => w.value === window[0].value)) {
-            issues.push(
-              mkIssue(rule, list[i], `${n} identiske værdier i træk (${window[0].value})`, {
-                value: window[0].value,
-                count: n,
-              }),
-            );
-          }
+    }
+    return issues;
+  },
+  spike: (rule, ctx) => {
+    const c = cfg(rule);
+    const threshold = num(c.z_threshold, 3);
+    const byDevice = groupBy(ctx.measurements, (m) => `${m.device_id}|${m.parameter_id ?? ""}`);
+    const issues: DetectedIssue[] = [];
+    for (const list of byDevice.values()) {
+      if (list.length < 5) continue;
+      const values = list.map((m) => m.value);
+      const mean = values.reduce((a, b) => a + b, 0) / values.length;
+      const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
+      const sd = Math.sqrt(variance) || 1;
+      list.forEach((m) => {
+        const z = Math.abs((m.value - mean) / sd);
+        if (z > threshold) {
+          issues.push(mkIssue(rule, m, `Spike: z=${z.toFixed(2)} (grænse ${threshold})`, { z, mean, sd, value: m.value }));
         }
-      }
-      return issues;
-    },
-    spike: (rule, ctx) => {
-      const c = cfg(rule);
-      const threshold = num(c.z_threshold, 3);
-      const byDevice = groupBy(ctx.measurements, (m) => `${m.device_id}|${m.parameter_id ?? ""}`);
-      const issues: DetectedIssue[] = [];
-      for (const list of byDevice.values()) {
-        if (list.length < 5) continue;
-        const values = list.map((m) => m.value);
-        const mean = values.reduce((a, b) => a + b, 0) / values.length;
-        const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
-        const sd = Math.sqrt(variance) || 1;
-        list.forEach((m) => {
-          const z = Math.abs((m.value - mean) / sd);
-          if (z > threshold) {
-            issues.push(
-              mkIssue(rule, m, `Spike: z=${z.toFixed(2)} (grænse ${threshold})`, {
-                z,
-                mean,
-                sd,
-                value: m.value,
-              }),
-            );
-          }
+      });
+    }
+    return issues;
+  },
+  unit_mismatch: (rule, ctx) => {
+    const c = cfg(rule);
+    const expected = typeof c.expected_unit === "string" ? c.expected_unit : null;
+    if (!expected) return [];
+    return ctx.measurements
+      .filter((m) => m.unit && m.unit !== expected)
+      .map((m) => mkIssue(rule, m, `Enhed ${m.unit} matcher ikke forventet ${expected}`, { unit: m.unit, expected }));
+  },
+  stale_data: (rule, ctx) => {
+    const c = cfg(rule);
+    const maxMinutes = num(c.max_minutes, 24 * 60);
+    const cutoff = ctx.now.getTime() - maxMinutes * 60_000;
+    const issues: DetectedIssue[] = [];
+    for (const d of ctx.devices) {
+      const t = d.last_measurement_at ? new Date(d.last_measurement_at).getTime() : 0;
+      if (!t || t < cutoff) {
+        issues.push({
+          ruleId: rule.id,
+          issueType: rule.rule_type,
+          severity: rule.severity,
+          description: `Enhed ${d.name} har ikke sendt data i over ${maxMinutes} min`,
+          deviceId: d.id,
+          zoneId: d.zone_id,
+          originalData: { last_measurement_at: d.last_measurement_at, max_minutes: maxMinutes },
         });
       }
-      return issues;
-    },
-    unit_mismatch: (rule, ctx) => {
-      const c = cfg(rule);
-      const expected = typeof c.expected_unit === "string" ? c.expected_unit : null;
-      if (!expected) return [];
-      return ctx.measurements
-        .filter((m) => m.unit && m.unit !== expected)
-        .map((m) =>
-          mkIssue(rule, m, `Enhed ${m.unit} matcher ikke forventet ${expected}`, {
-            unit: m.unit,
-            expected,
-          }),
-        );
-    },
-    stale_data: (rule, ctx) => {
-      const c = cfg(rule);
-      const maxMinutes = num(c.max_minutes, 24 * 60);
-      const cutoff = ctx.now.getTime() - maxMinutes * 60_000;
-      const issues: DetectedIssue[] = [];
-      for (const d of ctx.devices) {
-        const t = d.last_measurement_at ? new Date(d.last_measurement_at).getTime() : 0;
-        if (!t || t < cutoff) {
-          issues.push({
-            ruleId: rule.id,
-            issueType: rule.rule_type,
-            severity: rule.severity,
-            description: `Enhed ${d.name} har ikke sendt data i over ${maxMinutes} min`,
-            deviceId: d.id,
-            zoneId: d.zone_id,
-            originalData: { last_measurement_at: d.last_measurement_at, max_minutes: maxMinutes },
-          });
-        }
-      }
-      return issues;
-    },
-    missing_value: (rule, _ctx) => {
-      // Placeholder — device_measurements.value is NOT NULL. Consider mapping this
-      // to expected-parameter coverage; for now no-op so it doesn't spam.
-      void rule;
-      return [];
-    },
-    outside_project: (rule, ctx) => {
-      const c = cfg(rule);
-      const bbox = c.bbox as
-        | { minLat?: number; maxLat?: number; minLng?: number; maxLng?: number }
-        | undefined;
-      if (!bbox) return [];
-      return ctx.measurements
-        .filter((m) => m.latitude != null && m.longitude != null)
-        .filter(
-          (m) =>
-            m.latitude! < num(bbox.minLat, -90) ||
-            m.latitude! > num(bbox.maxLat, 90) ||
-            m.longitude! < num(bbox.minLng, -180) ||
-            m.longitude! > num(bbox.maxLng, 180),
-        )
-        .map((m) =>
-          mkIssue(rule, m, `Måling uden for projektområde`, {
-            lat: m.latitude,
-            lng: m.longitude,
-            bbox,
-          }),
-        );
-    },
-  };
+    }
+    return issues;
+  },
+  missing_value: (rule, _ctx) => {
+    // Placeholder — device_measurements.value is NOT NULL. Consider mapping this
+    // to expected-parameter coverage; for now no-op so it doesn't spam.
+    void rule;
+    return [];
+  },
+  outside_project: (rule, ctx) => {
+    const c = cfg(rule);
+    const bbox = c.bbox as { minLat?: number; maxLat?: number; minLng?: number; maxLng?: number } | undefined;
+    if (!bbox) return [];
+    return ctx.measurements
+      .filter((m) => m.latitude != null && m.longitude != null)
+      .filter(
+        (m) =>
+          m.latitude! < num(bbox.minLat, -90) ||
+          m.latitude! > num(bbox.maxLat, 90) ||
+          m.longitude! < num(bbox.minLng, -180) ||
+          m.longitude! > num(bbox.maxLng, 180),
+      )
+      .map((m) => mkIssue(rule, m, `Måling uden for projektområde`, { lat: m.latitude, lng: m.longitude, bbox }));
+  },
+};
 
-function mkIssue(
-  rule: QualityRule,
-  m: Measurement,
-  description: string,
-  original: Record<string, unknown>,
-): DetectedIssue {
+function mkIssue(rule: QualityRule, m: Measurement, description: string, original: Record<string, unknown>): DetectedIssue {
   return {
     ruleId: rule.id,
     issueType: rule.rule_type,
@@ -282,17 +233,12 @@ export async function runQualityEvaluation(
   opts?: { windowMinutes?: number; client?: Client },
 ): Promise<RunResult> {
   const client = (opts?.client ?? browserClient) as Client | null;
-  if (!client || (!opts?.client && !isSupabaseConfigured))
-    throw new Error("Supabase not configured");
+  if (!client || (!opts?.client && !isSupabaseConfigured)) throw new Error("Supabase not configured");
   const windowMinutes = opts?.windowMinutes ?? 24 * 60;
   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString();
 
   const [rulesRes, devicesRes] = await Promise.all([
-    client
-      .from("data_quality_rules")
-      .select("*")
-      .or(`project_id.eq.${projectId},project_id.is.null`)
-      .eq("is_active", true),
+    client.from("data_quality_rules").select("*").or(`project_id.eq.${projectId},project_id.is.null`).eq("is_active", true),
     client.from("monitoring_devices").select("*").eq("project_id", projectId),
   ]);
   if (rulesRes.error) throw rulesRes.error;
@@ -325,13 +271,9 @@ export async function runQualityEvaluation(
     .eq("project_id", projectId)
     .eq("status", "open");
   const openKeys = new Set(
-    (
-      (openIssuesRaw ?? []) as Array<{
-        measurement_id: string | null;
-        device_id: string | null;
-        issue_type: string;
-      }>
-    ).map((i) => `${i.issue_type}|${i.measurement_id ?? ""}|${i.device_id ?? ""}`),
+    ((openIssuesRaw ?? []) as Array<{ measurement_id: string | null; device_id: string | null; issue_type: string }>).map(
+      (i) => `${i.issue_type}|${i.measurement_id ?? ""}|${i.device_id ?? ""}`,
+    ),
   );
 
   const inserts: QualityIssueInsert[] = [];
@@ -365,6 +307,7 @@ export async function runQualityEvaluation(
     if (error) throw error;
     inserted = count ?? inserts.length;
   }
+
 
   const summary: RunResult = {
     ruleCount: rules.length,

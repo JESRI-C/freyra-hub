@@ -20,8 +20,8 @@ const NATURDATA_BASE = "https://naturdata.miljoeportal.dk/api";
 
 export interface Paragraph3Area {
   id: string;
-  natureType: string; // dansk navn
-  typeCode: string; // p3_eng, p3_mose osv.
+  natureType: string;       // dansk navn
+  typeCode: string;         // p3_eng, p3_mose osv.
   areaHa: number;
   geometry: GeoJsonGeometry | null;
   registeredYear?: number;
@@ -34,9 +34,9 @@ export interface GeoJsonGeometry {
 
 export interface Paragraph3Result {
   overlapHa: number;
-  overlapPercent: number; // af projektets areal
+  overlapPercent: number;   // af projektets areal
   areas: Paragraph3Area[];
-  natureTypes: string[]; // unikke naturtyper
+  natureTypes: string[];    // unikke naturtyper
   nearestHabitatArea?: string;
   fetchedAt: string;
   mode: "live" | "preview" | "error";
@@ -79,50 +79,11 @@ const PREVIEW_P3: Paragraph3Result = {
 
 const PREVIEW_SPECIES: BiodiversityDataResult = {
   species: [
-    {
-      scientificName: "Ciconia ciconia",
-      danishName: "Hvid stork",
-      group: "Fugle",
-      protected: true,
-      redListStatus: "VU",
-      count: 2,
-      lastSeen: "2026-05-12",
-    },
-    {
-      scientificName: "Lutra lutra",
-      danishName: "Odder",
-      group: "Pattedyr",
-      protected: true,
-      redListStatus: "LC",
-      count: 1,
-      lastSeen: "2026-04-30",
-    },
-    {
-      scientificName: "Bufo bufo",
-      danishName: "Skrubtudse",
-      group: "Padder",
-      protected: true,
-      count: 8,
-      lastSeen: "2026-05-20",
-    },
-    {
-      scientificName: "Circus aeruginosus",
-      danishName: "Rørhøg",
-      group: "Fugle",
-      protected: true,
-      redListStatus: "LC",
-      count: 3,
-      lastSeen: "2026-05-18",
-    },
-    {
-      scientificName: "Drosera rotundifolia",
-      danishName: "Rundbladet soldug",
-      group: "Planter",
-      protected: true,
-      redListStatus: "NT",
-      count: 45,
-      lastSeen: "2026-06-01",
-    },
+    { scientificName: "Ciconia ciconia", danishName: "Hvid stork", group: "Fugle", protected: true, redListStatus: "VU", count: 2, lastSeen: "2026-05-12" },
+    { scientificName: "Lutra lutra", danishName: "Odder", group: "Pattedyr", protected: true, redListStatus: "LC", count: 1, lastSeen: "2026-04-30" },
+    { scientificName: "Bufo bufo", danishName: "Skrubtudse", group: "Padder", protected: true, count: 8, lastSeen: "2026-05-20" },
+    { scientificName: "Circus aeruginosus", danishName: "Rørhøg", group: "Fugle", protected: true, redListStatus: "LC", count: 3, lastSeen: "2026-05-18" },
+    { scientificName: "Drosera rotundifolia", danishName: "Rundbladet soldug", group: "Planter", protected: true, redListStatus: "NT", count: 45, lastSeen: "2026-06-01" },
   ],
   redListedCount: 3,
   protectedCount: 5,
@@ -134,12 +95,12 @@ const PREVIEW_SPECIES: BiodiversityDataResult = {
 // ─── §3 Overlap ───────────────────────────────────────────────────────────────
 
 const P3_TYPES = [
-  { code: "p3_soe", label: "Sø" },
-  { code: "p3_mose", label: "Mose" },
-  { code: "p3_eng", label: "Eng" },
-  { code: "p3_hede", label: "Hede" },
+  { code: "p3_soe",      label: "Sø" },
+  { code: "p3_mose",     label: "Mose" },
+  { code: "p3_eng",      label: "Eng" },
+  { code: "p3_hede",     label: "Hede" },
   { code: "p3_overdrev", label: "Overdrev" },
-  { code: "p3_strandeng", label: "Strandeng" },
+  { code: "p3_strandeng",label: "Strandeng" },
 ];
 
 /**
@@ -188,10 +149,8 @@ export async function fetchParagraph3Overlap(
       return (json.features ?? []).map((f, i): Paragraph3Area => {
         const props = f.properties ?? {};
         // Areal i m² i properties, konvertér til ha
-        const areaM2 =
-          (props["areal_m2"] as number | undefined) ??
-          (props["Shape_Area"] as number | undefined) ??
-          0;
+        const areaM2 = (props["areal_m2"] as number | undefined) ??
+                       (props["Shape_Area"] as number | undefined) ?? 0;
         return {
           id: f.id ?? `${code}-${i}`,
           natureType: label,
@@ -284,8 +243,8 @@ export async function fetchSpeciesObservations(
     lastSeen: s.lastObserved,
   }));
 
-  const redListedCount = species.filter(
-    (s) => s.redListStatus && !["LC", "NA", "DD"].includes(s.redListStatus),
+  const redListedCount = species.filter((s) =>
+    s.redListStatus && !["LC", "NA", "DD"].includes(s.redListStatus)
   ).length;
 
   const protectedCount = species.filter((s) => s.protected).length;

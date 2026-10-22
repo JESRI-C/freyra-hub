@@ -5,7 +5,9 @@
   "auth": {
     "type": "oauth",
     "issuer": "https://ikrmcetjutqcjtwfhzfv.supabase.co/auth/v1",
-    "accepted_audiences": ["authenticated"]
+    "accepted_audiences": [
+      "authenticated"
+    ]
   },
   "mcp": {
     "server": {
@@ -33,7 +35,9 @@
               "description": "Text to echo back."
             }
           },
-          "required": ["text"]
+          "required": [
+            "text"
+          ]
         },
         "outputSchema": null
       },
@@ -72,7 +76,9 @@
               "description": "Project id, e.g. 'lav-001'."
             }
           },
-          "required": ["projectId"]
+          "required": [
+            "projectId"
+          ]
         },
         "outputSchema": null
       }

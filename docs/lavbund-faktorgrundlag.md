@@ -6,11 +6,11 @@ automatisk. Dette dokument beskriver kæden.
 
 ## Kilderne (docs/kilder/lavbund/)
 
-| Fil                                        | Version                           | Udgiver                                    | Anvendes til                                                                                                                        |
-| ------------------------------------------ | --------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `beregningsark-co2-effekt-version-12.xlsx` | v12 (Klima-Lavbund / LDP-Lavbund) | Naturstyrelsen                             | CO₂-faktorer (t CO₂/ha/år) pr. kulstofklasse × arealanvendelse; bufferzone = halv effekt                                            |
-| `fosforbalance-brinkerosion-maj-2024.xlsx` | maj 2024                          | DCE / Miljøstyrelsen (DCE-rapport nr. 263) | Brinkerosionsrater (Tabel 2), hældningskorrektion (Tabel 3), vegetationskorrektion (Tabel 4), fosforindhold pr. georegion (Tabel 5) |
-| `fosfor-apr-2024-SUPERSEDED.xlsm`          | apr 2024                          | DCE / Miljøstyrelsen                       | **Erstattet** af maj 2024-versionen — beholdt for historik                                                                          |
+| Fil | Version | Udgiver | Anvendes til |
+|-----|---------|---------|--------------|
+| `beregningsark-co2-effekt-version-12.xlsx` | v12 (Klima-Lavbund / LDP-Lavbund) | Naturstyrelsen | CO₂-faktorer (t CO₂/ha/år) pr. kulstofklasse × arealanvendelse; bufferzone = halv effekt |
+| `fosforbalance-brinkerosion-maj-2024.xlsx` | maj 2024 | DCE / Miljøstyrelsen (DCE-rapport nr. 263) | Brinkerosionsrater (Tabel 2), hældningskorrektion (Tabel 3), vegetationskorrektion (Tabel 4), fosforindhold pr. georegion (Tabel 5) |
+| `fosfor-apr-2024-SUPERSEDED.xlsm` | apr 2024 | DCE / Miljøstyrelsen | **Erstattet** af maj 2024-versionen — beholdt for historik |
 
 SHA-256-checksums for alle filer er registreret i
 `src/data/lavbund-faktor-referencer.json`.

@@ -1,18 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Plus,
-  Archive,
-  ArchiveRestore,
-  Pencil,
-  X,
-  MapPin,
-  Activity,
-  Radio,
-  Database,
-  BarChart2,
-} from "lucide-react";
+import { Plus, Archive, ArchiveRestore, Pencil, X, MapPin, Activity, Radio, Database, BarChart2 } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import type { Site } from "@/lib/supabase/types";
 import {
@@ -96,9 +85,7 @@ export function SitesPanel({ projectId, sites }: { projectId: string; sites: Sit
 
       {visibleSites.length === 0 ? (
         <div className="px-5 py-8 text-center text-sm text-muted-foreground">
-          {showArchived
-            ? "Ingen arkiverede sites."
-            : "Ingen sites endnu. Opret dit første site for at komme i gang."}
+          {showArchived ? "Ingen arkiverede sites." : "Ingen sites endnu. Opret dit første site for at komme i gang."}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -114,22 +101,14 @@ export function SitesPanel({ projectId, sites }: { projectId: string; sites: Sit
             </thead>
             <tbody className="divide-y">
               {visibleSites.map((site) => (
-                <tr
-                  key={site.id}
-                  className="hover:bg-muted/20 cursor-pointer"
-                  onClick={() => setDetailFor(site)}
-                >
+                <tr key={site.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => setDetailFor(site)}>
                   <td className="px-5 py-3 font-medium">
                     <div className="flex items-center gap-2">
                       {site.name}
-                      {site.centroid_lat != null && (
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                      )}
+                      {site.centroid_lat != null && <MapPin className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>
                     {site.description && (
-                      <div className="text-xs text-muted-foreground line-clamp-1">
-                        {site.description}
-                      </div>
+                      <div className="text-xs text-muted-foreground line-clamp-1">{site.description}</div>
                     )}
                   </td>
                   <td className="py-3">{site.site_type ?? "—"}</td>
@@ -194,7 +173,9 @@ export function SitesPanel({ projectId, sites }: { projectId: string; sites: Sit
         />
       )}
 
-      {detailFor && <SiteDetailDrawer site={detailFor} onClose={() => setDetailFor(null)} />}
+      {detailFor && (
+        <SiteDetailDrawer site={detailFor} onClose={() => setDetailFor(null)} />
+      )}
     </Card>
   );
 }
@@ -216,15 +197,9 @@ function SiteEditDialog({
   const [siteType, setSiteType] = useState(initial?.site_type ?? "Naturareal");
   const [areaHa, setAreaHa] = useState(initial?.area_ha != null ? String(initial.area_ha) : "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [baselineStatus, setBaselineStatus] = useState(
-    initial?.baseline_status ?? "Afventer baseline",
-  );
-  const [centroidLat, setCentroidLat] = useState(
-    initial?.centroid_lat != null ? String(initial.centroid_lat) : "",
-  );
-  const [centroidLng, setCentroidLng] = useState(
-    initial?.centroid_lng != null ? String(initial.centroid_lng) : "",
-  );
+  const [baselineStatus, setBaselineStatus] = useState(initial?.baseline_status ?? "Afventer baseline");
+  const [centroidLat, setCentroidLat] = useState(initial?.centroid_lat != null ? String(initial.centroid_lat) : "");
+  const [centroidLng, setCentroidLng] = useState(initial?.centroid_lng != null ? String(initial.centroid_lng) : "");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -256,114 +231,47 @@ function SiteEditDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-card rounded-2xl shadow-xl border w-full max-w-lg max-h-[90vh] overflow-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-card">
           <h2 className="font-semibold text-base">{initial ? "Rediger site" : "Nyt site"}</h2>
-          <button
-            onClick={onClose}
-            className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
-          >
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center">
             <X className="h-4 w-4" />
           </button>
         </div>
         <form onSubmit={submit} className="p-5 space-y-4">
           <Field label="Navn" required>
-            <input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-base"
-            />
+            <input required value={name} onChange={(e) => setName(e.target.value)} className="input-base" />
           </Field>
           <Field label="Beskrivelse">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="input-base resize-none"
-            />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="input-base resize-none" />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Type">
-              <select
-                value={siteType}
-                onChange={(e) => setSiteType(e.target.value)}
-                className="input-base"
-              >
-                {SITE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
+              <select value={siteType} onChange={(e) => setSiteType(e.target.value)} className="input-base">
+                {SITE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </Field>
             <Field label="Areal (ha)">
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                value={areaHa}
-                onChange={(e) => setAreaHa(e.target.value)}
-                className="input-base"
-              />
+              <input type="number" step="0.1" min="0" value={areaHa} onChange={(e) => setAreaHa(e.target.value)} className="input-base" />
             </Field>
             <Field label="Baseline-status">
-              <select
-                value={baselineStatus}
-                onChange={(e) => setBaselineStatus(e.target.value)}
-                className="input-base"
-              >
-                {BASELINE_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
+              <select value={baselineStatus} onChange={(e) => setBaselineStatus(e.target.value)} className="input-base">
+                {BASELINE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </Field>
             <div />
             <Field label="Centrum lat">
-              <input
-                type="number"
-                step="0.0001"
-                value={centroidLat}
-                onChange={(e) => setCentroidLat(e.target.value)}
-                className="input-base"
-                placeholder="55.6761"
-              />
+              <input type="number" step="0.0001" value={centroidLat} onChange={(e) => setCentroidLat(e.target.value)} className="input-base" placeholder="55.6761" />
             </Field>
             <Field label="Centrum lng">
-              <input
-                type="number"
-                step="0.0001"
-                value={centroidLng}
-                onChange={(e) => setCentroidLng(e.target.value)}
-                className="input-base"
-                placeholder="12.5683"
-              />
+              <input type="number" step="0.0001" value={centroidLng} onChange={(e) => setCentroidLng(e.target.value)} className="input-base" placeholder="12.5683" />
             </Field>
           </div>
-          {err && (
-            <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-              {err}
-            </div>
-          )}
+          {err && <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{err}</div>}
           <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border px-4 py-2 text-sm hover:bg-muted"
-            >
-              Annuller
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !name.trim()}
-              className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
-            >
+            <button type="button" onClick={onClose} className="rounded-xl border px-4 py-2 text-sm hover:bg-muted">Annuller</button>
+            <button type="submit" disabled={saving || !name.trim()} className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
               {saving ? "Gemmer…" : initial ? "Gem" : "Opret site"}
             </button>
           </div>
@@ -377,20 +285,10 @@ function SiteEditDialog({
   );
 }
 
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium">
-        {label} {required && <span className="text-destructive">*</span>}
-      </label>
+      <label className="text-sm font-medium">{label} {required && <span className="text-destructive">*</span>}</label>
       {children}
     </div>
   );
@@ -405,55 +303,32 @@ function SiteDetailDrawer({ site, onClose }: { site: Site; onClose: () => void }
   useEffect(() => {
     let cancelled = false;
     getSiteRelations(site)
-      .then((r) => {
-        if (!cancelled) {
-          setRelations(r);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then((r) => { if (!cancelled) { setRelations(r); setLoading(false); } })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [site]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex justify-end"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex justify-end" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-card w-full max-w-md h-full overflow-auto border-l shadow-xl">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-card z-10">
           <div>
             <h2 className="font-semibold text-base">{site.name}</h2>
-            <div className="text-xs text-muted-foreground">
-              {site.site_type ?? "—"} · {site.area_ha ?? "—"} ha
-            </div>
+            <div className="text-xs text-muted-foreground">{site.site_type ?? "—"} · {site.area_ha ?? "—"} ha</div>
           </div>
-          <button
-            onClick={onClose}
-            className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
-          >
+          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center">
             <X className="h-4 w-4" />
           </button>
         </div>
         <div className="p-5 space-y-5">
           {site.status === "archived" && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs px-3 py-2">
-              Dette site er arkiveret
-              {site.archived_at
-                ? ` (${new Date(site.archived_at).toLocaleDateString("da-DK")})`
-                : ""}
-              .
+              Dette site er arkiveret{site.archived_at ? ` (${new Date(site.archived_at).toLocaleDateString("da-DK")})` : ""}.
             </div>
           )}
           {site.description && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                Beskrivelse
-              </div>
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Beskrivelse</div>
               <p className="text-sm">{site.description}</p>
             </div>
           )}
@@ -461,15 +336,9 @@ function SiteDetailDrawer({ site, onClose }: { site: Site; onClose: () => void }
             <MiniStat label="Baseline" value={site.baseline_status ?? "—"} />
             <MiniStat label="Areal" value={site.area_ha != null ? `${site.area_ha} ha` : "—"} />
             {site.centroid_lat != null && site.centroid_lng != null && (
-              <MiniStat
-                label="Centrum"
-                value={`${site.centroid_lat.toFixed(4)}, ${site.centroid_lng.toFixed(4)}`}
-              />
+              <MiniStat label="Centrum" value={`${site.centroid_lat.toFixed(4)}, ${site.centroid_lng.toFixed(4)}`} />
             )}
-            <MiniStat
-              label="Oprettet"
-              value={new Date(site.created_at).toLocaleDateString("da-DK")}
-            />
+            <MiniStat label="Oprettet" value={new Date(site.created_at).toLocaleDateString("da-DK")} />
           </div>
 
           <RelationSection
@@ -487,9 +356,7 @@ function SiteDetailDrawer({ site, onClose }: { site: Site; onClose: () => void }
                   </li>
                 ))}
               </ul>
-            ) : (
-              <EmptyLine text="Ingen datakilder har leveret observationer på dette site endnu." />
-            )}
+            ) : <EmptyLine text="Ingen datakilder har leveret observationer på dette site endnu." />}
           </RelationSection>
 
           <RelationSection
@@ -509,9 +376,7 @@ function SiteDetailDrawer({ site, onClose }: { site: Site; onClose: () => void }
                   </li>
                 ))}
               </ul>
-            ) : (
-              <EmptyLine text="Ingen indikatorer knyttet via observationer endnu." />
-            )}
+            ) : <EmptyLine text="Ingen indikatorer knyttet via observationer endnu." />}
           </RelationSection>
 
           <RelationSection
@@ -525,15 +390,11 @@ function SiteDetailDrawer({ site, onClose }: { site: Site; onClose: () => void }
                 {relations.sensors.map((s) => (
                   <li key={s.id} className="py-2 flex items-center justify-between">
                     <span className="font-medium">{s.name}</span>
-                    <Pill tone={s.status === "online" ? "success" : "default"}>
-                      {s.status ?? "—"}
-                    </Pill>
+                    <Pill tone={s.status === "online" ? "success" : "default"}>{s.status ?? "—"}</Pill>
                   </li>
                 ))}
               </ul>
-            ) : (
-              <EmptyLine text="Ingen sensorer registreret på dette site." />
-            )}
+            ) : <EmptyLine text="Ingen sensorer registreret på dette site." />}
           </RelationSection>
 
           <RelationSection
@@ -546,21 +407,15 @@ function SiteDetailDrawer({ site, onClose }: { site: Site; onClose: () => void }
               <ul className="text-sm divide-y">
                 {relations.observations.slice(0, 10).map((o) => (
                   <li key={o.id} className="py-2 flex items-center justify-between gap-3">
-                    <span className="font-medium truncate">
-                      {o.indicator_key ?? o.observation_type ?? "obs"}
-                    </span>
-                    <span className="tabular-nums">
-                      {o.value != null ? `${o.value}${o.unit ? ` ${o.unit}` : ""}` : "—"}
-                    </span>
+                    <span className="font-medium truncate">{o.indicator_key ?? o.observation_type ?? "obs"}</span>
+                    <span className="tabular-nums">{o.value != null ? `${o.value}${o.unit ? ` ${o.unit}` : ""}` : "—"}</span>
                     <span className="text-xs text-muted-foreground">
                       {o.observed_at ? new Date(o.observed_at).toLocaleDateString("da-DK") : "—"}
                     </span>
                   </li>
                 ))}
               </ul>
-            ) : (
-              <EmptyLine text="Ingen observationer registreret endnu." />
-            )}
+            ) : <EmptyLine text="Ingen observationer registreret endnu." />}
           </RelationSection>
         </div>
       </div>
@@ -577,19 +432,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RelationSection({
-  title,
-  icon,
-  count,
-  loading,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  count: number;
-  loading: boolean;
-  children: React.ReactNode;
-}) {
+function RelationSection({ title, icon, count, loading, children }: { title: string; icon: React.ReactNode; count: number; loading: boolean; children: React.ReactNode }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">

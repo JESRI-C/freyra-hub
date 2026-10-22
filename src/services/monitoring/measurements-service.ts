@@ -5,16 +5,9 @@ import type { Database } from "@/integrations/supabase/types";
 export type DeviceMeasurement = Database["public"]["Tables"]["device_measurements"]["Row"];
 export type DeviceMeasurementInsert = Database["public"]["Tables"]["device_measurements"]["Insert"];
 
-export async function listMeasurements(
-  deviceId: string,
-  opts?: { from?: Date; to?: Date; limit?: number },
-): Promise<DeviceMeasurement[]> {
+export async function listMeasurements(deviceId: string, opts?: { from?: Date; to?: Date; limit?: number }): Promise<DeviceMeasurement[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  let q = supabase
-    .from("device_measurements")
-    .select("*")
-    .eq("device_id", deviceId)
-    .order("measured_at", { ascending: false });
+  let q = supabase.from("device_measurements").select("*").eq("device_id", deviceId).order("measured_at", { ascending: false });
   if (opts?.from) q = q.gte("measured_at", opts.from.toISOString());
   if (opts?.to) q = q.lte("measured_at", opts.to.toISOString());
   if (opts?.limit) q = q.limit(opts.limit);
@@ -25,11 +18,7 @@ export async function listMeasurements(
 
 export async function insertMeasurement(m: DeviceMeasurementInsert): Promise<DeviceMeasurement> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase
-    .from("device_measurements")
-    .insert(m as never)
-    .select("*")
-    .single();
+  const { data, error } = await supabase.from("device_measurements").insert(m as never).select("*").single();
   if (error) throw error;
   return data as DeviceMeasurement;
 }

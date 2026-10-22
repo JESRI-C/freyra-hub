@@ -79,9 +79,7 @@ export function useLiveCriticalActions(): CriticalAction[] {
     title: a.title,
     priority: a.priority ?? "Lav",
     owner: a.owner ?? "—",
-    deadline: a.due_date
-      ? new Date(a.due_date).toLocaleDateString("da-DK", { day: "numeric", month: "short" })
-      : "—",
+    deadline: a.due_date ? new Date(a.due_date).toLocaleDateString("da-DK", { day: "numeric", month: "short" }) : "—",
     href: "/app/decisions",
   }));
 }

@@ -5,22 +5,14 @@ import { logAuditEvent } from "@/services/audit-service";
 type UnsafeClient = {
   from: (t: string) => {
     insert: (v: Record<string, unknown>) => {
-      select: (cols: string) => {
-        single: () => Promise<{ data: Site | null; error: { message: string } | null }>;
-      };
+      select: (cols: string) => { single: () => Promise<{ data: Site | null; error: { message: string } | null }> };
     };
     update: (v: Record<string, unknown>) => {
       eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
     };
     select: (cols: string) => {
-      eq: (
-        col: string,
-        val: string,
-      ) => {
-        order?: (
-          col: string,
-          opts: { ascending: boolean },
-        ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+      eq: (col: string, val: string) => {
+        order?: (col: string, opts: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
       } & Promise<{ data: unknown[] | null; error: { message: string } | null }>;
     };
   };
@@ -62,11 +54,7 @@ export async function createSite(input: SiteInput): Promise<Site> {
   return data;
 }
 
-export async function updateSite(
-  id: string,
-  projectId: string,
-  patch: Partial<SiteInput>,
-): Promise<void> {
+export async function updateSite(id: string, projectId: string, patch: Partial<SiteInput>): Promise<void> {
   const db = client();
   const { error } = await db.from("sites").update(patch).eq("id", id);
   if (error) throw new Error(error.message);
@@ -138,12 +126,8 @@ export async function getSiteRelations(site: Site): Promise<SiteRelations> {
   const observations = (obs.data ?? []) as Observation[];
   const sensors = (sens.data ?? []) as Sensor[];
   // Derive data sources & indicators referenced by observations
-  const sourceIds = Array.from(
-    new Set(observations.map((o) => o.source_id).filter(Boolean)),
-  ) as string[];
-  const indicatorKeys = Array.from(
-    new Set(observations.map((o) => o.indicator_key).filter(Boolean)),
-  ) as string[];
+  const sourceIds = Array.from(new Set(observations.map((o) => o.source_id).filter(Boolean))) as string[];
+  const indicatorKeys = Array.from(new Set(observations.map((o) => o.indicator_key).filter(Boolean))) as string[];
   let dataSources: DataSource[] = [];
   let indicators: Indicator[] = [];
   if (site.project_id) {

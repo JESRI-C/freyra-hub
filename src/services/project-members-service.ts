@@ -3,7 +3,13 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { logAuditEvent } from "@/services/audit-service";
 
-export type ProjectRole = "admin" | "project_manager" | "editor" | "field" | "viewer" | "external";
+export type ProjectRole =
+  | "admin"
+  | "project_manager"
+  | "editor"
+  | "field"
+  | "viewer"
+  | "external";
 
 export interface ProjectMember {
   id: string;
@@ -35,27 +41,20 @@ export const ROLE_DESCRIPTIONS: Record<ProjectRole, string> = {
   external: "Begrænset adgang — kun til delte dokumenter",
 };
 
-export const ROLE_TONE: Record<ProjectRole, "danger" | "warning" | "info" | "success" | "default"> =
-  {
-    admin: "danger",
-    project_manager: "warning",
-    editor: "info",
-    field: "success",
-    viewer: "default",
-    external: "default",
-  };
+export const ROLE_TONE: Record<ProjectRole, "danger" | "warning" | "info" | "success" | "default"> = {
+  admin: "danger",
+  project_manager: "warning",
+  editor: "info",
+  field: "success",
+  viewer: "default",
+  external: "default",
+};
 
 interface UntypedDb {
   from(table: string): {
     select(cols?: string): {
-      eq(
-        col: string,
-        val: unknown,
-      ): {
-        order?: (
-          col: string,
-          o: { ascending: boolean },
-        ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+      eq(col: string, val: unknown): {
+        order?: (col: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
         maybeSingle?: () => Promise<{ data: unknown; error: { message: string } | null }>;
       } & Promise<{ data: unknown[] | null; error: { message: string } | null }>;
     };
@@ -93,12 +92,7 @@ export async function listProjectMembers(projectId: string): Promise<ProjectMemb
         .select("id, email, full_name, display_name")
         .in("id", ids);
       const map = new Map<string, { email?: string; full_name?: string; display_name?: string }>();
-      for (const p of (profiles ?? []) as Array<{
-        id: string;
-        email?: string;
-        full_name?: string;
-        display_name?: string;
-      }>) {
+      for (const p of (profiles ?? []) as Array<{ id: string; email?: string; full_name?: string; display_name?: string }>) {
         map.set(p.id, p);
       }
       for (const m of members) {
@@ -136,11 +130,7 @@ export async function addProjectMember(input: {
   return data as ProjectMember;
 }
 
-export async function updateProjectMemberRole(
-  id: string,
-  projectId: string,
-  role: ProjectRole,
-): Promise<void> {
+export async function updateProjectMemberRole(id: string, projectId: string, role: ProjectRole): Promise<void> {
   const db = getDb();
   if (!db) throw new Error("Database ikke konfigureret");
   const { error } = await db.from("project_members").update({ role }).eq("id", id);
@@ -209,10 +199,7 @@ export function permissionsFor(role: ProjectRole | null | undefined): ProjectPer
   };
 }
 
-export async function getMyProjectRole(
-  projectId: string,
-  userId: string,
-): Promise<ProjectRole | null> {
+export async function getMyProjectRole(projectId: string, userId: string): Promise<ProjectRole | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

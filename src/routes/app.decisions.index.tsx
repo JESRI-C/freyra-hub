@@ -77,15 +77,10 @@ function OverviewPage() {
       <AiInsightBanner
         module="DecisionsIQ"
         tone="risk"
-        context={`Projekt: ${PROJECT_FACTS.name}. Åbne anbefalinger: ${PROJECT_FACTS.openRecommendations}. Biodiversitetsindeks: ${PROJECT_FACTS.biodiversityIndex}. Nøgleindsigter: ${KEY_INSIGHTS.slice(
-          0,
-          3,
-        )
-          .map((k) => `${k.label}: ${k.value} (${k.description})`)
-          .join("; ")}. Top-anbefalinger: ${RECOMMENDATIONS.slice(0, 3)
-          .map((r) => r.title)
-          .join("; ")}.`}
+        context={`Projekt: ${PROJECT_FACTS.name}. Åbne anbefalinger: ${PROJECT_FACTS.openRecommendations}. Biodiversitetsindeks: ${PROJECT_FACTS.biodiversityIndex}. Nøgleindsigter: ${KEY_INSIGHTS.slice(0, 3).map((k) => `${k.label}: ${k.value} (${k.description})`).join("; ")}. Top-anbefalinger: ${RECOMMENDATIONS.slice(0, 3).map((r) => r.title).join("; ")}.`}
       />
+
+
 
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <ConfidenceScore value={0.82} />

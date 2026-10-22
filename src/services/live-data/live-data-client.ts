@@ -1,55 +1,12 @@
-import type { ProjectGeometry } from "@/lib/supabase/types";
-
 export type ConnectorMode = "live" | "preview" | "error";
-export type ConnectorStatus =
-  | "ok"
-  | "error"
-  | "missing_key"
-  | "timeout"
-  | "disabled"
-  | "invalid_geometry"
-  | "no_coverage";
 
 export interface ConnectorResponse<T> {
   data: T | null;
   mode: ConnectorMode;
-  status: ConnectorStatus;
+  status: "ok" | "error" | "missing_key" | "timeout";
   latencyMs: number;
   error?: string;
   fetchedAt: string;
-}
-
-/** Unavailable sources never contain sample values or claim a successful sync. */
-export function errorResponse<T>(
-  error: unknown,
-  status?: Exclude<ConnectorStatus, "ok">,
-  latencyMs = 0,
-): ConnectorResponse<T> {
-  const message = error instanceof Error ? error.message : String(error);
-  const timedOut =
-    (error instanceof Error && error.name === "AbortError") || /abort|timeout/i.test(message);
-  return {
-    data: null,
-    mode: "error",
-    status: status ?? (timedOut ? "timeout" : "error"),
-    latencyMs,
-    error: message,
-    fetchedAt: new Date().toISOString(),
-  };
-}
-
-export function hasSourceGeometry(geometry: ProjectGeometry): boolean {
-  const centroid = geometry.centroid;
-  return !!(
-    geometry.hasValidGeometry &&
-    centroid &&
-    Number.isFinite(centroid.lat) &&
-    Number.isFinite(centroid.lng) &&
-    centroid.lat >= -90 &&
-    centroid.lat <= 90 &&
-    centroid.lng >= -180 &&
-    centroid.lng <= 180
-  );
 }
 
 export async function fetchWithTimeout(
@@ -78,7 +35,15 @@ export async function fetchConnector<T>(fetcher: () => Promise<T>): Promise<Conn
       fetchedAt: new Date().toISOString(),
     };
   } catch (err) {
-    return errorResponse<T>(err, undefined, Date.now() - start);
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      data: null,
+      mode: "error",
+      status: msg.includes("abort") ? "timeout" : "error",
+      latencyMs: Date.now() - start,
+      error: msg,
+      fetchedAt: new Date().toISOString(),
+    };
   }
 }
 
@@ -93,5 +58,11 @@ export function previewResponse<T>(data: T): ConnectorResponse<T> {
 }
 
 export function missingKeyResponse<T>(): ConnectorResponse<T> {
-  return errorResponse<T>("Kildens adgangsnøgle er ikke konfigureret.", "missing_key");
+  return {
+    data: null,
+    mode: "preview",
+    status: "missing_key",
+    latencyMs: 0,
+    fetchedAt: new Date().toISOString(),
+  };
 }

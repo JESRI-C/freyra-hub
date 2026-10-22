@@ -47,9 +47,7 @@ export function useFullAnalysis(project: Project | null) {
   const summary: AnalysisSummary | null = result ? summarizeAnalysis(result) : null;
 
   return {
-    run: () => {
-      if (project) mutation.mutate();
-    },
+    run: () => { if (project) mutation.mutate(); },
     isRunning: mutation.isPending,
     step,
     stepLabel: step ? STEP_LABELS[step] : null,
