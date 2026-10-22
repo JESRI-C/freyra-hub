@@ -10,12 +10,13 @@ export const MUNICIPAL_PROJECT_TABS = new Set([
 ]);
 
 export function isMunicipalRoute(path: string): boolean {
+  // The app layout supplies pathname. Keep global prototype sections out of DEMO,
+  // including direct links; project tabs have their own municipal allowlist.
   const normalized = path.replace(/\/+$/, "");
+  if (/[?#\\\s]/.test(normalized) || /%(?:2f|5c)/i.test(normalized)) return false;
   return (
     /^\/app\/projects\/geometry\/[^/]+$/.test(normalized) ||
     /^\/app\/projects(?:\/[^/]+)?$/.test(normalized) ||
-    /^\/app\/reports(?:\/[^/]+)?$/.test(normalized) ||
-    /^\/app\/lavbund(?:\/[^/]+(?:\/(?:kort|revisionsspor))?)?$/.test(normalized) ||
-    ["/app/settings", "/app/settings/users", "/app/ledger"].includes(normalized)
+    /^\/app\/lavbund\/[^/]+\/kort$/.test(normalized)
   );
 }

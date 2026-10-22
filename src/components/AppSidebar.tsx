@@ -74,10 +74,6 @@ const GROUPS: SidebarGroup[] = DEMO_MODE
         label: "Kommunens arbejde",
         items: [{ to: "/app/projects", label: "Sager", icon: FolderOpen }],
       },
-      {
-        label: "Administration",
-        items: [{ to: "/app/settings", label: "Indstillinger", icon: Settings }],
-      },
     ]
   : ALL_GROUPS;
 
