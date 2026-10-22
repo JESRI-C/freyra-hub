@@ -515,17 +515,17 @@ function SplitShell({
           <img src={logoMark} alt="Freyra" className="h-11 w-11 object-contain" />
           <div>
             <div className="text-lg font-semibold tracking-tight">Freyra</div>
-            <div className="text-xs text-sidebar-muted">by Freyra</div>
+            <div className="text-xs text-sidebar-muted">Naturdokumentation</div>
           </div>
         </div>
 
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-semibold leading-tight">
-            Mål, dokumentér og handl på <span className="text-leaf">verificeret naturkapital</span>.
+            Fra billeder til <span className="text-leaf">dokumenteret naturtilstand</span>.
           </h1>
           <p className="text-sidebar-muted leading-relaxed">
-            Saml naturprojekter, arealdata, målinger, rapportering og dokumentation i én platform —
-            bygget til den grønne arealomlægning.
+            Saml originalfotos, offentlige data, faglige vurderinger og rapporter i én sag. Se, hvad
+            der er dokumenteret, og hvad der stadig skal afklares.
           </p>
           <div className="grid grid-cols-3 gap-3 pt-4">
             {stats.map((x) => (
@@ -541,7 +541,7 @@ function SplitShell({
         </div>
 
         <div className="relative text-xs text-sidebar-muted">
-          © {new Date().getFullYear()} Freyra ApS · Platform for verificeret naturkapital
+          © {new Date().getFullYear()} Freyra ApS · Naturdokumentation
         </div>
       </div>
 
