@@ -148,7 +148,7 @@ describe("frozen Sentinel thumbnails", () => {
     const { source } = await fixture();
     const result = await freezeSentinelPreview(source, {
       timeoutMs: 5,
-      fetchImpl: vi.fn(() => new Promise(() => undefined)),
+      fetchImpl: vi.fn(() => new Promise<Response>(() => undefined)),
     });
     expect(result.payload).toHaveProperty("frozenPreview", null);
   });
