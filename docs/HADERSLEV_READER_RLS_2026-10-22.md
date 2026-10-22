@@ -22,3 +22,11 @@ Prøven kontrollerede projekter, uploads, projektmedier, offentlige kildeversion
 Saniterede lokale maskinkvitteringer findes i `tmp/haderslev-reader-membership.json` og `tmp/qa-viewer-readback.json`. Loginoplysninger findes kun i den ignorerede lokale QA-kvittering; ingen adgangskoder eller tokens er medtaget her eller i Git.
 
 Den lokale maskine har ikke Docker til rådighed, så databasens pgTAP-prøver er ikke kørt lokalt. CI-jobbet `database-gates` opretter en lokal engangsdatabase, genafspiller migrationerne og kører hele `supabase/tests/database`. Dette skal være grønt før GO.
+
+## Supplerende rapportprøve kl. 17.38 dansk tid
+
+På stagingversion `cf1f0318-ffa7-43ed-801d-24530ad7f32b` blev den rigtige seksfotorundes første rapportkladde oprettet: rapport `71b51dd2-fbb2-4f56-9a81-1f4ae3921175`, version 1, undersøgelse `f382ec74-a1a8-4634-be37-7b06bbd4e340`. Den eksisterende læser kunne genhente præcis samme PDF som ejeren og ZIP-pakken; alle tre PDF-filer havde SHA-256 `25e396e43912f9e03faa33a531c492c871b2554e2c7957208cbe80d4c7ad609e`.
+
+Læserens rapportoprettelse var deaktiveret. De seks originalers hashes, 19 fastlåste referencer, 10 kildepayloads og alle pakkefiler blev kontrolleret. Ingen faglige beslutninger blev oprettet eller ændret. Prøven beviser adgang og genhentning af denne kladde, ikke faglig accept eller kommunens endnu ikke oprettede egne login.
+
+Den private kvittering ligger under `tmp/private-haderslev/report-package/8e020d1c-b5b0-4f02-8dbc-90f1ac8af64e/`. En senere rapportgenerator eller release skal kontrolleres særskilt.
