@@ -30,3 +30,11 @@ På stagingversion `cf1f0318-ffa7-43ed-801d-24530ad7f32b` blev den rigtige seksf
 Læserens rapportoprettelse var deaktiveret. De seks originalers hashes, 19 fastlåste referencer, 10 kildepayloads og alle pakkefiler blev kontrolleret. Ingen faglige beslutninger blev oprettet eller ændret. Prøven beviser adgang og genhentning af denne kladde, ikke faglig accept eller kommunens endnu ikke oprettede egne login.
 
 Den private kvittering ligger under `tmp/private-haderslev/report-package/8e020d1c-b5b0-4f02-8dbc-90f1ac8af64e/`. En senere rapportgenerator eller release skal kontrolleres særskilt.
+
+## Afsluttende læseprøve kl. 18.20 dansk tid
+
+På Worker-version `67b1aafd-5e72-46c6-b337-54a62d924152` blev rapportversion 2 med generator v3 kontrolleret: `128ce502-e262-4093-9d8b-ba9b4db2ae95`, undersøgelse `43600233-a99b-48e6-8a3e-05f6d727d759`. ZIP-pakkens PDF, ejerens særskilte PDF og læsetestkontoens PDF havde alle SHA-256 `a07aec981f2a2868be75d93e99b8b701a7742dd5ff5724160300397d708441b5`.
+
+Læserens oprettelsesknap var deaktiveret. Seks originaler, 12 kildepayloads, 15 fastlåste referencer og samtlige pakkefilers kontrolsummer bestod. Den nye undersøgelse har ingen AI-forsøg, og prøven skrev ingen faglige beslutninger. Historiske kvitteringer og den tidligere undersøgelse er bevaret. De 12 PDF-sider er visuelt gennemgået. Kvitteringen findes privat i `tmp/private-haderslev/report-package/e05711a2-ee5c-494a-aeff-0acd457f8bc1/`.
+
+Den samlede databasekontrol på kodeversion `2102a02` bestod 814 pgTAP-tests og 29 samtidighedsscenarier i [CI 52](https://github.com/JESRI-C/freyra-hub/actions/runs/39811151437). Kommunens egne konti og deres konkrete sagstildeling skal fortsat oprettes og prøves før aflevering; den syntetiske læsetestkonto er ikke kommunens identitet.

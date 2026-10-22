@@ -59,7 +59,7 @@ Efter deployment af staging-Worker `67b1aafd…` den 22. oktober kl. 18.11 dansk
 | §3 og vandplan | 22 kandidater | Kræver faglig gennemgang og dækningskontrol. |
 | DMI | 30 døgnobservationer | Stationsnedbør; ikke lokalt flyvevejr med temperatur og vind. |
 
-Kildestatus er **delvist** for de supplerende kilder. Den officielle vandløbsreference er **hentet**, mens kommunalt regulativ fortsat ikke er implementeret. Genlæsningen bekræfter, at de nye v3-adaptere og frasorteringen virker på staging og er gemt i den konkrete sag. **Kontrol af skitsevisningen og den nye rapports PDF/ZIP afventer fortsat for netop denne baseline.** Kildehentning er ikke faglig godkendelse af beplantning eller datadækning, og A–E-hektar er fortsat ukendte.
+Kildestatus er **delvist** for de supplerende kilder. Den officielle vandløbsreference er **hentet**, mens kommunalt regulativ fortsat ikke er implementeret. Genlæsningen bekræfter, at de nye v3-adaptere og frasorteringen virker på staging og er gemt i den konkrete sag. Skitsevisningen er efterfølgende kontrolleret ved 10 og 20 m på mobil og stor skærm. Rapportversion 2 fra generator v3 er hentet som PDF/ZIP, filernes SHA-256 kontrolleret, alle 12 PDF-sider visuelt gennemgået og læserens PDF genhentet byteidentisk. Se [kontrolnotatet](HADERSLEV_KONTROL_2026-10-22.md) for versionsbeviser. Kildehentning og tekniske kontroller er ikke faglig godkendelse af beplantning eller datadækning, og A–E-hektar er fortsat ukendte.
 
 ## Primære kilder
 
