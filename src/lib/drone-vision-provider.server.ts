@@ -1,5 +1,6 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseDroneVisionJson } from "@/services/monitoring/drone-vision-json";
 import { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
 export { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
 import {
@@ -245,6 +246,7 @@ export const inspectDroneImageBytes = createServerOnlyFn(
           envelopeSchema: ValidationStatus;
           contentJson: ValidationStatus;
           visualSchema: ValidationStatus;
+          repaired?: boolean;
         }
       | undefined;
     const phaseMs: Partial<Record<Phase, number>> = {};
@@ -395,7 +397,9 @@ export const inspectDroneImageBytes = createServerOnlyFn(
             if (!envelope.success) throw new DroneVisionError("invalid_output");
             let content: unknown;
             try {
-              content = JSON.parse(envelope.data.choices[0].message.content);
+              const parsed = parseDroneVisionJson(envelope.data.choices[0].message.content);
+              content = parsed.value;
+              if (parsed.repaired) outputDiagnostics.repaired = true;
               outputDiagnostics.contentJson = "valid";
             } catch {
               outputDiagnostics.contentJson = "invalid";

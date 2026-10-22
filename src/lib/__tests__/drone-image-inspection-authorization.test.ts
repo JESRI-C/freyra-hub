@@ -459,8 +459,12 @@ describe("project-bound original image inspection", () => {
       const deps = await dependencies();
       const failure = new DroneVisionError(code);
       deps.inspect.mockRejectedValue(failure);
+      deps.list.mockResolvedValue([]);
       await expect(executeInspectDroneImage(INPUT, ACTOR_ID, CLIENT, deps)).rejects.toThrow(
         failure.message,
+      );
+      expect(deps.inspect).toHaveBeenCalledTimes(
+        code === "unavailable" || code === "invalid_image" ? 1 : 2,
       );
       expect(deps.finish.mock.calls[0][4]).toBeNull();
       expect(deps.finish.mock.calls[0][5]).toBe(
@@ -474,6 +478,61 @@ describe("project-bound original image inspection", () => {
       );
     },
   );
+  it("retries invalid output once with a new counted claim and returns the actual second result", async () => {
+    const deps = await dependencies();
+    deps.inspect.mockRejectedValueOnce(new DroneVisionError("invalid_output"));
+    const result = await executeInspectDroneImage(INPUT, ACTOR_ID, CLIENT, deps);
+    expect(result.delivery).toBe("live");
+    expect(deps.inspect).toHaveBeenCalledTimes(2);
+    expect(deps.claim).toHaveBeenCalledTimes(2);
+    expect(deps.finish.mock.calls.map((call) => call[5])).toEqual(["invalid_output", null]);
+  });
+  it("returns a checksum-validated stored assessment only after bounded retry", async () => {
+    const deps = await dependencies();
+    deps.inspect.mockRejectedValue(new DroneVisionError("invalid_output"));
+    const result = await executeInspectDroneImage(INPUT, ACTOR_ID, CLIENT, deps);
+    expect(result.delivery).toBe("saved");
+    expect(result.inspection.resultSha256).toBe(deps.completed.result_sha256);
+    expect(deps.inspect).toHaveBeenCalledTimes(2);
+  });
+  it.each(["hash", "source", "storage", "corrupt"])(
+    "does not substitute saved evidence with mismatched %s",
+    async (change) => {
+      const deps = await dependencies();
+      deps.inspect.mockRejectedValue(new DroneVisionError("unavailable"));
+      deps.list.mockResolvedValue([
+        {
+          ...deps.completed,
+          ...(change === "hash" ? { original_sha256: "f".repeat(64) } : {}),
+          ...(change === "source"
+            ? { source_snapshot_id: MEDIA_ID, source_snapshot_sha256: "f".repeat(64) }
+            : {}),
+          ...(change === "storage" ? { storage_object_version: "replaced" } : {}),
+          ...(change === "corrupt" ? { result_sha256: "f".repeat(64) } : {}),
+        },
+      ]);
+      await expect(executeInspectDroneImage(INPUT, ACTOR_ID, CLIENT, deps)).rejects.toThrow(
+        "endnu ikke tilgængelig",
+      );
+      expect(deps.inspect).toHaveBeenCalledTimes(1);
+    },
+  );
+  it("does not retry a spent quota or an unconfirmed failure write", async () => {
+    const deps = await dependencies();
+    deps.claim.mockResolvedValue({
+      state: "claimed",
+      inspection: { ...deps.pending, attempt_count: 3 },
+      claimToken: TOKEN,
+    });
+    deps.inspect.mockRejectedValue(new DroneVisionError("provider"));
+    deps.list.mockResolvedValue([]);
+    await expect(executeInspectDroneImage(INPUT, ACTOR_ID, CLIENT, deps)).rejects.toThrow();
+    expect(deps.inspect).toHaveBeenCalledTimes(1);
+    deps.claim.mockResolvedValue({ state: "claimed", inspection: deps.pending, claimToken: TOKEN });
+    deps.finish.mockRejectedValue(new Error("unconfirmed write"));
+    await expect(executeInspectDroneImage(INPUT, ACTOR_ID, CLIENT, deps)).rejects.toThrow();
+    expect(deps.inspect).toHaveBeenCalledTimes(2);
+  });
   it("rejects extra model claims and never exposes raw provider errors", async () => {
     const deps = await dependencies();
     deps.inspect.mockResolvedValue({ ...PROVIDER_RESULT, visual: { ...VISUAL, approved: true } });

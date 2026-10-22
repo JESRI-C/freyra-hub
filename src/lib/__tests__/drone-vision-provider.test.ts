@@ -181,6 +181,23 @@ describe("private original to bounded vision derivative", () => {
     });
     expect(mocks.run).not.toHaveBeenCalled();
   });
+  it("repairs syntax-only formatting and still applies the complete visual schema", async () => {
+    const mocks = bindings({
+      response: Response.json({
+        choices: [
+          {
+            finish_reason: "stop",
+            message: {
+              content: `\uFEFF\`\`\`json\n${JSON.stringify(visual).replace(/}$/, ",}")}\n\`\`\``,
+            },
+          },
+        ],
+      }),
+    });
+    await expect(inspectDroneImageBytes(jpeg, mocks)).resolves.toMatchObject({ visual });
+    expect(mocks.run).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(console.info).mock.calls[0][1].output.repaired).toBe(true);
+  });
   it.each([
     { choices: [{ finish_reason: "length", message: { content: JSON.stringify(visual) } }] },
     { choices: [{ finish_reason: "stop", message: { content: "not JSON" } }] },
