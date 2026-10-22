@@ -7,7 +7,9 @@ import { makeMunicipalReportFixture } from "@/services/monitoring/__tests__/muni
 import { baselineSha256, canonicalBaselineJson } from "@/services/baseline/public-baseline-service";
 import {
   compileMunicipalReportV1,
+  MUNICIPAL_REPORT_GENERATOR,
   MUNICIPAL_REPORT_GENERATOR_V2,
+  MUNICIPAL_REPORT_GENERATOR_V3,
 } from "@/services/monitoring/municipal-report";
 import {
   droneImageInspectionCanonicalText,
@@ -325,12 +327,13 @@ describe("municipal report input graph reads", () => {
 
     expect(input).toEqual({
       ...f.input,
-      generatorVersion: MUNICIPAL_REPORT_GENERATOR_V2,
+      generatorVersion: MUNICIPAL_REPORT_GENERATOR_V3,
       photoPointReviews: [],
     });
     const report = await compileMunicipalReportV1(input);
-    expect(report.generatorVersion).toBe(MUNICIPAL_REPORT_GENERATOR_V2);
-    expect(report.photos).toEqual(f.manifest.photos);
+    expect(report.generatorVersion).toBe(MUNICIPAL_REPORT_GENERATOR_V3);
+    expect(report.pins).toEqual(f.manifest.pins);
+    expect(report.photos[0].inspections[0].qualityLimitation).toContain("AI har markeret");
     expect(report.planting?.baselineSha256).toBe(f.baseline.manifestSha256);
     expect(
       client.queries.every((query) =>
@@ -429,43 +432,51 @@ describe("municipal report input graph reads", () => {
     );
   });
 
-  it("reopens a frozen report with its pinned old answers despite a newer view and assessment", async () => {
-    const f = await makeMunicipalReportFixture();
-    const tables = fixtureTables(f);
-    const latest = await newerAnswer(f);
-    tables.drone_image_inspection_answer_versions.push(answerRow(latest));
-    tables.municipal_report_latest_answers = [answerRow(latest)];
-    tables.drone_image_inspections.push(
-      inspectionRow({
-        ...f.inspection,
-        id: NEW_INSPECTION,
-        completedAt: NEW_AT,
-      }),
-    );
-    tables.project_baseline_snapshots.push({
-      ...tables.project_baseline_snapshots[0],
-      id: OTHER_BASELINE,
-      version_no: 2,
-    });
-    const client = new ReadOnlyClient(tables);
+  it.each([
+    MUNICIPAL_REPORT_GENERATOR,
+    MUNICIPAL_REPORT_GENERATOR_V2,
+    MUNICIPAL_REPORT_GENERATOR_V3,
+  ])(
+    "reopens frozen %s with pinned old answers despite a newer view and assessment",
+    async (generatorVersion) => {
+      const f = await makeMunicipalReportFixture();
+      f.manifest = await compileMunicipalReportV1({ ...f.input, generatorVersion });
+      const tables = fixtureTables(f);
+      const latest = await newerAnswer(f);
+      tables.drone_image_inspection_answer_versions.push(answerRow(latest));
+      tables.municipal_report_latest_answers = [answerRow(latest)];
+      tables.drone_image_inspections.push(
+        inspectionRow({
+          ...f.inspection,
+          id: NEW_INSPECTION,
+          completedAt: NEW_AT,
+        }),
+      );
+      tables.project_baseline_snapshots.push({
+        ...tables.project_baseline_snapshots[0],
+        id: OTHER_BASELINE,
+        version_no: 2,
+      });
+      const client = new ReadOnlyClient(tables);
 
-    const input = await load(client, f, true);
+      const input = await load(client, f, true);
 
-    expect(input.baseline.id).toBe(f.baseline.id);
-    expect(input.inspections).toEqual([f.inspection]);
-    expect(input.answers).toEqual([f.answer]);
-    expect(await compileMunicipalReportV1(input)).toEqual(f.manifest);
-    expect(client.queries.some((query) => query.table === "municipal_report_latest_answers")).toBe(
-      false,
-    );
-    expect(
-      client.queries.find((query) => query.table === "drone_image_inspection_answer_versions")
-        ?.included,
-    ).toEqual([{ column: "id", values: [f.answer.id] }]);
-    expect(
-      client.queries.find((query) => query.table === "drone_image_inspections")?.included,
-    ).toEqual([{ column: "id", values: [f.inspection.id] }]);
-    expect(client.rpc).not.toHaveBeenCalled();
-    expect(fetch).not.toHaveBeenCalled();
-  });
+      expect(input.baseline.id).toBe(f.baseline.id);
+      expect(input.inspections).toEqual([f.inspection]);
+      expect(input.answers).toEqual([f.answer]);
+      expect(await compileMunicipalReportV1(input)).toEqual(f.manifest);
+      expect(
+        client.queries.some((query) => query.table === "municipal_report_latest_answers"),
+      ).toBe(false);
+      expect(
+        client.queries.find((query) => query.table === "drone_image_inspection_answer_versions")
+          ?.included,
+      ).toEqual([{ column: "id", values: [f.answer.id] }]);
+      expect(
+        client.queries.find((query) => query.table === "drone_image_inspections")?.included,
+      ).toEqual([{ column: "id", values: [f.inspection.id] }]);
+      expect(client.rpc).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
 });

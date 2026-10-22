@@ -22,7 +22,8 @@ import {
 } from "@/services/monitoring/drone-image-inspection-persistence";
 import {
   compileMunicipalReportV1,
-  MUNICIPAL_REPORT_GENERATOR_V2,
+  MUNICIPAL_REPORT_GENERATOR,
+  MUNICIPAL_REPORT_GENERATOR_V3,
   type MunicipalReportManifest,
 } from "@/services/monitoring/municipal-report";
 import {
@@ -209,7 +210,7 @@ export async function loadMunicipalReportInputs(
   generatedAt: string,
   frozen?: MunicipalReportManifest,
 ): Promise<ReportInputs> {
-  const generatorVersion = frozen?.generatorVersion ?? MUNICIPAL_REPORT_GENERATOR_V2;
+  const generatorVersion = frozen?.generatorVersion ?? MUNICIPAL_REPORT_GENERATOR_V3;
   const context = createVerifiedInputContext();
   const rawRound = await required(client, "survey_round_versions", projectId, roundId);
   const roundPins = z.object({ baseline_id: Uuid, plan_id: Uuid }).parse(rawRound);
@@ -352,7 +353,7 @@ export async function loadMunicipalReportInputs(
     }
   }
   const photoPointReviews: PhotoPointReviewRecord[] = [];
-  if (generatorVersion === MUNICIPAL_REPORT_GENERATOR_V2) {
+  if (generatorVersion !== MUNICIPAL_REPORT_GENERATOR) {
     const reviewRows = frozen
       ? [
           ...(
@@ -456,7 +457,7 @@ export async function loadMunicipalReportInputs(
   }
   return {
     generatorVersion,
-    ...(generatorVersion === MUNICIPAL_REPORT_GENERATOR_V2 ? { photoPointReviews } : {}),
+    ...(generatorVersion !== MUNICIPAL_REPORT_GENERATOR ? { photoPointReviews } : {}),
     projectId,
     generatedAt,
     baseline,

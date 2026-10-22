@@ -7,6 +7,7 @@ import {
 } from "./municipal-report-labels";
 import {
   MunicipalReportManifestSchema,
+  MUNICIPAL_REPORT_GENERATOR_V3,
   municipalReportCanonicalText,
   type MunicipalReportPdfVersion,
 } from "@/services/monitoring/municipal-report";
@@ -159,7 +160,12 @@ export async function renderMunicipalReportPdf(
     title: `${report.projectName} - rapportgrundlag`,
     subject: "Kladde til faglig gennemgang og kommunal dialog",
     author: "Freyra",
-    creator: report.planting ? "Freyra kommunal rapport v2" : "Freyra kommunal rapport v1",
+    creator:
+      report.generatorVersion === MUNICIPAL_REPORT_GENERATOR_V3
+        ? "Freyra kommunal rapport v3"
+        : report.planting
+          ? "Freyra kommunal rapport v2"
+          : "Freyra kommunal rapport v1",
   });
   const left = 17,
     width = 176,
@@ -386,7 +392,12 @@ export async function renderMunicipalReportPdf(
       label("Usikkerhed", note.uncertainty);
       label("Foreslået opfølgning", note.proposedFollowup);
       if (note.proposedPriority !== "not_assessed")
-        label("Egen foreslået prioritet", note.proposedPriority);
+        label(
+          "Egen foreslået prioritet",
+          report.generatorVersion === MUNICIPAL_REPORT_GENERATOR_V3
+            ? { high: "Høj", normal: "Normal", low: "Lav" }[note.proposedPriority]
+            : note.proposedPriority,
+        );
     }
     if (!photo.inspections.length) block("Ingen billed-AI-vurdering er valgt for dette foto.");
     for (const inspection of photo.inspections) {

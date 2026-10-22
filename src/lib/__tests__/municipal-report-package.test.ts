@@ -11,6 +11,7 @@ import type { MunicipalReportVersion } from "@/services/monitoring/municipal-rep
 import {
   compileMunicipalReportV1,
   MUNICIPAL_REPORT_GENERATOR_V2,
+  MUNICIPAL_REPORT_GENERATOR_V3,
 } from "@/services/monitoring/municipal-report";
 async function report(): Promise<MunicipalReportVersion> {
   const f = await makeMunicipalReportFixture();
@@ -66,52 +67,59 @@ describe("municipal report exports", () => {
       ]),
     ).toThrow();
   });
-  it("includes frozen v2 sections with verifiable SHA-256 and deterministic ZIP bytes", async () => {
-    const f = await makeMunicipalReportFixture();
-    const manifest = await compileMunicipalReportV1({
-      ...f.input,
-      generatorVersion: MUNICIPAL_REPORT_GENERATOR_V2,
-      photoPointReviews: [],
-    });
-    const version = {
-      ...(await report()),
-      generatorVersion: manifest.generatorVersion,
-      manifest,
-      manifestSha256: await baselineSha256(manifest),
-    };
-    const pdf = new TextEncoder().encode("%PDF synthetic test bytes");
-    const archive = await buildMunicipalReportPackage(version, pdf);
-    expect(await buildMunicipalReportPackage(version, pdf)).toEqual(archive);
-    const entries = new Map<string, Uint8Array>();
-    const view = new DataView(archive.buffer);
-    let offset = 0;
-    while (view.getUint32(offset, true) === 0x04034b50) {
-      const size = view.getUint32(offset + 18, true);
-      const nameLength = view.getUint16(offset + 26, true);
-      const extraLength = view.getUint16(offset + 28, true);
-      const name = new TextDecoder().decode(archive.slice(offset + 30, offset + 30 + nameLength));
-      const start = offset + 30 + nameLength + extraLength;
-      entries.set(name, archive.slice(start, start + size));
-      offset = start + size;
-    }
-    const readJson = (name: string) => JSON.parse(new TextDecoder().decode(entries.get(name)));
-    expect(readJson("beplantningsskitse.json")).toEqual(manifest.planting);
-    expect(readJson("faglig-fotogennemgang.json")).toEqual([]);
-    const packageManifest = readJson("manifest.json");
-    expect(packageManifest.pdfRendererVersion).toBe("municipal-evidence-pdf/v2");
-    expect(packageManifest.files).toHaveLength(6);
-    for (const file of packageManifest.files as {
-      name: string;
-      sizeBytes: number;
-      sha256: string;
-    }[]) {
-      const bytes = entries.get(file.name)!;
-      expect(bytes.length).toBe(file.sizeBytes);
-      const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes).buffer);
-      expect(
-        [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join(""),
-      ).toBe(file.sha256);
-    }
-    expect(readJson("rapportgrundlag.json").manifestSha256).toBe(version.manifestSha256);
-  });
+  it.each([MUNICIPAL_REPORT_GENERATOR_V2, MUNICIPAL_REPORT_GENERATOR_V3])(
+    "includes frozen %s sections with verifiable SHA-256 and deterministic ZIP bytes",
+    async (generatorVersion) => {
+      const f = await makeMunicipalReportFixture();
+      const manifest = await compileMunicipalReportV1({
+        ...f.input,
+        generatorVersion,
+        photoPointReviews: [],
+      });
+      const version = {
+        ...(await report()),
+        generatorVersion: manifest.generatorVersion,
+        manifest,
+        manifestSha256: await baselineSha256(manifest),
+      };
+      const pdf = new TextEncoder().encode("%PDF synthetic test bytes");
+      const archive = await buildMunicipalReportPackage(version, pdf);
+      expect(await buildMunicipalReportPackage(version, pdf)).toEqual(archive);
+      const entries = new Map<string, Uint8Array>();
+      const view = new DataView(archive.buffer);
+      let offset = 0;
+      while (view.getUint32(offset, true) === 0x04034b50) {
+        const size = view.getUint32(offset + 18, true);
+        const nameLength = view.getUint16(offset + 26, true);
+        const extraLength = view.getUint16(offset + 28, true);
+        const name = new TextDecoder().decode(archive.slice(offset + 30, offset + 30 + nameLength));
+        const start = offset + 30 + nameLength + extraLength;
+        entries.set(name, archive.slice(start, start + size));
+        offset = start + size;
+      }
+      const readJson = (name: string) => JSON.parse(new TextDecoder().decode(entries.get(name)));
+      expect(readJson("beplantningsskitse.json")).toEqual(manifest.planting);
+      expect(readJson("faglig-fotogennemgang.json")).toEqual([]);
+      const packageManifest = readJson("manifest.json");
+      expect(packageManifest.pdfRendererVersion).toBe(
+        generatorVersion === MUNICIPAL_REPORT_GENERATOR_V3
+          ? "municipal-evidence-pdf/v3"
+          : "municipal-evidence-pdf/v2",
+      );
+      expect(packageManifest.files).toHaveLength(6);
+      for (const file of packageManifest.files as {
+        name: string;
+        sizeBytes: number;
+        sha256: string;
+      }[]) {
+        const bytes = entries.get(file.name)!;
+        expect(bytes.length).toBe(file.sizeBytes);
+        const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes).buffer);
+        expect(
+          [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join(""),
+        ).toBe(file.sha256);
+      }
+      expect(readJson("rapportgrundlag.json").manifestSha256).toBe(version.manifestSha256);
+    },
+  );
 });

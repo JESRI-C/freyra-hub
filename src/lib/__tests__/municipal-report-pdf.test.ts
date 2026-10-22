@@ -5,6 +5,7 @@ import { buildMunicipalReportPdf } from "../municipal-report-pdf";
 import {
   compileMunicipalReportV1,
   MUNICIPAL_REPORT_GENERATOR_V2,
+  MUNICIPAL_REPORT_GENERATOR_V3,
 } from "@/services/monitoring/municipal-report";
 
 const drawing = vi.hoisted(() => ({
@@ -139,5 +140,25 @@ describe("municipal report PDF layout boundaries", () => {
       ]),
     ).rejects.toThrow("originalfoto");
     expect(drawing.texts).toHaveLength(0);
+  });
+  it("renders v3 Danish category descriptions and manual priority labels", async () => {
+    const f = await makeMunicipalReportFixture();
+    const manifest = await compileMunicipalReportV1({
+      ...f.input,
+      generatorVersion: MUNICIPAL_REPORT_GENERATOR_V3,
+    });
+    manifest.photos[0].manualNotes[0].proposedPriority = "high";
+    await buildMunicipalReportPdf({
+      ...(await fixture()),
+      manifest,
+      manifestSha256: await baselineSha256(manifest),
+    });
+    const text = drawing.texts.map((entry) => entry.value).join(" ");
+    expect(text).toContain("Ubekræftet AI-forslag:");
+    expect(text).toContain("AI har markeret begrænset udsyn");
+    expect(text).toContain("Egen foreslået prioritet: Høj");
+    expect(text).not.toContain("Egen foreslået prioritet: high");
+    expect(text).not.toContain(f.inspection.result!.visual.quality.limitation);
+    expect(text).toContain("municipal-evidence-report/v3");
   });
 });

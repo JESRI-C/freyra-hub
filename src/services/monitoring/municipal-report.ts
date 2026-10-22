@@ -16,6 +16,7 @@ import {
   type SurveyRoundNoteVersion,
 } from "@/services/baseline/survey-round-note-persistence";
 import { DroneImageInspectionDraftSchema } from "./drone-image-inspection";
+import { describeDroneVisualInDanish } from "./drone-visual-presentation";
 import { PhotoPointReviewSchema, type PhotoPointReviewRecord } from "./photo-point-review";
 import { PlantingReportSchema, compilePlantingReportV1 } from "@/services/planting/planting-report";
 import {
@@ -28,9 +29,11 @@ import {
 export const MUNICIPAL_REPORT_SCHEMA = "gofreyra.municipal-report/v1" as const;
 export const MUNICIPAL_REPORT_GENERATOR = "municipal-evidence-report/v1" as const;
 export const MUNICIPAL_REPORT_GENERATOR_V2 = "municipal-evidence-report/v2" as const;
+export const MUNICIPAL_REPORT_GENERATOR_V3 = "municipal-evidence-report/v3" as const;
 export type MunicipalReportGenerator =
   | typeof MUNICIPAL_REPORT_GENERATOR
-  | typeof MUNICIPAL_REPORT_GENERATOR_V2;
+  | typeof MUNICIPAL_REPORT_GENERATOR_V2
+  | typeof MUNICIPAL_REPORT_GENERATOR_V3;
 export const MAX_MUNICIPAL_REPORT_BYTES = 2 * 1024 * 1024;
 const Uuid = z.string().uuid(),
   Hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -190,7 +193,11 @@ const Followup = z
 export const MunicipalReportManifestSchema = z
   .object({
     schema: z.literal(MUNICIPAL_REPORT_SCHEMA),
-    generatorVersion: z.enum([MUNICIPAL_REPORT_GENERATOR, MUNICIPAL_REPORT_GENERATOR_V2]),
+    generatorVersion: z.enum([
+      MUNICIPAL_REPORT_GENERATOR,
+      MUNICIPAL_REPORT_GENERATOR_V2,
+      MUNICIPAL_REPORT_GENERATOR_V3,
+    ]),
     projectId: Uuid,
     generatedAt: Timestamp,
     recipient: z.literal("Haderslev Kommune"),
@@ -274,7 +281,7 @@ export const MunicipalReportManifestSchema = z
     } else if (!report.planting || !report.photoPointReviews) {
       ctx.addIssue({
         code: "custom",
-        message: "Rapport v2 mangler beplantningsgrundlag eller fotogennemgang.",
+        message: "Rapporten mangler beplantningsgrundlag eller fotogennemgang.",
       });
     }
     if (
@@ -595,7 +602,7 @@ export async function compileMunicipalReportV1(
   const { baseline, plan, round, projectId } = input;
   const generatorVersion = input.generatorVersion ?? MUNICIPAL_REPORT_GENERATOR;
   const photoPointReviews =
-    generatorVersion === MUNICIPAL_REPORT_GENERATOR_V2
+    generatorVersion !== MUNICIPAL_REPORT_GENERATOR
       ? sorted(input.photoPointReviews ?? [])
       : undefined;
   if (photoPointReviews) {
@@ -606,7 +613,7 @@ export async function compileMunicipalReportV1(
         throw new Error("Den faglige fotogennemgang matcher ikke sin gemte checksum.");
     }
   } else if (input.photoPointReviews?.length)
-    throw new Error("Fotogennemgang kræver rapportgenerator v2.");
+    throw new Error("Fotogennemgang kræver rapportgenerator v2 eller nyere.");
   await verifyManifestPin(baseline, projectId);
   await verifyManifestPin(plan, projectId);
   await verifyManifestPin(round, projectId);
@@ -768,19 +775,23 @@ export async function compileMunicipalReportV1(
       .map((inspection) => {
         const result = inspection.result!,
           answerVersion = answers.find((a) => a.inspectionId === inspection.id);
+        const danish =
+          generatorVersion === MUNICIPAL_REPORT_GENERATOR_V3
+            ? describeDroneVisualInDanish(result.visual)
+            : null;
         return {
           id: inspection.id,
           sha256: inspection.resultSha256!,
           model: inspection.modelId,
           generatedAt: result.provenance.generatedAt,
           quality: result.visual.quality.assessment,
-          qualityLimitation: result.visual.quality.limitation,
+          qualityLimitation: danish?.qualityLimitation ?? result.visual.quality.limitation,
           watercourseVisibility: result.visual.watercourseVisibility,
-          uncertainty: result.visual.overallUncertainty,
-          features: result.visual.features.map((feature) => ({
+          uncertainty: danish?.uncertainty ?? result.visual.overallUncertainty,
+          features: result.visual.features.map((feature, index) => ({
             kind: feature.kind,
-            description: feature.appearance,
-            uncertainty: feature.uncertainty,
+            description: danish ? danish.features[index].appearance : feature.appearance,
+            uncertainty: danish ? danish.features[index].uncertainty : feature.uncertainty,
             confidence: feature.confidence,
           })),
           questions: result.followupQuestions.map((question) => {
@@ -978,12 +989,14 @@ export async function compileMunicipalReportV1(
       "Rapporten er en samlet kladde, ikke en fagligt godkendt kommunal aflevering.",
       "Kamera-GPS er kun kameraets placering. Et foto dokumenterer ikke et objekt på jorden eller et geografisk dækningsområde.",
       "Før/efter/kontrol følger den eksplicit gemte registreringsrunde. Mappenavn, uploadtid og planlagt periode dokumenterer ikke faktisk optagedato eller ændring over tid.",
-      "Billed-AI udvælger synlige forslag og faste opfølgningsspørgsmål. Modellsikkerhed er en ukalibreret egenvurdering, ikke en målt sandsynlighed.",
+      generatorVersion === MUNICIPAL_REPORT_GENERATOR_V3
+        ? "Billed-AI udvælger synlige forslag og faste opfølgningsspørgsmål. Danske beskrivelser er faste formuleringer ud fra gemte kategorier; modellens fritekst er bevaret i originalvurderingen. Modellsikkerhed er en ukalibreret egenvurdering, ikke en målt sandsynlighed."
+        : "Billed-AI udvælger synlige forslag og faste opfølgningsspørgsmål. Modellsikkerhed er en ukalibreret egenvurdering, ikke en målt sandsynlighed.",
       "Gemte manuelle noter og svar er egne observationer. Bekræftet er ikke det samme som fagligt godkendt.",
       "Satellit-, kort- og stationsinventarer er kildereferencer. Ingen satellitpixelanalyse, lokal hydraulik eller miljøeffekt er udledt her.",
       "Kun de udtrykkeligt valgte, gemte versioner indgår. Senere redigeringer og nyere kilder ændrer ikke denne rapportversion.",
     ],
-    ...(generatorVersion === MUNICIPAL_REPORT_GENERATOR_V2
+    ...(generatorVersion !== MUNICIPAL_REPORT_GENERATOR
       ? {
           planting: compilePlantingReportV1(baseline),
           photoPointReviews,
