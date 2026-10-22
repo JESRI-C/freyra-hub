@@ -91,7 +91,9 @@ async function main() {
     if (!values.org || !/^[0-9a-f-]{36}$/i.test(values.org))
       throw new Error("--org skal være arbejdspladsens UUID.");
     const url = process.env.SUPABASE_URL;
-    assertStagingTarget(url, process.env.HADERSLEV_STAGING_PROJECT_REF);
+    if (process.env.HADERSLEV_STAGING_PROJECT_REF !== "xdvqdzdpyceojbdknofi")
+      throw new Error("HADERSLEV_STAGING_PROJECT_REF skal være det aftalte stagingprojekt.");
+    assertStagingTarget(url, "xdvqdzdpyceojbdknofi");
     const client = createClient(url, process.env.SUPABASE_PUBLISHABLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
