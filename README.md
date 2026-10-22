@@ -70,4 +70,8 @@ Kræver `HADERSLEV_E2E_BASE_URL` (localhost eller navngiven staging-Worker), `HA
 
 ## Drift
 
-Servernøgler, herunder `SUPABASE_SERVICE_ROLE_KEY`, `DATAFORDELER_API_KEY` og eventuelle `DMI_API_KEY`/Copernicus-credentials, holdes i staging-Workerens secrets. Manglende kildeadgang vises som datamangel. Der må ikke lægges hemmelige nøgler i browservariabler. Backup/genopretning, varig stagingdrift, fejlalarm og faglig accept er særskilte go/no-go-krav i manuskriptet.
+Servernøgler, herunder `SUPABASE_SERVICE_ROLE_KEY` og `DATAFORDELER_API_KEY`, holdes i staging-Workerens secrets. Datafordeler-nøglen bruges til ortofoto, skov og Matriklen2. De nu tilsluttede DMI-, Sentinel- og GEUS-jordartskilder kræver ingen ny nøgle. Manglende kildeadgang vises som datamangel. Der må ikke lægges hemmelige nøgler i browservariabler.
+
+[Kildeoversigten](docs/HADERSLEV_KILDER_2710.md) beskriver de faktiske geometrier, frosne billedpixels, hentedatoer, tidsgrænser og præcise mangler. Nye Sentinel-versioner gemmer det valgte billede, når hentningen lykkes; ældre versioner med kun en billed-URL er tydeligt markeret som netafhængige. DMI viser stationsnedbør, herunder periodens sidste dato, men ingen temperatur eller vind. DHM er fortsat filmetadata. De nye adapteres formatprøver er ikke live-accept af den samlede sag med seks fotos.
+
+Backup/genopretning, varig stagingdrift, fejlalarm og faglig accept af det viste grundlag og dets mangler er særskilte go/no-go-krav i manuskriptet. Ukendte A–E-hektar er accepteret, indtil en faglig afgrænsning foreligger; geometrier og tal må ikke opfindes.

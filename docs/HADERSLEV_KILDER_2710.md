@@ -1,6 +1,6 @@
 # Offentlige kilder til leverancen 27. oktober 2026
 
-Kodegrundlag kontrolleret 22. oktober 2026. Kilder hentes først efter projektadgang og gemmes i en version med SHA-256. Nye versioner fryser både ortofoto og det valgte Sentinel-billedes pixels; genåbning bruger de gemte pixels. Ældre Sentinel-versioner med kun en billed-URL viser en tydelig besked om netafhængighed og ændres ikke. Nye kilder omskriver ikke historiske rapporter.
+Kodegrundlag kontrolleret 22. oktober 2026. Kilder hentes først efter projektadgang og gemmes i en version med SHA-256. Nye versioner fryser ortofoto og det valgte Sentinel-billedes pixels, når billedhentningen lykkes; genåbning bruger da de gemte pixels. Manglende pixels vises som en datamangel. Ældre Sentinel-versioner med kun en billed-URL viser en tydelig besked om netafhængighed og ændres ikke. Nye kilder omskriver ikke historiske rapporter.
 
 ## Hentning og fallback
 
@@ -8,7 +8,7 @@ Hver adapter har en tidsgrænse og størrelsesgrænse; en ekstra grænse på 25 
 
 Hele dataversionen skal også holde sig under databasens grænse på 2 MiB, inklusive de indlejrede billeder og JSON-formatets lagerplads. Hvis summen bliver for stor, udelades de største supplerende kildeindhold enkeltvis med tydelig fejlstatus og ukendt dækning. De øvrige kilder og den officielle vandløbsreference bevares. Dette omskriver aldrig tidligere gemte versioner.
 
-Validerede offentlige svar for samme projekt, geometri og datoperiode genbruges i op til 15 minutter. Den seneste autoriserede gemte kildeversion kan fylde cachen efter en Worker-genstart. Ved midlertidig fejl kan et svar højst 24 timer gammelt bruges som **Gemt kilde** med delvis status og oprindelig hentedato. Adgangsfejl og ugyldige svar skjules ikke med en gammel grøn status. Cachen er begrænset til 24 poster / 4 MiB pr. Worker; den permanente dokumentation er de gemte snapshots. Fejlede hentninger bliver aldrig til nulværdier.
+Validerede offentlige svar for samme projekt, geometri og datoperiode genbruges i op til 15 minutter. Den seneste autoriserede gemte kildeversion kan fylde cachen efter en Worker-genstart. Ved midlertidig fejl kan et svar højst 24 timer gammelt bruges som **Gemt kilde** med delvis status og oprindelig hentedato. Grænsen gælder automatisk fallback ved en ny hentning; ældre gemte versioner kan fortsat genåbnes uændret. Adgangsfejl og ugyldige svar skjules ikke med en gammel grøn status. Cachen er begrænset til 24 poster / 4 MiB pr. Worker; den permanente dokumentation er de gemte snapshots. Fejlede hentninger bliver aldrig til nulværdier.
 
 ## Kilder og præcise begrænsninger
 
