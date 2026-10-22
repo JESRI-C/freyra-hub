@@ -30,13 +30,36 @@ Polygonadapterne henter højst 200 kandidater: beplantningskilder højst 384 KiB
 
 Nye indlæsninger af markblokke, lavbund, skov og jordart kontrollerer også polygonernes topologi. Hele ugyldige features udelades uden formændring eller reparation; antal, årsag og råsvarets SHA-256 dokumenteres, og rumlig dækning kan da aldrig være komplet. Hvis alle modtagne polygoner er ugyldige, er laget ikke tilgængeligt med ukendt dækning. Byte- og vertexgrænser gælder det oprindelige svar før filtrering. Ældre kildeversioner bruges ikke som automatisk fallback for denne nye validering, men genåbnes fortsat uændret. GeoDanmarks dokumenterede finite Z-koordinat udelades eksplicit fra nye XY-kortgeometrier med kildeadvarsel; den er ikke en højdemåling i Freyra. GEUS tillader højst 1.000 ringe pr. polygon under den uændrede samlede grænse på 24.000 vertices.
 
-En afgrænset kontrol af den faktiske seksfotosags første baseline 22. oktober fandt ugyldig topologi i 8 af 38 gemte lavbundspolygoner. En ny læseprøve hos GEUS fandt desuden topologifejl i én af 20 modtagne jordartspolygoner. Den gamle baseline ændres ikke; en ny baseline og faglig gennemgang er nødvendig for at bruge de validerede delmængder. Disse datagab er ikke bevis for lavbundsfri jord eller manglende beskyttelse.
+En afgrænset kontrol af den faktiske seksfotosags første baseline 22. oktober fandt ugyldig topologi i 8 af 38 gemte lavbundspolygoner. En ny læseprøve hos GEUS fandt desuden topologifejl i én af 20 modtagne jordartspolygoner. Den gamle baseline ændres ikke. Den efterfølgende staging-baseline nedenfor indeholder de validerede delmængder; faglig gennemgang af datagabene er fortsat nødvendig. Datagabene er ikke bevis for lavbundsfri jord eller manglende beskyttelse.
 
 ## Adgang og kontrollen 22. oktober
 
 Ortofoto, skov og matrikel bruger den eksisterende servervariabel `DATAFORDELER_API_KEY`. Nøglen indgår aldrig i baseline, klient-URL eller fejltekst. Markblokke, Kulstof2022, GEUS og Sentinel kræver ingen ny nøgle. Der er ikke foretaget produktionsændringer.
 
-Read-only formatprøver mod udbyderne gav: ortofoto HTTP 200 med JPEG; skov, markblokke og Kulstof2022 returnerede GeoJSON med CRS84 og polygon/multipolygon. Matriklen2-adapteren gemte 8 jordstykker fra et offentligt testområde; GEUS-adapteren gemte 2 jordartspolygoner fra et andet. Sentinel-adapteren frøs et faktisk JPEG på 31.353 bytes: udbyderens ene redirect fra Datahub til `zipper.creodias.eu` følges kun ved uændret asset-sti, og svarets billedsignatur valideres også ved medietypen `application/octet-stream`. Prøverne brugte små offentlige testområder og er **ikke** accept af dækning, billedkvalitet eller faglig egnethed for den konkrete Bykær-sag. Aktuel Bykær-version skal hentes og gennemgås i staging før levering.
+Read-only formatprøver mod udbyderne gav: ortofoto HTTP 200 med JPEG; skov, markblokke og Kulstof2022 returnerede GeoJSON med CRS84 og polygon/multipolygon. Matriklen2-adapteren gemte 8 jordstykker fra et offentligt testområde; GEUS-adapteren gemte 2 jordartspolygoner fra et andet. Sentinel-adapteren frøs et faktisk JPEG på 31.353 bytes: udbyderens ene redirect fra Datahub til `zipper.creodias.eu` følges kun ved uændret asset-sti, og svarets billedsignatur valideres også ved medietypen `application/octet-stream`. Prøverne brugte små offentlige testområder og er **ikke** accept af dækning, billedkvalitet eller faglig egnethed for den konkrete Bykær-sag.
+
+### Verificeret Worker-hentning i den faktiske sag
+
+Efter deployment af staging-Worker `67b1aafd…` den 22. oktober kl. 18.11 dansk tid blev en ny undersøgelse oprettet gennem brugerfladen. SQL-genlæsning af den gemte baseline bekræftede nedenstående kildesvar fra den kørende Worker, ikke kun fra lokale formatprøver:
+
+- Baseline: `950af95e-3eb9-48e6-abbb-18bf06efc756`.
+- Undersøgelse: `43600233-a99b-48e6-8a3e-05f6d727d759`.
+- Hentetid: `2026-10-22T16:12:34Z` (18.12.34 dansk tid).
+
+| Kilde | Gemte data i denne version | Dokumenteret begrænsning |
+| --- | --- | --- |
+| Lavbund, adapter v3 | 30 af 38 modtagne polygoner | 8 udeladt på grund af ugyldig topologi; delvis rumlig dækning. |
+| Skov, adapter v3 | 8 af 8 modtagne polygoner | Ingen topologiafvisninger; små træer/træbælter er stadig ikke fuldt dækket. |
+| Jordart, adapter v3 | 19 af 20 modtagne polygoner | 1 udeladt på grund af ugyldig topologi; delvis dækning. |
+| Markblokke, adapter v3 | 45 projektintersektioner af 47 modtagne polygoner | Ingen topologiafvisninger; de øvrige 2 ligger uden for projektpolygonen. Registertid er ikke flyvedag. |
+| Matrikel | 143 jordstykker | Gældende register, ikke historisk ejendomsgrundlag for flyvedagen. |
+| Sentinel-2 | 18 scener | Antallet dokumenterer hverken lokal skyfrihed eller NDVI. |
+| Ortofoto | 1 gemt oversigtsbillede | Optagedato og lokal NoData-dækning er ikke verificeret. |
+| Ortofoto/DHM-katalog | 27 katalogposter | Metadata, ikke terrænpixels eller højdemålinger. |
+| §3 og vandplan | 22 kandidater | Kræver faglig gennemgang og dækningskontrol. |
+| DMI | 30 døgnobservationer | Stationsnedbør; ikke lokalt flyvevejr med temperatur og vind. |
+
+Kildestatus er **delvist** for de supplerende kilder. Den officielle vandløbsreference er **hentet**, mens kommunalt regulativ fortsat ikke er implementeret. Genlæsningen bekræfter, at de nye v3-adaptere og frasorteringen virker på staging og er gemt i den konkrete sag. **Kontrol af skitsevisningen og den nye rapports PDF/ZIP afventer fortsat for netop denne baseline.** Kildehentning er ikke faglig godkendelse af beplantning eller datadækning, og A–E-hektar er fortsat ukendte.
 
 ## Primære kilder
 
