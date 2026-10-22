@@ -91,6 +91,9 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
     [progress, setProgress] = useState<string | null>(null),
     [error, setError] = useState<string | null>(null);
   const [withImages, setWithImages] = useState(true);
+  const [packageChecksum, setPackageChecksum] = useState<{ name: string; sha256: string } | null>(
+    null,
+  );
   const alive = useRef(true),
     request = useRef<string | null>(null),
     downloadLock = useRef(false),
@@ -184,21 +187,19 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
         queryKey: ["municipal-reports", actorId, projectId, receipt.roundId],
       });
     },
-    onError: (err) => {
+    onError: () => {
       if (alive.current)
-        setError(
-          err instanceof Error ? err.message : "Rapporten blev ikke gemt. Prøv samme gemning igen.",
-        );
+        setError("Rapporten blev ikke gemt. Kontrollér adgangen og prøv samme gemning igen.");
     },
     retry: false,
   });
-  async function download(packageFile: boolean) {
-    if (!reportId || downloadLock.current) return;
+  async function download(packageFile: boolean, savedId = reportId) {
+    if (!savedId || downloadLock.current) return;
     downloadLock.current = true;
     setError(null);
     setProgress("Kontrollerer den gemte rapportversion …");
     try {
-      const current = await getFn({ data: { projectId, reportVersionId: reportId } });
+      const current = await getFn({ data: { projectId, reportVersionId: savedId } });
       if (!alive.current) return;
       if (!current || current.projectId !== projectId)
         throw new Error("Rapportversionen kunne ikke genåbnes.");
@@ -229,14 +230,33 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
       if (packageFile) {
         const { buildMunicipalReportPackage } = await import("@/lib/municipal-report-package");
         const bytes = await buildMunicipalReportPackage(current, pdf);
-        if (alive.current) saveFile(bytes, stem + ".zip", "application/zip");
+        const sha256 = [
+          ...new Uint8Array(await crypto.subtle.digest("SHA-256", new Uint8Array(bytes).buffer)),
+        ]
+          .map((value) => value.toString(16).padStart(2, "0"))
+          .join("");
+        if (alive.current) {
+          setPackageChecksum({ name: stem + ".zip", sha256 });
+          saveFile(bytes, stem + ".zip", "application/zip");
+        }
       } else saveFile(pdf, stem + ".pdf", "application/pdf");
-    } catch (err) {
+    } catch {
       if (alive.current)
-        setError(err instanceof Error ? err.message : "Rapporten kunne ikke hentes.");
+        setError(
+          "Rapportpakken kunne ikke dannes. Den gemte version er bevaret. Prøv at hente den igen.",
+        );
     } finally {
       downloadLock.current = false;
       if (alive.current) setProgress(null);
+    }
+  }
+  async function createAndDownload() {
+    if (mutation.isPending || downloadLock.current) return;
+    try {
+      const { saved } = await mutation.mutateAsync();
+      if (alive.current) await download(true, saved.id);
+    } catch {
+      /* Mutation shows a safe, recoverable message. */
     }
   }
   const current = report.error ? null : report.data;
@@ -259,7 +279,7 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
         <p>Henter undersøgelser …</p>
       ) : !rounds.error && !roundItems.length ? (
         <p className="text-sm text-muted-foreground">
-          Start under Undersøgelse med dronebillederne og bekræft sted/dato. Rapporten kan derefter
+          Start med Billeder og droneoriginalerne og bekræft sted/dato. Rapporten kan derefter
           samles her.
         </p>
       ) : (
@@ -296,7 +316,7 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
           )}
           <div className="flex flex-wrap gap-2">
             <button
-              className={buttonClass}
+              className={buttonClass + " bg-primary text-primary-foreground"}
               disabled={
                 !access.data?.canPersist ||
                 access.data.userId !== actorId ||
@@ -304,10 +324,10 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
                 !!progress ||
                 !!rounds.error
               }
-              onClick={() => mutation.mutate()}
+              onClick={() => void createAndDownload()}
             >
-              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Gem ny
-              rapportversion
+              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Dan rapport og
+              hent afleveringspakke
             </button>
             <button
               className={buttonClass}
@@ -365,6 +385,26 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
         <p role="status" className="text-sm">
           {progress}
         </p>
+      )}
+      {packageChecksum && (
+        <div className="rounded-lg border p-3 text-xs">
+          <p className="break-all">
+            ZIP SHA-256 · {packageChecksum.name}: {packageChecksum.sha256}
+          </p>
+          <button
+            type="button"
+            className="mt-2 underline"
+            onClick={() =>
+              saveFile(
+                new TextEncoder().encode(`${packageChecksum.sha256}  ${packageChecksum.name}\n`),
+                packageChecksum.name + ".sha256",
+                "text/plain",
+              )
+            }
+          >
+            Hent pakkens kontrolsum
+          </button>
+        </div>
       )}
       {current && (
         <SavedReport
