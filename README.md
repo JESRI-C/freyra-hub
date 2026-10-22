@@ -13,7 +13,10 @@ npm ci
 npm run typecheck
 npm run lint
 npm test -- --maxWorkers=1 --no-file-parallelism
+node scripts/verify-staging-env.mjs --require-municipal-demo
+$env:CLOUDFLARE_ENV = 'staging'
 npm run build:staging
+node scripts/verify-staging-env.mjs --require-municipal-demo --check-bundle
 ```
 
 ## Idempotent sag og originaler
@@ -57,6 +60,8 @@ Scriptet kræver eksakt stagingmål og genlæser roller. Ny testkonto prøves me
 
 ```powershell
 npx playwright install chromium
+# Alternativt kan allerede installeret Edge bruges på Windows:
+# $env:HADERSLEV_E2E_BROWSER_CHANNEL = 'msedge'
 # Indlæs nedenstående miljøvariabler i processen fra jeres sikre lokale opsætning.
 npm run test:e2e
 ```

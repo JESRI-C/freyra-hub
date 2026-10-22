@@ -12,6 +12,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.HADERSLEV_E2E_BASE_URL ?? "http://localhost:8787",
     ...devices["Desktop Chrome"],
+    ...(process.env.HADERSLEV_E2E_BROWSER_CHANNEL === "msedge" ? { channel: "msedge" } : {}),
     trace: "off", // Traces can contain private originals and bearer tokens.
     screenshot: "only-on-failure",
     actionTimeout: 60_000,
