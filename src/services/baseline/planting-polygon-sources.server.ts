@@ -91,6 +91,33 @@ const Page = z
         page.totalFeatures === 0),
   );
 
+/** GeoDanmark returns optional finite Z values even with CRS84. This layer uses XY only. */
+function woodlandPageIn2D(raw: unknown) {
+  let discardedZ = false;
+  const coordinate = z
+    .tuple([
+      z.number().finite().min(7).max(16),
+      z.number().finite().min(54).max(58),
+      z.number().finite().optional(),
+    ])
+    .transform(([x, y, height]): [number, number] => {
+      if (height !== undefined) discardedZ = true;
+      return [x, y];
+    });
+  const rings = z.array(z.array(coordinate).min(4).max(10_000)).min(1).max(200);
+  const geometry = z.union([
+    z.object({ type: z.literal("Polygon"), coordinates: rings }),
+    z.object({ type: z.literal("MultiPolygon"), coordinates: z.array(rings).min(1).max(200) }),
+  ]);
+  const normalized = z
+    .object({
+      features: z.array(z.object({ geometry }).passthrough()).max(200),
+    })
+    .passthrough()
+    .parse(raw);
+  return { normalized, discardedZ };
+}
+
 export async function fetchPlantingPolygonSource(
   id: PlantingPolygonSourceId,
   input: { polygon: GeoJSONPolygon; dateFrom: string; dateTo: string; geometrySha256?: string },
@@ -119,7 +146,7 @@ export async function fetchPlantingPolygonSource(
     sourceUrl: config.endpoint,
     sourceModifiedAt: null,
     fetchedAt: (options.now ?? (() => new Date().toISOString()))(),
-    adapterVersion: "planting-polygons/v1",
+    adapterVersion: id === "planting-woodland" ? "planting-polygons-2d/v2" : "planting-polygons/v1",
     query: { geometrySha256, bbox, requestedFrom: input.dateFrom, requestedTo: input.dateTo },
     coverage: {
       spatial: "unknown",
@@ -180,7 +207,13 @@ export async function fetchPlantingPolygonSource(
     const raw: unknown = JSON.parse(text);
     if (apiKey && (text.includes(apiKey) || JSON.stringify(raw).includes(apiKey)))
       throw new PublicReadError("CREDENTIAL_ECHO");
-    const page = Page.parse(raw);
+    const { normalized, discardedZ } =
+      id === "planting-woodland" ? woodlandPageIn2D(raw) : { normalized: raw, discardedZ: false };
+    const page = Page.parse(normalized);
+    if (discardedZ)
+      source.quality.warnings.push(
+        "GeoDanmark leverede finite tredjekoordinater (Z). Højden er eksplicit udeladt; skitsen bruger kun længde-/breddegrad, og der udledes ingen højder eller terræneffekter.",
+      );
     if (
       page.numberMatched < page.features.length ||
       (page.numberReturned !== undefined && page.numberReturned !== page.features.length) ||
@@ -220,6 +253,7 @@ export async function fetchPlantingPolygonSource(
       layer: config.layer,
       numberMatched: page.numberMatched,
       numberReturned: page.features.length,
+      ...(discardedZ ? { coordinateHandling: "finite-z-omitted" } : {}),
     };
     source.payloadSha256 = await baselineSha256(source.payload);
     return source;

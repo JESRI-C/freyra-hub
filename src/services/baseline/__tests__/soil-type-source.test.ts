@@ -47,6 +47,56 @@ function mockPage(features: unknown[], count = features.length, extra = {}) {
     );
 }
 describe("official GEUS soil polygons", () => {
+  it("preserves a real-world scale of 204 polygon rings without dropping holes", async () => {
+    const holes = Array.from({ length: 203 }, (_, i) => {
+      const x = 9.0101 + (i % 15) * 0.0005,
+        y = 55.0101 + Math.floor(i / 15) * 0.0005;
+      return [
+        [x, y],
+        [x + 0.0001, y],
+        [x + 0.0001, y + 0.0001],
+        [x, y + 0.0001],
+        [x, y],
+      ];
+    });
+    const geometry = { type: "Polygon", coordinates: [record.geometry.coordinates[0], ...holes] };
+    const result = await fetchSoilTypeSource(input, {
+      fetchImpl: mockPage([{ ...record, geometry }]),
+    });
+    expect(result).toMatchObject({
+      mode: "live",
+      status: "partial",
+      coverage: { spatial: "partial", returnedCount: 1 },
+      payload: { features: [{ geometry }] },
+    });
+    expect(result.payloadSha256).toBe(await baselineSha256(result.payload));
+  });
+  it("still enforces the 1000-ring, 24000-vertex and 512KiB limits", async () => {
+    const rings = Array.from({ length: 1001 }, () => record.geometry.coordinates[0]);
+    expect(
+      (
+        await fetchSoilTypeSource(input, {
+          fetchImpl: mockPage([{ ...record, geometry: { type: "Polygon", coordinates: rings } }]),
+        })
+      ).mode,
+    ).toBe("error");
+    const features = Array.from({ length: 3 }, (_, id) => ({
+      ...record,
+      id,
+      properties: { ...record.properties, OBJECTID: id },
+      geometry: { type: "Polygon", coordinates: [Array.from({ length: 8_001 }, () => [9, 55])] },
+    }));
+    expect((await fetchSoilTypeSource(input, { fetchImpl: mockPage(features) })).error?.code).toBe(
+      "GEOMETRY_LIMIT",
+    );
+    expect(
+      (
+        await fetchSoilTypeSource(input, {
+          fetchImpl: mockPage([record], 1, { padding: "x".repeat(512 * 1024) }),
+        })
+      ).error?.code,
+    ).toBe("SIZE_LIMIT");
+  });
   it("freezes actual types, versions and geometry, preserves partial mapping despite complete query", async () => {
     const fetchImpl = mockPage([record]);
     const result = await fetchSoilTypeSource(input, { fetchImpl });

@@ -3,6 +3,7 @@ import { fetchPlantingPolygonSource } from "../planting-polygon-sources.server";
 import { PROJECT } from "./public-baseline.fixtures";
 import type { GeoJSONPolygon } from "@/lib/supabase/types";
 import { baselineSha256 } from "../public-baseline-service";
+import { bytesSha256 } from "../bounded-public-read.server";
 const input = {
   polygon: PROJECT.geometry_polygon as GeoJSONPolygon,
   dateFrom: "2026-08-24",
@@ -29,6 +30,125 @@ const page = (matched = 1) => ({
 });
 afterEach(() => vi.unstubAllEnvs());
 describe("real-source polygon adapter contract", () => {
+  it("projects finite GeoDanmark Z coordinates to XY, preserves holes and original-response provenance", async () => {
+    vi.stubEnv("DATAFORDELER_API_KEY", "private-unit-test-key");
+    const hole = [
+      [9.012, 55.012],
+      [9.014, 55.012],
+      [9.014, 55.014],
+      [9.012, 55.014],
+      [9.012, 55.012],
+    ];
+    const xy = { type: "MultiPolygon", coordinates: [[shape.coordinates[0], hole]] };
+    const raw = {
+      ...page(),
+      features: [
+        {
+          ...page().features[0],
+          geometry: {
+            type: "MultiPolygon",
+            coordinates: xy.coordinates.map((p) => p.map((r) => r.map((point) => [...point, 5]))),
+          },
+        },
+      ],
+    };
+    const source = await fetchPlantingPolygonSource("planting-woodland", input, {
+      fetchImpl: vi.fn().mockResolvedValue(Response.json(raw)),
+    });
+    expect(source).toMatchObject({
+      mode: "live",
+      status: "partial",
+      coverage: { spatial: "partial", returnedCount: 1 },
+      payload: {
+        geometries: [xy],
+        coordinateHandling: "finite-z-omitted",
+        responseSha256: await bytesSha256(new TextEncoder().encode(JSON.stringify(raw))),
+      },
+    });
+    expect(source.quality.warnings.join(" ")).toContain("Højden er eksplicit udeladt");
+    expect(source.payloadSha256).toBe(await baselineSha256(source.payload));
+    expect(raw.features[0].geometry.coordinates[0][0][0]).toHaveLength(3);
+    const other = await fetchPlantingPolygonSource("planting-lowland", input, {
+      fetchImpl: vi.fn().mockResolvedValue(Response.json(raw)),
+    });
+    expect(other.mode).toBe("error");
+  });
+  it.each([null, "5", [5, 6]].map((extra) => [extra]))(
+    "rejects invalid Z and extra dimensions without flattening them away: %j",
+    async (extra) => {
+      vi.stubEnv("DATAFORDELER_API_KEY", "private-unit-test-key");
+      const coordinates = shape.coordinates.map((r) =>
+        r.map((p) => [...p, ...(Array.isArray(extra) ? extra : [extra])]),
+      );
+      const raw = {
+        ...page(),
+        features: [{ ...page().features[0], geometry: { ...shape, coordinates } }],
+      };
+      const source = await fetchPlantingPolygonSource("planting-woodland", input, {
+        fetchImpl: vi.fn().mockResolvedValue(Response.json(raw)),
+      });
+      expect(source).toMatchObject({
+        mode: "error",
+        payload: null,
+        coverage: { returnedCount: null },
+      });
+    },
+  );
+  it("rejects non-finite JSON Z numbers and preserves the total vertex/byte bounds", async () => {
+    vi.stubEnv("DATAFORDELER_API_KEY", "private-unit-test-key");
+    const raw = {
+      ...page(),
+      features: [
+        {
+          ...page().features[0],
+          geometry: {
+            ...shape,
+            coordinates: shape.coordinates.map((r) => r.map((p) => [...p, "NON_FINITE_Z"])),
+          },
+        },
+      ],
+    };
+    const body = JSON.stringify(raw).replaceAll('"NON_FINITE_Z"', "1e999");
+    expect(
+      (
+        await fetchPlantingPolygonSource("planting-woodland", input, {
+          fetchImpl: vi
+            .fn()
+            .mockResolvedValue(
+              new Response(body, { headers: { "content-type": "application/json" } }),
+            ),
+        })
+      ).mode,
+    ).toBe("error");
+    const many = {
+      ...page(3),
+      numberReturned: 3,
+      features: Array.from({ length: 3 }, (_, id) => ({
+        type: "Feature",
+        id,
+        geometry: {
+          type: "Polygon",
+          coordinates: [Array.from({ length: 8_001 }, () => [9, 55, 1])],
+        },
+      })),
+    };
+    expect(
+      (
+        await fetchPlantingPolygonSource("planting-woodland", input, {
+          fetchImpl: vi.fn().mockResolvedValue(Response.json(many)),
+        })
+      ).error?.code,
+    ).toBe("GEOMETRY_LIMIT");
+    expect(
+      (
+        await fetchPlantingPolygonSource("planting-woodland", input, {
+          fetchImpl: vi
+            .fn()
+            .mockResolvedValue(Response.json({ ...page(), padding: "x".repeat(384 * 1024) })),
+        })
+      ).error?.code,
+    ).toBe("SIZE_LIMIT");
+  });
   it.each(["planting-markblocks", "planting-lowland", "planting-woodland"] as const)(
     "retains an explicitly empty %s response with null CRS as a register result",
     async (id) => {

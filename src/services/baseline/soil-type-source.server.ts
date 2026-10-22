@@ -14,7 +14,8 @@ const Ring = z
   .min(4)
   .max(10_000)
   .refine((r) => r[0][0] === r.at(-1)![0] && r[0][1] === r.at(-1)![1]);
-const PolygonCoordinates = z.array(Ring).min(1).max(200);
+// Real official polygons can have more than 200 holes. Byte and total vertex caps remain unchanged.
+const PolygonCoordinates = z.array(Ring).min(1).max(1_000);
 const Geometry = z.union([
   z.object({ type: z.literal("Polygon"), coordinates: PolygonCoordinates }),
   z.object({
@@ -80,7 +81,7 @@ export async function fetchSoilTypeSource(
     sourceUrl: SOIL_TYPE_LAYER,
     sourceModifiedAt: null,
     fetchedAt: (options.now ?? (() => new Date().toISOString()))(),
-    adapterVersion: "geus-jordart-arcgis/v1",
+    adapterVersion: "geus-jordart-arcgis/v2",
     query: { geometrySha256, bbox, requestedFrom: input.dateFrom, requestedTo: input.dateTo },
     coverage: {
       spatial: "unknown",
@@ -152,14 +153,18 @@ export async function fetchSoilTypeSource(
       page.features.some((f) => f.id !== f.properties.OBJECTID)
     )
       throw new PublicReadError("INVALID_COUNTS");
-    let vertices = 0;
-    for (const f of page.features) {
-      vertices += (
-        f.geometry.type === "Polygon" ? f.geometry.coordinates : f.geometry.coordinates.flat()
-      ).reduce((total, ring) => total + ring.length, 0);
-      if (vertices > 24_000 || !booleanValid(feature(f.geometry)))
-        throw new PublicReadError("INVALID_GEOMETRY");
-    }
+    const vertices = page.features.reduce(
+      (total, f) =>
+        total +
+        (f.geometry.type === "Polygon"
+          ? f.geometry.coordinates
+          : f.geometry.coordinates.flat()
+        ).reduce((count, ring) => count + ring.length, 0),
+      0,
+    );
+    if (vertices > 24_000) throw new PublicReadError("GEOMETRY_LIMIT");
+    for (const f of page.features)
+      if (!booleanValid(feature(f.geometry))) throw new PublicReadError("INVALID_GEOMETRY");
     const complete =
       page.features.length === count &&
       !page.exceededTransferLimit &&
