@@ -19,7 +19,7 @@ import { lovable } from "@/integrations/lovable";
 import logoMark from "@/assets/gofreyra-logo.png";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Log ind — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Log ind — Freyra" }] }),
   validateSearch: (s: Record<string, unknown>): { next?: string } =>
     typeof s.next === "string" ? { next: s.next } : {},
   component: LoginPage,
@@ -42,7 +42,7 @@ function translateError(message: string): string {
   if (m.includes("rate limit") || m.includes("too many"))
     return "For mange forsøg. Vent et par minutter og prøv igen.";
   if (m.includes("network")) return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
-  return message;
+  return "Login kunne ikke gennemføres. Prøv igen eller kontakt den ansvarlige for jeres adgang.";
 }
 
 function LoginPage() {
@@ -146,7 +146,7 @@ function LoginPage() {
             <Mail className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Tjek din email</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">Tjek din e-mail</h2>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
               Vi har sendt en bekræftelsesmail til{" "}
               <strong className="text-foreground">{email}</strong>. Klik på linket i mailen for at
@@ -220,8 +220,8 @@ function LoginPage() {
     <SplitShell stats={stats}>
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-5">
         <div className="lg:hidden flex items-center gap-2 mb-2">
-          <img src={logoMark} alt="GoFreyra" className="h-9 w-9 object-contain" />
-          <span className="font-semibold">GoFreyra</span>
+          <img src={logoMark} alt="Freyra" className="h-9 w-9 object-contain" />
+          <span className="font-semibold">Freyra</span>
         </div>
 
         <div>
@@ -230,10 +230,10 @@ function LoginPage() {
           </h2>
           <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
             {isForgot
-              ? "Indtast din email, så sender vi dig et link til at nulstille din adgangskode."
+              ? "Indtast din e-mail, så sender vi dig et link til at nulstille din adgangskode."
               : isSignup
                 ? "Opret en gratis konto for at komme i gang med at dokumentere naturkapital. Du modtager en bekræftelsesmail."
-                : "Log ind med din email og adgangskode for at fortsætte til dit GoFreyra-workspace."}
+                : "Log ind med din e-mail og adgangskode for at fortsætte til dit arbejdsrum i Freyra."}
           </p>
         </div>
 
@@ -421,7 +421,7 @@ function LoginPage() {
             </>
           ) : (
             <>
-              Ny på GoFreyra?{" "}
+              Ny på Freyra?{" "}
               <button
                 type="button"
                 onClick={() => setMode("signup")}
@@ -489,9 +489,9 @@ function SplitShell({
           }}
         />
         <div className="relative flex items-center gap-3">
-          <img src={logoMark} alt="GoFreyra" className="h-11 w-11 object-contain" />
+          <img src={logoMark} alt="Freyra" className="h-11 w-11 object-contain" />
           <div>
-            <div className="text-lg font-semibold tracking-tight">GoFreyra</div>
+            <div className="text-lg font-semibold tracking-tight">Freyra</div>
             <div className="text-xs text-sidebar-muted">by Freyra</div>
           </div>
         </div>

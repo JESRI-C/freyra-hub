@@ -24,6 +24,7 @@ function statusTone(status: string | null): "success" | "warning" | "info" | "de
 
 interface ProjectHeaderProps {
   project: Project;
+  canEdit?: boolean;
   sitesCount: number;
   activeDataSourcesCount: number;
   openActionsCount: number;
@@ -31,6 +32,7 @@ interface ProjectHeaderProps {
 
 export function ProjectHeader({
   project,
+  canEdit = false,
   sitesCount,
   activeDataSourcesCount,
   openActionsCount,
@@ -59,6 +61,7 @@ export function ProjectHeader({
   }
 
   async function changeStatus(next: string) {
+    if (!canEdit) return;
     if (next === project.status) {
       setStatusOpen(false);
       return;
@@ -72,8 +75,8 @@ export function ProjectHeader({
       await updateProjectDetails(project.id, { status: next });
       toast.success(`Status ændret til: ${next}`);
       await invalidate();
-    } catch (err) {
-      toast.error(`Kunne ikke ændre status: ${(err as Error).message}`);
+    } catch {
+      toast.error("Status kunne ikke ændres. Kontrollér din adgang og prøv igen.");
     } finally {
       setSavingStatus(false);
       setStatusOpen(false);
@@ -113,14 +116,14 @@ export function ProjectHeader({
             <button
               type="button"
               onClick={() => setStatusOpen((v) => !v)}
-              disabled={savingStatus}
+              disabled={savingStatus || !canEdit}
               className="inline-flex items-center gap-1 disabled:opacity-60"
-              aria-label="Skift status"
+              aria-label={canEdit ? "Skift status" : "Sagens status"}
             >
               <Pill tone={statusTone(project.status)}>
                 <span className="inline-flex items-center gap-1">
                   {savingStatus ? "Gemmer…" : (project.status ?? "Ukendt status")}
-                  <ChevronDown className="h-3 w-3" />
+                  {canEdit && <ChevronDown className="h-3 w-3" />}
                 </span>
               </Pill>
             </button>
@@ -140,14 +143,16 @@ export function ProjectHeader({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Rediger
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Rediger
+            </button>
+          )}
         </div>
       </div>
 
@@ -174,7 +179,7 @@ export function ProjectHeader({
               : ""}
           </div>
         )}
-        <span>{sitesCount} sites</span>
+        <span>{sitesCount} fotopunkter</span>
         <span>{activeDataSourcesCount} aktive datakilder</span>
         {openActionsCount > 0 && (
           <span className="text-amber-600 font-medium">{openActionsCount} åbne handlinger</span>
@@ -247,8 +252,8 @@ function EditProjectDialog({
       });
       toast.success("Projekt opdateret");
       await onSaved();
-    } catch (e2) {
-      setErr((e2 as Error).message);
+    } catch {
+      setErr("Projektet kunne ikke gemmes. Kontrollér din adgang og prøv igen.");
     } finally {
       setSaving(false);
     }

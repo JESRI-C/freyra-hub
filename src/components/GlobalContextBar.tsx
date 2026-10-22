@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Activity, ChevronsUpDown, Bell, Sparkles } from "lucide-react";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
 import { isDemoDataEnabled as isOfflineDemoMode } from "@/lib/data-mode";
 import { DemoModeBadge } from "@/components/platform/Primitives";
@@ -37,13 +38,14 @@ export function GlobalContextBar() {
           <Link
             to="/app/projects/$slug"
             params={{ slug: project.slug ?? project.id }}
+            search={DEMO_MODE ? { step: "datagrundlag" } : {}}
             className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
           >
-            <Activity className="h-3.5 w-3.5" /> Se projektets datagrundlag
+            <Activity className="h-3.5 w-3.5" /> Se sagens datagrundlag
           </Link>
         ) : (
           <span className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground">
-            Vælg projekt for at se datagrundlag
+            Vælg sag for at se datagrundlag
           </span>
         )}
 
@@ -60,15 +62,17 @@ export function GlobalContextBar() {
               <Sparkles className="h-3.5 w-3.5 text-primary" /> Start demo
             </Link>
           )}
-          <button
-            className="relative h-7 w-7 grid place-items-center rounded-lg border bg-background hover:bg-muted"
-            title="Notifikationer"
-          >
-            <Bell className="h-3.5 w-3.5" />
-            {isOfflineDemoMode && (
-              <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-destructive" />
-            )}
-          </button>
+          {!DEMO_MODE && (
+            <button
+              className="relative h-7 w-7 grid place-items-center rounded-lg border bg-background hover:bg-muted"
+              title="Notifikationer"
+            >
+              <Bell className="h-3.5 w-3.5" />
+              {isOfflineDemoMode && (
+                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-destructive" />
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

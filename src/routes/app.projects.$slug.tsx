@@ -1,8 +1,11 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { DEMO_MODE, MUNICIPAL_PROJECT_TABS } from "@/lib/demo-mode";
 import { isDemoDataEnabled } from "@/lib/data-mode";
 import {
   ShieldCheck,
@@ -18,6 +21,11 @@ import {
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
+import {
+  MunicipalCaseWorkspace,
+  MUNICIPAL_STEPS,
+  type MunicipalStep,
+} from "@/components/project/MunicipalCaseWorkspace";
 import { DroneSurveyWorkspace } from "@/components/project/DroneSurveyWorkspace";
 import { PublicBaselinePanel } from "@/components/project/PublicBaselinePanel";
 import { IndicatorCard } from "@/components/project/IndicatorCard";
@@ -101,8 +109,14 @@ function AuditIcon({ name }: { name: string }) {
 }
 
 export const Route = createFileRoute("/app/projects/$slug")({
-  validateSearch: (search: Record<string, unknown>): { tab?: string; round?: string } => ({
-    ...(typeof search.tab === "string" && TABS.some((tab) => tab.id === search.tab)
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: string; round?: string; step?: MunicipalStep } => ({
+    ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
+      ? { step: search.step as MunicipalStep }
+      : {}),
+    ...(typeof search.tab === "string" &&
+    TABS.some((tab) => tab.id === search.tab && (!DEMO_MODE || MUNICIPAL_PROJECT_TABS.has(tab.id)))
       ? { tab: search.tab }
       : {}),
     ...(typeof search.round === "string" &&
@@ -110,7 +124,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
       ? { round: search.round.toLowerCase() }
       : {}),
   }),
-  head: () => ({ meta: [{ title: "Projekt — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Projekt — Freyra" }] }),
   // Project reads depend on the browser-persisted Supabase session. Rendering
   // this route on the server would execute all suspense queries without the
   // user's JWT and can turn a valid deep-link into a false RLS 404.
@@ -123,7 +137,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
     if (!project) throw notFound();
     return project;
   },
-  component: ProjectDetailPage,
+  component: DEMO_MODE ? MunicipalProjectPage : ProjectDetailPage,
   notFoundComponent: () => (
     <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>
   ),
@@ -134,11 +148,11 @@ const TABS = [
   { id: "rapporter", label: "Rapport og levering" },
   { id: "grundlag", label: "Grundlag" },
   { id: "overblik", label: "Overblik" },
-  { id: "sites", label: "Sites" },
+  { id: "sites", label: "Fotopunkter" },
   { id: "datakilder", label: "Datakilder" },
   { id: "indikatorer", label: "Indikatorer" },
   { id: "handlinger", label: "Handlinger" },
-  { id: "audit", label: "Audit trail" },
+  { id: "audit", label: "Revisionsspor" },
   { id: "roller", label: "Roller" },
   { id: "dokumentation", label: "Dokumentation" },
   { id: "medier", label: "Medier" },
@@ -147,6 +161,29 @@ const TABS = [
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+
+function MunicipalProjectPage() {
+  const project = Route.useLoaderData();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const step =
+    search.step ??
+    (search.tab === "rapporter"
+      ? "rapport"
+      : search.tab === "grundlag"
+        ? "datagrundlag"
+        : "billeder");
+  return (
+    <MunicipalCaseWorkspace
+      project={project}
+      step={step}
+      selectedRoundId={search.round}
+      utility={search.tab === "audit" || search.tab === "roller" ? search.tab : undefined}
+      onStep={(next) => void navigate({ search: { step: next, round: search.round } })}
+      onRound={(round) => void navigate({ search: { step, round } })}
+    />
+  );
+}
 
 function ProjectDetailPage() {
   const { slug } = Route.useParams();
@@ -157,6 +194,20 @@ function ProjectDetailPage() {
     queryKey: ["project-by-slug", slug],
     queryFn: () => getProjectBySlug(slug),
   });
+
+  const { user: accessUser } = useAuth();
+  const loadAccess = useServerFn(getSurveyRoundAccess);
+  const actualAccess = useQuery({
+    queryKey: ["municipal-case-access", accessUser?.id, project?.id],
+    queryFn: () => loadAccess({ data: { projectId: project!.id } }),
+    enabled: !!project && !!accessUser,
+    retry: false,
+  });
+  const canEdit =
+    actualAccess.data?.userId === accessUser?.id &&
+    !!actualAccess.data?.canPersist &&
+    !actualAccess.isError &&
+    !actualAccess.isFetching;
 
   // projectId is always set when project exists; hooks below use it unconditionally
   const projectId = project?.id ?? "";
@@ -339,6 +390,7 @@ function ProjectDetailPage() {
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
       <ProjectHeader
+        canEdit={canEdit}
         project={project}
         sitesCount={sites.length}
         activeDataSourcesCount={activeDataSourcesCount}
@@ -346,7 +398,7 @@ function ProjectDetailPage() {
       />
 
       <ProjectTabs
-        tabs={TABS}
+        tabs={DEMO_MODE ? TABS.filter((tab) => MUNICIPAL_PROJECT_TABS.has(tab.id)) : TABS}
         activeTab={search.tab ?? "arbejde"}
         primaryTabIds={["arbejde", "rapporter"]}
         onTabChange={(tab) =>
@@ -382,7 +434,9 @@ function ProjectDetailPage() {
               />
             )}
             {/* ── Overblik ─────────────────────────────────────────────────── */}
-            {active === "grundlag" && <PublicBaselinePanel key={project.id} project={project} />}
+            {active === "grundlag" && (
+              <PublicBaselinePanel key={project.id} project={project} canPersist={canEdit} />
+            )}
             {active === "overblik" && (
               <div className="space-y-5">
                 {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}

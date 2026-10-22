@@ -4,18 +4,19 @@ import { Map, Leaf, Droplets, BookCheck, FileText, ArrowLeft, Link2 } from "luci
 import { toast } from "sonner";
 import { Pill } from "@/components/ui-bits";
 import { getProject, getLinkedProjectId, setLinkedProject } from "@/services/lavbundService";
-import { getProjects as getCoreProjects } from "@/services/projects-service";
+import { getProjects as getCoreProjects, getProjectBySlug } from "@/services/projects-service";
 import { ledgerAppend } from "@/services/ledgerService";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
 import type { ProjektStatus } from "@/types/lavbund";
 
 export const Route = createFileRoute("/app/lavbund/$projektId")({
-  head: () => ({ meta: [{ title: "LavbundsMRV — Projekt" }] }),
+  head: () => ({ meta: [{ title: "Kort og beplantning — Freyra" }] }),
   component: ProjektLayout,
 });
 
 const TABS = [
-  { to: "/app/lavbund/$projektId/kort", suffix: "kort", label: "Feltkort & tidsserie", icon: Map },
+  { to: "/app/lavbund/$projektId/kort", suffix: "kort", label: "Kort og beplantning", icon: Map },
   { to: "/app/lavbund/$projektId/klima", suffix: "klima", label: "Klima · CO₂", icon: Leaf },
   {
     to: "/app/lavbund/$projektId/fosfor",
@@ -55,6 +56,12 @@ function ProjektLayout() {
     queryFn: () => getProject(projektId),
   });
 
+  const core = useQuery({
+    queryKey: ["core-project", projektId],
+    queryFn: () => getProjectBySlug(projektId),
+    enabled: DEMO_MODE && !q.isLoading && !q.data,
+    retry: false,
+  });
   // Redirect /app/lavbund/:id → /app/lavbund/:id/kort
   if (path === `/app/lavbund/${projektId}` || path === `/app/lavbund/${projektId}/`) {
     return <Navigate to="/app/lavbund/$projektId/kort" params={{ projektId }} />;
@@ -66,14 +73,16 @@ function ProjektLayout() {
         <div className="w-full px-4 sm:px-6 py-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <Link
-              to="/app/lavbund"
+              to={DEMO_MODE ? "/app/projects" : "/app/lavbund"}
               className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Alle lavbundsprojekter
+              <ArrowLeft className="h-3.5 w-3.5" /> Alle sager
             </Link>
             <div className="mt-1 flex items-center gap-3 flex-wrap">
               <h1 className="text-lg font-semibold tracking-tight truncate">
-                {q.data?.navn ?? (q.isLoading ? "Indlæser…" : "Ukendt projekt")}
+                {q.data?.navn ??
+                  core.data?.name ??
+                  (q.isLoading || core.isLoading ? "Indlæser…" : "Sag ikke tilgængelig")}
               </h1>
               {q.data && (
                 <>
@@ -85,11 +94,11 @@ function ProjektLayout() {
               )}
             </div>
           </div>
-          <LinkTilKerneprojekt projektId={projektId} />
+          {!DEMO_MODE && <LinkTilKerneprojekt projektId={projektId} />}
         </div>
         <div className="w-full px-4 sm:px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
-            {TABS.map((t) => {
+            {TABS.filter((t) => !DEMO_MODE || ["kort"].includes(t.suffix)).map((t) => {
               const full = `/app/lavbund/${projektId}/${t.suffix}`;
               const active = path.startsWith(full);
               const Icon = t.icon;
@@ -119,7 +128,7 @@ function ProjektLayout() {
 }
 
 /**
- * Kobling til GoFreyra-kerneprojekt: når sat, skubber bogførte snapshots den
+ * Kobling til Freyra-kerneprojekt: når sat, skubber bogførte snapshots den
  * verificerede CO₂-effekt til projektets co2e_reduced-indicator på dashboardet.
  */
 function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
@@ -155,7 +164,7 @@ function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
   return (
     <label className="hidden sm:flex flex-col items-end gap-1 text-[11px] text-muted-foreground shrink-0">
       <span className="inline-flex items-center gap-1">
-        <Link2 className="h-3 w-3" /> Kobling til GoFreyra-projekt
+        <Link2 className="h-3 w-3" /> Kobling til Freyra-projekt
       </span>
       <select
         value={linked.data ?? ""}
