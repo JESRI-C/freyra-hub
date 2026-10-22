@@ -9,6 +9,7 @@ import {
 import { listDroneImageInspections } from "@/lib/drone-image-inspection.functions";
 import { listPhotoPointReviews, savePhotoPointReview } from "@/lib/photo-point-review.functions";
 import { PhotoPointReviewInputSchema } from "@/services/monitoring/photo-point-review";
+import { describeDroneVisualInDanish } from "@/services/monitoring/drone-visual-presentation";
 import type { SurveyRoundMediaVersion } from "@/services/baseline/survey-round-media-persistence";
 import type { PublicBaselineSnapshot } from "@/services/baseline/public-baseline-types";
 import { BaselineSourceData } from "./BaselineSourceData";
@@ -305,6 +306,9 @@ function PhotoPoint({
     !!reviews.error ||
     inspections.isFetching ||
     !!inspections.error;
+  const visualPresentation = inspection?.result
+    ? describeDroneVisualInDanish(inspection.result.visual)
+    : null;
   return (
     <div className="mt-4 space-y-5">
       <div className="grid items-start gap-5 lg:grid-cols-2">
@@ -339,21 +343,24 @@ function PhotoPoint({
               "Dato mangler"}
           </p>
           <h4 className="font-medium">AI-vurdering</h4>
-          {inspection?.result ? (
+          {inspection?.result && visualPresentation ? (
             <div className="space-y-2 text-sm">
               <p>
                 <strong>Gemt vurdering</strong> ·{" "}
                 {new Date(inspection.completedAt!).toLocaleString("da-DK")}
               </p>
-              <p>{inspection.result.visual.quality.limitation}</p>
-              {inspection.result.visual.features.map((feature, index) => (
+              <p>{visualPresentation.qualityLimitation}</p>
+              {visualPresentation.features.map((feature, index) => (
                 <p key={index}>
                   {feature.appearance}{" "}
                   <span className="text-muted-foreground">{feature.uncertainty}</span>
                 </p>
               ))}
-              <p>{inspection.result.visual.overallUncertainty}</p>
-              <p className="text-xs">AI-forslag er ikke fagligt godkendte observationer.</p>
+              <p>{visualPresentation.uncertainty}</p>
+              <p className="text-xs">
+                Vist på dansk ud fra modellens kategorier. Originalteksten er bevaret i
+                dokumentationsgrundlaget. AI-forslag er ikke fagligt godkendte observationer.
+              </p>
             </div>
           ) : (
             <p className="text-sm">
