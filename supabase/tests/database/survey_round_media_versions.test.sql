@@ -274,5 +274,54 @@ select is(jsonb_build_object(
  'origins',(select jsonb_agg(to_jsonb(row) order by id) from public.project_media_upload_origins row),
  'promotionRequests',(select jsonb_agg(to_jsonb(row) order by id) from public.project_media_promotion_requests row)),
  (select value from round_media_before_graph),'all immutable inputs, original/Storage rows and dedup graph preserved');
+-- Photo-point professional decisions reuse the exact frozen synthetic binding.
+-- All writes below stay inside this disposable transaction and are rolled back.
+create function pg_temp.photo_review(p_actor uuid default 'e1000000-0000-4000-8000-000000000001',
+ p_request uuid default 'fb100000-0000-4000-8000-000000000001',p_changes jsonb default '{}'::jsonb)
+returns jsonb language sql as $$
+ select public.save_photo_point_review(binding.project_id,binding.id,p_actor,p_request,
+  pg_temp.canonical_fixture(jsonb_build_object('schema','freyra.photo-point-review/v1',
+   'projectId',binding.project_id,'bindingId',binding.id,'bindingSha256',binding.manifest_sha256,
+   'mediaId',binding.media_id,'originalSha256',binding.original_sha256,
+   'baselineId',binding.baseline_id,'baselineSha256',binding.baseline_sha256,
+   'decision','rejected','note','Synthetic fixture: no ortho pixels available.',
+   'reviewerName','Synthetic reviewer','inspectionId',null,'inspectionSha256',null) || p_changes))
+ from public.survey_round_media_versions binding where request_id='ef700000-0000-4000-8000-000000000001'
+$$;
+select ok((select relrowsecurity from pg_class where oid='public.photo_point_review_versions'::regclass),'professional review RLS enabled');
+select ok(not has_table_privilege('authenticated','public.photo_point_review_versions','INSERT'),'browser cannot forge professional review rows');
+select ok(not has_function_privilege('authenticated','public.save_photo_point_review(uuid,uuid,uuid,uuid,text)','EXECUTE'),'browser cannot forge review actor through RPC');
+select is((select prosecdef from pg_proc where oid='public.save_photo_point_review(uuid,uuid,uuid,uuid,text)'::regprocedure),false,'review writer remains SECURITY INVOKER');
+set local role service_role;
+select lives_ok($q$select pg_temp.photo_review()$q$,'editor records professional rejection without AI');
+select lives_ok($q$select pg_temp.photo_review()$q$,'exact professional decision retry is idempotent');
+select is((select count(*) from public.photo_point_review_versions),1::bigint,'review retry does not duplicate decision');
+select is((select count(*) from public.audit_events where event_type='photo_point_reviewed'),1::bigint,'review retry creates only one audit event');
+select is((select review_sha256 from public.photo_point_review_versions),
+ (select encode(pg_catalog.sha256(convert_to(review_text,'UTF8')),'hex') from public.photo_point_review_versions),'review hash binds exact UTF8 bytes');
+select throws_ok($q$select pg_temp.photo_review(p_changes=>'{"decision":"confirmed"}')$q$,'23514',null,'same request cannot change a decision');
+select lives_ok($q$select pg_temp.photo_review(p_request=>'fb100000-0000-4000-8000-000000000002',p_changes=>'{"decision":"confirmed","note":"Synthetic second review."}')$q$,'new request appends a new decision');
+select is((select count(*) from public.photo_point_review_versions),2::bigint,'both professional decisions remain');
+select throws_ok($q$select pg_temp.photo_review(p_actor=>'e1000000-0000-4000-8000-000000000002')$q$,'42501',null,'viewer cannot make professional decision');
+select throws_ok($q$select pg_temp.photo_review(p_actor=>'e1000000-0000-4000-8000-000000000003')$q$,'42501',null,'foreign actor cannot review');
+select throws_ok($q$select pg_temp.photo_review(p_changes=>'{"bindingSha256":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}')$q$,'23514',null,'wrong photo binding hash rejected');
+select throws_ok($q$select pg_temp.photo_review(p_changes=>'{"baselineSha256":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}')$q$,'23514',null,'wrong source hash rejected');
+select throws_ok($q$select pg_temp.photo_review(p_changes=>'{"inspectionId":"fb100000-0000-4000-8000-000000000099","inspectionSha256":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}')$q$,'23514',null,'nonexistent AI result rejected');
+select throws_ok($q$select pg_temp.photo_review(p_changes=>'{"approvedReport":true}')$q$,'23514',null,'extra review claims rejected');
+reset role;
+select throws_ok($q$update public.photo_point_review_versions set review_text=review_text$q$,'23514',null,'saved decisions are immutable even for database owner');
+select throws_ok($q$delete from public.photo_point_review_versions$q$,'23514',null,'saved decisions cannot be deleted');
+select set_config('request.jwt.claim.sub','e1000000-0000-4000-8000-000000000002',true);
+set local role authenticated;
+select is((select count(*) from public.photo_point_review_versions),2::bigint,'project viewer can read professional audit history');
+reset role;
+select set_config('request.jwt.claim.sub','e1000000-0000-4000-8000-000000000003',true);
+set local role authenticated;
+select is((select count(*) from public.photo_point_review_versions),0::bigint,'foreign tenant reads no professional decisions');
+reset role;
+update public.project_members set role='field' where project_id='e2000000-0000-4000-8000-000000000001' and user_id='e1000000-0000-4000-8000-000000000001';
+set local role service_role;
+select throws_ok($q$select pg_temp.photo_review()$q$,'42501',null,'field role cannot approve or replay professional review');
+reset role;
 select * from finish();
 rollback;
