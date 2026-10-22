@@ -12,6 +12,7 @@ import {
   type WaterPlanNatureProductId,
 } from "../water-plan-nature-source";
 import { fetchWaterPlanNatureSource } from "../water-plan-nature-source.server";
+import { parseSavedWaterPlanNatureSource } from "../water-plan-nature-saved-payload";
 import { ACTUAL_NATIVE_FEATURES } from "./water-plan-nature.fixtures";
 
 const POLYGON: GeoJSONPolygon = {
@@ -149,6 +150,22 @@ const payloadOf = (source: Awaited<ReturnType<typeof fetchWaterPlanNatureSource>
   source.payload as unknown as WaterPlanNaturePayload;
 
 describe("verified native nature and VP3G DTO", () => {
+  it.each(WATER_PLAN_NATURE_PRODUCTS)(
+    "accepts explicit null CRS only for an entirely empty $id result",
+    (product) => {
+      expect(
+        parseWaterPlanNaturePage({ ...page(product.id, 0), crs: null }, product.id, BBOX, 0),
+      ).toMatchObject({ numberMatched: 0, numberReturned: 0, candidates: [], positionCount: 0 });
+      for (const value of [
+        { ...page(product.id), crs: null },
+        { ...page(product.id, 0), crs: undefined },
+        { ...page(product.id, 0), totalFeatures: 1, crs: null },
+        { ...page(product.id, 0), numberMatched: 1, crs: null },
+        { ...page(product.id, 0), crs: { type: "name", properties: { name: "EPSG:4326" } } },
+      ])
+        expect(() => parseWaterPlanNaturePage(value, product.id, BBOX, 0)).toThrow();
+    },
+  );
   it.each(WATER_PLAN_NATURE_PRODUCTS)(
     "keeps exact safe actual $id features/native coordinates",
     (product) => {
@@ -429,6 +446,31 @@ describe("bounded source11 collection", () => {
     });
     expect(payloadOf(source).products.map((p) => p.candidates)).toEqual([[], [], []]);
     expect(payloadOf(source).legalAssessmentPerformed).toBe(false);
+  });
+  it("collects GeoServer null-CRS empty pages without claiming absence of protected nature", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      const product = WATER_PLAN_NATURE_PRODUCTS.find(
+        (p) => p.layer === url.searchParams.get("typeNames"),
+      )!;
+      return jsonResponse({ ...page(product.id, 0), crs: null });
+    });
+    const source = await fetchWaterPlanNatureSource(INPUT, { fetchImpl });
+    expect(source).toMatchObject({
+      mode: "live",
+      status: "partial",
+      error: null,
+      coverage: {
+        spatial: "unknown",
+        temporal: "unknown",
+        returnedCount: 0,
+        paginationComplete: true,
+      },
+    });
+    expect(payloadOf(source).products.map((product) => product.candidates)).toEqual([[], [], []]);
+    expect(payloadOf(source).legalAssessmentPerformed).toBe(false);
+    expect(parseSavedWaterPlanNatureSource(source)).toEqual(source.payload);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
   it("fits three51-record products within six requests and the combined200-feature ceiling", async () => {
     const fetchImpl = fixtureFetch({

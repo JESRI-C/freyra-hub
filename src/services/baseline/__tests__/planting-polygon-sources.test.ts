@@ -29,6 +29,47 @@ const page = (matched = 1) => ({
 });
 afterEach(() => vi.unstubAllEnvs());
 describe("real-source polygon adapter contract", () => {
+  it.each(["planting-markblocks", "planting-lowland", "planting-woodland"] as const)(
+    "retains an explicitly empty %s response with null CRS as a register result",
+    async (id) => {
+      vi.stubEnv("DATAFORDELER_API_KEY", "private-unit-test-key");
+      const source = await fetchPlantingPolygonSource(id, input, {
+        fetchImpl: vi.fn().mockResolvedValue(
+          Response.json({
+            type: "FeatureCollection",
+            features: [],
+            numberMatched: 0,
+            numberReturned: 0,
+            totalFeatures: 0,
+            crs: null,
+          }),
+        ),
+      });
+      expect(source).toMatchObject({
+        mode: "live",
+        status: "partial",
+        error: null,
+        coverage: { paginationComplete: true, returnedCount: 0, temporal: "unknown" },
+        payload: { geometries: [], featureIds: [] },
+      });
+      expect(source.coverage.spatial).toBe(id === "planting-woodland" ? "partial" : "complete");
+      expect(source.payloadSha256).toBe(await baselineSha256(source.payload));
+    },
+  );
+  it.each([
+    { ...page(), crs: null },
+    { ...page(1), features: [], numberReturned: 0, totalFeatures: 1, crs: null },
+    { ...page(0), features: [], numberReturned: 0, crs: null },
+    { ...page(0), features: [], numberReturned: 0, totalFeatures: 1, crs: null },
+    { ...page(0), features: [], numberReturned: 0, totalFeatures: 0, crs: undefined },
+  ])("rejects ambiguous empty counts or missing CRS for coordinates %#", async (raw) => {
+    const source = await fetchPlantingPolygonSource("planting-lowland", input, {
+      fetchImpl: vi.fn().mockResolvedValue(Response.json(raw)),
+    });
+    expect(source.mode).toBe("error");
+    expect(source.payload).toBeNull();
+    expect(source.coverage.returnedCount).toBeNull();
+  });
   it.each(["planting-markblocks", "planting-lowland"] as const)(
     "saves validated %s polygons and actual scope without calculations",
     async (id) => {

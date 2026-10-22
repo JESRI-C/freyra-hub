@@ -56,26 +56,40 @@ const Geometry = z.union([
     coordinates: z.array(PolygonCoordinates).min(1).max(200),
   }),
 ]);
-const Page = z.object({
-  type: z.literal("FeatureCollection"),
-  features: z
-    .array(
-      z.object({
-        type: z.literal("Feature"),
-        id: z.union([z.string(), z.number()]),
-        geometry: Geometry,
-      }),
-    )
-    .max(200),
-  numberMatched: z.number().int().nonnegative(),
-  numberReturned: z.number().int().nonnegative().optional(),
-  crs: z.object({
-    type: z.literal("name"),
-    properties: z.object({
-      name: z.enum(["urn:ogc:def:crs:CRS::84", "urn:ogc:def:crs:OGC:1.3:CRS84"]),
-    }),
-  }),
-});
+const Page = z
+  .object({
+    type: z.literal("FeatureCollection"),
+    features: z
+      .array(
+        z.object({
+          type: z.literal("Feature"),
+          id: z.union([z.string(), z.number()]),
+          geometry: Geometry,
+        }),
+      )
+      .max(200),
+    numberMatched: z.number().int().nonnegative(),
+    numberReturned: z.number().int().nonnegative().optional(),
+    totalFeatures: z.number().int().nonnegative().optional(),
+    crs: z
+      .object({
+        type: z.literal("name"),
+        properties: z.object({
+          name: z.enum(["urn:ogc:def:crs:CRS::84", "urn:ogc:def:crs:OGC:1.3:CRS84"]),
+        }),
+      })
+      .nullable(),
+  })
+  .refine(
+    // GeoServer returns crs:null for a verified empty result. No coordinates need interpreting.
+    // Missing/unknown CRS with any feature or conflicting count must still fail closed.
+    (page) =>
+      page.crs !== null ||
+      (page.features.length === 0 &&
+        page.numberMatched === 0 &&
+        page.numberReturned === 0 &&
+        page.totalFeatures === 0),
+  );
 
 export async function fetchPlantingPolygonSource(
   id: PlantingPolygonSourceId,
