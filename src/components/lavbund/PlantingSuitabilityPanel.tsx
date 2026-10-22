@@ -143,8 +143,16 @@ export function PlantingSuitabilityPanel({
                 <li key={warning}>{warning}</li>
               ))}
             </ul>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
+            <p className="text-xs text-muted-foreground sm:hidden">
+              Rul tabellen vandret for at se alle arealklasser og deres grundlag.
+            </p>
+            <div
+              className="overflow-x-auto rounded focus-visible:outline-2 focus-visible:outline-primary"
+              role="region"
+              aria-label="Arealer pr. delstrækning – tabellen kan rulles vandret"
+              tabIndex={0}
+            >
+              <table className="min-w-[36rem] w-full text-sm border-collapse [&_th]:px-3 [&_td]:px-3 [&_th]:align-top [&_td]:align-top">
                 <caption className="text-left font-medium mb-2">
                   Delstrækninger A–E · {bufferM} m · areal i ha
                 </caption>
