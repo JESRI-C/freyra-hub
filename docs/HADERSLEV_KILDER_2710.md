@@ -6,6 +6,8 @@ Kodegrundlag kontrolleret 22. oktober 2026. Kilder hentes først efter projektad
 
 Hver adapter har en tidsgrænse og størrelsesgrænse; en ekstra grænse på 25 sekunder forhindrer, at én kilde standser de øvrige. Kildestatus vises som **hentet**, **delvist** eller **ikke tilgængelig** med konkret begrænsning og hentedato.
 
+Hele dataversionen skal også holde sig under databasens grænse på 2 MiB, inklusive det indlejrede ortofoto og JSON-formatets lagerplads. Hvis summen bliver for stor, udelades de største supplerende kildeindhold enkeltvis med tydelig fejlstatus og ukendt dækning. De øvrige kilder og den officielle vandløbsreference bevares. Dette omskriver aldrig tidligere gemte versioner.
+
 Validerede offentlige svar for samme projekt, geometri og datoperiode genbruges i op til 15 minutter. Den seneste autoriserede gemte kildeversion kan fylde cachen efter en Worker-genstart. Ved midlertidig fejl kan et svar højst 24 timer gammelt bruges som **Gemt kilde** med delvis status og oprindelig hentedato. Adgangsfejl og ugyldige svar skjules ikke med en gammel grøn status. Cachen er begrænset til 24 poster / 4 MiB pr. Worker; den permanente dokumentation er de gemte snapshots. Fejlede hentninger bliver aldrig til nulværdier.
 
 ## Kilder og præcise begrænsninger

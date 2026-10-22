@@ -6,6 +6,8 @@ import {
   PublicSourceCache,
   publicSourceCacheKey,
 } from "../public-source-cache.server";
+import { monitoringSource } from "./public-monitoring-stations-saved.fixtures";
+import { parseSavedPublicMonitoringStationsSource } from "../public-monitoring-stations-saved-payload";
 
 async function fixture() {
   const initial = (await makeManifest()).sources.find((s) => s.id === "sentinel-2-scenes")!;
@@ -59,10 +61,26 @@ describe("bounded public-source cache", () => {
       payload: result.payload,
       fetchedAt: COLLECTED_AT,
       retrieval: { mode: "saved_fallback" },
-      error: { code: "SAVED_SOURCE_FALLBACK" },
+      error: null,
     });
     expect(result).toEqual(original);
     expect(JSON.stringify(saved)).not.toContain("private token");
+  });
+  it("keeps a valid fallback readable by strict frozen-source consumers", async () => {
+    const original = monitoringSource(2);
+    original.payloadSha256 = await baselineSha256(original.payload);
+    const cache = new PublicSourceCache();
+    await cache.put(publicSourceCacheKey(PROJECT_ID, original), original);
+    const fallback = await collectCachedPublicSource(
+      PROJECT_ID,
+      original,
+      () => Promise.reject(new Error("outage")),
+      { cache, nowMs: () => Date.parse(original.fetchedAt) + 60 * 60_000 },
+    );
+    expect(fallback.retrieval?.mode).toBe("saved_fallback");
+    expect(parseSavedPublicMonitoringStationsSource(fallback)).not.toBeNull();
+    expect(fallback.status).toBe("partial");
+    expect(fallback.quality.warnings.join(" ")).toContain("oprindelige hentedato");
   });
   it("bounds a collector that ignores abort signals and never converts it to zero", async () => {
     const { initial } = await fixture();

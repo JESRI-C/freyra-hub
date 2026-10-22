@@ -2,6 +2,7 @@ import type { PublicBaselineManifest, PublicBaselineSource } from "./public-base
 import { validatePublicBaselineManifest } from "./public-baseline-service";
 import { fetchDmiHistoricalSource } from "./dmi-historical-source";
 import { fetchSentinelSceneSource } from "./sentinel-scene-source";
+import { fitCollectedBaselineBudget } from "./public-baseline-budget";
 import {
   collectCachedPublicSource,
   publicSourceCache,
@@ -148,8 +149,10 @@ export async function collectPublicBaselineSources(
       });
     }
   }
-  return validatePublicBaselineManifest({
-    ...manifest,
-    sources: manifest.sources.map((source) => replacements.get(source.id) ?? source),
-  });
+  return validatePublicBaselineManifest(
+    fitCollectedBaselineBudget({
+      ...manifest,
+      sources: manifest.sources.map((source) => replacements.get(source.id) ?? source),
+    }),
+  );
 }

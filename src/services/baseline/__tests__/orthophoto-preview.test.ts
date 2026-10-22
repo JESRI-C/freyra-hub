@@ -23,13 +23,11 @@ describe("frozen credential-free ortho preview", () => {
   });
   it("freezes returned image bytes with hashes and retains unknown capture date", async () => {
     vi.stubEnv("DATAFORDELER_API_KEY", "private-test-key");
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(new Uint8Array([255, 216, 1, 2, 255, 217]), {
-          headers: { "Content-Type": "image/jpeg" },
-        }),
-      );
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(new Uint8Array([255, 216, 1, 2, 255, 217]), {
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
     const result = await fetchOrthophotoPreviewSource(input, { fetchImpl });
     expect(result).toMatchObject({
       mode: "live",

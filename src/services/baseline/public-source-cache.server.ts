@@ -78,9 +78,9 @@ export async function collectCachedPublicSource(
           : "Et valideret kildesvar fra de seneste 15 minutter genbruges. Hentedatoen er uændret.",
       ],
     },
-    error: stale
-      ? { code: "SAVED_SOURCE_FALLBACK", message: "Gemt kilde · aktuel hentning ikke tilgængelig." }
-      : cached!.error,
+    // The stored payload is still valid. Its stale retrieval is recorded above,
+    // not as a payload error that would make strict replay readers discard it.
+    error: cached!.error,
   });
   if (cached && nowMs() - Date.parse(cached.fetchedAt) <= FRESH_MS) return reuse(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
