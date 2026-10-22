@@ -19,7 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/select")({
-  head: () => ({ meta: [{ title: "Vælg arbejdsplads — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Vælg arbejdsplads — Freyra" }] }),
   component: SelectPage,
 });
 
@@ -53,7 +53,7 @@ function SelectPage() {
               <Leaf className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-semibold">GoFreyra</div>
+              <div className="font-semibold">Freyra</div>
               <div className="text-xs text-muted-foreground">Vælg organisation og projekt</div>
             </div>
           </div>
@@ -95,7 +95,7 @@ function SelectPage() {
             <div className="flex-1">
               <h3 className="font-medium">Hvordan vi arbejder med organisationer</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                En organisation er dit arbejdsrum i GoFreyra — fx en kommune, et rådgiverhus, en NGO
+                En organisation er dit arbejdsrum i Freyra — fx en kommune, et rådgiverhus, en NGO
                 eller en bygherre. Al data, projekter, konnektorer og rapporter hører til én
                 organisation, så det er tydeligt hvem der ejer hvad, og hvem der må se hvad.
               </p>
@@ -340,7 +340,7 @@ function CreateOrganizationDialog({
             maxLength={100}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Fx Skallebæk Kommune"
+            placeholder="Arbejdspladsens navn"
             className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
             autoFocus
           />

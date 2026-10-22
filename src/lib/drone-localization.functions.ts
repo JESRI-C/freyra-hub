@@ -37,6 +37,7 @@ export const DroneLocalizationInputSchema = z
       .max(200)
       .refine((ids) => new Set(ids).size === ids.length, "Vælg hvert billede én gang."),
     expectedCallerUserId: Uuid,
+    selection: z.literal("all_photos").optional(),
   })
   .strict();
 export type DroneLocalizationInput = z.infer<typeof DroneLocalizationInputSchema>;
@@ -160,20 +161,31 @@ export async function executeLocalizeDroneOriginals(
     actorId,
     originals.map((original) => original.photo),
   );
-  for (let i = 0; i < result.clusters.length; i++) {
-    const cluster = result.clusters[i];
+  // A whole-series search requires an explicit selection and uses one bounded
+  // query over coordinates reloaded from the validated originals on the server.
+  const searchTargets =
+    input.selection === "all_photos"
+      ? result.combinedCluster
+        ? [result.combinedCluster]
+        : []
+      : result.clusters;
+  for (let i = 0; i < searchTargets.length; i++) {
+    const cluster = searchTargets[i];
     if (cluster.searchStatus !== "pending") continue;
     await authorize();
+    let ranked;
     try {
-      result.clusters[i] = rankDroneLocalizationCandidates(
+      ranked = rankDroneLocalizationCandidates(
         cluster,
         result.photos,
         await deps.findWatercourses(cluster.searchBounds),
       );
     } catch {
       // No upstream exception text: it can include credential-bearing URLs.
-      result.clusters[i] = { ...cluster, searchStatus: "unavailable" };
+      ranked = { ...cluster, searchStatus: "unavailable" as const };
     }
+    if (input.selection === "all_photos") result.combinedCluster = ranked;
+    else result.clusters[i] = ranked;
   }
   // Revocation, replacement and validation changes during source queries discard the proposal.
   await authorize();

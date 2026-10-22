@@ -4,7 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { FileDown, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui-bits";
 import { useAuth } from "@/lib/auth";
-import { getSurveyRoundAccess, listSurveyRounds } from "@/lib/survey-round.functions";
+import {
+  getSurveyRound,
+  getSurveyRoundAccess,
+  listSurveyRounds,
+} from "@/lib/survey-round.functions";
 import {
   getMunicipalReport,
   listMunicipalReports,
@@ -13,6 +17,11 @@ import {
 import { getCanonicalDroneMediaUrl } from "@/lib/canonical-drone-media.functions";
 import type { MunicipalReportVersion } from "@/services/monitoring/municipal-report-persistence";
 import type { MunicipalReportPdfImage } from "@/lib/municipal-report-pdf";
+import {
+  municipalReportSummaryText,
+  municipalReportSourceText,
+  municipalSourceTitle,
+} from "@/lib/municipal-report-labels";
 
 const buttonClass =
   "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm disabled:opacity-50";
@@ -79,18 +88,41 @@ async function jpegIllustration(signedUrl: string, sha256: string): Promise<stri
     image.close();
   }
 }
-export function MunicipalReportPanel({ projectId }: { projectId: string }) {
+interface MunicipalReportPanelProps {
+  projectId: string;
+  selectedRoundId?: string;
+  onSelectRound?: (roundId: string) => void;
+}
+export function MunicipalReportPanel({
+  projectId,
+  selectedRoundId,
+  onSelectRound,
+}: MunicipalReportPanelProps) {
   const { user } = useAuth();
   return user ? (
-    <ReportPanel key={`${user.id}:${projectId}`} projectId={projectId} actorId={user.id} />
+    <ReportPanel
+      key={`${user.id}:${projectId}:${selectedRoundId ?? "latest"}`}
+      projectId={projectId}
+      actorId={user.id}
+      selectedRoundId={selectedRoundId}
+      onSelectRound={onSelectRound}
+    />
   ) : null;
 }
-function ReportPanel({ projectId, actorId }: { projectId: string; actorId: string }) {
-  const [selectedRound, setSelectedRound] = useState(""),
+function ReportPanel({
+  projectId,
+  actorId,
+  selectedRoundId,
+  onSelectRound,
+}: MunicipalReportPanelProps & { actorId: string }) {
+  const [selectedRound, setSelectedRound] = useState(selectedRoundId ?? ""),
     [selectedReport, setSelectedReport] = useState(""),
     [progress, setProgress] = useState<string | null>(null),
     [error, setError] = useState<string | null>(null);
   const [withImages, setWithImages] = useState(true);
+  const [packageChecksum, setPackageChecksum] = useState<{ name: string; sha256: string } | null>(
+    null,
+  );
   const alive = useRef(true),
     request = useRef<string | null>(null),
     downloadLock = useRef(false),
@@ -102,6 +134,7 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
     };
   }, []);
   const roundsFn = useServerFn(listSurveyRounds),
+    roundFn = useServerFn(getSurveyRound),
     accessFn = useServerFn(getSurveyRoundAccess),
     listFn = useServerFn(listMunicipalReports),
     getFn = useServerFn(getMunicipalReport),
@@ -120,7 +153,24 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
     queryFn: () => accessFn({ data: { projectId } }),
     retry: false,
   });
-  const roundItems = rounds.error ? [] : (rounds.data?.pages.flatMap((p) => p.items) ?? []),
+  const selected = useQuery({
+    queryKey: ["municipal-report-selected-round", actorId, projectId, selectedRound],
+    queryFn: async () => {
+      const value = await roundFn({ data: { projectId, roundVersionId: selectedRound } });
+      if (!value || value.id !== selectedRound || value.projectId !== projectId)
+        throw new Error("Den valgte undersøgelse kunne ikke åbnes.");
+      return value;
+    },
+    enabled: !!selectedRound,
+    retry: false,
+  });
+  const listedRounds = rounds.error ? [] : (rounds.data?.pages.flatMap((p) => p.items) ?? []);
+  const selectedRecord = selected.error ? undefined : selected.data;
+  // An explicit investigation can be older than the first page. Load it by ID, never substitute latest.
+  const roundItems =
+      selectedRecord && !listedRounds.some((item) => item.id === selectedRecord.id)
+        ? [selectedRecord, ...listedRounds]
+        : listedRounds,
     roundId = selectedRound || roundItems[0]?.id || "";
   const reports = useInfiniteQuery({
     queryKey: ["municipal-reports", actorId, projectId, roundId],
@@ -139,12 +189,26 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
     enabled: !!reportId,
     retry: false,
   });
+  const inputError = !!(
+    rounds.error ||
+    access.error ||
+    selected.error ||
+    reports.error ||
+    report.error
+  );
+  const canCreate =
+    !!roundId &&
+    !inputError &&
+    !access.isFetching &&
+    (!selectedRound || (!!selected.data && !selected.isFetching)) &&
+    access.data?.projectId === projectId &&
+    access.data.userId === actorId &&
+    access.data.canPersist;
   const requestKey = `gofreyra.municipal-report-request/v1:${actorId}:${projectId}:${roundId}`;
   const mutation = useMutation({
     mutationFn: async () => {
       setError(null);
-      if (!roundId || !access.data?.canPersist || access.data.userId !== actorId)
-        throw new Error("Vælg en gemt undersøgelse med skriverettighed.");
+      if (!canCreate) throw new Error("Vælg en gemt undersøgelse med skriverettighed.");
       let stored: string | null = null;
       try {
         stored = sessionStorage.getItem(requestKey);
@@ -184,23 +248,21 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
         queryKey: ["municipal-reports", actorId, projectId, receipt.roundId],
       });
     },
-    onError: (err) => {
+    onError: () => {
       if (alive.current)
-        setError(
-          err instanceof Error ? err.message : "Rapporten blev ikke gemt. Prøv samme gemning igen.",
-        );
+        setError("Rapporten blev ikke gemt. Kontrollér adgangen og prøv samme gemning igen.");
     },
     retry: false,
   });
-  async function download(packageFile: boolean) {
-    if (!reportId || downloadLock.current) return;
+  async function download(packageFile: boolean, savedId = reportId) {
+    if (!savedId || downloadLock.current || inputError) return;
     downloadLock.current = true;
     setError(null);
     setProgress("Kontrollerer den gemte rapportversion …");
     try {
-      const current = await getFn({ data: { projectId, reportVersionId: reportId } });
+      const current = await getFn({ data: { projectId, reportVersionId: savedId } });
       if (!alive.current) return;
-      if (!current || current.projectId !== projectId)
+      if (!current || current.projectId !== projectId || current.manifest.pins.round.id !== roundId)
         throw new Error("Rapportversionen kunne ikke genåbnes.");
       const images: MunicipalReportPdfImage[] = [];
       if (withImages)
@@ -229,17 +291,50 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
       if (packageFile) {
         const { buildMunicipalReportPackage } = await import("@/lib/municipal-report-package");
         const bytes = await buildMunicipalReportPackage(current, pdf);
-        if (alive.current) saveFile(bytes, stem + ".zip", "application/zip");
+        const sha256 = [
+          ...new Uint8Array(await crypto.subtle.digest("SHA-256", new Uint8Array(bytes).buffer)),
+        ]
+          .map((value) => value.toString(16).padStart(2, "0"))
+          .join("");
+        if (alive.current) {
+          setPackageChecksum({ name: stem + ".zip", sha256 });
+          saveFile(bytes, stem + ".zip", "application/zip");
+        }
       } else saveFile(pdf, stem + ".pdf", "application/pdf");
-    } catch (err) {
+    } catch {
       if (alive.current)
-        setError(err instanceof Error ? err.message : "Rapporten kunne ikke hentes.");
+        setError(
+          "Rapportpakken kunne ikke dannes. Den gemte version er bevaret. Prøv at hente den igen.",
+        );
     } finally {
       downloadLock.current = false;
       if (alive.current) setProgress(null);
     }
   }
-  const current = report.error ? null : report.data;
+  async function createAndDownload() {
+    if (mutation.isPending || downloadLock.current) return;
+    try {
+      const { saved } = await mutation.mutateAsync();
+      if (alive.current) await download(true, saved.id);
+    } catch {
+      /* Mutation shows a safe, recoverable message. */
+    }
+  }
+  const current =
+    !inputError &&
+    access.data?.userId === actorId &&
+    access.data.projectId === projectId &&
+    report.data?.projectId === projectId &&
+    report.data.manifest.pins.round.id === roundId
+      ? report.data
+      : null;
+  function refreshInputs() {
+    void rounds.refetch();
+    void access.refetch();
+    if (selectedRound) void selected.refetch();
+    if (roundId) void reports.refetch();
+    if (reportId) void report.refetch();
+  }
   return (
     <Card className="space-y-4 p-5">
       <div>
@@ -249,17 +344,24 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
           version ændres ikke, når nye billeder eller svar kommer til.
         </p>
       </div>
-      {(rounds.error || access.error || reports.error || report.error) && (
+      {inputError && (
         <p role="alert" className="text-sm text-destructive">
           Rapportens input kunne ikke hentes med din aktuelle adgang. Genindlæs oversigten, før du
           fortsætter.
         </p>
       )}
-      {rounds.isLoading ? (
+      <button
+        className={buttonClass}
+        disabled={mutation.isPending || !!progress}
+        onClick={refreshInputs}
+      >
+        Opdatér oversigt
+      </button>
+      {inputError ? null : rounds.isLoading ? (
         <p>Henter undersøgelser …</p>
       ) : !rounds.error && !roundItems.length ? (
         <p className="text-sm text-muted-foreground">
-          Start under Undersøgelse med dronebillederne og bekræft sted/dato. Rapporten kan derefter
+          Start med Billeder og droneoriginalerne og bekræft sted/dato. Rapporten kan derefter
           samles her.
         </p>
       ) : (
@@ -276,6 +378,8 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
                 setSelectedReport("");
                 request.current = null;
                 setError(null);
+                setPackageChecksum(null);
+                onSelectRound?.(e.target.value);
               }}
             >
               {roundItems.map((r) => (
@@ -296,29 +400,12 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
           )}
           <div className="flex flex-wrap gap-2">
             <button
-              className={buttonClass}
-              disabled={
-                !access.data?.canPersist ||
-                access.data.userId !== actorId ||
-                mutation.isPending ||
-                !!progress ||
-                !!rounds.error
-              }
-              onClick={() => mutation.mutate()}
+              className={buttonClass + " bg-primary text-primary-foreground"}
+              disabled={!canCreate || mutation.isPending || !!progress}
+              onClick={() => void createAndDownload()}
             >
-              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Gem ny
-              rapportversion
-            </button>
-            <button
-              className={buttonClass}
-              disabled={mutation.isPending || !!progress}
-              onClick={() => {
-                void rounds.refetch();
-                void reports.refetch();
-                void access.refetch();
-              }}
-            >
-              Opdatér oversigt
+              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Dan rapport og
+              hent afleveringspakke
             </button>
           </div>
           {access.data && !access.data.canPersist && (
@@ -366,6 +453,26 @@ function ReportPanel({ projectId, actorId }: { projectId: string; actorId: strin
           {progress}
         </p>
       )}
+      {!inputError && packageChecksum && (
+        <div className="rounded-lg border p-3 text-xs">
+          <p className="break-all">
+            ZIP SHA-256 · {packageChecksum.name}: {packageChecksum.sha256}
+          </p>
+          <button
+            type="button"
+            className="mt-2 underline"
+            onClick={() =>
+              saveFile(
+                new TextEncoder().encode(`${packageChecksum.sha256}  ${packageChecksum.name}\n`),
+                packageChecksum.name + ".sha256",
+                "text/plain",
+              )
+            }
+          >
+            Hent pakkens kontrolsum
+          </button>
+        </div>
+      )}
       {current && (
         <SavedReport
           report={current}
@@ -397,7 +504,7 @@ function SavedReport({
       <p className="font-medium">Rapportversion {report.version} · Afventer faglig gennemgang</p>
       <ul className="list-disc space-y-1 pl-5 text-sm">
         {m.executiveSummary.map((text) => (
-          <li key={text}>{text}</li>
+          <li key={text}>{municipalReportSummaryText(m, text)}</li>
         ))}
       </ul>
       <p className="text-sm">
@@ -410,19 +517,20 @@ function SavedReport({
           {m.sources.map((s) => (
             <div key={s.id} className="rounded border p-3 text-sm">
               <p className="font-medium">
-                {s.dataset} · {statusLabels[s.status] ?? s.status}
+                {municipalSourceTitle(s)} · {statusLabels[s.status] ?? s.status}
               </p>
               <p className="text-xs text-muted-foreground">
-                Hentet {s.fetchedAt} · periode {s.requestedFrom} til {s.requestedTo}
+                {s.mode === "error" ? "Forsøgt" : "Hentet"} {s.fetchedAt} · periode{" "}
+                {s.requestedFrom} til {s.requestedTo}
               </p>
               {s.facts.map((f) => (
                 <p className="mt-1" key={f}>
-                  {f}
+                  {municipalReportSourceText(m, f)}
                 </p>
               ))}
               {s.limitations.map((f) => (
                 <p className="mt-1 text-xs text-muted-foreground" key={f}>
-                  {f}
+                  {municipalReportSourceText(m, f)}
                 </p>
               ))}
             </div>
@@ -436,9 +544,9 @@ function SavedReport({
         <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm">
           {m.prioritizedFollowup.map((f) => (
             <li key={f.id}>
-              <strong>{f.title}</strong>
-              <p>{f.rationale}</p>
-              <p>{f.action}</p>
+              <strong>{municipalReportSourceText(m, f.title)}</strong>
+              <p>{municipalReportSourceText(m, f.rationale)}</p>
+              <p>{municipalReportSourceText(m, f.action)}</p>
             </li>
           ))}
         </ol>
@@ -450,7 +558,8 @@ function SavedReport({
         <ul className="mt-2 list-disc space-y-2 pl-5 text-sm">
           {m.deliveryGaps.map((g) => (
             <li key={g.code}>
-              <strong>{g.title}</strong> · {g.detail}
+              <strong>{municipalReportSourceText(m, g.title)}</strong> ·{" "}
+              {municipalReportSourceText(m, g.detail)}
             </li>
           ))}
         </ul>

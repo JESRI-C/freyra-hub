@@ -66,8 +66,15 @@ beforeEach(() => {
 });
 
 describe("public baseline review panel", () => {
-  it("requires an actual area before fetching and shows an empty case as empty", () => {
+  it("shows saved versions without mutation controls for a reader", async () => {
+    state.snapshot = await makeSnapshot();
     const html = renderToStaticMarkup(<PublicBaselinePanel project={project} />);
+    expect(html).toContain("Du har læseadgang");
+    expect(html).not.toContain("Hent og gem ny version");
+    expect(html).not.toContain("Afgræns område og vælg vandløbsreference");
+  });
+  it("requires an actual area before fetching and shows an empty case as empty", () => {
+    const html = renderToStaticMarkup(<PublicBaselinePanel project={project} canPersist />);
     expect(html).toContain("Afgræns først projektområdet");
     expect(html).toMatch(/<button[^>]*disabled/);
     expect(html).toContain("endnu intet gemt datagrundlag");
@@ -87,7 +94,8 @@ describe("public baseline review panel", () => {
     state.savedError = new Error("Adgang til denne version er tilbagekaldt");
     const html = renderToStaticMarkup(<PublicBaselinePanel project={project} />);
     expect(html).toContain('role="alert"');
-    expect(html).toContain("Adgang til denne version er tilbagekaldt");
+    expect(html).toContain("Kontrollér adgangen til sagen");
+    expect(html).not.toContain("Adgang til denne version er tilbagekaldt");
     expect(html).not.toContain("Danske Stednavne");
   });
 });

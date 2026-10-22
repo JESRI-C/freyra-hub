@@ -133,6 +133,16 @@ function render(data: PublicBaselineSource) {
 }
 
 describe("saved DMI source values", () => {
+  it("highlights one saved final-day observation with its actual interval, and keeps an absent day unknown", () => {
+    const data = source("dmi-historical", dmiPayload(), 2);
+    data.query.requestedTo = "2026-08-24";
+    const html = render(data);
+    expect(html).toContain("Nedbør for 2026-08-24");
+    expect(html).toContain("DMI&#x27;s manuelle kvalitetskontrol er registreret.");
+    expect(html).toContain("Temperatur og vind er ikke tilsluttet.");
+    data.query.requestedTo = "2026-08-27";
+    expect(render(data)).toContain("Nedbør på denne dato er ukendt.");
+  });
   it("shows real station, UTC intervals, precipitation, QC and only the supported sum", () => {
     const html = render(source("dmi-historical", dmiPayload(), 2));
     expect(html).toContain("Vojens Airport");
@@ -274,6 +284,40 @@ describe("saved DMI source values", () => {
 });
 
 describe("saved Sentinel scene candidates", () => {
+  it("renders frozen pixels without a provider request, and only legacy versions use labelled remote images", () => {
+    const href =
+      "https://datahub.creodias.eu/odata/v1/Assets(00000000-0000-4000-8000-000000000001)/$value";
+    const candidate = {
+      ...(scene("saved-scene", 0) as Record<string, BaselineJson>),
+      thumbnail: { href, mediaType: "image/jpeg" },
+    };
+    const payload = sentinelPayload([candidate]) as Record<string, BaselineJson>;
+    const frozen = {
+      sceneId: "saved-scene",
+      mediaType: "image/jpeg",
+      dataUrl: "data:image/jpeg;base64,/9gBAv/Z",
+      imageSha256: "a".repeat(64),
+      imageFetchedAt: "2026-10-22T12:00:00Z",
+    };
+    const html = render(source("sentinel-2-scenes", { ...payload, frozenPreview: frozen }, 1));
+    expect(html).toContain('src="data:image/jpeg;base64,/9gBAv/Z"');
+    expect(html).not.toContain(href);
+    expect(html).toContain("Billedpixels gemt");
+    const legacy = render(source("sentinel-2-scenes", payload, 1));
+    expect(legacy).toContain(href);
+    expect(legacy).toContain("Ældre dataversion");
+    const unavailable = render(source("sentinel-2-scenes", { ...payload, frozenPreview: null }, 1));
+    expect(unavailable).not.toContain(href);
+    expect(unavailable).toContain("billedpixels kunne ikke gemmes");
+    const mismatch = render(
+      source(
+        "sentinel-2-scenes",
+        { ...payload, frozenPreview: { ...frozen, sceneId: "different-scene" } },
+        1,
+      ),
+    );
+    expect(mismatch).not.toContain("<img");
+  });
   it("shows scene ID, actual datetime, zero/unknown global clouds and pending local QA separately", () => {
     const html = render(
       source(

@@ -41,6 +41,7 @@ function dependencies(canPersist = true) {
     loadReference,
     fetchReference,
     collectSources,
+    primeSourceCache: vi.fn().mockResolvedValue(undefined),
     loadRequest,
     loadSnapshot,
     listSnapshots,
@@ -60,6 +61,9 @@ describe("public baseline caller-bound authorization", () => {
     expect(calls.authorizeProject.mock.invocationCallOrder[0]).toBeLessThan(
       calls.fetchReference.mock.invocationCallOrder[0],
     );
+    expect(calls.authorizeProject.mock.invocationCallOrder[0]).toBeLessThan(
+      calls.primeSourceCache.mock.invocationCallOrder[0],
+    );
     expect(calls.fetchReference.mock.invocationCallOrder[0]).toBeLessThan(
       calls.getWriter.mock.invocationCallOrder[0],
     );
@@ -73,6 +77,7 @@ describe("public baseline caller-bound authorization", () => {
       executeCreateProjectBaseline(INPUT, ACTOR_ID, CLIENT, calls),
     ).rejects.toBeInstanceOf(ProjectAccessDeniedError);
     expect(calls.loadRequest).not.toHaveBeenCalled();
+    expect(calls.primeSourceCache).not.toHaveBeenCalled();
     expect(calls.loadReference).not.toHaveBeenCalled();
     expect(calls.fetchReference).not.toHaveBeenCalled();
     expect(calls.getWriter).not.toHaveBeenCalled();

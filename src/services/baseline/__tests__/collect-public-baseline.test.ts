@@ -17,9 +17,17 @@ const defaults = vi.hoisted(() => ({
   raster: vi.fn(),
   nature: vi.fn(),
   monitoring: vi.fn(),
+  ortho: vi.fn(),
+  polygons: vi.fn(),
+  cadastral: vi.fn(),
+  soil: vi.fn(),
 }));
 vi.mock("../dmi-historical-source", () => ({ fetchDmiHistoricalSource: defaults.dmi }));
-vi.mock("../sentinel-scene-source", () => ({ fetchSentinelSceneSource: defaults.sentinel }));
+vi.mock("../sentinel-preview.server", () => ({
+  fetchFrozenSentinelSceneSource: defaults.sentinel,
+}));
+vi.mock("../cadastral-source.server", () => ({ fetchCadastralSource: defaults.cadastral }));
+vi.mock("../soil-type-source.server", () => ({ fetchSoilTypeSource: defaults.soil }));
 vi.mock("../datafordeler-raster-inventory.server", () => ({
   fetchDatafordelerRasterInventorySource: defaults.raster,
 }));
@@ -29,6 +37,10 @@ vi.mock("../water-plan-nature-source.server", () => ({
 
 vi.mock("../public-monitoring-stations-source.server", () => ({
   fetchPublicMonitoringStationsSource: defaults.monitoring,
+}));
+vi.mock("../orthophoto-preview.server", () => ({ fetchOrthophotoPreviewSource: defaults.ortho }));
+vi.mock("../planting-polygon-sources.server", () => ({
+  fetchPlantingPolygonSource: defaults.polygons,
 }));
 
 async function source(id: string): Promise<PublicBaselineSource> {
@@ -56,10 +68,19 @@ describe("authorized public baseline collection", () => {
     defaults.nature.mockResolvedValue(nature);
     const monitoring = await source("public-monitoring-stations");
     defaults.monitoring.mockResolvedValue(monitoring);
+    defaults.ortho.mockResolvedValue(await source("orthophoto-preview"));
+    defaults.polygons.mockImplementation((id: string) => source(id));
+    defaults.cadastral.mockResolvedValue(await source("cadastral-parcels"));
+    defaults.soil.mockResolvedValue(await source("soil-type"));
     expect(defaults.raster).not.toHaveBeenCalled();
     expect(defaults.nature).not.toHaveBeenCalled();
     const collected = await collectPublicBaselineSources(manifest);
     expect(defaults.raster).toHaveBeenCalledTimes(1);
+    expect(defaults.cadastral).toHaveBeenCalledTimes(1);
+    expect(defaults.soil).toHaveBeenCalledTimes(1);
+    expect(collected.sources.find((s) => s.id === "cadastral-parcels")).toEqual(
+      await source("cadastral-parcels"),
+    );
     expect(defaults.raster).toHaveBeenCalledWith({
       polygon: manifest.project.polygon,
       dateFrom: manifest.period.from,

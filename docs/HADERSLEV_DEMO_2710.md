@@ -1,0 +1,64 @@
+# Freyra til Haderslev Kommune — 27. oktober 2026
+
+Dette er afleveringen af Freyra med Bykær Bæk som rigtig sag. Mødet varer cirka 15 minutter. Kommunen skal kunne logge ind og genåbne sin dokumentation bagefter. En teknisk test eller en åben skitse er ikke en faglig godkendelse.
+
+## Før mødet
+
+Åbn [staging](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev) med den aftalte driftsversion og `VITE_DEMO_MODE=true`. Vælg **Bykær Bæk – Haderslev**. Brug ikke en sag med `TEKNISK E2E` eller `SYNTHETISK` i navnet.
+
+[Direkte link til den kontrollerede undersøgelse](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/7f187dba-0bc2-5342-a049-d9974d100d69?step=rapport&round=43600233-a99b-48e6-8a3e-05f6d727d759). Rapportversion 2 fra 22.10 er en teknisk kontrolleret kladde. Testarbejdspladsens navn og læsetestkonto er ikke kommunens rigtige identitet; prøv de aftalte kommunekonti før aflevering.
+
+Kontrollér de seks originaler fra 24.08.2026 (DJI FC3411): P02/DJI_0040, P06/DJI_0060, P11/DJI_0103, P14/DJI_0123, P17/DJI_0135 og P20/DJI_0149. Originalerne er evidens; nedskalerede PDF-illustrationer er kun til læsning. Brug `seed:haderslev` efter README. Genoptag via **Kontrollér og åbn de gemte originaler**. Bekræft den officielle vandløbsreference og lokal optagedato. Kameraets GPS er ikke et dokumenteret billedfootprint.
+
+Hav den seneste gennemgåede PDF/ZIP og tilhørende SHA-256 lokalt. Test dem uden netværk. Gemte versioner i Freyra kræver fortsat adgang til appen; den lokale pakke er plan B uden netværk. Hav kommunens læselogin klar i en separat browserprofil. Adgangskoder må ikke ligge i denne fil, Git, præsentationen eller PR'en.
+
+Nye rapporter bruger generator v3 med dansk præsentation af gemte AI-kategorier og uændret originalt evidensgrundlag. Sagens rapportnummer tælles separat. Historiske v1/v2-rapporter genåbnes uændret, også hvor en ældre kladde har engelsk AI-prosa. Kontrollér en ny pakke fra den valgte release; de daterede prøver i [kontrolnotatet](HADERSLEV_KONTROL_2026-10-22.md) er ikke en godkendelse af kommende releases.
+
+## Klik for klik — cirka 15 minutter
+
+Ved første klargøring vælges **Datagrundlag → Billedgruppe → Alle seriens fotopunkter — 6 fotos**. De seks GPS-positioner fordeler sig på to grupper. Vælg den officielle **Bykær Bæk** og kræv **6 af seriens 6 fotos**, før området bekræftes. Det samlede GPS-søgeområde er ikke en fagligt godkendt strækningsgrænse. Genåbn den gemte undersøgelse ved senere gennemgang.
+
+| Tid | Klik og forklaring | Plan B |
+|---|---|---|
+| 0:00–1:00 | Log ind → Sager → **Bykær Bæk – Haderslev**. Vis de fem trin og forklar, at samme sag bevarer billeder, kilder, faglige beslutninger og rapporter. | Åbn det gemte direkte sagslink. Ved loginfejl: vis lokal pakke, registrér adgangsfejlen og undlad at erklære selvbetjening afleveret. |
+| 1:00–3:30 | **Billeder** → vis de seks kerneoriginaler. Upload eventuelt ét aftalt originalfoto. Vis GPS, optagedato og filkontrol. **Videre til datagrundlag**. | Genåbn de seks allerede serverkontrollerede originaler. Ingen rapportillustration må uploades som erstatning. Ved manglende GPS vises manglen og manuel stedafklaring. |
+| 3:30–6:00 | **Datagrundlag** → bekræft område, officiel Bykær-reference og 24.08.2026 → hent data. Vis hentedato og hentet/delvist/ikke tilgængelig. Vis ortofoto, matrikler, natur/vandløb, jordart/markblokke og det gemte Sentinel-billede. Vis DMI-nedbøren for periodens sidste dato med faktisk døgninterval; temperatur og vind mangler. DHM er filmetadata. Forklar optagedato og skyandel; billederne er ikke lokale målinger. | Åbn den præcise gemte kildeversion og forklar dens hentedato og mangler. Nye versioner bruger gemte billedpixels, når hentningen lykkedes; ældre Sentinel-versioner kan kræve netadgang til udbyderen. En scene med højst 10 % global skydækning må ikke kaldes skyfri. |
+| 6:00–9:00 | **Gennemgang** → åbn et fotopunkt → **Vis originalfoto**. Sammenhold manuelt billedet med det offentlige grundlag ved siden af. Oplys: automatisk billedvurdering er ikke frigivet til kommunal brug. Gemte AI-resultater og kvalitetsafvisninger kan læses med deres begrænsninger. Den udpegede fagperson vælger bekræftet/afvist, navn/rolle og begrundelse → **Gem faglig vurdering i revisionssporet**. Vis hændelsen. | Fortsæt manuel gennemgang, når AI-resultatet mangler eller afviser billedkvaliteten. De seks fotos har endnu ingen brugbare AI-observationer. Hvis gemning fejler, genprøv samme handling og kontroller revisionssporet før ny version. |
+| 9:00–11:00 | **Beplantning** → skift mellem 10 og 20 m → forklar klasserne egnet/betinget/uegnet, fradrag for registreret §3/skov og lavbundsmarkering. Den konkrete sag viser betinget/uegnet på grund af mangelfuld dækning. Vis **Skitse – kræver faglig validering** og litteraturens afgrænsning. A–E-hektar står som ukendte. | Åbn det gemte grundlag og gennemgå reglerne. Mangler A–E eller dækkende lag, står arealer som ukendte. Ingen grønne arealer eller effektberegninger opfindes. Ustabil kortfunktion skjules ved fastfrysning og står i roadmap. |
+| 11:00–13:30 | **Rapport og aflevering** → vælg undersøgelsen → kontrollér mangler → **Dan rapport og hent afleveringspakke**. Åbn ZIP og PDF. Vis rapportversion, kildehentedatoer, beplantningsafsnit og SHA-256 i filmanifestet. Nye oplysninger giver en ny rapportversion. | Hent den allerede gemte version igen. Ved netværksudfald åbn præcis den lokalt gemte pakke og dens kontrolsum. Kald ikke en ældre pakke opdateret. |
+| 13:30–15:00 | Log ind med kommunens læsebruger i separat profil → åbn samme sag → genhent samme rapport. Vis, at upload/redigering ikke er tilladt, og at fremmede sager er utilgængelige. Aftal kontaktperson, faglig opfølgning og drift. | Hvis læselogin eller RLS-prøve fejler, er kommunal selvbetjening NO-GO. Dokumentpakken kan gennemgås, men adgangsleverancen skal færdiggøres før accept. |
+
+## Go/no-go kl. 12 den 26. oktober
+
+Registrér faktisk dato, ansvarlig, versions-ID og bevislink for hver kontrol. Tomme felter er ikke godkendelser.
+
+| Kontrol | GO kræver | Status ved kodeleverancen |
+|---|---|---|
+| Databasebackup | Aktuel backup med tidsstempel og dokumenteret genopretning til isoleret miljø; private Storage-originaler indgår i særskilt backup | Kræver driftsansvarligs dokumentation; en SQL-migration eller filhash er ikke backup |
+| Kommunal RLS | Eget login kan læse tildelte sager og rapporter; fremmed sag og alle skrivninger afvises, også ved direkte API-kald | Eksisterende læsetestkonto RLS-prøvet 22.10 og identisk rapport genhentet kl. 18.20, se [kvittering](HADERSLEV_READER_RLS_2026-10-22.md). Kommunens rigtige brugere og deres sagstildeling mangler stadig |
+| Seks originaler | Servervalideret GPS/dato, readback-hash, korrekt sag og ingen rapportbilleder som evidens | Alle seks originaler er servervalideret, vist i appen og genhentet med identisk SHA-256 på staging 22.10. Ingen faglig vurdering er simuleret |
+| Kilder og billedgennemgang | Kildestatus pr. lag og dateret fallback; DEMO-forløbet starter ingen AI-kald og viser manuel gennemgang samt eventuelle gemte resultaters begrænsninger | Samlet seks-fotoprøve og nye adaptere bestod på Worker 67b1aafd. Kortet og det samlede flow er genprøvet på 3d08217c. Nul AI-forsøg i den nye baseline. Automatisk AI er skjult og på roadmap; delvis kildedækning og manglende faglig accept er synlige |
+| Fagligt ansvar og mangler | Navngiven reviewer og accept af det viste grundlag og dets datamangler | Ukendte A–E-hektar er accepteret indtil faglig afgrænsning. Godkendte A–E-geometrier er ikke et ubetinget krav før mødet; de må ikke erstattes af automatisk ligedeling eller den uafklarede 83 m-oplysning |
+| Rapportpakke | Faktisk browserdownload fra generator v3, dansk PDF, ZIP-filernes SHA-256 matcher, rapport genåbnes uændret | Rapportversion 2 bestod 22.10: én handling, 12 visuelt kontrollerede PDF-sider, verificeret ZIP og identisk læser-PDF. Lokal plan B er gemt. Rapporten afventer faglig gennemgang; gentag med kommunens egne login før accept |
+| Fejlovervågning | Workers-fejl og Supabase-adgangsfejl kan ses af ansvarlig; kendt kontakt og afprøvet alarm-/håndteringsvej | Aktiv logning alene beviser ikke en afprøvet alarm |
+| Kvalitet | Alle eksisterende tests, ændrede filers lint, typekontrol, build, DB/RLS og Playwright-forløb på PR-head består | Deployet kodeversion 33e8be0: 2.788 tests, 814 DB-tests, 29 samtidighedsprøver, typekontrol/build og lint uden fejl. Playwright på Worker 3d08217c bestod på 65,381 sekunder uden skips; mobil/stor skærm og 10/20 m bestod. Se PR'ens check for efterfølgende dokumentcommits |
+| Varig drift | Navngiven driftsansvarlig, kendt stagingadresse, aftalt opbevaring og support efter mødet | Afklares med Jesper før aflevering |
+
+**Anbefaling: staging**, betinget af ovenstående. Produktion er fortsat NO-GO. Der skiftes ikke til produktion, og der merges ikke til main i dette arbejde.
+
+Ved fastfrysning skjules ustabile funktioner med `DEMO_MODE`/en konkret featureafgrænsning og flyttes til roadmap. Datahuller, manglende faglig accept og adgangsfejl skjules aldrig. Hvis det krævede grundflow, rapportgenhentning eller læseadgangen ikke består, er leverancen ikke klar; mødet ændrer ikke den status.
+
+## Det Jesper selv skal afklare
+
+1. Aftal faglig reviewer og accept af rapportens grundlag, konklusioner og synlige datamangler. A–E-hektar må fortsat stå som ukendte; den faglige afgrænsning og eventuelle geometrier kan følge senere.
+2. Opret de rigtige kommunebrugere via den dokumenterede Auth-/læserprocedure og prøv deres login. Del adgangskoder via en sikker kanal.
+3. Bevar de allerede konfigurerede stagingnøgler og kildeadgange. Den afprøvede delvise datadækning kræver ikke en ny nøgle eller gen-upload af de seks originaler. Hvis datadækningen udvides, følges `.env.example`; hemmeligheder må aldrig indlejres i browseren.
+4. Dokumentér backup/genopretning, driftsansvar, fejlalarm og den valgte release. Gem endelig PDF/ZIP lokalt før mødet.
+
+## Roadmap
+
+Automatisk billedvurdering er afgrænset fra kommunens forløb i `DEMO_MODE`: upload, lokalisering, kildeversion, runde og fototilknytning kører uden modelkald. AI-start og genforsøg er skjult; gemte resultater og datamangler bevares synligt. Funktionen kræver dokumenteret billedkvalitet og stabile svar før frigivelse. Fire skemagyldige kvalitetsafvisninger og to ugyldige svar fra de seks originaler er ikke seks brugbare vurderinger.
+
+NDVI-pixelanalyse, DHM-terrænpixels/-analyse, DMI-temperatur og vind, lokale beregnede effektstørrelser, arts-/antal-/plejeplan, sensorer og generel produktionslancering er ikke implementeret i denne leverance. Manglerne skal fremgå ved afleveringen. En beplantningsskitse er ikke en myndighedsafgørelse. CO₂-effekt vises som manglende, indtil relevant interval og systemgrænse kan dokumenteres. Litteraturintervaller for temperatur, N og P er kontekst fra studierne og multipliceres aldrig med lokale ha.
+
+Designretningen er gennemgået i [Freyra-projektet i Lovable](https://lovable.dev/projects/7ec0fad1-a130-4304-819c-d085c76dc4bd). Den lokale implementering genbruger de eksisterende evidensfunktioner og ændrer ikke rapporternes historiske versioner.

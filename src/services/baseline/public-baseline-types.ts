@@ -40,6 +40,8 @@ export interface PublicBaselineSource {
   sourceModifiedAt: string | null;
   fetchedAt: string;
   adapterVersion: string;
+  /** Omitted on historical versions and newly fetched responses. Original fetchedAt is retained. */
+  retrieval?: { mode: "cache" | "saved_fallback"; checkedAt: string };
   query: {
     geometrySha256: string;
     bbox: [number, number, number, number];

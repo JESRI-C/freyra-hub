@@ -12,6 +12,15 @@ const state = vi.hoisted(() => ({
   prepared: vi.fn(),
   changed: vi.fn(),
   queryData: {} as Record<string, unknown>,
+  demo: false,
+  tree: null as React.ReactNode,
+  prepare: vi.fn(),
+  bind: vi.fn(),
+}));
+vi.mock("@/lib/demo-mode", () => ({
+  get DEMO_MODE() {
+    return state.demo;
+  },
 }));
 vi.mock("react", async (load) => ({
   ...(await load<typeof import("react")>()),
@@ -49,7 +58,10 @@ vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn(async () => {}) }),
 }));
 vi.mock("@/components/ui-bits", () => ({
-  Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Card: ({ children }: { children: React.ReactNode }) => {
+    state.tree = children;
+    return <div>{children}</div>;
+  },
 }));
 vi.mock("@/components/maps/LiveProjectMap", () => ({ LiveProjectMap: () => null }));
 vi.mock("@/lib/drone-localization.functions", () => ({ localizeDroneOriginals: state.localize }));
@@ -86,6 +98,8 @@ vi.mock("../drone-intake-run", async (load) => ({
   ...(await load<typeof import("../drone-intake-run")>()),
   runDroneIntakeImageChunk: state.run,
 }));
+vi.mock("../drone-intake-prepare", () => ({ prepareConfirmedDroneIntake: state.prepare }));
+vi.mock("../drone-intake-binding", () => ({ bindConfirmedDroneIntakePhotos: state.bind }));
 import { DroneIntakeAssistant } from "../DroneIntakeAssistant";
 const ACTOR = "10000000-0000-4000-8000-000000000001",
   PROJECT = "20000000-0000-4000-8000-000000000001",
@@ -112,12 +126,37 @@ function render(selected: typeof batch | null = batch, selectedProject: Project 
 async function flush() {
   for (let i = 0; i < 8; i++) await Promise.resolve();
 }
+function clickButton(label: string) {
+  let click: (() => void) | undefined;
+  const walk = (children: React.ReactNode) => {
+    React.Children.forEach(children, (child) => {
+      if (
+        !React.isValidElement<{
+          children?: React.ReactNode;
+          onClick?: () => void;
+          disabled?: boolean;
+        }>(child)
+      )
+        return;
+      if (child.type === "button" && renderToStaticMarkup(child).includes(label)) {
+        expect(child.props.disabled).not.toBe(true);
+        click = child.props.onClick;
+      }
+      walk(child.props.children);
+    });
+  };
+  walk(state.tree);
+  expect(click, `Missing enabled button: ${label}`).toBeTypeOf("function");
+  click!();
+}
 beforeEach(() => {
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
   state.cursor = 0;
   state.hooks = [];
   state.effects = [];
   state.queryData = {};
+  state.demo = false;
+  state.tree = null;
   vi.clearAllMocks();
   state.localize.mockImplementation(async ({ data }) => ({
     projectId: data.projectId,
@@ -130,9 +169,195 @@ beforeEach(() => {
     clusters: [],
   }));
   state.run.mockResolvedValue({ nextIndex: 1, busyMediaId: null });
+  state.prepare.mockResolvedValue({
+    snapshot: { id: "40000000-0000-4000-8000-000000000001", manifestSha256: "a".repeat(64) },
+    round: { id: "50000000-0000-4000-8000-000000000001" },
+  });
+  state.bind.mockResolvedValue({ entries: [{ status: "confirmed" }] });
+});
+
+describe("municipal manual image comparison", () => {
+  function setupLocatedPhoto() {
+    const polygon = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [9, 55],
+          [9.1, 55],
+          [9.1, 55.1],
+          [9, 55.1],
+          [9, 55],
+        ],
+      ],
+    };
+    const reference = {
+      id: ACTOR,
+      name: "Syntetisk vandløbsreference",
+      geometry: {
+        type: "MultiLineString",
+        coordinates: [
+          [
+            [9.05, 55],
+            [9.05, 55.1],
+          ],
+        ],
+      },
+      disclaimer: "Faglig gennemgang kræves.",
+    };
+    state.queryData = {
+      "drone-intake-project": project,
+      "official-watercourse-reach": null,
+      "inspection-access": { userId: ACTOR, projectId: PROJECT, canPersist: true },
+    };
+    state.localize.mockResolvedValue({
+      projectId: PROJECT,
+      actorId: ACTOR,
+      photos: [
+        {
+          mediaId: MEDIA,
+          fileName: "synthetic.JPG",
+          status: "located",
+          sizeBytes: 1000,
+          capturedAtUtc: "2026-08-24T10:00:00Z",
+          cameraPosition: {
+            longitude: 9.05,
+            latitude: 55.05,
+            geometryRole: "camera_position_only",
+          },
+        },
+      ],
+      clusters: [
+        {
+          id: "camera-group:test",
+          mediaIds: [MEDIA],
+          searchStatus: "complete",
+          suggestedPolygon: polygon,
+          suggestedReferenceId: ACTOR,
+          candidates: [{ reference, distanceM: 0 }],
+        },
+      ],
+    });
+  }
+
+  it.each([true, false])(
+    "saves the baseline and round, binds photos, and only starts AI outside DEMO_MODE=%s",
+    async (demo) => {
+      state.demo = demo;
+      setupLocatedPhoto();
+      render();
+      const cleanup = state.effects[0]();
+      await flush();
+      render();
+      clickButton("Bekræft sted, hent data og tilknyt billeder");
+      await vi.waitFor(() => expect(state.bind).toHaveBeenCalledTimes(1));
+      await flush();
+      const markup = render();
+      expect(state.prepare).toHaveBeenCalledTimes(1);
+      expect(state.prepared).toHaveBeenCalledTimes(1);
+      expect(state.changed).toHaveBeenCalledTimes(1);
+      expect(markup).toContain("1 fotos er tilknyttet den gemte undersøgelse");
+      expect(state.run).toHaveBeenCalledTimes(demo ? 0 : 1);
+      expect(state.inspect).not.toHaveBeenCalled(); // Chunk runner is explicitly mocked.
+      if (demo) {
+        expect(markup).toContain("Automatisk billedvurdering er ikke frigivet til kommunal brug.");
+        expect(markup).toContain("Fortsæt med manuel sammenligning i Gennemgang.");
+        expect(markup).not.toMatch(
+          /Billed-AI starter|gennemgås automatisk|Analyser de næste|Fortsæt billedanalysen|Spring dette foto over/,
+        );
+      } else {
+        expect(markup).toContain("billedudkast gennemgået i denne arbejdsgang");
+        expect(markup).not.toContain("ikke frigivet til kommunal brug");
+      }
+      cleanup?.();
+    },
+  );
+
+  it("can resume photo binding in DEMO_MODE without an image-model attempt or skip", async () => {
+    state.demo = true;
+    setupLocatedPhoto();
+    state.bind.mockRejectedValueOnce(new Error("Synthetic transient binding failure"));
+    render();
+    const cleanup = state.effects[0]();
+    await flush();
+    render();
+    clickButton("Bekræft sted, hent data og tilknyt billeder");
+    await vi.waitFor(() => expect(state.bind).toHaveBeenCalledTimes(1));
+    await flush();
+    render();
+    clickButton("Fortsæt billedtilknytningen til den gemte undersøgelse");
+    await vi.waitFor(() => expect(state.bind).toHaveBeenCalledTimes(2));
+    await flush();
+    const markup = render();
+    expect(state.prepare).toHaveBeenCalledTimes(1);
+    expect(state.prepared).toHaveBeenCalledTimes(1);
+    expect(state.run).not.toHaveBeenCalled();
+    expect(state.inspect).not.toHaveBeenCalled();
+    expect(markup).toContain("Fortsæt med manuel sammenligning i Gennemgang.");
+    expect(markup).not.toMatch(/Analyser de næste|Fortsæt billedanalysen|Spring dette foto over/);
+    cleanup?.();
+  });
 });
 afterEach(() => vi.unstubAllGlobals());
 describe("upload-event-only intake assistant lifecycle", () => {
+  it.each(["pending", "too_broad"])(
+    "offers all-series selection explicitly and preserves the first group by default (%s)",
+    async (status) => {
+      const ids = [MEDIA, "30000000-0000-4000-8000-000000000002"];
+      const polygon = {
+        type: "Polygon",
+        coordinates: [
+          [
+            [9, 55],
+            [9.1, 55],
+            [9.1, 55.1],
+            [9, 55.1],
+            [9, 55],
+          ],
+        ],
+      };
+      state.localize.mockResolvedValue({
+        projectId: PROJECT,
+        actorId: ACTOR,
+        photos: ids.map((mediaId) => ({
+          mediaId,
+          status: "located",
+          cameraPosition: { longitude: 9.05, latitude: 55.05 },
+          capturedAtUtc: "2026-08-24T10:00:00Z",
+        })),
+        clusters: ids.map((id, index) => ({
+          id: `group${index}`,
+          mediaIds: [id],
+          suggestedPolygon: polygon,
+          searchStatus: "complete",
+          candidates: [],
+          suggestedReferenceId: null,
+        })),
+        combinedCluster: {
+          id: "all-series",
+          mediaIds: ids,
+          suggestedPolygon: polygon,
+          searchStatus: status,
+          candidates: [],
+          suggestedReferenceId: null,
+        },
+      });
+      const selected = { ...batch, mediaIds: ids, receivedCount: 2 };
+      render(selected);
+      const cleanup = state.effects[0]();
+      await flush();
+      const markup = render(selected);
+      expect(markup).toContain("Alle seriens fotopunkter");
+      expect(markup).toContain('<option value="group0" selected=""');
+      expect(markup).not.toContain("Du har valgt alle seriens fotopunkter");
+      if (status === "too_broad") expect(markup).toMatch(/<option value="all-series" disabled=""/);
+      expect(state.localize).toHaveBeenCalledExactlyOnceWith({
+        data: { projectId: PROJECT, mediaIds: ids, expectedCallerUserId: ACTOR },
+      });
+      expect(state.prepared).not.toHaveBeenCalled();
+      expect(state.run).not.toHaveBeenCalled();
+      cleanup?.();
+    },
+  );
   it("prefills the local day for clean GPS photos but requires explicit date confirmation before sources or AI", async () => {
     state.queryData = {
       "drone-intake-project": project,

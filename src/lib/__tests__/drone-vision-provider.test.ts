@@ -181,6 +181,23 @@ describe("private original to bounded vision derivative", () => {
     });
     expect(mocks.run).not.toHaveBeenCalled();
   });
+  it("repairs syntax-only formatting and still applies the complete visual schema", async () => {
+    const mocks = bindings({
+      response: Response.json({
+        choices: [
+          {
+            finish_reason: "stop",
+            message: {
+              content: `\uFEFF\`\`\`json\n${JSON.stringify(visual).replace(/}$/, ",}")}\n\`\`\``,
+            },
+          },
+        ],
+      }),
+    });
+    await expect(inspectDroneImageBytes(jpeg, mocks)).resolves.toMatchObject({ visual });
+    expect(mocks.run).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(console.info).mock.calls[0][1].output.repaired).toBe(true);
+  });
   it.each([
     { choices: [{ finish_reason: "length", message: { content: JSON.stringify(visual) } }] },
     { choices: [{ finish_reason: "stop", message: { content: "not JSON" } }] },
@@ -316,11 +333,55 @@ describe("private original to bounded vision derivative", () => {
         expect.objectContaining({
           outcome: "invalid_output",
           phase: "output_validation",
-          output: expected,
+          output: expect.objectContaining(expected),
         }),
       );
     },
   );
+  it("logs only whitelisted schema paths and codes for invalid visual data", async () => {
+    const mocks = bindings({
+      response: Response.json({
+        choices: [
+          {
+            finish_reason: "stop",
+            message: {
+              content: JSON.stringify({
+                ...visual,
+                quality: {
+                  ...visual.quality,
+                  limitation: "",
+                  private_secret_key: "SECRET_MODEL_PROSE",
+                },
+                features: [
+                  {
+                    kind: "PRIVATE_KIND",
+                    appearance: "SECRET_MODEL_PROSE",
+                    confidence: 2,
+                    uncertainty: "Uklart",
+                    region: null,
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      }),
+    });
+    await expect(inspectDroneImageBytes(jpeg, mocks)).rejects.toMatchObject({
+      code: "invalid_output",
+    });
+    const diagnostic = vi.mocked(console.info).mock.calls[0][1];
+    expect(diagnostic.output.validationIssues).toEqual(
+      expect.arrayContaining([
+        { path: "quality.limitation", code: "too_small" },
+        { path: "quality", code: "unrecognized_keys" },
+        { path: "features.[].kind", code: "invalid_value" },
+        { path: "features.[].confidence", code: "too_big" },
+      ]),
+    );
+    expect(diagnostic.output.validationIssues.length).toBeLessThanOrEqual(8);
+    expect(JSON.stringify(diagnostic)).not.toMatch(/secret|SECRET|PRIVATE/);
+  });
   it("replaces unexpected finish reasons and never logs invalid output prose or schema keys", async () => {
     const mocks = bindings({
       response: Response.json({

@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { useState } from "react";
+import {
+  isSafeSentinelThumbnailUrl,
+  selectSentinelPreview,
+} from "@/services/baseline/sentinel-preview";
+import { SavedOrthophotoPreview } from "./SavedOrthophotoPreview";
 import type { PublicBaselineSource } from "@/services/baseline/public-baseline-types";
 import { parseSavedWaterPlanNatureSource } from "@/services/baseline/water-plan-nature-saved-payload";
 import { parseSavedPublicMonitoringStationsSource } from "@/services/baseline/public-monitoring-stations-saved-payload";
@@ -89,6 +95,24 @@ const SentinelCatalog = z.object({
   collection: z.literal("sentinel-2-l2a"),
   catalogComplete: z.boolean(),
   localQualityStatus: z.literal("pending"),
+  previewReferenceDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  frozenPreview: z
+    .object({
+      sceneId: z.string().min(1).max(300),
+      mediaType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+      dataUrl: z
+        .string()
+        .max(400_030)
+        .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/),
+      imageSha256: z.string().regex(/^[a-f0-9]{64}$/),
+      imageFetchedAt: Timestamp,
+    })
+    .refine((image) => image.dataUrl.startsWith(`data:${image.mediaType};base64,`))
+    .nullable()
+    .optional(),
   scenes: z
     .array(
       z.object({
@@ -96,6 +120,13 @@ const SentinelCatalog = z.object({
         datetime: Timestamp,
         platform: z.string().max(100).nullable(),
         globalCloudCoverPct: z.number().finite().min(0).max(100).nullable(),
+        thumbnail: z
+          .object({
+            href: z.string().refine(isSafeSentinelThumbnailUrl),
+            mediaType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+          })
+          .nullable()
+          .optional(),
         localQuality: z.object({
           cloud: z.literal("pending"),
           shadow: z.literal("pending"),
@@ -337,6 +368,8 @@ function DmiData({ source }: { source: PublicBaselineSource }) {
     return <InvalidPayload />;
   }
   const { station, series, summary } = parsed.data;
+  const targetDayRows = series.filter((row) => row.from.slice(0, 10) === source.query.requestedTo);
+  const targetDay = targetDayRows.length === 1 ? targetDayRows[0] : null;
   if (
     source.coverage.returnedCount !== series.length ||
     (source.status === "no_coverage" && series.length > 0)
@@ -364,6 +397,37 @@ function DmiData({ source }: { source: PublicBaselineSource }) {
         <p className="text-xs text-muted-foreground">
           Stationens relevans for oplandet kræver faglig kontrol. Stationsnedbør er ikke lokal
           vandføring.
+        </p>
+      </div>
+      <div className="rounded border p-2">
+        <p className="font-medium">Nedbør for {source.query.requestedTo} · periodens sidste dato</p>
+        {targetDay ? (
+          <>
+            <p>
+              {targetDay.valueKind === "amount"
+                ? `${numberText(targetDay.value)} mm`
+                : targetDay.valueKind === "trace"
+                  ? "Nedbørsspor (DMI-kode −0,1; ikke en negativ mængde)"
+                  : "Ugyldig negativ værdi; ingen anvendelig nedbørsmængde"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {dateText(targetDay.from)} – {dateText(targetDay.to)}.{" "}
+              {targetDay.validity === true &&
+              targetDay.qcStatus === "manual" &&
+              targetDay.valueKind === "amount"
+                ? "DMI's manuelle kvalitetskontrol er registreret."
+                : "Kvalitet eller gyldighed er ikke endeligt bekræftet; værdien kræver kontrol."}
+            </p>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Ingen entydig døgnværdi for datoen i de gemte observationer. Nedbør på denne dato er
+            ukendt.
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Stationsdøgnet beskriver ikke vejret under selve flyvningen. Temperatur og vind er ikke
+          tilsluttet.
         </p>
       </div>
       {summary.complete ? (
@@ -453,10 +517,40 @@ function DmiData({ source }: { source: PublicBaselineSource }) {
   );
 }
 
+function SentinelImage({ src, id }: { src: string; id: string }) {
+  const [failed, setFailed] = useState(false);
+  return failed ? (
+    <p className="text-xs text-muted-foreground">
+      Satellitbilledet kunne ikke vises. Scenens registrerede oplysninger er bevaret.
+    </p>
+  ) : (
+    <img
+      src={src}
+      alt={`Sentinel-2 oversigtsbillede ${id}`}
+      className="max-h-80 w-full object-contain"
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function SentinelData({ source }: { source: PublicBaselineSource }) {
   const parsed = SentinelCatalog.safeParse(source.payload);
   if (!parsed.success) return <InvalidPayload />;
-  const { scenes, catalogComplete } = parsed.data;
+  const { scenes, catalogComplete, frozenPreview } = parsed.data;
+  const preview = selectSentinelPreview(
+    scenes,
+    parsed.data.previewReferenceDate ?? source.query.requestedFrom,
+  );
+  const legacy = frozenPreview === undefined;
+  if (
+    frozenPreview &&
+    (frozenPreview.sceneId !== preview?.id ||
+      frozenPreview.mediaType !== preview.thumbnail?.mediaType)
+  )
+    return <InvalidPayload />;
+  const imageSrc = frozenPreview?.dataUrl ?? (legacy ? preview?.thumbnail?.href : undefined);
   if (
     source.coverage.returnedCount !== scenes.length ||
     (source.status === "no_coverage" && scenes.length > 0)
@@ -468,6 +562,29 @@ function SentinelData({ source }: { source: PublicBaselineSource }) {
         Scenerne er geografiske kandidater. Lokal kontrol af skyer, skygger og manglende pixels
         afventer; der er ingen godkendt NDVI eller lokal måling.
       </p>
+      {preview && imageSrc ? (
+        <figure className="rounded border p-2">
+          <SentinelImage key={imageSrc} src={imageSrc} id={preview.id} />
+          <figcaption className="mt-2 text-xs text-muted-foreground">
+            {preview.globalCloudCoverPct === 0
+              ? "Nærmeste scene med 0 % skyer i kataloget"
+              : "Nærmeste scene med højst 10 % skyer i kataloget"}{" "}
+            · {dateText(preview.datetime)} · Hele scenen, ikke et udsnit af vandløbet. Lokal
+            skyfrihed og pixelkvalitet er ikke verificeret.
+            {!catalogComplete && " Udvalgt blandt de hentede scener; en nærmere scene kan mangle."}
+            {legacy
+              ? " Ældre dataversion: billedet hentes fra udbyderen og kræver netadgang. Billedpixels er ikke gemt i denne version."
+              : ` Billedpixels gemt ${dateText(frozenPreview!.imageFetchedAt)} med SHA-256.`}
+          </figcaption>
+        </figure>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {preview && !legacy
+            ? "Scenen er registreret, men billedpixels kunne ikke gemmes. "
+            : "Intet tilgængeligt kildebillede med lav global skydækning i de hentede scener. "}
+          Skyfri scene og NDVI-pixelanalyse afventer.
+        </p>
+      )}
       {!catalogComplete && (
         <p className="text-xs text-amber-800 dark:text-amber-300">
           Kun en del af scenekataloget er hentet. Flere scener kan findes i perioden.
@@ -525,6 +642,128 @@ function SentinelData({ source }: { source: PublicBaselineSource }) {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function SoilTypeData({ source }: { source: PublicBaselineSource }) {
+  const parsed = z
+    .object({
+      schema: z.literal("freyra.soil-type-polygons/v1"),
+      crs: z.literal("EPSG:4326"),
+      features: z
+        .array(
+          z.object({
+            id: z.number().int(),
+            soilType: z.string(),
+            soilCode: z.string(),
+            age: z.string(),
+            version: z.string(),
+          }),
+        )
+        .max(200),
+    })
+    .safeParse(source.payload);
+  if (!parsed.success || parsed.data.features.length !== source.coverage.returnedCount)
+    return <InvalidPayload />;
+  return (
+    <div className="space-y-2 text-sm">
+      <p>{parsed.data.features.length} gemte jordartspolygoner berører området.</p>
+      <p className="text-xs text-muted-foreground">
+        GEUS-kortlægning i skala 1:25.000 omkring en meters dybde. Dette er ikke en lokal jordprøve.
+        Ukortlagte arealer og tilstanden på flyvedagen er ukendt; jordart giver ikke i sig selv en
+        beregnet kulstofeffekt.
+      </p>
+      <div className="max-h-60 overflow-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr>
+              <th scope="col" className="p-2 text-left">
+                Jordart
+              </th>
+              <th scope="col" className="p-2 text-left">
+                Tidsalder
+              </th>
+              <th scope="col" className="p-2 text-left">
+                Kildeversion
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {parsed.data.features.map((item) => (
+              <tr key={item.id}>
+                <td className="p-2">{item.soilType || item.soilCode || "Ukendt"}</td>
+                <td className="p-2">{item.age || "Ukendt"}</td>
+                <td className="p-2">{item.version || "Ukendt"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CadastralData({ source }: { source: PublicBaselineSource }) {
+  const parsed = z
+    .object({
+      schema: z.literal("freyra.cadastral-polygons/v1"),
+      crs: z.literal("EPSG:4326"),
+      parcels: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            parcelNumber: z.string().min(1),
+            landRegisterAreaCode: z.string().min(1),
+            geometry: z.object({ type: z.enum(["Polygon", "MultiPolygon"]) }),
+          }),
+        )
+        .max(200),
+      numberMatched: z.number().int().nonnegative().nullable(),
+      numberReturned: z.number().int().nonnegative(),
+    })
+    .safeParse(source.payload);
+  if (
+    !parsed.success ||
+    parsed.data.parcels.length !== source.coverage.returnedCount ||
+    parsed.data.numberReturned < parsed.data.parcels.length
+  )
+    return <InvalidPayload />;
+  return (
+    <div className="space-y-2 text-sm">
+      <p>
+        {parsed.data.parcels.length} gemte jordstykker berører sagens område. Geometrierne følger
+        denne dataversion og dens SHA-256.
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Gældende registrering ved hentning, ikke dokumenteret tilstand på flyvedagen. Kortgrænser
+        erstatter ikke landinspektørfaglig vurdering.{" "}
+        {source.coverage.paginationComplete
+          ? "Alle poster i det afgrænsede opslag er modtaget."
+          : "Udtrækket er ufuldstændigt; yderligere jordstykker kan mangle."}
+      </p>
+      <div className="max-h-60 overflow-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr>
+              <th scope="col" className="p-2 text-left">
+                Matrikelnummer
+              </th>
+              <th scope="col" className="p-2 text-left">
+                Ejerlavskode
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {parsed.data.parcels.map((parcel) => (
+              <tr key={parcel.id}>
+                <td className="p-2">{parcel.parcelNumber}</td>
+                <td className="p-2">{parcel.landRegisterAreaCode}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -970,6 +1209,12 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
       "orthophoto-terrain",
       "water-plan-nature",
       "public-monitoring-stations",
+      "orthophoto-preview",
+      "planting-markblocks",
+      "planting-lowland",
+      "planting-woodland",
+      "cadastral-parcels",
+      "soil-type",
     ].includes(source.id)
   )
     return null;
@@ -984,7 +1229,7 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
       </p>
     );
   }
-  if (source.mode === "error" || source.error) {
+  if (source.mode === "error" || (source.error && source.retrieval?.mode !== "saved_fallback")) {
     return (
       <p role="alert" className="text-sm text-destructive">
         Kilden kunne ikke hentes. Der vises ingen dataværdier fra denne hentning.
@@ -993,6 +1238,19 @@ export function BaselineSourceData({ source }: { source: PublicBaselineSource })
   }
   if (source.id === "dmi-historical") return <DmiData source={source} />;
   if (source.id === "sentinel-2-scenes") return <SentinelData source={source} />;
+  if (source.id === "cadastral-parcels") return <CadastralData source={source} />;
+  if (source.id === "soil-type") return <SoilTypeData source={source} />;
+  if (source.id === "orthophoto-preview") return <SavedOrthophotoPreview source={source} />;
+  if (source.id.startsWith("planting-"))
+    return (
+      <p className="text-sm text-muted-foreground">
+        {source.coverage.returnedCount ?? "Ukendt antal"} gemte registergeometrier. Se arealerne i
+        beplantningsvisningen.{" "}
+        {source.coverage.paginationComplete
+          ? "Alle poster i det afgrænsede opslag er modtaget."
+          : "Registerudsnittet er ufuldstændigt."}
+      </p>
+    );
   if (source.id === "water-plan-nature") return <WaterPlanNatureData source={source} />;
   if (source.id === "public-monitoring-stations")
     return <PublicMonitoringStationsData source={source} />;

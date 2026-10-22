@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MapPin, Sparkles } from "lucide-react";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import type { Project } from "@/lib/supabase/types";
 import { localizeDroneOriginals } from "@/lib/drone-localization.functions";
 import { inspectDroneImage } from "@/lib/drone-image-inspection.functions";
@@ -70,8 +71,8 @@ const stageLabels: Record<StreamInspectionProgress, string> = {
   round: "Gemmer undersøgelsen …",
   complete: "Undersøgelsen er forberedt",
 };
-function message(error: unknown) {
-  return error instanceof Error ? error.message : "Behandlingen blev ikke færdig. Prøv igen.";
+function message(_error: unknown) {
+  return "Behandlingen blev ikke færdig. Originalerne er bevaret. Kontrollér sted, dato og din adgang, og prøv igen. Gemte vurderinger kan åbnes under Gennemgang.";
 }
 
 export function DroneIntakeAssistant(props: Props) {
@@ -176,7 +177,10 @@ function Intake({
   const displayedProject = savedProject.data ?? project;
   const hasExistingArea = validateProjectPolygon(displayedProject.geometry_polygon).valid;
   const cluster =
-    localization?.clusters.find((item) => item.id === clusterId) ?? localization?.clusters[0];
+    (localization?.combinedCluster?.id === clusterId ? localization.combinedCluster : undefined) ??
+    localization?.clusters.find((item) => item.id === clusterId) ??
+    localization?.clusters[0];
+  const allSeriesSelected = !!cluster && cluster.id === localization?.combinedCluster?.id;
   const usingProposedArea = !hasExistingArea || useProposedArea;
   const effectiveReferenceId = droneIntakeEffectiveReference({
     explicitReferenceId: referenceId,
@@ -246,14 +250,23 @@ function Intake({
   const preparationKeyRef = useRef(preparationKey);
   preparationKeyRef.current = preparationKey;
 
-  async function locate(isCurrent = current()) {
+  async function locate(
+    isCurrent = current(),
+    selection?: "all_photos",
+    preferredClusterId?: string,
+  ) {
     if (!isCurrent() || locationBusy.current) return;
     locationBusy.current = true;
     setLocalizing(true);
     setLocationError(null);
     try {
       const result = await localize({
-        data: { projectId: project.id, mediaIds: batch.mediaIds, expectedCallerUserId: actorId },
+        data: {
+          projectId: project.id,
+          mediaIds: batch.mediaIds,
+          expectedCallerUserId: actorId,
+          ...(selection ? { selection } : {}),
+        },
       });
       if (!isCurrent()) return;
       if (
@@ -264,7 +277,14 @@ function Intake({
       )
         throw new Error("Stedforslaget matcher ikke denne billedserie og bruger.");
       setLocalization(result);
-      setClusterId(result.clusters[0]?.id ?? "");
+      setClusterId(
+        selection === "all_photos"
+          ? (result.combinedCluster?.id ?? "")
+          : (result.clusters.find((item) => item.id === preferredClusterId)?.id ??
+              result.clusters[0]?.id ??
+              ""),
+      );
+      if (selection === "all_photos") setUseProposedArea(true);
       setReferenceId("");
       setIncludeUnlocated(false);
       setRecordingDate(droneIntakeRecordingDate(result) ?? "");
@@ -276,6 +296,9 @@ function Intake({
     }
   }
   async function analyze(fixed = prepared, isCurrent = current()) {
+    // Municipal release deliberately uses manual comparison. Keep this execution
+    // guard as well as hiding controls: binding completion must not invoke AI.
+    if (DEMO_MODE) return;
     const eligible = fixed ? droneIntakeAiPhotos(fixed.photos) : [];
     if (!fixed || !isCurrent() || imageBusy.current || cursor.current >= eligible.length) return;
     imageBusy.current = true;
@@ -323,6 +346,7 @@ function Intake({
   }
   function skipFailedPhoto() {
     if (
+      DEMO_MODE ||
       !prepared ||
       !bindingsComplete ||
       !imageError ||
@@ -386,12 +410,12 @@ function Intake({
       );
     setBindingsComplete(true);
     setStage(
-      `${fixed.photos.length} fotos er tilknyttet den gemte undersøgelse. Fortsæt med spørgsmålene nedenfor.`,
+      `${fixed.photos.length} fotos er tilknyttet den gemte undersøgelse. ${DEMO_MODE ? "Fortsæt med manuel sammenligning i Gennemgang." : "Fortsæt med spørgsmålene nedenfor."}`,
     );
     await Promise.resolve()
       .then(onPhotosChanged)
       .catch(() => undefined);
-    if (isCurrent() && cursor.current === 0) await analyze(fixed, isCurrent);
+    if (!DEMO_MODE && isCurrent() && cursor.current === 0) await analyze(fixed, isCurrent);
   }
 
   async function prepare() {
@@ -498,8 +522,10 @@ function Intake({
             <h3 className="font-semibold">Billederne er modtaget — vi forbereder næste skridt</h3>
             <p className="text-sm text-muted-foreground">
               {batch.mediaIds.length} kontrollerede originaler i denne serie. Programmet foreslår
-              først stedet. Når du har bekræftet det, hentes offentlige data, og billederne bruges
-              til at stille konkrete spørgsmål.
+              først stedet. Når du har bekræftet det, hentes offentlige data, og{" "}
+              {DEMO_MODE
+                ? "billederne knyttes til den gemte undersøgelse til manuel sammenligning."
+                : "billederne bruges til at stille konkrete spørgsmål."}
             </p>
             {batch.receivedCount > batch.mediaIds.length && (
               <p className="text-sm text-amber-700">
@@ -516,15 +542,18 @@ function Intake({
               : `${localization?.photos.filter((photo) => isDroneCameraLocationStatus(photo.status)).length ?? 0} fotos med kameraposition til stedforslag.`}
           </p>
           <p>
-            {!prepared || !bindingsComplete
-              ? "Billed-AI starter efter bekræftet sted, datagrundlag og billedtilknytning."
-              : analyzing
-                ? `Billed-AI arbejder: ${completedCount} af ${aiPhotos.length} gennemgået …`
-                : `${completedCount} af ${aiPhotos.length} billedudkast gennemgået i denne arbejdsgang.`}
+            {DEMO_MODE
+              ? "Automatisk billedvurdering er ikke frigivet til kommunal brug. Sammenhold originalfoto og offentlige kilder i Gennemgang."
+              : !prepared || !bindingsComplete
+                ? "Billed-AI starter efter bekræftet sted, datagrundlag og billedtilknytning."
+                : analyzing
+                  ? `Billed-AI arbejder: ${completedCount} af ${aiPhotos.length} gennemgået …`
+                  : `${completedCount} af ${aiPhotos.length} billedudkast gennemgået i denne arbejdsgang.`}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            De første 12 tilknyttede fotos gennemgås automatisk efter datagrundlaget. Flere
-            fortsættes i hold på 12. Udkast og spørgsmål skal gennemgås fagligt.
+            {DEMO_MODE
+              ? "Gemte AI-vurderinger og deres begrænsninger kan fortsat læses. Manglende eller ubrugelige vurderinger kræver manuel gennemgang."
+              : "De første 12 tilknyttede fotos gennemgås automatisk efter datagrundlaget. Flere fortsættes i hold på 12. Udkast og spørgsmål skal gennemgås fagligt."}
           </p>
         </div>
         {locationError && (
@@ -537,7 +566,7 @@ function Intake({
             {imageError}
           </p>
         )}
-        {oversizedCount > 0 && (
+        {!DEMO_MODE && oversizedCount > 0 && (
           <p className="text-sm text-amber-700">
             {oversizedCount} originaler afventer billedanalyse på grund af grænsen på 20 MB. De er
             tilknyttet undersøgelsen og bevares til manuel gennemgang.
@@ -549,7 +578,8 @@ function Intake({
             gennemgang: {skippedPhotos.map((photo) => photo.fileName).join(", ")}.
           </p>
         )}
-        {prepared &&
+        {!DEMO_MODE &&
+          prepared &&
           bindingsComplete &&
           !analyzing &&
           !localizing &&
@@ -564,7 +594,8 @@ function Intake({
                 : `Analyser de næste ${Math.min(12, aiPhotos.length - nextIndex)} fotos`}
             </button>
           )}
-        {prepared &&
+        {!DEMO_MODE &&
+          prepared &&
           bindingsComplete &&
           imageError &&
           !analyzing &&
@@ -615,7 +646,7 @@ function Intake({
           </p>
         )}
         {localization && (
-          <fieldset disabled={preparing || !!prepared} className="space-y-4">
+          <fieldset disabled={localizing || preparing || !!prepared} className="space-y-4">
             <legend className="mb-2 font-medium">
               <MapPin className="mr-1 inline h-4 w-4" />
               Bekræft sted og optagedato
@@ -627,8 +658,18 @@ function Intake({
                   className="mt-1 block w-full rounded-md border bg-background p-2"
                   value={cluster?.id ?? ""}
                   onChange={(event) => {
-                    setClusterId(event.target.value);
-                    setReferenceId("");
+                    const id = event.target.value;
+                    if (id === localization.combinedCluster?.id) {
+                      void locate(current(), "all_photos");
+                    } else if (
+                      localization.clusters.find((item) => item.id === id)?.searchStatus ===
+                      "pending"
+                    ) {
+                      void locate(current(), undefined, id);
+                    } else {
+                      setClusterId(id);
+                      setReferenceId("");
+                    }
                   }}
                 >
                   {localization.clusters.map((item, index) => (
@@ -637,8 +678,34 @@ function Intake({
                       {item.isolated ? " — ligger alene" : ""}
                     </option>
                   ))}
+                  {localization.combinedCluster && (
+                    <option
+                      value={localization.combinedCluster.id}
+                      disabled={localization.combinedCluster.searchStatus === "too_broad"}
+                    >
+                      Alle seriens fotopunkter — {localization.combinedCluster.mediaIds.length}{" "}
+                      fotos
+                      {localization.combinedCluster.searchStatus === "too_broad"
+                        ? " — området er for stort"
+                        : ""}
+                    </option>
+                  )}
                 </select>
               </label>
+            )}
+            {allSeriesSelected && (
+              <p className="rounded border bg-muted/40 p-3 text-sm">
+                Du har valgt alle seriens fotopunkter. Søgeområdet bygger på originalernes faktiske
+                GPS-positioner med 100 m kant. Det er ikke billeddækning eller en fagligt godkendt
+                afgrænsning af sagen eller delstrækning A–E. Vælg den officielle vandløbsreference
+                og bekræft datoen, før området gemmes.
+              </p>
+            )}
+            {localization.combinedCluster?.searchStatus === "too_broad" && (
+              <p className="text-sm text-amber-700">
+                Seriens samlede søgning overstiger 5 km i diagonal eller 10 km². Vælg en mindre
+                billedgruppe; fjernliggende fotopunkter sammenlægges ikke automatisk.
+              </p>
             )}
             {cluster && searchLabels[cluster.searchStatus] && (
               <p className="text-sm text-amber-700">{searchLabels[cluster.searchStatus]}</p>

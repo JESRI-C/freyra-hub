@@ -13,7 +13,7 @@ import { canonicalDroneMediaReference } from "./monitoring/canonical-drone-media
 // Minimal interface for an untyped Supabase query builder, used to access the
 // project_media table which is not yet in the generated Database types.
 interface UntypedQueryBuilder {
-  select(columns?: string): UntypedQueryBuilder;
+  select(columns?: string, options?: { count: "exact"; head: true }): UntypedQueryBuilder;
   insert(values: Record<string, unknown>): UntypedQueryBuilder;
   update(values: Record<string, unknown>): UntypedQueryBuilder;
   delete(): UntypedQueryBuilder;
@@ -21,7 +21,13 @@ interface UntypedQueryBuilder {
   limit(count: number): UntypedQueryBuilder;
   order(column: string, opts?: { ascending: boolean }): UntypedQueryBuilder;
   single(): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
-  then(resolve: (value: { data: unknown; error: { message: string } | null }) => void): void;
+  then(
+    resolve: (value: {
+      data: unknown;
+      count?: number | null;
+      error: { message: string } | null;
+    }) => void,
+  ): void;
 }
 
 interface UntypedDb {
@@ -191,6 +197,19 @@ async function materializePrivateMedia(
 }
 
 // Demo media is available only by explicit offline choice.
+/** Count promoted originals through caller RLS without downloading or signing every photo. */
+export async function countCanonicalProjectOriginals(projectId: string): Promise<number> {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Billederne kunne ikke hentes.");
+  const { count, error } = await getDb()!
+    .from("project_media")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .eq("original_role", "drone_original")
+    .eq("storage_bucket", "monitoring-uploads");
+  if (error || count == null) throw new Error("Billederne kunne ikke hentes.");
+  return count;
+}
+
 export async function listProjectMedia(
   projectId: string,
 ): Promise<MediaServiceResult<ProjectMediaItem[]>> {

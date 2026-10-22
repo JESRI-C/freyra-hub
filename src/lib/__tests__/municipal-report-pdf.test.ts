@@ -2,6 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { baselineSha256 } from "@/services/baseline/public-baseline-service";
 import { makeMunicipalReportFixture } from "@/services/monitoring/__tests__/municipal-report.fixtures";
 import { buildMunicipalReportPdf } from "../municipal-report-pdf";
+import {
+  compileMunicipalReportV1,
+  MUNICIPAL_REPORT_GENERATOR_V2,
+  MUNICIPAL_REPORT_GENERATOR_V3,
+} from "@/services/monitoring/municipal-report";
 
 const drawing = vi.hoisted(() => ({
   texts: [] as { value: string; y: number; page: number }[],
@@ -90,6 +95,39 @@ describe("municipal report PDF layout boundaries", () => {
     await expect(buildMunicipalReportPdf(version)).rejects.toThrow("checksum");
     expect(drawing.texts).toHaveLength(0);
   });
+  it("renders v2 sketch limitations, unknown hectares, frozen citations and pending human decisions", async () => {
+    const f = await makeMunicipalReportFixture();
+    const manifest = await compileMunicipalReportV1({
+      ...f.input,
+      generatorVersion: MUNICIPAL_REPORT_GENERATOR_V2,
+      photoPointReviews: [],
+    });
+    await buildMunicipalReportPdf({
+      ...(await fixture()),
+      manifest,
+      manifestSha256: await baselineSha256(manifest),
+    });
+    const text = drawing.texts.map((entry) => entry.value).join(" ");
+    expect(text).toContain("5. Beplantningsegnethed");
+    expect(text).toContain("Skitse - kræver faglig validering");
+    expect(text).toContain("A: egnet ukendt");
+    expect(text).toContain("Fotopunkt afventer faglig gennemgang");
+    expect(text).toContain("9. Versions- og evidensregister");
+    expect(text).toContain("ingen beregnet lokal effekt");
+    expect(text).toContain("CO2");
+    expect(text).not.toContain("CO₂");
+    expect(text).not.toContain("status end complete");
+    expect(text).not.toMatch(/Dækning: sted (?:complete|partial|none|unknown)/);
+    expect(text).toContain("Kildeversion:");
+    const photoHeading = drawing.texts.find((entry) => entry.value.startsWith("4. Fotos"));
+    const firstPhoto = drawing.texts.find((entry) => entry.value.startsWith("Foto 1 af"));
+    expect(photoHeading?.page).toBe(firstPhoto?.page);
+    for (const source of manifest.planting!.literature) {
+      expect(text).toContain(source.sourceUrl);
+      expect(text).toContain(source.checkedAt);
+    }
+    expect(drawing.texts.every((entry) => entry.y <= 289)).toBe(true);
+  });
   it("refuses a foreign or wrong-original JPEG asset instead of embedding it", async () => {
     const version = await fixture();
     await expect(
@@ -102,5 +140,25 @@ describe("municipal report PDF layout boundaries", () => {
       ]),
     ).rejects.toThrow("originalfoto");
     expect(drawing.texts).toHaveLength(0);
+  });
+  it("renders v3 Danish category descriptions and manual priority labels", async () => {
+    const f = await makeMunicipalReportFixture();
+    const manifest = await compileMunicipalReportV1({
+      ...f.input,
+      generatorVersion: MUNICIPAL_REPORT_GENERATOR_V3,
+    });
+    manifest.photos[0].manualNotes[0].proposedPriority = "high";
+    await buildMunicipalReportPdf({
+      ...(await fixture()),
+      manifest,
+      manifestSha256: await baselineSha256(manifest),
+    });
+    const text = drawing.texts.map((entry) => entry.value).join(" ");
+    expect(text).toContain("Ubekræftet AI-forslag:");
+    expect(text).toContain("AI har markeret begrænset udsyn");
+    expect(text).toContain("Egen foreslået prioritet: Høj");
+    expect(text).not.toContain("Egen foreslået prioritet: high");
+    expect(text).not.toContain(f.inspection.result!.visual.quality.limitation);
+    expect(text).toContain("municipal-evidence-report/v3");
   });
 });

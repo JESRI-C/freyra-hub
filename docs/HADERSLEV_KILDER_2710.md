@@ -1,0 +1,72 @@
+# Offentlige kilder til leverancen 27. oktober 2026
+
+Kodegrundlag kontrolleret 22. oktober 2026. Kilder hentes først efter projektadgang og gemmes i en version med SHA-256. Nye versioner fryser ortofoto og det valgte Sentinel-billedes pixels, når billedhentningen lykkes; genåbning bruger da de gemte pixels. Manglende pixels vises som en datamangel. Ældre Sentinel-versioner med kun en billed-URL viser en tydelig besked om netafhængighed og ændres ikke. Nye kilder omskriver ikke historiske rapporter.
+
+## Hentning og fallback
+
+Hver adapter har en tidsgrænse og størrelsesgrænse; en ekstra grænse på 25 sekunder forhindrer, at én kilde standser de øvrige. Kildestatus vises som **hentet**, **delvist** eller **ikke tilgængelig** med konkret begrænsning og hentedato.
+
+Hele dataversionen skal også holde sig under databasens grænse på 2 MiB, inklusive de indlejrede billeder og JSON-formatets lagerplads. Hvis summen bliver for stor, udelades de største supplerende kildeindhold enkeltvis med tydelig fejlstatus og ukendt dækning. De øvrige kilder og den officielle vandløbsreference bevares. Dette omskriver aldrig tidligere gemte versioner.
+
+Validerede offentlige svar for samme projekt, geometri og datoperiode genbruges i op til 15 minutter. Den seneste autoriserede gemte kildeversion kan fylde cachen efter en Worker-genstart. Ved midlertidig fejl kan et svar højst 24 timer gammelt bruges som **Gemt kilde** med delvis status og oprindelig hentedato. Grænsen gælder automatisk fallback ved en ny hentning; ældre gemte versioner kan fortsat genåbnes uændret. Adgangsfejl og ugyldige svar skjules ikke med en gammel grøn status. Cachen er begrænset til 24 poster / 4 MiB pr. Worker; den permanente dokumentation er de gemte snapshots. Fejlede hentninger bliver aldrig til nulværdier.
+
+## Kilder og præcise begrænsninger
+
+| Kilde                      | Implementeret                                                                                                                   | Forbehold                                                                                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Officiel vandløbsreference | Eksisterende registerlinje fastholdt i baseline                                                                                 | Danske Stednavne er ikke kommunalt godkendt stationering.                                                                                                              |
+| Ortofoto                   | Faktisk WMS-JPEG, hentet på server og frosset med filhash i baseline                                                            | Billedet er et oversigtsbillede. Præcis optagedato og lokal NoData-dækning oplyses ikke i svaret; ingen opmålingspåstand.                                              |
+| DHM                        | Eksisterende filkatalog                                                                                                         | Rasterpixels og terrænanalyse mangler; metadata er ikke højdemålinger.                                                                                                 |
+| §3 og vandplan             | Eksisterende versionerede WFS-geometrier                                                                                        | Registreringer skal stadig fagligt gennemgås.                                                                                                                          |
+| Markblokke                 | Markblokke 2026, CRS84-polygoner fra officiel WFS                                                                               | Registerudtræk ved laglukning 4. maj 2026, ikke en ejendomsgrænse eller ny kontrol på flyvedagen.                                                                      |
+| Lavbund                    | Kulstof2022-polygoner med 6–12 % og over 12 % kulstof                                                                           | Kortlægning, ikke jordprøver. Den offentlige katalogpost angiver ingen særskilt licens; vilkår for videre aflevering skal afklares.                                    |
+| Skov                       | GeoDanmark `skov_current` via Datafordeleren                                                                                    | Som udgangspunkt skov fra 2.500 m². Små træer/træbælter er ikke fuldt dækket, derfor delvis status.                                                                    |
+| DMI                        | Historiske stationsnedbørsdata med en særskilt visning af periodens sidste dato fra gemte døgnobservationer | Døgnet vises med sit faktiske UTC-interval og kvalitetsstatus. Stationsnedbør er ikke lokalt flyvevejr; temperatur og vind mangler. En manglende/ikke entydig døgnværdi vises som ukendt. |
+| Sentinel-2                 | Scenekatalog og faktisk udbyder-thumbnail frosset med billedhash; scene med 0 % global skydækning prioriteres, ellers højst 10 % | Reference er periodens slutdato (flyvedagen i automatisk intake). Lokal skyfrihed er ikke verificeret. Ved én dag søges ±30 dage. Ufuldstændigt katalog kan mangle en nærmere scene. NDVI er roadmap. |
+| Matrikel                   | Matriklen2 `mat:Jordstykke_Gaeldende`, GML 3.2 fra Datafordeleren; polygoner og huller gemmes i WGS84 | Gældende register ved hentning, ikke historisk flyvedag. CRS omregnes fra ETRS89/UTM32 uden opmålingspåstand. Manglende/ukendt antal eller afkortning giver delvis dækning. |
+| Jordart                    | GEUS' aktive ArcGIS-polygonlag `Jordartskort_25000/MapServer/1`; faktiske jordartskoder, versioner og geometrier gemmes | Verificeret v7.1, januar 2026, ved formatprøven. Kortet dækker ikke alle landarealer. Generalisering højst 0,00001 grad og 7 decimaler dokumenteres; ingen lokal jordprøve, arealopmåling eller kulstofberegning. |
+
+Polygonadapterne henter højst 200 kandidater: beplantningskilder højst 384 KiB, matrikel og jordart højst 512 KiB pr. geometrisvar. Sentinel-billedet er højst 300.000 bytes og har en selvstændig 8-sekunders grænse. Hvis det fulde antal er større, gemmes delvis dækning. Kortgeometrier bevarer huller og multipolygoner. Et område uden modtaget data klassificeres ikke som frit for begrænsninger. Jordartskilden påstår aldrig komplet lokal kortlægning alene ud fra et fuldt API-svar.
+
+Nye indlæsninger af markblokke, lavbund, skov og jordart kontrollerer også polygonernes topologi. Hele ugyldige features udelades uden formændring eller reparation; antal, årsag og råsvarets SHA-256 dokumenteres, og rumlig dækning kan da aldrig være komplet. Hvis alle modtagne polygoner er ugyldige, er laget ikke tilgængeligt med ukendt dækning. Byte- og vertexgrænser gælder det oprindelige svar før filtrering. Ældre kildeversioner bruges ikke som automatisk fallback for denne nye validering, men genåbnes fortsat uændret. GeoDanmarks dokumenterede finite Z-koordinat udelades eksplicit fra nye XY-kortgeometrier med kildeadvarsel; den er ikke en højdemåling i Freyra. GEUS tillader højst 1.000 ringe pr. polygon under den uændrede samlede grænse på 24.000 vertices.
+
+En afgrænset kontrol af den faktiske seksfotosags første baseline 22. oktober fandt ugyldig topologi i 8 af 38 gemte lavbundspolygoner. En ny læseprøve hos GEUS fandt desuden topologifejl i én af 20 modtagne jordartspolygoner. Den gamle baseline ændres ikke. Den efterfølgende staging-baseline nedenfor indeholder de validerede delmængder; faglig gennemgang af datagabene er fortsat nødvendig. Datagabene er ikke bevis for lavbundsfri jord eller manglende beskyttelse.
+
+## Adgang og kontrollen 22. oktober
+
+Ortofoto, skov og matrikel bruger den eksisterende servervariabel `DATAFORDELER_API_KEY`. Nøglen indgår aldrig i baseline, klient-URL eller fejltekst. Markblokke, Kulstof2022, GEUS og Sentinel kræver ingen ny nøgle. Der er ikke foretaget produktionsændringer.
+
+Read-only formatprøver mod udbyderne gav: ortofoto HTTP 200 med JPEG; skov, markblokke og Kulstof2022 returnerede GeoJSON med CRS84 og polygon/multipolygon. Matriklen2-adapteren gemte 8 jordstykker fra et offentligt testområde; GEUS-adapteren gemte 2 jordartspolygoner fra et andet. Sentinel-adapteren frøs et faktisk JPEG på 31.353 bytes: udbyderens ene redirect fra Datahub til `zipper.creodias.eu` følges kun ved uændret asset-sti, og svarets billedsignatur valideres også ved medietypen `application/octet-stream`. Prøverne brugte små offentlige testområder og er **ikke** accept af dækning, billedkvalitet eller faglig egnethed for den konkrete Bykær-sag.
+
+### Verificeret Worker-hentning i den faktiske sag
+
+Efter deployment af staging-Worker `67b1aafd…` den 22. oktober kl. 18.11 dansk tid blev en ny undersøgelse oprettet gennem brugerfladen. SQL-genlæsning af den gemte baseline bekræftede nedenstående kildesvar fra den kørende Worker, ikke kun fra lokale formatprøver:
+
+- Baseline: `950af95e-3eb9-48e6-abbb-18bf06efc756`.
+- Undersøgelse: `43600233-a99b-48e6-8a3e-05f6d727d759`.
+- Hentetid: `2026-10-22T16:12:34Z` (18.12.34 dansk tid).
+
+| Kilde | Gemte data i denne version | Dokumenteret begrænsning |
+| --- | --- | --- |
+| Lavbund, adapter v3 | 30 af 38 modtagne polygoner | 8 udeladt på grund af ugyldig topologi; delvis rumlig dækning. |
+| Skov, adapter v3 | 8 af 8 modtagne polygoner | Ingen topologiafvisninger; små træer/træbælter er stadig ikke fuldt dækket. |
+| Jordart, adapter v3 | 19 af 20 modtagne polygoner | 1 udeladt på grund af ugyldig topologi; delvis dækning. |
+| Markblokke, adapter v3 | 45 projektintersektioner af 47 modtagne polygoner | Ingen topologiafvisninger; de øvrige 2 ligger uden for projektpolygonen. Registertid er ikke flyvedag. |
+| Matrikel | 143 jordstykker | Gældende register, ikke historisk ejendomsgrundlag for flyvedagen. |
+| Sentinel-2 | 18 scener | Antallet dokumenterer hverken lokal skyfrihed eller NDVI. |
+| Ortofoto | 1 gemt oversigtsbillede | Optagedato og lokal NoData-dækning er ikke verificeret. |
+| Ortofoto/DHM-katalog | 27 katalogposter | Metadata, ikke terrænpixels eller højdemålinger. |
+| §3 og vandplan | 22 kandidater | Kræver faglig gennemgang og dækningskontrol. |
+| DMI | 30 døgnobservationer | Stationsnedbør; ikke lokalt flyvevejr med temperatur og vind. |
+
+Kildestatus er **delvist** for de supplerende kilder. Den officielle vandløbsreference er **hentet**, mens kommunalt regulativ fortsat ikke er implementeret. Genlæsningen bekræfter, at de nye v3-adaptere og frasorteringen virker på staging og er gemt i den konkrete sag. Skitsevisningen er efterfølgende kontrolleret ved 10 og 20 m på mobil og stor skærm. Rapportversion 2 fra generator v3 er hentet som PDF/ZIP, filernes SHA-256 kontrolleret, alle 12 PDF-sider visuelt gennemgået og læserens PDF genhentet byteidentisk. Se [kontrolnotatet](HADERSLEV_KONTROL_2026-10-22.md) for versionsbeviser. Kildehentning og tekniske kontroller er ikke faglig godkendelse af beplantning eller datadækning, og A–E-hektar er fortsat ukendte.
+
+## Primære kilder
+
+- [Datafordeleren: Ortofoto forår WMS](https://datafordeler.dk/dataoversigt/geodanmark-ortofoto/ortofoto-foraar-wms/)
+- [Miljøportalens offentlige API-kontrakt](https://datakatalog.miljoeportal.dk/api/swagger/index.html) og katalogposterne [Markblokke 2026](https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:markblokke-2026), [Kulstof2022](https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:kulstof-2022-lavbundskort), [Skove, GeoDanmark](https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:skove-geodanmark)
+- [Copernicus: STAC API](https://documentation.dataspace.copernicus.eu/APIs/STAC.html)
+- [Dataforsyningen: DAWA, opdateret 1. oktober 2026](https://dataforsyningen.dk/data/4924)
+- [Datafordeleren: Matriklen2 WFS](https://datafordeler.dk/dataoversigt/matriklen-mat/matriklen2-gaeldende-og-foreloebig-wfs/)
+- [GEUS: aktivt Jordartskort 1:25.000, polygonlag og versionsbeskrivelse](https://data.geus.dk/arcgis/rest/services/Denmark/Jordartskort_25000/MapServer/1)
+- [CREODIAS: Zipper 2.0](https://creodias.eu/news/zipper-2-0-0-a-new-version-of-zipper-deployed/)

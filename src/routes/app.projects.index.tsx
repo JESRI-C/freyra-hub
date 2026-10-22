@@ -1,13 +1,14 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bits";
-import { getAllNatureProjectSummaries } from "@/services/projects-service";
+import { getAllNatureProjectSummaries, getProjects } from "@/services/projects-service";
 import { ProjectMonitorCard } from "@/components/project/ProjectMonitorCard";
 import { Leaf, FolderOpen, AlertCircle, BarChart2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
 import {
   canCreateProject,
@@ -20,7 +21,7 @@ import {
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/projects/")({
-  head: () => ({ meta: [{ title: "Projektoversigt — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Projektoversigt — Freyra" }] }),
   component: ProjectsIndexPage,
 });
 
@@ -57,7 +58,7 @@ const FORM_DEFAULTS: CreateProjectForm = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProjectsIndexPage() {
-  const { currentOrg, refresh } = useAuth();
+  const { currentOrg, refresh, user } = useAuth();
   const orgId = currentOrg?.id ?? "";
   const canCreate = canCreateProject(currentOrg?.role);
   const navigate = useNavigate();
@@ -73,8 +74,23 @@ function ProjectsIndexPage() {
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
   const { data: querySummaries } = useSuspenseQuery({
-    queryKey: ["nature-project-summaries", orgId],
-    queryFn: () => getAllNatureProjectSummaries(orgId),
+    queryKey: [DEMO_MODE ? "municipal-project-list" : "nature-project-summaries", orgId, user?.id],
+    queryFn: async () => {
+      if (!DEMO_MODE) return getAllNatureProjectSummaries(orgId);
+      // Municipal cards show only project metadata; no per-case indicator,
+      // report or audit queries are needed for this navigation screen.
+      const projects = await getProjects(orgId);
+      return projects.map(
+        (project): NatureProjectSummary => ({
+          project,
+          indicators: [],
+          activeDataSources: 0,
+          openActions: 0,
+          latestAuditEvent: null,
+          latestReport: null,
+        }),
+      );
+    },
   });
 
   // Prepend any locally created projects so they appear immediately
@@ -251,11 +267,11 @@ function ProjectsIndexPage() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5 pb-16">
       <PageHeader
-        title="Projektoversigt"
-        description="Alle naturprojekter i din organisation"
+        title={DEMO_MODE ? "Sager" : "Projektoversigt"}
+        description="Fra de første dronebilleder til en samlet, sporbar aflevering"
         actions={
           <div className="flex items-center gap-2">
-            <Pill tone="info">{summaries.length} projekter</Pill>
+            <Pill tone="info">{summaries.length} sager</Pill>
             <button
               onClick={() => canCreate && setShowCreateModal(true)}
               disabled={!canCreate}
@@ -267,48 +283,50 @@ function ProjectsIndexPage() {
               className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               <Plus className="h-4 w-4" />
-              Opret projekt
+              Opret sag
             </button>
           </div>
         }
       />
 
       {/* Stat bar — klikbare filtre */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Projekter i alt"
-          value={String(summaries.length)}
-          icon={<FolderOpen className="h-5 w-5" />}
-          onClick={clearFilters}
-          active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
-        />
-        <StatCard
-          label="Aktive datakilder"
-          value={String(totalSites)}
-          icon={<Leaf className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Åbne handlinger"
-          value={String(totalOpenActions)}
-          icon={<AlertCircle className="h-5 w-5" />}
-          accent="bg-amber-100 text-amber-700"
-          onClick={() => {
-            setOpenActionsOnly((v) => !v);
-            setHighReadinessOnly(false);
-          }}
-          active={openActionsOnly}
-        />
-        <StatCard
-          label="Gns. rapportklarhed"
-          value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
-          icon={<BarChart2 className="h-5 w-5" />}
-          onClick={() => {
-            setHighReadinessOnly((v) => !v);
-            setOpenActionsOnly(false);
-          }}
-          active={highReadinessOnly}
-        />
-      </div>
+      {!DEMO_MODE && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Projekter i alt"
+            value={String(summaries.length)}
+            icon={<FolderOpen className="h-5 w-5" />}
+            onClick={clearFilters}
+            active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
+          />
+          <StatCard
+            label="Aktive datakilder"
+            value={String(totalSites)}
+            icon={<Leaf className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Åbne handlinger"
+            value={String(totalOpenActions)}
+            icon={<AlertCircle className="h-5 w-5" />}
+            accent="bg-amber-100 text-amber-700"
+            onClick={() => {
+              setOpenActionsOnly((v) => !v);
+              setHighReadinessOnly(false);
+            }}
+            active={openActionsOnly}
+          />
+          <StatCard
+            label="Gns. rapportklarhed"
+            value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
+            icon={<BarChart2 className="h-5 w-5" />}
+            onClick={() => {
+              setHighReadinessOnly((v) => !v);
+              setOpenActionsOnly(false);
+            }}
+            active={highReadinessOnly}
+          />
+        </div>
+      )}
 
       {/* Search + filter */}
       <Card className="p-4 space-y-3">
@@ -317,7 +335,7 @@ function ProjectsIndexPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Søg efter projektnavn, placering eller type…"
+            placeholder="Søg efter sagsnavn, placering eller type…"
             className="flex-1 bg-transparent outline-none text-sm"
           />
         </div>
@@ -369,20 +387,41 @@ function ProjectsIndexPage() {
       {/* Result count */}
       <div className="text-sm text-muted-foreground">
         Viser <span className="font-medium text-foreground">{filtered.length}</span> af{" "}
-        {summaries.length} projekter
+        {summaries.length} sager
       </div>
 
       {/* Project grid */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((s) => (
-            <ProjectMonitorCard key={s.project.id} summary={s} />
-          ))}
+          {filtered.map((s) =>
+            DEMO_MODE ? (
+              <Link
+                key={s.project.id}
+                to="/app/projects/$slug"
+                params={{ slug: s.project.slug ?? s.project.id }}
+                search={{ step: "billeder" }}
+                className="group flex min-h-48 flex-col rounded-xl border bg-card p-6 transition hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                <span className="text-xs text-muted-foreground">
+                  {s.project.municipality ?? "Område afventer"}
+                </span>
+                <h2 className="mt-3 text-xl font-semibold">{s.project.name}</h2>
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                  {s.project.description ?? "Åbn sagen for at se billeder, kilder og rapporter."}
+                </p>
+                <span className="mt-auto pt-6 text-sm font-medium text-primary">
+                  Åbn sagsforløb →
+                </span>
+              </Link>
+            ) : (
+              <ProjectMonitorCard key={s.project.id} summary={s} />
+            ),
+          )}
         </div>
       ) : (
         <Card className="py-12 text-center">
           <CardHeader
-            title="Ingen projekter fundet"
+            title="Ingen sager fundet"
             subtitle="Prøv at justere din søgning eller filtrering"
           />
         </Card>
@@ -397,7 +436,7 @@ function ProjectsIndexPage() {
           <div className="bg-card rounded-2xl shadow-xl border w-full max-w-lg">
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b">
-              <h2 className="font-semibold text-base">Opret nyt projekt</h2>
+              <h2 className="font-semibold text-base">Opret ny sag</h2>
               <button
                 onClick={closeModal}
                 className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
@@ -417,7 +456,7 @@ function ProjectsIndexPage() {
                   required
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="F.eks. Vejle Ådal Genopretning"
+                  placeholder="Projektets navn"
                   className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
@@ -457,7 +496,7 @@ function ProjectsIndexPage() {
                   <input
                     value={form.location}
                     onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="F.eks. Vejle"
+                    placeholder="Kommune eller lokalitet"
                     className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>

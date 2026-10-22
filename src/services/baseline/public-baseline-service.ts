@@ -48,6 +48,9 @@ const SourceSchema = z.object({
   sourceModifiedAt: z.string().nullable(),
   fetchedAt: z.string(),
   adapterVersion: z.string(),
+  retrieval: z
+    .object({ mode: z.enum(["cache", "saved_fallback"]), checkedAt: z.string().datetime() })
+    .optional(),
   query: z.object({
     geometrySha256: Hash,
     bbox: Bbox,
@@ -248,6 +251,12 @@ export async function buildPublicBaselineManifest(
   const pending = [
     ["municipal-regulation", "Kommunen", "Regulativ og kommunal delstrækning"],
     ["orthophoto-terrain", "Datafordeler", "Ortofoto og DHM"],
+    ["orthophoto-preview", "Datafordeler", "Ortofoto · gemt oversigtsbillede"],
+    ["planting-markblocks", "Landbrugs- og Fiskeristyrelsen", "Markblokke 2026"],
+    ["planting-lowland", "DCA / Aarhus Universitet", "Kulstof 2022 (lavbundskort)"],
+    ["planting-woodland", "GeoDanmark", "Skove og registreret trædække"],
+    ["cadastral-parcels", "Geodatastyrelsen", "Matriklen2 · gældende jordstykker"],
+    ["soil-type", "GEUS", "Danmarks Digitale Jordartskort 1:25.000"],
     ["dmi-historical", "DMI", "Historisk vejr og nedbør"],
     [
       "water-plan-nature",

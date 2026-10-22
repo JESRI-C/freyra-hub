@@ -84,6 +84,53 @@ function localTimePhoto(index: number, timestamp = "2026:08:24 09:31:01") {
   return original;
 }
 describe("server-original camera localization proposals", () => {
+  it("offers a bounded whole-series camera proposal without replacing the default separate groups", () => {
+    const originals = [
+      photo(1, 9.26),
+      photo(2, 9.2601),
+      photo(3, 9.2602),
+      photo(4, 9.2603),
+      photo(5, 9.28),
+      photo(6, 9.2801),
+    ];
+    const result = buildDroneLocalization("p", "a", originals);
+    expect(result.clusters.map((cluster) => cluster.mediaIds.length)).toEqual([4, 2]);
+    expect(result.combinedCluster).toMatchObject({
+      searchStatus: "pending",
+      suggestedReferenceId: null,
+      candidates: [],
+    });
+    expect(result.combinedCluster?.mediaIds).toHaveLength(6);
+    expect(result.combinedCluster?.cameraBounds).toEqual([9.26, 55.35, 9.2801, 55.35]);
+    expect(result.combinedCluster?.suggestedPolygon.coordinates[0][0][0]).toBeLessThan(9.26);
+    expect(result.combinedCluster?.suggestedPolygon.coordinates[0][2][0]).toBeGreaterThan(9.2801);
+    expect(result.combinedCluster).toEqual(
+      buildDroneLocalization("p", "a", [...originals].reverse()).combinedCluster,
+    );
+    expect(result).toMatchObject({
+      georeferenced: false,
+      reportEligible: false,
+      requiresConfirmation: true,
+    });
+  });
+  it("refuses a whole-series query beyond the existing geographic limit", () => {
+    const result = buildDroneLocalization("p", "a", [
+      photo(1, 9.26),
+      photo(2, 9.2601),
+      photo(3, 10.5),
+    ]);
+    expect(result.combinedCluster?.searchStatus).toBe("too_broad");
+    expect(result.clusters[0].cameraBounds[2]).toBe(9.2601);
+  });
+  it("does not silently omit originals without usable GPS from an all-photos proposal", () => {
+    const result = buildDroneLocalization("p", "a", [
+      photo(1, 9.26),
+      photo(2, 9.28),
+      photo(3, null),
+    ]);
+    expect(result.combinedCluster).toBeUndefined();
+    expect(result.photos).toHaveLength(3);
+  });
   it("proposes one area and reference for three clean GPS originals with only an unknown capture timezone", () => {
     const originals = [localTimePhoto(1), localTimePhoto(2), localTimePhoto(3)];
     for (const original of originals)

@@ -242,11 +242,21 @@ const PageSchema = z
         type: z.literal("name"),
         properties: z.object({ name: z.literal(WATER_PLAN_NATURE_CRS) }).strict(),
       })
-      .strict(),
+      .strict()
+      .nullable(),
     // Returned links may use another front-door host. They are never followed or saved.
     links: z.array(z.unknown()).max(6).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    // Observed GeoServer empty responses explicitly use crs:null. Keep nonempty CRS strict.
+    (page) =>
+      page.crs !== null ||
+      (page.features.length === 0 &&
+        page.numberMatched === 0 &&
+        page.numberReturned === 0 &&
+        page.totalFeatures === 0),
+  );
 
 export function waterPlanNatureProduct(id: WaterPlanNatureProductId): WaterPlanNatureProduct {
   const product = WATER_PLAN_NATURE_PRODUCTS.find((item) => item.id === id);

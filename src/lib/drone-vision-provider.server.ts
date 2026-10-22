@@ -1,5 +1,6 @@
 import { createServerOnlyFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { parseDroneVisionJson } from "@/services/monitoring/drone-vision-json";
 import { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
 export { DRONE_VISION_MODEL } from "@/services/monitoring/drone-image-inspection-model";
 import {
@@ -17,6 +18,53 @@ export const DRONE_VISION_TRANSFORM = "cloudflare-images-jpeg-1536-q85-strip-app
 export const DRONE_VISION_TIMEOUT_MS = 100_000;
 const MAX_DERIVATIVE_BYTES = 2 * 1024 * 1024;
 const MAX_RESPONSE_BYTES = 64 * 1024;
+const DIAGNOSTIC_FIELDS = new Set([
+  "quality",
+  "assessment",
+  "issues",
+  "limitation",
+  "watercourseVisibility",
+  "features",
+  "kind",
+  "appearance",
+  "confidence",
+  "uncertainty",
+  "region",
+  "x",
+  "y",
+  "width",
+  "height",
+  "overallUncertainty",
+]);
+const DIAGNOSTIC_CODES = new Set([
+  "invalid_type",
+  "too_small",
+  "too_big",
+  "invalid_format",
+  "invalid_union",
+  "invalid_value",
+  "custom",
+  "unrecognized_keys",
+  "not_multiple_of",
+]);
+function safeValidationIssues(error: z.ZodError) {
+  // Paths and issue messages can originate in untrusted model output. Emit only
+  // fixed schema vocabulary; never actual values, unknown keys or Zod prose.
+  return error.issues.slice(0, 8).map((issue) => ({
+    code: DIAGNOSTIC_CODES.has(issue.code) ? issue.code : "other",
+    path:
+      issue.path
+        .slice(0, 4)
+        .map((part) =>
+          typeof part === "number"
+            ? "[]"
+            : typeof part === "string" && DIAGNOSTIC_FIELDS.has(part)
+              ? part
+              : "other",
+        )
+        .join(".") || "root",
+  }));
+}
 
 /** Narrow server capability matching the generated runtime types in types/.
  * Keeping Worker globals out of the browser compilation preserves DOM types. */
@@ -245,6 +293,8 @@ export const inspectDroneImageBytes = createServerOnlyFn(
           envelopeSchema: ValidationStatus;
           contentJson: ValidationStatus;
           visualSchema: ValidationStatus;
+          repaired?: boolean;
+          validationIssues?: ReturnType<typeof safeValidationIssues>;
         }
       | undefined;
     const phaseMs: Partial<Record<Phase, number>> = {};
@@ -395,7 +445,9 @@ export const inspectDroneImageBytes = createServerOnlyFn(
             if (!envelope.success) throw new DroneVisionError("invalid_output");
             let content: unknown;
             try {
-              content = JSON.parse(envelope.data.choices[0].message.content);
+              const parsed = parseDroneVisionJson(envelope.data.choices[0].message.content);
+              content = parsed.value;
+              if (parsed.repaired) outputDiagnostics.repaired = true;
               outputDiagnostics.contentJson = "valid";
             } catch {
               outputDiagnostics.contentJson = "invalid";
@@ -403,7 +455,10 @@ export const inspectDroneImageBytes = createServerOnlyFn(
             }
             const parsedVisual = DroneImageVisualDraftSchema.safeParse(content);
             outputDiagnostics.visualSchema = parsedVisual.success ? "valid" : "invalid";
-            if (!parsedVisual.success) throw new DroneVisionError("invalid_output");
+            if (!parsedVisual.success) {
+              outputDiagnostics.validationIssues = safeValidationIssues(parsedVisual.error);
+              throw new DroneVisionError("invalid_output");
+            }
             visual = parsedVisual.data;
           } catch {
             throw new DroneVisionError("invalid_output");

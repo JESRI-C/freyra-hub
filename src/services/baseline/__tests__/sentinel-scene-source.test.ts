@@ -60,6 +60,27 @@ function scenes(
 }
 
 describe("official Sentinel-2 L2A candidate catalogue", () => {
+  it("retains only a genuine public thumbnail asset and declares the neighbouring flight-day search window", async () => {
+    const thumbnail =
+      "https://datahub.creodias.eu/odata/v1/Assets(98eacd8c-8c85-4888-895a-a45544410c46)/$value";
+    const candidate = item("scene-preview", {
+      assets: { thumbnail: { href: thumbnail, type: "image/jpeg", roles: ["thumbnail"] } },
+    });
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response([candidate]));
+    const source = await fetchSentinelSceneSource(
+      { ...INPUT, dateFrom: "2026-09-10", dateTo: "2026-09-10" },
+      { fetchImpl, now: NOW },
+    );
+    expect(JSON.parse(fetchImpl.mock.calls[0][1]!.body as string)).toMatchObject({
+      datetime: "2026-08-11T00:00:00Z/2026-10-10T23:59:59.999Z",
+    });
+    expect(source.query).toMatchObject({ requestedFrom: "2026-09-10", requestedTo: "2026-09-10" });
+    expect(scenes(source)[0]).toMatchObject({
+      thumbnail: { href: thumbnail, mediaType: "image/jpeg" },
+    });
+    expect(source.payload).toMatchObject({ previewSceneId: "scene-preview" });
+    expect(source.quality.warnings.join(" ")).toContain("30 dage før og efter");
+  });
   it("uses only the fixed current endpoint and canonical AOI/period, with local quality pending", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response([item()]));
     const source = await fetchSentinelSceneSource(INPUT, { fetchImpl, now: NOW });

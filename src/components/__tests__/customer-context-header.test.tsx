@@ -60,7 +60,7 @@ describe("truthful global project context", () => {
       expect(html).toContain("Haderslev Kommune");
       expect(html).toContain("Bykær Bæk");
       expect(html).toContain('href="/app/projects/bykaer-baek"');
-      expect(html).toContain("Se projektets datagrundlag");
+      expect(html).toContain("Se sagens datagrundlag");
       for (const invented of [
         "Q2 2026",
         "3 min",
@@ -96,7 +96,7 @@ describe("truthful global project context", () => {
     expect(await renderContext()).toContain('href="/app/projects/project-a"');
     state.project = null;
     const html = await renderContext();
-    expect(html).toContain("Vælg projekt for at se datagrundlag");
+    expect(html).toContain("Vælg sag for at se datagrundlag");
     expect(html).not.toContain("/app/projects/project-a");
   });
 });

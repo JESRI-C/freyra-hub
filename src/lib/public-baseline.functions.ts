@@ -29,6 +29,10 @@ import type {
   PublicBaselineSummary,
 } from "@/services/baseline/public-baseline-types";
 import { collectPublicBaselineSources } from "@/services/baseline/collect-public-baseline.server";
+import {
+  publicSourceCache,
+  publicSourceCacheKey,
+} from "@/services/baseline/public-source-cache.server";
 
 const Uuid = z
   .string()
@@ -81,6 +85,7 @@ export interface PublicBaselineDependencies {
     provider?: OfficialWatercourseGeometry["sourceProvider"],
   ): Promise<OfficialWatercourseGeometry>;
   collectSources(manifest: PublicBaselineManifest): Promise<PublicBaselineManifest>;
+  primeSourceCache(client: PublicBaselineClient, manifest: PublicBaselineManifest): Promise<void>;
   loadRequest(
     client: PublicBaselineClient,
     projectId: string,
@@ -156,6 +161,32 @@ const DEFAULT_DEPENDENCIES: PublicBaselineDependencies = {
     return fetchOfficialWatercourse(id);
   },
   collectSources: collectPublicBaselineSources,
+  primeSourceCache: async (client, manifest) => {
+    // Read through caller-bound RLS, never the privileged writer. A cache miss must not block a fresh collection.
+    try {
+      const { data, error } = await client
+        .from("project_baseline_snapshots")
+        .select("*")
+        .eq("project_id", manifest.project.id)
+        .order("version_no", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error || !data) return;
+      const snapshot = await baselineSnapshotFromRow(data);
+      if (snapshot.projectId !== manifest.project.id) return;
+      for (const source of snapshot.manifest.sources) {
+        if (
+          source.query.geometrySha256 !== manifest.project.polygonSha256 ||
+          source.query.requestedFrom !== manifest.period.from ||
+          source.query.requestedTo !== manifest.period.to
+        )
+          continue;
+        await publicSourceCache.put(publicSourceCacheKey(manifest.project.id, source), source);
+      }
+    } catch {
+      /* A failed cache lookup is not a fabricated successful source. */
+    }
+  },
   loadRequest: (client, projectId, actorId, requestId) =>
     readOne(client, projectId, "request_id", requestId, actorId),
   loadSnapshot: (client, projectId, snapshotId) => readOne(client, projectId, "id", snapshotId),
@@ -255,6 +286,7 @@ export async function executeCreateProjectBaseline(
     fetchedReference,
     dependencies.now(),
   );
+  await dependencies.primeSourceCache(client, initialManifest);
   const manifest = await dependencies.collectSources(initialManifest);
   await validatePublicBaselineManifest(manifest);
   // Import the privileged writer only after caller-bound authorization and canonical input validation.

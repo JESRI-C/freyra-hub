@@ -76,6 +76,8 @@ export interface DroneLocalizationResult {
   actorId: string;
   photos: DroneLocalizationPhoto[];
   clusters: DroneLocalizationCluster[];
+  /** Optional explicit whole-series proposal. It is never the default selection. */
+  combinedCluster?: DroneLocalizationCluster;
   requiresConfirmation: true;
   georeferenced: false;
   reportEligible: false;
@@ -227,6 +229,37 @@ function bounded(bounds: WatercourseSearchBounds): boolean {
   );
 }
 
+/** All coordinates are validated original-camera positions; no client polygon is accepted. */
+function combinedCameraCluster(
+  photos: DroneLocalizationPhoto[],
+): DroneLocalizationCluster | undefined {
+  if (
+    photos.length < 2 ||
+    photos.some((photo) => !isDroneCameraLocationStatus(photo.status) || !photo.cameraPosition)
+  )
+    return undefined;
+  const points = photos.map(point);
+  const bounds: WatercourseSearchBounds = [
+    Math.min(...points.map((p) => p[0])),
+    Math.min(...points.map((p) => p[1])),
+    Math.max(...points.map((p) => p[0])),
+    Math.max(...points.map((p) => p[1])),
+  ];
+  const searchBounds = bufferedBounds(bounds, SEARCH_BUFFER_M);
+  const mediaIds = photos.map((photo) => photo.mediaId).sort();
+  return {
+    id: `camera-series:${mediaIds[0]}`,
+    mediaIds,
+    isolated: false,
+    cameraBounds: bounds,
+    searchBounds,
+    suggestedPolygon: polygon(bufferedBounds(bounds, AREA_BUFFER_M)),
+    searchStatus: bounded(searchBounds) ? "pending" : "too_broad",
+    candidates: [],
+    suggestedReferenceId: null,
+  };
+}
+
 /** Connected camera groups are shown separately. Isolated photos never enlarge the main area. */
 export function buildDroneLocalization(
   projectId: string,
@@ -284,12 +317,14 @@ export function buildDroneLocalizationFromPhotos(
       suggestedReferenceId: null,
     };
   });
+  const combinedCluster = groups.length > 1 ? combinedCameraCluster(photos) : undefined;
   return {
     schema: DRONE_LOCALIZATION_SCHEMA,
     projectId,
     actorId,
     photos,
     clusters,
+    ...(combinedCluster ? { combinedCluster } : {}),
     requiresConfirmation: true,
     georeferenced: false,
     reportEligible: false,

@@ -11,6 +11,7 @@ import {
 } from "@/lib/drone-image-inspection.functions";
 import { getSurveyRoundMediaAccess } from "@/lib/survey-round-media.functions";
 import { getCanonicalDroneMediaUrl } from "@/lib/canonical-drone-media.functions";
+import { describeDroneVisualInDanish } from "@/services/monitoring/drone-visual-presentation";
 import type {
   DroneImageInspectionRecord,
   DroneImageInspectionAnswer,
@@ -80,7 +81,7 @@ function InspectionList({ projectId, actorId, refreshToken }: Props & { actorId:
       {records.map((record, index) => (
         <details className="rounded-lg border p-4" key={record.id} open={records.length === 1}>
           <summary className="cursor-pointer font-medium">
-            Foto {index + 1} ·{" "}
+            Foto {index + 1} · Gemt vurdering ·{" "}
             {record.result?.reportSummary.visibleThemes[0] ??
               "Kontrollér billedets udsyn og placering"}
           </summary>
@@ -236,6 +237,7 @@ function InspectionQuestions({
   });
   if (!record.result) return null;
   const draft = record.result;
+  const visualPresentation = describeDroneVisualInDanish(draft.visual);
   function download() {
     const answers = latest?.answers ?? [];
     const report = [
@@ -256,6 +258,12 @@ function InspectionQuestions({
       "BILLEDFORSLAG",
       ...draft.reportSummary.visibleThemes,
       `Billedkvalitet: ${qualityLabels[draft.visual.quality.assessment]}`,
+      visualPresentation.qualityLimitation,
+      visualPresentation.uncertainty,
+      ...visualPresentation.features.flatMap((feature) => [
+        feature.appearance,
+        feature.uncertainty,
+      ]),
       "",
       "SPØRGSMÅL OG GEMTE SVAR",
       ...draft.followupQuestions.flatMap((question) => {
@@ -326,17 +334,21 @@ function InspectionQuestions({
         </p>
       </div>
       <p className="text-sm">
-        {qualityLabels[draft.visual.quality.assessment]} · {draft.visual.quality.limitation}
+        {qualityLabels[draft.visual.quality.assessment]} · {visualPresentation.qualityLimitation}
       </p>
-      <p className="text-sm text-muted-foreground">{draft.visual.overallUncertainty}</p>
+      <p className="text-sm text-muted-foreground">{visualPresentation.uncertainty}</p>
+      <p className="text-xs text-muted-foreground">
+        Vist på dansk ud fra modellens kategorier. Originalteksten er bevaret i
+        dokumentationsgrundlaget.
+      </p>
       <p className="text-xs text-muted-foreground">
         {draft.sourceContext
           ? `Baseret på gemt datagrundlag ${draft.sourceContext.snapshotId.slice(0, 8)}. Kildernes begrænsninger følger billedforslaget.`
           : "Dette ældre billedforslag har endnu ingen gemt kildeversion. Bekræft sted og hent datagrundlaget i undersøgelsen."}
       </p>
-      {draft.visual.features.map((feature, index) => (
+      {visualPresentation.features.map((feature, index) => (
         <p className="text-sm" key={index}>
-          <strong>Muligt synligt træk:</strong> {feature.appearance}{" "}
+          {feature.appearance}{" "}
           <span className="text-muted-foreground">Usikkerhed: {feature.uncertainty}</span>
         </p>
       ))}
@@ -420,7 +432,8 @@ function InspectionQuestions({
       </div>
       {save.error && (
         <p role="alert" className="text-sm text-destructive">
-          {save.error instanceof Error ? save.error.message : "Svarene kunne ikke gemmes."}
+          Svarene kunne ikke bekræftes gemt. Angiv både vurdering og begrundelse, og kontrollér din
+          adgang. Ved et afbrudt forsøg: prøv igen med samme svar.
         </p>
       )}
       {savedMessage && (

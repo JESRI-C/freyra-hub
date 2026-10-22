@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   Lock,
   Mail,
@@ -19,13 +19,16 @@ import { lovable } from "@/integrations/lovable";
 import logoMark from "@/assets/gofreyra-logo.png";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Log ind — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Log ind — Freyra" }] }),
   validateSearch: (s: Record<string, unknown>): { next?: string } =>
     typeof s.next === "string" ? { next: s.next } : {},
   component: LoginPage,
 });
 
 type Mode = "signin" | "signup" | "forgot";
+const subscribeToHydration = () => () => {};
+const clientHydrated = () => true;
+const serverHydrated = () => false;
 
 // Oversæt engelske Supabase-fejlbeskeder til klar dansk
 function translateError(message: string): string {
@@ -42,10 +45,13 @@ function translateError(message: string): string {
   if (m.includes("rate limit") || m.includes("too many"))
     return "For mange forsøg. Vent et par minutter og prøv igen.";
   if (m.includes("network")) return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
-  return message;
+  return "Login kunne ikke gennemføres. Prøv igen eller kontakt den ansvarlige for jeres adgang.";
 }
 
 function LoginPage() {
+  // SSR controls remain disabled until React owns their value and event handlers.
+  // Otherwise fast input/autofill can be erased by the initial hydration render.
+  const hydrated = useSyncExternalStore(subscribeToHydration, clientHydrated, serverHydrated);
   const { user, loading, refreshing, authError, refresh } = useAuth();
   const navigate = useNavigate();
   const { next } = Route.useSearch();
@@ -60,11 +66,13 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const controlsDisabled = !hydrated || busy || loading || refreshing;
 
   if (destination) return <Navigate to={destination} />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (controlsDisabled) return;
     setBusy(true);
     try {
       if (mode === "signin") {
@@ -114,6 +122,7 @@ function LoginPage() {
   };
 
   const handleGoogle = async () => {
+    if (controlsDisabled) return;
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
@@ -146,7 +155,7 @@ function LoginPage() {
             <Mail className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Tjek din email</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">Tjek din e-mail</h2>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
               Vi har sendt en bekræftelsesmail til{" "}
               <strong className="text-foreground">{email}</strong>. Klik på linket i mailen for at
@@ -219,9 +228,14 @@ function LoginPage() {
   return (
     <SplitShell stats={stats}>
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-5">
+        {!hydrated && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Gør login klar …
+          </p>
+        )}
         <div className="lg:hidden flex items-center gap-2 mb-2">
-          <img src={logoMark} alt="GoFreyra" className="h-9 w-9 object-contain" />
-          <span className="font-semibold">GoFreyra</span>
+          <img src={logoMark} alt="Freyra" className="h-9 w-9 object-contain" />
+          <span className="font-semibold">Freyra</span>
         </div>
 
         <div>
@@ -230,10 +244,10 @@ function LoginPage() {
           </h2>
           <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
             {isForgot
-              ? "Indtast din email, så sender vi dig et link til at nulstille din adgangskode."
+              ? "Indtast din e-mail, så sender vi dig et link til at nulstille din adgangskode."
               : isSignup
                 ? "Opret en gratis konto for at komme i gang med at dokumentere naturkapital. Du modtager en bekræftelsesmail."
-                : "Log ind med din email og adgangskode for at fortsætte til dit GoFreyra-workspace."}
+                : "Log ind med din e-mail og adgangskode for at fortsætte til dit arbejdsrum i Freyra."}
           </p>
         </div>
 
@@ -241,6 +255,7 @@ function LoginPage() {
           <Field label="Fulde navn" icon={<User className="h-4 w-4" />}>
             <input
               type="text"
+              disabled={controlsDisabled}
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -260,6 +275,7 @@ function LoginPage() {
         >
           <input
             type="email"
+            disabled={controlsDisabled}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -278,6 +294,7 @@ function LoginPage() {
                 {!isSignup && (
                   <button
                     type="button"
+                    disabled={controlsDisabled}
                     onClick={() => setMode("forgot")}
                     className="text-xs text-primary hover:underline font-normal"
                   >
@@ -295,6 +312,7 @@ function LoginPage() {
           >
             <input
               type={showPassword ? "text" : "password"}
+              disabled={controlsDisabled}
               required
               minLength={6}
               value={password}
@@ -305,6 +323,7 @@ function LoginPage() {
             />
             <button
               type="button"
+              disabled={controlsDisabled}
               onClick={() => setShowPassword((s) => !s)}
               className="absolute right-2 top-[30px] p-1.5 text-muted-foreground hover:text-foreground rounded-md"
               aria-label={showPassword ? "Skjul adgangskode" : "Vis adgangskode"}
@@ -319,6 +338,7 @@ function LoginPage() {
           <Field label="Bekræft adgangskode" icon={<Lock className="h-4 w-4" />}>
             <input
               type={showPassword ? "text" : "password"}
+              disabled={controlsDisabled}
               required
               minLength={6}
               value={confirmPassword}
@@ -341,7 +361,7 @@ function LoginPage() {
             <p>{authError}</p>
             <button
               type="button"
-              disabled={loading || refreshing}
+              disabled={controlsDisabled}
               onClick={() => void refresh().catch(() => undefined)}
               className="mt-2 font-medium underline underline-offset-2 disabled:opacity-60"
             >
@@ -352,7 +372,7 @@ function LoginPage() {
 
         <button
           type="submit"
-          disabled={busy || loading || refreshing}
+          disabled={controlsDisabled}
           className="w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-medium shadow-soft hover:opacity-95 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {(busy || loading || refreshing) && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -373,7 +393,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={handleGoogle}
-              disabled={busy || loading || refreshing}
+              disabled={controlsDisabled}
               className="w-full rounded-xl border border-input bg-card py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <svg className="h-4 w-4" viewBox="0 0 48 48" aria-hidden="true">
@@ -404,6 +424,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={() => setMode("signin")}
+              disabled={controlsDisabled}
               className="text-primary hover:underline font-medium inline-flex items-center gap-1"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Tilbage til log ind
@@ -414,6 +435,7 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={() => setMode("signin")}
+                disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
                 Log ind
@@ -421,10 +443,11 @@ function LoginPage() {
             </>
           ) : (
             <>
-              Ny på GoFreyra?{" "}
+              Ny på Freyra?{" "}
               <button
                 type="button"
                 onClick={() => setMode("signup")}
+                disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
                 Opret en konto
@@ -489,20 +512,20 @@ function SplitShell({
           }}
         />
         <div className="relative flex items-center gap-3">
-          <img src={logoMark} alt="GoFreyra" className="h-11 w-11 object-contain" />
+          <img src={logoMark} alt="Freyra" className="h-11 w-11 object-contain" />
           <div>
-            <div className="text-lg font-semibold tracking-tight">GoFreyra</div>
-            <div className="text-xs text-sidebar-muted">by Freyra</div>
+            <div className="text-lg font-semibold tracking-tight">Freyra</div>
+            <div className="text-xs text-sidebar-muted">Naturdokumentation</div>
           </div>
         </div>
 
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-semibold leading-tight">
-            Mål, dokumentér og handl på <span className="text-leaf">verificeret naturkapital</span>.
+            Fra billeder til <span className="text-leaf">dokumenteret naturtilstand</span>.
           </h1>
           <p className="text-sidebar-muted leading-relaxed">
-            Saml naturprojekter, arealdata, målinger, rapportering og dokumentation i én platform —
-            bygget til den grønne arealomlægning.
+            Saml originalfotos, offentlige data, faglige vurderinger og rapporter i én sag. Se, hvad
+            der er dokumenteret, og hvad der stadig skal afklares.
           </p>
           <div className="grid grid-cols-3 gap-3 pt-4">
             {stats.map((x) => (
@@ -518,7 +541,7 @@ function SplitShell({
         </div>
 
         <div className="relative text-xs text-sidebar-muted">
-          © {new Date().getFullYear()} Freyra ApS · Platform for verificeret naturkapital
+          © {new Date().getFullYear()} Freyra ApS · Naturdokumentation
         </div>
       </div>
 

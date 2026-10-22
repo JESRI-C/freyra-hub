@@ -1,5 +1,8 @@
 import type { MunicipalReportVersion } from "@/services/monitoring/municipal-report-persistence";
-import { municipalReportCanonicalText } from "@/services/monitoring/municipal-report";
+import {
+  MUNICIPAL_REPORT_GENERATOR_V3,
+  municipalReportCanonicalText,
+} from "@/services/monitoring/municipal-report";
 const utf8 = new TextEncoder();
 function csvCell(value: unknown): string {
   let text = value == null ? "" : String(value);
@@ -163,9 +166,24 @@ export async function buildMunicipalReportPackage(
     { name: "fotoregister.csv", bytes: utf8.encode(municipalReportPhotoCsv(report)) },
     { name: "kamerapositioner.geojson", bytes: utf8.encode(municipalReportCameraGeoJson(report)) },
   ];
+  if (report.manifest.planting) {
+    files.push({
+      name: "beplantningsskitse.json",
+      bytes: utf8.encode(JSON.stringify(report.manifest.planting, null, 2) + "\n"),
+    });
+    files.push({
+      name: "faglig-fotogennemgang.json",
+      bytes: utf8.encode(JSON.stringify(report.manifest.photoPointReviews, null, 2) + "\n"),
+    });
+  }
   const manifest = {
     schema: "gofreyra.municipal-report-package/v1",
-    pdfRendererVersion: "municipal-evidence-pdf/v1",
+    pdfRendererVersion:
+      report.manifest.generatorVersion === MUNICIPAL_REPORT_GENERATOR_V3
+        ? "municipal-evidence-pdf/v3"
+        : report.manifest.planting
+          ? "municipal-evidence-pdf/v2"
+          : "municipal-evidence-pdf/v1",
     reportVersionId: report.id,
     reportManifestSha256: report.manifestSha256,
     status: "draft_unreviewed",

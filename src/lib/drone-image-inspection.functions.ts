@@ -463,12 +463,28 @@ const DEFAULTS: DroneImageInspectionDependencies = {
   now: () => new Date().toISOString(),
 };
 
+type InspectionResponse = {
+  status: "completed" | "busy";
+  inspection: DroneImageInspectionRecord;
+  delivery?: "live" | "saved";
+};
+
 export async function executeInspectDroneImage(
   raw: InspectDroneImageInput,
   actorId: string,
   client: InspectionClient,
   overrides: Partial<DroneImageInspectionDependencies> = {},
-): Promise<{ status: "completed" | "busy"; inspection: DroneImageInspectionRecord }> {
+): Promise<InspectionResponse> {
+  return executeInspectionAttempt(raw, actorId, client, overrides, true);
+}
+
+async function executeInspectionAttempt(
+  raw: InspectDroneImageInput,
+  actorId: string,
+  client: InspectionClient,
+  overrides: Partial<DroneImageInspectionDependencies>,
+  mayRetry: boolean,
+): Promise<InspectionResponse> {
   const input = InspectDroneImageInputSchema.parse(raw),
     deps = { ...DEFAULTS, ...overrides };
   if (actorId !== input.expectedCallerUserId)
@@ -515,6 +531,7 @@ export async function executeInspectDroneImage(
     return {
       status: claim.state === "completed" ? "completed" : "busy",
       inspection: claim.inspection,
+      ...(claim.state === "completed" ? { delivery: "saved" as const } : {}),
     };
   }
   const token = claim.claimToken;
@@ -581,7 +598,7 @@ export async function executeInspectDroneImage(
       throw new Error("Databasen bekræftede ikke det præcise billedudkast.");
     assertContributor(await deps.authorize(client, actorId, input.projectId));
     await deps.prepare(writer, actorId, media);
-    return { status: "completed", inspection: saved };
+    return { status: "completed", inspection: saved, delivery: "live" };
   } catch (error) {
     const failureCode: DroneImageInspectionFailure =
       error instanceof DroneVisionError
@@ -596,12 +613,65 @@ export async function executeInspectDroneImage(
                 : "provider_error"
         : phase;
     // Cleanup is best effort and must itself pass the same current contributor/object gate.
+    let failureRecorded = false;
     try {
       assertContributor(await deps.authorize(client, actorId, input.projectId));
       await deps.prepare(writer, actorId, media);
-      await deps.finish(writer, claim.inspection, actorId, token, null, failureCode);
+      const failed = await droneImageInspectionFromRow(
+        await deps.finish(writer, claim.inspection, actorId, token, null, failureCode),
+        input.projectId,
+        input.mediaId,
+      );
+      assertRecordPins(failed, media, sourceContext);
+      failureRecorded = failed.id === claim.inspection.id && failed.status === "failed";
     } catch {
       /* Expiring leases retain uncertain attempts without bypassing revocation. */
+    }
+    const recoverable =
+      error instanceof DroneVisionError &&
+      ["provider", "unavailable", "timeout", "invalid_output"].includes(error.code);
+    // Each retry acquires a fresh lease and consumes the existing database quota.
+    // No retry after uncertain persistence, revoked access, changed bytes or a
+    // validation failure outside the provider. Never restart a third time here.
+    if (
+      recoverable &&
+      failureRecorded &&
+      mayRetry &&
+      claim.inspection.attemptCount < 3 &&
+      error.code !== "unavailable"
+    ) {
+      try {
+        return await executeInspectionAttempt(raw, actorId, client, overrides, false);
+      } catch {
+        // A quota/claim failure may still permit reopening exact saved evidence.
+      }
+    }
+    if (recoverable) {
+      try {
+        assertContributor(await deps.authorize(client, actorId, input.projectId));
+        await deps.prepare(writer, actorId, media);
+        const rows = await deps.list(client, {
+          projectId: input.projectId,
+          mediaId: input.mediaId,
+          limit: 30,
+        });
+        if (rows.length > 31) throw new Error("For mange gemte vurderinger.");
+        for (const row of rows) {
+          let saved: DroneImageInspectionRecord;
+          try {
+            saved = await droneImageInspectionFromRow(row, input.projectId, input.mediaId);
+            assertRecordPins(saved, media, sourceContext, false);
+          } catch {
+            continue;
+          }
+          if (saved.status !== "completed" || !saved.result) continue;
+          assertContributor(await deps.authorize(client, actorId, input.projectId));
+          await deps.prepare(writer, actorId, media);
+          return { status: "completed", inspection: saved, delivery: "saved" };
+        }
+      } catch {
+        // A missing valid fallback is a data gap, never a fabricated assessment.
+      }
     }
     throw new Error(
       error instanceof DroneVisionError
