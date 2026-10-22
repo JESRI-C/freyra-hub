@@ -8,6 +8,8 @@ Arbejde på `codex/haderslev-demo-2710`, PR mod `codex/haderslev-delivery`. Inge
 
 Sæt `VITE_DEMO_MODE=true` i ignoreret `.env.staging` **før build**. Koden eksponerer flaget som `DEMO_MODE`. Sagen samles i Billeder → Datagrundlag → Gennemgang → Beplantning → Rapport og aflevering. Irrelevante moduler skjules også ved direkte navigation. Flaget ændrer ingen adgangsrettigheder og må ikke forveksles med `VITE_APP_DATA_MODE=demo`: kommunens sag bruger altid faktiske data og RLS.
 
+Automatisk billed-AI er ikke frigivet til kommunal brug og ligger i roadmap. Med `DEMO_MODE=true` oprettes datagrundlag, runde og fototilknytninger uden modelkald; start/genforsøg til AI vises ikke. Sammenhold originaler og offentlige kilder manuelt i **Gennemgang**. Gemte AI-resultater, deres begrænsninger og faglige beslutninger bevares. Prøven af de seks originaler gav fire gyldige kvalitetsafvisninger og to ugyldige svar: ingen brugbare AI-observationer. Uden demoflaget bevares det eksisterende automatiske flow med afgrænset genforsøg og gemt fallback.
+
 ```powershell
 npm ci
 npm run typecheck
@@ -56,7 +58,7 @@ Scriptet kræver eksakt stagingmål og genlæser roller. Ny testkonto prøves me
 
 ## Browserprøve med Playwright
 
-`npm run test:e2e` bruger rigtige uploads, kilder og browserdownloads uden mocks. Kræver den nye stagingbuild med `VITE_DEMO_MODE=true`, migrationerne og serverbindingerne. Prøven opretter en separat `TEKNISK E2E`-sag, uploader P02-originalen, kræver en entydig Bykær-reference, registrerer en tydeligt teknisk **afvisning** og kontrollerer PDF samt alle ZIP-filhashes. Den udgiver ingen faglig godkendelse; testsagen bevares til inspektion.
+`npm run test:e2e` bruger rigtige uploads, kilder og browserdownloads uden mocks. Kræver den nye stagingbuild med `VITE_DEMO_MODE=true`, migrationerne og serverbindingerne. Prøven opretter en separat `TEKNISK E2E`-sag, uploader P02-originalen, kræver en entydig Bykær-reference, kontrollerer nul AI-forsøg, registrerer en tydeligt teknisk **afvisning** ved manuel gennemgang og kontrollerer PDF samt alle ZIP-filhashes. Den udgiver ingen faglig godkendelse; testsagen bevares til inspektion.
 
 ```powershell
 npx playwright install chromium

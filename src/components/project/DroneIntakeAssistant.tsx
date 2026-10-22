@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MapPin, Sparkles } from "lucide-react";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import type { Project } from "@/lib/supabase/types";
 import { localizeDroneOriginals } from "@/lib/drone-localization.functions";
 import { inspectDroneImage } from "@/lib/drone-image-inspection.functions";
@@ -295,6 +296,9 @@ function Intake({
     }
   }
   async function analyze(fixed = prepared, isCurrent = current()) {
+    // Municipal release deliberately uses manual comparison. Keep this execution
+    // guard as well as hiding controls: binding completion must not invoke AI.
+    if (DEMO_MODE) return;
     const eligible = fixed ? droneIntakeAiPhotos(fixed.photos) : [];
     if (!fixed || !isCurrent() || imageBusy.current || cursor.current >= eligible.length) return;
     imageBusy.current = true;
@@ -342,6 +346,7 @@ function Intake({
   }
   function skipFailedPhoto() {
     if (
+      DEMO_MODE ||
       !prepared ||
       !bindingsComplete ||
       !imageError ||
@@ -405,12 +410,12 @@ function Intake({
       );
     setBindingsComplete(true);
     setStage(
-      `${fixed.photos.length} fotos er tilknyttet den gemte undersøgelse. Fortsæt med spørgsmålene nedenfor.`,
+      `${fixed.photos.length} fotos er tilknyttet den gemte undersøgelse. ${DEMO_MODE ? "Fortsæt med manuel sammenligning i Gennemgang." : "Fortsæt med spørgsmålene nedenfor."}`,
     );
     await Promise.resolve()
       .then(onPhotosChanged)
       .catch(() => undefined);
-    if (isCurrent() && cursor.current === 0) await analyze(fixed, isCurrent);
+    if (!DEMO_MODE && isCurrent() && cursor.current === 0) await analyze(fixed, isCurrent);
   }
 
   async function prepare() {
@@ -517,8 +522,10 @@ function Intake({
             <h3 className="font-semibold">Billederne er modtaget — vi forbereder næste skridt</h3>
             <p className="text-sm text-muted-foreground">
               {batch.mediaIds.length} kontrollerede originaler i denne serie. Programmet foreslår
-              først stedet. Når du har bekræftet det, hentes offentlige data, og billederne bruges
-              til at stille konkrete spørgsmål.
+              først stedet. Når du har bekræftet det, hentes offentlige data, og{" "}
+              {DEMO_MODE
+                ? "billederne knyttes til den gemte undersøgelse til manuel sammenligning."
+                : "billederne bruges til at stille konkrete spørgsmål."}
             </p>
             {batch.receivedCount > batch.mediaIds.length && (
               <p className="text-sm text-amber-700">
@@ -535,15 +542,18 @@ function Intake({
               : `${localization?.photos.filter((photo) => isDroneCameraLocationStatus(photo.status)).length ?? 0} fotos med kameraposition til stedforslag.`}
           </p>
           <p>
-            {!prepared || !bindingsComplete
-              ? "Billed-AI starter efter bekræftet sted, datagrundlag og billedtilknytning."
-              : analyzing
-                ? `Billed-AI arbejder: ${completedCount} af ${aiPhotos.length} gennemgået …`
-                : `${completedCount} af ${aiPhotos.length} billedudkast gennemgået i denne arbejdsgang.`}
+            {DEMO_MODE
+              ? "Automatisk billedvurdering er ikke frigivet til kommunal brug. Sammenhold originalfoto og offentlige kilder i Gennemgang."
+              : !prepared || !bindingsComplete
+                ? "Billed-AI starter efter bekræftet sted, datagrundlag og billedtilknytning."
+                : analyzing
+                  ? `Billed-AI arbejder: ${completedCount} af ${aiPhotos.length} gennemgået …`
+                  : `${completedCount} af ${aiPhotos.length} billedudkast gennemgået i denne arbejdsgang.`}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            De første 12 tilknyttede fotos gennemgås automatisk efter datagrundlaget. Flere
-            fortsættes i hold på 12. Udkast og spørgsmål skal gennemgås fagligt.
+            {DEMO_MODE
+              ? "Gemte AI-vurderinger og deres begrænsninger kan fortsat læses. Manglende eller ubrugelige vurderinger kræver manuel gennemgang."
+              : "De første 12 tilknyttede fotos gennemgås automatisk efter datagrundlaget. Flere fortsættes i hold på 12. Udkast og spørgsmål skal gennemgås fagligt."}
           </p>
         </div>
         {locationError && (
@@ -556,7 +566,7 @@ function Intake({
             {imageError}
           </p>
         )}
-        {oversizedCount > 0 && (
+        {!DEMO_MODE && oversizedCount > 0 && (
           <p className="text-sm text-amber-700">
             {oversizedCount} originaler afventer billedanalyse på grund af grænsen på 20 MB. De er
             tilknyttet undersøgelsen og bevares til manuel gennemgang.
@@ -568,7 +578,8 @@ function Intake({
             gennemgang: {skippedPhotos.map((photo) => photo.fileName).join(", ")}.
           </p>
         )}
-        {prepared &&
+        {!DEMO_MODE &&
+          prepared &&
           bindingsComplete &&
           !analyzing &&
           !localizing &&
@@ -583,7 +594,8 @@ function Intake({
                 : `Analyser de næste ${Math.min(12, aiPhotos.length - nextIndex)} fotos`}
             </button>
           )}
-        {prepared &&
+        {!DEMO_MODE &&
+          prepared &&
           bindingsComplete &&
           imageError &&
           !analyzing &&
