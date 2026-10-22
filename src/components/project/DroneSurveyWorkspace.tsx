@@ -424,6 +424,7 @@ function Workspace({
     setPendingBatch(next);
     setIntakeBatch(next);
     setUploadOpen(false);
+    void onPhotosChanged();
   };
   return (
     <div className="space-y-5">
