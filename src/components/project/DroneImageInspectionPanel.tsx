@@ -80,7 +80,7 @@ function InspectionList({ projectId, actorId, refreshToken }: Props & { actorId:
       {records.map((record, index) => (
         <details className="rounded-lg border p-4" key={record.id} open={records.length === 1}>
           <summary className="cursor-pointer font-medium">
-            Foto {index + 1} ·{" "}
+            Foto {index + 1} · Gemt vurdering ·{" "}
             {record.result?.reportSummary.visibleThemes[0] ??
               "Kontrollér billedets udsyn og placering"}
           </summary>
@@ -420,7 +420,8 @@ function InspectionQuestions({
       </div>
       {save.error && (
         <p role="alert" className="text-sm text-destructive">
-          {save.error instanceof Error ? save.error.message : "Svarene kunne ikke gemmes."}
+          Svarene kunne ikke bekræftes gemt. Angiv både vurdering og begrundelse, og kontrollér din
+          adgang. Ved et afbrudt forsøg: prøv igen med samme svar.
         </p>
       )}
       {savedMessage && (

@@ -126,6 +126,8 @@ vi.mock("../SurveyRoundMediaPanel", () => ({ SurveyRoundMediaPanel: () => null }
 vi.mock("../InspectionPhotoBatch", () => ({ InspectionPhotoBatch: () => null }));
 vi.mock("../DroneIntakeAssistant", () => ({ DroneIntakeAssistant: () => null }));
 vi.mock("../DroneImageInspectionPanel", () => ({ DroneImageInspectionPanel: () => null }));
+vi.mock("../PhotoPointVerificationPanel", () => ({ PhotoPointVerificationPanel: () => null }));
+vi.mock("../SeededOriginalsPanel", () => ({ SeededOriginalsPanel: () => null }));
 vi.mock("../stream-inspection-start", () => ({
   startStreamInspection: state.start,
   resumeCompletedStreamInspection: state.resume,
@@ -157,6 +159,8 @@ import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
 import { SurveyRoundMediaPanel } from "../SurveyRoundMediaPanel";
 import { InspectionPhotoBatch } from "../InspectionPhotoBatch";
 import { DroneIntakeAssistant } from "../DroneIntakeAssistant";
+import { PhotoPointVerificationPanel } from "../PhotoPointVerificationPanel";
+import { SeededOriginalsPanel } from "../SeededOriginalsPanel";
 import { makeRoundFixture } from "@/services/baseline/__tests__/survey-round.fixtures";
 import { surveyRoundVersionFromRow } from "@/services/baseline/survey-round-persistence";
 import { baselineSha256 } from "@/services/baseline/public-baseline-service";
@@ -334,6 +338,28 @@ afterEach(() => {
 });
 
 describe("guided drone survey workspace", () => {
+  it("shows one municipal phase at a time while preserving the selected investigation", () => {
+    props.selectedRoundId = result.round.id;
+    setData("inspection-selection", result);
+    props.phase = "billeder";
+    let node = tree();
+    expect(text(node)).toContain("Tilføj dronebilleder");
+    expect(text(node)).not.toContain("Undersøgelsens forløb");
+    expect(find(node, (element) => element.type === SeededOriginalsPanel)).not.toBeNull();
+    expect(find(node, (element) => element.type === DroneIntakeAssistant)).toBeNull();
+    expect(find(node, (element) => element.type === PhotoPointVerificationPanel)).toBeNull();
+    props.phase = "datagrundlag";
+    node = tree();
+    expect(text(node)).not.toContain("Tilføj dronebilleder");
+    expect(find(node, (element) => element.type === DroneIntakeAssistant)).not.toBeNull();
+    expect(find(node, (element) => element.type === PhotoPointVerificationPanel)).toBeNull();
+    props.phase = "gennemgang";
+    node = tree();
+    expect(find(node, (element) => element.type === PhotoPointVerificationPanel)).not.toBeNull();
+    expect(find(node, (element) => element.type === DroneIntakeAssistant)).toBeNull();
+    expect(text(node)).not.toContain("Manuel forberedelse");
+    expect(text(node)).not.toContain("Rapport og aflevering");
+  });
   it("hands only the just-uploaded canonical batch to intake and clears it when the actor changes", () => {
     const wizard = find(tree(), (element) => element.type === DroneBeforeBatchWizard)!;
     const emitted = {
@@ -498,7 +524,8 @@ describe("guided drone survey workspace", () => {
     });
     let node = tree();
     expect(find(node, (element) => element.type === SurveyRoundMediaPanel)).toBeNull();
-    expect(text(node)).toContain("Selection denied");
+    expect(text(node)).toContain("Undersøgelsen kunne ikke åbnes eller gemmes");
+    expect(text(node)).not.toContain("Selection denied");
     setData("inspection-selection", result);
     state.queryState.set("inspection-access", {
       data: { projectId: props.project.id, userId: state.actor, canPersist: true },

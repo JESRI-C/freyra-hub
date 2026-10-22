@@ -70,8 +70,8 @@ const stageLabels: Record<StreamInspectionProgress, string> = {
   round: "Gemmer undersøgelsen …",
   complete: "Undersøgelsen er forberedt",
 };
-function message(error: unknown) {
-  return error instanceof Error ? error.message : "Behandlingen blev ikke færdig. Prøv igen.";
+function message(_error: unknown) {
+  return "Behandlingen blev ikke færdig. Originalerne er bevaret. Kontrollér sted, dato og din adgang, og prøv igen. Gemte vurderinger kan åbnes under Gennemgang.";
 }
 
 export function DroneIntakeAssistant(props: Props) {

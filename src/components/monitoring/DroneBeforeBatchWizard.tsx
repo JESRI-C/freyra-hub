@@ -95,8 +95,8 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+function errorMessage(_error: unknown): string {
+  return "Filen kunne ikke færdigbehandles. Kontrollér forbindelsen og din adgang, og genoptag med den samme originalfil.";
 }
 
 function statusLabel(item: BatchItem): string {

@@ -12,6 +12,8 @@ import {
 } from "@/components/monitoring/DroneBeforeBatchWizard";
 import { DroneIntakeAssistant } from "./DroneIntakeAssistant";
 import { DroneImageInspectionPanel } from "./DroneImageInspectionPanel";
+import { PhotoPointVerificationPanel } from "./PhotoPointVerificationPanel";
+import { SeededOriginalsPanel } from "./SeededOriginalsPanel";
 import { readPendingDroneBatch, savePendingDroneBatch } from "./drone-intake-batch-receipt";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
 import { createProjectBaseline, getProjectBaseline } from "@/lib/public-baseline.functions";
@@ -36,6 +38,7 @@ import {
 } from "./stream-inspection-start";
 
 interface Props {
+  phase?: "billeder" | "datagrundlag" | "gennemgang";
   project: Project;
   selectedRoundId?: string;
   onSelectRound: (id: string | undefined) => void;
@@ -102,6 +105,7 @@ export function DroneSurveyWorkspace(props: Props) {
 }
 
 function Workspace({
+  phase,
   project,
   actorId,
   selectedRoundId,
@@ -379,7 +383,9 @@ function Workspace({
     selected.error,
     prepare.error,
   ].find(Boolean);
-  const error = failure instanceof Error ? failure.message : failure ? String(failure) : null;
+  const error = failure
+    ? "Undersøgelsen kunne ikke åbnes eller gemmes. Kontrollér din adgang og det valgte område, og prøv igen."
+    : null;
   const canStart =
     polygon.valid &&
     reference.isSuccess &&
@@ -398,64 +404,94 @@ function Workspace({
     setDates({ recordingDate, dateFrom: daysBefore(recordingDate, 29), dateTo: recordingDate });
     setProgress(null);
   };
+  const receiveCanonicalBatch = (batch: CanonicalDroneBatch) => {
+    if (batch.projectId !== project.id) return;
+    const next = {
+      ...batch,
+      mediaIds:
+        intakeBatch?.batchId === batch.batchId
+          ? [...new Set([...intakeBatch.mediaIds, ...batch.mediaIds])]
+          : batch.mediaIds,
+    };
+    try {
+      savePendingDroneBatch(localStorage, actorId, next);
+      setBatchReceiptError(null);
+    } catch {
+      setBatchReceiptError(
+        "Billedserien kan behandles her, men genoptagelse efter navigation kunne ikke gemmes i browseren.",
+      );
+    }
+    setPendingBatch(next);
+    setIntakeBatch(next);
+    setUploadOpen(false);
+  };
   return (
     <div className="space-y-5">
-      <Card className="p-5 space-y-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-primary">
-            Vandløbsundersøgelse
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold">Fra dronebilleder til gennemgang</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Upload originalbillederne. Programmet foreslår stedet og spørgsmål fra billederne.
-            Bekræft stedet og optagedatoen for at hente offentlige data og samle undersøgelsen.
-          </p>
-        </div>
-        <ol aria-label="Undersøgelsens forløb" className="grid gap-2 text-sm sm:grid-cols-4">
-          {[
-            "1. Tilføj billeder",
-            "2. Sted og offentlige data",
-            "3. Billeder og spørgsmål",
-            "4. Rapportgrundlag",
-          ].map((label) => (
-            <li key={label} className="rounded-lg border bg-muted/20 p-3">
-              {label}
-            </li>
-          ))}
-        </ol>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setUploadOpen(true)}
-            disabled={!canUpload}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
-          >
-            <Camera className="h-4 w-4" />
-            Tilføj dronebilleder
-          </button>
-          <p className="text-sm text-muted-foreground">
-            {photoCount === undefined
-              ? "Billedoversigten hentes særskilt."
-              : `${photoCount} dronefotos modtaget i sagen`}
-          </p>
-        </div>
-        {photoAccess.isSuccess &&
-          !photoAccess.isFetching &&
-          photoAccess.data.canAssign === false && (
-            <p className="text-sm">
-              Du har læseadgang. En projektmedarbejder skal tilføje billederne.
+      {(!phase || phase === "billeder") && (
+        <Card className="p-5 space-y-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-primary">
+              Vandløbsundersøgelse
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold">Fra dronebilleder til gennemgang</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Upload originalbillederne. Programmet foreslår stedet og spørgsmål fra billederne.
+              Bekræft stedet og optagedatoen for at hente offentlige data og samle undersøgelsen.
+            </p>
+          </div>
+          {!phase && (
+            <ol aria-label="Undersøgelsens forløb" className="grid gap-2 text-sm sm:grid-cols-4">
+              {[
+                "1. Tilføj billeder",
+                "2. Sted og offentlige data",
+                "3. Billeder og spørgsmål",
+                "4. Rapportgrundlag",
+              ].map((label) => (
+                <li key={label} className="rounded-lg border bg-muted/20 p-3">
+                  {label}
+                </li>
+              ))}
+            </ol>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setUploadOpen(true)}
+              disabled={!canUpload}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            >
+              <Camera className="h-4 w-4" />
+              Tilføj dronebilleder
+            </button>
+            <p className="text-sm text-muted-foreground">
+              {photoCount === undefined
+                ? "Billedoversigten hentes særskilt."
+                : `${photoCount} dronefotos modtaget i sagen`}
+            </p>
+          </div>
+          {photoAccess.isSuccess &&
+            !photoAccess.isFetching &&
+            photoAccess.data.canAssign === false && (
+              <p className="text-sm">
+                Du har læseadgang. En projektmedarbejder skal tilføje billederne.
+              </p>
+            )}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive"
+            >
+              {error}
             </p>
           )}
-        {error && (
-          <p
-            role="alert"
-            className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive"
-          >
-            {error}
-          </p>
-        )}
-      </Card>
-      {!intakeBatch && pendingBatch && (
+        </Card>
+      )}
+      {phase && phase !== "billeder" && error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      {(!phase || phase === "datagrundlag") && !intakeBatch && pendingBatch && (
         <button
           type="button"
           className="rounded-lg border px-4 py-2 text-sm"
@@ -469,6 +505,14 @@ function Workspace({
           {batchReceiptError}
         </p>
       )}
+      {(!phase || phase === "billeder") && (
+        <SeededOriginalsPanel
+          projectId={project.id}
+          actorId={actorId}
+          canPrepare={canUpload}
+          onCanonicalBatch={receiveCanonicalBatch}
+        />
+      )}
       <DroneBeforeBatchWizard
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
@@ -476,198 +520,209 @@ function Workspace({
         onImported={() => {
           void onPhotosChanged();
         }}
-        onCanonicalBatch={(batch) => {
-          if (batch.projectId !== project.id) return;
-          const next = {
-            ...batch,
-            mediaIds:
-              intakeBatch?.batchId === batch.batchId
-                ? [...new Set([...intakeBatch.mediaIds, ...batch.mediaIds])]
-                : batch.mediaIds,
-          };
-          try {
-            savePendingDroneBatch(localStorage, actorId, next);
-            setBatchReceiptError(null);
-          } catch {
-            setBatchReceiptError(
-              "Billedserien kan behandles her, men genoptagelse efter navigation kunne ikke gemmes i browseren.",
+        onCanonicalBatch={receiveCanonicalBatch}
+      />
+      {(!phase || phase === "datagrundlag") && (
+        <DroneIntakeAssistant
+          project={project}
+          actorId={actorId}
+          batch={intakeBatch}
+          onPrepared={(value) => {
+            client.setQueryData(
+              ["inspection-selection", actorId, project.id, value.round.id],
+              value,
             );
-          }
-          setPendingBatch(next);
-          setIntakeBatch(next);
-          setUploadOpen(false);
-        }}
-      />
-      <DroneIntakeAssistant
-        project={project}
-        actorId={actorId}
-        batch={intakeBatch}
-        onPrepared={(value) => {
-          client.setQueryData(["inspection-selection", actorId, project.id, value.round.id], value);
-          void client.invalidateQueries({ queryKey: ["inspection-rounds", actorId, project.id] });
-          void client.invalidateQueries({
-            queryKey: ["official-watercourse-reach", actorId, project.id],
-          });
-          onSelectRound(value.round.id);
-        }}
-        onPhotosChanged={async () => {
-          setInspectionRefresh((value) => value + 1);
-          await onPhotosChanged();
-        }}
-      />
-      <DroneImageInspectionPanel
-        projectId={project.id}
-        actorId={actorId}
-        refreshToken={inspectionRefresh}
-      />
-      <details open={!intakeBatch}>
-        <summary className="cursor-pointer text-sm text-muted-foreground">
-          Manuel forberedelse og tidligere undersøgelser
-        </summary>
-        <Card className="p-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold">Sted og periode</h3>
-              <p className="text-sm text-muted-foreground">
-                {polygon.valid && reference.data
-                  ? `Gemt område · ${reference.data.name}`
-                  : "Bekræft den del af vandløbet, undersøgelsen handler om."}
-              </p>
-            </div>
-            <Link
-              to="/app/projects/geometry/$slug"
-              params={{ slug: project.slug || project.id }}
-              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-            >
-              <MapPin className="h-4 w-4" />
-              {polygon.valid && reference.data ? "Se eller ret område" : "Vælg område og vandløb"}
-            </Link>
-          </div>
-          {!selectedRoundId && (
-            <>
-              <div className="flex flex-wrap items-end gap-4">
-                <label className="text-sm space-y-1">
-                  <span className="block font-medium">Undersøgelsens dato</span>
-                  <input
-                    aria-label="Undersøgelsens dato"
-                    type="date"
-                    value={dates.recordingDate}
-                    onChange={(e) => updateDate(e.target.value)}
-                    disabled={prepare.isPending}
-                    className="rounded border bg-background p-2"
-                  />
-                </label>
+            void client.invalidateQueries({ queryKey: ["inspection-rounds", actorId, project.id] });
+            void client.invalidateQueries({
+              queryKey: ["official-watercourse-reach", actorId, project.id],
+            });
+            onSelectRound(value.round.id);
+          }}
+          onPhotosChanged={async () => {
+            setInspectionRefresh((value) => value + 1);
+            await onPhotosChanged();
+          }}
+        />
+      )}
+      {!phase && (
+        <DroneImageInspectionPanel
+          projectId={project.id}
+          actorId={actorId}
+          refreshToken={inspectionRefresh}
+        />
+      )}
+      {(!phase || phase === "gennemgang") && result && (
+        <PhotoPointVerificationPanel
+          key={`${actorId}:${result.round.id}`}
+          projectId={project.id}
+          actorId={actorId}
+          snapshot={result.snapshot}
+          roundId={result.round.id}
+          canReview={!!access.data?.canPersist && !access.isFetching && !access.error}
+          refreshToken={inspectionRefresh}
+        />
+      )}
+      {phase === "gennemgang" && !result && (
+        <p className="rounded-lg border p-5">
+          Vælg eller forbered en undersøgelse under Datagrundlag for at gennemgå fotopunkterne.
+        </p>
+      )}
+      {(!phase || phase === "datagrundlag") && (
+        <details open={!intakeBatch || !!phase}>
+          <summary className="cursor-pointer text-sm text-muted-foreground">
+            Manuel forberedelse og tidligere undersøgelser
+          </summary>
+          <Card className="p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold">Sted og periode</h3>
                 <p className="text-sm text-muted-foreground">
-                  FØR-dokumentation · datagrundlag {dates.dateFrom}–{dates.dateTo}
+                  {polygon.valid && reference.data
+                    ? `Gemt område · ${reference.data.name}`
+                    : "Bekræft den del af vandløbet, undersøgelsen handler om."}
                 </p>
               </div>
-              <details>
-                <summary className="cursor-pointer text-sm underline">Tilpas dataperioden</summary>
-                <p className="my-2 text-sm text-muted-foreground">
-                  Forslaget er 30 dage op til undersøgelsesdatoen. Det ændrer ikke billedfilerne
-                  eller deres faktiske optagetider.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {(["dateFrom", "dateTo"] as const).map((field) => (
-                    <label className="text-sm" key={field}>
-                      {field === "dateFrom" ? "Fra" : "Til"}
-                      <input
-                        type="date"
-                        aria-label={field === "dateFrom" ? "Datagrundlag fra" : "Datagrundlag til"}
-                        value={dates[field]}
-                        onChange={(e) =>
-                          setDates((previous) => ({ ...previous, [field]: e.target.value }))
-                        }
-                        disabled={prepare.isPending}
-                        className="ml-2 rounded border bg-background p-2"
-                      />
-                    </label>
-                  ))}
+              <Link
+                to="/app/projects/geometry/$slug"
+                params={{ slug: project.slug || project.id }}
+                className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+              >
+                <MapPin className="h-4 w-4" />
+                {polygon.valid && reference.data ? "Se eller ret område" : "Vælg område og vandløb"}
+              </Link>
+            </div>
+            {!selectedRoundId && (
+              <>
+                <div className="flex flex-wrap items-end gap-4">
+                  <label className="text-sm space-y-1">
+                    <span className="block font-medium">Undersøgelsens dato</span>
+                    <input
+                      aria-label="Undersøgelsens dato"
+                      type="date"
+                      value={dates.recordingDate}
+                      onChange={(e) => updateDate(e.target.value)}
+                      disabled={prepare.isPending}
+                      className="rounded border bg-background p-2"
+                    />
+                  </label>
+                  <p className="text-sm text-muted-foreground">
+                    FØR-dokumentation · datagrundlag {dates.dateFrom}–{dates.dateTo}
+                  </p>
                 </div>
-              </details>
+                <details>
+                  <summary className="cursor-pointer text-sm underline">
+                    Tilpas dataperioden
+                  </summary>
+                  <p className="my-2 text-sm text-muted-foreground">
+                    Forslaget er 30 dage op til undersøgelsesdatoen. Det ændrer ikke billedfilerne
+                    eller deres faktiske optagetider.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {(["dateFrom", "dateTo"] as const).map((field) => (
+                      <label className="text-sm" key={field}>
+                        {field === "dateFrom" ? "Fra" : "Til"}
+                        <input
+                          type="date"
+                          aria-label={
+                            field === "dateFrom" ? "Datagrundlag fra" : "Datagrundlag til"
+                          }
+                          value={dates[field]}
+                          onChange={(e) =>
+                            setDates((previous) => ({ ...previous, [field]: e.target.value }))
+                          }
+                          disabled={prepare.isPending}
+                          className="ml-2 rounded border bg-background p-2"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </details>
+                <button
+                  type="button"
+                  onClick={() => prepare.mutate()}
+                  disabled={!canStart || prepare.isPending}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  {prepare.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4" />
+                  )}
+                  {prepare.isPending
+                    ? progressLabels[progress ?? "baseline"]
+                    : "Hent data og forbered undersøgelse"}
+                </button>
+                <p className="text-xs text-muted-foreground">
+                  Henter kilder, gemmer spørgsmål og opretter en FØR-runde. Ingen billedfortolkning
+                  eller faglig godkendelse udføres ved dette trin.
+                </p>
+                {access.data && !access.data.canPersist && (
+                  <p className="text-sm">
+                    En projektansvarlig skal forberede en ny undersøgelse. Du kan fortsætte en
+                    eksisterende nedenfor.
+                  </p>
+                )}
+              </>
+            )}
+            {!!completed.data && !selectedRoundId && (
               <button
                 type="button"
-                onClick={() => prepare.mutate()}
-                disabled={!canStart || prepare.isPending}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                className="flex items-center gap-2 text-sm underline"
+                onClick={() => onSelectRound(completed.data!.round.id)}
               >
-                {prepare.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowRight className="h-4 w-4" />
-                )}
-                {prepare.isPending
-                  ? progressLabels[progress ?? "baseline"]
-                  : "Hent data og forbered undersøgelse"}
+                <CheckCircle2 className="h-4 w-4" />
+                Fortsæt den gemte undersøgelse fra denne periode
               </button>
-              <p className="text-xs text-muted-foreground">
-                Henter kilder, gemmer spørgsmål og opretter en FØR-runde. Ingen billedfortolkning
-                eller faglig godkendelse udføres ved dette trin.
-              </p>
-              {access.data && !access.data.canPersist && (
-                <p className="text-sm">
-                  En projektansvarlig skal forberede en ny undersøgelse. Du kan fortsætte en
-                  eksisterende nedenfor.
-                </p>
-              )}
-            </>
-          )}
-          {!!completed.data && !selectedRoundId && (
-            <button
-              type="button"
-              className="flex items-center gap-2 text-sm underline"
-              onClick={() => onSelectRound(completed.data!.round.id)}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Fortsæt den gemte undersøgelse fra denne periode
-            </button>
-          )}
-          {(!!roundOptions.length || !!result) && (
-            <label className="block text-sm">
-              <span className="block mb-1 font-medium">Fortsæt en gemt undersøgelse</span>
-              <select
-                aria-label="Gemt undersøgelse"
-                value={selectedRoundId ?? ""}
-                onChange={(e) => onSelectRound(e.target.value || undefined)}
-                className="w-full rounded border bg-background p-2"
+            )}
+            {(!!roundOptions.length || !!result) && (
+              <label className="block text-sm">
+                <span className="block mb-1 font-medium">Fortsæt en gemt undersøgelse</span>
+                <select
+                  aria-label="Gemt undersøgelse"
+                  value={selectedRoundId ?? ""}
+                  onChange={(e) => onSelectRound(e.target.value || undefined)}
+                  className="w-full rounded border bg-background p-2"
+                >
+                  <option value="">Ny undersøgelse …</option>
+                  {result && !roundOptions.some((round) => round.id === result.round.id) && (
+                    <option value={result.round.id}>
+                      {result.round.manifest.title} ·{" "}
+                      {result.round.manifest.recordingWindow.dateFrom}–
+                      {result.round.manifest.recordingWindow.dateTo}
+                    </option>
+                  )}
+                  {roundOptions.map((round) => (
+                    <option key={round.id} value={round.id}>
+                      {round.title} · {round.recordingWindow.dateFrom}–
+                      {round.recordingWindow.dateTo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {rounds.hasNextPage && (
+              <button
+                className="text-sm underline"
+                disabled={rounds.isFetchingNextPage}
+                onClick={() => void rounds.fetchNextPage()}
               >
-                <option value="">Ny undersøgelse …</option>
-                {result && !roundOptions.some((round) => round.id === result.round.id) && (
-                  <option value={result.round.id}>
-                    {result.round.manifest.title} · {result.round.manifest.recordingWindow.dateFrom}
-                    –{result.round.manifest.recordingWindow.dateTo}
-                  </option>
-                )}
-                {roundOptions.map((round) => (
-                  <option key={round.id} value={round.id}>
-                    {round.title} · {round.recordingWindow.dateFrom}–{round.recordingWindow.dateTo}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {rounds.hasNextPage && (
-            <button
-              className="text-sm underline"
-              disabled={rounds.isFetchingNextPage}
-              onClick={() => void rounds.fetchNextPage()}
-            >
-              Vis ældre undersøgelser
-            </button>
-          )}
-          {selectedRoundId && (
-            <button
-              type="button"
-              className="text-sm underline"
-              onClick={() => onSelectRound(undefined)}
-            >
-              Forbered en ny undersøgelse
-            </button>
-          )}
-        </Card>
-      </details>
+                Vis ældre undersøgelser
+              </button>
+            )}
+            {selectedRoundId && (
+              <button
+                type="button"
+                className="text-sm underline"
+                onClick={() => onSelectRound(undefined)}
+              >
+                Forbered en ny undersøgelse
+              </button>
+            )}
+          </Card>
+        </details>
+      )}
       {selected.isFetching && <p role="status">Åbner den valgte undersøgelse …</p>}
-      {result && (
+      {(!phase || phase === "datagrundlag") && result && (
         <>
           <Card className="p-5 space-y-3">
             <h3 className="text-lg font-semibold">{result.round.manifest.title}</h3>
@@ -702,7 +757,11 @@ function Workspace({
                         {warning}
                       </p>
                     ))}
-                    {source.error && <p>{source.error.message}</p>}
+                    {source.error && (
+                      <p>
+                        Kilden kunne ikke hentes fuldstændigt. Den gemte status bevarer datamanglen.
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -715,46 +774,50 @@ function Workspace({
               await client.invalidateQueries({ queryKey: ["survey-round-media"] });
             }}
           />
-          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-            <div className="space-y-2 xl:sticky xl:top-4">
-              <h3 className="font-semibold">Stedet, du gennemgår</h3>
-              <LiveProjectMap
+          {!phase && (
+            <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+              <div className="space-y-2 xl:sticky xl:top-4">
+                <h3 className="font-semibold">Stedet, du gennemgår</h3>
+                <LiveProjectMap
+                  key={result.round.id}
+                  geometry={geometry}
+                  projectName={project.name}
+                  projectId={project.id}
+                  watercoursesGeoJSON={watercourses}
+                  height={400}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Kortet viser det gemte undersøgelsesområde og den officielle reference. Kameraets
+                  GPS fastslår ikke i sig selv placeringen af et synligt fund.
+                </p>
+              </div>
+              <SurveyRoundMediaPanel
                 key={result.round.id}
-                geometry={geometry}
-                projectName={project.name}
-                projectId={project.id}
-                watercoursesGeoJSON={watercourses}
-                height={400}
+                round={result.round}
+                plan={result.plan}
+                guided
               />
-              <p className="text-xs text-muted-foreground">
-                Kortet viser det gemte undersøgelsesområde og den officielle reference. Kameraets
-                GPS fastslår ikke i sig selv placeringen af et synligt fund.
-              </p>
             </div>
-            <SurveyRoundMediaPanel
-              key={result.round.id}
-              round={result.round}
-              plan={result.plan}
-              guided
-            />
-          </div>
+          )}
         </>
       )}
-      <Card className="p-5 space-y-3">
-        <h3 className="font-semibold">Rapport og aflevering</h3>
-        <p className="text-sm text-muted-foreground">
-          Under Rapport og levering kan du gemme en samlet rapportversion med kilder, fotos og svar.
-          Faglig godkendelse og kommunal afgrænsning skal fortsat afklares.
-        </p>
-        <button
-          type="button"
-          onClick={onOpenDelivery}
-          className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-        >
-          Saml rapport og se mangler
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      </Card>
+      {!phase && (
+        <Card className="p-5 space-y-3">
+          <h3 className="font-semibold">Rapport og aflevering</h3>
+          <p className="text-sm text-muted-foreground">
+            Under Rapport og levering kan du gemme en samlet rapportversion med kilder, fotos og
+            svar. Faglig godkendelse og kommunal afgrænsning skal fortsat afklares.
+          </p>
+          <button
+            type="button"
+            onClick={onOpenDelivery}
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+          >
+            Saml rapport og se mangler
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </Card>
+      )}
     </div>
   );
 }
