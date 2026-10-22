@@ -75,21 +75,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#1f3a2a" },
-      { title: "GoFreyra Platform" },
+      { title: "Freyra Platform" },
       {
         name: "description",
         content: "Verificeret natur- og klimadata for ansvarlige organisationer.",
       },
       { name: "author", content: "Freyra" },
-      { property: "og:title", content: "GoFreyra Platform" },
+      { property: "og:title", content: "Freyra Platform" },
       {
         property: "og:description",
         content: "Verificeret natur- og klimadata for ansvarlige organisationer.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "GoFreyra Platform" },
+      { name: "twitter:title", content: "Freyra Platform" },
       {
         name: "twitter:description",
         content: "Verificeret natur- og klimadata for ansvarlige organisationer.",
@@ -106,6 +105,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600&display=swap",
+      },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
     ],

@@ -42,57 +42,81 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-leaf: var(--leaf);
   --color-leaf-foreground: var(--leaf-foreground);
-  --shadow-soft: 0 1px 2px oklch(0.2 0.05 160 / 0.04), 0 4px 16px oklch(0.2 0.05 160 / 0.06);
-  --shadow-card: 0 1px 3px oklch(0.2 0.05 160 / 0.05), 0 8px 24px oklch(0.2 0.05 160 / 0.05);
-  --font-sans: ui-sans-serif, -apple-system, "Inter", "Segoe UI", system-ui, sans-serif;
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-mid: var(--brand-mid);
+  --color-brand-beige: var(--brand-beige);
+  --color-brand-ink: var(--brand-ink);
+  --color-status-ok: var(--status-ok);
+  --color-status-pending: var(--status-pending);
+  --color-status-missing: var(--status-missing);
+  --color-status-cached: var(--status-cached);
+  --shadow-soft: 0 1px 2px rgb(42 46 53 / 0.03), 0 2px 8px rgb(42 46 53 / 0.04);
+  --shadow-card: 0 1px 2px rgb(42 46 53 / 0.04), 0 6px 20px rgb(42 46 53 / 0.05);
+  --font-sans: "Helvetica Neue", system-ui, -apple-system, sans-serif;
+  --font-display: "Source Serif 4", Georgia, serif;
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 0.375rem;
 
-  --background: oklch(0.985 0.005 120);
-  --foreground: oklch(0.22 0.03 160);
+  --brand-deep: oklch(0.42 0.08 154);
+  --brand-mid: oklch(0.66 0.09 150);
+  --brand-beige: oklch(0.965 0.008 90);
+  --brand-ink: oklch(0.27 0.01 260);
+
+  --background: oklch(0.985 0.003 90);
+  --foreground: oklch(0.32 0.01 260);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.03 160);
+  --card-foreground: oklch(0.32 0.01 260);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.03 160);
+  --popover-foreground: oklch(0.32 0.01 260);
 
-  --primary: oklch(0.45 0.13 155);
-  --primary-foreground: oklch(0.985 0.01 150);
+  --primary: oklch(0.42 0.08 154);
+  --primary-foreground: oklch(0.985 0.005 90);
 
-  --secondary: oklch(0.96 0.02 150);
-  --secondary-foreground: oklch(0.28 0.05 160);
+  --secondary: oklch(0.96 0.01 150);
+  --secondary-foreground: oklch(0.3 0.03 160);
 
-  --muted: oklch(0.96 0.01 150);
-  --muted-foreground: oklch(0.5 0.02 160);
+  --muted: oklch(0.965 0.004 90);
+  --muted-foreground: oklch(0.5 0.01 260);
 
-  --accent: oklch(0.92 0.07 150);
-  --accent-foreground: oklch(0.28 0.08 160);
+  --accent: oklch(0.94 0.02 150);
+  --accent-foreground: var(--brand-deep);
 
-  --leaf: oklch(0.7 0.16 145);
-  --leaf-foreground: oklch(0.18 0.05 160);
+  --leaf: oklch(0.66 0.09 150);
+  --leaf-foreground: oklch(0.2 0.03 160);
 
-  --success: oklch(0.65 0.15 150);
+  --success: oklch(0.52 0.1 152);
   --success-foreground: oklch(0.99 0 0);
 
-  --warning: oklch(0.78 0.14 75);
-  --warning-foreground: oklch(0.25 0.05 60);
+  --warning: oklch(0.78 0.13 90);
+  --warning-foreground: oklch(0.3 0.05 70);
 
-  --destructive: oklch(0.6 0.21 25);
+  --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.92 0.01 150);
-  --input: oklch(0.94 0.01 150);
-  --ring: oklch(0.5 0.13 155);
+  --border: oklch(0.91 0.005 250);
+  --input: oklch(0.91 0.005 250);
+  --ring: oklch(0.42 0.08 154);
 
-  --sidebar: oklch(0.24 0.04 155);
-  --sidebar-foreground: oklch(0.92 0.02 150);
-  --sidebar-muted: oklch(0.65 0.04 150);
-  --sidebar-accent: oklch(0.32 0.06 155);
-  --sidebar-accent-foreground: oklch(0.97 0.02 150);
-  --sidebar-border: oklch(0.3 0.04 155);
+  --status-ok: var(--brand-deep);
+  --status-pending: oklch(0.78 0.13 90);
+  --status-missing: oklch(0.6 0.22 27);
+  --status-cached: oklch(0.55 0.05 250);
+
+  /* Lys sidebar — tekst ≥ 4.5:1 mod beige */
+  --sidebar: var(--brand-beige);
+  --sidebar-foreground: var(--brand-ink);
+  --sidebar-muted: oklch(0.52 0.01 260);
+  --sidebar-accent: oklch(0.92 0.02 150);
+  --sidebar-accent-foreground: var(--brand-deep);
+  --sidebar-border: oklch(0.9 0.006 90);
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Leaflet z-index fixes — prevent Leaflet panes from overlapping Radix/shadcn modals and dropdowns */
@@ -127,5 +151,11 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--brand-ink);
+  }
 }
-
