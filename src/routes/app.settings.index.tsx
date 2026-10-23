@@ -12,7 +12,7 @@ import { ORG_PROFILE } from "@/lib/settings-data";
 import { Building2, Save, Image, Users, FolderKanban, FileText, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/")({
-  head: () => ({ meta: [{ title: "Organisationsprofil — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Organisationsprofil — Freyra" }] }),
   component: OrgProfilePage,
 });
 

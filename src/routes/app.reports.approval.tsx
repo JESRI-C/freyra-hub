@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/reports/approval")({
-  head: () => ({ meta: [{ title: "Godkendelse & eksport — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Godkendelse & eksport — Freyra" }] }),
   component: isDemoDataEnabled ? ApprovalPage : ReportWorkspaceNotice,
 });
 

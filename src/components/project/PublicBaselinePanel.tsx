@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,9 +49,13 @@ function readableError(): string {
 export function PublicBaselinePanel({
   project,
   canPersist = false,
+  pinnedSnapshotId,
+  awaitingPinnedSnapshot = false,
 }: {
   project: Project;
   canPersist?: boolean;
+  pinnedSnapshotId?: string;
+  awaitingPinnedSnapshot?: boolean;
 }) {
   const hasGeometry = validateProjectPolygon(project.geometry_polygon).valid;
   const today = new Date().toISOString().slice(0, 10);
@@ -68,7 +73,9 @@ export function PublicBaselinePanel({
     queryFn: () => listBaselines({ data: { projectId: project.id } }),
     retry: false,
   });
-  const activeId = selectedId ?? versions.data?.[0]?.id ?? null;
+  const activeId = awaitingPinnedSnapshot
+    ? null
+    : (pinnedSnapshotId ?? selectedId ?? versions.data?.[0]?.id ?? null);
   const saved = useQuery({
     queryKey: ["public-baseline", project.id, activeId],
     queryFn: () => getBaseline({ data: { projectId: project.id, snapshotId: activeId! } }),
@@ -95,7 +102,8 @@ export function PublicBaselinePanel({
   });
 
   const error = create.error ?? versions.error ?? saved.error;
-  const snapshot = saved.error ? null : saved.data;
+  const snapshot =
+    !awaitingPinnedSnapshot && !saved.error && saved.data?.id === activeId ? saved.data : null;
 
   return (
     <>
@@ -104,63 +112,91 @@ export function PublicBaselinePanel({
           title="Offentligt datagrundlag"
           subtitle="Gem en dateret version før drone- og feltverifikation"
         />
-        <div className="px-5 pb-5 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Vælg den periode, undersøgelsen skal omfatte. En gemt version bevarer sine kilder og
-            geometri; nye oplysninger gemmes i en ny version.
-          </p>
-          {canPersist && (
-            <div className="text-sm space-y-1">
-              {!hasGeometry && (
-                <p>Afgræns først projektområdet, og vælg den officielle vandløbsreference.</p>
-              )}
-              <Link
-                to="/app/projects/geometry/$slug"
-                params={{ slug: project.slug ?? project.id }}
-                className="underline"
-              >
-                Afgræns område og vælg vandløbsreference
-              </Link>
-            </div>
-          )}
-          {canPersist ? (
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="text-sm space-y-1">
-                <span className="block">Fra dato</span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
-                  disabled={create.isPending}
-                  className="rounded border bg-background p-2"
-                />
-              </label>
-              <label className="text-sm space-y-1">
-                <span className="block">Til dato</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
-                  disabled={create.isPending}
-                  className="rounded border bg-background p-2"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => create.mutate()}
-                disabled={
-                  create.isPending || !hasGeometry || !dateFrom || !dateTo || dateFrom > dateTo
-                }
-                className="rounded bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50"
-              >
-                {create.isPending ? "Henter datagrundlag …" : "Hent og gem ny version"}
-              </button>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Du har læseadgang til sagens gemte kildeversioner.
+        <div className="flex flex-col gap-4 px-5 pb-5">
+          {awaitingPinnedSnapshot && (
+            <p role="status" className="text-sm">
+              Åbner den valgte undersøgelses præcise kildeversion. Der vises ikke en anden version i
+              stedet.
             </p>
           )}
+          {pinnedSnapshotId && (
+            <p className="text-sm text-primary">
+              Du ser den valgte undersøgelses fastlåste datagrundlag.{" "}
+              <Link
+                to="/app/projects/$slug"
+                params={{ slug: project.slug ?? project.id }}
+                search={{ step: "baseline" }}
+                className="underline"
+              >
+                Se alle sagens kildeversioner
+              </Link>
+            </p>
+          )}
+          <AdvancedSettings
+            description="Fra dato er periodens begyndelse; standard er sagens startdato eller i dag. Til dato er periodens slutning; standard er i dag. En ny hentning opretter en ny version og ændrer ikke tidligere versioner."
+            onReset={() => {
+              setDateFrom(project.start_date?.slice(0, 10) ?? today);
+              setDateTo(today);
+            }}
+            disabled={create.isPending}
+          >
+            <p className="text-sm text-muted-foreground">
+              Vælg den periode, undersøgelsen skal omfatte. En gemt version bevarer sine kilder og
+              geometri; nye oplysninger gemmes i en ny version.
+            </p>
+            {canPersist && (
+              <div className="text-sm space-y-1">
+                {!hasGeometry && (
+                  <p>Afgræns først projektområdet, og vælg den officielle vandløbsreference.</p>
+                )}
+                <Link
+                  to="/app/projects/geometry/$slug"
+                  params={{ slug: project.slug ?? project.id }}
+                  className="underline"
+                >
+                  Afgræns område og vælg vandløbsreference
+                </Link>
+              </div>
+            )}
+            {canPersist ? (
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="text-sm space-y-1">
+                  <span className="block">Fra dato</span>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(event) => setDateFrom(event.target.value)}
+                    disabled={create.isPending}
+                    className="rounded border bg-background p-2"
+                  />
+                </label>
+                <label className="text-sm space-y-1">
+                  <span className="block">Til dato</span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(event) => setDateTo(event.target.value)}
+                    disabled={create.isPending}
+                    className="rounded border bg-background p-2"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => create.mutate()}
+                  disabled={
+                    create.isPending || !hasGeometry || !dateFrom || !dateTo || dateFrom > dateTo
+                  }
+                  className="rounded bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50"
+                >
+                  {create.isPending ? "Henter datagrundlag …" : "Hent og gem ny version"}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Du har læseadgang til sagens gemte kildeversioner.
+              </p>
+            )}
+          </AdvancedSettings>
           {error && (
             <div role="alert" className="text-sm text-destructive">
               {readableError()}
@@ -179,9 +215,14 @@ export function PublicBaselinePanel({
               <span className="block">Gemt version</span>
               <select
                 value={activeId ?? ""}
+                disabled={!!pinnedSnapshotId || awaitingPinnedSnapshot}
                 onChange={(event) => setSelectedId(event.target.value)}
                 className="rounded border bg-background p-2 max-w-full"
               >
+                {pinnedSnapshotId &&
+                  !versions.data.some((version) => version.id === pinnedSnapshotId) && (
+                    <option value={pinnedSnapshotId}>Undersøgelsens fastlåste version</option>
+                  )}
                 {versions.data.map((version) => (
                   <option key={version.id} value={version.id}>
                     Version {version.version} ·{" "}
@@ -195,7 +236,7 @@ export function PublicBaselinePanel({
             <p className="text-sm text-muted-foreground">Åbner gemt datagrundlag …</p>
           )}
           {snapshot && (
-            <div className="space-y-3">
+            <div className="order-first space-y-3">
               <div className="text-sm">
                 <strong>Version {snapshot.version}</strong> · {snapshot.manifest.period.from}–
                 {snapshot.manifest.period.to}

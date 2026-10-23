@@ -115,6 +115,13 @@ export function AppTopbar({
                   Skift arbejdsplads
                 </button>
                 <button
+                  type="button"
+                  onClick={() => navigate({ to: "/app/settings" })}
+                  className="w-full text-left px-2 py-2 rounded-lg text-sm hover:bg-muted"
+                >
+                  Indstillinger
+                </button>
+                <button
                   onClick={() => {
                     logout();
                     navigate({ to: "/login" });

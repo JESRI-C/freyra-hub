@@ -228,6 +228,9 @@ function LoginPage() {
   return (
     <SplitShell stats={stats}>
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-5">
+        <p className="lg:hidden text-sm leading-6 text-primary">
+          Sporbar dokumentation af naturprojekter – fra dronefoto til godkendt baseline.
+        </p>
         {!hydrated && (
           <p role="status" className="text-sm text-muted-foreground">
             Gør login klar …
@@ -521,7 +524,7 @@ function SplitShell({
 
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-semibold leading-tight">
-            Fra billeder til <span className="text-leaf">dokumenteret naturtilstand</span>.
+            Sporbar dokumentation af naturprojekter – fra dronefoto til godkendt baseline.
           </h1>
           <p className="text-sidebar-muted leading-relaxed">
             Saml originalfotos, offentlige data, faglige vurderinger og rapporter i én sag. Se, hvad

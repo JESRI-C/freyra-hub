@@ -3,7 +3,7 @@ import { Globe, ArrowRight, Eye, Image as ImageIcon, FileText } from "lucide-rea
 import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
 
 export const Route = createFileRoute("/app/public-impact")({
-  head: () => ({ meta: [{ title: "Public impact — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Public impact — Freyra" }] }),
   component: PublicImpactPage,
 });
 

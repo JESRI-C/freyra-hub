@@ -17,7 +17,7 @@ import {
 import { ReadinessScore } from "@/components/reports/Primitives";
 
 export const Route = createFileRoute("/app/settings/projects")({
-  head: () => ({ meta: [{ title: "Projekter — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Projekter — Freyra" }] }),
   component: ProjectsPage,
 });
 

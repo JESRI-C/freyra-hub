@@ -37,7 +37,7 @@ import { useLiveActivityFeed, useLiveCriticalActions } from "@/lib/platform-live
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
 
 export const Route = createFileRoute("/app/decisions/")({
-  head: () => ({ meta: [{ title: "DecisionsIQ — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "DecisionsIQ — Freyra" }] }),
   component: OverviewPage,
 });
 

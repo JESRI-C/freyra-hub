@@ -1,5 +1,5 @@
 /**
- * ReportDoc — fælles designsystem for GoFreyras rapport-DOKUMENTER
+ * ReportDoc — fælles designsystem for Freyras rapport-DOKUMENTER
  * (verifikationsrapporter, kunde-/ESG-rapporter). Ét visuelt sprog:
  * markant masthead, nummererede sektioner med ghost-tal, hero-nøgletal,
  * stat-tiles, hairline-tabeller og dokument-bjælker (CSS-barer der printer
@@ -338,7 +338,7 @@ export function ReportFooter({ children, brand }: { children: ReactNode; brand?:
         {children}
       </p>
       <div className="text-[11px] uppercase tracking-[0.18em] text-primary font-semibold shrink-0">
-        {brand ?? "GoFreyra"}
+        {brand ?? "Freyra"}
       </div>
     </footer>
   );

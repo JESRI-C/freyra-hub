@@ -1,3 +1,4 @@
+import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -439,7 +440,7 @@ function Workspace({
     void onPhotosChanged();
   };
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       {(!phase || phase === "billeder") && (
         <Card className="p-5 space-y-4">
           <div>
@@ -581,10 +582,11 @@ function Workspace({
         </p>
       )}
       {(!phase || phase === "datagrundlag") && (
-        <details open={!intakeBatch || !!phase}>
-          <summary className="cursor-pointer text-sm text-muted-foreground">
-            Manuel forberedelse og tidligere undersøgelser
-          </summary>
+        <AdvancedSettings
+          description="Manuel forberedelse og tidligere undersøgelser. Undersøgelsens dato angiver registreringsdagen. Fra og til afgrænser offentlige data; standard er 30 dage frem til undersøgelsesdatoen. Område og officiel vandløbsreference kan ændres på kortet. Nulstilling ændrer kun den lokale datoperiode."
+          onReset={() => updateDate(todayInDenmark())}
+          disabled={prepare.isPending}
+        >
           <Card className="p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -732,12 +734,37 @@ function Workspace({
               </button>
             )}
           </Card>
-        </details>
+        </AdvancedSettings>
+      )}
+      {phase && !!roundOptions.length && (
+        <label className="block rounded-lg border bg-card p-4 text-sm">
+          <span className="block font-medium">Åbn en gemt undersøgelse</span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            Fortsæt med samme fotos, kildeversion og faglige historik. Ingen nye data gemmes ved
+            valget.
+          </span>
+          <select
+            aria-label="Åbn gemt undersøgelse"
+            className="mt-3 w-full rounded border bg-background p-2"
+            value={selectedRoundId ?? ""}
+            onChange={(event) => onSelectRound(event.target.value || undefined)}
+          >
+            <option value="">Vælg undersøgelse …</option>
+            {result && !roundOptions.some((round) => round.id === result.round.id) && (
+              <option value={result.round.id}>{result.round.manifest.title}</option>
+            )}
+            {roundOptions.map((round) => (
+              <option key={round.id} value={round.id}>
+                {round.title} · {round.recordingWindow.dateFrom}–{round.recordingWindow.dateTo}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
       {selected.isFetching && <p role="status">Åbner den valgte undersøgelse …</p>}
       {(!phase || phase === "datagrundlag") && result && (
         <>
-          <Card className="p-5 space-y-3">
+          <Card className="order-first p-5 space-y-3">
             <h3 className="text-lg font-semibold">{result.round.manifest.title}</h3>
             <p className="text-sm">
               {result.snapshot.manifest.reference.name} ·{" "}

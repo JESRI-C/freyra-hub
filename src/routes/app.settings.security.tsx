@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/security")({
-  head: () => ({ meta: [{ title: "API & sikkerhed — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "API & sikkerhed — Freyra" }] }),
   component: SecurityPage,
 });
 

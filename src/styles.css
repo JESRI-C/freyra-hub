@@ -5,12 +5,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -44,23 +44,24 @@
   --color-leaf-foreground: var(--leaf-foreground);
   --shadow-soft: 0 1px 2px oklch(0.2 0.05 160 / 0.04), 0 4px 16px oklch(0.2 0.05 160 / 0.06);
   --shadow-card: 0 1px 3px oklch(0.2 0.05 160 / 0.05), 0 8px 24px oklch(0.2 0.05 160 / 0.05);
-  --font-sans: ui-sans-serif, -apple-system, "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 6px;
 
-  --background: oklch(0.985 0.005 120);
-  --foreground: oklch(0.22 0.03 160);
+  --background: oklch(0.965 0.008 90);
+  --foreground: #2A2E35;
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.03 160);
+  --card-foreground: #2A2E35;
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.03 160);
+  --popover-foreground: #2A2E35;
 
-  --primary: oklch(0.45 0.13 155);
-  --primary-foreground: oklch(0.985 0.01 150);
+  --primary: #27543D;
+  --primary-foreground: #ffffff;
 
   --secondary: oklch(0.96 0.02 150);
   --secondary-foreground: oklch(0.28 0.05 160);
@@ -71,7 +72,7 @@
   --accent: oklch(0.92 0.07 150);
   --accent-foreground: oklch(0.28 0.08 160);
 
-  --leaf: oklch(0.7 0.16 145);
+  --leaf: #66A182;
   --leaf-foreground: oklch(0.18 0.05 160);
 
   --success: oklch(0.65 0.15 150);
@@ -85,11 +86,11 @@
 
   --border: oklch(0.92 0.01 150);
   --input: oklch(0.94 0.01 150);
-  --ring: oklch(0.5 0.13 155);
+  --ring: #27543D;
 
-  --sidebar: oklch(0.24 0.04 155);
+  --sidebar: #27543D;
   --sidebar-foreground: oklch(0.92 0.02 150);
-  --sidebar-muted: oklch(0.65 0.04 150);
+  --sidebar-muted: #bdd5c7;
   --sidebar-accent: oklch(0.32 0.06 155);
   --sidebar-accent-foreground: oklch(0.97 0.02 150);
   --sidebar-border: oklch(0.3 0.04 155);
@@ -127,4 +128,35 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+  }
+  button, summary, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  button:not(:disabled), summary {
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("/fonts/source-serif-4-latin.woff2") format("woff2");
+}
+
+.advanced-settings-toggle::after { content: "Vis"; }
+details[open] > summary .advanced-settings-toggle::after { content: "Skjul"; }

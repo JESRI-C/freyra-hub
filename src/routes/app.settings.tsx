@@ -13,7 +13,7 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/settings")({
-  head: () => ({ meta: [{ title: "Indstillinger — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Indstillinger — Freyra" }] }),
   component: SettingsLayout,
 });
 

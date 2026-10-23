@@ -6,7 +6,7 @@ import { FRAMEWORKS } from "@/lib/settings-data";
 import { BookOpen, Settings as SettingsIcon, CheckCircle2, FolderKanban } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/frameworks")({
-  head: () => ({ meta: [{ title: "Standarder & frameworks — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Standarder & frameworks — Freyra" }] }),
   component: FrameworksPage,
 });
 

@@ -6,7 +6,7 @@ import { ROLES, PERMISSIONS, ROLE_MATRIX } from "@/lib/settings-data";
 import { ShieldCheck, Save, Info, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/access")({
-  head: () => ({ meta: [{ title: "Adgang & rettigheder — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Adgang & rettigheder — Freyra" }] }),
   component: AccessPage,
 });
 

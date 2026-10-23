@@ -21,7 +21,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/app/settings/modules")({
-  head: () => ({ meta: [{ title: "Moduler — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Moduler — Freyra" }] }),
   component: ModulesPage,
 });
 

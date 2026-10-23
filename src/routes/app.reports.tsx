@@ -13,7 +13,7 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/reports")({
-  head: () => ({ meta: [{ title: "Report Engine — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Report Engine — Freyra" }] }),
   component: ReportsLayout,
 });
 
@@ -44,7 +44,7 @@ function ReportsLayout() {
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
-            {TABS.filter((tab) => isDemoDataEnabled || tab.exact).map((t) => {
+            {TABS.map((t) => {
               const active = t.exact ? path === t.to : path.startsWith(t.to);
               const Icon = t.icon;
               return (

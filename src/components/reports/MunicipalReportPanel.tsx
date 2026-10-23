@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { FileDown, Loader2 } from "lucide-react";
@@ -247,6 +248,9 @@ function ReportPanel({
       await cache.invalidateQueries({
         queryKey: ["municipal-reports", actorId, projectId, receipt.roundId],
       });
+      await cache.invalidateQueries({
+        queryKey: ["case-progress-reports", actorId, projectId, receipt.roundId],
+      });
     },
     onError: () => {
       if (alive.current)
@@ -344,6 +348,15 @@ function ReportPanel({
           version ændres ikke, når nye billeder eller svar kommer til.
         </p>
       </div>
+      {current && (
+        <SavedReport
+          report={current}
+          withImages={withImages}
+          setWithImages={setWithImages}
+          downloading={!!progress}
+          onDownload={download}
+        />
+      )}
       {inputError && (
         <p role="alert" className="text-sm text-destructive">
           Rapportens input kunne ikke hentes med din aktuelle adgang. Genindlæs oversigten, før du
@@ -473,15 +486,6 @@ function ReportPanel({
           </button>
         </div>
       )}
-      {current && (
-        <SavedReport
-          report={current}
-          withImages={withImages}
-          setWithImages={setWithImages}
-          downloading={!!progress}
-          onDownload={download}
-        />
-      )}
     </Card>
   );
 }
@@ -564,15 +568,21 @@ function SavedReport({
           ))}
         </ul>
       </details>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={withImages}
-          onChange={(e) => setWithImages(e.target.checked)}
-          disabled={downloading}
-        />
-        Medtag op til 12 fotoillustrationer. Alle fotoreferencer indgår.
-      </label>
+      <AdvancedSettings
+        description="Fotoillustrationer gør PDF'en lettere at læse. Standard er til, højst 12 illustrationer. Alle fotoreferencer indgår også uden illustrationer. Valget ændrer kun downloadens præsentation, ikke den gemte rapportversion."
+        onReset={() => setWithImages(true)}
+        disabled={downloading}
+      >
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={withImages}
+            onChange={(e) => setWithImages(e.target.checked)}
+            disabled={downloading}
+          />
+          Medtag op til 12 fotoillustrationer. Alle fotoreferencer indgår.
+        </label>
+      </AdvancedSettings>
       <div className="flex flex-wrap gap-2">
         <button
           className={buttonClass}

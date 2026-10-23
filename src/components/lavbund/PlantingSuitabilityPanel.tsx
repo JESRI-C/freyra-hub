@@ -13,6 +13,7 @@ import {
   type Suitability,
 } from "@/services/planting/planting-suitability";
 import { Card, CardHeader } from "@/components/ui-bits";
+import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
 import { loadPlantingContext } from "./planting-context";
 import "leaflet/dist/leaflet.css";
 
@@ -64,7 +65,7 @@ export function PlantingSuitabilityPanel({
   return (
     <Card>
       <CardHeader title="Beplantningsegnethed" subtitle={PLANTING_NOTICE} />
-      <div className="px-5 pb-5 space-y-4">
+      <div className="flex flex-col gap-4 px-5 pb-5">
         <p className="text-sm text-muted-foreground">
           Skitsen undersøger markblokke inden for 10 eller 20 m fra den officielle vandløbslinje.
           Registreret §3-natur og eksisterende skov/trædække trækkes fra. Lavbund og kulstofrig jord
@@ -98,27 +99,35 @@ export function PlantingSuitabilityPanel({
               skitsens kildedækning: {STATUS[result.status]}. Registerlag er ikke verificeret som
               tilstanden på flyvedagen.
             </p>
-            <div className="flex flex-wrap gap-4 items-center">
-              <label className="inline-flex gap-2 items-center text-sm">
-                <input
-                  type="checkbox"
-                  checked={showLayer}
-                  onChange={(event) => setShowLayer(event.target.checked)}
-                />
-                Vis beplantningslag
-              </label>
-              <label className="inline-flex gap-2 items-center text-sm">
-                Afstand fra vandløbslinje
-                <select
-                  className="rounded border bg-background p-1.5"
-                  value={bufferM}
-                  onChange={(event) => setBufferM(Number(event.target.value) as 10 | 20)}
-                >
-                  <option value={10}>10 m</option>
-                  <option value={20}>20 m</option>
-                </select>
-              </label>
-            </div>
+            <AdvancedSettings
+              description="Afstand fra vandløbslinje vælger den eksisterende skitse ved 10 eller 20 meter; standard er 10 meter. Vis beplantningslag styrer kun kortets visning; standard er til. Nulstilling ændrer ikke gemte data."
+              onReset={() => {
+                setBufferM(10);
+                setShowLayer(true);
+              }}
+            >
+              <div className="flex flex-wrap gap-4 items-center">
+                <label className="inline-flex gap-2 items-center text-sm">
+                  <input
+                    type="checkbox"
+                    checked={showLayer}
+                    onChange={(event) => setShowLayer(event.target.checked)}
+                  />
+                  Vis beplantningslag
+                </label>
+                <label className="inline-flex gap-2 items-center text-sm">
+                  Afstand fra vandløbslinje
+                  <select
+                    className="rounded border bg-background p-1.5"
+                    value={bufferM}
+                    onChange={(event) => setBufferM(Number(event.target.value) as 10 | 20)}
+                  >
+                    <option value={10}>10 m</option>
+                    <option value={20}>20 m</option>
+                  </select>
+                </label>
+              </div>
+            </AdvancedSettings>
             <PlantingMap
               result={result}
               boundary={snapshot.manifest.project.polygon}

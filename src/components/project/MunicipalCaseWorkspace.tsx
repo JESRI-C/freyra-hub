@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { ActivityTray } from "@/components/redesign/ActivityTray";
+import { useCaseProgress } from "@/components/redesign/useCaseProgress";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -8,6 +10,8 @@ import {
   Camera,
   Database,
   Eye,
+  Layers,
+  CheckCircle2,
   FileDown,
   Leaf,
   LockKeyhole,
@@ -46,11 +50,19 @@ export const MUNICIPAL_STEPS = [
   },
   {
     id: "gennemgang",
-    label: "Gennemgang",
+    label: "Verificering",
     icon: Eye,
     title: "Sammenhold kilderne med virkeligheden",
     description:
       "Gennemgå fotopunkterne, læs billedvurderingen og registrér din faglige bekræftelse eller afvisning.",
+  },
+  {
+    id: "baseline",
+    label: "Baseline",
+    icon: Layers,
+    title: "Se den dokumenterede tilstand og dens begrænsninger",
+    description:
+      "Baseline er dit gemte udgangspunkt. Se de daterede kilder og deres mangler, før du bruger dem til at vurdere en ændring.",
   },
   {
     id: "beplantning",
@@ -62,7 +74,7 @@ export const MUNICIPAL_STEPS = [
   },
   {
     id: "rapport",
-    label: "Rapport og aflevering",
+    label: "Rapport",
     icon: FileDown,
     title: "Saml dokumentationen til kommunen",
     description:
@@ -122,12 +134,52 @@ export function MunicipalCaseWorkspace({
     queryFn: () => getMyProjectRole(project.id, user!.id),
     enabled: !!user && utility === "roller",
   });
+  const progress = useCaseProgress(user?.id, project.id, selectedRoundId);
   const index = MUNICIPAL_STEPS.findIndex((item) => item.id === step);
   const current = MUNICIPAL_STEPS[index];
   const hasArea = validateProjectPolygon(project.geometry_polygon).valid;
   const readOnly = access.data?.userId === user?.id && !access.data?.canPersist;
   const photoCount = media.isError ? undefined : media.data;
-  const latestBaseline = baselines.data?.[0];
+  const latestBaseline = baselines.isError ? undefined : baselines.data?.[0];
+  const activeBaseline = selectedRoundId ? progress.snapshot : latestBaseline;
+  const done: Record<MunicipalStep, boolean> = {
+    billeder: typeof photoCount === "number" && photoCount > 0,
+    datagrundlag: progress.hasRound,
+    gennemgang: progress.reviewsComplete,
+    baseline: !!activeBaseline,
+    beplantning: false,
+    rapport: progress.hasReport,
+  };
+  const status = (id: MunicipalStep) => {
+    if (id === "billeder" && media.isError) return "Kunne ikke hentes";
+    if (id !== "billeder" && (progress.isError || baselines.isError))
+      return "Kontrollér grundlaget";
+    if (id === "billeder" ? media.isFetching : progress.isFetching || baselines.isFetching)
+      return "Henter status";
+    return done[id] ? "Færdig" : id === step ? "I gang" : "Venter på dig";
+  };
+  const stepNote: Record<MunicipalStep, string> = {
+    billeder:
+      photoCount === undefined
+        ? "Billedantal afventer læsning."
+        : `${photoCount} kontrollerede originaler i sagen.`,
+    datagrundlag: progress.hasRound
+      ? "Undersøgelsen er gemt med sit datagrundlag."
+      : "Bekræft sted og dato for at samle undersøgelsen.",
+    gennemgang: progress.reviewsComplete
+      ? "De hentede fotopunkter har en gemt beslutning; afvisninger er også gennemgået."
+      : selectedRoundId
+        ? `${progress.reviewed} fotopunkter har en gemt beslutning. Gennemgå originaler og begrundelser.`
+        : "Vælg en gemt undersøgelse nedenfor for at fortsætte med dens fotopunkter.",
+    baseline: activeBaseline
+      ? `Kildeversion ${activeBaseline.version} er gemt. Kildedækning og faglig anvendelighed skal stadig vurderes.`
+      : "Der er endnu ingen åbnet kildeversion for dette forløb.",
+    beplantning:
+      "En skitse kræver faglig validering. A–E-arealer uden dokumentation står som ukendte.",
+    rapport: progress.hasReport
+      ? "En rapportkladde er gemt for den valgte undersøgelse. Faglig accept afventer."
+      : "Vælg en undersøgelse, og kontrollér manglerne før rapporten dannes.",
+  };
   const missing = [
     ...(photoCount === 0
       ? [
@@ -163,6 +215,13 @@ export function MunicipalCaseWorkspace({
           <Link
             to="/app/projects/$slug"
             params={{ slug: project.slug ?? project.id }}
+            search={{ tab: "overblik", round: selectedRoundId }}
+          >
+            Flere sagsværktøjer
+          </Link>
+          <Link
+            to="/app/projects/$slug"
+            params={{ slug: project.slug ?? project.id }}
             search={{ tab: "audit", step, round: selectedRoundId }}
           >
             Revisionsspor
@@ -194,22 +253,33 @@ export function MunicipalCaseWorkspace({
             {readOnly ? "Kommunal læseadgang" : "Sagens dokumentation"}
           </span>
         </div>
-        <nav aria-label="Sagens fem trin" className="mt-6 grid grid-cols-5 gap-1 sm:gap-2">
+        <nav
+          aria-label="Sagens seks trin"
+          className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6"
+        >
           {MUNICIPAL_STEPS.map((item, i) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 type="button"
-                aria-label={`${i + 1}. ${item.label}`}
+                aria-label={`${i + 1}. ${item.label} · ${status(item.id)}`}
                 title={item.label}
                 aria-current={!utility && step === item.id ? "step" : undefined}
                 onClick={() => onStep(item.id)}
-                className={`flex min-h-12 items-center gap-2 rounded-lg border px-3 py-3 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${step === item.id && !utility ? "border-primary bg-primary text-primary-foreground" : "border-transparent bg-muted/60 hover:border-border"}`}
+                className={`flex min-h-20 items-start gap-2 rounded-lg border px-3 py-3 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${step === item.id && !utility ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background/60 hover:border-primary"}`}
               >
-                <span className="text-xs opacity-75">{i + 1}</span>
-                <Icon className="size-4 shrink-0" />
-                <span className="hidden sm:inline">{item.label}</span>
+                {done[item.id] ? (
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                ) : (
+                  <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                )}
+                <span className="min-w-0">
+                  <span className="block font-medium">
+                    {i + 1}. {item.label}
+                  </span>
+                  <span className="mt-1 block text-xs opacity-80">{status(item.id)}</span>
+                </span>
               </button>
             );
           })}
@@ -239,12 +309,25 @@ export function MunicipalCaseWorkspace({
           <section aria-label={current.label} className="min-w-0 space-y-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Trin {index + 1} af 5
+                Trin {index + 1} af 6
               </p>
               <h2 className="mt-2 text-xl font-semibold sm:text-2xl">{current.title}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                 {current.description}
               </p>
+            </div>
+            <div
+              className="rounded-lg border border-primary/20 bg-secondary p-4 text-sm leading-6"
+              role="status"
+            >
+              <strong>{status(step)} · </strong>
+              {stepNote[step]}
+              {progress.isError && (
+                <p className="mt-2 text-destructive">
+                  Status kunne ikke hentes fuldstændigt. Genindlæs sagen; manglende oplysninger
+                  tæller ikke som godkendt.
+                </p>
+              )}
             </div>
             {index < 3 && (
               <DroneSurveyWorkspace
@@ -261,9 +344,27 @@ export function MunicipalCaseWorkspace({
                 }
               />
             )}
-            {step === "datagrundlag" && (
+            {step === "baseline" && progress.baselineUnavailable && (
+              <div role="alert" className="space-y-3 rounded-lg border bg-card p-5">
+                <p>
+                  Den valgte undersøgelses datagrundlag kunne ikke åbnes. Kontrollér dit link, eller
+                  vælg en anden gemt undersøgelse i sagen.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onStep("datagrundlag")}
+                  className="rounded bg-primary px-4 py-2 text-primary-foreground"
+                >
+                  Vælg en anden undersøgelse
+                </button>
+              </div>
+            )}
+            {step === "baseline" && !progress.baselineUnavailable && (
               <PublicBaselinePanel
+                key={`${project.id}:${selectedRoundId ?? "latest"}`}
                 project={project}
+                pinnedSnapshotId={selectedRoundId ? progress.baselineId : undefined}
+                awaitingPinnedSnapshot={!!selectedRoundId && !progress.baselineId}
                 canPersist={
                   access.data?.userId === user?.id &&
                   !!access.data?.canPersist &&
@@ -296,6 +397,17 @@ export function MunicipalCaseWorkspace({
             )}
           </section>
           <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+            <ActivityTray
+              inline
+              projectId={project.id}
+              waiting={[
+                ...missing.map((item) => item.text),
+                ...(!progress.reviewsComplete
+                  ? ["Gennemgå fotopunkterne i Verificering, og gem begrundede beslutninger."]
+                  : []),
+                "Faglig accept af baseline, beplantning og rapport skal afklares med den ansvarlige.",
+              ]}
+            />
             <div className="rounded-xl border bg-card p-5">
               <h2 className="font-semibold">Sagens grundlag</h2>
               <dl className="mt-4 space-y-3 text-sm">
@@ -309,7 +421,7 @@ export function MunicipalCaseWorkspace({
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted-foreground">Kildeversion</dt>
-                  <dd>{latestBaseline ? `v${latestBaseline.version}` : "Afventer"}</dd>
+                  <dd>{activeBaseline ? `v${activeBaseline.version}` : "Afventer"}</dd>
                 </div>
               </dl>
               {(media.isError || baselines.isError || access.isError) && (
@@ -357,9 +469,9 @@ export function MunicipalCaseWorkspace({
             Forrige trin
           </button>
           <span className="hidden text-xs text-muted-foreground sm:inline">
-            {index + 1} af 5 · {current.label}
+            {index + 1} af 6 · {current.label}
           </span>
-          {index < 4 ? (
+          {index < MUNICIPAL_STEPS.length - 1 ? (
             <button
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
               onClick={() => onStep(MUNICIPAL_STEPS[index + 1].id)}

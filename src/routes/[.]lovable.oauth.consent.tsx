@@ -87,10 +87,10 @@ function Consent() {
       <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-sm space-y-5">
         <div>
           <h1 className="text-lg font-semibold tracking-tight">
-            Forbind {clientName} til din GoFreyra-konto
+            Forbind {clientName} til din Freyra-konto
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {clientName} vil kunne bruge GoFreyra som dig og tilgå de projekter, data og handlinger,
+            {clientName} vil kunne bruge Freyra som dig og tilgå de projekter, data og handlinger,
             du selv har adgang til. Du kan altid trække adgangen tilbage.
           </p>
         </div>
