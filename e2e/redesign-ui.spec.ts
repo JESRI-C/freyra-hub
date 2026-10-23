@@ -72,11 +72,25 @@ test("alle kategorier kan åbnes i staging uden omdirigering til Sager", async (
     "/app/system-test",
   ];
   for (const route of routes) {
-    await page.goto(route);
+    const response = await page.goto(route);
+    expect(response?.status(), route).toBe(200);
     await expect(page.getByRole("navigation", { name: "Hovedmenu" })).toBeVisible();
     await expect(page.locator("#workspace-content").getByRole("heading").first()).toBeVisible();
     expect(new URL(page.url()).pathname.startsWith(route)).toBe(true);
     await expect(page.getByRole("heading", { name: "Hvad vil du gøre?" })).toHaveCount(0);
+    if (route === "/app/reports") {
+      for (const child of [
+        "new",
+        "builder",
+        "preview",
+        "readiness",
+        "templates",
+        "library",
+        "approval",
+      ]) {
+        await expect(page.locator(`a[href="/app/reports/${child}"]`).first()).toBeVisible();
+      }
+    }
   }
   const id = required("HADERSLEV_UI_PROJECT_ID");
   const round = required("HADERSLEV_UI_ROUND_ID");

@@ -4,6 +4,9 @@ import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/app")({
+  // Protected screens use the browser-persisted login. Their loaders must not
+  // run anonymously during server rendering, before that session is available.
+  ssr: false,
   component: AppLayout,
 });
 
