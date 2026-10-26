@@ -9,6 +9,7 @@ opfylder masteropgaven.
 ## 1. Eksisterende struktur
 
 ### Stack
+
 - Frontend: React 19 + TanStack Router v1 (file-based) + TanStack Query
 - Styling: Tailwind v4 (`src/styles.css`) + shadcn-primitiver
 - Backend: Lovable Cloud (Supabase) — DB + auth + storage
@@ -16,12 +17,14 @@ opfylder masteropgaven.
 - Karto: `LiveProjectMap`, `MapEditorMap`, `ProjectGeometryMap` + Leaflet-lignende primitiver
 
 ### Routes (relevante for Naturprojekter)
+
 - `/app/projects` — projektliste (`app.projects.index.tsx`)
 - `/app/projects/$slug` — projektdetalje med 11 faner (`app.projects.$slug.tsx`, 908 linjer)
 - `/app/projects/geometry/$slug` — dedikeret korteditor til projektgrænse
 - `/app/projects/map/$slug` — fuldskærms geodata-kort
 
 ### Nuværende faner i `app.projects.$slug.tsx`
+
 1. Overblik
 2. Sites
 3. Datakilder
@@ -38,6 +41,7 @@ Masteropgaven forudsætter 8 primære faner. Rapporter/Miljødata/Livekort er ek
 og bør slås sammen eller flyttes (se implementeringsplan).
 
 ### Eksisterende DB-tabeller (fra `<supabase-tables>` og `types.ts`)
+
 Følgende er allerede migreret:
 `projects`, `sites`, `data_sources`, `indicators`, `actions`, `audit_events`,
 `reports`, `evidence_files`, `observations`, `project_media`, `profiles`,
@@ -54,6 +58,7 @@ Følgende er allerede migreret:
 Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 
 ### Overblik 🟡
+
 - 🟢 KPI-kort viser reelle indikatorer fra DB (`IndicatorCard`)
 - 🟢 "Anbefalet næste skridt" beregnes dynamisk via `getRecommendedNextAction`
 - 🟢 Seneste hændelser fra `audit_events`
@@ -65,6 +70,7 @@ Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 - 🔴 Klik på KPI-kort åbner ikke indikator-detalje
 
 ### Sites 🟡
+
 - 🟢 Liste vises fra DB (`getSitesByProject`)
 - 🔴 Ingen "Opret site"-knap
 - 🔴 Ingen redigering, arkivering, sletning
@@ -75,6 +81,7 @@ Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 - ⚪ Site-versionering (`project_boundaries` med `is_current`) findes ikke
 
 ### Datakilder 🟡
+
 - 🟢 Liste med status-badge og sidste sync fra DB
 - 🔴 Ingen "Tilføj datakilde"-wizard
 - 🔴 Ingen test af forbindelse
@@ -84,6 +91,7 @@ Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 - 🔴 Ingen datakvalitetsopdeling (komplethed/aktualitet/validering)
 
 ### Indikatorer 🟡
+
 - 🟢 Grid med indikator-kort fra DB
 - 🟢 NDVI, Biodiversitet og Environmental hentes fra levende connectors når geometri findes
 - 🔴 Ingen detalje-side med historisk graf (indikatorer har kun `value`, ikke tidsserie)
@@ -94,6 +102,7 @@ Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 - 🔴 Ingen konfigurations-UI for indikatorer
 
 ### Handlinger 🟡
+
 - 🟢 CRUD virker: opret, marker som i gang, marker som lukket
 - 🟢 Sensor-forslag genereres automatisk fra `suggestSensorActions`
 - 🟢 Audit-event skrives ved ændringer
@@ -105,6 +114,7 @@ Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 - ⚪ `action_evidence`-tabel findes ikke
 
 ### Audit trail 🟢🟡
+
 - 🟢 Liste vises fra `audit_events`
 - 🟢 Bruges konsekvent i services (projects, actions, zones, boundary)
 - 🔴 Ingen filtrering på dato/bruger/type
@@ -113,6 +123,7 @@ Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 - 🔴 Ingen søgning
 
 ### Dokumentation 🟡
+
 - 🟢 Upload af evidensfil virker (`EvidenceUploadForm` + `evidence_files`)
 - 🟢 Liste vises
 - 🔴 Ingen dokumenttyper, kun evidensfiler
@@ -122,6 +133,7 @@ Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 - 🔴 Ingen dokumentationsscore
 
 ### Medier 🟢🟡
+
 - 🟢 Upload virker med thumbnail + storage (`project_media`)
 - 🟢 GPS-metadata udlæses fra EXIF
 - 🟢 Visning på kort med markører
@@ -132,16 +144,19 @@ Legend: 🟢 virker · 🟡 delvist · 🔴 dødt/mockup · ⚪ mangler helt
 - 🔴 Ingen fuldskærm-viewer med metadata
 
 ### Rapporter 🟡
+
 - 🟢 Rapport-preview genereres af `report-engine.ts` med rigtige projektdata
 - 🟢 Eksisterende rapporter fra DB vises
 - 🔴 Ingen PDF-eksport fra denne fane (findes i `/app/reports/*` men ikke i projektet)
 - 🔴 Ingen generator-knap
 
 ### Miljødata 🟢
+
 - 🟢 `buildProjectEnvironmentalContext` bruger levende data (efter tidligere fix)
 - 🟢 Genindlæses når projektgrænsen ændres
 
 ### Livekort 🟢
+
 - 🟢 Sensor-visning + DMI vejrdata
 - 🟢 Genererer sensorer deterministisk fra centroid
 
@@ -174,6 +189,7 @@ Ingen skarpe REST-routes findes for Naturprojekter — al læsning/skrivning
 går gennem services i `src/services/*` der kalder Supabase direkte via
 `supabase-js`. Det er OK for skrivning fra klienten (RLS beskytter), men
 følgende handlinger mangler helt:
+
 - Manuel sync af datakilde
 - Test af datakildeforbindelse
 - Generering af PDF-rapport
@@ -184,6 +200,7 @@ følgende handlinger mangler helt:
 
 Skal tilføjes for at leve op til masteropgaven (detaljer i
 `nature-projects-data-model.md`):
+
 - `project_boundaries` med `version` og `is_current`
 - `data_source_runs` (sync-log)
 - `indicator_definitions` (metadata + thresholds)

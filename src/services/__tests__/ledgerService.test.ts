@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  ledgerAppend,
-  ledgerList,
-  ledgerVerify,
-  _debugManipuler,
-} from "../ledgerService";
+import { ledgerAppend, ledgerList, ledgerVerify, _debugManipuler } from "../ledgerService";
 
 function uid(): string {
   return "sag-" + Math.random().toString(36).slice(2, 10);

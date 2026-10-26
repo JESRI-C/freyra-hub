@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isDemoDataEnabled as isOfflineDemoMode } from "@/lib/data-mode";
 import type { PlatformStatus } from "@/lib/platform-data";
 
 /* ---------- Status badge: one source of truth platform-wide ---------- */
@@ -372,6 +373,7 @@ export function EmptyStateCard({
 }
 
 export function DemoModeBadge() {
+  if (!isOfflineDemoMode) return null;
   return (
     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-warning/20 text-warning-foreground border border-warning/40">
       <span className="h-1.5 w-1.5 rounded-full bg-warning-foreground" />

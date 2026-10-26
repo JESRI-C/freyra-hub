@@ -23,23 +23,17 @@ export function BiodiversityCard({ project }: BiodiversityCardProps) {
     species,
     recommendations,
     isLoading,
+    error,
     run,
     isRunning,
   } = useBiodiversity(project, ndvi);
 
   const hasGeometry =
-    project.geometry_centroid_lat != null &&
-    project.geometry_centroid_lng != null;
+    project.geometry_centroid_lat != null && project.geometry_centroid_lng != null;
 
   const fmt = score != null ? formatBiodiversityScore(score) : null;
   const scoreTone =
-    score == null
-      ? "default"
-      : score >= 55
-        ? "success"
-        : score >= 35
-          ? "warning"
-          : "danger";
+    score == null ? "default" : score >= 55 ? "success" : score >= 35 ? "warning" : "danger";
 
   const priorityTone = (p: "Høj" | "Medium" | "Lav") =>
     p === "Høj" ? "danger" : p === "Medium" ? "warning" : "default";
@@ -78,6 +72,12 @@ export function BiodiversityCard({ project }: BiodiversityCardProps) {
 
         {hasGeometry && isLoading && score == null && (
           <p className="text-sm text-muted-foreground">Henter biodiversitetsdata …</p>
+        )}
+
+        {hasGeometry && error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
         )}
 
         {hasGeometry && score != null && (
@@ -176,7 +176,7 @@ export function BiodiversityCard({ project }: BiodiversityCardProps) {
           </>
         )}
 
-        {hasGeometry && !isLoading && score == null && (
+        {hasGeometry && !isLoading && score == null && !error && (
           <div className="flex items-start gap-2 text-sm text-muted-foreground">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             Ingen biodiversitetsdata tilgængelig endnu.

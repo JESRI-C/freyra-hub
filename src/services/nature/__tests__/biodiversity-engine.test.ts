@@ -21,9 +21,29 @@ function makeP3(overrides: Partial<Paragraph3Result> = {}): Paragraph3Result {
 function makeSpecies(overrides: Partial<BiodiversityDataResult> = {}): BiodiversityDataResult {
   return {
     species: [
-      { scientificName: "Lutra lutra", danishName: "Odder", group: "Pattedyr", protected: true, redListStatus: "VU", count: 1 },
-      { scientificName: "Bufo bufo", danishName: "Skrubtudse", group: "Padder", protected: true, count: 8 },
-      { scientificName: "Parus major", danishName: "Musvit", group: "Fugle", protected: false, redListStatus: "LC", count: 12 },
+      {
+        scientificName: "Lutra lutra",
+        danishName: "Odder",
+        group: "Pattedyr",
+        protected: true,
+        redListStatus: "VU",
+        count: 1,
+      },
+      {
+        scientificName: "Bufo bufo",
+        danishName: "Skrubtudse",
+        group: "Padder",
+        protected: true,
+        count: 8,
+      },
+      {
+        scientificName: "Parus major",
+        danishName: "Musvit",
+        group: "Fugle",
+        protected: false,
+        redListStatus: "LC",
+        count: 12,
+      },
     ],
     redListedCount: 1,
     protectedCount: 2,
@@ -73,7 +93,15 @@ describe("computeBiodiversityScore", () => {
   });
 
   it("klassifikation matcher score-intervaller", () => {
-    const high = computeBiodiversityScore(0.9, makeP3({ overlapPercent: 80, natureTypes: ["Eng","Mose","Sø","Hede","Overdrev","Strandeng"] }), makeSpecies(), 7.3);
+    const high = computeBiodiversityScore(
+      0.9,
+      makeP3({
+        overlapPercent: 80,
+        natureTypes: ["Eng", "Mose", "Sø", "Hede", "Overdrev", "Strandeng"],
+      }),
+      makeSpecies(),
+      7.3,
+    );
     expect(["Meget høj", "Høj"]).toContain(high.classification);
   });
 });
@@ -99,19 +127,51 @@ describe("generateRecommendations", () => {
   it("returnerer færre anbefalinger ved sund natur", () => {
     const healthy = computeBiodiversityScore(
       0.8,
-      makeP3({ overlapPercent: 70, natureTypes: ["Eng","Mose","Sø","Hede","Overdrev","Strandeng"] }),
+      makeP3({
+        overlapPercent: 70,
+        natureTypes: ["Eng", "Mose", "Sø", "Hede", "Overdrev", "Strandeng"],
+      }),
       makeSpecies({
         species: Array.from({ length: 20 }, (_, i) => ({
-          scientificName: `Art ${i}`, danishName: `Art ${i}`,
-          group: ["Fugle","Pattedyr","Padder","Planter","Insekter","Svampe","Fisk","Krybdyr"][i % 8],
-          protected: i % 2 === 0, redListStatus: i % 3 === 0 ? "VU" : "LC", count: 1,
+          scientificName: `Art ${i}`,
+          danishName: `Art ${i}`,
+          group: [
+            "Fugle",
+            "Pattedyr",
+            "Padder",
+            "Planter",
+            "Insekter",
+            "Svampe",
+            "Fisk",
+            "Krybdyr",
+          ][i % 8],
+          protected: i % 2 === 0,
+          redListStatus: i % 3 === 0 ? "VU" : "LC",
+          count: 1,
         })),
-        protectedCount: 10, redListedCount: 7,
-        groupDiversity: { Fugle: 3, Pattedyr: 3, Padder: 2, Planter: 3, Insekter: 3, Svampe: 2, Fisk: 2, Krybdyr: 2 },
+        protectedCount: 10,
+        redListedCount: 7,
+        groupDiversity: {
+          Fugle: 3,
+          Pattedyr: 3,
+          Padder: 2,
+          Planter: 3,
+          Insekter: 3,
+          Svampe: 2,
+          Fisk: 2,
+          Krybdyr: 2,
+        },
       }),
       7.3,
     );
-    const sick = computeBiodiversityScore(0.05, makeP3({ overlapHa: 0, overlapPercent: 0, areas: [], natureTypes: [] }), makeSpecies({ species: [], protectedCount: 0, redListedCount: 0, groupDiversity: {} }), 7.3);
-    expect(generateRecommendations(healthy).length).toBeLessThan(generateRecommendations(sick).length);
+    const sick = computeBiodiversityScore(
+      0.05,
+      makeP3({ overlapHa: 0, overlapPercent: 0, areas: [], natureTypes: [] }),
+      makeSpecies({ species: [], protectedCount: 0, redListedCount: 0, groupDiversity: {} }),
+      7.3,
+    );
+    expect(generateRecommendations(healthy).length).toBeLessThan(
+      generateRecommendations(sick).length,
+    );
   });
 });

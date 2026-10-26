@@ -6,9 +6,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { user, projectId, loading } = useAuth();
+  const { user, orgId, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
-  if (!projectId) return <Navigate to="/select" />;
-  return <Navigate to="/app/overview" />;
+  if (!orgId) return <Navigate to="/select" />;
+  return <Navigate to="/app/projects" />;
 }

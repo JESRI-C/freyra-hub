@@ -1,0 +1,1164 @@
+{
+  "schema": "gofreyra.hosted-qa/v2",
+  "kind": "public-inventory-baseline",
+  "startedAt": "2026-10-13T19:14:50.259Z",
+  "firstStartedAt": "2026-10-13T19:14:50.269Z",
+  "attempt": 1,
+  "outcome": "passed",
+  "synthetic": true,
+  "municipalAcceptance": false,
+  "supabaseRef": "xdvqdzdpyceojbdknofi",
+  "projectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+  "requests": {
+    "baseline": "678cd47c-c9a0-4b9c-9051-8514ef929a85",
+    "deniedViewerCreate": "607ff5f1-9597-4350-b26d-1fe1b87f88c9",
+    "deniedForeignCreate": "d3498188-4154-47b6-81e7-3cf4678fa0e4",
+    "deniedAnonymousCreate": "461ab4af-d46e-432f-96b8-434c53140291",
+    "deniedRevokedViewerCreate": "2631be32-7ee8-4f2e-a989-3edd411acdcd"
+  },
+  "checks": {
+    "ordinary-staging-identities": {
+      "ordinaryAuth": true,
+      "stagingIssuerVerified": true,
+      "syntheticProjectVerified": true
+    },
+    "previous-baseline-frozen": {
+      "baselineId": "690ba491-f23c-4ed6-830d-453195acc08a",
+      "manifestSha256": "a66cf324f35a50fe3cb9148be3cb5b9e0ac1e3d9b8a2d8d324a1490dcd49c93e",
+      "originalManifestVerified": true,
+      "oldDmiVersionUnchanged": true,
+      "firstBaselineId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "firstBaselineManifestSha256": "32f9b05a8a30c2a8a0d118f14a4f36bfb98e5b34c5bc88786c5b5599a8bcd6c3",
+      "bothOldManifestsPreserved": true,
+      "savedPlanVersions": 2
+    },
+    "existing-modern-reference-reload": {
+      "sourceId": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+      "zoneId": "1b88e5f3-f1ec-43d6-b70e-025e732812f6",
+      "geometryUnchanged": true,
+      "providerUnchanged": true,
+      "keyFreeSourceUrlVerified": true,
+      "actualSavedRowVerified": true,
+      "noSearchOrPreviewSourceCallRequested": true
+    },
+    "synthetic-derived-project-polygon": {
+      "projectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+      "geometrySha256": "f54e3d492ecfa5026f4b1495f45aec5045e5a284838a2a47a6e76493d801d368",
+      "padDegrees": 0.002,
+      "syntheticQaProjectVerified": true,
+      "municipalReachAccepted": false,
+      "existingPolygonReadOnly": true
+    },
+    "upgraded-dmi-operational-selection": {
+      "adapterVersion": "dmi-historical-station-precip/v2",
+      "stationId": "05384",
+      "dailyValueCount": 15,
+      "sourcePayloadSha256": "b9766016cbcc208c49f7f9b5260a704772d913569c9269073fafee54505c65b0",
+      "observedFrom": "2026-08-25T00:00:00.001000+02:00",
+      "observedTo": "2026-09-09T00:00:00+02:00",
+      "exactPeriodCovered": false,
+      "totalMm": null,
+      "catchmentRelevance": "not_assessed",
+      "receivedOccurrences": 45,
+      "eligibleUniqueStations": 6,
+      "rejectedClosedStationId": "26050",
+      "attempts": [
+        {
+          "stationId": "06110",
+          "outcome": "complete_empty_try_next",
+          "overlappingDailyValueCount": 0,
+          "paginationComplete": true
+        },
+        {
+          "stationId": "05384",
+          "outcome": "selected_with_values",
+          "overlappingDailyValueCount": 15,
+          "paginationComplete": true
+        }
+      ],
+      "operationalAndMetadataBoundsVerified": true,
+      "priorBaselinePreserved": true
+    },
+    "raster-metadata-only-bound-to-aoi": {
+      "status": "partial",
+      "adapterVersion": "datafordeler-raster-inventory/v1",
+      "payloadSha256": "ab6c2625184646903316b17dd80c74104d4578a10afa91475090c0c6d355afab",
+      "metadataFiles": 45,
+      "inventoryOnly": true,
+      "pixelsFetched": false,
+      "spatialCoverage": "unknown",
+      "temporalCoverage": "unknown",
+      "queryProjection": {
+        "bbox": [
+          515756,
+          6132196,
+          517345,
+          6136401
+        ],
+        "method": "proj4-grs80-catalog-envelope/v1",
+        "queryCrs": "EPSG:25832",
+        "sourceCrs": "EPSG:4326",
+        "bboxRounding": "outward-to-integer-metres",
+        "queryBufferM": 25,
+        "queryAxisOrder": "easting-northing",
+        "datumAssumption": "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+        "sourceAxisOrder": "lng-lat",
+        "heightTransformed": false,
+        "projectedSampleCount": 14,
+        "edgeSampleStepDegrees": 0.01,
+        "surveyAccuracyVerified": false
+      },
+      "products": [
+        {
+          "dataset": "GeoDKO10cm",
+          "modelVersion": 1,
+          "delivery": 4,
+          "files": 15,
+          "fileIdsSha256": "b1f7fd203b0d83780b8d8217e57df06f36d4a6eeb4f9cd55fa285a4c79607243",
+          "capturedFrom": null,
+          "capturedTo": null
+        },
+        {
+          "dataset": "GeoDKO12,5cm",
+          "modelVersion": 1,
+          "delivery": 4,
+          "files": 15,
+          "fileIdsSha256": "0741d96155b909b98d00ccbedccbd6e07dcdb604a891192b6e474b810883872f",
+          "capturedFrom": null,
+          "capturedTo": null
+        },
+        {
+          "dataset": "Terraen",
+          "modelVersion": 1,
+          "delivery": 3,
+          "files": 15,
+          "fileIdsSha256": "d515dfe1625aed147d63727ec4f452a954442de155cc48099ef727e0f55cfb1b",
+          "capturedFrom": null,
+          "capturedTo": null
+        }
+      ],
+      "pages": [
+        {
+          "dataset": "GeoDKO10cm",
+          "page": 1,
+          "responseSha256": "c3638bccaf127a8cb19b38fcc6fc081225400977e873b172dd1509996630f7cc",
+          "responseBytes": 5106,
+          "pagination": {
+            "pageSize": 100,
+            "totalCount": 15,
+            "totalPages": 1,
+            "currentPage": 1
+          },
+          "publicQueryUrlSha256": "65e81b17a3fe8d602b40203ccfdcaa648efd48ff5c5ba30eb7d1f7ded5753cb4"
+        },
+        {
+          "dataset": "GeoDKO12,5cm",
+          "page": 1,
+          "responseSha256": "416452cc159a8787c5146b68d30154b1f8d4f6094f318f1bc05f479c18648fb1",
+          "responseBytes": 5121,
+          "pagination": {
+            "pageSize": 100,
+            "totalCount": 15,
+            "totalPages": 1,
+            "currentPage": 1
+          },
+          "publicQueryUrlSha256": "d2d2f9884dea2351886acc4d6e5b42028542915bdb73b6b9d96dd095cf6deb2f"
+        },
+        {
+          "dataset": "Terraen",
+          "page": 1,
+          "responseSha256": "d5550928e89a260ff97bcf3a33fd1a8de20c0abda4f9eab45b9354f4004b3cf9",
+          "responseBytes": 5102,
+          "pagination": {
+            "pageSize": 100,
+            "totalCount": 15,
+            "totalPages": 1,
+            "currentPage": 1
+          },
+          "publicQueryUrlSha256": "e468f57b9c328a9481ee81a05152bb76332b45543147b58ac8a56f98cf3e4ceb"
+        }
+      ]
+    },
+    "nature-vp3-received-inventory-bound-to-aoi": {
+      "status": "partial",
+      "adapterVersion": "water-plan-nature-inventory/v1",
+      "payloadSha256": "0b3690d5f3227fe8d825f6ebc6e268a40f23feb01fea3d266f313f9a6cd4339a",
+      "totalCandidates": 89,
+      "inventoryOnly": true,
+      "legalAssessmentPerformed": false,
+      "metricsCalculated": false,
+      "municipalReachMapped": false,
+      "upstreamTransactionalSnapshot": false,
+      "spatialCoverage": "unknown",
+      "temporalCoverage": "unknown",
+      "geometrySha256": "f54e3d492ecfa5026f4b1495f45aec5045e5a284838a2a47a6e76493d801d368",
+      "requestedPeriod": {
+        "to": "2026-09-07",
+        "from": "2026-08-24"
+      },
+      "queryProjection": {
+        "bbox": [
+          515756,
+          6132196,
+          517345,
+          6136401
+        ],
+        "method": "proj4-grs80-catalog-envelope/v1",
+        "queryCrs": "EPSG:25832",
+        "sourceCrs": "EPSG:4326",
+        "bboxRounding": "outward-to-integer-metres",
+        "queryBufferM": 25,
+        "queryAxisOrder": "easting-northing",
+        "datumAssumption": "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+        "sourceAxisOrder": "lng-lat",
+        "heightTransformed": false,
+        "projectedSampleCount": 14,
+        "edgeSampleStepDegrees": 0.01,
+        "surveyAccuracyVerified": false
+      },
+      "pureSavedPayloadValidator": {
+        "file": "water-plan-nature-saved-payload-DwCE5-ZL.mjs",
+        "sha256": "56461ecdf7dbba9220753f558a80f17a13cdd84aa6de8c5fe7e4bb853ecaf633",
+        "exportedFunction": "parseSavedWaterPlanNatureSource",
+        "compiledExportAlias": "p",
+        "pureReadValidationOnly": true
+      },
+      "products": [
+        {
+          "id": "protected-nature",
+          "layer": "dai:bes_naturtyper",
+          "endpointSha256": "fa0e562a05807e63a0d23ee0eb93246d4dc337d2475907e91e257aa6b31a8477",
+          "datasetVersion": null,
+          "versionBasis": "per_feature_registration_version",
+          "planPublishedDate": null,
+          "planEffectiveFrom": null,
+          "licence": "CC0 1.0",
+          "licenceUrlSha256": "b358b13e89e3ddd09693d732d1e35634340870147235bc88d14a312978ef13c1",
+          "attribution": "Danmarks Miljøportal / Kommunerne",
+          "matchedCount": 82,
+          "receivedCandidates": 82,
+          "nativeGeometryCrs": [
+            "EPSG:25832"
+          ],
+          "candidateIdsSha256": "be3edb25d50c85b1fa2ed56f2c1507f3f94a4f6f9f85ae800b368da94c2908ee",
+          "candidateMetadataSha256": "39473cbc59dd06697929d8104fa51621bc0b2456e5cdb27155c862a8559ab8f1",
+          "receivedInventoryComplete": true,
+          "pagingIsTransactionSafe": false
+        },
+        {
+          "id": "protected-watercourses",
+          "layer": "dai:bes_vandloeb",
+          "endpointSha256": "fa0e562a05807e63a0d23ee0eb93246d4dc337d2475907e91e257aa6b31a8477",
+          "datasetVersion": null,
+          "versionBasis": "per_feature_registration_version",
+          "planPublishedDate": null,
+          "planEffectiveFrom": null,
+          "licence": "CC0 1.0",
+          "licenceUrlSha256": "b358b13e89e3ddd09693d732d1e35634340870147235bc88d14a312978ef13c1",
+          "attribution": "Danmarks Miljøportal / Kommunerne",
+          "matchedCount": 4,
+          "receivedCandidates": 4,
+          "nativeGeometryCrs": [
+            "EPSG:25832"
+          ],
+          "candidateIdsSha256": "eb745c84bd0b02d5d078adf26f920ba3542a7c185d478c3f003c9553e29b28b5",
+          "candidateMetadataSha256": "1efbb0b85379415366861d171b0e780b0c5dca6928ba59a42256fd1104b63ee0",
+          "receivedInventoryComplete": true,
+          "pagingIsTransactionSafe": false
+        },
+        {
+          "id": "vp3-watercourses",
+          "layer": "vp3_2endelig2025:vp3_2e2025_vandloeb_samlet",
+          "endpointSha256": "1479bfde05a922e22e701573abac4c34fd182b102c2efcab24f0de691ff7fb58",
+          "datasetVersion": "vp3_2endelig2025",
+          "versionBasis": "published_plan_release",
+          "planPublishedDate": "2025-12-18",
+          "planEffectiveFrom": "2026-01-01",
+          "licence": "CC BY 4.0",
+          "licenceUrlSha256": "f83fbaa42c1dd36d98e9cb81b2ab5c8479cc707cb812723aa25d2c8c745195e0",
+          "attribution": "Styrelsen for Grøn Arealomlægning og Vandmiljø (SGAV)",
+          "matchedCount": 3,
+          "receivedCandidates": 3,
+          "nativeGeometryCrs": [
+            "EPSG:25832"
+          ],
+          "candidateIdsSha256": "eb2f21ba37bc007e3a0109fe8369e5678e5037cf7fe1d3709bf3312b53942366",
+          "candidateMetadataSha256": "0dcf8ba83cf27262643278b2070fcfab2e63628e3303eb66faaa97406cbc48db",
+          "receivedInventoryComplete": true,
+          "pagingIsTransactionSafe": false
+        }
+      ],
+      "pages": [
+        {
+          "productId": "protected-nature",
+          "publicQueryUrlSha256": "e68245f565bb05431d419ad8c737d236182fd7f713270abdd24ddbd2f14e57e3",
+          "responseSha256": "80c45012d684f1219d664f0c0c96113eeea8b396047f768c9220e4457ffa9e4c",
+          "responseBytes": 87557,
+          "startIndex": 0,
+          "requestedCount": 50,
+          "sortKey": "Objekt_id",
+          "numberMatched": 82,
+          "numberReturned": 50,
+          "totalFeatures": 82,
+          "serverTimestamp": "2026-10-13T19:14:54.004Z"
+        },
+        {
+          "productId": "protected-nature",
+          "publicQueryUrlSha256": "d7cb141f833c40c93c4d49c2170c1446ae50c2249ada9df41fbd8eac95ae438f",
+          "responseSha256": "698567756ea51400d28764ad6442dad01301381fabbbbe88c25114a2ae4017a4",
+          "responseBytes": 45619,
+          "startIndex": 50,
+          "requestedCount": 50,
+          "sortKey": "Objekt_id",
+          "numberMatched": 82,
+          "numberReturned": 32,
+          "totalFeatures": 82,
+          "serverTimestamp": "2026-10-13T19:14:54.100Z"
+        },
+        {
+          "productId": "protected-watercourses",
+          "publicQueryUrlSha256": "2af2b3fddfb38408d64b6a7a34926f018da4290a33afb0bad807e4ac92265d94",
+          "responseSha256": "e3cb96e99b31ddb6568169da4597ebd54bb2237b3fb6efd6942c785236d6377b",
+          "responseBytes": 4998,
+          "startIndex": 0,
+          "requestedCount": 50,
+          "sortKey": "Objekt_id",
+          "numberMatched": 4,
+          "numberReturned": 4,
+          "totalFeatures": 4,
+          "serverTimestamp": "2026-10-13T19:14:54.171Z"
+        },
+        {
+          "productId": "vp3-watercourses",
+          "publicQueryUrlSha256": "f7c8a8b6dd0dc832359311d4e39ac5669d504ed2dc34db1c53da7ec169ec3c8b",
+          "responseSha256": "593a4ad422aafe5ec165d5a2e8b850acc6234a5be814f4fb5ff9a8a7e1401cc2",
+          "responseBytes": 15357,
+          "startIndex": 0,
+          "requestedCount": 50,
+          "sortKey": "ov_id",
+          "numberMatched": 3,
+          "numberReturned": 3,
+          "totalFeatures": 3,
+          "serverTimestamp": "2026-10-13T19:14:55.436Z"
+        }
+      ],
+      "rawFeaturesOrFeatureGeometrySaved": false,
+      "newInspectionVerified": false,
+      "professionalApproval": false,
+      "municipalAcceptance": false
+    },
+    "baseline-v2-created": {
+      "baselineId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+      "version": 3,
+      "manifestSha256": "3916e31a036d2635f2814126aa188ce47c24f63ed74b1ee87ddfcab3c9eb19d8",
+      "sourceStatuses": [
+        {
+          "id": "official-watercourse-reference",
+          "mode": "live",
+          "status": "complete",
+          "evidenceKind": "official_registration",
+          "returnedCount": 1,
+          "payloadSha256": "f6c11bde07f48f11dbe172890d77ee01461ec3702de6e7b251e49dde436d883d"
+        },
+        {
+          "id": "municipal-regulation",
+          "mode": "error",
+          "status": "not_implemented",
+          "evidenceKind": "preview",
+          "returnedCount": null,
+          "payloadSha256": null
+        },
+        {
+          "id": "orthophoto-terrain",
+          "mode": "live",
+          "status": "partial",
+          "evidenceKind": "official_registration",
+          "returnedCount": 45,
+          "payloadSha256": "ab6c2625184646903316b17dd80c74104d4578a10afa91475090c0c6d355afab"
+        },
+        {
+          "id": "dmi-historical",
+          "mode": "live",
+          "status": "partial",
+          "evidenceKind": "calculation",
+          "returnedCount": 15,
+          "payloadSha256": "b9766016cbcc208c49f7f9b5260a704772d913569c9269073fafee54505c65b0"
+        },
+        {
+          "id": "water-plan-nature",
+          "mode": "live",
+          "status": "partial",
+          "evidenceKind": "official_registration",
+          "returnedCount": 89,
+          "payloadSha256": "0b3690d5f3227fe8d825f6ebc6e268a40f23feb01fea3d266f313f9a6cd4339a"
+        },
+        {
+          "id": "sentinel-2-scenes",
+          "mode": "live",
+          "status": "partial",
+          "evidenceKind": "official_registration",
+          "returnedCount": 9,
+          "payloadSha256": "58f2945764cc3696f7d87ed6964094d0469322a02c2b7b92be16c8baba9b0e1e"
+        },
+        {
+          "id": "public-monitoring-stations",
+          "mode": "error",
+          "status": "not_implemented",
+          "evidenceKind": "preview",
+          "returnedCount": null,
+          "payloadSha256": null
+        }
+      ],
+      "credentialsAbsentFromSourceUrls": true,
+      "referenceProviderVerified": true
+    },
+    "baseline-v2-retry-get-list": {
+      "baselineId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+      "manifestSha256": "3916e31a036d2635f2814126aa188ce47c24f63ed74b1ee87ddfcab3c9eb19d8",
+      "immutableManifestAndSources": true,
+      "sameIdAfterRetry": true,
+      "actualDatabaseRowMatches": true,
+      "singleRequestReceipt": true,
+      "listReturnsSummaryOnly": true
+    },
+    "viewer-actual-baseline-read": {
+      "baselineId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+      "allowed": true,
+      "actualRowAndHashMatch": true
+    },
+    "foreign-baseline-get": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "anonymous-baseline-get": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-actual-baseline-row": {
+      "denied": true,
+      "actualSnapshotId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+      "visibleRows": 0,
+      "httpStatus": 200
+    },
+    "anonymous-actual-baseline-row": {
+      "denied": true,
+      "actualSnapshotId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+      "visibleRows": 0,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "viewer-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "viewer-reference-save": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-reference-save": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "anonymous-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "anonymous-reference-save": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "viewer-baseline-insert": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "viewer-baseline-writer-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "foreign-baseline-insert": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "foreign-baseline-writer-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "anonymous-baseline-insert": {
+      "denied": true,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "anonymous-baseline-writer-rpc": {
+      "denied": true,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "owner-baseline-writer-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "owner-protected-baseline-update": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "revoked-viewer-actual-baseline-get": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "revoked-viewer-baseline-list": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "revoked-viewer-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "revoked-viewer-actual-baseline-row": {
+      "denied": true,
+      "actualSnapshotId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+      "visibleRows": 0,
+      "httpStatus": 200
+    },
+    "revoked-viewer-existing-jwt-baseline": {
+      "sameJwt": true,
+      "actualSavedRowDenied": true,
+      "snapshotId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29"
+    },
+    "viewer-membership-restored": {
+      "exactRowsRestored": true,
+      "originalRolesRestored": true,
+      "verifiedFromDatabase": true
+    },
+    "restored-viewer-baseline-read": {
+      "sameJwt": true,
+      "allowed": true,
+      "baselineId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+      "manifestSha256Unchanged": true
+    },
+    "baseline-v2-final-immutable-state": {
+      "baselineId": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+      "manifestSha256": "3916e31a036d2635f2814126aa188ce47c24f63ed74b1ee87ddfcab3c9eb19d8",
+      "immutableRowUnchanged": true,
+      "savedReferenceUnchanged": true,
+      "noAssetsObservationsOrReportsCreated": true,
+      "drone_flights": 0,
+      "viewerMembershipRestored": true,
+      "previousBaselineId": "690ba491-f23c-4ed6-830d-453195acc08a",
+      "previousBaselineHashUnchanged": true,
+      "canonicalUploadAndPlanStateUnchanged": true,
+      "firstBaselineId": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+      "firstBaselineHashUnchanged": true,
+      "exactlyTwoPlanVersionsPreserved": true,
+      "syntheticNatureContextsUnchanged": true,
+      "roundAvailabilityStateUnchanged": true,
+      "rounds": {
+        "available": false,
+        "count": null,
+        "code": "PGRST205"
+      },
+      "natureInventoryPartialOnly": true,
+      "rasterInventoryMetadataOnly": true,
+      "municipalAcceptance": false,
+      "professionalApproval": false
+    }
+  },
+  "audit": {
+    "expectedAppBuildSourceSha": "296af078116f1cf56b600df36ffda3a012f8f70a",
+    "expectedRepositorySha": "296af078116f1cf56b600df36ffda3a012f8f70a",
+    "expectedWorkerDeploymentId": "2006a0ea-8899-4a54-b11b-66a4a917c065",
+    "expectedDeploymentMetadataSha256": "7b0ccafa10945260b33debdacf67213979d0fc12ea73c1b06d7c2d9f8478ce97",
+    "rootReportedCi": {
+      "runId": 38449984520,
+      "sourceSha": "296af078116f1cf56b600df36ffda3a012f8f70a",
+      "conclusion": "success",
+      "unitTestFiles": 103,
+      "unitTests": 1357,
+      "sqlFiles": 6,
+      "sqlAssertions": 325
+    },
+    "rootReportedStagingMigrationApply": true,
+    "rootReportedWorkerDeployment": true,
+    "appBuildEquivalentToRepositoryAccordingToRoot": true,
+    "verificationSource": "Root-written public expected-deployment metadata records true CI, scoped staging migration apply and Worker deployment; script hashes local built manifests only",
+    "functionIds": {
+      "saveOfficialWatercourseReach": "1b99e8411cc347a8fc0f4155a0911e2e6ac5af035dc6a72c758ca5f2151e9cb3",
+      "getSavedOfficialWatercourseReach": "9dc420f2d4520cdc5c7cce6414cad7a10079b271c29ee7b8e69f122ba635cfa3",
+      "createProjectBaseline": "b59708d3044b60e4de1f4ea0b1eef7d5ffa5e214f4917c95b812e3daf6fd9061",
+      "getProjectBaseline": "96a12ee85beb066d2afdd80a6a83382dd0da7cb091106b0d6f3c220a72325a23",
+      "listProjectBaselines": "23e41457716570f265a4649d9f51a46ca6f0732acce9610274e4aa2ffda9cd11"
+    },
+    "builtManifestFiles": [
+      {
+        "name": "server-DSgGAkwe.mjs",
+        "sha256": "67f9bb2cd7f6a3d6e8cbc120df6710a971bb64950a8276325471f71dbe70ad1d"
+      }
+    ],
+    "requiresVerifiedCiAndStagingDeployment": true
+  },
+  "updatedAt": "2026-10-13T19:15:23.724Z",
+  "scope": {
+    "technicalReferenceOnly": true,
+    "namedRegisterReference": "Bykær Bæk",
+    "sourceId": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+    "provider": "datafordeler-ds-bearbejdet-wfs/v1",
+    "datasetVersion": "static-2025-09",
+    "municipalityPilotChosen": false,
+    "agreedMunicipalReach": false,
+    "reviewerApproved": false,
+    "syntheticPolygonDerivedFromOfficialBbox": true,
+    "newImmutableInventoryBaselineOnly": true,
+    "ordinaryIdentityRuntimeOnly": true,
+    "pureNaturePayloadValidator": {
+      "file": "water-plan-nature-saved-payload-DwCE5-ZL.mjs",
+      "sha256": "56461ecdf7dbba9220753f558a80f17a13cdd84aa6de8c5fe7e4bb853ecaf633",
+      "exportedFunction": "parseSavedWaterPlanNatureSource",
+      "compiledExportAlias": "p",
+      "pureReadValidationOnly": true
+    },
+    "professionalApproval": false,
+    "aiProviderCallsRequested": false,
+    "rasterPixelsFetchedClaimed": false,
+    "broadDatabaseOrSharedCacheUnchangedClaimed": false,
+    "approvedViewerMembershipRevocationAndExactRestoreOnly": true
+  },
+  "recordCountsBefore": {
+    "drone_assets": 0,
+    "observations": 0,
+    "reports": 0
+  },
+  "roundStateBefore": {
+    "available": false,
+    "count": null,
+    "code": "PGRST205"
+  },
+  "baselineInventoryBefore": {
+    "count": 2,
+    "sha256": "5016d8987745a0caead63ffc872e4b3140b36a905c8cd7f32d76ae9e93f5624c",
+    "allowsOnlySameRequestRetryPlusTwoOldVersions": true
+  },
+  "firstBaseline": {
+    "id": "3f5ec8bc-ac7d-476a-ad0f-2dd61243bb12",
+    "manifestSha256": "32f9b05a8a30c2a8a0d118f14a4f36bfb98e5b34c5bc88786c5b5599a8bcd6c3",
+    "oldManifestUnchanged": true
+  },
+  "previousBaseline": {
+    "id": "690ba491-f23c-4ed6-830d-453195acc08a",
+    "manifestSha256": "a66cf324f35a50fe3cb9148be3cb5b9e0ac1e3d9b8a2d8d324a1490dcd49c93e",
+    "unchanged": true,
+    "dmiAdapterVersion": "dmi-historical-station-precip/v2"
+  },
+  "canonicalGraphBefore": {
+    "project_media": {
+      "count": 1,
+      "sha256": "546b952eefda67e6679e5a15e12032f03da0ae3a7938be03e9d0aafe98b51d56"
+    },
+    "project_media_upload_origins": {
+      "count": 2,
+      "sha256": "830650053a5d5fb44b588fd7ece4d15924316bb6fc4112309b26a1eb2cb81fff"
+    },
+    "project_media_promotion_requests": {
+      "count": 3,
+      "sha256": "fb17d5224a548f763a2db70ea7c38dce6c18a9194f8e895c0f281327c31e7d83"
+    },
+    "uploads": {
+      "count": 2,
+      "sha256": "bc4c4a7ac8ec569fe42b945ffca560483f0b33e6b434a58139909bfe8a9faae6"
+    },
+    "verification_plan_versions": {
+      "count": 2,
+      "sha256": "dd17f48186f73b5a154c799cecfd6e6a155968caf91ca3fb2346097cf0a3c7c4"
+    },
+    "nature_contexts": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "reference": {
+    "id": "1233766a-1fdb-6b98-e053-d480220a5a3f",
+    "zoneId": "1b88e5f3-f1ec-43d6-b70e-025e732812f6",
+    "sourceUrlSha256": "82453d30b124cb2547e8d41761b1f77efb91fc62f0db4e5628dcdd2b54a6dbca",
+    "geometrySha256": "2f96a641377edcfa97aa2a097b56d1bd618532155e634afb819fce1def0d448d",
+    "provider": "datafordeler-ds-bearbejdet-wfs/v1",
+    "datasetVersion": "static-2025-09",
+    "sourceCrs": "EPSG:4326",
+    "sourceAxisOrder": "lat-lng"
+  },
+  "polygon": {
+    "sha256": "f54e3d492ecfa5026f4b1495f45aec5045e5a284838a2a47a6e76493d801d368",
+    "bboxPadDegrees": 0.002,
+    "technicalAreaOnly": true
+  },
+  "baselineAttemptReceipt": {
+    "id": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+    "version": 3,
+    "requestId": "678cd47c-c9a0-4b9c-9051-8514ef929a85",
+    "manifestSha256": "3916e31a036d2635f2814126aa188ce47c24f63ed74b1ee87ddfcab3c9eb19d8",
+    "accepted": true,
+    "sourcePayloadChecksPassed": true
+  },
+  "baseline": {
+    "id": "08a8ff1d-647b-4e67-a17c-d78fd289ff29",
+    "version": 3,
+    "manifestSha256": "3916e31a036d2635f2814126aa188ce47c24f63ed74b1ee87ddfcab3c9eb19d8",
+    "schema": "gofreyra.public-baseline/v2",
+    "requestId": "678cd47c-c9a0-4b9c-9051-8514ef929a85",
+    "sourceStatuses": [
+      {
+        "id": "official-watercourse-reference",
+        "mode": "live",
+        "status": "complete",
+        "evidenceKind": "official_registration",
+        "returnedCount": 1,
+        "payloadSha256": "f6c11bde07f48f11dbe172890d77ee01461ec3702de6e7b251e49dde436d883d"
+      },
+      {
+        "id": "municipal-regulation",
+        "mode": "error",
+        "status": "not_implemented",
+        "evidenceKind": "preview",
+        "returnedCount": null,
+        "payloadSha256": null
+      },
+      {
+        "id": "orthophoto-terrain",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "official_registration",
+        "returnedCount": 45,
+        "payloadSha256": "ab6c2625184646903316b17dd80c74104d4578a10afa91475090c0c6d355afab"
+      },
+      {
+        "id": "dmi-historical",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "calculation",
+        "returnedCount": 15,
+        "payloadSha256": "b9766016cbcc208c49f7f9b5260a704772d913569c9269073fafee54505c65b0"
+      },
+      {
+        "id": "water-plan-nature",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "official_registration",
+        "returnedCount": 89,
+        "payloadSha256": "0b3690d5f3227fe8d825f6ebc6e268a40f23feb01fea3d266f313f9a6cd4339a"
+      },
+      {
+        "id": "sentinel-2-scenes",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "official_registration",
+        "returnedCount": 9,
+        "payloadSha256": "58f2945764cc3696f7d87ed6964094d0469322a02c2b7b92be16c8baba9b0e1e"
+      },
+      {
+        "id": "public-monitoring-stations",
+        "mode": "error",
+        "status": "not_implemented",
+        "evidenceKind": "preview",
+        "returnedCount": null,
+        "payloadSha256": null
+      }
+    ],
+    "completePublicSourceCoverage": false,
+    "sourceGaps": [
+      {
+        "id": "official-watercourse-reference",
+        "status": "complete",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": null
+      },
+      {
+        "id": "municipal-regulation",
+        "status": "not_implemented",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": "NOT_IMPLEMENTED"
+      },
+      {
+        "id": "orthophoto-terrain",
+        "status": "partial",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": null
+      },
+      {
+        "id": "dmi-historical",
+        "status": "partial",
+        "spatial": "partial",
+        "temporal": "partial",
+        "errorCode": null
+      },
+      {
+        "id": "water-plan-nature",
+        "status": "partial",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": null
+      },
+      {
+        "id": "sentinel-2-scenes",
+        "status": "partial",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": null
+      },
+      {
+        "id": "public-monitoring-stations",
+        "status": "not_implemented",
+        "spatial": "unknown",
+        "temporal": "unknown",
+        "errorCode": "NOT_IMPLEMENTED"
+      }
+    ],
+    "dmi": {
+      "adapterVersion": "dmi-historical-station-precip/v2",
+      "stationId": "05384",
+      "dailyValueCount": 15,
+      "sourcePayloadSha256": "b9766016cbcc208c49f7f9b5260a704772d913569c9269073fafee54505c65b0",
+      "observedFrom": "2026-08-25T00:00:00.001000+02:00",
+      "observedTo": "2026-09-09T00:00:00+02:00",
+      "exactPeriodCovered": false,
+      "totalMm": null,
+      "catchmentRelevance": "not_assessed",
+      "receivedOccurrences": 45,
+      "eligibleUniqueStations": 6,
+      "rejectedClosedStationId": "26050",
+      "attempts": [
+        {
+          "stationId": "06110",
+          "outcome": "complete_empty_try_next",
+          "overlappingDailyValueCount": 0,
+          "paginationComplete": true
+        },
+        {
+          "stationId": "05384",
+          "outcome": "selected_with_values",
+          "overlappingDailyValueCount": 15,
+          "paginationComplete": true
+        }
+      ]
+    },
+    "raster": {
+      "status": "partial",
+      "adapterVersion": "datafordeler-raster-inventory/v1",
+      "payloadSha256": "ab6c2625184646903316b17dd80c74104d4578a10afa91475090c0c6d355afab",
+      "metadataFiles": 45,
+      "inventoryOnly": true,
+      "pixelsFetched": false,
+      "spatialCoverage": "unknown",
+      "temporalCoverage": "unknown",
+      "queryProjection": {
+        "bbox": [
+          515756,
+          6132196,
+          517345,
+          6136401
+        ],
+        "method": "proj4-grs80-catalog-envelope/v1",
+        "queryCrs": "EPSG:25832",
+        "sourceCrs": "EPSG:4326",
+        "bboxRounding": "outward-to-integer-metres",
+        "queryBufferM": 25,
+        "queryAxisOrder": "easting-northing",
+        "datumAssumption": "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+        "sourceAxisOrder": "lng-lat",
+        "heightTransformed": false,
+        "projectedSampleCount": 14,
+        "edgeSampleStepDegrees": 0.01,
+        "surveyAccuracyVerified": false
+      },
+      "products": [
+        {
+          "dataset": "GeoDKO10cm",
+          "modelVersion": 1,
+          "delivery": 4,
+          "files": 15,
+          "fileIdsSha256": "b1f7fd203b0d83780b8d8217e57df06f36d4a6eeb4f9cd55fa285a4c79607243",
+          "capturedFrom": null,
+          "capturedTo": null
+        },
+        {
+          "dataset": "GeoDKO12,5cm",
+          "modelVersion": 1,
+          "delivery": 4,
+          "files": 15,
+          "fileIdsSha256": "0741d96155b909b98d00ccbedccbd6e07dcdb604a891192b6e474b810883872f",
+          "capturedFrom": null,
+          "capturedTo": null
+        },
+        {
+          "dataset": "Terraen",
+          "modelVersion": 1,
+          "delivery": 3,
+          "files": 15,
+          "fileIdsSha256": "d515dfe1625aed147d63727ec4f452a954442de155cc48099ef727e0f55cfb1b",
+          "capturedFrom": null,
+          "capturedTo": null
+        }
+      ],
+      "pages": [
+        {
+          "dataset": "GeoDKO10cm",
+          "page": 1,
+          "responseSha256": "c3638bccaf127a8cb19b38fcc6fc081225400977e873b172dd1509996630f7cc",
+          "responseBytes": 5106,
+          "pagination": {
+            "pageSize": 100,
+            "totalCount": 15,
+            "totalPages": 1,
+            "currentPage": 1
+          },
+          "publicQueryUrlSha256": "65e81b17a3fe8d602b40203ccfdcaa648efd48ff5c5ba30eb7d1f7ded5753cb4"
+        },
+        {
+          "dataset": "GeoDKO12,5cm",
+          "page": 1,
+          "responseSha256": "416452cc159a8787c5146b68d30154b1f8d4f6094f318f1bc05f479c18648fb1",
+          "responseBytes": 5121,
+          "pagination": {
+            "pageSize": 100,
+            "totalCount": 15,
+            "totalPages": 1,
+            "currentPage": 1
+          },
+          "publicQueryUrlSha256": "d2d2f9884dea2351886acc4d6e5b42028542915bdb73b6b9d96dd095cf6deb2f"
+        },
+        {
+          "dataset": "Terraen",
+          "page": 1,
+          "responseSha256": "d5550928e89a260ff97bcf3a33fd1a8de20c0abda4f9eab45b9354f4004b3cf9",
+          "responseBytes": 5102,
+          "pagination": {
+            "pageSize": 100,
+            "totalCount": 15,
+            "totalPages": 1,
+            "currentPage": 1
+          },
+          "publicQueryUrlSha256": "e468f57b9c328a9481ee81a05152bb76332b45543147b58ac8a56f98cf3e4ceb"
+        }
+      ]
+    },
+    "nature": {
+      "status": "partial",
+      "adapterVersion": "water-plan-nature-inventory/v1",
+      "payloadSha256": "0b3690d5f3227fe8d825f6ebc6e268a40f23feb01fea3d266f313f9a6cd4339a",
+      "totalCandidates": 89,
+      "inventoryOnly": true,
+      "legalAssessmentPerformed": false,
+      "metricsCalculated": false,
+      "municipalReachMapped": false,
+      "upstreamTransactionalSnapshot": false,
+      "spatialCoverage": "unknown",
+      "temporalCoverage": "unknown",
+      "geometrySha256": "f54e3d492ecfa5026f4b1495f45aec5045e5a284838a2a47a6e76493d801d368",
+      "requestedPeriod": {
+        "to": "2026-09-07",
+        "from": "2026-08-24"
+      },
+      "queryProjection": {
+        "bbox": [
+          515756,
+          6132196,
+          517345,
+          6136401
+        ],
+        "method": "proj4-grs80-catalog-envelope/v1",
+        "queryCrs": "EPSG:25832",
+        "sourceCrs": "EPSG:4326",
+        "bboxRounding": "outward-to-integer-metres",
+        "queryBufferM": 25,
+        "queryAxisOrder": "easting-northing",
+        "datumAssumption": "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+        "sourceAxisOrder": "lng-lat",
+        "heightTransformed": false,
+        "projectedSampleCount": 14,
+        "edgeSampleStepDegrees": 0.01,
+        "surveyAccuracyVerified": false
+      },
+      "pureSavedPayloadValidator": {
+        "file": "water-plan-nature-saved-payload-DwCE5-ZL.mjs",
+        "sha256": "56461ecdf7dbba9220753f558a80f17a13cdd84aa6de8c5fe7e4bb853ecaf633",
+        "exportedFunction": "parseSavedWaterPlanNatureSource",
+        "compiledExportAlias": "p",
+        "pureReadValidationOnly": true
+      },
+      "products": [
+        {
+          "id": "protected-nature",
+          "layer": "dai:bes_naturtyper",
+          "endpointSha256": "fa0e562a05807e63a0d23ee0eb93246d4dc337d2475907e91e257aa6b31a8477",
+          "datasetVersion": null,
+          "versionBasis": "per_feature_registration_version",
+          "planPublishedDate": null,
+          "planEffectiveFrom": null,
+          "licence": "CC0 1.0",
+          "licenceUrlSha256": "b358b13e89e3ddd09693d732d1e35634340870147235bc88d14a312978ef13c1",
+          "attribution": "Danmarks Miljøportal / Kommunerne",
+          "matchedCount": 82,
+          "receivedCandidates": 82,
+          "nativeGeometryCrs": [
+            "EPSG:25832"
+          ],
+          "candidateIdsSha256": "be3edb25d50c85b1fa2ed56f2c1507f3f94a4f6f9f85ae800b368da94c2908ee",
+          "candidateMetadataSha256": "39473cbc59dd06697929d8104fa51621bc0b2456e5cdb27155c862a8559ab8f1",
+          "receivedInventoryComplete": true,
+          "pagingIsTransactionSafe": false
+        },
+        {
+          "id": "protected-watercourses",
+          "layer": "dai:bes_vandloeb",
+          "endpointSha256": "fa0e562a05807e63a0d23ee0eb93246d4dc337d2475907e91e257aa6b31a8477",
+          "datasetVersion": null,
+          "versionBasis": "per_feature_registration_version",
+          "planPublishedDate": null,
+          "planEffectiveFrom": null,
+          "licence": "CC0 1.0",
+          "licenceUrlSha256": "b358b13e89e3ddd09693d732d1e35634340870147235bc88d14a312978ef13c1",
+          "attribution": "Danmarks Miljøportal / Kommunerne",
+          "matchedCount": 4,
+          "receivedCandidates": 4,
+          "nativeGeometryCrs": [
+            "EPSG:25832"
+          ],
+          "candidateIdsSha256": "eb745c84bd0b02d5d078adf26f920ba3542a7c185d478c3f003c9553e29b28b5",
+          "candidateMetadataSha256": "1efbb0b85379415366861d171b0e780b0c5dca6928ba59a42256fd1104b63ee0",
+          "receivedInventoryComplete": true,
+          "pagingIsTransactionSafe": false
+        },
+        {
+          "id": "vp3-watercourses",
+          "layer": "vp3_2endelig2025:vp3_2e2025_vandloeb_samlet",
+          "endpointSha256": "1479bfde05a922e22e701573abac4c34fd182b102c2efcab24f0de691ff7fb58",
+          "datasetVersion": "vp3_2endelig2025",
+          "versionBasis": "published_plan_release",
+          "planPublishedDate": "2025-12-18",
+          "planEffectiveFrom": "2026-01-01",
+          "licence": "CC BY 4.0",
+          "licenceUrlSha256": "f83fbaa42c1dd36d98e9cb81b2ab5c8479cc707cb812723aa25d2c8c745195e0",
+          "attribution": "Styrelsen for Grøn Arealomlægning og Vandmiljø (SGAV)",
+          "matchedCount": 3,
+          "receivedCandidates": 3,
+          "nativeGeometryCrs": [
+            "EPSG:25832"
+          ],
+          "candidateIdsSha256": "eb2f21ba37bc007e3a0109fe8369e5678e5037cf7fe1d3709bf3312b53942366",
+          "candidateMetadataSha256": "0dcf8ba83cf27262643278b2070fcfab2e63628e3303eb66faaa97406cbc48db",
+          "receivedInventoryComplete": true,
+          "pagingIsTransactionSafe": false
+        }
+      ],
+      "pages": [
+        {
+          "productId": "protected-nature",
+          "publicQueryUrlSha256": "e68245f565bb05431d419ad8c737d236182fd7f713270abdd24ddbd2f14e57e3",
+          "responseSha256": "80c45012d684f1219d664f0c0c96113eeea8b396047f768c9220e4457ffa9e4c",
+          "responseBytes": 87557,
+          "startIndex": 0,
+          "requestedCount": 50,
+          "sortKey": "Objekt_id",
+          "numberMatched": 82,
+          "numberReturned": 50,
+          "totalFeatures": 82,
+          "serverTimestamp": "2026-10-13T19:14:54.004Z"
+        },
+        {
+          "productId": "protected-nature",
+          "publicQueryUrlSha256": "d7cb141f833c40c93c4d49c2170c1446ae50c2249ada9df41fbd8eac95ae438f",
+          "responseSha256": "698567756ea51400d28764ad6442dad01301381fabbbbe88c25114a2ae4017a4",
+          "responseBytes": 45619,
+          "startIndex": 50,
+          "requestedCount": 50,
+          "sortKey": "Objekt_id",
+          "numberMatched": 82,
+          "numberReturned": 32,
+          "totalFeatures": 82,
+          "serverTimestamp": "2026-10-13T19:14:54.100Z"
+        },
+        {
+          "productId": "protected-watercourses",
+          "publicQueryUrlSha256": "2af2b3fddfb38408d64b6a7a34926f018da4290a33afb0bad807e4ac92265d94",
+          "responseSha256": "e3cb96e99b31ddb6568169da4597ebd54bb2237b3fb6efd6942c785236d6377b",
+          "responseBytes": 4998,
+          "startIndex": 0,
+          "requestedCount": 50,
+          "sortKey": "Objekt_id",
+          "numberMatched": 4,
+          "numberReturned": 4,
+          "totalFeatures": 4,
+          "serverTimestamp": "2026-10-13T19:14:54.171Z"
+        },
+        {
+          "productId": "vp3-watercourses",
+          "publicQueryUrlSha256": "f7c8a8b6dd0dc832359311d4e39ac5669d504ed2dc34db1c53da7ec169ec3c8b",
+          "responseSha256": "593a4ad422aafe5ec165d5a2e8b850acc6234a5be814f4fb5ff9a8a7e1401cc2",
+          "responseBytes": 15357,
+          "startIndex": 0,
+          "requestedCount": 50,
+          "sortKey": "ov_id",
+          "numberMatched": 3,
+          "numberReturned": 3,
+          "totalFeatures": 3,
+          "serverTimestamp": "2026-10-13T19:14:55.436Z"
+        }
+      ],
+      "rawFeaturesOrFeatureGeometrySaved": false,
+      "newInspectionVerified": false,
+      "professionalApproval": false,
+      "municipalAcceptance": false
+    }
+  },
+  "canonicalGraphAfter": {
+    "project_media": {
+      "count": 1,
+      "sha256": "546b952eefda67e6679e5a15e12032f03da0ae3a7938be03e9d0aafe98b51d56"
+    },
+    "project_media_upload_origins": {
+      "count": 2,
+      "sha256": "830650053a5d5fb44b588fd7ece4d15924316bb6fc4112309b26a1eb2cb81fff"
+    },
+    "project_media_promotion_requests": {
+      "count": 3,
+      "sha256": "fb17d5224a548f763a2db70ea7c38dce6c18a9194f8e895c0f281327c31e7d83"
+    },
+    "uploads": {
+      "count": 2,
+      "sha256": "bc4c4a7ac8ec569fe42b945ffca560483f0b33e6b434a58139909bfe8a9faae6"
+    },
+    "verification_plan_versions": {
+      "count": 2,
+      "sha256": "dd17f48186f73b5a154c799cecfd6e6a155968caf91ca3fb2346097cf0a3c7c4"
+    },
+    "nature_contexts": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "baselineInventoryAfter": {
+    "count": 3,
+    "sha256": "0eb616698c204bf1f10d397b5891844b888bc34e8226ceff831bdae6c06de218",
+    "exactlyTwoOldVersionsPlusSingleNewRequestReceipt": true
+  },
+  "roundStateAfter": {
+    "available": false,
+    "count": null,
+    "code": "PGRST205"
+  },
+  "recordCountsAfter": {
+    "drone_assets": 0,
+    "observations": 0,
+    "reports": 0
+  },
+  "completedAt": "2026-10-13T19:15:23.724Z"
+}

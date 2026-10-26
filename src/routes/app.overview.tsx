@@ -23,18 +23,17 @@ import {
 } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill } from "@/components/ui-bits";
 import { useAuth } from "@/lib/auth";
+import { isDemoDataEnabled } from "@/lib/data-mode";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
 import { getAllOpenActions } from "@/services/actions-service";
 import { getAllReports } from "@/services/reports-service";
 
 export const Route = createFileRoute("/app/overview")({
-  head: () => ({ meta: [{ title: "Dashboard — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Freyra" }] }),
   component: DashboardPage,
 });
 
-
 // ─── Static structure copy (module map & workflow) ───────────────────────────
-
 
 const WORKFLOW_STEPS = [
   "Project intake",
@@ -89,7 +88,7 @@ const REPOSITIONED_MODULES = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function DashboardPage() {
-  const { currentOrg } = useAuth();
+  const { currentOrg, currentProject } = useAuth();
   const orgId = currentOrg?.id ?? "";
 
   const { data: summaries } = useSuspenseQuery({
@@ -107,10 +106,7 @@ function DashboardPage() {
 
   const kpis = useMemo(() => {
     const activeProjects = summaries.filter((s) => s.project.status !== "Afsluttet").length;
-    const totalHa = summaries.reduce(
-      (a, s) => a + (Number(s.project.geometry_area_ha) || 0),
-      0,
-    );
+    const totalHa = summaries.reduce((a, s) => a + (Number(s.project.geometry_area_ha) || 0), 0);
     const readinessVals = summaries
       .flatMap((s) => s.indicators)
       .filter((i) => i.key === "report_readiness" && i.value !== null)
@@ -124,12 +120,36 @@ function DashboardPage() {
       (r) => r.status === "Publiceret" || r.status === "Offentliggjort",
     ).length;
     return [
-      { label: "Aktive naturprojekter", value: String(activeProjects), hint: `${summaries.length} i alt` },
-      { label: "Hektar under forvaltning", value: totalHa > 0 ? totalHa.toFixed(1) : "—", hint: "Fra projektarealer" },
-      { label: "Rapportparathed", value: avgReadiness !== null ? `${avgReadiness}%` : "—", hint: "Gennemsnit på tværs" },
-      { label: "Åbne handlinger", value: String(openActions.length), hint: "På tværs af projekter" },
-      { label: "Aktive datakilder", value: String(dataSourceTotal), hint: "Sensorer · satellit · felt" },
-      { label: "Rapporter i alt", value: String(allReports.length), hint: `${publishedReports} publiceret` },
+      {
+        label: "Aktive naturprojekter",
+        value: String(activeProjects),
+        hint: `${summaries.length} i alt`,
+      },
+      {
+        label: "Hektar under forvaltning",
+        value: totalHa > 0 ? totalHa.toFixed(1) : "—",
+        hint: "Fra projektarealer",
+      },
+      {
+        label: "Rapportparathed",
+        value: avgReadiness !== null ? `${avgReadiness}%` : "—",
+        hint: "Gennemsnit på tværs",
+      },
+      {
+        label: "Åbne handlinger",
+        value: String(openActions.length),
+        hint: "På tværs af projekter",
+      },
+      {
+        label: "Aktive datakilder",
+        value: String(dataSourceTotal),
+        hint: "Sensorer · satellit · felt",
+      },
+      {
+        label: "Rapporter i alt",
+        value: String(allReports.length),
+        hint: `${publishedReports} publiceret`,
+      },
     ];
   }, [summaries, openActions, allReports]);
 
@@ -175,26 +195,49 @@ function DashboardPage() {
       {/* 1. Hero */}
       <section className="rounded-2xl border bg-gradient-to-br from-leaf/20 via-card to-card p-8 relative overflow-hidden">
         <div className="max-w-3xl space-y-3">
-          <Pill tone="success">Nature Project Command Center</Pill>
+          <Pill tone="success">Dit projektarbejde</Pill>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            Fra naturmål til dokumenteret handling
+            Hvad skal du arbejde med?
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            GoFreyra samler naturprojekter, arealdata, lodsejerdialog, biodiversitetsmetoder,
-            rapportering og offentlig dokumentation i ét arbejdsflow.
+            Start med billeder og en undersøgelse, eller fortsæt med projektets rapport og mangler.
           </p>
           <div className="flex flex-wrap gap-2 pt-2">
+            {currentProject ? (
+              <>
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug: currentProject.slug || currentProject.id }}
+                  search={{ tab: "arbejde" }}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Arbejd med dronebilleder
+                </Link>
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug: currentProject.slug || currentProject.id }}
+                  search={{ tab: "rapporter" }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-4 py-2 text-sm font-medium"
+                >
+                  <FileText className="h-4 w-4" />
+                  Se rapport og levering
+                </Link>
+              </>
+            ) : (
+              <Link
+                to="/app/projects"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
+              >
+                <ArrowRight className="h-4 w-4" />
+                Vælg projekt og begynd undersøgelsen
+              </Link>
+            )}
             <Link
               to="/app/projects"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-95"
-            >
-              <Plus className="h-4 w-4" /> Opret naturprojekt
-            </Link>
-            <Link
-              to="/app/reports"
               className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
             >
-              <FileText className="h-4 w-4" /> Generér rapport
+              <Plus className="h-4 w-4" /> Opret naturprojekt
             </Link>
           </div>
         </div>
@@ -219,10 +262,7 @@ function DashboardPage() {
       <div className="grid lg:grid-cols-3 gap-5">
         {/* 3. Critical actions */}
         <Card className="lg:col-span-2">
-          <CardHeader
-            title="Kritiske handlinger"
-            subtitle="Hvad kræver din opmærksomhed nu"
-          />
+          <CardHeader title="Kritiske handlinger" subtitle="Hvad kræver din opmærksomhed nu" />
           <ul className="px-5 pb-5 divide-y">
             {criticalActions.length === 0 && (
               <li className="py-6 text-sm text-muted-foreground text-center">
@@ -264,7 +304,7 @@ function DashboardPage() {
             </span>
           </div>
           <p className="text-sm leading-relaxed text-foreground/85">
-            <strong>Biodiversitet er ikke CO₂.</strong> GoFreyra reducerer ikke natur til én simpel
+            <strong>Biodiversitet er ikke CO₂.</strong> Freyra reducerer ikke natur til én simpel
             score. Hver vurdering kan kobles til metode, kontekst, datakilder, usikkerhed og
             anbefalet anvendelse.
           </p>
@@ -326,14 +366,8 @@ function DashboardPage() {
                   label="Rapportparathed"
                   value={p.readiness !== null ? `${p.readiness}%` : "—"}
                 />
-                <KpiMini
-                  label="Datakvalitet"
-                  value={p.quality !== null ? `${p.quality}%` : "—"}
-                />
-                <KpiMini
-                  label="Biodiversitet"
-                  value={p.bio !== null ? String(p.bio) : "—"}
-                />
+                <KpiMini label="Datakvalitet" value={p.quality !== null ? `${p.quality}%` : "—"} />
+                <KpiMini label="Biodiversitet" value={p.bio !== null ? String(p.bio) : "—"} />
                 <KpiMini label="Åbne handlinger" value={String(p.openActions)} />
               </div>
             </Link>
@@ -412,14 +446,30 @@ function KpiMini({ label, value }: { label: string; value: string }) {
 // ─── LavbundsMRV-status på forsiden ───────────────────────────────────────────
 
 function LavbundTile() {
-  const { data } = useQuery({
-    queryKey: ["lavbund", "overblik"],
+  const { currentOrg } = useAuth();
+  const organizationId = currentOrg?.id;
+  const { data, error } = useQuery({
+    queryKey: ["lavbund", "overblik", organizationId],
     queryFn: async () => {
       const { getLavbundOverblik } = await import("@/services/lavbundService");
-      return getLavbundOverblik();
+      return getLavbundOverblik(organizationId);
     },
     staleTime: 5 * 60 * 1000,
+    enabled: isDemoDataEnabled || Boolean(organizationId),
   });
+
+  if (!isDemoDataEnabled && !organizationId) return null;
+  if (error) {
+    return (
+      <Card>
+        <CardHeader title="LavbundsMRV" subtitle="Datagrundlag kunne ikke hentes" />
+        <div role="alert" className="px-5 pb-5 text-sm text-destructive">
+          Lavbundsdata kunne ikke hentes. Kontrollér forbindelsen og modulets datagrundlag, før du
+          bruger tallene.
+        </div>
+      </Card>
+    );
+  }
 
   if (!data || data.antalProjekter === 0) return null;
 
@@ -443,21 +493,31 @@ function LavbundTile() {
           <div className="text-lg font-semibold tabular-nums mt-0.5">{data.antalProjekter}</div>
         </div>
         <div className="rounded-xl border p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Samlet areal</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+            Samlet areal
+          </div>
           <div className="text-lg font-semibold tabular-nums mt-0.5">
             {data.samletArealHa.toLocaleString("da-DK")} ha
           </div>
         </div>
         <div className="rounded-xl border p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Krediteret (v12)</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+            Krediteret (v12)
+          </div>
           <div className="text-lg font-semibold tabular-nums mt-0.5">
             {data.krediteretTotal.toLocaleString("da-DK")} t CO₂e/år
           </div>
         </div>
         <div className="rounded-xl border p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Verificeret (bogført)</div>
-          <div className="text-lg font-semibold tabular-nums mt-0.5 text-primary">
-            {data.verificeretTotal.toLocaleString("da-DK")} t CO₂e/år
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+            Verificeret (bogført)
+          </div>
+          <div
+            className={`text-lg font-semibold tabular-nums mt-0.5 ${data.verificeretTotal === null ? "text-muted-foreground" : "text-primary"}`}
+          >
+            {data.verificeretTotal !== null
+              ? `${data.verificeretTotal.toLocaleString("da-DK")} t CO₂e/år`
+              : "—"}
           </div>
         </div>
       </div>

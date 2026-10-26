@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import {
   Brain,
   ListChecks,
@@ -8,10 +8,11 @@ import {
   FileText,
   MessageSquare,
 } from "lucide-react";
+import { ProjectEvidenceStatus } from "@/components/ProjectEvidenceStatus";
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/decisions")({
-  head: () => ({ meta: [{ title: "Project Intelligence — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Project Intelligence — Freyra" }] }),
   component: DecisionsLayout,
 });
 

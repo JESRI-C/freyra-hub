@@ -1,3 +1,4 @@
+import { isDemoDataEnabled } from "@/lib/data-mode";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -12,7 +13,7 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/reports")({
-  head: () => ({ meta: [{ title: "Report Engine — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Report Engine — Freyra" }] }),
   component: ReportsLayout,
 });
 
@@ -32,8 +33,13 @@ function ReportsLayout() {
   return (
     <>
       <AppTopbar
-        title="Report Engine"
-        subtitle="Generér Green Tripart-, lodsejer-, metode- og myndighedsnotater fra projektets data"
+        title="Rapporter"
+        showWorkspaceTools={isDemoDataEnabled}
+        subtitle={
+          isDemoDataEnabled
+            ? "Eksempelvisning med opdigtede rapportdata"
+            : "Projektets registreringer og status for rapportarbejdet"
+        }
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
@@ -45,6 +51,9 @@ function ReportsLayout() {
                 <Link
                   key={t.to}
                   to={t.to as never}
+                  search={(previous: Record<string, unknown>) =>
+                    ({ report: previous.report, version: previous.version }) as never
+                  }
                   className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${active ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
                 >
                   <Icon className="h-4 w-4" /> {t.label}
@@ -54,6 +63,12 @@ function ReportsLayout() {
           </nav>
         </div>
       </div>
+      {isDemoDataEnabled && (
+        <div role="note" className="max-w-[1400px] mx-auto px-6 pt-4 text-sm text-amber-800">
+          Offline eksempelvisning. Fund, tal, navne og godkendelser er opdigtede og gælder ingen
+          kundesag.
+        </div>
+      )}
       <Outlet />
     </>
   );

@@ -12,8 +12,7 @@ export interface ConnectorLogEntry {
   geometry_used: boolean;
 }
 
-type ConnectorFetchLogInsert =
-  Database["public"]["Tables"]["connector_fetch_logs"]["Insert"];
+type ConnectorFetchLogInsert = Database["public"]["Tables"]["connector_fetch_logs"]["Insert"];
 
 export async function logConnectorFetch(entry: ConnectorLogEntry): Promise<void> {
   if (!supabase) {
@@ -30,9 +29,7 @@ export async function logConnectorFetch(entry: ConnectorLogEntry): Promise<void>
   try {
     // Supabase Database type resolves to a loose generic for this table at the
     // client boundary; cast through unknown keeps inference strict locally.
-    await supabase
-      .from("connector_fetch_logs")
-      .insert(payload as unknown as never);
+    await supabase.from("connector_fetch_logs").insert(payload as unknown as never);
   } catch {
     // Never throw — logging must not break the app
   }

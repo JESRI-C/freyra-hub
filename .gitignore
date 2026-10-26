@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+tmp/
 dist
 dist-ssr
 .output
@@ -16,9 +17,21 @@ dist-ssr
 .nitro
 *.local
 
+# Local environment configuration must never be committed.
+# Generated customer artifacts can contain private original-photo illustrations.
+/output/
+.env
+.env.*
+!.env.example
+
 # Wrangler / Cloudflare
 .wrangler/
-.dev.vars
+.dev.vars*
+!.dev.vars.example
+
+# Supabase CLI machine-local state
+supabase/.temp/
+supabase/.branches/
 
 # Editor directories and files
 .vscode/*
@@ -30,3 +43,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.dev.vars

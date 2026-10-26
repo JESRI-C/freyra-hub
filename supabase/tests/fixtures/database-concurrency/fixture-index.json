@@ -1,0 +1,91 @@
+{
+  "schema": "gofreyra.disposable-database-concurrency-index/v1",
+  "hashNormalization": "CRLF to LF only, so Windows authoring and Linux CI retain identical source text identity",
+  "syntheticOnly": true,
+  "files": [
+    {
+      "path": "scripts/test-disposable-db-concurrency.mjs",
+      "normalizedSha256": "965e5ebce172d6de02205441eb5e5a634260c70ea5ec6d43bf77ec45d7ecb07d"
+    },
+    {
+      "path": "scripts/database-concurrency/stop-disposable-stack.mjs",
+      "normalizedSha256": "5716b2987fff0e8ab0b47f721e68839c7694e8a19d777f2ff6cbe24202afd69a"
+    },
+    {
+      "path": "scripts/database-concurrency/local-database-guard.mjs",
+      "normalizedSha256": "868f042275b171c91140657e11884f4f3bc62eb56348bec4907e33f6bafac839"
+    },
+    {
+      "path": "scripts/database-concurrency/survey-round-concurrency.test.mjs",
+      "normalizedSha256": "9c4a3beffad2f8d34e53534d7d5d86544494ac0b139a982b48059d146027e082"
+    },
+    {
+      "path": "scripts/database-concurrency/project-role-snapshot-concurrency.test.mjs",
+      "normalizedSha256": "6432f10817f80eafe7e7f9768a0fe29acba1abc6ca607157fc9d61318fbdca83"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/initialize.sql",
+      "normalizedSha256": "2492224db3f71358e2a4eeef53c15a42f665e4b2decdd09499a27c0a2d8afa8d"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/round.json",
+      "normalizedSha256": "e4a890880db1b07fd622d3cf4833372edfc9392c3c163fc98e91299020fe36c2"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/role-snapshot.json",
+      "normalizedSha256": "036f040167dc109c9326f3d5850829d5bc91837b6521d2ee3aebf11910907413"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/fixture-genesis.json",
+      "normalizedSha256": "52b22844d09ba050c84f1b2c4f520a21cbdacad9c74eda265f7a8181fea276c0"
+    },
+    {
+      "path": "scripts/database-concurrency/survey-round-media-concurrency.test.mjs",
+      "normalizedSha256": "d02be63c9178ed26ace11d2a347ce268d644575911989a00724857dfdd24aee4"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/initialize-media.sql",
+      "normalizedSha256": "982606391b2c73cbc64d780ea96ca18eb477ca5b4decd391af899bfad5094278"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/round-media.json",
+      "normalizedSha256": "67a5fe7267ad6b01c78ecaa874752db509173e8fe70ee50657f404bb86e265ca"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/media-fixture-genesis.json",
+      "normalizedSha256": "ada06e5caa3b61432e296b433ff05adcf36a1fd4957a035a1e8d10a0f746f00d"
+    },
+    {
+      "path": "scripts/database-concurrency/survey-round-note-concurrency.test.mjs",
+      "normalizedSha256": "df4c9e74ca82a8fac87a9bd0892e6969193391d6f42333fc254d45240b9453e9"
+    },
+    {
+      "path": "scripts/database-concurrency/survey-round-note-guards.mjs",
+      "normalizedSha256": "533727b4ecd1e2a3a2ad099307168bbb69d6c26a12f88807b799995c56bbb993"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/initialize-note.sql",
+      "normalizedSha256": "df91146b865f7cd87432968a9ea8dc7994e49b12052bc3097846ae2a5720a69e"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/round-note.json",
+      "normalizedSha256": "24b03ac00780a83873a079bfb695b388175fa6d7955f015edb2d46838e40eb7f"
+    },
+    {
+      "path": "supabase/tests/fixtures/database-concurrency/note-fixture-genesis.json",
+      "normalizedSha256": "391a55558e0230cee951463cd30966bf8c8563150050a28562f7465f86a948ff"
+    },
+    {
+      "path": "supabase/migrations/20261014061314_survey_round_note_versions.sql",
+      "normalizedSha256": "427ebbe666e46aa9d0ee6800217479c0ac9c6f20704ef6db411ea1434b06e67d"
+    },
+    {
+      "path": "scripts/database-concurrency/municipal-report-concurrency.test.mjs",
+      "normalizedSha256": "95e3962ed6f3fbd53d935813b8c06d4d0fc524d73c8ec055addebd7995487fca"
+    },
+    {
+      "path": "supabase/migrations/20261015194002_municipal_report_versions.sql",
+      "normalizedSha256": "ff82f5139627044510152d0227be0fee56f39e079117a37ba98c65ab446422c5"
+    }
+  ]
+}

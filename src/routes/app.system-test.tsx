@@ -17,7 +17,7 @@ type UntypedSupabase = ReturnType<typeof createClient>;
 const untypedSupabase = supabase as unknown as UntypedSupabase | null;
 
 export const Route = createFileRoute("/app/system-test")({
-  head: () => ({ meta: [{ title: "System Test — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "System Test — Freyra" }] }),
   component: SystemTestPage,
 });
 

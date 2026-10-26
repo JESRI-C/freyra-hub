@@ -45,7 +45,9 @@ export function StatCard({
   const up = (delta ?? 0) >= 0;
   const clickable = Boolean(onClick);
   const activeCls = active ? "ring-2 ring-primary/60" : "";
-  const hoverCls = clickable ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" : "";
+  const hoverCls = clickable
+    ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
+    : "";
   const content = (
     <div className="flex items-start justify-between">
       <div>

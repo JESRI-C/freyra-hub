@@ -1,5 +1,16 @@
 import { useMemo, useState } from "react";
-import { Download, Search, ChevronDown, ChevronRight, ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity } from "lucide-react";
+import {
+  Download,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  ShieldCheck,
+  RefreshCw,
+  Eye,
+  FileText,
+  AlertTriangle,
+  Activity,
+} from "lucide-react";
 import { Pill } from "@/components/ui-bits";
 import { auditEventIcon, downloadAuditCsv } from "@/services/audit-service";
 import type { AuditEvent } from "@/lib/supabase/types";
@@ -51,7 +62,8 @@ export function AuditTrailPanel({ events, projectName }: Props) {
       if (toDate && e.created_at > `${toDate}T23:59:59`) return false;
       if (query) {
         const q = query.toLowerCase();
-        const hay = `${e.title} ${e.description ?? ""} ${e.actor ?? ""} ${e.entity_id ?? ""}`.toLowerCase();
+        const hay =
+          `${e.title} ${e.description ?? ""} ${e.actor ?? ""} ${e.entity_id ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -72,20 +84,48 @@ export function AuditTrailPanel({ events, projectName }: Props) {
             className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border bg-background"
           />
         </div>
-        <Select label="Type" value={typeFilter} onChange={setTypeFilter} options={["all", ...eventTypes]} />
-        <Select label="Entitet" value={entityFilter} onChange={setEntityFilter} options={["all", ...entityTypes]} />
-        <Select label="Kilde" value={sourceFilter} onChange={setSourceFilter} options={["all", ...sources]} />
+        <Select
+          label="Type"
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={["all", ...eventTypes]}
+        />
+        <Select
+          label="Entitet"
+          value={entityFilter}
+          onChange={setEntityFilter}
+          options={["all", ...entityTypes]}
+        />
+        <Select
+          label="Kilde"
+          value={sourceFilter}
+          onChange={setSourceFilter}
+          options={["all", ...sources]}
+        />
         <label className="text-xs">
           <span className="block text-muted-foreground mb-0.5">Fra</span>
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="px-2 py-1.5 text-sm rounded-lg border bg-background" />
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="px-2 py-1.5 text-sm rounded-lg border bg-background"
+          />
         </label>
         <label className="text-xs">
           <span className="block text-muted-foreground mb-0.5">Til</span>
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="px-2 py-1.5 text-sm rounded-lg border bg-background" />
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="px-2 py-1.5 text-sm rounded-lg border bg-background"
+          />
         </label>
         <button
           onClick={() =>
-            downloadAuditCsv(filtered, `audit-${projectName ? projectName.replace(/\s+/g, "-").toLowerCase() : "trail"}.csv`)
+            downloadAuditCsv(
+              filtered,
+              `audit-${projectName ? projectName.replace(/\s+/g, "-").toLowerCase() : "trail"}.csv`,
+            )
           }
           disabled={filtered.length === 0}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border hover:bg-muted disabled:opacity-50"
@@ -96,7 +136,9 @@ export function AuditTrailPanel({ events, projectName }: Props) {
 
       <div className="divide-y">
         {filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">Ingen begivenheder matcher filteret</p>
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            Ingen begivenheder matcher filteret
+          </p>
         ) : (
           filtered.map((ev) => {
             const isOpen = !!expanded[ev.id];
@@ -132,7 +174,11 @@ export function AuditTrailPanel({ events, projectName }: Props) {
                         className="p-1 hover:bg-muted rounded"
                         aria-label="Vis ændringer"
                       >
-                        {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        {isOpen ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
                       </button>
                     )}
                   </div>

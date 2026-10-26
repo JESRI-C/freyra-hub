@@ -35,10 +35,12 @@ import type { Indicator } from "@/lib/supabase/types";
 
 export function IndicatorDetail({
   indicator,
+  readOnly = false,
   open,
   onOpenChange,
 }: {
   indicator: Indicator | null;
+  readOnly?: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -48,7 +50,11 @@ export function IndicatorDetail({
   const [configOpen, setConfigOpen] = useState(false);
   const qc = useQueryClient();
 
-  const { data: measurements = [], refetch } = useQuery({
+  const {
+    data: measurements = [],
+    refetch,
+    error: measurementsError,
+  } = useQuery({
     queryKey: ["indicator-measurements", indicator?.id, period],
     queryFn: () => (indicator ? getMeasurements(indicator, period) : Promise.resolve([])),
     enabled: !!indicator && open,
@@ -81,8 +87,11 @@ export function IndicatorDetail({
       toast.success("Måling registreret");
       setNewValue("");
       await refetch();
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["indicators"] });
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["open-actions"] });
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["audit-events"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Kunne ikke gemme måling");
@@ -113,9 +122,11 @@ export function IndicatorDetail({
                   {indicator.description ? ` · ${indicator.description}` : ""}
                 </SheetDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
-                <Settings2 className="h-4 w-4 mr-1.5" /> Konfigurér
-              </Button>
+              {!readOnly && (
+                <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
+                  <Settings2 className="h-4 w-4 mr-1.5" /> Konfigurér
+                </Button>
+              )}
             </div>
           </SheetHeader>
 
@@ -124,7 +135,9 @@ export function IndicatorDetail({
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">Aktuel værdi</div>
-                <div className={`text-2xl font-bold tabular-nums ${indicatorStatusColor(indicator)}`}>
+                <div
+                  className={`text-2xl font-bold tabular-nums ${indicatorStatusColor(indicator)}`}
+                >
                   {formatIndicatorValue(indicator)}
                 </div>
               </div>
@@ -150,7 +163,9 @@ export function IndicatorDetail({
                   key={p}
                   onClick={() => setPeriod(p)}
                   className={`px-3 py-1 text-xs rounded-md ${
-                    period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                    period === p
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   {p === "all" ? "Alle" : p}
@@ -184,7 +199,12 @@ export function IndicatorDetail({
                         y={indicator.threshold_warning}
                         stroke="#f59e0b"
                         strokeDasharray="4 3"
-                        label={{ value: "Advarsel", fontSize: 10, fill: "#f59e0b", position: "right" }}
+                        label={{
+                          value: "Advarsel",
+                          fontSize: 10,
+                          fill: "#f59e0b",
+                          position: "right",
+                        }}
                       />
                     )}
                     {indicator.threshold_critical != null && (
@@ -192,7 +212,12 @@ export function IndicatorDetail({
                         y={indicator.threshold_critical}
                         stroke="#dc2626"
                         strokeDasharray="4 3"
-                        label={{ value: "Kritisk", fontSize: 10, fill: "#dc2626", position: "right" }}
+                        label={{
+                          value: "Kritisk",
+                          fontSize: 10,
+                          fill: "#dc2626",
+                          position: "right",
+                        }}
                       />
                     )}
                     <Line
@@ -209,27 +234,33 @@ export function IndicatorDetail({
             </div>
 
             {/* Add measurement */}
-            <div className="rounded-lg border p-3 space-y-2">
-              <Label className="text-sm">Registrér ny måling</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  step="any"
-                  value={newValue}
-                  onChange={(e) => setNewValue(e.target.value)}
-                  placeholder={`Værdi${indicator.unit ? ` (${indicator.unit})` : ""}`}
-                  disabled={!isSupabaseConfigured}
-                />
-                <Button onClick={handleAdd} disabled={saving || !newValue || !isSupabaseConfigured}>
-                  {saving ? "Gemmer…" : "Tilføj"}
-                </Button>
+            {measurementsError && (
+              <p role="alert">Målinger kunne ikke indlæses: {measurementsError.message}</p>
+            )}
+            {!readOnly && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <Label className="text-sm">Registrér ny måling</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="any"
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    placeholder={`Værdi${indicator.unit ? ` (${indicator.unit})` : ""}`}
+                    disabled={!isSupabaseConfigured}
+                  />
+                  <Button
+                    onClick={handleAdd}
+                    disabled={saving || !newValue || !isSupabaseConfigured}
+                  >
+                    {saving ? "Gemmer…" : "Tilføj"}
+                  </Button>
+                </div>
+                {!isSupabaseConfigured && (
+                  <p className="text-xs text-muted-foreground">Kræver tilkoblet database.</p>
+                )}
               </div>
-              {!isSupabaseConfigured && (
-                <p className="text-xs text-muted-foreground">
-                  Kræver tilkoblet database.
-                </p>
-              )}
-            </div>
+            )}
 
             {/* Recent measurements table */}
             {measurements.length > 0 && (
@@ -238,17 +269,26 @@ export function IndicatorDetail({
                   Seneste målinger
                 </div>
                 <div className="divide-y max-h-56 overflow-y-auto">
-                  {[...measurements].reverse().slice(0, 20).map((m) => (
-                    <div key={m.id} className="px-3 py-2 flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {new Date(m.measured_at).toLocaleString("da-DK")}
-                      </span>
-                      <span className="font-medium tabular-nums">
-                        {m.value}{m.unit ?? ""}
-                        {m.source && <span className="ml-2 text-xs text-muted-foreground">· {m.source}</span>}
-                      </span>
-                    </div>
-                  ))}
+                  {[...measurements]
+                    .reverse()
+                    .slice(0, 20)
+                    .map((m) => (
+                      <div
+                        key={m.id}
+                        className="px-3 py-2 flex items-center justify-between text-sm"
+                      >
+                        <span className="text-muted-foreground">
+                          {new Date(m.measured_at).toLocaleString("da-DK")}
+                        </span>
+                        <span className="font-medium tabular-nums">
+                          {m.value}
+                          {m.unit ?? ""}
+                          {m.source && (
+                            <span className="ml-2 text-xs text-muted-foreground">· {m.source}</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
@@ -261,7 +301,9 @@ export function IndicatorDetail({
         open={configOpen}
         onOpenChange={setConfigOpen}
         onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["project-workspace"] });
           qc.invalidateQueries({ queryKey: ["indicators"] });
+          qc.invalidateQueries({ queryKey: ["project-workspace"] });
           qc.invalidateQueries({ queryKey: ["indicator-measurements"] });
         }}
       />

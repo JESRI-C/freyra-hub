@@ -1,31 +1,46 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { StartActions } from "@/components/redesign/StartActions";
+import { WorkspaceTools } from "@/components/redesign/WorkspaceTools";
+import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
+import type { MunicipalStep } from "@/components/project/MunicipalCaseWorkspace";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Search, Plus, X } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bits";
-import { getAllNatureProjectSummaries } from "@/services/projects-service";
+import { getAllNatureProjectSummaries, getProjects } from "@/services/projects-service";
 import { ProjectMonitorCard } from "@/components/project/ProjectMonitorCard";
 import { Leaf, FolderOpen, AlertCircle, BarChart2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
+import {
+  canCreateProject,
+  insertProjectWithoutRepresentation,
+  ProjectCreateConfirmationError,
+  projectCreateErrorMessage,
+  type ProjectsInsertClient,
+} from "@/lib/project-create";
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/projects/")({
-  head: () => ({ meta: [{ title: "Projektoversigt — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Projektoversigt — Freyra" }] }),
   component: ProjectsIndexPage,
 });
-
 
 const STATUS_FILTERS = ["Alle", "Under verifikation", "Verificeret", "Afsluttet"];
 
 const PROJECT_TYPES = [
+  "Vandløbsmonitorering",
   "Naturgenopretning",
   "Biodiversitet",
   "Kystbeskyttelse",
   "Skovrejsning",
   "Vådområde",
+  "Parkering",
+  "Erhvervsbyggeri",
+  "Boligbyggeri",
 ] as const;
 
 type ProjectType = (typeof PROJECT_TYPES)[number];
@@ -50,23 +65,42 @@ const FORM_DEFAULTS: CreateProjectForm = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function ProjectsIndexPage() {
-  const { currentOrg, selectProject, refresh } = useAuth();
+  const { currentOrg, refresh, user } = useAuth();
   const orgId = currentOrg?.id ?? "";
+  const canCreate = canCreateProject(currentOrg?.role);
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [startStep, setStartStep] = useState<MunicipalStep | null>(null);
+  const caseList = useRef<HTMLElement>(null);
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<CreateProjectForm>(FORM_DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
+  const submissionGuard = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [storedProjectId, setStoredProjectId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
   const { data: querySummaries } = useSuspenseQuery({
-    queryKey: ["nature-project-summaries", orgId],
-    queryFn: () => getAllNatureProjectSummaries(orgId),
+    queryKey: [DEMO_MODE ? "municipal-project-list" : "nature-project-summaries", orgId, user?.id],
+    queryFn: async () => {
+      if (!DEMO_MODE) return getAllNatureProjectSummaries(orgId);
+      // Municipal cards show only project metadata; no per-case indicator,
+      // report or audit queries are needed for this navigation screen.
+      const projects = await getProjects(orgId);
+      return projects.map(
+        (project): NatureProjectSummary => ({
+          project,
+          indicators: [],
+          activeDataSources: 0,
+          openActions: 0,
+          latestAuditEvent: null,
+          latestReport: null,
+        }),
+      );
+    },
   });
-
 
   // Prepend any locally created projects so they appear immediately
   const summaries = useMemo(
@@ -128,42 +162,43 @@ function ProjectsIndexPage() {
 
   function closeModal() {
     setShowCreateModal(false);
-    setForm(FORM_DEFAULTS);
-    setFormError(null);
+    // A committed project awaiting confirmation remains recoverable if the
+    // dialog is closed and reopened; it must not become a fresh create.
+    if (!storedProjectId) {
+      setForm(FORM_DEFAULTS);
+      setFormError(null);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submissionGuard.current || storedProjectId) return;
     if (!form.name.trim()) return;
     if (!orgId) {
       setFormError("Ingen organisation valgt. Gå tilbage til Vælg arbejdsplads.");
       return;
     }
+    if (!canCreate) {
+      setFormError(
+        "Du har ikke rettighed til at oprette projekter i denne organisation. Kontakt en ejer eller administrator.",
+      );
+      return;
+    }
+    submissionGuard.current = true;
     setSubmitting(true);
     setFormError(null);
 
     const now = new Date().toISOString();
 
+    let inserted: { id: string; slug: string | null };
     try {
       if (!isSupabaseConfigured || !supabase) {
         throw new Error("Backend er ikke konfigureret.");
       }
 
-      const db = supabase as unknown as {
-        from: (t: string) => {
-          insert: (v: Record<string, unknown>) => {
-            select: (cols: string) => {
-              single: () => Promise<{
-                data: { id: string; slug: string | null } | null;
-                error: { message: string } | null;
-              }>;
-            };
-          };
-        };
-      };
-      const { data: inserted, error } = await db
-        .from("projects")
-        .insert({
+      inserted = await insertProjectWithoutRepresentation(
+        supabase as unknown as ProjectsInsertClient,
+        {
           organization_id: orgId,
           name: form.name.trim(),
           description: form.description.trim() || null,
@@ -171,188 +206,285 @@ function ProjectsIndexPage() {
           location_name: form.location.trim() || null,
           status: form.status,
           country: "Denmark",
-        })
-        .select("id, slug")
-        .single();
-      if (error) throw new Error(error.message);
-      if (!inserted) throw new Error("Ingen data returneret");
-      const newId = inserted.id;
-      const newSlug = inserted.slug ?? newId;
-
-      // Optimistic local summary so it appears instantly on return
-      const newSummary: NatureProjectSummary = {
-        project: {
-          id: newId,
-          organization_id: orgId,
-          name: form.name.trim(),
-          slug: inserted.slug,
-          project_type: form.projectType,
-          location_name: form.location.trim() || null,
-          municipality: null,
-          country: "Denmark",
-          status: form.status,
-          start_date: null,
-          end_date: null,
-          description: form.description.trim() || null,
-          created_at: now,
-          geometry_polygon: null,
-          geometry_centroid_lat: null,
-          geometry_centroid_lng: null,
-          geometry_area_ha: null,
-          geometry_source: "none",
         },
-        indicators: [],
-        activeDataSources: 0,
-        openActions: 0,
-        latestAuditEvent: null,
-        latestReport: null,
-      };
-
-      setLocalSummaries((prev) => [newSummary, ...prev]);
-      selectProject(newId);
-      await refresh();
-      closeModal();
-      showToast("Projekt oprettet");
-      navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
+      );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Kunne ikke oprette projekt";
       console.error("Kunne ikke oprette projekt:", err);
-      setFormError(msg);
-    } finally {
+      if (err instanceof ProjectCreateConfirmationError) setStoredProjectId(err.projectId);
+      setFormError(projectCreateErrorMessage(err));
+      submissionGuard.current = err instanceof ProjectCreateConfirmationError;
       setSubmitting(false);
+      return;
     }
+
+    const newId = inserted.id;
+    const newSlug = inserted.slug ?? newId;
+
+    // Optimistic local summary so it appears instantly on return
+    const newSummary: NatureProjectSummary = {
+      project: {
+        id: newId,
+        organization_id: orgId,
+        name: form.name.trim(),
+        slug: inserted.slug,
+        project_type: form.projectType,
+        location_name: form.location.trim() || null,
+        municipality: null,
+        country: "Denmark",
+        status: form.status,
+        start_date: null,
+        end_date: null,
+        description: form.description.trim() || null,
+        created_at: now,
+        geometry_polygon: null,
+        geometry_centroid_lat: null,
+        geometry_centroid_lng: null,
+        geometry_area_ha: null,
+        geometry_source: "none",
+      },
+      indicators: [],
+      activeDataSources: 0,
+      openActions: 0,
+      latestAuditEvent: null,
+      latestReport: null,
+    };
+
+    setLocalSummaries((prev) => [newSummary, ...prev]);
+    closeModal();
+    showToast("Projekt oprettet");
+
+    // The insert is committed at this point. A refresh failure must not be
+    // presented as a failed create, because retrying would create a duplicate.
+    try {
+      const { projectSelected } = await refresh({ selectProjectId: newId });
+      if (!projectSelected) {
+        showToast("Projektet er oprettet. Genindlæs siden for at opdatere projektvalget.");
+      }
+    } catch (refreshError) {
+      console.error(
+        "Projektet blev oprettet, men projektlisten kunne ikke opdateres:",
+        refreshError,
+      );
+      showToast("Projektet er oprettet. Genindlæs siden for at opdatere projektlisten.");
+    }
+
+    submissionGuard.current = false;
+    setSubmitting(false);
+    navigate({ to: "/app/projects/$slug", params: { slug: newSlug } });
   }
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5 pb-16">
-      <PageHeader
-        title="Projektoversigt"
-        description="Alle naturprojekter i din organisation"
-        actions={
-          <div className="flex items-center gap-2">
-            <Pill tone="info">{summaries.length} projekter</Pill>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Opret projekt
-            </button>
-          </div>
-        }
+      <StartActions
+        canCreate={canCreate}
+        selected={startStep}
+        onChoose={(action) => {
+          if (action === "new") {
+            if (canCreate) setShowCreateModal(true);
+          } else {
+            setStartStep(action);
+            requestAnimationFrame(() => {
+              caseList.current?.scrollIntoView({ behavior: "instant", block: "start" });
+              caseList.current?.focus();
+            });
+          }
+        }}
       />
-
-      {/* Stat bar — klikbare filtre */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Projekter i alt"
-          value={String(summaries.length)}
-          icon={<FolderOpen className="h-5 w-5" />}
-          onClick={clearFilters}
-          active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
-        />
-        <StatCard
-          label="Aktive datakilder"
-          value={String(totalSites)}
-          icon={<Leaf className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Åbne handlinger"
-          value={String(totalOpenActions)}
-          icon={<AlertCircle className="h-5 w-5" />}
-          accent="bg-amber-100 text-amber-700"
-          onClick={() => {
-            setOpenActionsOnly((v) => !v);
-            setHighReadinessOnly(false);
-          }}
-          active={openActionsOnly}
-        />
-        <StatCard
-          label="Gns. rapportklarhed"
-          value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
-          icon={<BarChart2 className="h-5 w-5" />}
-          onClick={() => {
-            setHighReadinessOnly((v) => !v);
-            setOpenActionsOnly(false);
-          }}
-          active={highReadinessOnly}
-        />
-      </div>
-
-      {/* Search + filter */}
-      <Card className="p-4 space-y-3">
-        <div className="flex items-center gap-2 bg-muted/40 border rounded-xl px-3 py-2.5">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Søg efter projektnavn, placering eller type…"
-            className="flex-1 bg-transparent outline-none text-sm"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f}
-              onClick={() => setStatusFilter(f)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                statusFilter === f
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "hover:bg-muted"
-              }`}
-            >
-              {f}
+      <section
+        ref={caseList}
+        tabIndex={-1}
+        className="scroll-mt-20 space-y-5"
+        aria-label="Dine sager"
+      >
+        {startStep && (
+          <div
+            role="status"
+            className="rounded-lg border border-primary/30 bg-secondary p-4 text-sm"
+          >
+            <strong>Vælg den sag, du vil arbejde med.</strong> Genvejen åbner{" "}
+            {startStep === "baseline"
+              ? "baseline"
+              : startStep === "rapport"
+                ? "rapporten"
+                : startStep === "beplantning"
+                  ? "beplantning"
+                  : "billederne"}{" "}
+            i den valgte sag.{" "}
+            <button className="ml-2 underline" onClick={() => setStartStep(null)}>
+              Vis hele sagsforløbet
             </button>
-          ))}
-          {(openActionsOnly || highReadinessOnly || statusFilter !== "Alle" || q) && (
-            <button
-              onClick={clearFilters}
-              className="ml-auto text-xs px-3 py-1.5 rounded-full border hover:bg-muted inline-flex items-center gap-1"
-            >
-              <X className="h-3 w-3" /> Nulstil filtre
-            </button>
-          )}
-        </div>
-        {(openActionsOnly || highReadinessOnly) && (
-          <div className="flex flex-wrap gap-1.5 text-xs">
-            {openActionsOnly && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-1">
-                Kun med åbne handlinger
-                <button onClick={() => setOpenActionsOnly(false)}><X className="h-3 w-3" /></button>
-              </span>
-            )}
-            {highReadinessOnly && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-1">
-                Rapportklarhed ≥ 80%
-                <button onClick={() => setHighReadinessOnly(false)}><X className="h-3 w-3" /></button>
-              </span>
-            )}
           </div>
         )}
-      </Card>
+        <PageHeader
+          title={DEMO_MODE ? "Sager" : "Projektoversigt"}
+          description="Fra de første dronebilleder til en samlet, sporbar aflevering"
+          actions={
+            <div className="flex items-center gap-2">
+              <Pill tone="info">{summaries.length} sager</Pill>
+              <button
+                onClick={() => canCreate && setShowCreateModal(true)}
+                disabled={!canCreate}
+                title={
+                  canCreate
+                    ? "Opret et projekt"
+                    : "Kun ejer, administrator eller redaktør kan oprette projekter"
+                }
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 py-2 text-sm font-medium hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Opret sag
+              </button>
+            </div>
+          }
+        />
 
+        {/* Stat bar — klikbare filtre */}
+        {!DEMO_MODE && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Projekter i alt"
+              value={String(summaries.length)}
+              icon={<FolderOpen className="h-5 w-5" />}
+              onClick={clearFilters}
+              active={statusFilter === "Alle" && !openActionsOnly && !highReadinessOnly && !q}
+            />
+            <StatCard
+              label="Aktive datakilder"
+              value={String(totalSites)}
+              icon={<Leaf className="h-5 w-5" />}
+            />
+            <StatCard
+              label="Åbne handlinger"
+              value={String(totalOpenActions)}
+              icon={<AlertCircle className="h-5 w-5" />}
+              accent="bg-amber-100 text-amber-700"
+              onClick={() => {
+                setOpenActionsOnly((v) => !v);
+                setHighReadinessOnly(false);
+              }}
+              active={openActionsOnly}
+            />
+            <StatCard
+              label="Gns. rapportklarhed"
+              value={avgReadiness !== null ? `${avgReadiness}%` : "—"}
+              icon={<BarChart2 className="h-5 w-5" />}
+              onClick={() => {
+                setHighReadinessOnly((v) => !v);
+                setOpenActionsOnly(false);
+              }}
+              active={highReadinessOnly}
+            />
+          </div>
+        )}
 
-      {/* Result count */}
-      <div className="text-sm text-muted-foreground">
-        Viser <span className="font-medium text-foreground">{filtered.length}</span> af{" "}
-        {summaries.length} projekter
-      </div>
-
-      {/* Project grid */}
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((s) => (
-            <ProjectMonitorCard key={s.project.id} summary={s} />
-          ))}
-        </div>
-      ) : (
-        <Card className="py-12 text-center">
-          <CardHeader
-            title="Ingen projekter fundet"
-            subtitle="Prøv at justere din søgning eller filtrering"
-          />
+        {/* Search + filter */}
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2 bg-muted/40 border rounded-xl px-3 py-2.5">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Søg efter sagsnavn, placering eller type…"
+              className="flex-1 bg-transparent outline-none text-sm"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  statusFilter === f
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "hover:bg-muted"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+            {(openActionsOnly || highReadinessOnly || statusFilter !== "Alle" || q) && (
+              <button
+                onClick={clearFilters}
+                className="ml-auto text-xs px-3 py-1.5 rounded-full border hover:bg-muted inline-flex items-center gap-1"
+              >
+                <X className="h-3 w-3" /> Nulstil filtre
+              </button>
+            )}
+          </div>
+          {(openActionsOnly || highReadinessOnly) && (
+            <div className="flex flex-wrap gap-1.5 text-xs">
+              {openActionsOnly && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2 py-1">
+                  Kun med åbne handlinger
+                  <button onClick={() => setOpenActionsOnly(false)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {highReadinessOnly && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2 py-1">
+                  Rapportklarhed ≥ 80%
+                  <button onClick={() => setHighReadinessOnly(false)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
         </Card>
-      )}
+
+        {/* Result count */}
+        <div className="text-sm text-muted-foreground">
+          Viser <span className="font-medium text-foreground">{filtered.length}</span> af{" "}
+          {summaries.length} sager
+        </div>
+
+        {/* Project grid */}
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map((s) =>
+              DEMO_MODE || startStep ? (
+                <Link
+                  key={s.project.id}
+                  to="/app/projects/$slug"
+                  params={{ slug: s.project.slug ?? s.project.id }}
+                  search={{ step: startStep ?? "billeder" }}
+                  className="group flex min-h-48 flex-col rounded-xl border bg-card p-6 transition hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span className="text-xs text-muted-foreground">
+                    {s.project.municipality ?? "Område afventer"}
+                  </span>
+                  <h2 className="mt-3 text-xl font-semibold">{s.project.name}</h2>
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    {s.project.description ?? "Åbn sagen for at se billeder, kilder og rapporter."}
+                  </p>
+                  <span className="mt-auto pt-6 text-sm font-medium text-primary">
+                    Åbn sagsforløb →
+                  </span>
+                </Link>
+              ) : (
+                <ProjectMonitorCard key={s.project.id} summary={s} />
+              ),
+            )}
+          </div>
+        ) : (
+          <Card className="py-12 text-center">
+            <CardHeader
+              title={
+                summaries.length ? "Ingen sager matcher din søgning" : "Din første sag begynder her"
+              }
+              subtitle={
+                summaries.length
+                  ? "Prøv et kortere sagsnavn, eller nulstil filtrene."
+                  : canCreate
+                    ? "Vælg Start en ny sag ovenfor. Giv sagen et navn, og tilføj derefter originalfotos."
+                    : "Bed den ansvarlige om adgang til den sag, du skal arbejde med."
+              }
+            />
+          </Card>
+        )}
+      </section>
+      <WorkspaceTools />
 
       {/* ── Create project modal ────────────────────────────────────────────────── */}
       {showCreateModal && (
@@ -360,11 +492,17 @@ function ProjectsIndexPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="bg-card rounded-2xl shadow-xl border w-full max-w-lg">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Opret ny sag"
+            className="bg-card rounded-2xl shadow-xl border w-full max-w-lg max-h-[90dvh] overflow-y-auto"
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b">
-              <h2 className="font-semibold text-base">Opret nyt projekt</h2>
+              <h2 className="font-semibold text-base">Opret ny sag</h2>
               <button
+                aria-label="Luk oprettelse"
                 onClick={closeModal}
                 className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
               >
@@ -376,83 +514,119 @@ function ProjectsIndexPage() {
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {/* Name */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">
+                <label htmlFor="case-name" className="text-sm font-medium">
                   Projektnavn <span className="text-destructive">*</span>
                 </label>
                 <input
+                  id="case-name"
+                  autoFocus
                   required
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="F.eks. Vejle Ådal Genopretning"
+                  placeholder="Projektets navn"
                   className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
 
-              {/* Description */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Beskrivelse</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Kort beskrivelse af projektet…"
-                  rows={3}
-                  className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-                />
-              </div>
-
-              {/* Type + Location */}
-              <div className="grid grid-cols-2 gap-3">
+              <AdvancedSettings
+                description="Beskriv og klassificér sagen. Standard: Naturgenopretning og Planlægning; beskrivelse og placering er tomme. Gemmes først, når du opretter sagen."
+                onReset={() => setForm((current) => ({ ...FORM_DEFAULTS, name: current.name }))}
+                disabled={submitting || !!storedProjectId}
+              >
+                {/* Description */}
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Projekttype</label>
-                  <select
-                    value={form.projectType}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, projectType: e.target.value as ProjectType }))
-                    }
-                    className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                  >
-                    {PROJECT_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Placering</label>
-                  <input
-                    value={form.location}
-                    onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="F.eks. Vejle"
-                    className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                  <label htmlFor="case-description" className="text-sm font-medium">
+                    Beskrivelse
+                  </label>
+                  <textarea
+                    id="case-description"
+                    value={form.description}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    placeholder="Kort beskrivelse af projektet…"
+                    rows={3}
+                    className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 resize-none"
                   />
                 </div>
-              </div>
 
-              {/* Status */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Status</label>
-                <div className="flex gap-2">
-                  {(["Planlægning", "Aktiv", "Afsluttet"] as ProjectStatus[]).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setForm((f) => ({ ...f, status: s }))}
-                      className={`flex-1 rounded-xl border py-2 text-xs font-medium transition-colors ${
-                        form.status === s
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "hover:bg-muted"
-                      }`}
+                {/* Type + Location */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label htmlFor="case-type" className="text-sm font-medium">
+                      Projekttype
+                    </label>
+                    <select
+                      id="case-type"
+                      value={form.projectType}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, projectType: e.target.value as ProjectType }))
+                      }
+                      className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                     >
-                      {s}
-                    </button>
-                  ))}
+                      {PROJECT_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="case-location" className="text-sm font-medium">
+                      Placering
+                    </label>
+                    <input
+                      id="case-location"
+                      value={form.location}
+                      onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                      placeholder="Kommune eller lokalitet"
+                      className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Beskrivelsen forklarer formålet. Projekttypen klassificerer sagen. Placering
+                  angiver kommune eller lokalitet. Status beskriver sagens fase og er ikke en faglig
+                  godkendelse.
+                </p>
+                {/* Status */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Status</label>
+                  <div className="flex gap-2">
+                    {(["Planlægning", "Aktiv", "Afsluttet"] as ProjectStatus[]).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, status: s }))}
+                        className={`flex-1 rounded-xl border py-2 text-xs font-medium transition-colors ${
+                          form.status === s
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </AdvancedSettings>
 
               {formError && (
-                <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                <div
+                  role="alert"
+                  className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2"
+                >
                   {formError}
+                  {storedProjectId && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate({ to: "/app/projects/$slug", params: { slug: storedProjectId } })
+                      }
+                      className="block mt-2 underline"
+                    >
+                      Åbn gemt projekt
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -467,7 +641,9 @@ function ProjectsIndexPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || !form.name.trim()}
+                  disabled={
+                    submitting || Boolean(storedProjectId) || !form.name.trim() || !canCreate
+                  }
                   className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
                   {submitting ? "Opretter…" : "Opret projekt"}

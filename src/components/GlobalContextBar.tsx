@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Calendar, Activity, ShieldCheck, ChevronsUpDown, Bell, Sparkles } from "lucide-react";
+import { Activity, ChevronsUpDown, Sparkles } from "lucide-react";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
-import { PROJECT_FACTS } from "@/lib/platform-data";
-import { DemoModeBadge, StatusBadge } from "@/components/platform/Primitives";
+import { isDemoDataEnabled as isOfflineDemoMode } from "@/lib/data-mode";
+import { DemoModeBadge } from "@/components/platform/Primitives";
+import { ActivityTray } from "@/components/redesign/ActivityTray";
 import { MobileSidebarTrigger } from "@/components/AppSidebar";
 
 export function GlobalContextBar() {
@@ -33,39 +35,35 @@ export function GlobalContextBar() {
 
         <span className="hidden md:inline-block h-4 w-px bg-border" />
 
-        <span className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5" /> Q2 2026
-        </span>
-        <span className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground">
-          <Activity className="h-3.5 w-3.5" /> Datafriskhed{" "}
-          <span className="text-foreground font-medium">3 min</span>
-        </span>
-        <span className="hidden lg:inline-flex items-center gap-1.5 text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5" /> Datakvalitet{" "}
-          <span className="text-foreground font-medium">{PROJECT_FACTS.dataQuality}%</span>
-        </span>
-        <span className="hidden lg:inline-flex">
-          <StatusBadge status={PROJECT_FACTS.status} />
-        </span>
+        {project ? (
+          <Link
+            to="/app/projects/$slug"
+            params={{ slug: project.slug ?? project.id }}
+            search={DEMO_MODE ? { step: "datagrundlag" } : {}}
+            className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <Activity className="h-3.5 w-3.5" /> Se sagens datagrundlag
+          </Link>
+        ) : (
+          <span className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground">
+            Vælg sag for at se datagrundlag
+          </span>
+        )}
 
         <div className="ml-auto flex items-center gap-2 shrink-0">
           <span className="hidden sm:inline-flex">
             <DemoModeBadge />
           </span>
-          <Link
-            to="/app/overview"
-            className="hidden md:inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 hover:bg-muted text-foreground"
-            title="Start guidet demo"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-primary" /> Start demo
-          </Link>
-          <button
-            className="relative h-7 w-7 grid place-items-center rounded-lg border bg-background hover:bg-muted"
-            title="Notifikationer"
-          >
-            <Bell className="h-3.5 w-3.5" />
-            <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-destructive" />
-          </button>
+          {isOfflineDemoMode && (
+            <Link
+              to="/app/overview"
+              className="hidden md:inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 hover:bg-muted text-foreground"
+              title="Start guidet demo"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Start demo
+            </Link>
+          )}
+          <ActivityTray projectId={project?.id} />
         </div>
       </div>
     </div>

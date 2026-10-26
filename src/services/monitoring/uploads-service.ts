@@ -1,14 +1,25 @@
 // Uploads service — CRUD, signed URLs and upload-type classification.
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { supabase, isSupabaseConfigured, requireSupabaseUrl } from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { logAuditEvent } from "./audit-service";
+import { uploadWithTus } from "./resumable-upload-service";
 
-export type Upload = Database["public"]["Tables"]["uploads"]["Row"];
+// Read-only extension for the additive original-validation migration. Client
+// INSERT/UPDATE types deliberately retain the generated caller-owned contract.
+export type Upload = Database["public"]["Tables"]["uploads"]["Row"] & {
+  original_sha256?: string | null;
+  original_validation_sha256?: string | null;
+  original_validation?: Database["public"]["Tables"]["uploads"]["Row"]["detected_metadata"];
+};
 export type UploadInsert = Database["public"]["Tables"]["uploads"]["Insert"];
 export type UploadUpdate = Database["public"]["Tables"]["uploads"]["Update"];
 
 export const UPLOAD_BUCKET = "monitoring-uploads";
 export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
+export const SIGNED_UPLOAD_URL_TTL_SECONDS = 300;
+export const MAX_UPLOAD_USER_METADATA_BYTES = 1024 * 1024;
+
+const POSTGRES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type UploadType =
   | "image"
@@ -32,30 +43,58 @@ export type UploadType =
   | "other";
 
 const EXT_TO_TYPE: Record<string, UploadType> = {
-  jpg: "image", jpeg: "image", png: "image", heic: "image", webp: "image",
-  mp4: "video", mov: "video", avi: "video", webm: "video",
-  wav: "audio", mp3: "audio", m4a: "audio", flac: "audio", ogg: "audio",
+  jpg: "image",
+  jpeg: "image",
+  png: "image",
+  heic: "image",
+  webp: "image",
+  mp4: "video",
+  mov: "video",
+  avi: "video",
+  webm: "video",
+  wav: "audio",
+  mp3: "audio",
+  m4a: "audio",
+  flac: "audio",
+  ogg: "audio",
   csv: "csv",
-  xls: "excel", xlsx: "excel",
-  json: "geojson", geojson: "geojson",
+  xls: "excel",
+  xlsx: "excel",
+  json: "geojson",
+  geojson: "geojson",
   kml: "kml",
   gpx: "gpx",
   pdf: "pdf",
-  doc: "document", docx: "document", txt: "document", md: "document",
-  zip: "archive", tar: "archive", gz: "archive",
-  tif: "orthophoto", tiff: "orthophoto",
+  doc: "document",
+  docx: "document",
+  txt: "document",
+  md: "document",
+  zip: "archive",
+  tar: "archive",
+  gz: "archive",
+  tif: "orthophoto",
+  tiff: "orthophoto",
 };
 
 const ALLOWED_MIME_PREFIXES = [
-  "image/", "video/", "audio/",
-  "application/pdf", "application/json", "application/geo+json",
-  "application/vnd.google-earth.kml+xml", "application/gpx+xml",
+  "image/",
+  "video/",
+  "audio/",
+  "application/pdf",
+  "application/json",
+  "application/geo+json",
+  "application/vnd.google-earth.kml+xml",
+  "application/gpx+xml",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
-  "application/zip", "application/x-zip-compressed",
-  "text/csv", "text/plain", "text/xml", "application/xml",
+  "application/zip",
+  "application/x-zip-compressed",
+  "text/csv",
+  "text/plain",
+  "text/xml",
+  "application/xml",
 ];
 
 export function detectUploadType(fileName: string, mime: string): UploadType {
@@ -80,71 +119,287 @@ export function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 180);
 }
 
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  dng: "image/x-adobe-dng",
+  webp: "image/webp",
+  heic: "image/heic",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+  csv: "text/csv",
+  json: "application/json",
+  geojson: "application/geo+json",
+  kml: "application/vnd.google-earth.kml+xml",
+  gpx: "application/gpx+xml",
+  pdf: "application/pdf",
+};
+
+export function resolveUploadMime(file: Pick<File, "name" | "type">): string {
+  const declared = file.type.trim().toLowerCase();
+  if (declared) return declared;
+  const extension = file.name.toLowerCase().split(".").pop() ?? "";
+  return EXTENSION_MIME_TYPES[extension] ?? "application/octet-stream";
+}
+
+export interface UploadIntent {
+  uploadId: string;
+  storagePath: string;
+  intentExpiresAt: string;
+}
+
+export function createUploadRequestId(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  // RFC 4122 v4 fallback for older embedded browsers. This is an idempotency
+  // key, not a security token; the server still issues the storage identity.
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = character === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+interface UploadRpcError {
+  code?: string;
+  message: string;
+}
+
+interface UploadDownloadQueryBuilder {
+  select(columns: string): UploadDownloadQueryBuilder;
+  eq(column: string, value: string): UploadDownloadQueryBuilder;
+  maybeSingle(): Promise<{
+    data: Record<string, unknown> | null;
+    error: { message: string } | null;
+  }>;
+}
+
+interface UploadDownloadDb {
+  from(table: "uploads"): UploadDownloadQueryBuilder;
+}
+
+const DOWNLOADABLE_UPLOAD_STATUSES = new Set([
+  "awaiting_validation",
+  "validating",
+  "ready",
+  "importing",
+  "imported",
+  "imported_with_warnings",
+  "rejected",
+  "failed",
+]);
+
 /**
- * Uploads a file to the monitoring bucket under the user's folder and inserts
- * a matching row in public.uploads. Returns the created upload row.
+ * Mirrors the finalized object states accepted by the private Storage read
+ * policy. Pending canonical intents and archived rows must never expose a
+ * download action, even when their metadata row is visible through RLS.
  */
-export async function uploadFile(params: {
+export function isUploadDownloadAvailable(upload: {
+  status: unknown;
+  intent_request_id: unknown;
+  received_at: unknown;
+}): boolean {
+  if (
+    typeof upload.received_at !== "string" ||
+    upload.received_at.trim().length === 0 ||
+    !Number.isFinite(Date.parse(upload.received_at))
+  ) {
+    return false;
+  }
+  if (typeof upload.status !== "string" || upload.status === "archived") return false;
+  if (upload.status === "draft") return upload.intent_request_id === null;
+  return DOWNLOADABLE_UPLOAD_STATUSES.has(upload.status);
+}
+
+async function callUploadRpc<T>(
+  functionName: "create_upload_intent" | "finalize_upload_intent" | "cancel_upload_intent",
+  args: Record<string, unknown>,
+): Promise<{ data: T[] | null; error: UploadRpcError | null }> {
+  if (!supabase) throw new Error("Supabase not configured");
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    name: string,
+    parameters: Record<string, unknown>,
+  ) => Promise<{ data: T[] | null; error: UploadRpcError | null }>;
+  return rpc(functionName, args);
+}
+
+export class UploadTransferError extends Error {
+  constructor(
+    message: string,
+    public readonly intent: UploadIntent,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "UploadTransferError";
+  }
+}
+
+export async function createUploadIntent(params: {
   file: File;
   projectId: string | null;
   zoneId?: string | null;
   uploadType?: UploadType;
   userMetadata?: Record<string, unknown>;
-  detectedMetadata?: Record<string, unknown>;
+  clientRequestId?: string;
+}): Promise<UploadIntent> {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  if (!params.projectId) throw new Error("Vælg et projekt før upload.");
+  if (params.file.size <= 0 || params.file.size > MAX_UPLOAD_BYTES) {
+    throw new Error(
+      `Filen er tom eller for stor. Maks ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`,
+    );
+  }
+  const mime = resolveUploadMime(params.file);
+  if (!isMimeAllowed(mime)) throw new Error(`Filtypen ${mime} understøttes ikke.`);
+  const userMetadata = params.userMetadata ?? {};
+  const metadataBytes = new TextEncoder().encode(JSON.stringify(userMetadata)).byteLength;
+  if (metadataBytes > MAX_UPLOAD_USER_METADATA_BYTES) {
+    throw new Error("Billedmetadata fylder mere end 1 MB og skal reduceres før upload.");
+  }
+
+  const { data, error } = await callUploadRpc<{
+    upload_id: string;
+    storage_path: string;
+    intent_expires_at: string;
+  }>("create_upload_intent", {
+    p_project_id: params.projectId,
+    p_original_file_name: params.file.name,
+    p_mime_type: mime,
+    p_file_size: params.file.size,
+    p_client_request_id: params.clientRequestId ?? createUploadRequestId(),
+    p_zone_id: params.zoneId ?? undefined,
+    p_upload_type: params.uploadType ?? detectUploadType(params.file.name, mime),
+    p_user_metadata: userMetadata,
+  });
+  if (error) throw error;
+  const row = data?.[0];
+  if (!row?.upload_id || !row.storage_path || !row.intent_expires_at) {
+    throw new Error("Databasen returnerede ikke et gyldigt upload-intent.");
+  }
+  return {
+    uploadId: row.upload_id,
+    storagePath: row.storage_path,
+    intentExpiresAt: row.intent_expires_at,
+  };
+}
+
+/**
+ * Uploads a file to the monitoring bucket under the user's folder and inserts
+ * a matching row in public.uploads. Returns the created upload row.
+ */
+export async function uploadFileResumable(params: {
+  file: File;
+  projectId: string | null;
+  zoneId?: string | null;
+  uploadType?: UploadType;
+  userMetadata?: Record<string, unknown>;
+  onProgress?: (percentage: number, bytesUploaded: number, bytesTotal: number) => void;
+  signal?: AbortSignal;
+  resumeIntent?: UploadIntent;
+  clientRequestId?: string;
 }): Promise<Upload> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth.user;
-  if (!user) throw new Error("Not authenticated");
-
-  if (params.file.size > MAX_UPLOAD_BYTES) {
-    throw new Error(`Filen er for stor. Maks ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`);
+  // Re-issue the same idempotent database request on every attempt. This both
+  // recovers a lost create-RPC response and proves that current file/scope
+  // parameters still match the immutable intent before any TUS bytes move.
+  const intent = await createUploadIntent(params);
+  if (
+    params.resumeIntent &&
+    (params.resumeIntent.uploadId !== intent.uploadId ||
+      params.resumeIntent.storagePath !== intent.storagePath)
+  ) {
+    throw new UploadTransferError(
+      "Upload-intent matcher ikke den oprindelige fil og projektkontekst.",
+      intent,
+    );
   }
-  const mime = params.file.type || "application/octet-stream";
-  if (!isMimeAllowed(mime)) {
-    throw new Error(`Filtypen ${mime || "ukendt"} understøttes ikke.`);
+
+  if (params.resumeIntent) {
+    const recovered = await finalizeIntent(intent);
+    if (recovered.row) return recovered.row;
+    const objectMissing =
+      recovered.error?.code === "55000" &&
+      recovered.error.message.toLowerCase().includes("object not found");
+    if (!objectMissing) {
+      throw new UploadTransferError(
+        `Upload-intent kunne ikke genoptages: ${recovered.error?.message ?? "ukendt fejl"}`,
+        intent,
+        { cause: recovered.error ?? undefined },
+      );
+    }
+  }
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (sessionError || !accessToken) {
+    throw new UploadTransferError("Upload kræver en aktiv session.", intent, {
+      cause: sessionError ?? undefined,
+    });
+  }
+  const mime = resolveUploadMime(params.file);
+
+  try {
+    await uploadWithTus({
+      file: params.file,
+      projectUrl: requireSupabaseUrl(),
+      accessToken,
+      bucketName: UPLOAD_BUCKET,
+      objectName: intent.storagePath,
+      contentType: mime,
+      onProgress: params.onProgress,
+      signal: params.signal,
+    });
+  } catch (error) {
+    throw new UploadTransferError(
+      error instanceof Error ? error.message : "Den resumérbare upload fejlede.",
+      intent,
+      { cause: error },
+    );
   }
 
-  const uploadType = params.uploadType ?? detectUploadType(params.file.name, mime);
-  const safe = sanitizeFileName(params.file.name);
-  const path = `${user.id}/${Date.now()}-${safe}`;
-
-  const { error: upErr } = await supabase.storage
-    .from(UPLOAD_BUCKET)
-    .upload(path, params.file, { contentType: mime, upsert: false });
-  if (upErr) throw upErr;
-
-  const insert: UploadInsert = {
-    project_id: params.projectId,
-    zone_id: params.zoneId ?? null,
-    uploaded_by: user.id,
-    file_name: safe,
-    original_file_name: params.file.name,
-    mime_type: mime,
-    file_size: params.file.size,
-    storage_path: path,
-    upload_type: uploadType,
-    status: "awaiting_validation",
-    detected_metadata: (params.detectedMetadata ?? {}) as never,
-    user_metadata: (params.userMetadata ?? {}) as never,
-  };
-  const { data, error } = await supabase.from("uploads").insert(insert as never).select("*").single();
-  if (error) {
-    // Roll back the storage object so we don't leak orphans.
-    await supabase.storage.from(UPLOAD_BUCKET).remove([path]).catch(() => undefined);
-    throw error;
+  const finalized = await finalizeIntent(intent);
+  if (finalized.error) {
+    throw new UploadTransferError(
+      `Filen er overført, men modtagelsen kunne ikke verificeres: ${finalized.error.message}`,
+      intent,
+      { cause: finalized.error },
+    );
   }
-  const row = data as Upload;
-  await logAuditEvent({
-    projectId: row.project_id,
-    eventType: "upload_created",
-    entityType: "upload",
-    entityId: row.id,
-    title: `Fil uploadet: ${row.original_file_name}`,
-    description: `${uploadType} · ${Math.round(row.file_size / 1024)} KB`,
-    afterData: { id: row.id, upload_type: uploadType, mime, size: row.file_size },
-  });
-  return row;
+  if (!finalized.row)
+    throw new UploadTransferError("Den modtagne upload kunne ikke genlæses.", intent);
+  return finalized.row;
+}
+
+export const uploadFile = uploadFileResumable;
+
+export async function cancelUploadIntent(uploadId: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const { data, error } = await callUploadRpc<{
+    upload_id: string;
+    storage_path: string;
+    status: string;
+  }>("cancel_upload_intent", { p_upload_id: uploadId });
+  if (error) throw error;
+  if (data?.[0]?.status !== "archived") throw new Error("Upload-intent blev ikke annulleret.");
+}
+
+async function finalizeIntent(
+  intent: UploadIntent,
+): Promise<{ row?: Upload; error?: UploadRpcError }> {
+  const { data, error } = await callUploadRpc<{
+    upload_id: string;
+    storage_path: string;
+    status: string;
+  }>("finalize_upload_intent", { p_upload_id: intent.uploadId });
+  if (error) return { error };
+  if (!data?.[0]?.upload_id || !data[0].storage_path || !data[0].status) {
+    return { error: { message: "Databasen bekræftede ikke den modtagne upload." } };
+  }
+  const row = await getUpload(intent.uploadId);
+  return row ? { row } : { error: { message: "Den modtagne upload kunne ikke genlæses." } };
 }
 
 export async function listUploads(params: {
@@ -169,7 +424,12 @@ export async function getUpload(id: string): Promise<Upload | null> {
   return (data as Upload | null) ?? null;
 }
 
-export async function updateUpload(id: string, patch: UploadUpdate): Promise<Upload> {
+export type UploadUserUpdate = Pick<
+  UploadUpdate,
+  "project_id" | "organization_id" | "zone_id" | "user_metadata"
+>;
+
+export async function updateUpload(id: string, patch: UploadUserUpdate): Promise<Upload> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const { data, error } = await supabase
     .from("uploads")
@@ -181,23 +441,106 @@ export async function updateUpload(id: string, patch: UploadUpdate): Promise<Upl
   return data as Upload;
 }
 
-export async function setUploadStatus(id: string, status: string, patch: Partial<UploadUpdate> = {}): Promise<Upload> {
-  return updateUpload(id, { status, ...patch } as UploadUpdate);
+function getAuthorizedUploadPath(row: Record<string, unknown>): string | null {
+  const uploadId = typeof row["id"] === "string" ? row["id"] : "";
+  const uploadedBy = typeof row["uploaded_by"] === "string" ? row["uploaded_by"] : "";
+  const rawPath = typeof row["storage_path"] === "string" ? row["storage_path"] : "";
+  const path = rawPath.trim();
+  if (
+    !POSTGRES_UUID.test(uploadId) ||
+    !POSTGRES_UUID.test(uploadedBy) ||
+    !path ||
+    path !== rawPath ||
+    path.length > 1024 ||
+    path.startsWith("/") ||
+    path.startsWith("//") ||
+    path.includes("\\") ||
+    /^[a-z][a-z0-9+.-]*:/i.test(path)
+  ) {
+    return null;
+  }
+
+  const segments = path.split("/");
+  if (
+    segments.length < 2 ||
+    segments[0] !== uploadedBy ||
+    segments.some(
+      (segment) =>
+        !segment || segment === "." || segment === ".." || !/^[a-zA-Z0-9._-]+$/.test(segment),
+    ) ||
+    (segments[1] === "intents" &&
+      (segments.length !== 4 || segments[2]?.toLowerCase() !== uploadId.toLowerCase()))
+  ) {
+    return null;
+  }
+
+  return path;
 }
 
-export async function createSignedUrl(storagePath: string, expiresIn = 60 * 60): Promise<string> {
+/**
+ * Creates a short-lived URL only after the current user's RLS-scoped upload
+ * lookup proves that the object belongs to the requested project. The caller
+ * can identify the row, but the private Storage path always comes from it.
+ */
+export async function getUploadDownloadUrl(input: {
+  uploadId: string;
+  projectId: string;
+}): Promise<string> {
+  if (!POSTGRES_UUID.test(input.uploadId) || !POSTGRES_UUID.test(input.projectId)) {
+    throw new Error("Ugyldig uploadreference.");
+  }
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.storage.from(UPLOAD_BUCKET).createSignedUrl(storagePath, expiresIn);
-  if (error) throw error;
-  return data.signedUrl;
+
+  const uploadId = input.uploadId.toLowerCase();
+  const projectId = input.projectId.toLowerCase();
+  const db = supabase as unknown as UploadDownloadDb;
+  const { data: row, error: readError } = await db
+    .from("uploads")
+    .select("id, project_id, uploaded_by, storage_path, status, intent_request_id, received_at")
+    .eq("id", uploadId)
+    .eq("project_id", projectId)
+    .maybeSingle();
+
+  if (readError || !row || row["id"] !== uploadId || row["project_id"] !== projectId) {
+    throw new Error("Uploaden blev ikke fundet, eller du har ikke adgang til den.");
+  }
+
+  if (
+    !isUploadDownloadAvailable({
+      status: row["status"],
+      intent_request_id: row["intent_request_id"],
+      received_at: row["received_at"],
+    })
+  ) {
+    throw new Error("Filen er ikke modtaget eller er ikke tilgængelig til download.");
+  }
+
+  const storagePath = getAuthorizedUploadPath(row);
+  if (!storagePath) {
+    throw new Error("Uploaden har en ugyldig eller forkert afgrænset Storage-sti.");
+  }
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(UPLOAD_BUCKET)
+      .createSignedUrl(storagePath, SIGNED_UPLOAD_URL_TTL_SECONDS, { download: true });
+    if (error || !data?.signedUrl) throw new Error("Storage signing failed");
+    return data.signedUrl;
+  } catch {
+    throw new Error("Kunne ikke oprette et sikkert downloadlink.");
+  }
 }
 
 export async function deleteUpload(id: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const existing = await getUpload(id);
   if (!existing) return;
-  await supabase.storage.from(UPLOAD_BUCKET).remove([existing.storage_path]).catch(() => undefined);
-  const { error } = await supabase.from("uploads").delete().eq("id", id);
+  const { error: storageError } = await supabase.storage
+    .from(UPLOAD_BUCKET)
+    .remove([existing.storage_path]);
+  if (storageError) throw storageError;
+
+  const { error } = await supabase.from("uploads").delete().eq("id", id).select("id").single();
   if (error) throw error;
   await logAuditEvent({
     projectId: existing.project_id,
@@ -211,7 +554,7 @@ export async function deleteUpload(id: string): Promise<void> {
 
 export function uploadStatusLabel(status: string): string {
   const map: Record<string, string> = {
-    draft: "Kladde",
+    draft: "Overførsel ikke afsluttet",
     awaiting_validation: "Afventer validering",
     validating: "Valideres",
     ready: "Klar til import",

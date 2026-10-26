@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSystemTestRouteImport } from './routes/app.system-test'
+import { Route as AppSourcesRouteImport } from './routes/app.sources'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppPublicImpactRouteImport } from './routes/app.public-impact'
@@ -96,6 +97,7 @@ import { Route as AppLavbundProjektIdKortRouteImport } from './routes/app.lavbun
 import { Route as AppLavbundProjektIdKlimaRouteImport } from './routes/app.lavbund.$projektId.klima'
 import { Route as AppLavbundProjektIdFosforRouteImport } from './routes/app.lavbund.$projektId.fosfor'
 import { Route as AppConstructionProjectsSlugRouteImport } from './routes/app.construction.projects.$slug'
+import { Route as ApiPublicMonitoringReconcileUploadsRouteImport } from './routes/api/public/monitoring.reconcile-uploads'
 import { Route as ApiPublicMonitoringEvaluateRouteImport } from './routes/api/public/monitoring.evaluate'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -136,6 +138,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppSystemTestRoute = AppSystemTestRouteImport.update({
   id: '/system-test',
   path: '/system-test',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSourcesRoute = AppSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -543,6 +550,12 @@ const AppConstructionProjectsSlugRoute =
     path: '/construction/projects/$slug',
     getParentRoute: () => AppRoute,
   } as any)
+const ApiPublicMonitoringReconcileUploadsRoute =
+  ApiPublicMonitoringReconcileUploadsRouteImport.update({
+    id: '/api/public/monitoring/reconcile-uploads',
+    path: '/api/public/monitoring/reconcile-uploads',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMonitoringEvaluateRoute =
   ApiPublicMonitoringEvaluateRouteImport.update({
     id: '/api/public/monitoring/evaluate',
@@ -570,6 +583,7 @@ export interface FileRoutesByFullPath {
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -631,6 +645,7 @@ export interface FileRoutesByFullPath {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
+  '/api/public/monitoring/reconcile-uploads': typeof ApiPublicMonitoringReconcileUploadsRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
@@ -653,6 +668,7 @@ export interface FileRoutesByTo {
   '/app/data': typeof AppDataRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/public-impact': typeof AppPublicImpactRoute
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -714,6 +730,7 @@ export interface FileRoutesByTo {
   '/app/reports': typeof AppReportsIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
+  '/api/public/monitoring/reconcile-uploads': typeof ApiPublicMonitoringReconcileUploadsRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
@@ -744,6 +761,7 @@ export interface FileRoutesById {
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
+  '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -805,6 +823,7 @@ export interface FileRoutesById {
   '/app/reports/': typeof AppReportsIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
   '/api/public/monitoring/evaluate': typeof ApiPublicMonitoringEvaluateRoute
+  '/api/public/monitoring/reconcile-uploads': typeof ApiPublicMonitoringReconcileUploadsRoute
   '/app/construction/projects/$slug': typeof AppConstructionProjectsSlugRoute
   '/app/lavbund/$projektId/fosfor': typeof AppLavbundProjektIdFosforRoute
   '/app/lavbund/$projektId/klima': typeof AppLavbundProjektIdKlimaRoute
@@ -836,6 +855,7 @@ export interface FileRouteTypes {
     | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
+    | '/app/sources'
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -897,6 +917,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/api/public/monitoring/evaluate'
+    | '/api/public/monitoring/reconcile-uploads'
     | '/app/construction/projects/$slug'
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
@@ -919,6 +940,7 @@ export interface FileRouteTypes {
     | '/app/data'
     | '/app/overview'
     | '/app/public-impact'
+    | '/app/sources'
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -980,6 +1002,7 @@ export interface FileRouteTypes {
     | '/app/reports'
     | '/app/settings'
     | '/api/public/monitoring/evaluate'
+    | '/api/public/monitoring/reconcile-uploads'
     | '/app/construction/projects/$slug'
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
@@ -1009,6 +1032,7 @@ export interface FileRouteTypes {
     | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
+    | '/app/sources'
     | '/app/system-test'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -1070,6 +1094,7 @@ export interface FileRouteTypes {
     | '/app/reports/'
     | '/app/settings/'
     | '/api/public/monitoring/evaluate'
+    | '/api/public/monitoring/reconcile-uploads'
     | '/app/construction/projects/$slug'
     | '/app/lavbund/$projektId/fosfor'
     | '/app/lavbund/$projektId/klima'
@@ -1094,6 +1119,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicObservationsRoute: typeof ApiPublicObservationsRoute
   ApiPublicMonitoringEvaluateRoute: typeof ApiPublicMonitoringEvaluateRoute
+  ApiPublicMonitoringReconcileUploadsRoute: typeof ApiPublicMonitoringReconcileUploadsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1152,6 +1178,13 @@ declare module '@tanstack/react-router' {
       path: '/system-test'
       fullPath: '/app/system-test'
       preLoaderRoute: typeof AppSystemTestRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/sources': {
+      id: '/app/sources'
+      path: '/sources'
+      fullPath: '/app/sources'
+      preLoaderRoute: typeof AppSourcesRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/settings': {
@@ -1707,6 +1740,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConstructionProjectsSlugRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/monitoring/reconcile-uploads': {
+      id: '/api/public/monitoring/reconcile-uploads'
+      path: '/api/public/monitoring/reconcile-uploads'
+      fullPath: '/api/public/monitoring/reconcile-uploads'
+      preLoaderRoute: typeof ApiPublicMonitoringReconcileUploadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/monitoring/evaluate': {
       id: '/api/public/monitoring/evaluate'
       path: '/api/public/monitoring/evaluate'
@@ -1923,6 +1963,7 @@ interface AppRouteChildren {
   AppPublicImpactRoute: typeof AppPublicImpactRoute
   AppReportsRoute: typeof AppReportsRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppSourcesRoute: typeof AppSourcesRoute
   AppSystemTestRoute: typeof AppSystemTestRoute
   AppProjectsSlugRoute: typeof AppProjectsSlugRoute
   AppConstructionIndexRoute: typeof AppConstructionIndexRoute
@@ -1943,6 +1984,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPublicImpactRoute: AppPublicImpactRoute,
   AppReportsRoute: AppReportsRouteWithChildren,
   AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppSourcesRoute: AppSourcesRoute,
   AppSystemTestRoute: AppSystemTestRoute,
   AppProjectsSlugRoute: AppProjectsSlugRoute,
   AppConstructionIndexRoute: AppConstructionIndexRoute,
@@ -1969,6 +2011,8 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicObservationsRoute: ApiPublicObservationsRoute,
   ApiPublicMonitoringEvaluateRoute: ApiPublicMonitoringEvaluateRoute,
+  ApiPublicMonitoringReconcileUploadsRoute:
+    ApiPublicMonitoringReconcileUploadsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

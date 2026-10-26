@@ -1,0 +1,207 @@
+{
+  "schema": "gofreyra.hosted-synthetic-isolation-qa/v1",
+  "synthetic": true,
+  "municipalAcceptance": false,
+  "supabaseRef": "xdvqdzdpyceojbdknofi",
+  "startedAt": "2026-10-13T14:17:11.593Z",
+  "checks": {
+    "anonymous-baseline-read": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "anonymous-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "anonymous-original-validation": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-baseline-read": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-original-validation": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "viewer-baseline-read": {
+      "projectReadAllowed": true,
+      "savedBaselineExists": false,
+      "sameSavedHash": false,
+      "missingRowReturnsNull": true
+    },
+    "viewer-baseline-create": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "viewer-original-validation": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "foreign-baseline-rls": {
+      "visibleRows": 0
+    },
+    "viewer-validated-upload-read": {
+      "allowed": true,
+      "sameSavedHash": true
+    },
+    "foreign-validated-upload-rls": {
+      "visibleRows": 0,
+      "realSavedOriginal": true
+    },
+    "main-prepare-original-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "main-persist-original-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "main-persist-baseline-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "viewer-prepare-original-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "viewer-persist-original-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "viewer-persist-baseline-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "foreign-prepare-original-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "foreign-persist-original-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "foreign-persist-baseline-rpc": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "anonymous-prepare-original-rpc": {
+      "denied": true,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "anonymous-persist-original-rpc": {
+      "denied": true,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "anonymous-persist-baseline-rpc": {
+      "denied": true,
+      "httpStatus": 401,
+      "sqlState": "42501"
+    },
+    "viewer-direct-baseline-insert": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "viewer-reserved-original-update": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "viewer-upload-intent": {
+      "denied": true,
+      "httpStatus": 403,
+      "sqlState": "42501"
+    },
+    "foreign-private-original-sign": {
+      "denied": true,
+      "signedUrlIssued": false,
+      "httpStatus": 404
+    },
+    "anonymous-private-original-sign": {
+      "denied": true,
+      "signedUrlIssued": false,
+      "httpStatus": 404
+    },
+    "viewer-private-original-read": {
+      "allowed": true,
+      "bytesMatch": true
+    },
+    "owner-signed-original-before-expiry": {
+      "httpStatus": 200,
+      "bytesMatch": true,
+      "ttlSeconds": 60
+    },
+    "revoked-viewer-existing-token-baseline": {
+      "denied": true,
+      "authorizationError": true
+    },
+    "revoked-viewer-baseline-rls": {
+      "sameToken": true,
+      "visibleRows": 0
+    },
+    "revoked-viewer-original-rls": {
+      "sameToken": true,
+      "visibleRows": 0,
+      "realSavedOriginal": true
+    },
+    "revoked-viewer-new-original-sign": {
+      "denied": true,
+      "signedUrlIssued": false,
+      "httpStatus": 404
+    },
+    "preissued-viewer-url-after-revocation": {
+      "bearerValidUntilTtl": true,
+      "newSigningDenied": true,
+      "bytesMatch": true
+    },
+    "owner-signed-original-after-expiry": {
+      "rejected": true,
+      "httpStatus": 400,
+      "requestedTtlSeconds": 60,
+      "elapsedSeconds": 72
+    },
+    "negative-calls-preserve-records": {
+      "unchanged": true,
+      "canonical": {
+        "drone_assets": 0,
+        "observations": 0,
+        "reports": 0
+      },
+      "baselines": 0,
+      "uploads": 1
+    },
+    "synthetic-viewer-membership-restored": {
+      "originalScopeRestored": true,
+      "originalIdsRestored": true,
+      "verifiedFromDatabase": true
+    }
+  },
+  "originalOnly": true,
+  "limitations": [
+    "No saved baseline rows exist because the official live reference provider is blocked. Baseline project authorization and service-only write permissions are tested; saved-baseline tenant read isolation remains pending."
+  ],
+  "projectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+  "uploadId": "f54883ff-6cb1-4cb3-9879-b4ebdb2b005a",
+  "updatedAt": "2026-10-13T14:18:30.324Z",
+  "completedAt": "2026-10-13T14:18:30.021Z",
+  "outcome": "passed",
+  "executedCodeSha": "a010b9f8004f1cceda83125eaa9dbaf9cf4cac60",
+  "executedWorkerVersion": "5ee102da-cf82-4ca0-ba6a-3e26ca479969"
+}

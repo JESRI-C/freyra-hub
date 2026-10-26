@@ -16,20 +16,20 @@ const DATAFORSYNINGEN_API = "https://api.dataforsyningen.dk";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type SoilClass =
-  | "organic"      // Tørv, mose — høj C-lagring
-  | "clay"         // Lerjord — moderat
-  | "sandy_clay"   // Leret sandjord
-  | "sand"         // Sandjord — lav C-lagring
-  | "humus"        // Humusjord
-  | "chalk"        // Kalk
+  | "organic" // Tørv, mose — høj C-lagring
+  | "clay" // Lerjord — moderat
+  | "sandy_clay" // Leret sandjord
+  | "sand" // Sandjord — lav C-lagring
+  | "humus" // Humusjord
+  | "chalk" // Kalk
   | "unknown";
 
 export interface SoilProfile {
   dominantClass: SoilClass;
-  organicContent: number;    // % organisk indhold (estimat)
+  organicContent: number; // % organisk indhold (estimat)
   drainageClass: "well" | "moderate" | "poor" | "very_poor";
   infiltrationRate: "high" | "medium" | "low";
-  carbonDensity: number;     // t C/ha (overjordisk + rodzone estimat)
+  carbonDensity: number; // t C/ha (overjordisk + rodzone estimat)
   soilLabel: string;
   fetchedAt: string;
   mode: "live" | "preview";
@@ -37,7 +37,7 @@ export interface SoilProfile {
 
 export interface TerrainProfile {
   elevationM: number;
-  slopePercent: number;      // gennemsnitlig hældning i projektområdet
+  slopePercent: number; // gennemsnitlig hældning i projektområdet
   aspect: "flat" | "gentle" | "moderate" | "steep";
   fetchedAt: string;
   mode: "live" | "preview";
@@ -47,31 +47,76 @@ export interface TerrainProfile {
 
 // GEUS jordbundsklasse → vores klassifikation
 const GEUS_CLASS_MAP: Record<string, SoilClass> = {
-  "Ferskvandstørv":     "organic",
-  "Havtørv":            "organic",
-  "Tørv":               "organic",
-  "Humus":              "humus",
-  "Humusjord":          "humus",
-  "Moræneler":          "clay",
-  "Ler":                "clay",
-  "Ishavsler":          "clay",
+  Ferskvandstørv: "organic",
+  Havtørv: "organic",
+  Tørv: "organic",
+  Humus: "humus",
+  Humusjord: "humus",
+  Moræneler: "clay",
+  Ler: "clay",
+  Ishavsler: "clay",
   "Glaciofluvialt ler": "sandy_clay",
-  "Smeltevandssand":    "sand",
-  "Marint sand":        "sand",
-  "Flyvesand":          "sand",
-  "Sand":               "sand",
-  "Kalk":               "chalk",
-  "Kridt":              "chalk",
+  Smeltevandssand: "sand",
+  "Marint sand": "sand",
+  Flyvesand: "sand",
+  Sand: "sand",
+  Kalk: "chalk",
+  Kridt: "chalk",
 };
 
-const SOIL_PROFILES: Record<SoilClass, Omit<SoilProfile, "fetchedAt" | "mode" | "dominantClass">> = {
-  organic:    { organicContent: 40, drainageClass: "very_poor", infiltrationRate: "low",    carbonDensity: 180, soilLabel: "Organisk jord / tørv" },
-  humus:      { organicContent: 15, drainageClass: "moderate",  infiltrationRate: "medium", carbonDensity: 85,  soilLabel: "Humusjord" },
-  clay:       { organicContent: 4,  drainageClass: "poor",      infiltrationRate: "low",    carbonDensity: 45,  soilLabel: "Lerjord" },
-  sandy_clay: { organicContent: 3,  drainageClass: "moderate",  infiltrationRate: "medium", carbonDensity: 35,  soilLabel: "Leret sandjord" },
-  sand:       { organicContent: 1,  drainageClass: "well",      infiltrationRate: "high",   carbonDensity: 18,  soilLabel: "Sandjord" },
-  chalk:      { organicContent: 1,  drainageClass: "well",      infiltrationRate: "high",   carbonDensity: 12,  soilLabel: "Kalkjord" },
-  unknown:    { organicContent: 3,  drainageClass: "moderate",  infiltrationRate: "medium", carbonDensity: 35,  soilLabel: "Ukendt jordbund" },
+const SOIL_PROFILES: Record<
+  SoilClass,
+  Omit<SoilProfile, "fetchedAt" | "mode" | "dominantClass">
+> = {
+  organic: {
+    organicContent: 40,
+    drainageClass: "very_poor",
+    infiltrationRate: "low",
+    carbonDensity: 180,
+    soilLabel: "Organisk jord / tørv",
+  },
+  humus: {
+    organicContent: 15,
+    drainageClass: "moderate",
+    infiltrationRate: "medium",
+    carbonDensity: 85,
+    soilLabel: "Humusjord",
+  },
+  clay: {
+    organicContent: 4,
+    drainageClass: "poor",
+    infiltrationRate: "low",
+    carbonDensity: 45,
+    soilLabel: "Lerjord",
+  },
+  sandy_clay: {
+    organicContent: 3,
+    drainageClass: "moderate",
+    infiltrationRate: "medium",
+    carbonDensity: 35,
+    soilLabel: "Leret sandjord",
+  },
+  sand: {
+    organicContent: 1,
+    drainageClass: "well",
+    infiltrationRate: "high",
+    carbonDensity: 18,
+    soilLabel: "Sandjord",
+  },
+  chalk: {
+    organicContent: 1,
+    drainageClass: "well",
+    infiltrationRate: "high",
+    carbonDensity: 12,
+    soilLabel: "Kalkjord",
+  },
+  unknown: {
+    organicContent: 3,
+    drainageClass: "moderate",
+    infiltrationRate: "medium",
+    carbonDensity: 35,
+    soilLabel: "Ukendt jordbund",
+  },
 };
 
 const PREVIEW_SOIL: SoilProfile = {
@@ -98,7 +143,7 @@ export async function fetchSoilProfile(lat: number, lng: number): Promise<SoilPr
       service: "WFS",
       version: "2.0.0",
       request: "GetFeature",
-      typeNames: "dkjord:jordart_25000",  // Jordartskort 1:25.000
+      typeNames: "dkjord:jordart_25000", // Jordartskort 1:25.000
       outputFormat: "application/json",
       bbox: `${bbox},EPSG:4326`,
       srsName: "EPSG:4326",
@@ -153,7 +198,7 @@ export async function fetchTerrainProfile(lat: number, lng: number): Promise<Ter
     );
 
     if (!res.ok) throw new Error(`Dataforsyningen ${res.status}`);
-    const json = await res.json() as { højde?: number; height?: number };
+    const json = (await res.json()) as { højde?: number; height?: number };
     const elevation = json.højde ?? json.height ?? 0;
 
     // Simpel hældningsestimering fra omgivende punkter
@@ -168,9 +213,14 @@ export async function fetchTerrainProfile(lat: number, lng: number): Promise<Ter
     const dX = 111; // ~111m pr. 0.001 grader
     const slopePercent = Math.round((dH / dX) * 100 * 10) / 10;
 
-    const aspect = slopePercent < 1 ? "flat" :
-                   slopePercent < 5 ? "gentle" :
-                   slopePercent < 15 ? "moderate" : "steep";
+    const aspect =
+      slopePercent < 1
+        ? "flat"
+        : slopePercent < 5
+          ? "gentle"
+          : slopePercent < 15
+            ? "moderate"
+            : "steep";
 
     return {
       elevationM: Math.round(elevation * 10) / 10,
@@ -190,6 +240,6 @@ async function fetchElevation(lat: number, lng: number): Promise<number> {
     { signal: AbortSignal.timeout(5_000) },
   );
   if (!res.ok) return 0;
-  const json = await res.json() as { højde?: number; height?: number };
+  const json = (await res.json()) as { højde?: number; height?: number };
   return json.højde ?? json.height ?? 0;
 }

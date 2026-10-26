@@ -1,0 +1,258 @@
+{
+  "schema": "gofreyra.staging-round-note-checkpoint/v1",
+  "documentedAt": "2026-10-14T07:21:12.576Z",
+  "genesis": {
+    "actualExecution": "Root-run actual CI23, scoped note migration apply, same-source build/deploy and hosted API QA",
+    "documentationGenerator": "Reviewed public-only root generator; no runtime/login/SQL/network/Git operations",
+    "priorCiMigrationCheckpointKeptHistorical": {
+      "appDeployedAtThatCheckpoint": false,
+      "hostedQaExecutedAtThatCheckpoint": false
+    },
+    "historicalChecksRelabeled": false
+  },
+  "codeSha": "70028af7845632d7f9f0fa85583c35334e39c59e",
+  "workerVersionId": "97c603d4-3133-40bb-940a-1d8de0cee4db",
+  "workerDeploymentRecordId": "f9248f59-44d1-447c-b756-8c21c930a738",
+  "workerDeploymentCreatedAt": "2026-10-14T07:09:31.469836Z",
+  "publicDeploymentMetadataSha256": "54afa8f0b25aed6b75780242810a9e41c0c71a9ab6f9d6529a8d57c8a70a52b5",
+  "ci": {
+    "runId": 38524924406,
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/38524924406",
+    "sourceSha": "70028af7845632d7f9f0fa85583c35334e39c59e",
+    "testedMergeSha": "7a5cd96c904ea55a1b055afa8b545275651d3982",
+    "testedTreeSha": "dbc1be9d323aff56a09a6a2142205af3e79b26f1",
+    "repositoryTreeMatchesTestedMergeTree": true,
+    "appTestFiles": 124,
+    "appTests": 1968,
+    "sqlFiles": 10,
+    "sqlAssertions": 601,
+    "actualConcurrencyCases": 25,
+    "actualNoteConcurrencyCases": 7,
+    "disposableCleanupPassed": true,
+    "artifactSha256": "d10fdabf008e6f1e02f709b86a0405f5dd396ec6c38596bda285120fc6c70585",
+    "peerSha256": "b5ef9d67b3414005f238a59fbf201906dee91e106963629329888dc73d587c84"
+  },
+  "migration": {
+    "repositoryVersion": "20261014061314",
+    "appliedVersion": "20261014070017",
+    "rawSqlSha256": "13e152a86d0178862cde209faa3ac95777f4159327a406e41a5b047b795ff7bf",
+    "normalizedSqlSha256": "427ebbe666e46aa9d0ee6800217479c0ac9c6f20704ef6db411ea1434b06e67d",
+    "postflightAt": "2026-10-14T07:00:36.678849Z"
+  },
+  "build": {
+    "sameSourceBuiltAndDeployedAccordingToRoot": true,
+    "actualKeyBuildScan": {
+      "repositoryFiles": 759,
+      "outputFiles": 798,
+      "repositoryLeaks": 0,
+      "outputLeaks": 0,
+      "privilegedBundleTokens": 0
+    },
+    "encryptedBindingNamesPreserved": 4,
+    "correctedReadContextHandoffSha256": "d64ca74e7be2e8144dc5ed5fe87e50498a5a25c5e2b2c44638ddebbfea4885e0"
+  },
+  "hostedNotes": {
+    "outcome": "passed",
+    "attempt": 1,
+    "completedAt": "2026-10-14T07:11:15.116Z",
+    "checks": 67,
+    "receiptSha256": "4ef164265f3d7547c93e78e30b03e6b8f2a54a60a6185eb5c2aa7099900718b5",
+    "syntheticProjectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+    "notes": {
+      "before": {
+        "id": "61e55a46-3868-42af-923b-79fb894589e0",
+        "logicalNoteId": "bde46a0b-2131-4417-a2a3-494f2ea04670",
+        "mediaBindingId": "0e069ddb-5648-434a-86ac-a72b6d220140",
+        "roundVersionId": "db20bc6b-f0a1-4f81-a400-4ddda1e70c7b",
+        "manifestSha256": "5f5e10ff073fe67edf861d3ceb7b6a1865d72561fd887880e1c2410cec68addd",
+        "status": "draft_unreviewed",
+        "noteVersion": 1,
+        "qualitativeAnswer": "inconclusive",
+        "proposedPriority": "not_assessed",
+        "professionalApproval": false,
+        "reportEligible": false
+      },
+      "control": {
+        "id": "7b8e03c4-6caf-4e8e-b01b-9e1890f26bef",
+        "logicalNoteId": "54601975-8de8-4d12-bcbb-5c935501c35c",
+        "mediaBindingId": "9a90d193-d091-4e9d-ae8f-091fa5d09ca5",
+        "roundVersionId": "f0482d30-5324-4295-8616-a6f6e1d9d449",
+        "manifestSha256": "c5f26fc41279cfea91ff1b421952aaeaa6646ddb374633d6cca8373ce29929ff",
+        "status": "draft_unreviewed",
+        "noteVersion": 1,
+        "qualitativeAnswer": "inconclusive",
+        "proposedPriority": "not_assessed",
+        "professionalApproval": false,
+        "reportEligible": false
+      }
+    },
+    "allChecksIndividuallyValidated": true,
+    "sameJwtRevokeAndExactMembershipRestore": true,
+    "currentPrivateOriginal": {
+      "bytes": 137,
+      "sha256": "d7e98b662c74dcc8fd2a62381df06a4baf558919188bea95c09f06ee8da7a737",
+      "downloads": 3,
+      "bytesTokensOrSignedUrlsPersisted": false,
+      "pixelDecoded": false
+    },
+    "inputGraphSha256": "c6bd958cf759b067ae7445d6137d463ca5e2ab938b7af591dc8e8966781faaee",
+    "allInputRowsAndTwoOldMediaAssignmentsUnchanged": true,
+    "notePreservation": {
+      "preexistingRows": 0,
+      "finalRows": 2,
+      "ownNewRows": 2,
+      "allPreexistingRowsUnchanged": true,
+      "beforeSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "afterSha256": "8ad5f1d9eceb0278aa414bcb7f053f5cb9703da8b563177940790c52fb2d161c"
+    },
+    "acceptance": {
+      "technicalManualDraftNotes": true,
+      "manualOnly": true,
+      "qualitativeAnswer": "inconclusive",
+      "proposedPriority": "not_assessed",
+      "photoInterpretationPerformed": false,
+      "physicalPhotosCreated": false,
+      "storageWritten": false,
+      "sourcesRecollected": false,
+      "observationsCreated": false,
+      "reviewsCreated": false,
+      "reportsCreated": false,
+      "pixelDecoded": false,
+      "georeferenced": false,
+      "municipalScopeApproved": false,
+      "professionalApproval": false,
+      "reportEligible": false,
+      "reportAccepted": false
+    }
+  },
+  "historicalInputs": {
+    "source81CodeSha": "81e229e0b99a91803b9b46bdf8b1202329b3efcd",
+    "source81WorkerId": "f4d6e4d7-6226-47ad-b205-60896a37ffc3",
+    "source81MetadataSha256": "c08c52a76bdf023451a78929903073f1b0e1e158f19e2b4af7ee4e770c522ca2",
+    "baselineReceiptSha256": "fc3505751a5354f42bc1ebdcdc5276efc0e62cdba7956799b4c371fdb32580b0",
+    "roundReceiptSha256": "b5aa5dcfbee103e38c0e94eb8085f8279b4825f0eed6ca7329921a9f9a10183c",
+    "media5cCodeSha": "5cbb1df9c8a34108d76b39851dd22d504f4c041b",
+    "media5cWorkerId": "da24329a-bd0c-4017-a2ed-188f40f25991",
+    "mediaMetadataSha256": "f1bdcad02c4ddee285147be70f4f586203c0ceb1c98a243f9e5b26f1f6a01b1e",
+    "mediaReceiptSha256": "6169fbdbe06762f454f3e08b3a75cb1acc9bf24082cc38398ccc7435c9224be5",
+    "m0CodeSha": "8eff057f25b6362f28a51c6ed34af933c9b58984",
+    "m0WorkerId": "b3198a45-7c3c-43d2-9653-7b00c0954a06",
+    "m0ProofSha256": "683baea041b13747ca049512ae5f2f4f6e6f796531831b56f09d36d3f612d613",
+    "publishedProofs": [
+      {
+        "path": "staging-report-ui-checkpoint-2026-10-14.json",
+        "sha256": "683baea041b13747ca049512ae5f2f4f6e6f796531831b56f09d36d3f612d613"
+      },
+      {
+        "path": "staging-round-media-checkpoint-2026-10-14.json",
+        "sha256": "dacf7aa31a7d8668b3cc0e21278e4e639c1522d8b8dd8965ace8967f9e17f63e"
+      },
+      {
+        "path": "staging-source13-survey-round-checkpoint-2026-10-14.json",
+        "sha256": "73739a2783e682474c6fed1885aa7e2fd19f93fd7c6ea3b8525db47005105e1d"
+      }
+    ],
+    "old40And81And68NotRerunOrRelabeled": true
+  },
+  "humanTestScope": {
+    "ordinaryUsersOwnEmptyProjectId": "ae3012ca-662e-4ae0-9f84-234d08428ec9",
+    "separateFromPrivateSyntheticQaProject": true,
+    "ordinaryProjectModifiedByThisQa": false,
+    "actualM1FormBrowserAcceptance": false,
+    "ownRealPhotoNoteFlowAccepted": false
+  },
+  "limitations": {
+    "manualDraftOnly": true,
+    "professionalReviewAccepted": false,
+    "reviewedObservationAccepted": false,
+    "actualRealPhotoBatchAccepted": false,
+    "actualHostedPdfDownloadOrArchiveAccepted": false,
+    "immutableMunicipalReportAccepted": false,
+    "municipalScopeApproved": false,
+    "municipalAcceptance": false,
+    "offline30NoteQueryMeasurementIsNotHostedCpuLatencyOrBatchEvidence": true,
+    "m2ReviewDesignImplementationClaimed": false,
+    "productionCodeOrCustomerDataChanged": false
+  },
+  "privacy": {
+    "minimizedPublicProof": true,
+    "rawGeometryOriginalBytesNarrativeTextContactsTokensAndSignedUrlsOmitted": true
+  },
+  "documentation": {
+    "baseDocs": [
+      {
+        "path": "docs/HADERSLEV_PLAN_2026-11-10.md",
+        "sha256": "618765397c88820abb293fda14243efba3e0c3cb3988e007da60f9eca02e9280"
+      },
+      {
+        "path": "docs/HADERSLEV_OPGAVER.md",
+        "sha256": "f2d87d1284e1d1349c2df5149a59825c0b52cfb27b8f9a4a35051372c0eb4706"
+      },
+      {
+        "path": "docs/HADERSLEV_EXECUTION.md",
+        "sha256": "ab275bf62a54d33f50d1b7df25513b275d60de1e65e37d7a2494215ed87d3f0a"
+      },
+      {
+        "path": "docs/HADERSLEV_STATUS_2026-10-14.md",
+        "sha256": "14697ecc1bfb4963ccaccf3cff9b3c5e6ba2cf8daed6e643d50b436235a22443"
+      },
+      {
+        "path": "docs/HADERSLEV_BRUGERTEST.md",
+        "sha256": "306f48e396a8e7807502506917df32c0b6871d9d149c2cd3276ca14042db58b9"
+      }
+    ],
+    "explicitHistoricalSectionsBytePreserved": true
+  },
+  "evidenceInputs": [
+    {
+      "localPublicInput": "tmp/staging-qa-round-note-deployment.json",
+      "sha256": "54afa8f0b25aed6b75780242810a9e41c0c71a9ab6f9d6529a8d57c8a70a52b5"
+    },
+    {
+      "localPublicInput": "tmp/staging-qa-round-note-evidence.json",
+      "sha256": "4ef164265f3d7547c93e78e30b03e6b8f2a54a60a6185eb5c2aa7099900718b5"
+    },
+    {
+      "localPublicInput": "tmp/note-ci23-and-migration.json",
+      "sha256": "7d3f5e9013b22ff3c984d26c04c828268207fb5f05eba2cd1dee29c758a062e1"
+    },
+    {
+      "localPublicInput": "tmp/note-ci23-concurrency-peer.json",
+      "sha256": "b5ef9d67b3414005f238a59fbf201906dee91e106963629329888dc73d587c84"
+    },
+    {
+      "localPublicInput": "tmp/note-hosted-final-sql.json",
+      "sha256": "1895757a0efa01af5e281713d449fb0c9db1d631e61fc69bd095ae59e0c08051"
+    },
+    {
+      "localPublicInput": "tmp/note-report-header-browser-check.json",
+      "sha256": "ed3ac7cb5abacf2111d9ff374afdc27cfd5198fdb188fcc2986f80b12bfa7d61"
+    }
+  ],
+  "rootReadOnlyPostflight": {
+    "checkedAt": "2026-10-14 07:13:48.963066+00",
+    "source": "Actual root SQL result read from public file; generator executed no SQL",
+    "globalProjects": 8,
+    "globalUploads": 15,
+    "qa": {
+      "baselines": 4,
+      "plans": 3,
+      "rounds": 2,
+      "mediaAssignments": 2,
+      "manualNotes": 2,
+      "observations": 0,
+      "reports": 0
+    },
+    "exactAcceptedNoteIdsAndHashesMatched": true
+  },
+  "separateReportHeaderBrowserCheck": {
+    "source": "Actual root read-only accessibility check in a separate normal-human-session tab",
+    "route": "/app/reports/new",
+    "correctTestCaseLink": true,
+    "explicitDraftBasis": true,
+    "manualNoteFormInBrowserTested": false,
+    "humanTestCaseReloadedOrChanged": false,
+    "visualScreenshotAcceptance": false,
+    "realPhotoNoteFlowAccepted": false
+  }
+}

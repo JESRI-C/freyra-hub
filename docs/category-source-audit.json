@@ -1,0 +1,209 @@
+{
+  "verification": "source_only_not_functional_acceptance",
+  "categoryCount": 15,
+  "routeCount": 88,
+  "categories": [
+    {
+      "route": "/app/overview",
+      "label": "Dashboard",
+      "routeFiles": [
+        "src/routes/app.overview.tsx"
+      ],
+      "childRouteCount": 0,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/projects",
+      "label": "Naturprojekter",
+      "routeFiles": [
+        "src/routes/app.projects.index.tsx"
+      ],
+      "childRouteCount": 3,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/reports",
+      "label": "Rapporter",
+      "routeFiles": [
+        "src/routes/app.reports.index.tsx",
+        "src/routes/app.reports.tsx"
+      ],
+      "childRouteCount": 7,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/connect/map",
+      "label": "Kort & zoner",
+      "routeFiles": [
+        "src/routes/app.connect.map.tsx"
+      ],
+      "childRouteCount": 0,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/construction",
+      "label": "Byggeri & natur",
+      "routeFiles": [
+        "src/routes/app.construction.index.tsx"
+      ],
+      "childRouteCount": 1,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/connect",
+      "label": "Monitoring & feltdata",
+      "routeFiles": [
+        "src/routes/app.connect.index.tsx",
+        "src/routes/app.connect.tsx"
+      ],
+      "childRouteCount": 10,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/lavbund",
+      "label": "LavbundsMRV",
+      "routeFiles": [
+        "src/routes/app.lavbund.index.tsx",
+        "src/routes/app.lavbund.tsx"
+      ],
+      "childRouteCount": 6,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/decisions",
+      "label": "Project Intelligence",
+      "routeFiles": [
+        "src/routes/app.decisions.index.tsx",
+        "src/routes/app.decisions.tsx"
+      ],
+      "childRouteCount": 6,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/ledger",
+      "label": "Dokumentation & audit",
+      "routeFiles": [
+        "src/routes/app.ledger.index.tsx",
+        "src/routes/app.ledger.tsx"
+      ],
+      "childRouteCount": 7,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/connect/registry",
+      "label": "Data & metoder",
+      "routeFiles": [
+        "src/routes/app.connect.registry.tsx"
+      ],
+      "childRouteCount": 0,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/impact",
+      "label": "Funding & impact",
+      "routeFiles": [
+        "src/routes/app.impact.index.tsx",
+        "src/routes/app.impact.tsx"
+      ],
+      "childRouteCount": 7,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/public-impact",
+      "label": "Public impact",
+      "routeFiles": [
+        "src/routes/app.public-impact.tsx"
+      ],
+      "childRouteCount": 0,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/settings",
+      "label": "Indstillinger",
+      "routeFiles": [
+        "src/routes/app.settings.index.tsx",
+        "src/routes/app.settings.tsx"
+      ],
+      "childRouteCount": 8,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/settings/users",
+      "label": "Brugere & roller",
+      "routeFiles": [
+        "src/routes/app.settings.users.tsx"
+      ],
+      "childRouteCount": 0,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    },
+    {
+      "route": "/app/system-test",
+      "label": "System Test",
+      "routeFiles": [
+        "src/routes/app.system-test.tsx"
+      ],
+      "childRouteCount": 0,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
+      "browserAcceptance": "not_verified",
+      "findings": []
+    }
+  ]
+}

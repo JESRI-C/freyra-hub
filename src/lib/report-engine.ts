@@ -33,7 +33,7 @@ export interface ProjectReportPreview {
   recommendedActions: string[];
   evidenceSummary: string[];
   auditSummary: string[];
-  readinessScore: number;
+  readinessScore: number | null;
 }
 
 interface GenerateInput {
@@ -77,38 +77,8 @@ export function generateProjectReportPreview({
   mediaItems,
   sensors,
 }: GenerateInput): ProjectReportPreview {
-  // ── Readiness score ─────────────────────────────────────────────────────────
-  const readinessIndicator = indicators.find((i) => i.key === "report_readiness");
-  let readinessScore: number;
-
-  if (readinessIndicator?.value !== null && readinessIndicator?.value !== undefined) {
-    readinessScore = readinessIndicator.value;
-  } else {
-    // Derive from data completeness
-    const hasDescription = project.description ? 20 : 0;
-    const hasSites = sites.length > 0 ? 20 : 0;
-    const hasDataSources = dataSources.filter((d) => d.status === "online").length > 0 ? 20 : 0;
-    const hasIndicators = indicators.length > 0 ? 20 : 0;
-    const hasEvidence = evidenceFiles.length > 0 ? 20 : 0;
-    readinessScore = hasDescription + hasSites + hasDataSources + hasIndicators + hasEvidence;
-  }
-
-  // ── Media bonus scoring ─────────────────────────────────────────────────────
-  if (mediaItems && mediaItems.length > 0) {
-    if (mediaItems.length >= 3) readinessScore = Math.min(100, readinessScore + 10);
-    if (mediaItems.some((m) => m.isReportReady)) readinessScore = Math.min(100, readinessScore + 5);
-    if (mediaItems.some((m) => !!m.coordinates)) readinessScore = Math.min(100, readinessScore + 5);
-    if (mediaItems.some((m) => m.category === "field_photo" || m.category === "before_after")) {
-      readinessScore = Math.min(100, readinessScore + 5);
-    }
-  }
-
-  // ── IoT sensor bonus scoring ────────────────────────────────────────────────
-  if (sensors && sensors.length > 0) {
-    const onlineSensors = sensors.filter((s) => s.status === "online");
-    if (onlineSensors.length > 0) readinessScore = Math.min(100, readinessScore + 5);
-    if (onlineSensors.length >= 3) readinessScore = Math.min(100, readinessScore + 5);
-  }
+  // Completeness is not professional verification or report acceptance.
+  const readinessScore: number | null = null;
 
   // ── Key findings from indicators ────────────────────────────────────────────
   const keyFindings: string[] = [];
@@ -122,7 +92,9 @@ export function generateProjectReportPreview({
     }
   });
   if (keyFindings.length === 0) {
-    keyFindings.push("Ingen signifikante tendenser registreret i denne periode.");
+    keyFindings.push(
+      "Datagrundlaget dokumenterer endnu ingen tidslig udvikling. Fravær af registrerede tendenser er ikke dokumentation for uændrede forhold.",
+    );
   }
 
   // ── Data sources summary ────────────────────────────────────────────────────
@@ -151,7 +123,9 @@ export function generateProjectReportPreview({
     .filter((i) => i.trend === "down")
     .forEach((i) => openRisks.push(`Faldende indikator: ${i.label}`));
   if (openRisks.length === 0) {
-    openRisks.push("Ingen identificerede risici i denne periode.");
+    openRisks.push(
+      "Der er endnu ingen registrerede risikopunkter i disse data. En fuldstændig faglig risikovurdering er ikke dokumenteret.",
+    );
   }
 
   // ── Recommended actions ─────────────────────────────────────────────────────
@@ -210,65 +184,27 @@ export function generateProjectReportPreview({
 }
 
 export function getRecommendedNextAction(
-  project: Project,
-  indicators: Indicator[],
+  _project: Project,
+  _indicators: Indicator[],
   actions: Action[],
   mediaItems?: ProjectMediaItem[],
-  sensors?: IoTSensor[],
+  _sensors?: IoTSensor[],
 ): string {
-  // Sensor emergencies take top priority
-  if (sensors && sensors.length > 0) {
-    const offline = sensors.filter((s) => s.status === "offline");
-    if (offline.length > 0) {
-      return `Tjek ${offline.length} offline sensor${offline.length > 1 ? "er" : ""} i felten`;
-    }
-    const lowBat = sensors.filter((s) => s.batteryPercent < 20 && s.status !== "offline");
-    if (lowBat.length > 0) {
-      return `Udskift batteri i ${lowBat.length} sensor${lowBat.length > 1 ? "er" : ""}`;
-    }
-  }
-
-  // If there's a high-priority open action, return its title
+  // These legacy inputs do not include the saved investigation, source coverage,
+  // photo bindings, notes, review decisions or report archive. They cannot establish
+  // which workflow step is complete. Scores, media flags and simulated sensors
+  // must not stand in for that evidence.
   const highPriorityAction = actions.find((a) => a.priority === "Høj" && a.status !== "Lukket");
-  if (highPriorityAction) return highPriorityAction.title;
-
-  // Check report readiness
-  const readiness = indicators.find((i) => i.key === "report_readiness");
-  if (readiness?.value !== null && readiness?.value !== undefined && readiness.value < 70) {
-    return "Fuldfør manglende dokumentation";
+  if (highPriorityAction) {
+    return "Gennemgå åbne handlinger med høj prioritet i den samlede undersøgelse, og afklar dokumentation og opfølgning.";
   }
 
-  // Check data confidence
-  const dataConfidence = indicators.find(
-    (i) => i.key === "data_quality" || i.key === "data_confidence",
-  );
-  if (
-    dataConfidence?.value !== null &&
-    dataConfidence?.value !== undefined &&
-    dataConfidence.value < 70
-  ) {
-    return "Valider seneste datakilder";
-  }
-
-  // Check biodiversity trend
-  const biodiversity = indicators.find((i) => i.key === "biodiversity_index");
-  if (biodiversity?.trend === "down") {
-    return "Gennemgå biodiversitetsdrivere";
-  }
-
-  // Media-based recommendations
   if (!mediaItems || mediaItems.length === 0) {
-    return "Upload feltfotos som dokumentation af projektets nuværende tilstand.";
+    return "Fortsæt i den samlede undersøgelse med datagrundlag og fotoimport. Der er ingen fotos i denne oversigt.";
   }
   if (!mediaItems.some((m) => !!m.coordinates)) {
-    return "Tilføj placering til billeder, så de kan bruges i kortvisning og rapport.";
-  }
-  if (!mediaItems.some((m) => m.isReportReady)) {
-    return "Markér mindst ét billede som rapportklar dokumentation.";
+    return "Gennemgå billedernes placering og usikkerhed i den samlede undersøgelse. Upload alene dokumenterer ikke sammenfald med vandløbet.";
   }
 
-  // Suppress unused variable warning from Project param — keep signature stable
-  void project;
-
-  return "Projektet er klar til næste rapporteringscyklus";
+  return "Gennemgå fotos og datagrundlag i den samlede undersøgelse, og afklar spørgsmål og faglig gennemgang før rapporten.";
 }

@@ -44,7 +44,11 @@ export async function listRules(projectId: string | null): Promise<QualityRule[]
 
 export async function createRule(input: QualityRuleInsert): Promise<QualityRule> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: raw, error } = await supabase.from("data_quality_rules").insert(input as never).select("*").single();
+  const { data: raw, error } = await supabase
+    .from("data_quality_rules")
+    .insert(input as never)
+    .select("*")
+    .single();
   const data = raw as unknown as QualityRule;
   if (error) throw error;
   await logAuditEvent({
@@ -60,7 +64,10 @@ export async function createRule(input: QualityRuleInsert): Promise<QualityRule>
 
 export async function toggleRule(id: string, isActive: boolean): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { error } = await supabase.from("data_quality_rules").update({ is_active: isActive } as never).eq("id", id);
+  const { error } = await supabase
+    .from("data_quality_rules")
+    .update({ is_active: isActive } as never)
+    .eq("id", id);
   if (error) throw error;
 }
 
@@ -77,7 +84,11 @@ export async function listIssues(params: {
   limit?: number;
 }): Promise<QualityIssue[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  let q = supabase.from("data_quality_issues").select("*").eq("project_id", params.projectId).order("created_at", { ascending: false });
+  let q = supabase
+    .from("data_quality_issues")
+    .select("*")
+    .eq("project_id", params.projectId)
+    .order("created_at", { ascending: false });
   if (params.status) q = q.eq("status", params.status);
   if (params.severity) q = q.eq("severity", params.severity);
   q = q.limit(params.limit ?? 100);
@@ -88,7 +99,11 @@ export async function listIssues(params: {
 
 export async function createIssue(input: QualityIssueInsert): Promise<QualityIssue> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: raw, error } = await supabase.from("data_quality_issues").insert(input as never).select("*").single();
+  const { data: raw, error } = await supabase
+    .from("data_quality_issues")
+    .insert(input as never)
+    .select("*")
+    .single();
   const data = raw as unknown as QualityIssue;
   if (error) throw error;
   await logAuditEvent({
@@ -103,10 +118,23 @@ export async function createIssue(input: QualityIssueInsert): Promise<QualityIss
   return data as QualityIssue;
 }
 
-export async function updateIssue(id: string, patch: Partial<QualityIssue>, reason?: string): Promise<QualityIssue> {
+export async function updateIssue(
+  id: string,
+  patch: Partial<QualityIssue>,
+  reason?: string,
+): Promise<QualityIssue> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: current } = await supabase.from("data_quality_issues").select("*").eq("id", id).maybeSingle();
-  const { data: raw, error } = await supabase.from("data_quality_issues").update(patch as never).eq("id", id).select("*").single();
+  const { data: current } = await supabase
+    .from("data_quality_issues")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  const { data: raw, error } = await supabase
+    .from("data_quality_issues")
+    .update(patch as never)
+    .eq("id", id)
+    .select("*")
+    .single();
   const data = raw as unknown as QualityIssue;
   if (error) throw error;
   await logAuditEvent({
@@ -122,7 +150,14 @@ export async function updateIssue(id: string, patch: Partial<QualityIssue>, reas
   return data as QualityIssue;
 }
 
-export async function resolveIssue(id: string, resolution: { status: "resolved" | "rejected" | "excluded"; note?: string; correctedData?: Record<string, unknown> | null }): Promise<QualityIssue> {
+export async function resolveIssue(
+  id: string,
+  resolution: {
+    status: "resolved" | "rejected" | "excluded";
+    note?: string;
+    correctedData?: Record<string, unknown> | null;
+  },
+): Promise<QualityIssue> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const { data: auth } = await supabase.auth.getUser();
   return updateIssue(

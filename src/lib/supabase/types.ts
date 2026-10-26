@@ -118,9 +118,9 @@ export interface ProjectEnvironmentalContext {
   soilContext: EnvironmentalContextResult | null;
   overallReadiness: "complete" | "partial" | "pending";
   scores: {
-    natureSensitivity: "low" | "medium" | "high" | "critical";
-    runoffRisk: "low" | "medium" | "high" | "critical";
-    dataCompleteness: number; // 0-100
+    natureSensitivity: "low" | "medium" | "high" | "critical" | "unknown";
+    runoffRisk: "low" | "medium" | "high" | "critical" | "unknown";
+    dataCompleteness: number | null; // null = coverage not established
   };
   geometry: ProjectGeometry;
   liveData?: LiveDataSnapshot;
@@ -455,8 +455,8 @@ export interface ConstructionProjectSummary {
   evidenceFiles: EvidenceFile[];
   auditEvents: AuditEvent[];
   readinessScore: number;
-  runoffRiskScore: "low" | "medium" | "high" | "critical";
-  natureSensitivityScore: "low" | "medium" | "high" | "critical";
+  runoffRiskScore: "low" | "medium" | "high" | "critical" | "unknown";
+  natureSensitivityScore: "low" | "medium" | "high" | "critical" | "unknown";
 }
 
 // Composite type for Nature Project Monitor — the primary UI-facing type
@@ -507,7 +507,7 @@ export type ProjectMediaRow = {
   status: string;
   file_size_bytes: number | null;
   mime_type: string | null;
-}
+};
 
 export type Database = {
   public: {
@@ -611,6 +611,33 @@ export type Database = {
         Row: ProjectMediaRow;
         Insert: Omit<ProjectMediaRow, "id" | "uploaded_at">;
         Update: Partial<Omit<ProjectMediaRow, "id">>;
+      };
+    };
+    Functions: {
+      create_upload_intent: {
+        Args: {
+          p_project_id: string;
+          p_original_file_name: string;
+          p_mime_type: string;
+          p_file_size: number;
+          p_client_request_id: string;
+          p_zone_id?: string;
+          p_upload_type?: string;
+          p_user_metadata?: Record<string, unknown>;
+        };
+        Returns: Array<{
+          upload_id: string;
+          storage_path: string;
+          intent_expires_at: string;
+        }>;
+      };
+      finalize_upload_intent: {
+        Args: { p_upload_id: string };
+        Returns: Array<{ upload_id: string; storage_path: string; status: string }>;
+      };
+      cancel_upload_intent: {
+        Args: { p_upload_id: string };
+        Returns: Array<{ upload_id: string; storage_path: string; status: string }>;
       };
     };
   };

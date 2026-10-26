@@ -1,0 +1,623 @@
+{
+  "schema": "gofreyra.public-source11-discovery/v1",
+  "discoveredAt": "2026-10-13T17:36:47.453Z",
+  "scope": {
+    "readOnly": true,
+    "productionCodeEdited": false,
+    "hostedWrites": false,
+    "credentialsRead": false,
+    "sourceId": "water-plan-nature",
+    "municipalAcceptance": false
+  },
+  "query": {
+    "technicalEntireRegisterScope": true,
+    "agreedMunicipalReach": false,
+    "geographicBboxLngLat": [9.25103, 55.33809, 9.27103, 55.37137],
+    "requestBboxEastingNorthing": [515884, 6132418, 517217, 6136177],
+    "queryCrs": "EPSG:25832",
+    "axisOrder": "easting-northing",
+    "queryBufferM": 25,
+    "edgeSampleStepDegrees": 0.01,
+    "rounding": "outward-to-integer-metres",
+    "projection": "proj4-grs80-catalog-envelope/v1",
+    "datumEpochAssumption": "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+    "queryBufferIsNotSurveyAccuracy": true,
+    "heightTransformed": false
+  },
+  "officialPlanRelease": {
+    "datasetVersion": "VP3 genbesoeg / vp3_2endelig2025",
+    "publishedDate": "2025-12-18",
+    "effectiveFrom": "2026-01-01",
+    "policyPeriod": "2021-2027",
+    "informationToolNotBindingLegalDecision": true,
+    "authoritativePage": "https://sgavmst.dk/vandmiljoe/vandomraadeplaner/overblik-vandomraadeplanerne-2021-2027/vandomraadeplanerne-2021-2027-efter-genbesoeget",
+    "authoritativeProfile": "https://miljoegis.mim.dk/spatialmap?profile=vandrammedirektiv3_2-2025",
+    "legalInterpretation": "Binding content is in separate environmental-goal/action-programme regulations. GIS data alone cannot grant consent or decide an intervention.",
+    "releaseDateIsNotFeatureMeasurementDate": true
+  },
+  "catalogues": [
+    {
+      "id": "urn:dmp:ds:beskyttede-naturtyper",
+      "title": "Beskyttede naturtyper",
+      "catalogueUpdatedAt": "2026-10-13 11:57:42Z",
+      "catalogueUpdatedIsNotObservationOrDataVersion": true,
+      "source": {
+        "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs",
+        "layer": "dai:bes_naturtyper",
+        "geometryName": "Shape",
+        "wfsVersion": "2.0.0"
+      },
+      "licence": {
+        "name": "Creative Common - CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/deed.da"
+      },
+      "publisher": {
+        "title": "Danmarks Miljøportal",
+        "attribution": "DMP"
+      },
+      "owners": [
+        {
+          "title": "Kommunerne",
+          "attribution": "Kommuner"
+        }
+      ]
+    },
+    {
+      "id": "urn:dmp:ds:beskyttede-vandloeb",
+      "title": "Beskyttede vandløb",
+      "catalogueUpdatedAt": "2026-10-13 07:29:55Z",
+      "catalogueUpdatedIsNotObservationOrDataVersion": true,
+      "source": {
+        "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs",
+        "layer": "dai:bes_vandloeb",
+        "geometryName": "Shape",
+        "wfsVersion": "2.0.0"
+      },
+      "licence": {
+        "name": "Creative Common - CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/deed.da"
+      },
+      "publisher": {
+        "title": "Danmarks Miljøportal",
+        "attribution": "DMP"
+      },
+      "owners": [
+        {
+          "title": "Kommunerne",
+          "attribution": "Kommuner"
+        }
+      ]
+    },
+    {
+      "id": "urn:dmp:ds:vp3g-afgraensning-vandloeb",
+      "title": "VP3G - Afgrænsning. Vandløb",
+      "catalogueUpdatedAt": "2026-06-17 09:37:52Z",
+      "catalogueUpdatedIsNotObservationOrDataVersion": true,
+      "source": {
+        "url": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows",
+        "layer": "vp3_2endelig2025:vp3_2e2025_vandloeb_samlet",
+        "geometryName": "wkb_geometry",
+        "wfsVersion": "2.0.0"
+      },
+      "licence": {
+        "name": "Creative Common - CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/deed.da"
+      },
+      "publisher": {
+        "title": "Styrelsen for Grøn Arealomlægning og Vandmiljø",
+        "attribution": "SGAV"
+      },
+      "owners": [
+        {
+          "title": "Styrelsen for Grøn Arealomlægning og Vandmiljø",
+          "attribution": "SGAV"
+        }
+      ]
+    },
+    {
+      "id": "urn:dmp:ds:vp3g-miljoemaal-samlet-oekologisk-tilstand-eller-potentiale-vandloeb",
+      "title": "VP3G - Miljømål. Samlet økologisk tilstand eller potentiale. Vandløb",
+      "catalogueUpdatedAt": "2026-06-17 08:54:59Z",
+      "catalogueUpdatedIsNotObservationOrDataVersion": true,
+      "source": {
+        "url": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows",
+        "layer": "vp3_2endelig2025:vp3_2e2025_vandloeb_samlet",
+        "geometryName": "wkb_geometry",
+        "wfsVersion": "2.0.0"
+      },
+      "licence": {
+        "name": "Creative Common - CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/deed.da"
+      },
+      "publisher": {
+        "title": "Styrelsen for Grøn Arealomlægning og Vandmiljø",
+        "attribution": "SGAV"
+      },
+      "owners": [
+        {
+          "title": "Styrelsen for Grøn Arealomlægning og Vandmiljø",
+          "attribution": "SGAV"
+        }
+      ]
+    },
+    {
+      "id": "urn:dmp:ds:vp3g-tilstandsvurdering-kemisk-tilstand-vandloeb",
+      "title": "VP3G - Tilstandsvurdering. Kemisk tilstand. Vandløb",
+      "catalogueUpdatedAt": "2026-06-17 09:00:10Z",
+      "catalogueUpdatedIsNotObservationOrDataVersion": true,
+      "source": {
+        "url": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows",
+        "layer": "vp3_2endelig2025:vp3_2e2025_vandloeb_samlet",
+        "geometryName": "wkb_geometry",
+        "wfsVersion": "2.0.0"
+      },
+      "licence": {
+        "name": "Creative Common - CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/deed.da"
+      },
+      "publisher": {
+        "title": "Styrelsen for Grøn Arealomlægning og Vandmiljø",
+        "attribution": "SGAV"
+      },
+      "owners": [
+        {
+          "title": "Styrelsen for Grøn Arealomlægning og Vandmiljø",
+          "attribution": "SGAV"
+        }
+      ]
+    },
+    {
+      "id": "urn:dmp:ds:vp3g-tilstandsvurdering-samlet-oekologisk-tilstand-eller-potentiale-vandloeb",
+      "title": "VP3G - Tilstandsvurdering. Samlet. Økologisk tilstand eller potentiale. Vandløb",
+      "catalogueUpdatedAt": "2026-06-17 08:59:26Z",
+      "catalogueUpdatedIsNotObservationOrDataVersion": true,
+      "source": {
+        "url": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows",
+        "layer": "vp3_2endelig2025:vp3_2e2025_vandloeb_samlet",
+        "geometryName": "wkb_geometry",
+        "wfsVersion": "2.0.0"
+      },
+      "licence": {
+        "name": "Creative Common - CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/deed.da"
+      },
+      "publisher": {
+        "title": "Styrelsen for Grøn Arealomlægning og Vandmiljø",
+        "attribution": "SGAV"
+      },
+      "owners": [
+        {
+          "title": "Styrelsen for Grøn Arealomlægning og Vandmiljø",
+          "attribution": "SGAV"
+        }
+      ]
+    }
+  ],
+  "observedCounts": {
+    "natureRegistrations": {
+      "numberMatched": 64,
+      "pagesReturned": [50, 14],
+      "uniqueVersionFeatureIds": 64,
+      "endPageReturned": 0,
+      "paginationCompleteAtObservedResponses": true,
+      "statusCounts": {
+        "3:Gældende / Vedtaget": 54,
+        "0:Ukendt": 10
+      },
+      "nullInspectionDateCount": 22,
+      "epoch1970InspectionDateCount": 32
+    },
+    "protectedWatercourses": {
+      "numberMatched": 4,
+      "numberReturned": 4
+    },
+    "vp3Watercourses": {
+      "numberMatched": 3,
+      "numberReturned": 3,
+      "candidateWaterbodyIds": ["DKRIVER2580", "DKRIVER5661", "DKRIVER7353"],
+      "allNamesAreUdenNavn": true,
+      "noneAutomaticallySelectedAsBykaer": true
+    },
+    "countsAreBboxCandidatesNotMunicipalReachOrExactAoiIntersections": true
+  },
+  "geometryContract": {
+    "responseCrs": "urn:ogc:def:crs:EPSG::25832",
+    "responseAxisOrder": "easting-northing",
+    "natureGeometryTypes": ["MultiPolygon"],
+    "waterGeometryTypes": ["MultiLineString"],
+    "recommendedFetchCrs": "EPSG:25832",
+    "preserveNativeGeometry": true,
+    "crs84SupportedObserved": true,
+    "observedCrs84Name": "urn:ogc:def:crs:CRS::84",
+    "observedCrs84AxisOrder": "lng-lat",
+    "crs84OutputDecimalPlacesObserved": 4,
+    "pairedFirstFeatureQuantization": [
+      {
+        "dataset": "nature",
+        "pairedVertexCount": 13,
+        "maxCoordinateDifferenceM": 5.283636808136733
+      },
+      {
+        "dataset": "watercourse",
+        "pairedVertexCount": 15,
+        "maxCoordinateDifferenceM": 5.752863955266974
+      },
+      {
+        "dataset": "vp3-water",
+        "pairedVertexCount": 141,
+        "maxCoordinateDifferenceM": 5.800613851035815
+      }
+    ],
+    "coordinateComparisonIsNotIndependentSurveyAccuracy": true,
+    "recommendedLaterDisplayConversion": "Convert stored native geometry locally with declared GRS80/ETRS89 datum and explicit WGS84/epoch assumption; preserve native geometry and precision, no ground-accuracy claim."
+  },
+  "paginationContract": {
+    "wfsVersion": "2.0.0",
+    "requestCount": 50,
+    "startIndexSupported": true,
+    "implementsResultPaging": true,
+    "implementsSorting": true,
+    "pagingIsTransactionSafe": false,
+    "sortBy": {
+      "nature": "Objekt_id",
+      "protectedWatercourses": "Objekt_id",
+      "vp3Watercourses": "ov_id"
+    },
+    "responseCounts": ["numberMatched", "numberReturned", "totalFeatures", "features.length"],
+    "requiredChecks": [
+      "all counts finite nonnegative integer",
+      "returnedCount equals feature length",
+      "matchedCount stable across bounded pages",
+      "no duplicate feature/version IDs or inconsistent logical-object versions",
+      "sum returned equals matched before claiming completed response inventory",
+      "fail closed on missing pages or overflow"
+    ],
+    "snapshotClaim": "Exact received page content at fetchedAt with page hashes and observed completeness; not an upstream transactional snapshot or proof that no source change occurred.",
+    "serverNextLinksNotFollowed": true,
+    "nextLinkWarning": "Arealeditering responses contain a different front-door URL in links; construct subsequent requests on the fixed allowlisted catalogue endpoint instead of following response links."
+  },
+  "safeFieldContract": {
+    "nature": [
+      "Temakode",
+      "Temanavn",
+      "Objekt_id",
+      "Version_id",
+      "Systid_fra",
+      "Systid_til",
+      "Oprettet",
+      "Statuskode",
+      "Status",
+      "Natyp_kode",
+      "Natyp_navn",
+      "Besig_dato",
+      "Vedligehold_status",
+      "Vedligehold_tid"
+    ],
+    "protectedWatercourses": [
+      "Temakode",
+      "Temanavn",
+      "Objekt_id",
+      "Version_id",
+      "Systid_fra",
+      "Systid_til",
+      "Oprettet",
+      "Statuskode",
+      "Status"
+    ],
+    "vp3": {
+      "identity": ["ov_id", "mst_id", "ov_navn", "ov_kat", "na_kun_stm", "ov_typ"],
+      "planGoals": ["mal_oko_sm", "ov_mal_kem"],
+      "assessedState": ["til_oko_sm", "ov_til_kem"],
+      "optionalComponentAssessments": [
+        "til_oko_mf",
+        "til_oko_bb",
+        "til_oko_fk",
+        "til_oko_fb",
+        "til_oko_be"
+      ],
+      "actionDataDeferred": true
+    },
+    "originalSourceStringsPreserved": true,
+    "scoreMappingDeferred": true,
+    "temporalRules": [
+      "fetchedAt and service timeStamp are retrieval time only",
+      "catalogue updated date is metadata modification only",
+      "Oprettet/Systid_fra/Version_id are registration/version context, not drone/survey measurement dates",
+      "Besig_dato null or 1970 epoch remains unknown without fresh inspection proof",
+      "Statuskode0/Ukendt is never converted to approved/current legal status",
+      "release/effective dates do not establish a measurement within the requested baseline period"
+    ],
+    "legalRules": [
+      "nature registrations are indicative; missing registrations do not establish absence of protection",
+      "protected-watercourse registration is distinct from waterbody ecological or chemical state",
+      "plan goal, assessed ecological state and assessed chemical state remain separate",
+      "BBOX match does not choose a municipal reach or consent reviewer"
+    ],
+    "unnecessaryPersonalContactOrCaseFieldsExcludedFromStoredCandidate": true
+  },
+  "concreteExistingBug": {
+    "priority": "P1",
+    "file": "src/lib/nature-geo.functions.ts",
+    "cause": "Legacy /gis/ows returns HTTP200 HTML SPA. fetchWfsFeatures converts bad HTTP/parse/error into [], old mp:p3_* and mp:vandloeb names are not current verified layers.",
+    "effect": "executeNatureGeoRequest can return mode live and best-effort persist an empty nature context/count as if lookup succeeded; existing context may be overwritten with zero/empty fields despite unknown upstream data.",
+    "additionalExistingMetricIssue": "persistNatureGeoFeatures assigns paragraph3AreasHa =1 whenever any feature exists. This is not a measured polygon intersection area and must not enter a municipal baseline/report as hectares.",
+    "repairAcceptance": [
+      "HTML/errors never become successful empty FeatureCollections",
+      "failure never clears or overwrites prior cached context",
+      "zero is allowed only from validated complete zero-match response and is labelled received source inventory, not legal unprotected/good-status finding",
+      "authorization remains before upstream calls and service writer loading"
+    ]
+  },
+  "recommendedFirstImplementation": {
+    "kind": "dated immutable current registration and plan inventory",
+    "products": [
+      "dai:bes_naturtyper",
+      "dai:bes_vandloeb",
+      "vp3_2endelig2025:vp3_2e2025_vandloeb_samlet"
+    ],
+    "evidenceKind": "official_registration",
+    "status": "partial",
+    "method": "bounded_native_wfs_received_inventory_only",
+    "payloadSchemaCandidate": "gofreyra.water-plan-nature-inventory/v1",
+    "sourceModifiedAt": null,
+    "observedFrom": null,
+    "observedTo": null,
+    "sourceDatasetVersion": null,
+    "versionDetailsPerProductRequired": true,
+    "expectedLimitsProposal": {
+      "maxRequests": 6,
+      "maxPagesPerProduct": 2,
+      "countPerPage": 50,
+      "maxTotalFeatures": 200,
+      "maxBytesPerPage": 1048576,
+      "maxTotalBytes": 2097152,
+      "deadlineMs": 20000,
+      "maxTotalGeometryPositions": 50000
+    },
+    "transport": "Server-only fixed host/path/layer GETs, redirect manual; no credentials required; reject non-JSON, malformed/oversized/stalled bodies, unexpected layer/CRS/schema/counts and conflicting IDs.",
+    "persist": "Freeze validated/native geometry plus allowlisted safe fields, catalogue/layer/version/licence attribution, geometry/query hash, requested period, source retrieval times and exact page response hashes into the existing immutable baseline; reopening/saving verification plans fetches no new upstream data.",
+    "absentOrFailedProduct": "Typed unavailable/error state with unknown coverage; never fallback fabricated zero. Overall source remains partial while measurement dates, municipal reach and legal review are not confirmed.",
+    "coverage": {
+      "spatial": "unknown",
+      "temporal": "unknown"
+    },
+    "deferred": [
+      "historic/as-of-period source reconstruction",
+      "exact polygon/reach overlap and area/length metrics",
+      "protected-nature legal determination",
+      "municipal regulative reach and reviewer approval",
+      "monitoring measurements",
+      "action feasibility/priority scoring",
+      "automatic plan or drone approval"
+    ],
+    "acceptance": [
+      "actual observed DTO fixtures and native coordinate identities",
+      "complete64 nature records via50+14 and explicit missing/duplicate/count-change failures",
+      "wrong host/layer/CRS/schema/HTML cannot produce live empty result",
+      "Statuskode0/null/1970 and separate goal/eco/chemical state roundtrip unchanged",
+      "server no secret/private or personal case-field exposure",
+      "caller authorization before all fetches",
+      "immutable saved baseline hash and zero upstream fetch on reopen/plan save",
+      "received-empty inventory remains partial/unknown legal and period coverage"
+    ]
+  },
+  "discoveryFailures": [
+    {
+      "id": "sandbox-initial-fetch",
+      "outcome": "Network blocked in default sandbox; authorized bounded public requests succeeded after automatic network approval."
+    },
+    {
+      "id": "swagger-initializer",
+      "outcome": "Default bundled initializer mentions Petstore and is not the actual API contract; authoritative /api/swagger/v1/swagger.json was used."
+    },
+    {
+      "id": "legacy-capabilities",
+      "outcome": "HTTP200 HTML SPA, never valid capabilities or zero-match source evidence."
+    },
+    {
+      "id": "geoserver-old-doc-links",
+      "outcome": "Older /latest/.../*.html documentation paths returned404; current /main/.../ paths are the primary documents."
+    },
+    {
+      "id": "crs84-precision",
+      "outcome": "Supported axis is lng-lat but observed geographic serialization rounds4 decimals; native projection is recommended for preserving received coordinate precision."
+    }
+  ],
+  "primaryDocuments": [
+    "https://datakatalog.miljoeportal.dk/api/swagger/index.html",
+    "https://datakatalog.miljoeportal.dk/api/swagger/v1/swagger.json",
+    "https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:beskyttede-naturtyper",
+    "https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:beskyttede-vandloeb",
+    "https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:vp3g-afgraensning-vandloeb",
+    "https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:vp3g-tilstandsvurdering-samlet-oekologisk-tilstand-eller-potentiale-vandloeb",
+    "https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:vp3g-tilstandsvurdering-kemisk-tilstand-vandloeb",
+    "https://miljoeportal.dk/dataansvar/vilkaar-for-brug/",
+    "https://support.miljoeportal.dk/hc/da/articles/360016780777-Arealdata-Udstilling-af-data",
+    "https://support.miljoeportal.dk/hc/da/articles/360000590978-Registreringsvejledning-Beskyttede-naturtyper-NBL-3",
+    "https://support.miljoeportal.dk/hc/da/articles/360000291178-Registreringsvejledning-Beskyttede-vandl%C3%B8b-NBL-3",
+    "https://docs.geoserver.org/main/en/user/services/wfs/axis_order/",
+    "https://docs.geoserver.org/main/en/user/services/wfs/reference/"
+  ],
+  "evidence": [
+    {
+      "id": "swagger",
+      "url": "https://datakatalog.miljoeportal.dk/api/swagger/v1/swagger.json",
+      "fetchedAt": "2026-10-13T17:28:37.973Z",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=utf-8",
+      "bytes": 89788,
+      "responseSha256": "603bf5fdbc517f37b457c60f73f556e62ef4bb0bcf3d2b299e75b5bc25031116",
+      "rawIgnoredFixture": "tmp/public-source11-swagger.json"
+    },
+    {
+      "id": "legacy-capabilities",
+      "url": "https://arealdata.miljoeportal.dk/gis/ows?service=WFS&version=2.0.0&request=GetCapabilities",
+      "fetchedAt": "2026-10-13T17:28:05.914Z",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 2005,
+      "responseSha256": "c4780397ea6c5bf30ca54622a42dae996262d59d63c3e72f4ce04b8c1144094e",
+      "rawIgnoredFixture": "tmp/public-source11-legacy-capabilities.json"
+    },
+    {
+      "id": "vp3-profile",
+      "url": "https://miljoegis.mim.dk/spatialmap?profile=vandrammedirektiv3_2-2025",
+      "fetchedAt": "2026-10-13T17:28:06.417Z",
+      "httpStatus": 200,
+      "contentType": "text/html;charset=UTF-8",
+      "bytes": 5778,
+      "responseSha256": "1831469d6fe1dd5a73bf1bf131151d7af60007d20d2e3602d751e51f1f19ca6a",
+      "rawIgnoredFixture": "tmp/public-source11-vp3-profile.json"
+    },
+    {
+      "id": "nature-catalogue",
+      "url": "https://datakatalog.miljoeportal.dk/api/datasets?filter=equals(id,%27urn:dmp:ds:beskyttede-naturtyper%27)&include=wfsSource,license,publisher,owners",
+      "fetchedAt": "2026-10-13T17:29:45.552Z",
+      "httpStatus": 200,
+      "contentType": "application/vnd.api+json",
+      "bytes": 4637,
+      "responseSha256": "ad3afa0bb322390c8776a9ec0fe37b53769658e4ee4932ecf037f88bb16adb0e",
+      "rawIgnoredFixture": "tmp/public-source11-nature-catalogue.json"
+    },
+    {
+      "id": "watercourse-catalogue",
+      "url": "https://datakatalog.miljoeportal.dk/api/datasets?filter=equals(id,%27urn:dmp:ds:beskyttede-vandloeb%27)&include=wfsSource,license,publisher,owners",
+      "fetchedAt": "2026-10-13T17:29:45.904Z",
+      "httpStatus": 200,
+      "contentType": "application/vnd.api+json",
+      "bytes": 3565,
+      "responseSha256": "37c363df23f9891a7a39d38c34f61299795fca385484f9e1bbfd1f92334c4abd",
+      "rawIgnoredFixture": "tmp/public-source11-watercourse-catalogue.json"
+    },
+    {
+      "id": "vp3-selected-catalogue",
+      "url": "https://datakatalog.miljoeportal.dk/api/datasets?filter=any(id,%27urn:dmp:ds:vp3g-afgraensning-vandloeb%27,%27urn:dmp:ds:vp3g-miljoemaal-samlet-oekologisk-tilstand-eller-potentiale-vandloeb%27,%27urn:dmp:ds:vp3g-tilstandsvurdering-samlet-oekologisk-tilstand-eller-potentiale-vandloeb%27,%27urn:dmp:ds:vp3g-tilstandsvurdering-kemisk-tilstand-vandloeb%27)&include=wfsSource,license,publisher,owners",
+      "fetchedAt": "2026-10-13T17:34:02.892Z",
+      "httpStatus": 200,
+      "contentType": "application/vnd.api+json",
+      "bytes": 9532,
+      "responseSha256": "8eb999dc45666e8d7a2e1bb0860f866afc86bedca85947fdda57a54a23f3b72b",
+      "rawIgnoredFixture": "tmp/public-source11-vp3-selected-catalogue.json"
+    },
+    {
+      "id": "nature-features-page0",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_naturtyper&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515884,6132418,517217,6136177,urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=50&startIndex=0&sortBy=Objekt_id",
+      "fetchedAt": "2026-10-13T17:31:04.566Z",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "bytes": 83819,
+      "responseSha256": "4a9a7bf3c1e8a8adf45484de7100a5d6d1ab6e297e97b29715287ffcc659be8d",
+      "rawIgnoredFixture": "tmp/public-source11-nature-features-page0.json"
+    },
+    {
+      "id": "nature-features-page1",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_naturtyper&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515884,6132418,517217,6136177,urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=50&startIndex=50&sortBy=Objekt_id",
+      "fetchedAt": "2026-10-13T17:32:12.271Z",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "bytes": 20717,
+      "responseSha256": "cd1405d47208f8c403938a931874383cdededb495e6bb2279a4ccadc0748556b",
+      "rawIgnoredFixture": "tmp/public-source11-nature-features-page1.json"
+    },
+    {
+      "id": "nature-features-end",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_naturtyper&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515884,6132418,517217,6136177,urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=1&startIndex=64&sortBy=Objekt_id",
+      "fetchedAt": "2026-10-13T17:34:03.323Z",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "bytes": 567,
+      "responseSha256": "fccbaf7346eee35a23d48ad2f9f865e7f52d791a716542bfe5908a1cf6778ae3",
+      "rawIgnoredFixture": "tmp/public-source11-nature-features-end.json"
+    },
+    {
+      "id": "watercourse-features-page0",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_vandloeb&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515884,6132418,517217,6136177,urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=50&startIndex=0&sortBy=Objekt_id",
+      "fetchedAt": "2026-10-13T17:31:04.933Z",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "bytes": 4998,
+      "responseSha256": "b497912d98e0969160621ba6e5c854df1ea9ea814448367c0300decb3ec6f5d3",
+      "rawIgnoredFixture": "tmp/public-source11-watercourse-features-page0.json"
+    },
+    {
+      "id": "vp3-water-features-page0",
+      "url": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=vp3_2endelig2025%3Avp3_2e2025_vandloeb_samlet&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515884,6132418,517217,6136177,urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=50&startIndex=0&sortBy=ov_id",
+      "fetchedAt": "2026-10-13T17:31:04.993Z",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "bytes": 15357,
+      "responseSha256": "da7a0d0660b67d6e088243651a1a6514cb556c932be4eb71960c6044340fa61e",
+      "rawIgnoredFixture": "tmp/public-source11-vp3-water-features-page0.json"
+    },
+    {
+      "id": "nature-crs84",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_naturtyper&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AOGC%3A1.3%3ACRS84&bbox=515884,6132418,517217,6136177,urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=1&startIndex=0&sortBy=Objekt_id",
+      "fetchedAt": "2026-10-13T17:32:12.687Z",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "bytes": 1792,
+      "responseSha256": "f2e2af9d9f5605547f298cf4ac228dbb431ce7e75cd52882f4e6c008179d7d62",
+      "rawIgnoredFixture": "tmp/public-source11-nature-crs84.json"
+    },
+    {
+      "id": "watercourse-crs84",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_vandloeb&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AOGC%3A1.3%3ACRS84&bbox=515884,6132418,517217,6136177,urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=1&startIndex=0&sortBy=Objekt_id",
+      "fetchedAt": "2026-10-13T17:32:12.742Z",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=UTF-8",
+      "bytes": 1615,
+      "responseSha256": "52d324fd96fc1fce1ddd08b818a53bc52d43c9c15d0d19dc3104a10deeba095d",
+      "rawIgnoredFixture": "tmp/public-source11-watercourse-crs84.json"
+    },
+    {
+      "id": "vp3-water-crs84",
+      "url": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=vp3_2endelig2025%3Avp3_2e2025_vandloeb_samlet&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AOGC%3A1.3%3ACRS84&bbox=515884,6132418,517217,6136177,urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=1&startIndex=0&sortBy=ov_id",
+      "fetchedAt": "2026-10-13T17:32:12.789Z",
+      "httpStatus": 200,
+      "contentType": "application/json;charset=UTF-8",
+      "bytes": 4917,
+      "responseSha256": "10e5b72224e9033ba65c00fd4847d1c142a7b9c9b48d0e23951511422224ee1d",
+      "rawIgnoredFixture": "tmp/public-source11-vp3-water-crs84.json"
+    },
+    {
+      "id": "arealeditering-capabilities",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetCapabilities",
+      "httpStatus": 200,
+      "bytes": 104953,
+      "responseSha256": "f529e55239354ceab0aa0050c3558a1393340723cb933bc11f24cdfb8e958c4a",
+      "rawIgnoredFixture": "tmp/public-source11-arealeditering-capabilities.xml"
+    },
+    {
+      "id": "vp3-capabilities",
+      "url": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows?service=WFS&version=2.0.0&request=GetCapabilities",
+      "httpStatus": 200,
+      "bytes": 160638,
+      "responseSha256": "4ba4d678b995ee464669a5ac6c04e497678ff9bc77c220e1e630530d6e3ecd13",
+      "rawIgnoredFixture": "tmp/public-source11-vp3-capabilities.xml"
+    },
+    {
+      "id": "nature-description",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=DescribeFeatureType&typeNames=dai%3Abes_naturtyper",
+      "httpStatus": 200,
+      "bytes": 3988,
+      "responseSha256": "d37d392213e0d40dd8aca079b22ed8c535a8138e8fa5f249a15f81949ca54e39",
+      "rawIgnoredFixture": "tmp/public-source11-nature-description.xml"
+    },
+    {
+      "id": "watercourse-description",
+      "url": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=DescribeFeatureType&typeNames=dai%3Abes_vandloeb",
+      "httpStatus": 200,
+      "bytes": 3128,
+      "responseSha256": "5c44f02410157e27f914d4c237b436227450374ee9d2689eed8bf1cc853ff341",
+      "rawIgnoredFixture": "tmp/public-source11-watercourse-description.xml"
+    },
+    {
+      "id": "vp3-water-description",
+      "url": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows?service=WFS&version=2.0.0&request=DescribeFeatureType&typeNames=vp3_2endelig2025%3Avp3_2e2025_vandloeb_samlet",
+      "httpStatus": 200,
+      "bytes": 7194,
+      "responseSha256": "4ff5aa581a0b384000daef8d0d60fa589b3dc0f2178bde9be11aafe853ff3250",
+      "rawIgnoredFixture": "tmp/public-source11-vp3-water-description.xml"
+    }
+  ]
+}
