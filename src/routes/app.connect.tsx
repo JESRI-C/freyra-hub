@@ -1,12 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  Cpu,
-  Database,
-  Plug,
-  Activity,
-  Map,
-} from "lucide-react";
+import { LayoutDashboard, Cpu, Database, Plug, Activity, Map } from "lucide-react";
+import { ProjectEvidenceStatus } from "@/components/ProjectEvidenceStatus";
 import { AppTopbar } from "@/components/AppTopbar";
 import { ConnectTopbar } from "@/components/connect/ConnectTopbar";
 
@@ -66,7 +60,13 @@ function ConnectLayout() {
         </div>
       </div>
       <div className="min-w-0">
-        <Outlet />
+        {["sources", "integrations", "live", "add", "alerts", "quality"].some(
+          (segment) => path === `/app/connect/${segment}`,
+        ) ? (
+          <ProjectEvidenceStatus />
+        ) : (
+          <Outlet />
+        )}
       </div>
     </div>
   );

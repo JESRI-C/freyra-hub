@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  type ReactNode,
+} from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -46,12 +55,14 @@ const AuthCtx = createContext<AuthState | null>(null);
 const KEY = "freyra-auth-selection-v1";
 
 function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("") || "??";
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s[0]?.toUpperCase() ?? "")
+      .join("") || "??"
+  );
 }
 
 function statusLabel(raw: string | null | undefined): string {
@@ -63,12 +74,16 @@ function statusLabel(raw: string | null | undefined): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
+  const sessionIdentity = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AppUser | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+
+  const loadGeneration = useRef(0);
 
   // Restore selected org/project from localStorage
   useEffect(() => {
@@ -79,7 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOrgId(s.orgId ?? null);
         setProjectId(s.projectId ?? null);
       }
-    } catch {}
+    } catch {
+      // Invalid stored selection is ignored; membership checks still govern access.
+    }
   }, []);
 
   useEffect(() => {
@@ -87,98 +104,111 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(KEY, JSON.stringify({ orgId, projectId }));
   }, [orgId, projectId]);
 
-  const loadUserData = useCallback(async (currentSession: Session | null) => {
-    if (!currentSession?.user) {
-      setUser(null);
-      setOrganizations([]);
-      return;
-    }
+  const loadUserData = useCallback(
+    async (currentSession: Session | null, requestedGeneration?: number) => {
+      const generation = requestedGeneration ?? ++loadGeneration.current;
+      if (generation !== loadGeneration.current) return;
+      if (!currentSession?.user) {
+        setOrgId(null);
+        setProjectId(null);
+        setUser(null);
+        setOrganizations([]);
+        return;
+      }
 
-    const uid = currentSession.user.id;
+      const uid = currentSession.user.id;
 
-    // Profile
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id, email, full_name, avatar_url")
-      .eq("id", uid)
-      .maybeSingle();
+      // Profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, email, full_name, avatar_url")
+        .eq("id", uid)
+        .maybeSingle();
 
-    // Memberships + organizations
-    const { data: memberships } = await supabase
-      .from("organization_memberships")
-      .select("role, organization:organizations(id, name, type, country)")
-      .eq("user_id", uid);
+      // Memberships + organizations
+      const { data: memberships } = await supabase
+        .from("organization_memberships")
+        .select("role, organization:organizations(id, name, type, country)")
+        .eq("user_id", uid);
 
-    const orgIds = (memberships ?? [])
-      .map((m) => (m.organization as { id?: string } | null)?.id)
-      .filter((x): x is string => !!x);
+      const orgIds = (memberships ?? [])
+        .map((m) => (m.organization as { id?: string } | null)?.id)
+        .filter((x): x is string => !!x);
 
-    // Projects for those orgs
-    const projectsByOrg: Record<string, OrgProject[]> = {};
-    if (orgIds.length > 0) {
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("id, name, slug, status, location_name, municipality, organization_id")
-        .in("organization_id", orgIds);
-      for (const p of (projects ?? []) as Array<{
-        id: string;
-        name: string;
-        slug: string | null;
-        status: string | null;
-        location_name: string | null;
-        municipality: string | null;
-        organization_id: string | null;
+      // Projects for those orgs
+      const projectsByOrg: Record<string, OrgProject[]> = {};
+      if (orgIds.length > 0) {
+        const { data: projects } = await supabase
+          .from("projects")
+          .select("id, name, slug, status, location_name, municipality, organization_id")
+          .in("organization_id", orgIds);
+        for (const p of (projects ?? []) as Array<{
+          id: string;
+          name: string;
+          slug: string | null;
+          status: string | null;
+          location_name: string | null;
+          municipality: string | null;
+          organization_id: string | null;
+        }>) {
+          if (!p.organization_id) continue;
+          (projectsByOrg[p.organization_id] ??= []).push({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            location: p.location_name || p.municipality || "—",
+            status: statusLabel(p.status),
+          });
+        }
+      }
+
+      const orgs: Organization[] = [];
+      for (const m of (memberships ?? []) as Array<{
+        role: string;
+        organization: {
+          id: string;
+          name: string;
+          type: string | null;
+          country: string | null;
+        } | null;
       }>) {
-        if (!p.organization_id) continue;
-        (projectsByOrg[p.organization_id] ??= []).push({
-          id: p.id,
-          name: p.name,
-          slug: p.slug,
-          location: p.location_name || p.municipality || "—",
-          status: statusLabel(p.status),
+        const o = m.organization;
+        if (!o) continue;
+        orgs.push({
+          id: o.id,
+          name: o.name,
+          description: [o.type, o.country].filter(Boolean).join(" · "),
+          projects: projectsByOrg[o.id] ?? [],
+          role: m.role,
         });
       }
-    }
 
-    const orgs: Organization[] = [];
-    for (const m of (memberships ?? []) as Array<{
-      role: string;
-      organization: { id: string; name: string; type: string | null; country: string | null } | null;
-    }>) {
-      const o = m.organization;
-      if (!o) continue;
-      orgs.push({
-        id: o.id,
-        name: o.name,
-        description: [o.type, o.country].filter(Boolean).join(" · "),
-        projects: projectsByOrg[o.id] ?? [],
-        role: m.role,
+      const displayName =
+        profile?.full_name ||
+        (currentSession.user.user_metadata?.full_name as string | undefined) ||
+        (currentSession.user.email?.split("@")[0] ?? "Bruger");
+
+      const primaryRole = orgs[0]?.role ?? "Member";
+
+      if (generation !== loadGeneration.current) return;
+      setUser({
+        id: uid,
+        name: displayName,
+        email: profile?.email || currentSession.user.email || "",
+        role: primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1),
+        initials: initials(displayName),
+        avatar_url: profile?.avatar_url ?? null,
       });
-    }
+      setOrganizations(orgs);
 
-    const displayName =
-      profile?.full_name ||
-      (currentSession.user.user_metadata?.full_name as string | undefined) ||
-      (currentSession.user.email?.split("@")[0] ?? "Bruger");
-
-    const primaryRole = orgs[0]?.role ?? "Member";
-
-    setUser({
-      id: uid,
-      name: displayName,
-      email: profile?.email || currentSession.user.email || "",
-      role: primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1),
-      initials: initials(displayName),
-      avatar_url: profile?.avatar_url ?? null,
-    });
-    setOrganizations(orgs);
-
-    // Auto-select first org if none set / stale
-    setOrgId((prev) => {
-      if (prev && orgs.some((o) => o.id === prev)) return prev;
-      return orgs[0]?.id ?? null;
-    });
-  }, []);
+      // Auto-select first org if none set / stale
+      setOrgId((prev) => {
+        if (prev && orgs.some((o) => o.id === prev)) return prev;
+        return null;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -186,21 +216,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Subscribe first, then hydrate
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       if (!mounted) return;
+      const generation = ++loadGeneration.current;
+      if (sessionIdentity.current !== (s?.user.id ?? null)) {
+        void queryClient.cancelQueries();
+        queryClient.clear();
+        setOrganizations([]);
+        setUser(null);
+        sessionIdentity.current = s?.user.id ?? null;
+      }
       setSession(s);
-      void loadUserData(s);
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      void loadUserData(data.session).finally(() => mounted && setLoading(false));
+      setLoading(true);
+      // Defer DB calls until the auth callback releases its lock.
+      setTimeout(() => {
+        if (mounted)
+          void loadUserData(s, generation).finally(() => {
+            if (mounted && generation === loadGeneration.current) setLoading(false);
+          });
+      }, 0);
     });
 
     return () => {
       mounted = false;
+      loadGeneration.current++;
       sub.subscription.unsubscribe();
     };
-  }, [loadUserData]);
+  }, [loadUserData, queryClient]);
 
   const currentOrg = organizations.find((o) => o.id === orgId) ?? null;
   const currentProject = currentOrg?.projects.find((p) => p.id === projectId) ?? null;
@@ -212,8 +252,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         user,
         organizations,
-        orgId,
-        projectId,
+        orgId: currentOrg?.id ?? null,
+        projectId: currentProject?.id ?? null,
         currentOrg,
         currentProject,
         logout: async () => {
@@ -222,10 +262,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProjectId(null);
         },
         selectOrg: (id) => {
+          if (!organizations.some((org) => org.id === id)) return;
           setOrgId(id);
           setProjectId(null);
         },
-        selectProject: (id) => setProjectId(id),
+        selectProject: (id) => {
+          if (!id) {
+            setProjectId(null);
+            return;
+          }
+          const owner = organizations.find((org) => org.projects.some((p) => p.id === id));
+          if (!owner) return;
+          setOrgId(owner.id);
+          setProjectId(id);
+        },
         refresh: () => loadUserData(session),
       }}
     >
@@ -246,6 +296,9 @@ export function useAuth() {
 export function getCurrentOrg(_orgId: string | null): Organization | null {
   return null;
 }
-export function getCurrentProject(_orgId: string | null, _projectId: string | null): OrgProject | null {
+export function getCurrentProject(
+  _orgId: string | null,
+  _projectId: string | null,
+): OrgProject | null {
   return null;
 }

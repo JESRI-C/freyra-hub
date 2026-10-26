@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveProjectGeometry, getProjectGeometrySeed } from "@/services/geo-service";
+import { resolveProjectGeometry } from "@/services/geo-service";
 
 const SQUARE = {
   type: "Polygon" as const,
@@ -45,10 +45,10 @@ describe("resolveProjectGeometry", () => {
     expect(geom.areaHa).toBe(12);
   });
 
-  it("falder tilbage til seed når projektet ingen DB-geometri har", () => {
-    const seeded = getProjectGeometrySeed("1"); // Skallebæk har seed-polygon
+  it("viser ikke seed-geometri når kundeprojektet ingen DB-geometri har", () => {
     const geom = resolveProjectGeometry({ id: "1", geometry_polygon: null });
-    expect(geom).toEqual(seeded);
+    expect(geom.polygon).toBeNull();
+    expect(geom.areaHa).toBeNull();
   });
 
   it("returnerer tom geometri for ukendt projekt uden DB-geometri", () => {

@@ -37,6 +37,9 @@ export interface ProjectMediaItem {
   documentId?: string | null;
   direction?: number | null;
   beforeMediaId?: string | null;
+  flightId?: string | null;
+  sha256?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export const MEDIA_CATEGORY_LABELS: Record<MediaCategory, string> = {

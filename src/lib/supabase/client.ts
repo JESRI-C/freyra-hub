@@ -1,34 +1,14 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
+import { supabase as sharedClient } from "@/integrations/supabase/client";
 
-// Reads env vars injected by Vite (VITE_ prefix).
-// Falls back gracefully so the app still boots locally without a Supabase project.
-const supabaseUrl = (import.meta.env["VITE_SUPABASE_URL"] as string | undefined) ?? "";
-// Lovable Cloud bruger VITE_SUPABASE_PUBLISHABLE_KEY — vi læser begge så det virker lokalt og i Lovable
-const supabaseKey =
-  (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ??
-  (import.meta.env["VITE_SUPABASE_ANON_KEY"] as string | undefined) ??
-  "";
-
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
-
-// Singleton — safe to import from any module.
-let _client: SupabaseClient<Database> | null = null;
-
-export function getSupabaseClient(): SupabaseClient<Database> | null {
-  if (!isSupabaseConfigured) return null;
-  if (!_client) {
-    _client = createClient<Database>(supabaseUrl, supabaseKey, {
-      auth: { persistSession: true, autoRefreshToken: true },
-    });
-  }
-  return _client;
-}
-
-// Convenience re-export so call sites can write:
-//   import { supabase } from "@/lib/supabase/client"
+const url = import.meta.env.VITE_SUPABASE_URL;
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+export const isSupabaseConfigured = Boolean(url && key);
+// All data services share the authenticated session and preview storage.
 export const supabase = isSupabaseConfigured
-  ? createClient<Database>(supabaseUrl, supabaseKey, {
-      auth: { persistSession: true, autoRefreshToken: true },
-    })
+  ? (sharedClient as unknown as SupabaseClient<Database>)
   : null;
+export function getSupabaseClient() {
+  return supabase;
+}

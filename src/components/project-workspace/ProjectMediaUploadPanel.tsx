@@ -1,346 +1,257 @@
-import { useState, useRef } from "react";
-import { UploadCloud, Info, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
-import type { MediaCategory, ProjectMediaItem } from "@/lib/platform/media-types";
-import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { registerProcessingJob } from "@/services/monitoring/drone-jobs-service";
+import { useState } from "react";
+import { UploadCloud, Loader2 } from "lucide-react";
+import {
+  MEDIA_CATEGORY_LABELS,
+  type MediaCategory,
+  type ProjectMediaItem,
+} from "@/lib/platform/media-types";
 import { uploadProjectMedia } from "@/services/project-media-service";
-import exifr from "exifr";
+import { createSurvey, listFlights, type DroneFlight } from "@/services/monitoring/drone-service";
+import { runBatch, type FileProgress, type SurveyPhase } from "@/services/monitoring/drone-ingest";
 
-interface ProjectMediaUploadPanelProps {
+interface Props {
   projectId: string;
   projectCentroid?: { lat: number; lng: number };
   onUploadComplete?: (item: ProjectMediaItem) => void;
 }
-
-const CATEGORIES: MediaCategory[] = [
-  "field_photo",
-  "drone_image",
-  "before_after",
-  "biodiversity_observation",
-  "water_observation",
-  "soil_observation",
-  "document_scan",
-  "satellite_snapshot",
-];
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+const statuses = {
+  pending: "Afventer",
+  uploading: "Uploader",
+  uploaded: "Gemt",
+  duplicate: "Allerede gemt",
+  failed: "Fejl",
+};
+export function ProjectMediaUploadPanel({ projectId, onUploadComplete }: Props) {
+  // Keying by project makes changing the active project abandon only this local selection.
+  return <UploadForm key={projectId} projectId={projectId} onUploadComplete={onUploadComplete} />;
 }
-
-export function ProjectMediaUploadPanel({
-  projectId,
-  projectCentroid,
-  onUploadComplete,
-}: ProjectMediaUploadPanelProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
+function UploadForm({ projectId, onUploadComplete }: Props) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [category, setCategory] = useState<MediaCategory>("drone_image");
+  const [phase, setPhase] = useState<SurveyPhase>("before");
+  const [date, setDate] = useState("");
+  const [flightId, setFlightId] = useState<string | null>(null);
+  const [flights, setFlights] = useState<DroneFlight[]>([]);
+  const [assetType, setAssetType] = useState<"original" | "orthophoto">("original");
+  const [progress, setProgress] = useState<FileProgress[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [jobMessage, setJobMessage] = useState<string | null>(null);
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<MediaCategory>("field_photo");
-  const [isReportReady, setIsReportReady] = useState(false);
-  const [useCentroid, setUseCentroid] = useState(!!projectCentroid);
-  const [manualLat, setManualLat] = useState("");
-  const [manualLng, setManualLng] = useState("");
-  const [tags, setTags] = useState("");
-
-  const [isUploading, setIsUploading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    if (!file) return;
-
-    setSelectedFile(file);
-    setSuccessMsg(null);
-    setErrorMsg(null);
-
-    // Generate image preview
-    if (file.type.startsWith("image/")) {
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-    } else {
-      setPreviewUrl(null);
-    }
-
-    // Extract EXIF GPS data
+  const drone = category === "drone_image";
+  async function upload() {
+    if (!files.length || !projectId || busy) return;
+    setBusy(true);
+    setError(null);
     try {
-      const gps = await exifr.gps(file);
-      if (gps && gps.latitude != null && gps.longitude != null) {
-        setManualLat(String(gps.latitude));
-        setManualLng(String(gps.longitude));
-        setUseCentroid(false);
+      let surveyId = flightId;
+      if (drone && !surveyId) {
+        const survey = await createSurvey(projectId, phase, date);
+        surveyId = survey.id;
+        setFlightId(survey.id);
       }
-    } catch {
-      // No EXIF or GPS data — not an error
-    }
-  };
-
-  const handleDropzoneClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedFile) {
-      setErrorMsg("Vælg venligst en fil før upload.");
-      return;
-    }
-    if (!title.trim()) {
-      setErrorMsg("Udfyld venligst en titel.");
-      return;
-    }
-
-    setIsUploading(true);
-    setSuccessMsg(null);
-    setErrorMsg(null);
-
-    let coordinates:
-      | { lat: number; lng: number; altitudeM?: number; accuracyM?: number }
-      | undefined;
-
-    if (useCentroid && projectCentroid) {
-      coordinates = { lat: projectCentroid.lat, lng: projectCentroid.lng };
-    } else if (manualLat && manualLng) {
-      const lat = parseFloat(manualLat);
-      const lng = parseFloat(manualLng);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        coordinates = { lat, lng };
+      await runBatch(
+        files,
+        async (file) => {
+          const result = await uploadProjectMedia({
+            projectId,
+            file,
+            title: file.name,
+            description,
+            category,
+            source: drone ? "drone" : "field_upload",
+            isReportReady: false,
+            tags: [],
+            flightId: surveyId ?? undefined,
+            assetType,
+          });
+          if (!result.data || result.error)
+            throw new Error(result.error ?? "Filen blev ikke gemt.");
+          onUploadComplete?.(result.data);
+          return {
+            item: result.data,
+            duplicate: !!result.duplicate,
+            missingGps: !result.data.coordinates,
+          };
+        },
+        setProgress,
+        progress,
+      );
+      if (surveyId) {
+        const job = await registerProcessingJob(projectId, surveyId);
+        setJobMessage(`Behandlingsjob ${job.id}: ${job.status}. ${job.error ?? ""}`);
       }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
     }
-
-    const tagList = tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-
-    const result = await uploadProjectMedia({
-      projectId,
-      file: selectedFile,
-      title: title.trim(),
-      description: description.trim() || undefined,
-      category,
-      source: "field_upload",
-      isReportReady,
-      tags: tagList,
-      coordinates,
-    });
-
-    setIsUploading(false);
-
-    if (result.error) {
-      setErrorMsg(`Upload mislykkedes: ${result.error}`);
-    } else if (result.data) {
-      setSuccessMsg(`"${result.data.title}" er uploadet.`);
-      onUploadComplete?.(result.data);
-      // Reset form
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setTitle("");
-      setDescription("");
-      setCategory("field_photo");
-      setIsReportReady(false);
-      setManualLat("");
-      setManualLng("");
-      setTags("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
+  }
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
-      <div className="text-sm font-semibold">Upload medie</div>
-
-      {/* Preview mode banner */}
-      {!isSupabaseConfigured && (
-        <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-          <Info className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-[11px] text-amber-800">
-            Preview mode — filer gemmes ikke i denne session.
-          </p>
-        </div>
-      )}
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*,application/pdf"
-        className="hidden"
-        onChange={handleFileChange}
-      />
-
-      {/* Dropzone */}
-      <div
-        onClick={handleDropzoneClick}
-        className="rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/10 flex flex-col items-center gap-2 py-6 cursor-pointer hover:bg-muted/20 transition"
-      >
-        {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt="Forhåndsvisning"
-            className="max-h-32 rounded-lg object-contain"
-          />
-        ) : (
-          <>
-            <UploadCloud className="h-6 w-6 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground text-center">
-              Træk billeder hertil eller klik for at vælge
-            </p>
-            <p className="text-[10px] text-muted-foreground/60">JPG, PNG, TIFF, PDF · max 50 MB</p>
-          </>
-        )}
-      </div>
-
-      {/* File info */}
-      {selectedFile && (
-        <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
-          <span className="font-medium text-foreground">{selectedFile.name}</span>
-          {" · "}
-          {formatFileSize(selectedFile.size)}
-        </div>
-      )}
-
-      {/* Category */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Kategori</label>
+      <h3 className="text-sm font-semibold">Upload originaler i en samlet flyvning</h3>
+      <p className="text-xs text-muted-foreground">
+        Filer bevares uændrede i privat lager. GPS, kameraretning og tidspunkt læses pr. fil.
+        Manglende GPS giver ingen kortplacering. Et fotopunkt er ikke et målfast ortofoto.
+      </p>
+      <label className="block text-xs">
+        Kategori
         <select
+          className="w-full border rounded p-2 bg-background"
           value={category}
+          disabled={busy || !!flightId}
           onChange={(e) => setCategory(e.target.value as MediaCategory)}
-          className="w-full rounded-lg border bg-background text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
         >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {MEDIA_CATEGORY_LABELS[c]}
+          {Object.entries(MEDIA_CATEGORY_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
             </option>
           ))}
         </select>
-      </div>
-
-      {/* Title */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Titel</label>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Beskriv billedet kort..."
-          className="w-full rounded-lg border bg-background text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-        />
-      </div>
-
-      {/* Description */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Beskrivelse</label>
+      </label>
+      {drone && (
+        <div className="space-y-3">
+          <button
+            type="button"
+            disabled={busy}
+            className="text-xs underline"
+            onClick={() => {
+              void listFlights(projectId)
+                .then(setFlights)
+                .catch((e) => setError(String(e)));
+            }}
+          >
+            Hent eksisterende flyvninger for at fortsætte en upload
+          </button>
+          {!!flights.length && (
+            <label className="block text-xs">
+              Flyvning
+              <select
+                className="w-full border rounded p-2 bg-background"
+                disabled={busy}
+                value={flightId ?? ""}
+                onChange={(e) => {
+                  setFlightId(e.target.value || null);
+                  setProgress([]);
+                }}
+              >
+                <option value="">Ny flyvning</option>
+                {flights.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.flown_at.slice(0, 10)} · {f.purpose ?? "Ukendt fase"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {!flightId && (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs">
+                Fase
+                <select
+                  className="w-full border rounded p-2 bg-background"
+                  disabled={busy}
+                  value={phase}
+                  onChange={(e) => setPhase(e.target.value as SurveyPhase)}
+                >
+                  <option value="before">Før</option>
+                  <option value="after">Efter</option>
+                  <option value="follow_up">Opfølgning</option>
+                </select>
+              </label>
+              <label className="text-xs">
+                Flyvedato
+                <input
+                  className="w-full border rounded p-2 bg-background"
+                  disabled={busy}
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </label>
+            </div>
+          )}
+          <label className="block text-xs">
+            Indhold
+            <select
+              className="w-full border rounded p-2 bg-background"
+              disabled={busy}
+              value={assetType}
+              onChange={(e) => setAssetType(e.target.value as "original" | "orthophoto")}
+            >
+              <option value="original">Originalfotos / video / XMP</option>
+              <option value="orthophoto">Eksisterende ortofoto (GeoTIFF)</option>
+            </select>
+          </label>
+          {assetType === "orthophoto" && (
+            <p className="text-xs text-amber-700">
+              Original GeoTIFF gemmes som importeret ortofoto. CRS, georeferering og målenøjagtighed
+              skal valideres før arealanalyse.
+            </p>
+          )}
+        </div>
+      )}
+      <label className="block text-xs">
+        Beskrivelse
         <textarea
+          className="w-full border rounded p-2 bg-background"
+          disabled={busy}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Yderligere detaljer om billedet..."
-          rows={2}
-          className="w-full rounded-lg border bg-background text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
         />
-      </div>
-
-      {/* Tags */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Tags (kommasepareret)</label>
+      </label>
+      <label className="flex flex-col items-center border-2 border-dashed rounded-lg p-5 cursor-pointer">
+        <UploadCloud className="h-6 w-6" />
+        <span className="text-xs mt-2">Vælg alle filer fra flyvningen · maks. 200 MB pr. fil</span>
         <input
-          type="text"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          placeholder="fx padde, vandhul, §3"
-          className="w-full rounded-lg border bg-background text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+          type="file"
+          multiple
+          disabled={busy}
+          className="mt-3 text-xs max-w-full"
+          onChange={(e) => {
+            setFiles(Array.from(e.target.files ?? []));
+            setProgress([]);
+            setError(null);
+          }}
         />
-      </div>
-
-      {/* Report ready toggle */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">Rapportklar</span>
-        <button
-          type="button"
-          onClick={() => setIsReportReady((v) => !v)}
-          className={`relative inline-flex h-5 w-9 rounded-full transition-colors ${
-            isReportReady ? "bg-emerald-500" : "bg-muted"
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 rounded-full bg-white shadow mt-0.5 transition-transform ${
-              isReportReady ? "translate-x-4" : "translate-x-0.5"
-            }`}
-          />
-        </button>
-      </div>
-
-      {/* Coordinates */}
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground">Koordinater</label>
-        {projectCentroid && (
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input
-              type="checkbox"
-              checked={useCentroid}
-              onChange={(e) => setUseCentroid(e.target.checked)}
-              className="rounded"
-            />
-            Brug projektets centroid ({projectCentroid.lat.toFixed(4)},{" "}
-            {projectCentroid.lng.toFixed(4)})
-          </label>
-        )}
-        {!useCentroid && (
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={manualLat}
-              onChange={(e) => setManualLat(e.target.value)}
-              placeholder="Breddegrad"
-              className="rounded-lg border bg-background text-xs px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <input
-              type="text"
-              value={manualLng}
-              onChange={(e) => setManualLng(e.target.value)}
-              placeholder="Længdegrad"
-              className="rounded-lg border bg-background text-xs px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Submit */}
+      </label>
+      <p className="text-xs">
+        {files.length} filer valgt. Genvalg af samme filer og flyvning fortsætter efter kontrol af
+        SHA-256.
+      </p>
       <button
         type="button"
-        onClick={handleSubmit}
-        disabled={isUploading}
-        className="w-full rounded-xl bg-primary text-primary-foreground text-sm font-medium py-2.5 hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        onClick={() => void upload()}
+        disabled={busy || !files.length || !projectId || (drone && !flightId && !date)}
+        className="w-full rounded-lg bg-primary text-primary-foreground p-2 text-sm disabled:opacity-50"
       >
-        {isUploading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Uploader…
-          </>
-        ) : (
-          "Upload billede"
-        )}
+        {busy ? <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> : null}
+        {progress.some((p) => p.status === "failed")
+          ? "Prøv fejlede filer igen"
+          : "Upload alle filer"}
       </button>
-
-      {/* Success message */}
-      {successMsg && (
-        <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
-          <CheckCircle className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-emerald-800">{successMsg}</p>
-        </div>
+      {jobMessage && <p className="text-xs text-amber-700">{jobMessage}</p>}
+      {error && (
+        <p role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
       )}
-
-      {/* Error message */}
-      {errorMsg && (
-        <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-          <XCircle className="h-3.5 w-3.5 text-red-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-red-800">{errorMsg}</p>
-        </div>
+      {!!progress.length && (
+        <ul className="max-h-64 overflow-y-auto text-xs space-y-2" aria-live="polite">
+          {progress.map((p, i) => (
+            <li key={i}>
+              <strong>{p.name}</strong>: {statuses[p.status]}
+              {p.missingGps ? " · GPS mangler" : ""}
+              {p.error ? ` · ${p.error}` : ""}
+            </li>
+          ))}
+        </ul>
       )}
+      <p className="text-xs text-muted-foreground">
+        Fotogrammetri er blokeret, indtil en autoriseret worker er konfigureret. Upload opretter
+        ikke et færdigt ortofoto eller analyseresultat.
+      </p>
     </div>
   );
 }

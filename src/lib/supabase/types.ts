@@ -118,9 +118,9 @@ export interface ProjectEnvironmentalContext {
   soilContext: EnvironmentalContextResult | null;
   overallReadiness: "complete" | "partial" | "pending";
   scores: {
-    natureSensitivity: "low" | "medium" | "high" | "critical";
-    runoffRisk: "low" | "medium" | "high" | "critical";
-    dataCompleteness: number; // 0-100
+    natureSensitivity: "low" | "medium" | "high" | "critical" | "unknown";
+    runoffRisk: "low" | "medium" | "high" | "critical" | "unknown";
+    dataCompleteness: number | null; // null = coverage not established
   };
   geometry: ProjectGeometry;
   liveData?: LiveDataSnapshot;
@@ -507,7 +507,7 @@ export type ProjectMediaRow = {
   status: string;
   file_size_bytes: number | null;
   mime_type: string | null;
-}
+};
 
 export type Database = {
   public: {

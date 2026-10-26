@@ -187,11 +187,12 @@ export interface ProjectGeometryFields {
 }
 
 /**
- * Resolve a project's geometry with the persisted DB polygon taking priority
- * over seed data. Falls back to the seeded geometry (and finally an empty
- * geometry) only when the project has neither a saved polygon nor a centroid.
+ * Resolve only a project's persisted geometry. Missing geometry remains unknown;
+ * the explicit seed helper below is never a fallback for a customer project.
  */
-export function resolveProjectGeometry(project: ProjectGeometryFields | null | undefined): ProjectGeometry {
+export function resolveProjectGeometry(
+  project: ProjectGeometryFields | null | undefined,
+): ProjectGeometry {
   if (!project) return getProjectGeometrySeed("");
   if (project.geometry_polygon != null || project.geometry_centroid_lat != null) {
     const parsed = parseProjectGeometry(
@@ -211,7 +212,7 @@ export function resolveProjectGeometry(project: ProjectGeometryFields | null | u
       hasValidGeometry: parsed.hasValidGeometry,
     };
   }
-  return getProjectGeometrySeed(project.id);
+  return { ...getProjectGeometrySeed(""), areaHa: project.geometry_area_ha ?? null };
 }
 
 /** Get geometry for a project from seed data (fallback when Supabase not configured). */

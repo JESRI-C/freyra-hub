@@ -1,3 +1,12 @@
+import {
+  area,
+  intersect,
+  featureCollection,
+  union,
+  feature,
+  bbox as geometryBbox,
+} from "@turf/turf";
+import type { Polygon, MultiPolygon } from "geojson";
 /**
  * §3-overlap Service
  * Beregner præcist overlap mellem projektpolygon og §3-beskyttede naturarealer.
@@ -13,15 +22,21 @@
  *   p3_strand  = Strandenge og strandsumpe
  */
 
-const WFS_BASE = "https://arealdata.miljoeportal.dk/gis/ows";
+export const OFFICIAL_NATURE_SOURCE =
+  "https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:beskyttede-naturtyper";
+export const OFFICIAL_WATERCOURSE_SOURCE =
+  "https://arealdata.miljoeportal.dk/datasets/urn:dmp:ds:beskyttede-vandloeb";
+// Copy the current WFS URL and type names from the official dataset distribution.
+// The historic /gis/ows URL now serves HTML; do not silently label that as an empty result.
+const WFS_BASE = import.meta.env.VITE_DMP_WFS_URL as string | undefined;
 const NATURDATA_BASE = "https://naturdata.miljoeportal.dk/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Paragraph3Area {
   id: string;
-  natureType: string;       // dansk navn
-  typeCode: string;         // p3_eng, p3_mose osv.
+  natureType: string; // dansk navn
+  typeCode: string; // p3_eng, p3_mose osv.
   areaHa: number;
   geometry: GeoJsonGeometry | null;
   registeredYear?: number;
@@ -34,9 +49,9 @@ export interface GeoJsonGeometry {
 
 export interface Paragraph3Result {
   overlapHa: number;
-  overlapPercent: number;   // af projektets areal
+  overlapPercent: number; // af projektets areal
   areas: Paragraph3Area[];
-  natureTypes: string[];    // unikke naturtyper
+  natureTypes: string[]; // unikke naturtyper
   nearestHabitatArea?: string;
   fetchedAt: string;
   mode: "live" | "preview" | "error";
@@ -61,46 +76,15 @@ export interface BiodiversityDataResult {
   mode: "live" | "preview" | "error";
 }
 
-// ─── Preview data ─────────────────────────────────────────────────────────────
-
-const PREVIEW_P3: Paragraph3Result = {
-  overlapHa: 4.1,
-  overlapPercent: 56,
-  areas: [
-    { id: "p3-1", natureType: "Eng", typeCode: "p3_eng", areaHa: 2.3, geometry: null },
-    { id: "p3-2", natureType: "Mose", typeCode: "p3_mose", areaHa: 1.1, geometry: null },
-    { id: "p3-3", natureType: "Sø", typeCode: "p3_soe", areaHa: 0.7, geometry: null },
-  ],
-  natureTypes: ["Eng", "Mose", "Sø"],
-  nearestHabitatArea: "Habitatområde H67 Vejle Ådal (1.4 km)",
-  fetchedAt: new Date().toISOString(),
-  mode: "preview",
-};
-
-const PREVIEW_SPECIES: BiodiversityDataResult = {
-  species: [
-    { scientificName: "Ciconia ciconia", danishName: "Hvid stork", group: "Fugle", protected: true, redListStatus: "VU", count: 2, lastSeen: "2026-05-12" },
-    { scientificName: "Lutra lutra", danishName: "Odder", group: "Pattedyr", protected: true, redListStatus: "LC", count: 1, lastSeen: "2026-04-30" },
-    { scientificName: "Bufo bufo", danishName: "Skrubtudse", group: "Padder", protected: true, count: 8, lastSeen: "2026-05-20" },
-    { scientificName: "Circus aeruginosus", danishName: "Rørhøg", group: "Fugle", protected: true, redListStatus: "LC", count: 3, lastSeen: "2026-05-18" },
-    { scientificName: "Drosera rotundifolia", danishName: "Rundbladet soldug", group: "Planter", protected: true, redListStatus: "NT", count: 45, lastSeen: "2026-06-01" },
-  ],
-  redListedCount: 3,
-  protectedCount: 5,
-  groupDiversity: { Fugle: 2, Pattedyr: 1, Padder: 1, Planter: 1 },
-  fetchedAt: new Date().toISOString(),
-  mode: "preview",
-};
-
 // ─── §3 Overlap ───────────────────────────────────────────────────────────────
 
 const P3_TYPES = [
-  { code: "p3_soe",      label: "Sø" },
-  { code: "p3_mose",     label: "Mose" },
-  { code: "p3_eng",      label: "Eng" },
-  { code: "p3_hede",     label: "Hede" },
+  { code: "p3_soe", label: "Sø" },
+  { code: "p3_mose", label: "Mose" },
+  { code: "p3_eng", label: "Eng" },
+  { code: "p3_hede", label: "Hede" },
   { code: "p3_overdrev", label: "Overdrev" },
-  { code: "p3_strandeng",label: "Strandeng" },
+  { code: "p3_strandeng", label: "Strandeng" },
 ];
 
 /**
@@ -112,8 +96,12 @@ export async function fetchParagraph3Overlap(
   lng: number,
   areaHa: number,
   delta = 0.02,
+  projectGeometry?: Polygon | MultiPolygon | null,
 ): Promise<Paragraph3Result> {
-  const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
+  if (!WFS_BASE)
+    throw new Error("Officielt §3-lag afventer gyldig WFS-konfiguration fra Arealdata.");
+  if (!projectGeometry) throw new Error("§3-overlap er ikke målt: projektpolygon mangler.");
+  const bbox = geometryBbox(feature(projectGeometry)).join(",");
 
   const areas: Paragraph3Area[] = [];
 
@@ -124,7 +112,7 @@ export async function fetchParagraph3Overlap(
         service: "WFS",
         version: "2.0.0",
         request: "GetFeature",
-        typeNames: `mp:${code}`,
+        typeNames: `${import.meta.env.VITE_DMP_WFS_NAMESPACE ?? "mp"}:${code}`,
         outputFormat: "application/json",
         bbox: `${bbox},EPSG:4326`,
         srsName: "EPSG:4326",
@@ -136,7 +124,7 @@ export async function fetchParagraph3Overlap(
         headers: { Accept: "application/json" },
       });
 
-      if (!res.ok) return [];
+      if (!res.ok) throw new Error(`§3 WFS HTTP ${res.status}`);
 
       const json = (await res.json()) as {
         features?: Array<{
@@ -146,11 +134,18 @@ export async function fetchParagraph3Overlap(
         }>;
       };
 
-      return (json.features ?? []).map((f, i): Paragraph3Area => {
+      if (!Array.isArray(json.features)) throw new Error("§3-kilden returnerede ikke GeoJSON.");
+      if (json.features.length >= 50)
+        throw new Error("§3-udtræk er afkortet. Reducér område eller konfigurér paginering.");
+      return json.features.map((f, i): Paragraph3Area => {
+        if (!f.geometry || !["Polygon", "MultiPolygon"].includes(f.geometry.type))
+          throw new Error("§3-laget indeholder ugyldig geometri.");
         const props = f.properties ?? {};
         // Areal i m² i properties, konvertér til ha
-        const areaM2 = (props["areal_m2"] as number | undefined) ??
-                       (props["Shape_Area"] as number | undefined) ?? 0;
+        const areaM2 =
+          (props["areal_m2"] as number | undefined) ??
+          (props["Shape_Area"] as number | undefined) ??
+          0;
         return {
           id: f.id ?? `${code}-${i}`,
           natureType: label,
@@ -163,6 +158,10 @@ export async function fetchParagraph3Overlap(
     }),
   );
 
+  if (results.some((r) => r.status === "rejected"))
+    throw new Error(
+      "Ét eller flere officielle §3-lag kunne ikke hentes. Ingen overlapberegning udført.",
+    );
   results.forEach((r) => {
     if (r.status === "fulfilled") areas.push(...r.value);
   });
@@ -179,10 +178,20 @@ export async function fetchParagraph3Overlap(
     };
   }
 
-  const totalP3Ha = areas.reduce((sum, a) => sum + a.areaHa, 0);
-  // Overlap estimat: min(total §3 i bbox, projektareal)
-  const overlapHa = Math.min(totalP3Ha, areaHa * 0.9);
-  const overlapPercent = Math.round((overlapHa / areaHa) * 100);
+  const valid = areas
+    .map((a) => a.geometry)
+    .filter(
+      (g): g is Polygon | MultiPolygon => g?.type === "Polygon" || g?.type === "MultiPolygon",
+    );
+  const features = valid.map((g) => feature(g));
+  const dissolved = features.length > 1 ? union(featureCollection(features)) : features[0];
+  const overlap = dissolved
+    ? intersect(featureCollection([feature(projectGeometry), dissolved]))
+    : null;
+  const overlapHa = overlap ? area(overlap) / 10000 : 0;
+  const measuredProjectHa = area(feature(projectGeometry)) / 10000;
+  if (measuredProjectHa <= 0) throw new Error("Projektpolygon har intet målbart areal.");
+  const overlapPercent = (overlapHa / measuredProjectHa) * 100;
   const natureTypes = [...new Set(areas.map((a) => a.natureType))];
 
   return {
@@ -243,8 +252,8 @@ export async function fetchSpeciesObservations(
     lastSeen: s.lastObserved,
   }));
 
-  const redListedCount = species.filter((s) =>
-    s.redListStatus && !["LC", "NA", "DD"].includes(s.redListStatus)
+  const redListedCount = species.filter(
+    (s) => s.redListStatus && !["LC", "NA", "DD"].includes(s.redListStatus),
   ).length;
 
   const protectedCount = species.filter((s) => s.protected).length;
@@ -281,13 +290,15 @@ export async function fetchWatercourses(
   lng: number,
   delta = 0.02,
 ): Promise<WatercourseFeature[]> {
-  try {
+  if (!WFS_BASE || !import.meta.env.VITE_DMP_PROTECTED_WATERCOURSE_TYPENAME)
+    throw new Error("Beskyttede vandløb afventer officiel WFS-konfiguration fra Arealdata.");
+  {
     const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
     const params = new URLSearchParams({
       service: "WFS",
       version: "2.0.0",
       request: "GetFeature",
-      typeNames: "mp:vandloeb",
+      typeNames: import.meta.env.VITE_DMP_PROTECTED_WATERCOURSE_TYPENAME,
       outputFormat: "application/json",
       bbox: `${bbox},EPSG:4326`,
       srsName: "EPSG:4326",
@@ -298,7 +309,7 @@ export async function fetchWatercourses(
       signal: AbortSignal.timeout(10_000),
       headers: { Accept: "application/json" },
     });
-    if (!res.ok) return [];
+    if (!res.ok) throw new Error(`Beskyttede vandløb WFS HTTP ${res.status}`);
 
     const json = (await res.json()) as {
       features?: Array<{
@@ -308,6 +319,9 @@ export async function fetchWatercourses(
       }>;
     };
 
+    if (!Array.isArray(json.features)) throw new Error("Vandløbskilden returnerede ikke GeoJSON.");
+    if (json.features.length >= 50)
+      throw new Error("Vandløbsudtræk er afkortet; fuld dækning er ukendt.");
     const out: WatercourseFeature[] = [];
     (json.features ?? []).forEach((f, i) => {
       const geom = f.geometry;
@@ -322,8 +336,6 @@ export async function fetchWatercourses(
       }
     });
     return out;
-  } catch {
-    return [];
   }
 }
 
@@ -334,14 +346,11 @@ export async function fetchNatureData(
   lat: number,
   lng: number,
   areaHa: number,
+  projectGeometry?: Polygon | MultiPolygon | null,
 ): Promise<{ p3: Paragraph3Result; species: BiodiversityDataResult }> {
-  const [p3Result, speciesResult] = await Promise.allSettled([
-    fetchParagraph3Overlap(lat, lng, areaHa),
+  const [p3, species] = await Promise.all([
+    fetchParagraph3Overlap(lat, lng, areaHa, 0.02, projectGeometry),
     fetchSpeciesObservations(lat, lng),
   ]);
-
-  return {
-    p3: p3Result.status === "fulfilled" ? p3Result.value : PREVIEW_P3,
-    species: speciesResult.status === "fulfilled" ? speciesResult.value : PREVIEW_SPECIES,
-  };
+  return { p3, species };
 }

@@ -3,7 +3,15 @@ import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-quer
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { ShieldCheck, RefreshCw, Eye, FileText, AlertTriangle, Activity, MapPin } from "lucide-react";
+import {
+  ShieldCheck,
+  RefreshCw,
+  Eye,
+  FileText,
+  AlertTriangle,
+  Activity,
+  MapPin,
+} from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
@@ -52,7 +60,7 @@ import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMedia
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
-import { getProjectSensors } from "@/services/iot-simulation-service";
+import type { IoTSensor } from "@/services/iot-simulation-service";
 import { ProjectGeometryMap } from "@/components/data-foundation/ProjectGeometryMap";
 import {
   dataSourceStatusTone,
@@ -177,8 +185,7 @@ function ProjectDetailPage() {
     queryKey: ["data-sources", projectId],
     queryFn: () => getDataSourcesByProject(projectId),
   });
-  // Geometri: DB-tegnet polygon vinder altid over seed-data. Kun hvis projektet
-  // hverken har en gemt polygon eller centroid, falder vi tilbage til seed.
+  // Missing persisted geometry stays unknown.
   const geometry = resolveProjectGeometry(project);
 
   // A project has "real" geometry only when a polygon has been drawn or uploaded —
@@ -214,6 +221,14 @@ function ProjectDetailPage() {
   useEffect(() => {
     setLocalActions(actions);
   }, [actions]);
+
+  const [selectedIndicator, setSelectedIndicator] = useState<(typeof indicators)[number] | null>(
+    null,
+  );
+  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
+  const [actionFilterSite, setActionFilterSite] = useState<string>("");
+  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
+  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
 
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
@@ -256,8 +271,8 @@ function ProjectDetailPage() {
     }
   };
 
-  // IoT sensors — generated deterministically from project id + centroid
-  const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
+  // No synthetic sensor measurements in the customer workspace.
+  const sensors: IoTSensor[] = [];
 
   // Report preview
   const reportPreview = generateProjectReportPreview({
@@ -273,25 +288,25 @@ function ProjectDetailPage() {
     sensors,
   });
 
-  const nextAction = getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors);
+  const nextAction = getRecommendedNextAction(
+    project,
+    indicators,
+    localActions,
+    mediaItems,
+    sensors,
+  );
   const sensorActions = suggestSensorActions(sensors);
 
-  const [selectedIndicator, setSelectedIndicator] = useState<typeof indicators[number] | null>(null);
-  const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
-  const [actionFilterSite, setActionFilterSite] = useState<string>("");
-  const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
-  const [actionFilterPriority, setActionFilterPriority] = useState<string>("");
   const filteredActions = localActions.filter((a) => {
     if (actionFilterSite && a.site_id !== actionFilterSite) return false;
     if (actionFilterStatus && a.status !== actionFilterStatus) return false;
     if (actionFilterPriority && a.priority !== actionFilterPriority) return false;
     return true;
   });
-  const openIndicator = (ind: typeof indicators[number]) => {
+  const openIndicator = (ind: (typeof indicators)[number]) => {
     setSelectedIndicator(ind);
     setIndicatorDetailOpen(true);
   };
-
 
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
@@ -324,7 +339,6 @@ function ProjectDetailPage() {
                     <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
                   ))}
                 </div>
-
 
                 {/* Recent observations */}
                 {observations.length > 0 && (
@@ -385,12 +399,10 @@ function ProjectDetailPage() {
             {/* ── Sites ──────────────────────────────────────────────────── */}
             {active === "sites" && <SitesPanel projectId={projectId} sites={sites} />}
 
-
             {/* ── Datakilder ─────────────────────────────────────────────── */}
             {active === "datakilder" && (
               <DataSourcesPanel projectId={projectId} sites={sites} dataSources={dataSources} />
             )}
-
 
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
@@ -431,9 +443,7 @@ function ProjectDetailPage() {
                     <CardHeader
                       title="Sensor-anbefalinger"
                       subtitle="Automatisk afledt fra IoT-feltdata"
-                      action={
-                        <Pill tone="warning">{sensorActions.length} forslag</Pill>
-                      }
+                      action={<Pill tone="warning">{sensorActions.length} forslag</Pill>}
                     />
                     <div className="px-5 pb-3 divide-y">
                       {sensorActions.map((sa, i) => (
@@ -491,7 +501,9 @@ function ProjectDetailPage() {
                     >
                       <option value="">Alle sites</option>
                       {sites.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
                       ))}
                     </select>
                     <select
@@ -530,7 +542,9 @@ function ProjectDetailPage() {
 
                   <div className="px-5 pb-3">
                     {filteredActions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Ingen handlinger matcher filter</p>
+                      <p className="text-sm text-muted-foreground py-4">
+                        Ingen handlinger matcher filter
+                      </p>
                     ) : (
                       filteredActions.map((action) => (
                         <ActionItem
@@ -545,7 +559,9 @@ function ProjectDetailPage() {
                             if (actualImpact) {
                               try {
                                 await completeAction(id, projectId, actualImpact);
-                                await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+                                await queryClient.invalidateQueries({
+                                  queryKey: ["actions", projectId],
+                                });
                                 toast.success("Handling afsluttet");
                               } catch (e) {
                                 toast.error((e as Error).message);
@@ -736,7 +752,7 @@ function ProjectDetailPage() {
                   <Card className="py-10 text-center">
                     <CardHeader
                       title="Ingen sensorer"
-                      subtitle="Tilknyt en projektgeometri for at aktivere IoT-sensorlaget"
+                      subtitle="Ingen verificerede sensordata er tilknyttet projektet"
                     />
                   </Card>
                 )}
@@ -866,7 +882,9 @@ function CreateActionForm({
             >
               <option value="">Intet site</option>
               {sites.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
               ))}
             </select>
             <input
@@ -884,7 +902,9 @@ function CreateActionForm({
           >
             <option value="">Ingen tilknyttet indikator</option>
             {indicators.map((i) => (
-              <option key={i.id} value={i.id}>{i.label}</option>
+              <option key={i.id} value={i.id}>
+                {i.label}
+              </option>
             ))}
           </select>
           <input
@@ -1038,7 +1058,10 @@ function DokumentationTab({
           </div>
         </Card>
         <Card>
-          <CardHeader title="Dokumentationsscore" subtitle="Hvor komplet er projektets dokumentation" />
+          <CardHeader
+            title="Dokumentationsscore"
+            subtitle="Hvor komplet er projektets dokumentation"
+          />
           <div className="px-5 pb-5">
             <DocumentationScore score={score} />
           </div>
@@ -1074,10 +1097,6 @@ function RollerTab({ projectId }: { projectId: string }) {
   });
   const permissions = permissionsFor(role ?? null);
   return (
-    <ProjectMembersPanel
-      projectId={projectId}
-      currentUserId={userId}
-      permissions={permissions}
-    />
+    <ProjectMembersPanel projectId={projectId} currentUserId={userId} permissions={permissions} />
   );
 }

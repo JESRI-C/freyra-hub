@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { OrthophotoOverlayControl } from "./OrthophotoOverlayControl";
+import { orthophotoBounds } from "@/services/monitoring/orthophoto-raster";
+import { getPhotoMapPoints } from "./photo-map-points";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { ProjectGeometry } from "@/lib/supabase/types";
@@ -196,10 +199,50 @@ export function LiveProjectMap({
   // Async Leaflet-init: natur-lags-effekten må først køre når kortet findes.
   const [mapReady, setMapReady] = useState(false);
 
+  const photoPoints = useMemo(
+    () => getPhotoMapPoints(mediaItems ?? [], projectId),
+    [mediaItems, projectId],
+  );
+  const hasPhotoPositions = photoPoints.length > 0;
+  const rasterBounds = useMemo(() => {
+    for (const item of mediaItems ?? []) {
+      if (item.projectId !== projectId || item.metadata?.asset_type !== "orthophoto") continue;
+      const reference = item.metadata.orthophoto as
+        | { crs: string | null; bbox: number[] | null }
+        | undefined;
+      if (reference) {
+        try {
+          return orthophotoBounds(reference.crs, reference.bbox);
+        } catch {
+          /* Unsupported CRS is explicit in the overlay control. */
+        }
+      }
+    }
+    return null;
+  }, [mediaItems, projectId]);
+  const hasRasterBounds = !!rasterBounds;
+  const rasterBlocker = useMemo(() => {
+    const item = (mediaItems ?? []).find(
+      (candidate) =>
+        candidate.projectId === projectId && candidate.metadata?.asset_type === "orthophoto",
+    );
+    const reference = item?.metadata?.orthophoto as
+      | { crs: string | null; bbox: number[] | null }
+      | undefined;
+    if (!reference) return null;
+    try {
+      orthophotoBounds(reference.crs, reference.bbox);
+      return null;
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  }, [mediaItems, projectId]);
+
   // ── Initial map setup ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
-    if (!geometry.hasValidGeometry && !geometry.centroid) return;
+    if (!geometry.hasValidGeometry && !geometry.centroid && !hasPhotoPositions && !hasRasterBounds)
+      return;
 
     let cancelled = false;
 
@@ -252,29 +295,25 @@ export function LiveProjectMap({
         mapInstance.current = map;
       }
 
+      if (!mapInstance.current && photoPoints.length > 0) {
+        const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false });
+        L.tileLayer(tileUrl, { attribution: tileAttrib, maxZoom: 19 }).addTo(map);
+        map.fitBounds(L.latLngBounds(photoPoints.map((p) => p.position)), {
+          padding: [32, 32],
+          maxZoom: 18,
+        });
+        mapInstance.current = map;
+      }
+
+      if (!mapInstance.current && rasterBounds) {
+        const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false });
+        L.tileLayer(tileUrl, { attribution: tileAttrib, maxZoom: 19 }).addTo(map);
+        map.fitBounds(rasterBounds, { padding: [32, 32] });
+        mapInstance.current = map;
+      }
+
       if (!mapInstance.current || cancelled) return;
       const map = mapInstance.current;
-
-      // ── Media markers ──────────────────────────────────────────────────────
-      if (mediaItems && mediaItems.length > 0) {
-        const group = L.layerGroup().addTo(map);
-        mediaLayerRef.current = group as unknown as LeafletGeoJSON;
-        const geoItems = mediaItems.filter((m) => !!m.coordinates);
-        for (const item of geoItems) {
-          if (!item.coordinates) continue;
-          const icon = L.divIcon({
-            html: `<div style="width:16px;height:16px;border-radius:50%;background:#F59E0B;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:8px;">📷</div>`,
-            className: "",
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
-          });
-          L.marker([item.coordinates.lat, item.coordinates.lng], { icon })
-            .addTo(group)
-            .bindPopup(
-              `<strong>${item.title}</strong><br/>${MEDIA_CATEGORY_LABELS[item.category]}<br/><small>${new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK")}</small>`,
-            );
-        }
-      }
 
       // ── IoT sensor markers ────────────────────────────────────────────────
       if (sensors && sensors.length > 0) {
@@ -315,7 +354,7 @@ export function LiveProjectMap({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geometry, projectName, projectId]);
+  }, [geometry, projectName, projectId, hasPhotoPositions, hasRasterBounds]);
 
   // ── Buffer zone toggle ────────────────────────────────────────────────────
   useEffect(() => {
@@ -391,17 +430,43 @@ export function LiveProjectMap({
     };
   }, [mapReady, paragraph3GeoJSON, watercoursesGeoJSON]);
 
-  // ── Show/hide media layer ─────────────────────────────────────────────────
+  // Rebuild photo points when asynchronous uploads arrive; never use project centroid for a photo.
   useEffect(() => {
-    if (!mapInstance.current || !mediaLayerRef.current) return;
+    if (!mapReady || !mapInstance.current) return;
     const map = mapInstance.current;
-    const layer = mediaLayerRef.current as unknown as import("leaflet").LayerGroup;
-    if (showMedia) {
-      map.addLayer(layer);
-    } else {
-      map.removeLayer(layer);
-    }
-  }, [showMedia]);
+    let cancelled = false;
+    void import("leaflet").then((L) => {
+      if (cancelled || mapInstance.current !== map) return;
+      if (mediaLayerRef.current) map.removeLayer(mediaLayerRef.current);
+      const group = L.layerGroup();
+      mediaLayerRef.current = group as unknown as LeafletGeoJSON;
+      for (const { item, position } of photoPoints) {
+        const popup = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = item.title;
+        popup.append(title);
+        const details = document.createElement("p");
+        details.textContent = `${MEDIA_CATEGORY_LABELS[item.category]} · ${new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK")} · GPS-fotopunkt, ikke målfast ortofoto`;
+        popup.append(details);
+        const icon = L.divIcon({
+          html: '<div style="background:#F59E0B;border:2px solid white;border-radius:50%;width:16px;height:16px">📷</div>',
+          className: "",
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        });
+        L.marker(position, { icon }).addTo(group).bindPopup(popup);
+      }
+      if (showMedia) group.addTo(map);
+      if (!geometry.hasValidGeometry && !geometry.centroid && photoPoints.length)
+        map.fitBounds(L.latLngBounds(photoPoints.map((p) => p.position)), {
+          padding: [32, 32],
+          maxZoom: 18,
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mapReady, photoPoints, showMedia, geometry]);
 
   // ── Show/hide sensor layer ────────────────────────────────────────────────
   useEffect(() => {
@@ -415,7 +480,7 @@ export function LiveProjectMap({
   }, [showSensors]);
 
   // ─── No geometry fallback ─────────────────────────────────────────────────
-  if (!geometry.hasValidGeometry && !geometry.centroid) {
+  if (!geometry.hasValidGeometry && !geometry.centroid && !hasPhotoPositions && !hasRasterBounds) {
     return (
       <div
         style={{ height }}
@@ -423,17 +488,26 @@ export function LiveProjectMap({
       >
         <AlertTriangle className="h-5 w-5 text-amber-400" />
         <p className="text-sm">Ingen geometri registreret</p>
-        <p className="text-xs">Upload en GeoJSON-polygon for at aktivere kortvisning</p>
+        <p className="text-xs">
+          {rasterBlocker ??
+            "Tegn en projektgrænse eller upload fotos med GPS for at aktivere kortvisning"}
+        </p>
       </div>
     );
   }
 
-  const hasMedia = (mediaItems ?? []).filter((m) => !!m.coordinates).length > 0;
+  const hasMedia = hasPhotoPositions;
   const hasSensors = (sensors ?? []).length > 0;
 
   return (
     <div className="relative rounded-xl overflow-hidden border" style={{ height }}>
       <div ref={mapRef} className="h-full w-full" />
+      <OrthophotoOverlayControl
+        key={projectId}
+        map={mapReady ? mapInstance.current : null}
+        items={mediaItems ?? []}
+        projectId={projectId}
+      />
 
       {/* ── Status badge top-left ─────────────────────────────────────────── */}
       <div className="absolute top-2 left-2 z-[1000]">
@@ -447,7 +521,11 @@ export function LiveProjectMap({
           <MapPin className="h-3 w-3" />
           {geometry.hasValidGeometry
             ? `Polygon · ${geometry.areaHa != null ? `${geometry.areaHa} ha` : "areal ukendt"}`
-            : "Kun centroid"}
+            : geometry.centroid
+              ? "Kun centroid"
+              : hasPhotoPositions
+                ? "Fotos med egen GPS"
+                : "Importeret ortofoto · vælg overlay"}
         </span>
       </div>
 
@@ -492,7 +570,7 @@ export function LiveProjectMap({
         {/* Media toggle */}
         {hasMedia && (
           <PillBtn active={showMedia} onClick={() => setShowMedia((v) => !v)}>
-            Feltfotos
+            Fotos med GPS
           </PillBtn>
         )}
 

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Layers,
@@ -9,6 +9,7 @@ import {
   Building2,
   FileBarChart,
 } from "lucide-react";
+import { ProjectEvidenceStatus } from "@/components/ProjectEvidenceStatus";
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/impact")({
@@ -58,7 +59,7 @@ function ImpactLayout() {
           </nav>
         </div>
       </div>
-      <Outlet />
+      <ProjectEvidenceStatus />
     </>
   );
 }

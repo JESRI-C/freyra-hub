@@ -7,7 +7,7 @@
  *   <MapEditorMap {...map.mapProps} />
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getZonesByProject,
@@ -18,8 +18,8 @@ import {
   type ZoneType,
   type GeoJsonPolygon,
 } from "@/services/zones-service";
-import { fetchNatureData, fetchWatercourses } from "@/services/nature/paragraph3-service";
-import { getProjectSensors } from "@/services/iot-simulation-service";
+import { fetchParagraph3Overlap, fetchWatercourses } from "@/services/nature/paragraph3-service";
+import type { IoTSensor } from "@/services/iot-simulation-service";
 import { updateProjectDetails } from "@/services/projects-service";
 import type { Project } from "@/lib/supabase/types";
 import type { DrawMode } from "@/components/maps/MapEditorMap";
@@ -35,8 +35,12 @@ export interface NewZoneState {
 function polygonCentroid(geojson: GeoJsonPolygon): { lat: number; lng: number } | null {
   const ring = geojson.coordinates[0];
   if (!ring || ring.length === 0) return null;
-  let sumLat = 0, sumLng = 0;
-  ring.forEach(([lngC, latC]) => { sumLat += latC; sumLng += lngC; });
+  let sumLat = 0,
+    sumLng = 0;
+  ring.forEach(([lngC, latC]) => {
+    sumLat += latC;
+    sumLng += lngC;
+  });
   return {
     lat: Math.round((sumLat / ring.length) * 1e6) / 1e6,
     lng: Math.round((sumLng / ring.length) * 1e6) / 1e6,
@@ -60,6 +64,14 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   const [lastError, setLastError] = useState<string | null>(null);
   const [boundarySaved, setBoundarySaved] = useState(false);
 
+  useEffect(() => {
+    setSelectedZone(null);
+    setNewZoneState(null);
+    setLastError(null);
+    setBoundarySaved(false);
+    setDrawMode("none");
+  }, [project?.id]);
+
   // ── Zoner ─────────────────────────────────────────────────────────────────────
   const zonesQuery = useQuery({
     queryKey: ["zones", project?.id],
@@ -70,9 +82,16 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
 
   // ── §3 og artsobservationer ───────────────────────────────────────────────────
   const natureQuery = useQuery({
-    queryKey: ["nature-data", lat, lng, areaHa],
-    queryFn: () => fetchNatureData(lat!, lng!, areaHa),
-    enabled: !!lat && !!lng,
+    queryKey: ["nature-data", project?.id, lat, lng, project?.geometry_polygon],
+    queryFn: () =>
+      fetchParagraph3Overlap(
+        lat!,
+        lng!,
+        areaHa,
+        0.02,
+        project?.geometry_polygon as import("geojson").Polygon | null,
+      ),
+    enabled: !!project?.id && lat != null && lng != null,
     staleTime: 12 * 60 * 60 * 1000,
   });
 
@@ -80,15 +99,13 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   const watercoursesQuery = useQuery({
     queryKey: ["watercourses", lat, lng],
     queryFn: () => fetchWatercourses(lat!, lng!),
-    enabled: !!lat && !!lng,
+    enabled: !!project?.id && lat != null && lng != null,
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
 
   // ── IoT sensorer ──────────────────────────────────────────────────────────────
-  const sensors = lat && lng
-    ? getProjectSensors(project?.id ?? "", { lat, lng })
-    : [];
+  const sensors: IoTSensor[] = []; // No simulated sensor positions in customer maps.
 
   // ── Mutations ─────────────────────────────────────────────────────────────────
   const onMutationError = (err: unknown) => {
@@ -101,8 +118,12 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   };
 
   const createZoneMutation = useMutation({
-    mutationFn: (input: { name: string; area_type: ZoneType; geojson: GeoJsonPolygon; area_ha: number }) =>
-      createZone({ project_id: project!.id, ...input }),
+    mutationFn: (input: {
+      name: string;
+      area_type: ZoneType;
+      geojson: GeoJsonPolygon;
+      area_ha: number;
+    }) => createZone({ project_id: project!.id, ...input }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["zones", project?.id] });
       setNewZoneState(null);
@@ -113,8 +134,13 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   });
 
   const updateZoneMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<{ name: string; area_type: ZoneType }> }) =>
-      updateZone(id, input, project?.id),
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: Partial<{ name: string; area_type: ZoneType }>;
+    }) => updateZone(id, input, project?.id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["zones", project?.id] });
       setSelectedZone(null);
@@ -135,16 +161,26 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
 
   // Gem tegnet projektgrænse på projektet
   const saveBoundaryMutation = useMutation({
-    mutationFn: async ({ geojson, ha, source }: { geojson: GeoJsonPolygon; ha: number; source?: string }) => {
+    mutationFn: async ({
+      geojson,
+      ha,
+      source,
+    }: {
+      geojson: GeoJsonPolygon;
+      ha: number;
+      source?: string;
+    }) => {
       const centroid = polygonCentroid(geojson);
       await updateProjectDetails(project!.id, {
         geometry_polygon: geojson,
         geometry_area_ha: ha,
         geometry_source: source ?? "manual",
-        ...(centroid ? {
-          geometry_centroid_lat: centroid.lat,
-          geometry_centroid_lng: centroid.lng,
-        } : {}),
+        ...(centroid
+          ? {
+              geometry_centroid_lat: centroid.lat,
+              geometry_centroid_lng: centroid.lng,
+            }
+          : {}),
       });
     },
     onSuccess: () => {
@@ -190,28 +226,42 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   });
 
   // ── Drawing callbacks ──────────────────────────────────────────────────────────
-  const handleZoneCreated = useCallback((geojson: GeoJsonPolygon, ha: number) => {
-    setNewZoneState({ name: `Zone ${(zonesQuery.data?.length ?? 0) + 1}`, area_type: "nature", geojson, area_ha: ha });
-  }, [zonesQuery.data?.length]);
+  const handleZoneCreated = useCallback(
+    (geojson: GeoJsonPolygon, ha: number) => {
+      setNewZoneState({
+        name: `Zone ${(zonesQuery.data?.length ?? 0) + 1}`,
+        area_type: "nature",
+        geojson,
+        area_ha: ha,
+      });
+    },
+    [zonesQuery.data?.length],
+  );
 
-  const handleBoundaryDrawn = useCallback((geojson: GeoJsonPolygon, ha: number, source?: string) => {
-    setDrawMode("none");
-    saveBoundaryMutation.mutate({ geojson, ha, source });
-  }, [saveBoundaryMutation]);
+  const handleBoundaryDrawn = useCallback(
+    (geojson: GeoJsonPolygon, ha: number, source?: string) => {
+      setDrawMode("none");
+      saveBoundaryMutation.mutate({ geojson, ha, source });
+    },
+    [saveBoundaryMutation],
+  );
 
   const clearBoundary = useCallback(() => {
     clearBoundaryMutation.mutate();
   }, [clearBoundaryMutation]);
 
-  const confirmCreateZone = useCallback((name: string, area_type: ZoneType) => {
-    if (!newZoneState?.geojson || !newZoneState.area_ha) return;
-    createZoneMutation.mutate({
-      name,
-      area_type,
-      geojson: newZoneState.geojson,
-      area_ha: newZoneState.area_ha,
-    });
-  }, [newZoneState, createZoneMutation]);
+  const confirmCreateZone = useCallback(
+    (name: string, area_type: ZoneType) => {
+      if (!newZoneState?.geojson || !newZoneState.area_ha) return;
+      createZoneMutation.mutate({
+        name,
+        area_type,
+        geojson: newZoneState.geojson,
+        area_ha: newZoneState.area_ha,
+      });
+    },
+    [newZoneState, createZoneMutation],
+  );
 
   const cancelNewZone = useCallback(() => {
     setNewZoneState(null);
@@ -219,23 +269,24 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   }, []);
 
   // ── Data coverage beregning ───────────────────────────────────────────────────
-  const p3Data = natureQuery.data?.p3;
-  const sensorCoverage = sensors.length > 0 ? Math.round((sensors.filter((s) => s.status === "online").length / sensors.length) * 100) : 0;
-  const ndviCoverage = ndvi !== null && ndvi !== undefined ? 100 : 0;
-  const p3Coverage = p3Data ? Math.min(100, p3Data.overlapPercent * 1.5) : 0;
-  const fieldCoverage = 58; // fra felt-observationer — beregnes fra geo_observations
+  const p3Data = natureQuery.data;
+  const sensorCoverage = null;
+  const ndviCoverage = null;
+  const p3Coverage = null; // Overlap is not data coverage.
+  const fieldCoverage = null; // fra felt-observationer — beregnes fra geo_observations
 
   return {
     // Kortdata
     zones: zonesQuery.data ?? [],
     sensors,
-    paragraph3Areas: p3Data?.areas
-      .filter((a) => a.geometry !== null)
-      .map((a) => ({
-        id: a.id,
-        natureType: a.natureType,
-        geojson: a.geometry as GeoJsonPolygon | null,
-      })) ?? [],
+    paragraph3Areas:
+      p3Data?.areas
+        .filter((a) => a.geometry !== null)
+        .map((a) => ({
+          id: a.id,
+          natureType: a.natureType,
+          geojson: a.geometry as GeoJsonPolygon | null,
+        })) ?? [],
     watercourseFeatures: watercoursesQuery.data ?? [],
 
     // Layer synlighed
@@ -289,6 +340,10 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
     isLoading: zonesQuery.isLoading || natureQuery.isLoading,
     isNatureLoading: natureQuery.isLoading,
     p3Data,
-    speciesData: natureQuery.data?.species,
+    speciesData: undefined,
+    natureError: natureQuery.error instanceof Error ? natureQuery.error.message : null,
+    watercourseError:
+      watercoursesQuery.error instanceof Error ? watercoursesQuery.error.message : null,
+    officialFetchedAt: natureQuery.data?.fetchedAt ?? null,
   };
 }

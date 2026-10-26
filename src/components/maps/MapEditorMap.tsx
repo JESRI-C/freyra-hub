@@ -17,11 +17,13 @@ import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import type { Zone, ZoneType, GeoJsonPolygon } from "@/services/zones-service";
 import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS, calculatePolygonArea } from "@/services/zones-service";
+import { OrthophotoOverlayControl } from "@/components/maps/OrthophotoOverlayControl";
+import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import type { IoTSensor } from "@/services/iot-simulation-service";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-export type DrawMode = "none" | "boundary" | "zone" | "measure";
+export type DrawMode = "none" | "boundary" | "zone" | "measure" | "centerline";
 export type BaseLayer = "satellite" | "osm" | "terrain" | "topo";
 
 export interface WmsOverlay {
@@ -43,6 +45,8 @@ export interface MapEditorMapProps {
   boundaryGeoJSON?: GeoJsonPolygon | null;
   zones?: Zone[];
   sensors?: IoTSensor[];
+  mediaItems?: ProjectMediaItem[];
+  photoPositions?: Array<{ id: string; title: string; lat: number; lng: number; url: string }>;
   showSensors?: boolean;
   showParagraph3?: boolean;
   showWatercourses?: boolean;
@@ -55,6 +59,7 @@ export interface MapEditorMapProps {
   onZoneCreated?: (geojson: GeoJsonPolygon, areaHa: number) => void;
   onZoneClicked?: (zone: Zone) => void;
   onBoundaryDrawn?: (geojson: GeoJsonPolygon, areaHa: number) => void;
+  onCenterlineDrawn?: (geometry: import("geojson").LineString) => void;
   onMeasurement?: (areaHa: number, perimeterM: number) => void;
   /** External center commands (e.g. from address search). Changes trigger flyTo. */
   centerOverride?: { lat: number; lng: number; zoom?: number } | null;
@@ -78,7 +83,10 @@ export interface MapEditorMapProps {
 
 // ─── Base layers ──────────────────────────────────────────────────────────────
 
-const BASE_LAYERS: Record<BaseLayer, { url: string; attribution: string; label: string; maxZoom: number }> = {
+const BASE_LAYERS: Record<
+  BaseLayer,
+  { url: string; attribution: string; label: string; maxZoom: number }
+> = {
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution: "Tiles © Esri — Esri, Maxar, Earthstar Geographics",
@@ -111,10 +119,14 @@ const SENSOR_COLORS: Record<IoTSensor["status"], string> = {
   offline: "#ef4444",
 };
 
-const DRAW_STYLES: Record<Exclude<DrawMode, "none">, { color: string; fillOpacity: number; dashArray?: string }> = {
+const DRAW_STYLES: Record<
+  Exclude<DrawMode, "none">,
+  { color: string; fillOpacity: number; dashArray?: string }
+> = {
   boundary: { color: "#2BC48A", fillOpacity: 0.15 },
-  zone:     { color: "#f59e0b", fillOpacity: 0.2 },
-  measure:  { color: "#6366f1", fillOpacity: 0.12, dashArray: "5 5" },
+  zone: { color: "#f59e0b", fillOpacity: 0.2 },
+  centerline: { color: "#0284c7", fillOpacity: 0 },
+  measure: { color: "#6366f1", fillOpacity: 0.12, dashArray: "5 5" },
 };
 
 /** Hårdt loft for punkter pr. tegnet flade — fladen afsluttes automatisk ved loftet. */
@@ -131,7 +143,8 @@ export function haversineM(lat1: number, lng1: number, lat2: number, lng2: numbe
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
+  const a =
+    Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
@@ -147,7 +160,7 @@ export function polygonPerimeterM(latLngs: [number, number][]): number {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function MapEditorMap({
-  projectId: _projectId,
+  projectId,
   projectName,
   lat,
   lng,
@@ -155,6 +168,8 @@ export function MapEditorMap({
   boundaryGeoJSON,
   zones = [],
   sensors = [],
+  photoPositions = [],
+  mediaItems = [],
   showSensors = true,
   showParagraph3 = true,
   showWatercourses = true,
@@ -168,6 +183,7 @@ export function MapEditorMap({
   onZoneClicked,
   onBoundaryDrawn,
   onMeasurement,
+  onCenterlineDrawn,
   centerOverride,
   wmsOverlays,
   addressMarker,
@@ -201,8 +217,16 @@ export function MapEditorMap({
     preview: import("leaflet").GeoJSON | null;
     cadastre: import("leaflet").GeoJSON | null;
   }>({
-    base: null, boundary: null, zones: null, p3: null, wl: null,
-    ndvi: null, sensors: null, drawn: null, activeDrawer: null, editHandler: null,
+    base: null,
+    boundary: null,
+    zones: null,
+    p3: null,
+    wl: null,
+    ndvi: null,
+    sensors: null,
+    drawn: null,
+    activeDrawer: null,
+    editHandler: null,
     wms: new Map(),
     addressMarker: null,
     preview: null,
@@ -213,20 +237,27 @@ export function MapEditorMap({
   const [internalMode, setInternalMode] = useState<DrawMode>("none");
   const drawMode = drawModeProp ?? internalMode;
   const drawModeRef = useRef<DrawMode>(drawMode);
-  useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
+  useEffect(() => {
+    drawModeRef.current = drawMode;
+  }, [drawMode]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [baseLayer, setBaseLayer] = useState<BaseLayer>("satellite");
-  const [measurement, setMeasurement] = useState<{ areaHa: number; perimeterM: number } | null>(null);
+  const [measurement, setMeasurement] = useState<{ areaHa: number; perimeterM: number } | null>(
+    null,
+  );
   const [ready, setReady] = useState(false);
   // Live-tæller for punkter under tegning
   const [drawingPoints, setDrawingPoints] = useState(0);
 
-  const setMode = useCallback((mode: DrawMode) => {
-    setInternalMode(mode);
-    onDrawModeChange?.(mode);
-    setDrawingPoints(0);
-  }, [onDrawModeChange]);
+  const setMode = useCallback(
+    (mode: DrawMode) => {
+      setInternalMode(mode);
+      onDrawModeChange?.(mode);
+      setDrawingPoints(0);
+    },
+    [onDrawModeChange],
+  );
 
   // Tegn-værktøjslinje-handlers
   const undoLastVertex = useCallback(() => {
@@ -243,20 +274,33 @@ export function MapEditorMap({
     setMode("none");
   }, [setMode]);
 
-
   // Refs holder friske callbacks + pickMode så map-event listeners ikke skal genregistreres
   const pickModeRef = useRef(pickMode);
-  useEffect(() => { pickModeRef.current = pickMode; }, [pickMode]);
+  useEffect(() => {
+    pickModeRef.current = pickMode;
+  }, [pickMode]);
   const onPickRef = useRef(onFeaturePicked);
-  useEffect(() => { onPickRef.current = onFeaturePicked; }, [onFeaturePicked]);
-
-
+  useEffect(() => {
+    onPickRef.current = onFeaturePicked;
+  }, [onFeaturePicked]);
 
   // Holder callbacks friske i event handlers
-  const callbacksRef = useRef({ onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked });
+  const callbacksRef = useRef({
+    onZoneCreated,
+    onBoundaryDrawn,
+    onMeasurement,
+    onZoneClicked,
+    onCenterlineDrawn,
+  });
   useEffect(() => {
-    callbacksRef.current = { onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked };
-  }, [onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked]);
+    callbacksRef.current = {
+      onZoneCreated,
+      onBoundaryDrawn,
+      onMeasurement,
+      onZoneClicked,
+      onCenterlineDrawn,
+    };
+  }, [onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked, onCenterlineDrawn]);
 
   // ── Init ─────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -278,8 +322,8 @@ export function MapEditorMap({
       delete proto["_getIconUrl"];
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
       const map = L.map(containerRef.current, {
@@ -290,7 +334,10 @@ export function MapEditorMap({
       });
 
       const bl = BASE_LAYERS["satellite"];
-      layersRef.current.base = L.tileLayer(bl.url, { attribution: bl.attribution, maxZoom: bl.maxZoom }).addTo(map);
+      layersRef.current.base = L.tileLayer(bl.url, {
+        attribution: bl.attribution,
+        maxZoom: bl.maxZoom,
+      }).addTo(map);
 
       const drawnItems = new L.FeatureGroup();
       map.addLayer(drawnItems);
@@ -307,12 +354,21 @@ export function MapEditorMap({
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const gj = (layer as any).toGeoJSON() as { geometry: GeoJsonPolygon };
+          if (mode === "centerline") {
+            callbacksRef.current.onCenterlineDrawn?.(
+              gj.geometry as unknown as import("geojson").LineString,
+            );
+            map.removeLayer(layer);
+            setInternalMode("none");
+            onDrawModeChange?.("none");
+            return;
+          }
           const polygon = gj.geometry;
           const ha = await calculatePolygonArea(polygon);
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const ring: [number, number][] = ((layer as any).getLatLngs()[0] as Array<{ lat: number; lng: number }>)
-            .map((ll) => [ll.lat, ll.lng] as [number, number]);
+          const ring: [number, number][] = (
+            layer.getLatLngs()[0] as Array<{ lat: number; lng: number }>
+          ).map((ll) => [ll.lat, ll.lng] as [number, number]);
           const perimeterM = polygonPerimeterM([...ring, ring[0]]);
 
           const style = DRAW_STYLES[mode === "none" ? "zone" : mode];
@@ -320,9 +376,9 @@ export function MapEditorMap({
           (layer as any).setStyle?.({ ...style, weight: 2, fillColor: style.color });
 
           drawnItems.addLayer(layer);
-          layer.bindPopup(
-            `<strong>${ha} ha</strong><br/>${(perimeterM / 1000).toFixed(2)} km omkreds`,
-          ).openPopup();
+          layer
+            .bindPopup(`<strong>${ha} ha</strong><br/>${(perimeterM / 1000).toFixed(2)} km omkreds`)
+            .openPopup();
 
           setMeasurement({ areaHa: ha, perimeterM });
 
@@ -341,14 +397,15 @@ export function MapEditorMap({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         map.on("pm:drawstart", (e: any) => {
           setDrawingPoints(0);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           e?.workingLayer?.on?.("pm:vertexadded", () => {
             setDrawingPoints((n) => {
               const next = n + 1;
               if (next >= MAX_DRAW_POINTS) {
                 // Afslut fladen automatisk — ellers vokser den ukontrolleret.
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (map as any).pm?.Draw?.Polygon?._finishShape?.();
+                (map as any).pm?.Draw?.[
+                  drawModeRef.current === "centerline" ? "Line" : "Polygon"
+                ]?._finishShape?.();
                 toast.info(`Maks ${MAX_DRAW_POINTS} punkter — fladen er afsluttet automatisk.`);
               }
               return next;
@@ -366,7 +423,6 @@ export function MapEditorMap({
         const ll = (ev as any).latlng as { lat: number; lng: number };
         cb?.({ lat: ll.lat, lng: ll.lng });
       });
-
 
       mapRef.current = map;
       setReady(true);
@@ -394,7 +450,7 @@ export function MapEditorMap({
     if (drawMode === "none" || !pm) return;
 
     const style = DRAW_STYLES[drawMode];
-    pm.enableDraw("Polygon", {
+    pm.enableDraw(drawMode === "centerline" ? "Line" : "Polygon", {
       allowSelfIntersection: false,
       continueDrawing: false,
       tooltips: false,
@@ -405,8 +461,10 @@ export function MapEditorMap({
     // Ensartet interface for værktøjslinjens Fortryd/Afslut/Annuller-knapper.
     layersRef.current.activeDrawer = {
       disable: () => pm.disableDraw(),
-      deleteLastVertex: () => pm.Draw?.Polygon?._removeLastVertex?.(),
-      completeShape: () => pm.Draw?.Polygon?._finishShape?.(),
+      deleteLastVertex: () =>
+        pm.Draw?.[drawMode === "centerline" ? "Line" : "Polygon"]?._removeLastVertex?.(),
+      completeShape: () =>
+        pm.Draw?.[drawMode === "centerline" ? "Line" : "Polygon"]?._finishShape?.(),
     };
   }, [drawMode, ready]);
 
@@ -458,7 +516,10 @@ export function MapEditorMap({
       const map = mapRef.current!;
       if (layersRef.current.base) map.removeLayer(layersRef.current.base);
       const bl = BASE_LAYERS[baseLayer];
-      layersRef.current.base = L.tileLayer(bl.url, { attribution: bl.attribution, maxZoom: bl.maxZoom }).addTo(map);
+      layersRef.current.base = L.tileLayer(bl.url, {
+        attribution: bl.attribution,
+        maxZoom: bl.maxZoom,
+      }).addTo(map);
       layersRef.current.base.bringToBack();
     })();
   }, [baseLayer, ready]);
@@ -474,7 +535,9 @@ export function MapEditorMap({
       const layer = L.geoJSON(
         { type: "Feature", geometry: boundaryGeoJSON, properties: {} } as never,
         { style: { color: "#2BC48A", weight: 3, fillColor: "#2BC48A", fillOpacity: 0.08 } },
-      ).bindPopup(`<strong>${projectName}</strong>${areaHa ? `<br/>${areaHa} ha` : ""}`).addTo(map);
+      )
+        .bindPopup(`<strong>${projectName}</strong>${areaHa ? `<br/>${areaHa} ha` : ""}`)
+        .addTo(map);
       layersRef.current.boundary = layer;
       map.fitBounds(layer.getBounds(), { padding: [40, 40] });
     })();
@@ -501,13 +564,12 @@ export function MapEditorMap({
       zones.forEach((zone) => {
         if (!zone.geojson) return;
         const c = ZONE_TYPE_COLORS[zone.area_type as ZoneType] ?? ZONE_TYPE_COLORS.pilot_area;
-        L.geoJSON(
-          { type: "Feature", geometry: zone.geojson, properties: {} } as never,
-          { style: { color: c.stroke, weight: 2, fillColor: c.fill, fillOpacity: 0.3 } },
-        )
+        L.geoJSON({ type: "Feature", geometry: zone.geojson, properties: {} } as never, {
+          style: { color: c.stroke, weight: 2, fillColor: c.fill, fillOpacity: 0.3 },
+        })
           .bindPopup(
             `<strong>${zone.name}</strong><br/>${ZONE_TYPE_LABELS[zone.area_type as ZoneType]}` +
-            `${zone.area_ha ? `<br/>${zone.area_ha} ha` : ""}`,
+              `${zone.area_ha ? `<br/>${zone.area_ha} ha` : ""}`,
           )
           .on("click", () => callbacksRef.current.onZoneClicked?.(zone))
           .addTo(group);
@@ -527,10 +589,17 @@ export function MapEditorMap({
       layersRef.current.p3 = group;
       paragraph3Areas.forEach((a) => {
         if (!a.geojson) return;
-        L.geoJSON(
-          { type: "Feature", geometry: a.geojson, properties: {} } as never,
-          { style: { color: "#15803d", weight: 1.5, fillColor: "#22c55e", fillOpacity: 0.35, dashArray: "4 2" } },
-        ).bindPopup(`§3 ${a.natureType}`).addTo(group);
+        L.geoJSON({ type: "Feature", geometry: a.geojson, properties: {} } as never, {
+          style: {
+            color: "#15803d",
+            weight: 1.5,
+            fillColor: "#22c55e",
+            fillOpacity: 0.35,
+            dashArray: "4 2",
+          },
+        })
+          .bindPopup(`§3 ${a.natureType}`)
+          .addTo(group);
       });
     })();
   }, [showParagraph3, paragraph3Areas, ready]);
@@ -547,9 +616,16 @@ export function MapEditorMap({
       layersRef.current.wl = group;
       watercourseFeatures.forEach((wc) => {
         if (wc.coordinates.length < 2) return;
-        L.polyline(wc.coordinates.map((c) => [c[1], c[0]] as [number, number]), {
-          color: "#3B82F6", weight: 2.5, opacity: 0.85,
-        }).bindPopup(wc.name ?? "Vandløb").addTo(group);
+        L.polyline(
+          wc.coordinates.map((c) => [c[1], c[0]] as [number, number]),
+          {
+            color: "#3B82F6",
+            weight: 2.5,
+            opacity: 0.85,
+          },
+        )
+          .bindPopup(wc.name ?? "Vandløb")
+          .addTo(group);
       });
     })();
   }, [showWatercourses, watercourseFeatures, ready]);
@@ -565,12 +641,20 @@ export function MapEditorMap({
         layersRef.current.ndvi = null;
       }
       if (!showNdviOverlay || ndviValue == null || !boundaryGeoJSON) return;
-      const color = ndviValue >= 0.6 ? "#16a34a" : ndviValue >= 0.4 ? "#65a30d" :
-                    ndviValue >= 0.2 ? "#ca8a04" : "#dc2626";
+      const color =
+        ndviValue >= 0.6
+          ? "#16a34a"
+          : ndviValue >= 0.4
+            ? "#65a30d"
+            : ndviValue >= 0.2
+              ? "#ca8a04"
+              : "#dc2626";
       layersRef.current.ndvi = L.geoJSON(
         { type: "Feature", geometry: boundaryGeoJSON, properties: {} } as never,
         { style: { color: "transparent", fillColor: color, fillOpacity: 0.4 } },
-      ).bindPopup(`NDVI: ${ndviValue.toFixed(2)}`).addTo(map);
+      )
+        .bindPopup(`NDVI: ${ndviValue.toFixed(2)}`)
+        .addTo(map);
     })();
   }, [showNdviOverlay, ndviValue, boundaryGeoJSON, ready]);
 
@@ -588,11 +672,15 @@ export function MapEditorMap({
         L.marker([s.coordinates.lat, s.coordinates.lng], {
           icon: L.divIcon({
             html: `<div style="width:14px;height:14px;border-radius:50%;background:${SENSOR_COLORS[s.status]};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
-            className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+            className: "",
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
           }),
-        }).bindPopup(
-          `<strong>${s.label}</strong><br/>${s.latestValue} ${s.unit}<br/>🔋 ${s.batteryPercent}%`,
-        ).addTo(group);
+        })
+          .bindPopup(
+            `<strong>${s.label}</strong><br/>${s.latestValue} ${s.unit}<br/>🔋 ${s.batteryPercent}%`,
+          )
+          .addTo(group);
       });
     })();
   }, [showSensors, sensors, ready]);
@@ -600,11 +688,9 @@ export function MapEditorMap({
   // ── Center override (from address search) ─────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || !ready || !centerOverride) return;
-    mapRef.current.flyTo(
-      [centerOverride.lat, centerOverride.lng],
-      centerOverride.zoom ?? 16,
-      { duration: 0.8 },
-    );
+    mapRef.current.flyTo([centerOverride.lat, centerOverride.lng], centerOverride.zoom ?? 16, {
+      duration: 0.8,
+    });
   }, [centerOverride, ready]);
 
   // ── WMS overlays (matrikelskel, markblokke, etc.) ────────────────────────────
@@ -670,7 +756,13 @@ export function MapEditorMap({
       const s = clampLat(b.getSouth());
       const n = clampLat(b.getNorth());
       if (w >= e || s >= n) return; // udsnit helt uden for DK
-      const ring: [number, number][] = [[w, s], [e, s], [e, n], [w, n], [w, s]];
+      const ring: [number, number][] = [
+        [w, s],
+        [e, s],
+        [e, n],
+        [w, n],
+        [w, s],
+      ];
 
       try {
         const { listMatriklerInArea } = await import("@/lib/geo-search.functions");
@@ -687,19 +779,16 @@ export function MapEditorMap({
             geometry: it.geometry as { type: string; coordinates: unknown },
           }));
         if (features.length === 0) return;
-        const layer = L.geoJSON(
-          { type: "FeatureCollection", features } as never,
-          {
-            style: CADASTRE_STYLE,
-            onEachFeature: (feature, l) => {
-              const p = feature.properties as { label?: string; areaHa?: number | null };
-              l.bindTooltip(
-                `${p.label ?? "Matrikel"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`,
-                { sticky: true, direction: "top" },
-              );
-            },
+        const layer = L.geoJSON({ type: "FeatureCollection", features } as never, {
+          style: CADASTRE_STYLE,
+          onEachFeature: (feature, l) => {
+            const p = feature.properties as { label?: string; areaHa?: number | null };
+            l.bindTooltip(
+              `${p.label ?? "Matrikel"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`,
+              { sticky: true, direction: "top" },
+            );
           },
-        ).addTo(map);
+        }).addTo(map);
         layersRef.current.cadastre = layer;
       } catch {
         // Opslag fejlede (offline/API nede) — kortet virker stadig uden laget.
@@ -746,12 +835,49 @@ export function MapEditorMap({
       if (!previewPolygon) return;
       const layer = L.geoJSON(
         { type: "Feature", geometry: previewPolygon, properties: {} } as never,
-        { style: { color: "#f59e0b", weight: 2.5, dashArray: "6 4", fillColor: "#f59e0b", fillOpacity: 0.2 } },
+        {
+          style: {
+            color: "#f59e0b",
+            weight: 2.5,
+            dashArray: "6 4",
+            fillColor: "#f59e0b",
+            fillOpacity: 0.2,
+          },
+        },
       ).addTo(map);
       layersRef.current.preview = layer;
       map.fitBounds(layer.getBounds(), { padding: [40, 40] });
     })();
   }, [previewPolygon, ready]);
+
+  // Original-photo positions only; missing GPS never receives a project centroid.
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    let disposed = false;
+    let group: import("leaflet").FeatureGroup | undefined;
+    void import("leaflet").then((L) => {
+      if (disposed || !mapRef.current) return;
+      group = L.featureGroup().addTo(mapRef.current);
+      photoPositions.forEach((photo) => {
+        const popup = document.createElement("div");
+        const name = document.createElement("strong");
+        name.textContent = photo.title;
+        popup.appendChild(name);
+        const img = document.createElement("img");
+        img.src = photo.url;
+        img.alt = photo.title;
+        img.style.maxWidth = "220px";
+        popup.appendChild(img);
+        L.circleMarker([photo.lat, photo.lng], { radius: 5, color: "#a21caf", fillOpacity: 0.85 })
+          .bindPopup(popup)
+          .addTo(group!);
+      });
+    });
+    return () => {
+      disposed = true;
+      group?.remove();
+    };
+  }, [photoPositions, ready]);
 
   // ── Cursor for pick-mode ──────────────────────────────────────────────────
   useEffect(() => {
@@ -759,9 +885,6 @@ export function MapEditorMap({
     if (!el) return;
     el.style.cursor = pickMode ? "crosshair" : "";
   }, [pickMode]);
-
-
-
 
   // ─── UI ─────────────────────────────────────────────────────────────────────
   const toolBtn = (active: boolean, activeCls: string) =>
@@ -774,9 +897,20 @@ export function MapEditorMap({
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 px-3 py-2 bg-card border-b flex-wrap">
         <span className="text-xs text-muted-foreground">Tegn:</span>
+        {onCenterlineDrawn && (
+          <button
+            onClick={() => setMode(drawMode === "centerline" ? "none" : "centerline")}
+            className={toolBtn(drawMode === "centerline", "bg-sky-600 text-white border-sky-600")}
+          >
+            Vandløbslinje
+          </button>
+        )}
         <button
           onClick={() => setMode(drawMode === "boundary" ? "none" : "boundary")}
-          className={toolBtn(drawMode === "boundary", "bg-emerald-600 text-white border-emerald-600")}
+          className={toolBtn(
+            drawMode === "boundary",
+            "bg-emerald-600 text-white border-emerald-600",
+          )}
         >
           ⬠ Projektgrænse
         </button>
@@ -795,7 +929,10 @@ export function MapEditorMap({
 
         <div className="w-px h-4 bg-border mx-1" />
 
-        <button onClick={toggleEdit} className={toolBtn(isEditing, "bg-blue-600 text-white border-blue-600")}>
+        <button
+          onClick={toggleEdit}
+          className={toolBtn(isEditing, "bg-blue-600 text-white border-blue-600")}
+        >
           ✏️ {isEditing ? "Gem redigering" : "Redigér"}
         </button>
         <button onClick={clearDrawings} className={toolBtn(false, "")}>
@@ -828,6 +965,12 @@ export function MapEditorMap({
       {/* ── Kort ───────────────────────────────────────────────────────────── */}
       <div className="relative flex-1 min-h-0">
         <div ref={containerRef} className="h-full w-full" />
+        <OrthophotoOverlayControl
+          key={projectId}
+          map={ready ? mapRef.current : null}
+          items={mediaItems}
+          projectId={projectId}
+        />
 
         {drawMode !== "none" && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/98 backdrop-blur rounded-xl shadow-lg border px-3 py-2 flex items-center gap-2 flex-wrap max-w-[95%]">
@@ -835,6 +978,8 @@ export function MapEditorMap({
               {drawMode === "boundary" && "Tegning aktiv — klik på kortet for at tilføje punkter"}
               {drawMode === "zone" && "Tegn zone — klik punkter"}
               {drawMode === "measure" && "Tegn måleområde"}
+              {drawMode === "centerline" &&
+                "Tegn vandløbslinje - klik punkter i den valgte retning"}
             </span>
             <span className="text-xs text-muted-foreground border-l pl-2">
               {drawingPoints} punkt{drawingPoints === 1 ? "" : "er"}
@@ -844,16 +989,22 @@ export function MapEditorMap({
               onClick={undoLastVertex}
               disabled={drawingPoints === 0}
               className="text-xs px-2.5 py-1 rounded-md border bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
-            >↶ Fortryd punkt</button>
+            >
+              ↶ Fortryd punkt
+            </button>
             <button
               onClick={finishShape}
-              disabled={drawingPoints < 3}
+              disabled={drawingPoints < (drawMode === "centerline" ? 2 : 3)}
               className="text-xs px-2.5 py-1 rounded-md border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
-            >✓ Afslut flade</button>
+            >
+              ✓ {drawMode === "centerline" ? "Afslut linje" : "Afslut flade"}
+            </button>
             <button
               onClick={cancelDrawing}
               className="text-xs px-2.5 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-            >✕ Annuller</button>
+            >
+              ✕ Annuller
+            </button>
           </div>
         )}
 
@@ -863,7 +1014,6 @@ export function MapEditorMap({
           </div>
         )}
 
-
         {measurement && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-white rounded-xl shadow-lg border px-5 py-3 flex items-center gap-4">
             <div className="text-center">
@@ -872,13 +1022,17 @@ export function MapEditorMap({
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center">
-              <div className="text-xl font-bold">{(measurement.perimeterM / 1000).toFixed(2)} km</div>
+              <div className="text-xl font-bold">
+                {(measurement.perimeterM / 1000).toFixed(2)} km
+              </div>
               <div className="text-xs text-muted-foreground">Omkreds</div>
             </div>
             <button
               onClick={() => setMeasurement(null)}
               className="ml-2 text-muted-foreground hover:text-foreground text-lg leading-none"
-            >×</button>
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -894,7 +1048,8 @@ export function MapEditorMap({
         )}
 
         <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur rounded-lg shadow border px-3 py-1.5 text-xs font-medium">
-          {projectName}{areaHa ? ` · ${areaHa} ha` : ""}
+          {projectName}
+          {areaHa ? ` · ${areaHa} ha` : ""}
         </div>
       </div>
     </div>

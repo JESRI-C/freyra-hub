@@ -9,7 +9,13 @@ import {
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import type { ProjectReportPreview } from "@/lib/report-engine";
 
-function ReadinessMeter({ score }: { score: number }) {
+function ReadinessMeter({ score }: { score: number | null }) {
+  if (score === null)
+    return (
+      <p className="text-xs text-muted-foreground">
+        Rapportklarhed: Ukendt. Kontrollér kilder og godkendelser i rapportens konkrete version.
+      </p>
+    );
   const color = score >= 80 ? "bg-emerald-500" : score >= 60 ? "bg-amber-500" : "bg-red-500";
   const tone: "success" | "warning" | "danger" =
     score >= 80 ? "success" : score >= 60 ? "warning" : "danger";

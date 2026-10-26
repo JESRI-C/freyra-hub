@@ -50,7 +50,8 @@ export async function createReport(input: CreateReportInput): Promise<{ id: stri
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    const id = (data?.["id"] as string) ?? `report-${Date.now()}`;
+    const id = data?.["id"] as string | undefined;
+    if (!id) throw new Error("Rapporten blev ikke gemt.");
     void logAuditEvent({
       event_type: "report_created",
       title: `Rapport oprettet: ${input.type} (${input.period})`,
@@ -60,7 +61,7 @@ export async function createReport(input: CreateReportInput): Promise<{ id: stri
     });
     return { id };
   }
-  return { id: `report-${Date.now()}` };
+  throw new Error("Database ikke konfigureret; rapporten er ikke gemt.");
 }
 
 export async function approveReport(id: string, projectId?: string): Promise<void> {
@@ -89,17 +90,8 @@ export async function submitReportForReview(id: string, projectId?: string): Pro
   });
 }
 
-export async function exportReport(id: string, projectId?: string): Promise<void> {
-  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
-  await updateReport(id, { status: "exported" });
-  void logAuditEvent({
-    project_id: projectId,
-    event_type: "report",
-    title: "Rapport eksporteret",
-    description: `Rapport-ID: ${id}`,
-    actor: "Bruger",
-    source: "manual",
-  });
+export async function exportReport(_id: string, _projectId?: string): Promise<void> {
+  throw new Error("Vælg en gemt rapportversion i Rapportcenter for at generere en faktisk fil.");
 }
 
 function isMissingTable(err: unknown): boolean {
@@ -108,23 +100,22 @@ function isMissingTable(err: unknown): boolean {
 
 export async function getReportsByProject(projectId: string): Promise<Report[]> {
   const fallback = () => SEED_REPORTS.filter((r) => r.project_id === projectId);
-  if (!isSupabaseConfigured) return fallback();
+  if (!isSupabaseConfigured) return [];
   try {
     return await fetchReportsByProject(projectId);
   } catch (err) {
-    if (isMissingTable(err)) return fallback();
+    if (isMissingTable(err)) return [];
     throw err;
   }
 }
 
 export async function getAllReports(): Promise<Report[]> {
-  const fallback = () =>
-    [...SEED_REPORTS].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  if (!isSupabaseConfigured) return fallback();
+  const fallback = () => [...SEED_REPORTS].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  if (!isSupabaseConfigured) return [];
   try {
     return await fetchAllReports();
   } catch (err) {
-    if (isMissingTable(err)) return fallback();
+    if (isMissingTable(err)) return [];
     throw err;
   }
 }

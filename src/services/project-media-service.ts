@@ -1,3 +1,4 @@
+import { inspectOrthophoto } from "./monitoring/orthophoto-metadata";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import type {
   ProjectMediaItem,
@@ -5,7 +6,7 @@ import type {
   MediaSource,
   MediaStatus,
 } from "@/lib/platform/media-types";
-import { getProjectMedia as getSeedMedia } from "@/data/project-media";
+import { readOriginalMetadata, sha256 } from "./monitoring/drone-ingest";
 
 // Minimal interface for an untyped Supabase query builder, used to access the
 // project_media table which is not yet in the generated Database types.
@@ -16,6 +17,7 @@ interface UntypedQueryBuilder {
   delete(): UntypedQueryBuilder;
   eq(column: string, value: unknown): UntypedQueryBuilder;
   limit(count: number): UntypedQueryBuilder;
+  range(from: number, to: number): UntypedQueryBuilder;
   order(column: string, opts?: { ascending: boolean }): UntypedQueryBuilder;
   single(): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
   then(resolve: (value: { data: unknown; error: { message: string } | null }) => void): void;
@@ -40,14 +42,17 @@ export interface UploadMediaInput {
   tags: string[];
   coordinates?: { lat: number; lng: number; altitudeM?: number; accuracyM?: number };
   capturedAt?: string;
+  flightId?: string;
+  assetType?: "original" | "orthophoto";
 }
 
 export interface MediaServiceResult<T> {
   data: T | null;
   error: string | null;
+  duplicate?: boolean;
 }
 
-const BUCKET = "project-media";
+const BUCKET = "project-originals";
 
 // Map a DB row (snake_case) to ProjectMediaItem (camelCase)
 function rowToMediaItem(row: Record<string, unknown>): ProjectMediaItem {
@@ -85,6 +90,9 @@ function rowToMediaItem(row: Record<string, unknown>): ProjectMediaItem {
     documentId: (row["document_id"] as string | null | undefined) ?? null,
     direction: (row["direction"] as number | null | undefined) ?? null,
     beforeMediaId: (row["before_media_id"] as string | null | undefined) ?? null,
+    flightId: (row["flight_id"] as string | null | undefined) ?? null,
+    sha256: (row["sha256"] as string | null | undefined) ?? null,
+    metadata: (row["metadata"] as Record<string, unknown> | undefined) ?? {},
   };
 }
 
@@ -93,21 +101,26 @@ export async function listProjectMedia(
   projectId: string,
 ): Promise<MediaServiceResult<ProjectMediaItem[]>> {
   if (!isSupabaseConfigured || supabase === null) {
-    return { data: getSeedMedia(projectId), error: null };
+    return { data: null, error: "Supabase ikke konfigureret. Ingen medier er hentet." };
   }
 
-  const { data, error } = await getDb()!
-    .from("project_media")
-    .select("*")
-    .eq("project_id", projectId)
-    .order("uploaded_at", { ascending: false });
-
-  if (error) {
-    return { data: null, error: error.message };
+  const rows: Record<string, unknown>[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await getDb()!
+      .from("project_media")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("uploaded_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) return { data: null, error: error.message };
+    const page = (data ?? []) as Record<string, unknown>[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
   }
 
-  const rows = (data ?? []) as Record<string, unknown>[];
-  return { data: rows.map(rowToMediaItem), error: null };
+  return { data: await Promise.all(rows.map(resolveMediaItem)), error: null };
 }
 
 // Upload a file to storage and insert a DB record
@@ -115,44 +128,42 @@ export async function listProjectMedia(
 export async function uploadProjectMedia(
   input: UploadMediaInput,
 ): Promise<MediaServiceResult<ProjectMediaItem>> {
-  if (!isSupabaseConfigured || supabase === null) {
-    // Preview mode — construct a mock item without actual upload
-    const mockItem: ProjectMediaItem = {
-      id: `mock-${Date.now()}`,
-      projectId: input.projectId,
-      title: input.title,
-      description: input.description,
-      category: input.category,
-      source: input.source,
-      url: URL.createObjectURL(input.file),
-      uploadedAt: new Date().toISOString(),
-      capturedAt: input.capturedAt,
-      coordinates: input.coordinates,
-      isReportReady: input.isReportReady,
-      tags: input.tags,
-      status: "uploaded",
-    };
-    return { data: mockItem, error: null };
-  }
-
-  // Build storage path
-  const timestamp = Date.now();
-  const safeName = input.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filePath = `${input.projectId}/${timestamp}_${safeName}`;
-
-  // Upload file to storage
+  if (!isSupabaseConfigured || supabase === null)
+    return { data: null, error: "Supabase ikke konfigureret. Filen er ikke gemt." };
+  if (!input.projectId) return { data: null, error: "Vælg et projekt før upload." };
+  if (input.file.size > 200 * 1024 * 1024)
+    return { data: null, error: "Maksimal filstørrelse er 200 MB." };
+  const checksum = await sha256(input.file);
+  const metadata = await readOriginalMetadata(input.file);
+  const orthophoto = input.assetType === "orthophoto" ? await inspectOrthophoto(input.file) : null;
+  const scope = input.flightId ?? "field";
+  const { data: existing, error: lookupError } = await getDb()!
+    .from("project_media")
+    .select("*")
+    .eq("project_id", input.projectId)
+    .eq("sha256", checksum)
+    .eq("upload_scope", scope)
+    .limit(1);
+  if (lookupError) return { data: null, error: lookupError.message };
+  if (Array.isArray(existing) && existing.length)
+    return { data: await resolveMediaItem(existing[0]), error: null, duplicate: true };
+  const filePath = `${input.projectId}/${scope}/${checksum}`;
   const { error: storageError } = await supabase.storage.from(BUCKET).upload(filePath, input.file, {
     cacheControl: "3600",
     upsert: false,
-    contentType: input.file.type || undefined,
+    contentType: input.file.type || "application/octet-stream",
   });
-
-  if (storageError) {
+  // A previous upload may have reached storage before its metadata insert failed.
+  if (storageError && !/already exists|duplicate/i.test(storageError.message))
     return { data: null, error: storageError.message };
-  }
-
-  // Get public URL
-  const publicUrl = getMediaPublicUrl(filePath) ?? "";
+  const coordinates =
+    metadata.latitude !== null && metadata.longitude !== null
+      ? {
+          lat: metadata.latitude,
+          lng: metadata.longitude,
+          altitudeM: metadata.altitudeM ?? undefined,
+        }
+      : input.coordinates;
 
   // Insert DB record
   const insertPayload = {
@@ -162,13 +173,25 @@ export async function uploadProjectMedia(
     category: input.category,
     source: input.source,
     file_path: filePath,
-    url: publicUrl,
+    url: "",
+    storage_bucket: BUCKET,
+    sha256: checksum,
+    upload_scope: scope,
+    flight_id: input.flightId ?? null,
+    metadata: {
+      ...metadata,
+      original_name: input.file.name,
+      asset_type: input.assetType ?? "original",
+      orthophoto,
+      gps_source: metadata.latitude !== null ? "exif" : coordinates ? "manual" : "missing",
+    },
+    direction: metadata.direction,
     thumbnail_url: null,
-    captured_at: input.capturedAt ?? null,
-    lat: input.coordinates?.lat ?? null,
-    lng: input.coordinates?.lng ?? null,
-    altitude_m: input.coordinates?.altitudeM ?? null,
-    accuracy_m: input.coordinates?.accuracyM ?? null,
+    captured_at: metadata.capturedAt ?? input.capturedAt ?? null,
+    lat: coordinates?.lat ?? null,
+    lng: coordinates?.lng ?? null,
+    altitude_m: coordinates?.altitudeM ?? null,
+    accuracy_m: coordinates?.accuracyM ?? null,
     is_report_ready: input.isReportReady,
     tags: input.tags,
     status: "uploaded" as MediaStatus,
@@ -183,12 +206,11 @@ export async function uploadProjectMedia(
     .single();
 
   if (insertError) {
-    // Best-effort cleanup of the uploaded file
-    await supabase.storage.from(BUCKET).remove([filePath]);
+    // Preserve original for safe retry; never delete a possibly shared checksum object.
     return { data: null, error: insertError.message };
   }
 
-  return { data: rowToMediaItem(insertData as Record<string, unknown>), error: null };
+  return { data: await resolveMediaItem(insertData as Record<string, unknown>), error: null };
 }
 
 // Update metadata (title, description, isReportReady, tags)
@@ -217,7 +239,7 @@ export async function updateProjectMedia(
     return { data: null, error: error.message };
   }
 
-  return { data: rowToMediaItem(data as Record<string, unknown>), error: null };
+  return { data: await resolveMediaItem(data as Record<string, unknown>), error: null };
 }
 
 // Delete a media item (removes storage file + DB record)
@@ -229,7 +251,19 @@ export async function deleteProjectMedia(
     return { data: null, error: "Supabase ikke konfigureret" };
   }
 
-  // Delete DB record first
+  const { data: original, error: readError } = await getDb()!
+    .from("project_media")
+    .select("sha256,storage_bucket")
+    .eq("id", id)
+    .single();
+  if (readError) return { data: null, error: readError.message };
+  if (original?.sha256)
+    return {
+      data: null,
+      error: "Originaler bevares af hensyn til dokumentation og kan ikke slettes her.",
+    };
+
+  // Delete legacy DB record first
   const { error: dbError } = await getDb()!.from("project_media").delete().eq("id", id);
 
   if (dbError) {
@@ -238,16 +272,25 @@ export async function deleteProjectMedia(
 
   // Remove storage file (best-effort)
   if (filePath) {
-    await supabase.storage.from(BUCKET).remove([filePath]);
+    await supabase.storage
+      .from(String(original?.storage_bucket ?? "project-media"))
+      .remove([filePath]);
   }
 
   return { data: undefined, error: null };
 }
 
-// Get public URL for a storage path
-export function getMediaPublicUrl(filePath: string): string | null {
-  if (!isSupabaseConfigured || supabase === null) return null;
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
-  return data.publicUrl;
+// New originals are private. Signed URLs are issued only after storage RLS authorizes access.
+async function resolveMediaItem(row: Record<string, unknown>): Promise<ProjectMediaItem> {
+  const item = rowToMediaItem(row);
+  if (row.storage_bucket && row.file_path && supabase) {
+    const { data, error } = await supabase.storage
+      .from(String(row.storage_bucket))
+      .createSignedUrl(String(row.file_path), 900);
+    item.url = error ? "" : (data?.signedUrl ?? "");
+  }
+  return item;
+}
+export function getMediaPublicUrl(_filePath: string): null {
+  return null;
 }

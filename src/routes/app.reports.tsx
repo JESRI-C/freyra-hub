@@ -45,6 +45,9 @@ function ReportsLayout() {
                 <Link
                   key={t.to}
                   to={t.to as never}
+                  search={(previous: Record<string, unknown>) =>
+                    ({ report: previous.report, version: previous.version }) as never
+                  }
                   className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${active ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
                 >
                   <Icon className="h-4 w-4" /> {t.label}
