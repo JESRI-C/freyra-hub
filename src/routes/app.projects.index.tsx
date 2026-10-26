@@ -38,6 +38,9 @@ const PROJECT_TYPES = [
   "Kystbeskyttelse",
   "Skovrejsning",
   "Vådområde",
+  "Parkering",
+  "Erhvervsbyggeri",
+  "Boligbyggeri",
 ] as const;
 
 type ProjectType = (typeof PROJECT_TYPES)[number];

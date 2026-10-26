@@ -16,8 +16,14 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen flex bg-background">
+      <a
+        href="#workspace-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded focus:bg-card focus:p-3"
+      >
+        Gå til indhold
+      </a>
       <AppSidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div id="workspace-content" tabIndex={-1} className="flex-1 min-w-0 flex flex-col">
         <ProjectContextBoundary>
           {orgId ? (
             <>

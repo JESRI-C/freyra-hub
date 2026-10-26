@@ -119,6 +119,8 @@ export async function getMeasurements(
   indicator: Indicator,
   period: Period = "90d",
 ): Promise<IndicatorMeasurement[]> {
+  if (isDemoDataEnabled)
+    return seedMeasurements(indicator, period === "30d" ? 30 : period === "90d" ? 90 : 365);
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   return fetchMeasurementsForIndicator(indicator.id, periodToSince(period));
 }

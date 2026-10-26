@@ -58,21 +58,17 @@ describe("prepared assistant scope boundary", () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      limit: vi
-        .fn()
-        .mockResolvedValue({
-          data:
-            table === "indicators"
-              ? [{ id: "i", key: "water", label: "Måling", value: 0, unit: "m", updated_at: null }]
-              : [],
-          error: null,
-        }),
-      maybeSingle: vi
-        .fn()
-        .mockResolvedValue({
-          data: { id: "project-a", name: "Sag", description: null },
-          error: null,
-        }),
+      limit: vi.fn().mockResolvedValue({
+        data:
+          table === "indicators"
+            ? [{ id: "i", key: "water", label: "Måling", value: 0, unit: "m", updated_at: null }]
+            : [],
+        error: null,
+      }),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: "project-a", name: "Sag", description: null },
+        error: null,
+      }),
     }));
   }
   const reply = {
@@ -115,5 +111,12 @@ describe("prepared assistant scope boundary", () => {
       "credential_in_evidence",
     );
     expect(mocks.generateText).not.toHaveBeenCalled();
+  });
+  it("does not disclose provider failures or credentials to the browser", async () => {
+    permittedProject();
+    mocks.generateText.mockRejectedValue(new Error("offline-provider-key private upstream body"));
+    const result = await call(input);
+    expect(result.reason).toBe("unknown");
+    expect(JSON.stringify(result)).not.toMatch(/offline-provider-key|upstream|private/);
   });
 });

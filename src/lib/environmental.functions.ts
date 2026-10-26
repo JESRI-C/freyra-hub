@@ -436,62 +436,8 @@ function previewBundle(lat: number, lng: number): EnvironmentalBundle {
 
 export const fetchEnvironmentalBundle = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => PointInput.parse(raw))
-  .handler(async ({ data }): Promise<EnvironmentalBundle> => {
-    // Respektér preview-mode: åbne kilder er live som standard, men slås fra
-    // hvis ENABLE_LIVE_DATA/VITE_ENABLE_LIVE_DATA er sat eksplicit falsk.
-    const { isOpenDataLiveEnabled } = await import("@/lib/nature-geo.functions");
-    if (!isOpenDataLiveEnabled()) return previewBundle(data.lat, data.lng);
-
-    const areaHa = data.areaHa ?? 1;
-    const [p3, water, n2k, soil, terrain, groundwater] = await Promise.all([
-      fetchParagraph3(data.lat, data.lng, areaHa).catch(() => ({
-        paragraph3AreasHa: 0,
-        paragraph3Percent: 0,
-        natureTypes: [],
-      })),
-      fetchWatercourses(data.lat, data.lng).catch(() => ({
-        watercourseCount: 0,
-        nearestWatercourseM: null,
-      })),
-      fetchNatura2000(data.lat, data.lng).catch(() => ({
-        withinM: null,
-        nearestName: null,
-        sitesWithin5km: 0,
-      })),
-      fetchSoil(data.lat, data.lng).catch(() => ({
-        dominantType: "Ukendt",
-        permeability: "unknown" as const,
-        organicPct: 3,
-        curveNumber: 70,
-      })),
-      fetchTerrain(data.lat, data.lng).catch(() => ({
-        elevationM: null,
-        slopePct: null,
-        aspect: "unknown" as const,
-      })),
-      fetchGroundwater(data.lat, data.lng).catch(() => ({
-        boreholesWithin500m: 0,
-        nearestBoreholeM: null,
-        depthM: null,
-      })),
-    ]);
-    const norm = rainfallFromClimateNorm(data.lat, data.lng);
-    // Ægte DMI-måling når nøglen findes; designregn beholder norm-værdierne
-    // (dimensioneringsstørrelser), men årsnedbøren bliver målt i stedet for skønnet.
-    const dmiAnnual = await fetchDmiAnnualRainfall(data.lat, data.lng).catch(() => null);
-
-    return {
-      nature: { ...p3, ...water },
-      natura2000: n2k,
-      soil,
-      terrain,
-      groundwater,
-      rainfall: {
-        annualMm: dmiAnnual ?? norm.annualMm,
-        designRain10yrMmHr: norm.designRain10yrMmHr,
-        designRain100yrMmHr: norm.designRain100yrMmHr,
-        source: dmiAnnual != null ? "dmi-live" : norm.source,
-      },
-      fetchedAt: new Date().toISOString(),
-    };
+  .handler(async (): Promise<EnvironmentalBundle> => {
+    throw new Error(
+      "Miljødata kræver verificeret projektgeometri og kildegrundlag; ingen preview-tal anvendes.",
+    );
   });

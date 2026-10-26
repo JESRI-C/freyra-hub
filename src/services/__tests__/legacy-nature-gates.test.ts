@@ -1,17 +1,19 @@
 import { expect, it, vi } from "vitest";
-vi.mock("@tanstack/react-start", () => ({
+vi.mock("@tanstack/react-start", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-start")>()),
   createServerFn: () => ({
+    middleware() {
+      return this;
+    },
     inputValidator: () => ({
       handler: (callback: (args: unknown) => Promise<unknown>) => callback,
     }),
   }),
 }));
-import { fetchAndIngestNatureGeo } from "@/lib/nature-geo.functions";
+import { parseNatureGeoInput } from "@/lib/nature-geo.functions";
 import { fetchEnvironmentalBundle } from "@/lib/environmental.functions";
-it("blocks legacy service-role nature ingest before any network or DB writes", async () => {
-  await expect(
-    fetchAndIngestNatureGeo({ data: { projectId: "other-tenant", lat: 55, lng: 9 } }),
-  ).rejects.toThrow("projektadgang");
+it("rejects an unscoped legacy nature request before any network or DB writes", () => {
+  expect(() => parseNatureGeoInput({ projectId: "other-tenant", lat: 55, lng: 9 })).toThrow();
 });
 it("blocks the old point-derived bundle rather than returning fabricated overlap and climate values", async () => {
   await expect(

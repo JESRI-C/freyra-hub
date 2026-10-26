@@ -274,6 +274,19 @@ try {
       console.log(`PASS ${route}`);
     }
   console.log("START browser save/reload/project switch");
+  await page.goto(`${base}/app/decisions/assistant?project=${a.id}`);
+  await page
+    .getByLabel("Spørgsmål", { exact: true })
+    .fill("Hvilket datagrundlag findes for denne tekniske testsag?");
+  await page.getByRole("button", { name: "Spørg AI om projektet", exact: true }).click();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Lovables hemmelige servernøgle mangler" })
+    .waitFor();
+  result.aiBoundary =
+    "Authenticated hosted server path reached; missing key shown; provider inference not tested.";
+  await save();
+  console.log("PASS AI missing-key boundary");
   await page.goto(`${base}/app/decisions/notes?project=${a.id}`);
   await page.getByRole("button", { name: "Opret beslutningsnotat", exact: true }).click();
   await page.getByLabel("Titel", { exact: true }).fill(noteTitle);
@@ -334,6 +347,7 @@ try {
   await save();
   console.log("PASS risk status persistence");
   const categories = [
+    "/app/sources",
     "/app/overview",
     "/app/projects",
     "/app/reports",
@@ -394,7 +408,7 @@ try {
   assert.equal(result.errors.length, 0, "No browser runtime errors");
   await save();
   console.log(
-    "PASS all 20 tabs, 15 categories, browser persistence, project switch and reader access",
+    "PASS all 20 tabs, 16 categories, browser persistence, project switch and reader access",
   );
 } catch (error) {
   result.failure = error.message;
