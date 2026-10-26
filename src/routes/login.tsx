@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   Lock,
   Mail,
@@ -13,26 +13,22 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
+import { resolveLoginDestination, safeLoginNext } from "@/lib/login-flow";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import logoMark from "@/assets/gofreyra-logo.png";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Log ind — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Log ind — Freyra" }] }),
   validateSearch: (s: Record<string, unknown>): { next?: string } =>
     typeof s.next === "string" ? { next: s.next } : {},
   component: LoginPage,
 });
 
 type Mode = "signin" | "signup" | "forgot";
-
-// Accept only same-origin relative paths so an attacker cannot redirect
-// through login to an external URL.
-function safeNext(next: string | undefined): string | null {
-  if (!next) return null;
-  if (!next.startsWith("/") || next.startsWith("//")) return null;
-  return next;
-}
+const subscribeToHydration = () => () => {};
+const clientHydrated = () => true;
+const serverHydrated = () => false;
 
 // Oversæt engelske Supabase-fejlbeskeder til klar dansk
 function translateError(message: string): string {
@@ -43,22 +39,24 @@ function translateError(message: string): string {
     return "Din email er ikke bekræftet endnu. Tjek din indbakke (og spam) for bekræftelsesmailen.";
   if (m.includes("user already registered"))
     return "Der findes allerede en konto med denne email. Prøv at logge ind i stedet.";
-  if (m.includes("weak") || m.includes("compromised") || m.includes("pwned"))
-    return "Denne adgangskode er for usikker eller kendt fra et datalæk. Vælg en længere, unik adgangskode.";
   if (m.includes("password should be at least"))
     return "Adgangskoden skal være mindst 6 tegn lang.";
   if (m.includes("unable to validate email")) return "Ugyldig email-adresse.";
   if (m.includes("rate limit") || m.includes("too many"))
     return "For mange forsøg. Vent et par minutter og prøv igen.";
   if (m.includes("network")) return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
-  return message;
+  return "Login kunne ikke gennemføres. Prøv igen eller kontakt den ansvarlige for jeres adgang.";
 }
 
 function LoginPage() {
-  const { user, loading } = useAuth();
+  // SSR controls remain disabled until React owns their value and event handlers.
+  // Otherwise fast input/autofill can be erased by the initial hydration render.
+  const hydrated = useSyncExternalStore(subscribeToHydration, clientHydrated, serverHydrated);
+  const { user, loading, refreshing, authError, refresh } = useAuth();
   const navigate = useNavigate();
   const { next } = Route.useSearch();
-  const nextPath = safeNext(next);
+  const nextPath = safeLoginNext(next);
+  const destination = resolveLoginDestination({ loading, hasUser: !!user, next });
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -68,22 +66,19 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const controlsDisabled = !hydrated || busy || loading || refreshing;
 
-  if (!loading && user) {
-    if (nextPath) return <Navigate to={nextPath} />;
-    return <Navigate to="/select" />;
-  }
+  if (destination) return <Navigate to={destination} />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (controlsDisabled) return;
     setBusy(true);
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
         toast.success("Du er logget ind");
-        if (nextPath) window.location.href = nextPath;
-        else navigate({ to: "/select" });
       } else if (mode === "signup") {
         if (password.length < 6) {
           toast.error("Adgangskoden skal være mindst 6 tegn lang.");
@@ -108,8 +103,6 @@ function LoginPage() {
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           toast.error("Der findes allerede en konto med denne email. Prøv at logge ind.");
           setMode("signin");
-        } else if (data.session) {
-          navigate({ to: nextPath ?? "/select" });
         } else {
           setSignupSuccess(true);
         }
@@ -129,6 +122,7 @@ function LoginPage() {
   };
 
   const handleGoogle = async () => {
+    if (controlsDisabled) return;
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
@@ -147,9 +141,9 @@ function LoginPage() {
   };
 
   const stats = [
-    { k: "120+", v: "Datakilder" },
-    { k: "Metodeklar", v: "Biodiversitet med kontekst" },
-    { k: "Rapportklar", v: "Til kommune, fond og ESG" },
+    { k: "Datagrundlag", v: "Kilder, datoer og datamangler" },
+    { k: "Dronebilleder", v: "Originaler og dokumentation" },
+    { k: "Rapportering", v: "Konklusioner med kildegrundlag" },
   ];
 
   // Success-visning efter signup — brugeren skal bekræfte via email
@@ -161,11 +155,11 @@ function LoginPage() {
             <Mail className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Tjek din email</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">Tjek din e-mail</h2>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-              Oprettelsen er modtaget for <strong className="text-foreground">{email}</strong>. Hvis
-              din konto kræver emailbekræftelse, skal du bruge linket i bekræftelsesmailen. Denne
-              side kan ikke bekræfte, om mailen er leveret.
+              Vi har sendt en bekræftelsesmail til{" "}
+              <strong className="text-foreground">{email}</strong>. Klik på linket i mailen for at
+              aktivere din konto og komme i gang.
             </p>
           </div>
           <div className="rounded-xl border border-border bg-muted/30 p-4 text-left text-xs text-muted-foreground space-y-2">
@@ -176,10 +170,7 @@ function LoginPage() {
                 <ul className="list-disc list-inside mt-1 space-y-1">
                   <li>Tjek din spam- eller uønsket post-mappe</li>
                   <li>Kontrollér at emailen er skrevet korrekt</li>
-                  <li>
-                    Hvis mailen udebliver, skal en administrator kontrollere mailopsætning og
-                    leveringslog. Du kan også vælge Google-login.
-                  </li>
+                  <li>Bekræftelsesmailen kan tage op til 5 minutter</li>
                 </ul>
               </div>
             </div>
@@ -237,9 +228,17 @@ function LoginPage() {
   return (
     <SplitShell stats={stats}>
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-5">
+        <p className="lg:hidden text-sm leading-6 text-primary">
+          Sporbar dokumentation af naturprojekter – fra dronefoto til godkendt baseline.
+        </p>
+        {!hydrated && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Gør login klar …
+          </p>
+        )}
         <div className="lg:hidden flex items-center gap-2 mb-2">
-          <img src={logoMark} alt="GoFreyra" className="h-9 w-9 object-contain" />
-          <span className="font-semibold">GoFreyra</span>
+          <img src={logoMark} alt="Freyra" className="h-9 w-9 object-contain" />
+          <span className="font-semibold">Freyra</span>
         </div>
 
         <div>
@@ -248,18 +247,18 @@ function LoginPage() {
           </h2>
           <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
             {isForgot
-              ? "Indtast din email, så sender vi dig et link til at nulstille din adgangskode."
+              ? "Indtast din e-mail, så sender vi dig et link til at nulstille din adgangskode."
               : isSignup
                 ? "Opret en gratis konto for at komme i gang med at dokumentere naturkapital. Du modtager en bekræftelsesmail."
-                : "Log ind med din email og adgangskode for at fortsætte til dit GoFreyra-workspace."}
+                : "Log ind med din e-mail og adgangskode for at fortsætte til dit arbejdsrum i Freyra."}
           </p>
         </div>
 
         {isSignup && (
           <Field label="Fulde navn" icon={<User className="h-4 w-4" />}>
             <input
-              disabled={busy || loading}
               type="text"
+              disabled={controlsDisabled}
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -278,8 +277,8 @@ function LoginPage() {
           }
         >
           <input
-            disabled={busy || loading}
             type="email"
+            disabled={controlsDisabled}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -298,6 +297,7 @@ function LoginPage() {
                 {!isSignup && (
                   <button
                     type="button"
+                    disabled={controlsDisabled}
                     onClick={() => setMode("forgot")}
                     className="text-xs text-primary hover:underline font-normal"
                   >
@@ -314,8 +314,8 @@ function LoginPage() {
             }
           >
             <input
-              disabled={busy || loading}
               type={showPassword ? "text" : "password"}
+              disabled={controlsDisabled}
               required
               minLength={6}
               value={password}
@@ -326,6 +326,7 @@ function LoginPage() {
             />
             <button
               type="button"
+              disabled={controlsDisabled}
               onClick={() => setShowPassword((s) => !s)}
               className="absolute right-2 top-[30px] p-1.5 text-muted-foreground hover:text-foreground rounded-md"
               aria-label={showPassword ? "Skjul adgangskode" : "Vis adgangskode"}
@@ -337,16 +338,10 @@ function LoginPage() {
         )}
 
         {isSignup && (
-          <p className="text-xs text-muted-foreground">
-            Brug mindst 6 tegn og vælg en unik adgangskode. Kendte lækkede adgangskoder kan blive
-            afvist. Google-login kan bruges som alternativ.
-          </p>
-        )}
-        {isSignup && (
           <Field label="Bekræft adgangskode" icon={<Lock className="h-4 w-4" />}>
             <input
-              disabled={busy || loading}
               type={showPassword ? "text" : "password"}
+              disabled={controlsDisabled}
               required
               minLength={6}
               value={confirmPassword}
@@ -361,12 +356,29 @@ function LoginPage() {
           </Field>
         )}
 
+        {authError && mode === "signin" && (
+          <div
+            role="alert"
+            className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          >
+            <p>{authError}</p>
+            <button
+              type="button"
+              disabled={controlsDisabled}
+              onClick={() => void refresh().catch(() => undefined)}
+              className="mt-2 font-medium underline underline-offset-2 disabled:opacity-60"
+            >
+              Prøv igen
+            </button>
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={busy || loading}
+          disabled={controlsDisabled}
           className="w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-medium shadow-soft hover:opacity-95 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
-          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          {(busy || loading || refreshing) && <Loader2 className="h-4 w-4 animate-spin" />}
           {isForgot ? "Send nulstillingslink" : isSignup ? "Opret konto" : "Log ind"}
         </button>
 
@@ -384,7 +396,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={handleGoogle}
-              disabled={busy || loading}
+              disabled={controlsDisabled}
               className="w-full rounded-xl border border-input bg-card py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <svg className="h-4 w-4" viewBox="0 0 48 48" aria-hidden="true">
@@ -415,6 +427,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={() => setMode("signin")}
+              disabled={controlsDisabled}
               className="text-primary hover:underline font-medium inline-flex items-center gap-1"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Tilbage til log ind
@@ -425,6 +438,7 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={() => setMode("signin")}
+                disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
                 Log ind
@@ -432,10 +446,11 @@ function LoginPage() {
             </>
           ) : (
             <>
-              Ny på GoFreyra?{" "}
+              Ny på Freyra?{" "}
               <button
                 type="button"
                 onClick={() => setMode("signup")}
+                disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
                 Opret en konto
@@ -500,20 +515,20 @@ function SplitShell({
           }}
         />
         <div className="relative flex items-center gap-3">
-          <img src={logoMark} alt="GoFreyra" className="h-11 w-11 object-contain" />
+          <img src={logoMark} alt="Freyra" className="h-11 w-11 object-contain" />
           <div>
-            <div className="text-lg font-semibold tracking-tight">GoFreyra</div>
-            <div className="text-xs text-sidebar-muted">by Freyra</div>
+            <div className="text-lg font-semibold tracking-tight">Freyra</div>
+            <div className="text-xs text-sidebar-muted">Naturdokumentation</div>
           </div>
         </div>
 
         <div className="relative space-y-6 max-w-md">
           <h1 className="text-4xl font-semibold leading-tight">
-            Mål, dokumentér og handl på <span className="text-leaf">verificeret naturkapital</span>.
+            Sporbar dokumentation af naturprojekter – fra dronefoto til godkendt baseline.
           </h1>
           <p className="text-sidebar-muted leading-relaxed">
-            Saml naturprojekter, arealdata, målinger, rapportering og dokumentation i én platform —
-            bygget til den grønne arealomlægning.
+            Saml originalfotos, offentlige data, faglige vurderinger og rapporter i én sag. Se, hvad
+            der er dokumenteret, og hvad der stadig skal afklares.
           </p>
           <div className="grid grid-cols-3 gap-3 pt-4">
             {stats.map((x) => (
@@ -529,7 +544,7 @@ function SplitShell({
         </div>
 
         <div className="relative text-xs text-sidebar-muted">
-          © {new Date().getFullYear()} Freyra ApS · Platform for verificeret naturkapital
+          © {new Date().getFullYear()} Freyra ApS · Naturdokumentation
         </div>
       </div>
 

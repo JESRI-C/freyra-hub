@@ -613,5 +613,32 @@ export type Database = {
         Update: Partial<Omit<ProjectMediaRow, "id">>;
       };
     };
+    Functions: {
+      create_upload_intent: {
+        Args: {
+          p_project_id: string;
+          p_original_file_name: string;
+          p_mime_type: string;
+          p_file_size: number;
+          p_client_request_id: string;
+          p_zone_id?: string;
+          p_upload_type?: string;
+          p_user_metadata?: Record<string, unknown>;
+        };
+        Returns: Array<{
+          upload_id: string;
+          storage_path: string;
+          intent_expires_at: string;
+        }>;
+      };
+      finalize_upload_intent: {
+        Args: { p_upload_id: string };
+        Returns: Array<{ upload_id: string; storage_path: string; status: string }>;
+      };
+      cancel_upload_intent: {
+        Args: { p_upload_id: string };
+        Returns: Array<{ upload_id: string; storage_path: string; status: string }>;
+      };
+    };
   };
 };

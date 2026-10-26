@@ -34,7 +34,10 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
     if (!raw || raw.length < 3) return null;
     return downsampleRing(raw as LngLat[], 500);
   }, [polygon]);
-  const ringKey = useMemo(() => (ring ? JSON.stringify(ring.slice(0, 8)) + ring.length : "none"), [ring]);
+  const ringKey = useMemo(
+    () => (ring ? JSON.stringify(ring.slice(0, 8)) + ring.length : "none"),
+    [ring],
+  );
 
   const matrikler = useQuery({
     queryKey: ["area-matrikler", ringKey],
@@ -101,7 +104,9 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
           {icon}
           <span className="font-medium">{title}</span>
           <span className="text-xs text-muted-foreground ml-auto">
-            {loading ? "Slår op…" : `${items.length}${result?.truncated ? "+" : ""} · ${totalHa(result)} ha`}
+            {loading
+              ? "Slår op…"
+              : `${items.length}${result?.truncated ? "+" : ""} · ${totalHa(result)} ha`}
           </span>
           {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
@@ -145,10 +150,23 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
         <Grid2x2 className="h-4 w-4 text-primary" />
         Matrikler & markblokke i området
       </div>
-      {section("matrikler", "Matrikler", <Landmark className="h-3.5 w-3.5 text-primary" />, matrikler.data, matrikler.isLoading)}
-      {section("markblokke", "Markblokke", <Grid2x2 className="h-3.5 w-3.5 text-primary" />, markblokke.data, markblokke.isLoading)}
+      {section(
+        "matrikler",
+        "Matrikler",
+        <Landmark className="h-3.5 w-3.5 text-primary" />,
+        matrikler.data,
+        matrikler.isLoading,
+      )}
+      {section(
+        "markblokke",
+        "Markblokke",
+        <Grid2x2 className="h-3.5 w-3.5 text-primary" />,
+        markblokke.data,
+        markblokke.isLoading,
+      )}
       <p className="text-[11px] text-muted-foreground">
-        Kilder: SDFI/Dataforsyningen (matrikler) · Landbrugsstyrelsen (markblokke). Klik på en række for at se den på kortet.
+        Kilder: SDFI/Dataforsyningen (matrikler) · Landbrugsstyrelsen (markblokke). Klik på en række
+        for at se den på kortet.
       </p>
     </div>
   );

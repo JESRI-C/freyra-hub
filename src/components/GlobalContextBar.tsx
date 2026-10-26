@@ -1,6 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronsUpDown } from "lucide-react";
+import { Activity, ChevronsUpDown, Sparkles } from "lucide-react";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
+import { isDemoDataEnabled as isOfflineDemoMode } from "@/lib/data-mode";
+import { DemoModeBadge } from "@/components/platform/Primitives";
+import { ActivityTray } from "@/components/redesign/ActivityTray";
 import { MobileSidebarTrigger } from "@/components/AppSidebar";
 
 export function GlobalContextBar() {
@@ -29,9 +33,38 @@ export function GlobalContextBar() {
           <ChevronsUpDown className="h-3 w-3 shrink-0 text-muted-foreground" />
         </Link>
 
-        <span className="ml-auto hidden md:inline text-muted-foreground">
-          Datagrundlag og rapportstatus vurderes pr. rapportversion
-        </span>
+        <span className="hidden md:inline-block h-4 w-px bg-border" />
+
+        {project ? (
+          <Link
+            to="/app/projects/$slug"
+            params={{ slug: project.slug ?? project.id }}
+            search={DEMO_MODE ? { step: "datagrundlag" } : {}}
+            className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <Activity className="h-3.5 w-3.5" /> Se sagens datagrundlag
+          </Link>
+        ) : (
+          <span className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground">
+            Vælg sag for at se datagrundlag
+          </span>
+        )}
+
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          <span className="hidden sm:inline-flex">
+            <DemoModeBadge />
+          </span>
+          {isOfflineDemoMode && (
+            <Link
+              to="/app/overview"
+              className="hidden md:inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 hover:bg-muted text-foreground"
+              title="Start guidet demo"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Start demo
+            </Link>
+          )}
+          <ActivityTray projectId={project?.id} />
+        </div>
       </div>
     </div>
   );

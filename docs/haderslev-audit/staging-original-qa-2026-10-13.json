@@ -1,0 +1,95 @@
+{
+  "schema": "gofreyra.hosted-synthetic-qa/v1",
+  "startedAt": "2026-10-13T13:49:57.346Z",
+  "synthetic": true,
+  "municipalAcceptance": false,
+  "supabaseRef": "xdvqdzdpyceojbdknofi",
+  "projectId": "24046b35-20cf-46f6-83de-1190b2d6a285",
+  "baselineRequestId": "eaf22f58-2726-4e7d-bb4e-a79d2e51e352",
+  "uploadRequestId": "0e663bbe-5943-46e9-b698-b6295842b777",
+  "checks": {
+    "ordinary-authenticated-session": {
+      "verified": true,
+      "staging": true
+    },
+    "baseline-live-source-blocked": {
+      "sourceBlocked": true,
+      "technicalOriginalTestBeforeBaseline": true,
+      "municipalEvidence": false
+    },
+    "caller-intent-actual-tus-finalize": {
+      "uploadId": "f54883ff-6cb1-4cb3-9879-b4ebdb2b005a",
+      "bytes": 137,
+      "received": true,
+      "ordinaryCaller": true
+    },
+    "server-original-private-bytes-retry-reload": {
+      "uploadId": "f54883ff-6cb1-4cb3-9879-b4ebdb2b005a",
+      "sha256": "d7e98b662c74dcc8fd2a62381df06a4baf558919188bea95c09f06ee8da7a737",
+      "validationSha256": "6c55763e7b290d380294dd51ff0d4c7cabd683424b9160db5bacdbd69f5ffcdf",
+      "status": "review_required",
+      "pixelDecoded": false,
+      "georeferenced": false,
+      "reportEligible": false,
+      "cameraPositionEligible": false,
+      "idempotent": true,
+      "immutableReload": true
+    },
+    "no-canonical-or-report-records": {
+      "drone_assets": 0,
+      "observations": 0,
+      "reports": 0,
+      "baselines": 0,
+      "uploads": 1
+    }
+  },
+  "functionIds": {
+    "previewOfficialWatercourseReach": "0b26e565aadc5098913a2798ab1ff92dea8407026c94a11ed486771e9a60a4b2",
+    "saveOfficialWatercourseReach": "1b99e8411cc347a8fc0f4155a0911e2e6ac5af035dc6a72c758ca5f2151e9cb3",
+    "listProjectBaselines": "23e41457716570f265a4649d9f51a46ca6f0732acce9610274e4aa2ffda9cd11",
+    "searchOfficialWatercourseReaches": "7067f725c0081ddc6e8bc672e6068f88c36f929eea6c3e6300c217616ccdab70",
+    "getProjectBaseline": "96a12ee85beb066d2afdd80a6a83382dd0da7cb091106b0d6f3c220a72325a23",
+    "getSavedOfficialWatercourseReach": "9dc420f2d4520cdc5c7cce6414cad7a10079b271c29ee7b8e69f122ba635cfa3",
+    "createProjectBaseline": "b59708d3044b60e4de1f4ea0b1eef7d5ffa5e214f4917c95b812e3daf6fd9061",
+    "validateDroneOriginal": "c747f82fe3c48f3a3f9cd5eaf194a1488454aec7cc2fcb90f6dd8d69559b24c2"
+  },
+  "updatedAt": "2026-10-13T14:16:43.045Z",
+  "outcome": "passed",
+  "recordCountsBefore": {
+    "drone_assets": 0,
+    "observations": 0,
+    "reports": 0
+  },
+  "originalOnly": true,
+  "baselineBlocked": {
+    "status": "blocked",
+    "reason": "Legacy DAWA official reference endpoint retired; current keyed Datafordeler adapter required",
+    "technicalOriginalTestBeforeBaseline": true
+  },
+  "fixture": {
+    "fileName": "SYNTHETIC_QA_1x1_NO_EXIF.JPG",
+    "sizeBytes": 137,
+    "sha256": "d7e98b662c74dcc8fd2a62381df06a4baf558919188bea95c09f06ee8da7a737",
+    "synthetic": true,
+    "hasExif": false
+  },
+  "uploadId": "f54883ff-6cb1-4cb3-9879-b4ebdb2b005a",
+  "original": {
+    "uploadId": "f54883ff-6cb1-4cb3-9879-b4ebdb2b005a",
+    "sha256": "d7e98b662c74dcc8fd2a62381df06a4baf558919188bea95c09f06ee8da7a737",
+    "validationSha256": "6c55763e7b290d380294dd51ff0d4c7cabd683424b9160db5bacdbd69f5ffcdf",
+    "status": "review_required",
+    "pixelDecoded": false,
+    "georeferenced": false,
+    "reportEligible": false,
+    "cameraPositionEligible": false
+  },
+  "recordCountsAfter": {
+    "drone_assets": 0,
+    "observations": 0,
+    "reports": 0
+  },
+  "completedAt": "2026-10-13T14:16:43.045Z",
+  "executedCodeSha": "a010b9f8004f1cceda83125eaa9dbaf9cf4cac60",
+  "executedWorkerVersion": "5ee102da-cf82-4ca0-ba6a-3e26ca479969"
+}

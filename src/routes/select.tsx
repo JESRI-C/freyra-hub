@@ -1,11 +1,25 @@
 import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Building2, MapPin, ChevronRight, Leaf, LogOut, CheckCircle2, Loader2, Plus, X, Info, Users, ShieldCheck, FolderTree } from "lucide-react";
+import {
+  Building2,
+  MapPin,
+  ChevronRight,
+  Leaf,
+  LogOut,
+  CheckCircle2,
+  Loader2,
+  Plus,
+  X,
+  Info,
+  Users,
+  ShieldCheck,
+  FolderTree,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/select")({
-  head: () => ({ meta: [{ title: "Vælg arbejdsplads — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Vælg arbejdsplads — Freyra" }] }),
   component: SelectPage,
 });
 
@@ -13,7 +27,8 @@ const ORG_TYPES = ["Kommune", "Rådgiver", "NGO", "Bygherre", "Forsyning", "Ande
 type OrgType = (typeof ORG_TYPES)[number];
 
 function SelectPage() {
-  const { user, loading, logout, selectOrg, selectProject, orgId, organizations, refresh } = useAuth();
+  const { user, loading, logout, selectOrg, selectProject, orgId, organizations, refresh } =
+    useAuth();
   const navigate = useNavigate();
   const [pickedOrg, setPickedOrg] = useState<string | null>(orgId);
   const [showCreate, setShowCreate] = useState(false);
@@ -38,7 +53,7 @@ function SelectPage() {
               <Leaf className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-semibold">GoFreyra</div>
+              <div className="font-semibold">Freyra</div>
               <div className="text-xs text-muted-foreground">Vælg organisation og projekt</div>
             </div>
           </div>
@@ -80,7 +95,7 @@ function SelectPage() {
             <div className="flex-1">
               <h3 className="font-medium">Hvordan vi arbejder med organisationer</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                En organisation er dit arbejdsrum i GoFreyra — fx en kommune, et rådgiverhus, en NGO
+                En organisation er dit arbejdsrum i Freyra — fx en kommune, et rådgiverhus, en NGO
                 eller en bygherre. Al data, projekter, konnektorer og rapporter hører til én
                 organisation, så det er tydeligt hvem der ejer hvad, og hvem der må se hvad.
               </p>
@@ -178,7 +193,7 @@ function SelectPage() {
                   onClick={() => {
                     selectOrg(org.id);
                     selectProject("");
-                    navigate({ to: "/app/overview" });
+                    navigate({ to: "/app/projects" });
                   }}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:opacity-90"
                 >
@@ -200,7 +215,8 @@ function SelectPage() {
                 <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">
                   Ingen projekter i denne organisation endnu.
                   <div className="mt-2 text-xs">
-                    Klik <span className="font-medium text-foreground">Åbn {org.name}</span> for at gå ind og oprette dit første projekt.
+                    Klik <span className="font-medium text-foreground">Åbn {org.name}</span> for at
+                    gå ind og oprette dit første projekt.
                   </div>
                 </div>
               ) : (
@@ -211,7 +227,7 @@ function SelectPage() {
                       onClick={() => {
                         selectOrg(org.id);
                         selectProject(p.id);
-                        navigate({ to: "/app/overview" });
+                        navigate({ to: "/app/projects/$slug", params: { slug: p.id } });
                       }}
                       className="w-full text-left rounded-2xl border bg-card p-4 hover:shadow-card transition flex items-center gap-3 group"
                     >
@@ -324,7 +340,7 @@ function CreateOrganizationDialog({
             maxLength={100}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Fx Skallebæk Kommune"
+            placeholder="Arbejdspladsens navn"
             className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
             autoFocus
           />

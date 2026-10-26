@@ -31,7 +31,12 @@ describe("evaluateStatus", () => {
     expect(evaluateStatus(base, 10)).toBe("critical");
   });
   it("respects above direction", () => {
-    const above: Indicator = { ...base, threshold_direction: "above", threshold_warning: 50, threshold_critical: 80 };
+    const above: Indicator = {
+      ...base,
+      threshold_direction: "above",
+      threshold_warning: 50,
+      threshold_critical: 80,
+    };
     expect(evaluateStatus(above, 10)).toBe("ok");
     expect(evaluateStatus(above, 55)).toBe("warning");
     expect(evaluateStatus(above, 90)).toBe("critical");

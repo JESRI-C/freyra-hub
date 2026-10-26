@@ -1,0 +1,176 @@
+{
+  "schema": "gofreyra.dependency-patches/v1",
+  "recordedOn": "2026-10-13",
+  "scope": "Precise local dependency overrides, same-scope production audit comparison and bounded AI candidate checks; post-review full release gates and hosted acceptance remain pending",
+  "evidence": {
+    "previousSnapshot": "docs/haderslev-audit/dependency-risk-2026-10-13.json",
+    "previousSnapshotSha256": "000d79869b865447dc58c0dbc0b18ff9f2c3f9b1a947da5c291035fdd55d858e",
+    "previousSnapshotModified": false,
+    "packageJsonSha256": "575b1066fa49b83bd17c07f7f54a4696b2aacb477b931b118c148b464d6bdce1",
+    "packageLockSha256": "0da048cb40593fc361ad82a3f91ec79692941d9e90eba8adaf6162177b2fc85b",
+    "beforeAuditArchive": "tmp/dependency-risk-prod-audit-2026-10-13.json",
+    "beforeAuditSha256": "1b0b13aebfa6a886a9a19251497e842a37fa1bf4883267d4fb8ae5f6e3896487",
+    "afterAuditArchive": "tmp/dependency-risk-patched-prod-audit-2026-10-13.json",
+    "afterAuditSha256": "4275e7366e2a2f8b27eaa7a55400238f934886c2d565778c1b2756a83e4410d9",
+    "auditCommand": "npm audit --omit=dev --json --ignore-scripts",
+    "auditReportVersion": 2,
+    "afterAuditExitCode": 1,
+    "afterAuditExitMeaning": "Registry request succeeded; known affected package entries remain",
+    "independentLocalReadChecks": [
+      "Package, lock, after-audit and previous-snapshot byte hashes match the recorded evidence",
+      "Both archived audit metadata totals and the absence of the two patched package entries were read directly",
+      "Installed package resolution was read independently for all three SDK parents and both provider versions"
+    ],
+    "privateConfigurationRead": false,
+    "networkCallsPerformedForThisRecord": false,
+    "hostedOperationsPerformedForThisRecord": false,
+    "gitMutationsPerformedForThisRecord": false
+  },
+  "installation": {
+    "executor": "root",
+    "ignoreScripts": true,
+    "rootReportedAddedPackages": 1,
+    "rootReportedChangedPackages": 2,
+    "newNestedProvider": { "name": "@ai-sdk/provider", "version": "3.0.12" },
+    "unchangedSharedProvider": { "name": "@ai-sdk/provider", "version": "3.0.10" },
+    "proj4Delta": {
+      "version": "2.22.0",
+      "packages": ["proj4@2.22.0", "mgrs@1.0.0", "wkt-parser@1.6.0"],
+      "status": "The separate three-package projection addition remains stable; it is not a remediation count or proof of geospatial accuracy"
+    }
+  },
+  "patches": [
+    {
+      "package": "@ai-sdk/provider-utils",
+      "previousVersion": "4.0.27",
+      "preciseOverride": "4.0.33",
+      "advisory": "GHSA-866g-f22w-33x8",
+      "primaryReferences": [
+        "https://github.com/vercel/ai/pull/16374",
+        "https://github.com/vercel/ai/commit/b30e43ac3fae2432a40b4f4f27f844f3d78b119e",
+        "https://github.com/vercel/ai/releases/tag/@ai-sdk/provider-utils@4.0.33"
+      ],
+      "installedResolutionChecks": [
+        { "parent": "ai@6.0.191", "resolvedVersion": "4.0.33" },
+        { "parent": "@ai-sdk/openai-compatible@2.0.48", "resolvedVersion": "4.0.33" },
+        { "parent": "@ai-sdk/gateway@3.0.120", "resolvedVersion": "4.0.33" }
+      ],
+      "afterProductionAuditContainsAffectedEntry": false,
+      "boundedCandidateChecks": "Real installed generateText and structured output ran against local mocked fetch; this is not online gateway or deployed acceptance"
+    },
+    {
+      "package": "fast-uri",
+      "previousVersion": "3.1.6",
+      "preciseOverride": "3.1.8",
+      "advisories": ["GHSA-qw65-cvwx-89v3", "GHSA-58mr-gqgx-xq4g", "GHSA-hrr3-gc8f-f4qj"],
+      "primaryReferences": [
+        "https://github.com/fastify/fast-uri/security/advisories/GHSA-58mr-gqgx-xq4g",
+        "https://github.com/fastify/fast-uri/security/advisories/GHSA-hrr3-gc8f-f4qj"
+      ],
+      "afterProductionAuditContainsAffectedEntry": false,
+      "rootReportedLocalChecks": [
+        { "operation": "parse('//%41.com').host", "actualResult": "a.com", "status": "PASS" },
+        { "operation": "equal('//%41.com', '//a.com')", "actualResult": true, "status": "PASS" },
+        { "operation": "Ordinary Ajv schema validation compatibility", "status": "PASS" }
+      ],
+      "limitation": "Local parser and schema compatibility checks do not demonstrate that an app-level hostname-trust exploit existed or that all MCP/Ajv release paths have passed"
+    }
+  ],
+  "sameScopeProductionAudit": {
+    "metadataBeforeAffectedPackageEntries": {
+      "critical": 0,
+      "high": 19,
+      "moderate": 8,
+      "low": 7,
+      "info": 0,
+      "total": 34
+    },
+    "metadataAfterAffectedPackageEntries": {
+      "critical": 0,
+      "high": 18,
+      "moderate": 8,
+      "low": 3,
+      "info": 0,
+      "total": 29
+    },
+    "removedAffectedPackageEntries": [
+      "@ai-sdk/gateway",
+      "@ai-sdk/openai-compatible",
+      "@ai-sdk/provider-utils",
+      "ai",
+      "fast-uri"
+    ],
+    "affectedEntryCountReduction": 5,
+    "countMeaning": "npm audit metadata counts affected package entries, including parent packages affected through transitives. Five removed entries are not five distinct demonstrated exploits. The comparison uses the same production-only scope",
+    "differentScopeFullInstallTotalsUsedForComparison": false,
+    "auditClean": false,
+    "remainingAffectedPackageEntries": 29
+  },
+  "aiCandidateHardening": {
+    "status": "Local bounded candidate reviewed; full release acceptance pending",
+    "serverAuthBeforeKeyOrProvider": true,
+    "fixedEndpoint": "https://ai.gateway.lovable.dev/v1/chat/completions",
+    "redirectPolicy": "manual; redirects rejected",
+    "wholeGenerationDeadlineMs": 15000,
+    "maxSuccessOrErrorResponseBytes": 131072,
+    "maxRetries": 0,
+    "credentialEchoGuards": [
+      "Raw response and decoded outer JSON",
+      "Known completion content decoded as inner JSON before SDK parsing or unknown-field stripping",
+      "Final derived callback result before return"
+    ],
+    "safeHttpClassification": { "402": "credits", "429": "rate_limit", "otherFailures": "unknown" },
+    "speciesInput": {
+      "inlineOnly": true,
+      "mimeTypes": ["image/jpeg", "image/png", "image/webp"],
+      "canonicalBase64Required": true,
+      "decodedByteLimit": 2097152,
+      "headerSignatureChecked": true,
+      "pixelDecoded": false,
+      "projectBound": false,
+      "successfulRawTextForwarded": false,
+      "parsingInsideDeadlineAndFinalGuard": true
+    },
+    "scopedUnitTests": {
+      "status": "PASS",
+      "tests": 73,
+      "executor": "QA code agent",
+      "network": "Local mocked fetch only"
+    },
+    "independentReadOnlyReview": {
+      "status": "PASS",
+      "nestedJsonEchoFinding": "P1 reproduced locally with installed SDK, corrected and independently reviewed before release gates",
+      "remainingP0P1InReviewedCodeScope": 0,
+      "hostedExploitOrAcceptanceClaim": false
+    },
+    "professionalOutputAccepted": false,
+    "onlineAiUpstreamOrLovableKeyActivationInspected": false
+  },
+  "rootPostReviewReleaseGates": {
+    "fullTestSuite": "PASS",
+    "testFiles": 101,
+    "tests": 1243,
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "lintErrors": 0,
+    "existingLintWarnings": 23,
+    "stagingBuildAndOutputScan": "PASS",
+    "actualKeyScan": {
+      "repositoryFiles": 663,
+      "outputFiles": 785,
+      "repositoryLeaks": 0,
+      "outputLeaks": 0,
+      "privilegedBundleTokens": 0
+    },
+    "hostedCI": "PENDING",
+    "stagingDeployment": "PENDING",
+    "hostedAcceptance": "PENDING",
+    "preFindingFullGatesCountAsFinalEvidence": false
+  },
+  "openGates": [
+    "Global AI rate control and resource or cost budget before online activation",
+    "The remaining production-scope advisory entries require separate scoped remediation and reachability assessment",
+    "Hosted CI, deployment and acceptance tied to the actual resulting code and lock",
+    "Pixel decoding, project evidence binding and professional output acceptance remain outside this AI candidate slice"
+  ]
+}

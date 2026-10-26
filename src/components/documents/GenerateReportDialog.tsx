@@ -13,9 +13,17 @@ interface Props {
 }
 
 const TYPES: { value: "status" | "indicator" | "authority"; label: string; hint: string }[] = [
-  { value: "status", label: "Projektstatusrapport", hint: "Overblik over sites, indikatorer og handlinger" },
+  {
+    value: "status",
+    label: "Projektstatusrapport",
+    hint: "Overblik over sites, indikatorer og handlinger",
+  },
   { value: "indicator", label: "Indikatorrapport", hint: "Fokus på KPI'er og trends" },
-  { value: "authority", label: "Myndighedsrapport", hint: "Formel dokumentation til myndigheder" },
+  {
+    value: "authority",
+    label: "Myndighedsrapport",
+    hint: "Foreløbigt projektgrundlag til videre gennemgang",
+  },
 ];
 
 export function GenerateReportDialog({ project, sites, actions, indicators }: Props) {
@@ -35,7 +43,11 @@ export function GenerateReportDialog({ project, sites, actions, indicators }: Pr
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success(out.documentId ? "Rapport genereret og gemt" : "Rapport hentet (ikke gemt — DB ikke tilgængelig)");
+      toast.success(
+        out.documentId
+          ? "PDF-kladde hentet. Kun dokumentregistreringen er gemt; PDF-filen er ikke arkiveret."
+          : "PDF-kladde hentet. Hverken filen eller en dokumentregistrering er bekræftet gemt.",
+      );
       qc.invalidateQueries({ queryKey: ["documents", project.id] });
       setOpen(false);
     },
@@ -49,16 +61,26 @@ export function GenerateReportDialog({ project, sites, actions, indicators }: Pr
         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90"
       >
         <FileDown className="h-4 w-4" />
-        Generér rapport
+        Hent PDF-kladde
       </button>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => !gen.isPending && setOpen(false)}>
-      <div className="bg-background rounded-xl border shadow-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold mb-1">Generér rapport</h3>
-        <p className="text-xs text-muted-foreground mb-4">Vælg rapporttype. PDF hentes automatisk og gemmes på projektet.</p>
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      onClick={() => !gen.isPending && setOpen(false)}
+    >
+      <div
+        className="bg-background rounded-xl border shadow-xl max-w-md w-full p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-base font-semibold mb-1">Hent PDF-kladde</h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Vælg en foreløbig oversigt over projektregistreringerne. Rapportperiode og fagligt review
+          er ikke dokumenteret. PDF hentes nu; selve filen gemmes ikke på projektet og kan ikke
+          genhentes herfra.
+        </p>
 
         <div className="space-y-2 mb-4">
           {TYPES.map((t) => (
@@ -97,8 +119,12 @@ export function GenerateReportDialog({ project, sites, actions, indicators }: Pr
             disabled={gen.isPending}
             className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {gen.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-            Generér
+            {gen.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="h-4 w-4" />
+            )}
+            Hent kladde
           </button>
         </div>
       </div>

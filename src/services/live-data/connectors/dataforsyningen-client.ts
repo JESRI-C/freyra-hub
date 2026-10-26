@@ -1,5 +1,12 @@
 import { getLiveDataConfig } from "@/config/live-data-config";
-import { fetchWithTimeout, fetchConnector, previewResponse } from "../live-data-client";
+import { isDemoDataEnabled } from "@/lib/data-mode";
+import {
+  fetchWithTimeout,
+  fetchConnector,
+  previewResponse,
+  errorResponse,
+  hasSourceGeometry,
+} from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
 
@@ -58,11 +65,15 @@ export async function fetchByGeometry(
   geometry: ProjectGeometry,
 ): Promise<ConnectorResponse<DataforsyningenData>> {
   const config = getLiveDataConfig();
-  if (!config.isLiveDataEnabled) return previewResponse(PREVIEW_DATA);
+  if (!config.isLiveDataEnabled) return fetchPreview();
 
-  const lat = geometry.centroid?.lat;
-  const lng = geometry.centroid?.lng;
-  if (!lat || !lng) return previewResponse(PREVIEW_DATA);
+  if (!hasSourceGeometry(geometry)) {
+    return errorResponse(
+      "Dataforsyningen kræver en gyldig projektgeometri med koordinater.",
+      "invalid_geometry",
+    );
+  }
+  const { lat, lng } = geometry.centroid!;
 
   // Path A: Datafordeler key present — use full place-name API
   if (config.credentials.datafordeler.present) {
@@ -90,7 +101,9 @@ export async function fetchByGeometry(
           geometry: { coordinates: [number, number] };
         }>;
       };
-      const nearestPlaces: GeoPlace[] = (json.features ?? []).slice(0, 5).map((f) => ({
+      if (!Array.isArray(json.features))
+        throw new Error("Datafordeler svarede med et ugyldigt stednavneformat.");
+      const nearestPlaces: GeoPlace[] = json.features.slice(0, 5).map((f) => ({
         name: f.properties.navn,
         type: f.properties.type,
         municipality: f.properties.kommune,
@@ -99,8 +112,14 @@ export async function fetchByGeometry(
       }));
       return { nearestPlaces, fetchedAt: new Date().toISOString() };
     });
-    if (result.status === "ok") return result;
-    // Datafordeler failed — fall through to open geocoding
+    if (result.status !== "ok") return result;
+    return result.data?.nearestPlaces.length
+      ? result
+      : errorResponse(
+          "Datafordeler har ingen stednavne i det forespurgte område.",
+          "no_coverage",
+          result.latencyMs,
+        );
   }
 
   // Path B: Open reverse-geocoding (no key required)
@@ -120,14 +139,23 @@ export async function fetchByGeometry(
       fetchedAt: new Date().toISOString(),
     };
   });
-  if (openResult.status === "ok") return openResult;
-
-  // Path C: Both failed — return preview (not error)
-  return { ...previewResponse(PREVIEW_DATA), latencyMs: openResult.latencyMs };
+  if (openResult.status !== "ok") return openResult;
+  return openResult.data?.municipalityName || openResult.data?.regionName
+    ? openResult
+    : errorResponse(
+        "Dataforsyningen har ingen stedreference for koordinaterne.",
+        "no_coverage",
+        openResult.latencyMs,
+      );
 }
 
 export async function fetchPreview(): Promise<ConnectorResponse<DataforsyningenData>> {
-  return previewResponse(PREVIEW_DATA);
+  return isDemoDataEnabled && !getLiveDataConfig().isLiveDataEnabled
+    ? previewResponse(PREVIEW_DATA)
+    : errorResponse(
+        "Dataforsyningen er ikke konfigureret til live data. Eksempeldata kræver eksplicit offline demo.",
+        "disabled",
+      );
 }
 
 export function normalizeResult(
@@ -137,7 +165,7 @@ export function normalizeResult(
     mode: result.mode,
     status: result.status,
     latencyMs: result.latencyMs,
-    placesFound: result.data?.nearestPlaces.length ?? 0,
+    placesFound: result.data?.nearestPlaces.length,
     municipality: result.data?.municipalityName,
     fetchedAt: result.data?.fetchedAt,
   };

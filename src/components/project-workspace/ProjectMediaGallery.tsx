@@ -99,7 +99,7 @@ function MediaCard({ item, onOpen }: { item: ProjectMediaItem; onOpen: () => voi
           {item.coordinates && (
             <span className="flex items-center gap-1 text-emerald-600">
               <MapPin className="h-3 w-3" />
-              Georef.
+              Position
             </span>
           )}
         </div>

@@ -8,9 +8,16 @@ import { logAuditEvent } from "./audit-service";
 export type DataSource = Database["public"]["Tables"]["data_sources"]["Row"];
 export type DataSourceInsert = Database["public"]["Tables"]["data_sources"]["Insert"];
 export type DataSourceMapping = Database["public"]["Tables"]["data_source_mappings"]["Row"];
-export type DataSourceMappingInsert = Database["public"]["Tables"]["data_source_mappings"]["Insert"];
+export type DataSourceMappingInsert =
+  Database["public"]["Tables"]["data_source_mappings"]["Insert"];
 
-export type DataSourceCategory = "device" | "satellite" | "api" | "file" | "manual" | "public_geodata";
+export type DataSourceCategory =
+  | "device"
+  | "satellite"
+  | "api"
+  | "file"
+  | "manual"
+  | "public_geodata";
 
 export const DATA_SOURCE_TYPES: { value: string; label: string; category: DataSourceCategory }[] = [
   { value: "sensor", label: "IoT-sensor", category: "device" },
@@ -56,9 +63,16 @@ export async function listDataSources(projectId: string): Promise<DataSource[]> 
   return (data as DataSource[] | null) ?? [];
 }
 
-export async function createDataSource(input: DataSourceInsert, mappings: Omit<DataSourceMappingInsert, "data_source_id">[] = []): Promise<DataSource> {
+export async function createDataSource(
+  input: DataSourceInsert,
+  mappings: Omit<DataSourceMappingInsert, "data_source_id">[] = [],
+): Promise<DataSource> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: raw, error } = await supabase.from("data_sources").insert(input as never).select("*").single();
+  const { data: raw, error } = await supabase
+    .from("data_sources")
+    .insert(input as never)
+    .select("*")
+    .single();
   const data = raw as unknown as DataSource;
   if (error) throw error;
   const source = data as DataSource;
@@ -81,23 +95,39 @@ export async function createDataSource(input: DataSourceInsert, mappings: Omit<D
 
 export async function listMappings(dataSourceId: string): Promise<DataSourceMapping[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  const { data, error } = await supabase.from("data_source_mappings").select("*").eq("data_source_id", dataSourceId);
+  const { data, error } = await supabase
+    .from("data_source_mappings")
+    .select("*")
+    .eq("data_source_id", dataSourceId);
   if (error) throw error;
   return (data as DataSourceMapping[] | null) ?? [];
 }
 
-export async function setDataSourceStatus(id: string, status: string, message?: string): Promise<void> {
+export async function setDataSourceStatus(
+  id: string,
+  status: string,
+  message?: string,
+): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const { error } = await supabase
     .from("data_sources")
-    .update({ status, last_sync_status: status, last_sync_message: message ?? null, last_sync_at: new Date().toISOString() } as never)
+    .update({
+      status,
+      last_sync_status: status,
+      last_sync_message: message ?? null,
+      last_sync_at: new Date().toISOString(),
+    } as never)
     .eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteDataSource(id: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data: existingRaw } = await supabase.from("data_sources").select("*").eq("id", id).maybeSingle();
+  const { data: existingRaw } = await supabase
+    .from("data_sources")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
   const existing = existingRaw as unknown as DataSource | null;
   const { error } = await supabase.from("data_sources").delete().eq("id", id);
   if (error) throw error;

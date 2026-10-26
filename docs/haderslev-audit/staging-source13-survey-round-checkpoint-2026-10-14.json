@@ -1,0 +1,700 @@
+{
+  "schema": "gofreyra.source13-survey-round-public-checkpoint/v2",
+  "documentedAt": "2026-10-14T05:32:18.605Z",
+  "scope": "Synthetic staging technical acceptance; no municipal/professional delivery acceptance",
+  "codeSha": "81e229e0b99a91803b9b46bdf8b1202329b3efcd",
+  "branch": "codex/haderslev-delivery",
+  "ci": {
+    "runId": 38512714618,
+    "runNumber": 20,
+    "conclusion": "success",
+    "appJobId": 115684624754,
+    "databaseJobId": 115684625114,
+    "appTestFiles": 110,
+    "appTests": 1627,
+    "sqlFiles": 8,
+    "sqlAssertions": 470,
+    "concurrencyCases": 13,
+    "roundCases": 5,
+    "roleSnapshotCases": 8,
+    "testedMergeSha": "5e372b2af94a65cec486e3bf4edbd1f767e0e41f",
+    "testedTreeSha": "69f6c30cf66aee741375609c815af3852283793c",
+    "repositoryTreeMatchesTestedMergeTree": true,
+    "legacySeedGraphPreserved": true,
+    "cleanupPassed": true,
+    "concurrencyArtifactId": 11870289021,
+    "concurrencyArtifactZipSha256": "467a17077235528a54d65ab62856ef58400d86f4e955dffde0d4851d28cc9627",
+    "historicalFailedRuns": [
+      {
+        "runId": 38469537820,
+        "reason": "SQL test53 unknown text literal; 469 of470 SQL assertions passed, concurrency skipped"
+      },
+      {
+        "runId": 38511882716,
+        "reason": "All470 SQL passed; concurrency runner stopped before fixture because historic migration seeds were wrongly expected empty"
+      }
+    ]
+  },
+  "staging": {
+    "supabaseRef": "xdvqdzdpyceojbdknofi",
+    "migrations": [
+      {
+        "repositoryVersion": "20261013203528",
+        "hostedVersion": "20261014044555",
+        "name": "survey_round_versions",
+        "sourceSha256": "14803e2c70c25e13fc5cfb02e227678cd48547457f87042beecb29726334fc9c"
+      },
+      {
+        "repositoryVersion": "20261013205550",
+        "hostedVersion": "20261014044559",
+        "name": "capture_project_membership_roles",
+        "sourceSha256": "4775ab7d94b7780d353fd46eea6f6ef61d26b94e99a0cea7b495fec290f59d4d"
+      }
+    ],
+    "postflightAt": "2026-10-14T04:46:17.581393Z",
+    "postflightCounts": {
+      "projects": 7,
+      "uploads": 15,
+      "baselines": 3,
+      "plans": 2,
+      "rounds": 0,
+      "canonical": 1,
+      "origins": 2,
+      "promotionRequests": 3
+    },
+    "roundTablePresent": true,
+    "roundRlsEnabled": true,
+    "roundBrowserWritesAllowed": false,
+    "roundWriterInsertAllowed": true,
+    "roundWriterUpdateDeleteAllowed": false,
+    "immutableBaselinePlanUpdateGrantsAdded": false,
+    "workerVersionId": "f4d6e4d7-6226-47ad-b205-60896a37ffc3",
+    "workerDeploymentId": "bcba2225-2242-4bb2-bc5c-7bcbadf88196",
+    "workerDeploymentAt": "2026-10-14T04:51:41.199347Z",
+    "workerVersionPercentage": 100,
+    "workerMessageCodeShaVerified": true,
+    "workerStartupMs": 18,
+    "encryptedBindingNamesVerified": [
+      "DATAFORDELER_API_KEY",
+      "SUPABASE_PUBLISHABLE_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "SUPABASE_URL"
+    ],
+    "encryptedBindingValuesRead": false,
+    "postflightCountsScope": "Actual read-only pre-QA SQL checkpoint at the stated postflightAt; subsequent synthetic QA state is listed separately"
+  },
+  "localBuildAndScan": {
+    "ci20CodeStagingBuildExitCode": 0,
+    "postbuildRepositoryFilesScanned": 712,
+    "postbuildOutputFilesScanned": 793,
+    "actualDatafordelerKeyLeaks": 0,
+    "privilegedBundleTokens": 0,
+    "nativeNaturePureGraphModules": 3,
+    "nativeNaturePureGraphBoundaryFindings": 0
+  },
+  "frozenDeploymentMetadataSha256": "c08c52a76bdf023451a78929903073f1b0e1e158f19e2b4af7ee4e770c522ca2",
+  "monitoringSavedValidator": {
+    "schema": "gofreyra.root-source13-validator-graph-review/v1",
+    "checkedAt": "2026-10-14T05:03:50.019Z",
+    "repositorySha": "81e229e0b99a91803b9b46bdf8b1202329b3efcd",
+    "result": "PASS",
+    "independentPeerHandoffSha256": "94430581386e5495d606310087423a4a7cdc6c4ef35f8284004d699c3c028848",
+    "rootRecompiled": true,
+    "projectInputs": [
+      "src/services/baseline/public-monitoring-stations-saved-payload.ts",
+      "src/services/baseline/public-monitoring-stations-source.ts"
+    ],
+    "zodInputs": 79,
+    "allActualInputHashesRechecked": true,
+    "outputBytes": 338504,
+    "outputImports": 0,
+    "outputExports": [
+      "parseSavedPublicMonitoringStationsSource"
+    ],
+    "nativeNatureModulesRechecked": 3,
+    "monitoringCompilationKind": "independent_same_committed_browser_source",
+    "monitoringIsActualDeployedSsrChunk": false,
+    "applicationModulesExecutedDuringReview": false,
+    "moduleSha256": "4e969b25568e4443577ddc592a41b57a01b11b56a9aa04525546700afc600e5d",
+    "provenanceSha256": "077256d678c74d53e8f33fdf8684475b5cdab58e1daec0292bbeac8f47b5f944",
+    "dependencyGraphReviewed": true,
+    "proofScope": "Independently compiled derivative of the same committed browser source; not a deployed SSR chunk or remote deployment proof"
+  },
+  "natureSavedValidator": {
+    "actualBuiltSsrGraph": true,
+    "modules": 3,
+    "boundaryFindings": 0,
+    "passed": true
+  },
+  "source13Qa": {
+    "outcome": "passed",
+    "completedAt": "2026-10-14T05:04:55.874Z",
+    "checkCount": 40,
+    "inputReceiptSha256": "fc3505751a5354f42bc1ebdcdc5276efc0e62cdba7956799b4c371fdb32580b0",
+    "technicalPayloadAcceptance": true,
+    "baseline": {
+      "id": "99edc17a-2f82-4fe9-80f9-af6346de06a3",
+      "version": 4,
+      "schema": "gofreyra.public-baseline/v2",
+      "manifestSha256": "b5f7264271141ab3c87dd56f66c836b40bb7dd208a5653bcda07ca85b32f9053",
+      "completePublicSourceCoverage": false
+    },
+    "sourceStatuses": [
+      {
+        "id": "official-watercourse-reference",
+        "mode": "live",
+        "status": "complete",
+        "evidenceKind": "official_registration",
+        "returnedCount": 1,
+        "payloadSha256": "f6c11bde07f48f11dbe172890d77ee01461ec3702de6e7b251e49dde436d883d"
+      },
+      {
+        "id": "municipal-regulation",
+        "mode": "error",
+        "status": "not_implemented",
+        "evidenceKind": "preview",
+        "returnedCount": null,
+        "payloadSha256": null
+      },
+      {
+        "id": "orthophoto-terrain",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "official_registration",
+        "returnedCount": 45,
+        "payloadSha256": "ab6c2625184646903316b17dd80c74104d4578a10afa91475090c0c6d355afab"
+      },
+      {
+        "id": "dmi-historical",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "calculation",
+        "returnedCount": 15,
+        "payloadSha256": "02bdc61089507e6f3c697c08babca5c2f1da582cf69539d6ff214f412b86a70d"
+      },
+      {
+        "id": "water-plan-nature",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "official_registration",
+        "returnedCount": 89,
+        "payloadSha256": "aaed2ed972c1fb087e3efaa2f1ba323ff2d59011cd497deec76ef42e96d0c52c"
+      },
+      {
+        "id": "sentinel-2-scenes",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "official_registration",
+        "returnedCount": 9,
+        "payloadSha256": "58f2945764cc3696f7d87ed6964094d0469322a02c2b7b92be16c8baba9b0e1e"
+      },
+      {
+        "id": "public-monitoring-stations",
+        "mode": "live",
+        "status": "partial",
+        "evidenceKind": "official_registration",
+        "returnedCount": 7,
+        "payloadSha256": "a50aa4b6dbe1e77dbb93b4829f937b4c2b87e4aeb6ce19f7f2587172e2a419a8"
+      }
+    ],
+    "raster": {
+      "metadataFiles": 45,
+      "products": [
+        {
+          "dataset": "GeoDKO10cm",
+          "files": 15,
+          "capturedFrom": null,
+          "capturedTo": null
+        },
+        {
+          "dataset": "GeoDKO12,5cm",
+          "files": 15,
+          "capturedFrom": null,
+          "capturedTo": null
+        },
+        {
+          "dataset": "Terraen",
+          "files": 15,
+          "capturedFrom": null,
+          "capturedTo": null
+        }
+      ],
+      "pixelsFetched": false
+    },
+    "nature": {
+      "candidates": 89,
+      "protectedNature": 82,
+      "protectedWatercourses": 4,
+      "vp3Watercourses": 3,
+      "status": "partial",
+      "polygonOverlapOrLegalAssessmentAccepted": false
+    },
+    "monitoring": {
+      "genericVandaSiteCandidates": 7,
+      "status": "partial",
+      "sourceNames": "omitted",
+      "hydrometricStationRelation": "not_verified",
+      "watercourseRelation": "not_verified",
+      "catchmentRelation": "not_verified",
+      "measurementDataFetched": false
+    },
+    "dmi": {
+      "stationId": "05384",
+      "dailyValueCount": 15,
+      "exactPeriodCovered": false,
+      "totalMm": null,
+      "catchmentRelevance": "not_assessed"
+    },
+    "sentinel": {
+      "catalogueScenes": 9,
+      "localCloudShadowNoDataOrNdviAccepted": false
+    },
+    "threeOldBaselineRowsAndHashesPreserved": true
+  },
+  "surveyRoundQa": {
+    "outcome": "passed",
+    "fullHostedQaPassed": true,
+    "completedAt": "2026-10-14T05:27:36.465Z",
+    "attempt": 3,
+    "checkCount": 81,
+    "inputReceiptSha256": "b5aa5dcfbee103e38c0e94eb8085f8279b4825f0eed6ca7329921a9f9a10183c",
+    "plan": {
+      "id": "7349ccb5-f34a-41d0-92c2-adeeba2038af",
+      "version": 3,
+      "manifestSha256": "6c92a578220f39afbbfc0c9ac6864d0465c3bbd18a9f1f6455d7f7bd97eacddc",
+      "baselineId": "99edc17a-2f82-4fe9-80f9-af6346de06a3",
+      "questionIds": [
+        "verification:99edc17a-2f82-4fe9-80f9-af6346de06a3:official-reference-location:v1"
+      ],
+      "status": "draft"
+    },
+    "rounds": [
+      {
+        "id": "db20bc6b-f0a1-4f81-a400-4ddda1e70c7b",
+        "roundId": "1a9f9f9c-b711-4ed1-97c6-0e35dccd337a",
+        "roundVersion": 1,
+        "version": 1,
+        "manifestSha256": "57c90c372d0a3f0c699ea3796d3883c5a5304632ff2e0aa49f64026b7cd8ebbd",
+        "baselineId": "99edc17a-2f82-4fe9-80f9-af6346de06a3",
+        "baselineSha256": "b5f7264271141ab3c87dd56f66c836b40bb7dd208a5653bcda07ca85b32f9053",
+        "planId": "7349ccb5-f34a-41d0-92c2-adeeba2038af",
+        "planSha256": "6c92a578220f39afbbfc0c9ac6864d0465c3bbd18a9f1f6455d7f7bd97eacddc",
+        "kind": "before",
+        "status": "draft",
+        "actualCoverage": "not_verified",
+        "accepted": true
+      },
+      {
+        "id": "f0482d30-5324-4295-8616-a6f6e1d9d449",
+        "roundId": "42a260a0-826a-4f73-a92e-a5e1be0207ad",
+        "roundVersion": 1,
+        "version": 2,
+        "manifestSha256": "4d8cb9cca308f08086d8bad5ba335c76059b4b5c5479af015dc5612f132eff2c",
+        "baselineId": "99edc17a-2f82-4fe9-80f9-af6346de06a3",
+        "baselineSha256": "b5f7264271141ab3c87dd56f66c836b40bb7dd208a5653bcda07ca85b32f9053",
+        "planId": "7349ccb5-f34a-41d0-92c2-adeeba2038af",
+        "planSha256": "6c92a578220f39afbbfc0c9ac6864d0465c3bbd18a9f1f6455d7f7bd97eacddc",
+        "kind": "control",
+        "status": "draft",
+        "actualCoverage": "not_verified",
+        "accepted": true
+      }
+    ],
+    "before": {
+      "graph": {
+        "project_media": {
+          "count": 1,
+          "sha256": "546b952eefda67e6679e5a15e12032f03da0ae3a7938be03e9d0aafe98b51d56"
+        },
+        "project_media_upload_origins": {
+          "count": 2,
+          "sha256": "830650053a5d5fb44b588fd7ece4d15924316bb6fc4112309b26a1eb2cb81fff"
+        },
+        "project_media_promotion_requests": {
+          "count": 3,
+          "sha256": "fb17d5224a548f763a2db70ea7c38dce6c18a9194f8e895c0f281327c31e7d83"
+        },
+        "uploads": {
+          "count": 2,
+          "sha256": "bc4c4a7ac8ec569fe42b945ffca560483f0b33e6b434a58139909bfe8a9faae6"
+        },
+        "nature_contexts": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "monitoring_zones": {
+          "count": 1,
+          "sha256": "10340426a57f53d0d5929ca79f50a64740d1ab7df9ce49b88326d0c00b3dd4de"
+        },
+        "audit_events": {
+          "count": 9,
+          "sha256": "b8b326915ca0405a43738643f0e993c68ea70c4dcc1bc97d4afe5c7a67f57d1f"
+        },
+        "project_baseline_snapshots": {
+          "count": 4,
+          "sha256": "db71a2b392354e4005ed739b3d79df22c3829af81828e496f9169154e53a52c2"
+        },
+        "project": {
+          "count": 1,
+          "sha256": "9e6f7beea3ad4185a24b4acb67ace175b8fe2747f393c987f66a44dfdb6376d4"
+        },
+        "derived": {
+          "drone_assets": 0,
+          "observations": 0,
+          "reports": 0
+        },
+        "flights": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      },
+      "baselineCount": 4,
+      "planCount": 3,
+      "roundCount": 2,
+      "roundRowsSha256": "5ad5edda03268090eba441bb88193e3f41fb5cb6812229da6e80ebaf90930e3e",
+      "oldPlanRowsSha256": "dd17f48186f73b5a154c799cecfd6e6a155968caf91ca3fb2346097cf0a3c7c4"
+    },
+    "after": {
+      "graph": {
+        "project_media": {
+          "count": 1,
+          "sha256": "546b952eefda67e6679e5a15e12032f03da0ae3a7938be03e9d0aafe98b51d56"
+        },
+        "project_media_upload_origins": {
+          "count": 2,
+          "sha256": "830650053a5d5fb44b588fd7ece4d15924316bb6fc4112309b26a1eb2cb81fff"
+        },
+        "project_media_promotion_requests": {
+          "count": 3,
+          "sha256": "fb17d5224a548f763a2db70ea7c38dce6c18a9194f8e895c0f281327c31e7d83"
+        },
+        "uploads": {
+          "count": 2,
+          "sha256": "bc4c4a7ac8ec569fe42b945ffca560483f0b33e6b434a58139909bfe8a9faae6"
+        },
+        "nature_contexts": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "monitoring_zones": {
+          "count": 1,
+          "sha256": "10340426a57f53d0d5929ca79f50a64740d1ab7df9ce49b88326d0c00b3dd4de"
+        },
+        "audit_events": {
+          "count": 9,
+          "sha256": "b8b326915ca0405a43738643f0e993c68ea70c4dcc1bc97d4afe5c7a67f57d1f"
+        },
+        "project_baseline_snapshots": {
+          "count": 4,
+          "sha256": "db71a2b392354e4005ed739b3d79df22c3829af81828e496f9169154e53a52c2"
+        },
+        "project": {
+          "count": 1,
+          "sha256": "9e6f7beea3ad4185a24b4acb67ace175b8fe2747f393c987f66a44dfdb6376d4"
+        },
+        "derived": {
+          "drone_assets": 0,
+          "observations": 0,
+          "reports": 0
+        },
+        "flights": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      },
+      "baselineCount": 4,
+      "planCount": 3,
+      "roundCount": 2,
+      "roundRowsSha256": "5ad5edda03268090eba441bb88193e3f41fb5cb6812229da6e80ebaf90930e3e",
+      "roundPreservation": {
+        "existingRoundRows": 2,
+        "existingRoundRowsSha256": "5ad5edda03268090eba441bb88193e3f41fb5cb6812229da6e80ebaf90930e3e",
+        "finalRoundRows": 2,
+        "newlyCreatedRoundRows": 0,
+        "finalRoundRowsSha256": "5ad5edda03268090eba441bb88193e3f41fb5cb6812229da6e80ebaf90930e3e",
+        "allPreExistingRoundRowsUnchanged": true
+      }
+    },
+    "acceptance": {
+      "technicalDraftLifecycle": true,
+      "baseline4Unchanged": true,
+      "threeOldBaselineRowsUnchanged": true,
+      "twoOldPlanRowsUnchanged": true,
+      "allPreExistingRoundRowsUnchanged": true,
+      "canonicalGraphUnchanged": true,
+      "sameJwtRevocationAndExactRestore": true,
+      "physicalPhotosCreated": false,
+      "observationsCreated": false,
+      "reviewsCreated": false,
+      "reportsCreated": false,
+      "municipalScopeApproved": false,
+      "professionalApproval": false,
+      "beforeAfterComparison": false,
+      "reportAccepted": false
+    },
+    "soleRoundTable": "public.survey_round_versions",
+    "roundSchema": "gofreyra.survey-round/v1",
+    "samePositiveRequestsAndIdsAsFailedAttempt": true,
+    "newlyCreatedRowsDuringFinalResume": 0,
+    "actualCallerHintFromVerifiedCurrentAccess": true,
+    "plannedCopenhagenCalendarWindowsAreNotActualPhotoCoverage": true
+  },
+  "currentRootReadOnlyDbPostflight": {
+    "checkedAt": "2026-10-14T05:28:56.324059Z",
+    "supabaseRef": "xdvqdzdpyceojbdknofi",
+    "readOnly": true,
+    "provenance": "Fresh actual MCP read-only result verified by root and supplied in trusted task; documentation author did not query the database",
+    "counts": {
+      "projects": 7,
+      "uploads": 15,
+      "baselines": 4,
+      "plans": 3,
+      "rounds": 2,
+      "canonical": 1,
+      "origins": 2,
+      "promotionRequests": 3
+    },
+    "syntheticProject": {
+      "observations": 0,
+      "reports": 0,
+      "flights": 0
+    },
+    "baseline4": {
+      "id": "99edc17a-2f82-4fe9-80f9-af6346de06a3",
+      "postgresJsonbTextBytes": 277941,
+      "byteLengthBasis": "Postgres manifest jsonb::text; not canonical JSON hash text or HTTP response size"
+    }
+  },
+  "nextMediaBinding": {
+    "status": "Integrated local branch work only; not current deployed release acceptance",
+    "rootReportedCopiedFiles": 21,
+    "repositoryMigration": "supabase/migrations/20261014051726_survey_round_media_versions.sql",
+    "rootReportedTypecheckPassed": true,
+    "latestWholeSuiteBeforeAncestorFix": {
+      "testFilesPassed": 112,
+      "testsPassed": 1752,
+      "suiteImportFailures": 2,
+      "wholeRunPassed": false
+    },
+    "narrowAncestorMockFixVerification": {
+      "files": 2,
+      "testsPassed": 7,
+      "passed": true,
+      "wholeSuiteRerunAfterFixClaimed": false
+    },
+    "productLint": {
+      "errors": 0,
+      "existingWarnings": 23,
+      "tmpDraftsExcluded": true
+    },
+    "newSqlExecuted": false,
+    "new18ConcurrencyCasesExecuted": false,
+    "newCiBuildDeployHostedMediaAccepted": false,
+    "professionalOrMunicipalAcceptance": false
+  },
+  "remainingPrioritized": [
+    {
+      "priority": 1,
+      "tasks": [
+        18,
+        27
+      ],
+      "work": "Saml den lokale mediebinding til præcis rundeversion og valgte spørgsmål, inklusive relevant baselinekontekst og ressourcekontrol. Kør derefter samlet suite/type/lint, nye SQL-/18-samtidighedscases, CI og build på samme kode."
+    },
+    {
+      "priority": 2,
+      "tasks": [
+        18,
+        26
+      ],
+      "work": "Anvend den reviewede mediemigration kun i staging, deploy samme accepterede kode og gennemfør hosted adgangs-/retry-/gammelgraf-/privat-original-QA samt faktisk browserforløb."
+    },
+    {
+      "priority": 3,
+      "tasks": [
+        19
+      ],
+      "work": "Gem manuelle noter og konservative observationer med kilde, sted, dato, metode og usikkerhed; implementér versionsfast fagligt review og rettigheder."
+    },
+    {
+      "priority": 4,
+      "tasks": [
+        21,
+        22,
+        23
+      ],
+      "work": "Byg gemt selvstændig FØR-rapport fra de godkendte inputs, immutable rapport-/godkendelsesversion og faktisk privat PDF, manifest, CSV og GeoJSON med checksum, retry og download efter reload."
+    },
+    {
+      "priority": 5,
+      "parallel": true,
+      "tasks": [
+        4,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        15
+      ],
+      "work": "Afklar kommunal beslutning, konkrete delstrækninger/AOI/endepunkter/regulativ/reviewer og øvrige cases. Færdiggør relevant kilde-/pixel-/dato-/NoData-/DMI-/oplands-/hydrometriaccept; metadata er ikke fuld faglig dækning."
+    },
+    {
+      "priority": 6,
+      "tasks": [
+        20,
+        24,
+        25,
+        26,
+        27
+      ],
+      "work": "Kør reel 10/120-billedbatch, faglig pilot-/PDF-datapakkeaccept og samlet ny-bruger-/Auth-/Storage-/eksportrelease. Før/efter kræver faktisk egnet EFTER-evidens. Luk relevante advisories og drifts-/ressourcegates."
+    }
+  ],
+  "acceptance": {
+    "technicalSourceInventoryAccepted": true,
+    "draftRoundPersistenceObserved": true,
+    "fullHostedRoundLifecycleAccepted": true,
+    "hostedRunStabilityAccepted": true,
+    "realBykaerReachApproved": false,
+    "municipal83mReachSelected": false,
+    "professionalApproved": false,
+    "originalPixelsDecodedOrGeoreferenced": false,
+    "actualPhotoBatchReviewed": false,
+    "observationsReviewed": false,
+    "reportGeneratedOrAccepted": false,
+    "pdfCsvGeojsonPackageDelivered": false,
+    "municipalDeliveryAccepted": false,
+    "hostedRunStabilityScope": "Bounded post-payment six reads and 81-check synthetic draft lifecycle only",
+    "productionCodeOrCustomerDataChanged": false
+  },
+  "privacy": {
+    "minimizedPublicProof": true,
+    "rawGeometryOriginalBytesNamesContactsTokensAndSignedUrlsOmitted": true
+  },
+  "evidenceInputs": [
+    {
+      "localPublicInput": "tmp/staging-qa-monitoring-inventory-baseline-evidence.json",
+      "sha256": "fc3505751a5354f42bc1ebdcdc5276efc0e62cdba7956799b4c371fdb32580b0"
+    },
+    {
+      "localPublicInput": "tmp/staging-qa-survey-round-source13-evidence.json",
+      "sha256": "b5aa5dcfbee103e38c0e94eb8085f8279b4825f0eed6ca7329921a9f9a10183c"
+    },
+    {
+      "localPublicInput": "tmp/survey-round-hosted-qa/post-payment-six-reads-evidence.json",
+      "sha256": "debc9974d957b5904a7d3d577500b2a4f6dc373f53e0a88f00fb0ce788ca8519"
+    },
+    {
+      "localPublicInput": "tmp/survey-round-hosted-qa/attempt1-failed-503-evidence.json",
+      "sha256": "cfedf161c8044257d08d0e2c54c8fd8ce381231cc22dc923c5be8e8a7323f68e"
+    },
+    {
+      "localPublicInput": "tmp/survey-round-hosted-qa/attempt2-failed-baseline-503-evidence.json",
+      "sha256": "91a9fb2406950528b7f03ce9830e40a2fb50ec2c759db807e3a8c56b6c70cb21"
+    },
+    {
+      "localPublicInput": "tmp/staging-qa-next-deployment.json",
+      "sha256": "c08c52a76bdf023451a78929903073f1b0e1e158f19e2b4af7ee4e770c522ca2"
+    },
+    {
+      "localPublicInput": "tmp/source13-round-doc-update/historical-d3dea151/docs/haderslev-audit/staging-source13-survey-round-checkpoint-2026-10-14.json",
+      "sha256": "f1416d947915b5782ea317e96ee586f71ec1dee2d09c64fd761283cdf6a65250"
+    }
+  ],
+  "historicalCpuAndFailedAttempts": {
+    "scope": "Pre-payment historical observations; superseded by the accepted final attempt without erasing failure history",
+    "firstAttempt": {
+      "outcome": "failed",
+      "checkCount": 79,
+      "failure": {
+        "phase": "same-jwt-revoke-and-exact-restore",
+        "code": "FUNCTION_HTTP_getSurveyRound_503"
+      },
+      "inputReceiptSha256": "cfedf161c8044257d08d0e2c54c8fd8ce381231cc22dc923c5be8e8a7323f68e",
+      "exactMembershipRestoreHadPassed": true
+    },
+    "secondAttempt": {
+      "outcome": "failed",
+      "failure": {
+        "phase": "freeze-baseline4-plan2-and-canonical-graph",
+        "code": "FUNCTION_HTTP_getProjectBaseline_503"
+      },
+      "inputReceiptSha256": "91a9fb2406950528b7f03ce9830e40a2fb50ec2c759db807e3a8c56b6c70cb21",
+      "stoppedBeforePositiveWrites": true
+    },
+    "cpu": {
+      "checkedAt": "2026-10-14T05:13:19.767Z",
+      "workerVersionId": "f4d6e4d7-6226-47ad-b205-60896a37ffc3",
+      "observedOutcome": "exceededCpu",
+      "cpuTimeMs": 17,
+      "wallTimeMs": 365,
+      "eventAt": "2026-10-14T05:12:54.012Z",
+      "scope": "One actual bounded Worker invocation; CPU termination confirmed, not a claim of mean latency or a function-level profile",
+      "rawHeadersOrTokensPersisted": false,
+      "officialDocumentation": "https://developers.cloudflare.com/workers/platform/limits/#cpu-time",
+      "officialDocsCheckedOn": "2026-10-14",
+      "rootResourceSettings": {
+        "checkedAt": "2026-10-14T05:11:09.332Z",
+        "usageModel": "standard",
+        "configuredLimits": null,
+        "accountDefaultUsageModel": "standard",
+        "subscriptionsGetHttpStatus": 403,
+        "subscriptionPlan": "not_verified",
+        "freeOrPaidTierInferred": false,
+        "subscriptionChanged": false,
+        "authorizedNextAccountAction": "Ordinary Cloudflare login for read-only subscription inspection only; no paid upgrade or configuration change authorized"
+      },
+      "fullHostedRoundAndRunStabilityAcceptance": false
+    },
+    "prepaymentHttpDiagnostic": {
+      "diagnosticCompletionWasNotProductAvailabilityAcceptance": true,
+      "httpProblem": {
+        "diagnosticCompleted": true,
+        "productAvailabilityPassed": false,
+        "failureObserved": true,
+        "httpStatus": 503,
+        "errorCode": 1102,
+        "errorName": "worker_exceeded_resources",
+        "problemResponseAlone": "CPU time or memory resource limit; that HTTP response alone did not distinguish them",
+        "retryable": false,
+        "ownerActionRequired": true,
+        "observedAt": "2026-10-14T05:12:54.114Z"
+      },
+      "originalObservedLocalPath": "tmp/survey-round-hosted-qa/cloudflare-read-only-probe.json",
+      "originalObservedSha256": "215cc6282e8dd1cbaf3a74243e912a21c52621fa483f65a0a194675d808351f7",
+      "originalPathWasOverwrittenByPostPaymentProbe": true,
+      "exactOriginalRawBytesStillAvailable": false,
+      "historicalFactsRetainedInMinimizedCheckpoint": {
+        "path": "tmp/source13-round-doc-update/historical-d3dea151/docs/haderslev-audit/staging-source13-survey-round-checkpoint-2026-10-14.json",
+        "sha256": "f1416d947915b5782ea317e96ee586f71ec1dee2d09c64fd761283cdf6a65250"
+      },
+      "originalRawBytesReconstructed": false
+    }
+  },
+  "postPaymentReadOnlyAcceptance": {
+    "completedAt": "2026-10-14T05:26:48.999Z",
+    "inputReceiptSha256": "debc9974d957b5904a7d3d577500b2a4f6dc373f53e0a88f00fb0ce788ca8519",
+    "requestCount": 6,
+    "baselineReads": 3,
+    "roundReads": 3,
+    "allHttpStatus200": true,
+    "sourceRecollectionOrPositiveWrites": false,
+    "scope": "Six actual bounded reads plus separate complete 81-check draft lifecycle; not long-term availability or real photo-batch acceptance"
+  },
+  "billingEvidence": {
+    "source": "Trusted human completion report and root-observed checkout summary; no billing API plan verification",
+    "userPreparedAndViewedCheckout": true,
+    "checkoutDisplayedPlan": "Workers Paid",
+    "checkoutDisplayedMonthlyUsd": 5,
+    "userReportedPaymentCompleted": true,
+    "amountChargedOrInvoiceIndependentlyVerified": false,
+    "billingApiPlanVerified": false,
+    "rootSubmittedFinancialAction": false,
+    "rootChangedWorkerConfiguration": false,
+    "rootReadOnlyWorkerOverviewVerifiedSameVersionCodeAnd100Percent": true
+  },
+  "evidenceInputGenesis": "Historical CPU/settings/HTTP observations and their original observed hashes are retained in the prior minimized checkpoint. The pre-payment HTTP-probe raw file was overwritten; no byte reconstruction or exact raw availability claim is made."
+}

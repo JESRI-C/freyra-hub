@@ -1,6 +1,7 @@
 // Indicators Service
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import {
   fetchIndicatorsByProject,
   fetchIndicator,
@@ -14,31 +15,19 @@ import { createAction } from "@/services/actions-service";
 import { SEED_INDICATORS } from "@/data/platform-seed";
 import type { Indicator, IndicatorMeasurement } from "@/lib/supabase/types";
 
-function isMissingTable(err: unknown): boolean {
-  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
-}
-
 export async function getIndicatorsByProject(projectId: string): Promise<Indicator[]> {
   const fallback = () => SEED_INDICATORS.filter((i) => i.project_id === projectId);
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchIndicatorsByProject(projectId);
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  if (isDemoDataEnabled) return fallback();
+  requireCustomerDatabase();
+  return fetchIndicatorsByProject(projectId);
 }
 
 export async function getIndicator(projectId: string, key: string): Promise<Indicator | null> {
   const fallback = () =>
     SEED_INDICATORS.find((i) => i.project_id === projectId && i.key === key) ?? null;
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchIndicator(projectId, key);
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  if (isDemoDataEnabled) return fallback();
+  requireCustomerDatabase();
+  return fetchIndicator(projectId, key);
 }
 
 // ─── Write ────────────────────────────────────────────────────────────────────
@@ -99,6 +88,31 @@ function periodToSince(period: Period): string | undefined {
   else if (period === "12m") now.setMonth(now.getMonth() - 12);
   else return undefined;
   return now.toISOString();
+}
+
+function seedMeasurements(indicator: Indicator, days: number): IndicatorMeasurement[] {
+  const base = indicator.value ?? 50;
+  const step = days > 90 ? 15 : days > 30 ? 7 : 3;
+  const out: IndicatorMeasurement[] = [];
+  for (let d = days; d >= 0; d -= step) {
+    const t = new Date();
+    t.setDate(t.getDate() - d);
+    const noise = (Math.sin(d * 0.7) + Math.cos(d * 0.3)) * (base * 0.08);
+    out.push({
+      id: `seed-${indicator.id}-${d}`,
+      indicator_id: indicator.id,
+      project_id: indicator.project_id,
+      measured_at: t.toISOString(),
+      value: Math.max(0, Math.round((base + noise) * 100) / 100),
+      unit: indicator.unit,
+      source: "seed",
+      confidence_score: 0.85,
+      method: "simuleret",
+      metadata: null,
+      created_at: t.toISOString(),
+    });
+  }
+  return out;
 }
 
 export async function getMeasurements(

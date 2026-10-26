@@ -88,7 +88,9 @@ describe("private original persistence", () => {
         project_id: "project",
         title: "photo",
         storage_bucket: "project-originals",
-        file_path: "path",
+        file_path: `project/flight/${"a".repeat(64)}`,
+        upload_scope: "flight",
+        sha256: "a".repeat(64),
       },
     ];
     const result = await uploadProjectMedia(input());
@@ -111,6 +113,10 @@ it("lists all originals beyond a database page boundary", async () => {
     id: String(i),
     project_id: "project",
     title: `photo-${i}`,
+    storage_bucket: "project-originals",
+    upload_scope: "flight",
+    sha256: i.toString(16).padStart(64, "0"),
+    file_path: `project/flight/${i.toString(16).padStart(64, "0")}`,
     url: "",
     uploaded_at: "2026-10-26",
   }));

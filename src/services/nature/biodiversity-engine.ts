@@ -11,21 +11,26 @@
  * Naturstyrelsens moniteringsramme for §3-natur.
  */
 
-import { fetchNatureData, type Paragraph3Result, type BiodiversityDataResult } from "./paragraph3-service";
+import {
+  fetchNatureData,
+  type Paragraph3Result,
+  type BiodiversityDataResult,
+} from "./paragraph3-service";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { isDemoDataEnabled } from "@/lib/data-mode";
 import { saveIndicator } from "@/services/indicators-service";
 import { logAuditEvent } from "@/services/audit-service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface BiodiversityScore {
-  total: number;            // 0-100
+  total: number; // 0-100
   components: {
-    vegetation: number;     // NDVI-baseret 0-100
+    vegetation: number; // NDVI-baseret 0-100
     habitatCoverage: number; // §3-dækning 0-100
     speciesDiversity: number; // Antal grupper 0-100
     protectedSpecies: number; // Fredede/rødlistede 0-100
-    habitatVariety: number;  // Antal naturtyper 0-100
+    habitatVariety: number; // Antal naturtyper 0-100
   };
   classification: "Meget høj" | "Høj" | "Moderat" | "Lav" | "Meget lav";
   trend: "up" | "stable" | "down";
@@ -45,11 +50,11 @@ export interface BiodiversityEngineResult {
 // ─── Scoringsmodel ────────────────────────────────────────────────────────────
 
 const WEIGHTS = {
-  vegetation:        0.25,
-  habitatCoverage:   0.25,
-  speciesDiversity:  0.20,
-  protectedSpecies:  0.20,
-  habitatVariety:    0.10,
+  vegetation: 0.25,
+  habitatCoverage: 0.25,
+  speciesDiversity: 0.2,
+  protectedSpecies: 0.2,
+  habitatVariety: 0.1,
 };
 
 /**
@@ -62,9 +67,7 @@ export function computeBiodiversityScore(
   projectAreaHa: number,
 ): BiodiversityScore {
   // Komponent 1: Vegetation (NDVI 0→1 = score 0→100)
-  const vegetationScore = ndvi != null
-    ? Math.round(Math.max(0, Math.min(1, ndvi)) * 100)
-    : 50; // middelværdi hvis ikke tilgængeligt
+  const vegetationScore = ndvi != null ? Math.round(Math.max(0, Math.min(1, ndvi)) * 100) : 50; // middelværdi hvis ikke tilgængeligt
 
   // Komponent 2: §3-habitatdækning (% af projektareal der er §3)
   const habitatCoverageScore = Math.round(Math.min(100, p3.overlapPercent * 1.5));
@@ -76,11 +79,12 @@ export function computeBiodiversityScore(
 
   // Komponent 4: Fredede og rødlistede arter
   const totalSpecies = species.species.length;
+  let protectedScore: number;
   if (totalSpecies === 0) {
-    var protectedScore = 30; // ingen data = lav score
+    protectedScore = 30; // ingen data = lav score
   } else {
     const protectedRatio = (species.protectedCount + species.redListedCount * 2) / totalSpecies;
-    var protectedScore = Math.round(Math.min(100, protectedRatio * 200));
+    protectedScore = Math.round(Math.min(100, protectedRatio * 200));
   }
 
   // Komponent 5: Habitatvariation (antal §3-typer)
@@ -89,19 +93,19 @@ export function computeBiodiversityScore(
 
   // Vægtet total
   const total = Math.round(
-    vegetationScore    * WEIGHTS.vegetation +
-    habitatCoverageScore * WEIGHTS.habitatCoverage +
-    speciesDiversityScore * WEIGHTS.speciesDiversity +
-    protectedScore     * WEIGHTS.protectedSpecies +
-    habitatVarietyScore * WEIGHTS.habitatVariety
+    vegetationScore * WEIGHTS.vegetation +
+      habitatCoverageScore * WEIGHTS.habitatCoverage +
+      speciesDiversityScore * WEIGHTS.speciesDiversity +
+      protectedScore * WEIGHTS.protectedSpecies +
+      habitatVarietyScore * WEIGHTS.habitatVariety,
   );
 
   const classification = classifyScore(total);
 
   // Confidence baseret på datakvalitet
   const hasRealData = p3.mode === "live" && species.mode === "live";
-  const confidence = hasRealData && ndvi != null ? "high" :
-                     hasRealData || ndvi != null ? "medium" : "low";
+  const confidence =
+    hasRealData && ndvi != null ? "high" : hasRealData || ndvi != null ? "medium" : "low";
 
   return {
     total,
@@ -143,6 +147,11 @@ export async function runBiodiversityAnalysis(
   areaHa: number,
   ndvi?: number | null,
 ): Promise<BiodiversityEngineResult> {
+  // Until a validated baseline contract exists, only explicit offline demo can
+  // run this legacy model. Hooks and direct calls must obey the same boundary.
+  if (!isDemoDataEnabled) {
+    throw new Error("Projektanalysen afventer et valideret offentligt datagrundlag.");
+  }
   const { p3, species } = await fetchNatureData(lat, lng, areaHa);
   const score = computeBiodiversityScore(ndvi ?? null, p3, species, areaHa);
 

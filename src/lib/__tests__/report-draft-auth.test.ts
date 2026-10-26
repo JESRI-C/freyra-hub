@@ -7,7 +7,12 @@ vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({ auth: { getUser: mocks.getUser }, from: mocks.from }),
 }));
 vi.mock("ai", () => ({ generateText: mocks.generateText, Output: { object: () => ({}) } }));
-vi.mock("../ai-gateway.server", () => ({ createLovableAiGatewayProvider: () => () => ({}) }));
+vi.mock("../ai-gateway.server", () => ({
+  withBoundedAiGateway: async (_key: string, fn: (limits: object) => Promise<unknown>) =>
+    fn({ model: {}, maxRetries: 0 }),
+  requireBoundedAiText: (value: string) => value,
+  aiPublicFailure: () => "unknown",
+}));
 import { generateEvidenceReportDraft } from "../report-draft.functions";
 import { newReportContent } from "../report-document";
 const call = generateEvidenceReportDraft as unknown as (input: {

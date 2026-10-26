@@ -1,0 +1,841 @@
+{
+  "schema": "gofreyra.public-raster-aoi-probe/v1",
+  "fetchedAt": "2026-10-13T17:18:53.852Z",
+  "syntheticTechnicalArea": true,
+  "agreedMunicipalReach": false,
+  "polygon": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [9.249033116, 55.336099018],
+        [9.273036068000001, 55.336099018],
+        [9.273036068000001, 55.373372295],
+        [9.249033116, 55.373372295],
+        [9.249033116, 55.336099018]
+      ]
+    ]
+  },
+  "queryCrs": "EPSG:25832",
+  "bbox": [515756, 6132196, 517345, 6136401],
+  "bufferM": 25,
+  "datumEpochAssumption": "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+  "rasterBytesFetched": false,
+  "results": [
+    {
+      "dataset": "GeoDKO10cm",
+      "publicUrl": "https://api.datafordeler.dk/FileDownloads/v1.0/GetAvailableRasterFileDownloads?Register=geodko&DataSetName=GeoDKO10cm&Version=1&Pagenumber=1&MinX=515756&MinY=6132196&MaxX=517345&MaxY=6136401",
+      "httpStatus": 200,
+      "responseBytes": 5106,
+      "responseSha256": "c3638bccaf127a8cb19b38fcc6fc081225400977e873b172dd1509996630f7cc",
+      "response": {
+        "paginationMetadata": {
+          "currentPage": 1,
+          "pageSize": 100,
+          "totalCount": 15,
+          "totalPages": 1
+        },
+        "availableFileDownloads": [
+          {
+            "fileFormat": "tif",
+            "id": "0ca55649-1a5b-4673-89f9-bcba95f91d08",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6132_516.tif",
+            "generationTime": "2026-01-12T16:14:25.678682Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 86039890
+          },
+          {
+            "fileFormat": "tif",
+            "id": "373d1bf6-f5b3-4b20-8942-39bcc03ba842",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6132_517.tif",
+            "generationTime": "2026-01-12T16:14:20.845701Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 107261257
+          },
+          {
+            "fileFormat": "tif",
+            "id": "447541dd-59c3-4eac-906b-fcc82309065e",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6136_516.tif",
+            "generationTime": "2026-01-12T16:14:22.948487Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 109829927
+          },
+          {
+            "fileFormat": "tif",
+            "id": "5a9799f9-793e-4a45-96ea-b0ab93194f24",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6133_517.tif",
+            "generationTime": "2026-01-12T16:14:18.979709Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 114121384
+          },
+          {
+            "fileFormat": "tif",
+            "id": "8a4ce8dc-bd79-44c3-828f-3cb5b9ab7fca",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6134_515.tif",
+            "generationTime": "2026-01-12T16:14:08.991181Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 106858194
+          },
+          {
+            "fileFormat": "tif",
+            "id": "95b17f26-a6dc-42bd-a43e-45b4a6af070b",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6136_517.tif",
+            "generationTime": "2026-01-12T16:14:18.981262Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 109413884
+          },
+          {
+            "fileFormat": "tif",
+            "id": "998cbf2b-6552-4970-8ca5-3bfaf690933c",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6133_515.tif",
+            "generationTime": "2026-01-12T16:14:20.846301Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 111051249
+          },
+          {
+            "fileFormat": "tif",
+            "id": "a9467934-d214-4a00-9132-ab6472f8f957",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6135_515.tif",
+            "generationTime": "2026-01-12T16:14:15.823387Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 124607111
+          },
+          {
+            "fileFormat": "tif",
+            "id": "a9bc09be-3626-42c5-960a-fce320a97bfa",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6135_517.tif",
+            "generationTime": "2026-01-12T16:14:24.285055Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 116322632
+          },
+          {
+            "fileFormat": "tif",
+            "id": "bf591497-f7fc-4c68-9897-3cc5ccbad30a",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6132_515.tif",
+            "generationTime": "2026-01-12T16:14:22.944866Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 110985845
+          },
+          {
+            "fileFormat": "tif",
+            "id": "c9bdd370-9a6e-4771-bcec-1312cbdc594f",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6133_516.tif",
+            "generationTime": "2026-01-12T16:14:22.945625Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 110341546
+          },
+          {
+            "fileFormat": "tif",
+            "id": "de1533b9-7108-4e66-90b1-805a91016edb",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6134_517.tif",
+            "generationTime": "2026-01-12T16:14:18.979073Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 112987399
+          },
+          {
+            "fileFormat": "tif",
+            "id": "f045eb65-fe8c-4430-b13a-75267d931c99",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6135_516.tif",
+            "generationTime": "2026-01-12T16:14:18.980419Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 125437911
+          },
+          {
+            "fileFormat": "tif",
+            "id": "f409ba93-11ea-4367-b48f-44f8d2bb65f1",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6136_515.tif",
+            "generationTime": "2026-01-12T16:14:17.436891Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 121735100
+          },
+          {
+            "fileFormat": "tif",
+            "id": "f455d5d4-d8c8-46a6-8e12-2c9165532a3c",
+            "dataSetName": "GeoDKO10cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6134_516.tif",
+            "generationTime": "2026-01-12T16:14:17.434103Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 95092491
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "GeoDKO12,5cm",
+      "publicUrl": "https://api.datafordeler.dk/FileDownloads/v1.0/GetAvailableRasterFileDownloads?Register=geodko&DataSetName=GeoDKO12%2C5cm&Version=1&Pagenumber=1&MinX=515756&MinY=6132196&MaxX=517345&MaxY=6136401",
+      "httpStatus": 200,
+      "responseBytes": 5121,
+      "responseSha256": "416452cc159a8787c5146b68d30154b1f8d4f6094f318f1bc05f479c18648fb1",
+      "response": {
+        "paginationMetadata": {
+          "currentPage": 1,
+          "pageSize": 100,
+          "totalCount": 15,
+          "totalPages": 1
+        },
+        "availableFileDownloads": [
+          {
+            "fileFormat": "tif",
+            "id": "079a5592-0d91-481b-93d0-845a4bb103f2",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6136_515.tif",
+            "generationTime": "2026-01-12T16:15:18.979681Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 85960383
+          },
+          {
+            "fileFormat": "tif",
+            "id": "0c576d00-04f1-45f3-92ab-abf2c71b84ca",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6133_516.tif",
+            "generationTime": "2026-01-12T16:15:23.153575Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 76165640
+          },
+          {
+            "fileFormat": "tif",
+            "id": "16a37b7e-0871-475d-ad42-0a47d80b4d7f",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6134_516.tif",
+            "generationTime": "2026-01-12T16:15:20.750927Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 64872213
+          },
+          {
+            "fileFormat": "tif",
+            "id": "1a199b5e-759d-4446-b85e-3035c25c1ca8",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6136_516.tif",
+            "generationTime": "2026-01-12T16:15:03.463829Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 76267599
+          },
+          {
+            "fileFormat": "tif",
+            "id": "2bf52860-c117-46be-934e-fa5bcd4441bc",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6135_515.tif",
+            "generationTime": "2026-01-12T16:14:48.775176Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 87534248
+          },
+          {
+            "fileFormat": "tif",
+            "id": "45ee4c05-9dcf-4b4b-95cc-a64721eca090",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6132_516.tif",
+            "generationTime": "2026-01-12T16:14:56.943398Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 58632316
+          },
+          {
+            "fileFormat": "tif",
+            "id": "4bef0fb3-98cb-4fb9-b136-f45bafd209e7",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6136_517.tif",
+            "generationTime": "2026-01-12T16:15:16.46481Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 75019609
+          },
+          {
+            "fileFormat": "tif",
+            "id": "6635e227-71f8-441f-b80b-cb5a7a82e433",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6135_517.tif",
+            "generationTime": "2026-01-12T16:14:52.952921Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 80064928
+          },
+          {
+            "fileFormat": "tif",
+            "id": "68fc8229-3ce9-43e5-91d0-b28eb6d8a2fb",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6132_517.tif",
+            "generationTime": "2026-01-12T16:14:48.099081Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 73688918
+          },
+          {
+            "fileFormat": "tif",
+            "id": "dd56a8e9-f190-4fff-a1dc-4117297962b6",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6133_517.tif",
+            "generationTime": "2026-01-12T16:14:49.29301Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 77974531
+          },
+          {
+            "fileFormat": "tif",
+            "id": "ea1fa361-0670-44be-94cb-e37512c894cf",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6133_515.tif",
+            "generationTime": "2026-01-12T16:15:22.611477Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 77073169
+          },
+          {
+            "fileFormat": "tif",
+            "id": "ea45c498-38be-4490-a7cb-7f7d743358fe",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6134_515.tif",
+            "generationTime": "2026-01-12T16:14:57.680066Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 72982011
+          },
+          {
+            "fileFormat": "tif",
+            "id": "fa495fd8-c597-441c-a83e-7ba1abeef8b5",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6134_517.tif",
+            "generationTime": "2026-01-12T16:15:12.167814Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 78050681
+          },
+          {
+            "fileFormat": "tif",
+            "id": "fdda163d-8977-41e3-ab80-9ad7d1d87c36",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6135_516.tif",
+            "generationTime": "2026-01-12T16:14:53.746223Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 87594230
+          },
+          {
+            "fileFormat": "tif",
+            "id": "fedc2571-fc32-4b2f-9710-5ed081731489",
+            "dataSetName": "GeoDKO12,5cm",
+            "register": "geodko",
+            "version": "1",
+            "dataDeliveryNumber": 4,
+            "fileName": "2025_1km_6132_515.tif",
+            "generationTime": "2026-01-12T16:15:00.859358Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 76667949
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "Terraen",
+      "publicUrl": "https://api.datafordeler.dk/FileDownloads/v1.0/GetAvailableRasterFileDownloads?Register=dhm&DataSetName=Terraen&Version=1&Pagenumber=1&MinX=515756&MinY=6132196&MaxX=517345&MaxY=6136401",
+      "httpStatus": 200,
+      "responseBytes": 5102,
+      "responseSha256": "d5550928e89a260ff97bcf3a33fd1a8de20c0abda4f9eab45b9354f4004b3cf9",
+      "response": {
+        "paginationMetadata": {
+          "currentPage": 1,
+          "pageSize": 100,
+          "totalCount": 15,
+          "totalPages": 1
+        },
+        "availableFileDownloads": [
+          {
+            "fileFormat": "tif",
+            "id": "0e7dbcd8-ee69-41ff-aa7b-f17d6df3604e",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6136_517.tif",
+            "generationTime": "2026-06-20T06:52:45.93688Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 19524996
+          },
+          {
+            "fileFormat": "tif",
+            "id": "2109e85a-3598-4bb3-9994-aabca55d4c0d",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6133_517.tif",
+            "generationTime": "2026-06-20T06:52:42.4699Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 19752739
+          },
+          {
+            "fileFormat": "tif",
+            "id": "465cd9f4-8092-42df-a5cb-c94b939b8f18",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6132_516.tif",
+            "generationTime": "2026-06-20T06:52:21.428359Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 19610028
+          },
+          {
+            "fileFormat": "tif",
+            "id": "63e2efbf-0c67-473c-9977-18409000ab78",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6132_515.tif",
+            "generationTime": "2026-06-20T06:52:20.352226Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 19737188
+          },
+          {
+            "fileFormat": "tif",
+            "id": "96cf674a-c105-4186-b208-9ec67a014555",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6135_516.tif",
+            "generationTime": "2026-06-20T06:52:27.468884Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 19637562
+          },
+          {
+            "fileFormat": "tif",
+            "id": "9dbb3b3c-6f3e-4275-be1a-a56cf20c30cf",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6134_517.tif",
+            "generationTime": "2026-06-20T06:52:39.32992Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 19886179
+          },
+          {
+            "fileFormat": "tif",
+            "id": "a085b0fb-1810-412a-9387-aa7939ffda67",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6136_516.tif",
+            "generationTime": "2026-06-20T06:52:37.924743Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 19423348
+          },
+          {
+            "fileFormat": "tif",
+            "id": "b98dd789-bceb-4f36-b897-929b4a069c99",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6136_515.tif",
+            "generationTime": "2026-06-20T06:52:41.876819Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6136000,
+              "maxY": 6137000
+            },
+            "fileSizeInBytes": 18293108
+          },
+          {
+            "fileFormat": "tif",
+            "id": "b9ca6a67-0220-4f03-a91c-1cfd70dea5a6",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6134_516.tif",
+            "generationTime": "2026-06-20T06:52:23.947318Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 18767824
+          },
+          {
+            "fileFormat": "tif",
+            "id": "cc131a9c-20b6-4c5c-8921-7bbe50772d78",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6135_515.tif",
+            "generationTime": "2026-06-20T06:52:19.766716Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 19237093
+          },
+          {
+            "fileFormat": "tif",
+            "id": "d1a620fb-9eef-434b-863c-6e94aa8d249e",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6133_515.tif",
+            "generationTime": "2026-06-20T06:52:30.214334Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 18985536
+          },
+          {
+            "fileFormat": "tif",
+            "id": "deca9bfc-c38a-4cf3-a5ca-44236382a3e3",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6133_516.tif",
+            "generationTime": "2026-06-20T06:52:44.50022Z",
+            "boundingBox": {
+              "minX": 516000,
+              "maxX": 517000,
+              "minY": 6133000,
+              "maxY": 6134000
+            },
+            "fileSizeInBytes": 19822061
+          },
+          {
+            "fileFormat": "tif",
+            "id": "e4e77983-7ede-431d-a5e6-acc99642cf8a",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6134_515.tif",
+            "generationTime": "2026-06-20T06:52:27.81593Z",
+            "boundingBox": {
+              "minX": 515000,
+              "maxX": 516000,
+              "minY": 6134000,
+              "maxY": 6135000
+            },
+            "fileSizeInBytes": 18572654
+          },
+          {
+            "fileFormat": "tif",
+            "id": "eaee9363-55a1-4cf3-9d72-d0eb6e6c6775",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6135_517.tif",
+            "generationTime": "2026-06-20T06:52:40.364384Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6135000,
+              "maxY": 6136000
+            },
+            "fileSizeInBytes": 19465940
+          },
+          {
+            "fileFormat": "tif",
+            "id": "f9e59c7f-0415-4e41-b1bd-91e5bf232523",
+            "dataSetName": "Terraen",
+            "register": "dhm",
+            "version": "1",
+            "dataDeliveryNumber": 3,
+            "fileName": "DHM_TERRAEN_1km_6132_517.tif",
+            "generationTime": "2026-06-20T06:52:20.493189Z",
+            "boundingBox": {
+              "minX": 517000,
+              "maxX": 518000,
+              "minY": 6132000,
+              "maxY": 6133000
+            },
+            "fileSizeInBytes": 19617095
+          }
+        ]
+      }
+    }
+  ]
+}

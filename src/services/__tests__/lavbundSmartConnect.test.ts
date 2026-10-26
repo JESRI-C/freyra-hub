@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  normalizeHoboPayload,
-  normalizeDEMPayload,
-} from "../lavbundSmartConnect";
+import { normalizeHoboPayload, normalizeDEMPayload } from "../lavbundSmartConnect";
 
 describe("normalizeHoboPayload", () => {
   it("konverterer cm→m og markerer kilden", () => {

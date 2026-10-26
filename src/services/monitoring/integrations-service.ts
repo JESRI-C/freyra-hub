@@ -3,7 +3,8 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 export type IntegrationConnection = Database["public"]["Tables"]["integration_connections"]["Row"];
-export type IntegrationConnectionInsert = Database["public"]["Tables"]["integration_connections"]["Insert"];
+export type IntegrationConnectionInsert =
+  Database["public"]["Tables"]["integration_connections"]["Insert"];
 
 export async function listIntegrations(projectId: string): Promise<IntegrationConnection[]> {
   if (!isSupabaseConfigured || !supabase) return [];
@@ -16,9 +17,15 @@ export async function listIntegrations(projectId: string): Promise<IntegrationCo
   return (data as IntegrationConnection[] | null) ?? [];
 }
 
-export async function createIntegration(input: IntegrationConnectionInsert): Promise<IntegrationConnection> {
+export async function createIntegration(
+  input: IntegrationConnectionInsert,
+): Promise<IntegrationConnection> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.from("integration_connections").insert(input as never).select("*").single();
+  const { data, error } = await supabase
+    .from("integration_connections")
+    .insert(input as never)
+    .select("*")
+    .single();
   if (error) throw error;
   return data as IntegrationConnection;
 }

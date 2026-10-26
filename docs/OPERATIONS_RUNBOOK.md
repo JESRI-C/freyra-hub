@@ -1,0 +1,163 @@
+# GoFreyra operations runbook
+
+Opdateret: 2026-09-12. Dette er den verificerede staging-/lokalbaseline. Produktion er uden for mandatet.
+
+## 1. Før start
+
+1. Kontrollér repository og bevar eksisterende ændringer:
+
+   ```powershell
+   git status --short --branch
+   git remote -v
+   git log -1 --oneline
+   ```
+
+2. Forvent `codex/gofreyra-p0`. Stop ved ukendt divergens eller overlappende brugerændringer.
+3. Brug Node `>=22 <23`; auditmiljøet var Node 22.14 og npm 10.9.
+4. Secrets må ikke stå i Git, terminaloutput, screenshots eller run-log. Brug en ignoreret `.env.local`/lokal secret store og behold kun nøglenavne i `.env.example`.
+
+## 2. Installation og lokal app
+
+Den reproducerbare vej skal være:
+
+```powershell
+npm ci
+npm run dev
+```
+
+Første audit fandt en stale lock og brugte `npm install` én gang til synkronisering. Et efterfølgende frisk `npm ci` består. Brug ikke `npm install` som skjult standard i planlagte kørsler.
+
+`package-lock.json` er den kanoniske P0-lockfil. Den eksisterende `bun.lock` er legacy og må ikke bruges eller opdateres i arbejdscyklusser; en eventuel fjernelse håndteres som en særskilt, godkendt oprydning.
+
+Appen bygges med Vite/TanStack Start; lokal URL fremgår af Vite-output. Kontroller login og datamode i UI. Seed/preview er kun udviklingsmode og må ikke bruges som P0-evidens.
+
+## 3. Miljønøgler
+
+Verificerede nøglenavne i kode/konfiguration omfatter:
+
+- Browser/brugerklient: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (legacy fallback `VITE_SUPABASE_ANON_KEY`).
+- Server: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OBSERVATIONS_INGEST_API_SECRET`, `OBSERVATIONS_INGEST_PROJECT_ID`, `MONITORING_CRON_API_SECRET`.
+- Kilder: `ENABLE_LIVE_DATA`, `DMI_BASE_URL`, `DATAFORDELER_KEY`, `COPERNICUS_TOKEN` og deres dokumenterede Vite-fallbacks, hvor de stadig findes.
+
+Tilføj ikke værdier til dette dokument. En `VITE_*`-værdi er klientlæsbar og må aldrig anvendes som privilegeret endpoint-secret. Ingest/cron-secrets er uafhængige, server-only værdier; de må heller ikke genbruge Supabase secret/service-role keys.
+
+`src/lib/supabase/client.ts` er den eneste canonical browser-Supabase-/GoTrue-klient. Den genererede integrationsmodulvej er kun en fail-fast compatibility Proxy til samme instans; opret ikke en ny klient dér eller i en service. `VITE_SUPABASE_PUBLISHABLE_KEY` har prioritet, mens tom/manglende publishable falder tilbage til `VITE_SUPABASE_ANON_KEY`. Serverens `SUPABASE_*`-værdier må aldrig bruges som browserfallback. Auth persistence, auto-refresh og `detectSessionInUrl` er kun aktive, når modulet evalueres i browseren, og er deaktiverede ved SSR-evaluering.
+
+`onAuthStateChange`-callbacken skal være synkron. Start aldrig nye Supabase-queries med `await` inde i callbacken; planlæg tenantbootstrap efter callbacken og generation-guard den mod identitetsskift, logout og unmount. Same-user token-events må kun opdatere sessionen. Password-login navigerer først, når AuthProvider har hydreret brugeren; bootstrapfejl skal vises med retry, og `next` må kun være en valideret same-origin relativ sti.
+
+Projektdetalje, projektgeometri og projektkort har nu eksplicit `ssr:false`; projektindekset har ingen beskyttet loader og ligger under auth-layoutet. De fire indgange afhænger derfor ikke længere af en global anonym SSR-loader. Verificér fortsat credential-båret initial navigation og direkte reload med en godkendt staging-bruger. Hvis en beskyttet SSR-loader senere genindføres, skal den bruge en request-scoped serverklient med den aktuelle requests bruger-JWT; en global publishable/anon-klient er ikke autorisation.
+
+Provisionér observations-ingest som ét runtime-miljø, ét stærkt secret og ét eksisterende projekt-ID med organisation. Request-bodyens `project_id` er kun kompatibilitetsinput og må ikke være autoritativ. Migrationen med den service-role-only `ingest_observations_atomic(uuid,jsonb)`-RPC skal anvendes og runtimeverificeres før den tilhørende appversion deployes; ellers vil endpointet fejle lukket. Hvis projektbindingen ændres, skal credentialet roteres samtidig; genbrug ikke samme secret til flere projekter. En flerprojekt-integration eller sikker automatisk retry kræver en særskilt, godkendt credential-/integrations-/request-ledgermodel.
+
+`xdvqdzdpyceojbdknofi` er den brugerautoriserede P0-staging. Lovable-/produktionsref `ikrmcetjutqcjtwfhzfv` er ikke staging og må ikke ændres gennem denne lane. Brug `npm run build:staging` og `npm run preview:staging`; preflighten kræver eksakt staging-ref for browser og server og afviser fremmede Supabase-refs i buildet. `.env.staging.local` og genererede `.dev.vars.staging` er lokale/ignorerede og må aldrig committes. Cloudflare-hosting kræver særskilte staging-bindings/secrets; en lokal `.dev.vars` følger ikke med et deploy. Et særskilt brugerautoriseret hosted staging-deploy køres fra `.output/server` med den genererede `wrangler.json`, eksplicit `--env staging --keep-vars --strict` og en bestået `--dry-run`; en generisk/default Worker må aldrig bruges.
+
+## 4. Migrationer og Storage
+
+- Kildehistorik: `supabase/migrations/`; læs alle senere policyændringer før konklusion om effektiv RLS.
+- Verificér målprojekt, diff og backup/recovery før enhver remote migration.
+- Supabase CLI er fastlåst til 2.116.0 i devDependencies. Brug kun de versionsstyrede lokale scripts: `npm run supabase:start`, `npm run supabase:reset:local`, `npm run supabase:test:db` og `npm run supabase:lint:db`.
+- Lokal reset/test kræver en disponibel Docker- eller Podman-baseret Supabase-stack. I cyklus 014 mangler Docker/Podman fortsat; både pgTAP og DB-lint blev forsøgt og stoppede med `ECONNREFUSED 127.0.0.1:54322`. Ingen databaseadfærd blev derfor kørt. Brug aldrig `--linked` som omgåelse.
+- Den isolerede staging `xdvqdzdpyceojbdknofi` er `ACTIVE_HEALTHY`. Efter brugerautoriseret preflight er upload-reconciliation og call-time membership-hærdningen registreret atomisk som `20260913162045`, og observations-RPC'en som `20260913162100`; de seks tidligere liveversioner er bevaret. Katalogpostflight og en rollback-canary bekræfter invoker/search-path/grants, finalize/cancel-medlemscheck, gyldig observationsbatch, A→B site/source-afvisning, no-partial-row, ukendt projekt og ugyldigt timestamp. Det samlede schema er ikke produktionsklart: frisk lokal replay, pgTAP `plan(128)`, DB-lint, parallel relationrace, hele rolle-/Storage-matricen og review af produktionsdata mangler fortsat.
+- Hærdningskontrakt: field er kun indsamlings-/evidensbidragyder via eksplicit whitelist; `external` fejler lukket og får ingen hel-projektlæsning, før en autoritativ document-share-relation findes; canonical Storage-path validerer organisation→projekt-match; project-owned childreferencer skal matche rækkens `project_id`; indirekte child-parentnøgler og `uploads.uploaded_by` er immutable mod re-parenting; monitoring-uploadens path skal være sikkert uploader-prefikset, immutable og unik også ved samtidige inserts; action-evidence og device/parameter relationer har egne guards; `data_quality_assessments.scope_type/scope_id` er fail-closed for understøttede project-matchede typer; og `data_quality_issues.measurement_id` er en `NOT VALID` FK med `ON DELETE SET NULL`. Kolonnegrants reserverer afledt uploadmetadata, validerings-/importresultater og status til backend. Staging-postflight og rollback-canary bekræfter et snævert udsnit af denne kontrakt; de 107 pgTAP-cases, hele rollematricen og rigtig API-/Storage-adfærd er stadig **AFVENTER** og må ikke udledes af katalogevidensen.
+- Produktionsworkflowet for migrationer må kun startes manuelt, kræver inputtet `DEPLOY`, GitHub environment `production`, secret-båret project ref og en bestået `supabase db push --dry-run`. Det er en sikkerhedsbarriere, ikke et mandat til at køre workflowet.
+- Kør aldrig destruktiv kommando mod produktion og ændr aldrig live schema for at omgå en test.
+- Stagingkontrakten har private `monitoring-uploads`, `project-media` og `evidence-files`-buckets med projekt-/ejerbundne policies og uden privat Storage `UPDATE`. `monitoring-uploads` er konfigureret til `209715200` bytes med monitoring-MIME-allowlisten; `project-media` til `52428800` bytes med `image/*`/`application/pdf`. `evidence-files` er privat, men dens eksisterende size/MIME-constraints må ikke overskrives, før en autoritativ evidence-kontrakt er godkendt. Nye monitoring-objekter følger intent → eksakt TUS-path uden upsert → serververificeret finalize; cancel arkiverer intent-rækken. Cyklus 018 bekræftede én lille owner-bundet TUS/finalize-happy-path, matchende audits og UI-reload. Orphan-reconciliation claimer kun annullerede eller udløbne, ikke-modtagne intents og sletter derefter kun eksakt path via Storage API; `storage.objects` er read-only for SQL. Objektsletning, cleanup, automatisk scheduling og eventuel ledger-purge er **AFVENTER**. Store filer må ikke falde tilbage til Git.
+- Projektmedier, monitoring-downloads og evidence-downloads skal læses via signed URLs med fast TTL på 300 sekunder, afledt af en RLS-autoriseret DB-række/path; persisterede legacy public URLs må ikke materialiseres. Evidence-flowet kræver eksakt evidence-id plus projekt-id, genvaliderer den returnerede række og accepterer kun dens legacy `{projectId}/...` eller canonical organisations-/projektsti. Den rå DB-path må hverken trimmes eller normaliseres før signering, og hvert segment skal matche uploaderens `[A-Za-z0-9._-]+`-kontrakt; whitespace, procentkodning, query/fragment, kontroltegn, traversal og backslash fejler lukket. Signer-URL'en får download-disposition. En udstedt signed URL er et bearer-link og kan bruges indtil udløb, altså op til 300 sekunder efter en access revoke. Delete slår path op fra DB og må ikke stole på en caller-leveret path; monitoring-delete stopper ved Storage-fejl eller hvis RLS ikke sletter præcis én metadata-række, og auditerer først efter success. Evidence-upload gemmer kun privat object path og sanitiserer filnavnet. Ved fejlet uploadmetadata-insert skal Storage-rollback forsøges, og hvis rollback også fejler, skal både metadatafejl, path og cleanupfejl være synlige for operatøren. De målrettede servicecases verificerer kildekontrakten; de erstatter ikke Storage-integrationstests.
+
+Efter migration skal mindst to organisationer testes negativt for tabel- og Storage-adgang. Cyklus 009 har udført en transaktionel live SQL-test som `authenticated` med tenant A/B og rollback. Cyklus 018 verificerede desuden én rigtig credential-båret projekt-/Storage-kæde og en negativ authenticated cross-tenant-kontrol med projekt/upload/object/audit = `0/0/0/0`. Det erstatter ikke hele rolle- og Storage-matricen; list/read/`UPDATE`-afvisning/delete/signed-URL/revoke mangler fortsat. Service-role-resultater er ikke RLS-evidens.
+
+Security advisor viser fortsat de kendte PostGIS-/`spatial_ref_sys`-fund, leaked-password-beskyttelse, forventet INFO for private RLS-tabeller uden policies og SECURITY DEFINER-advarsler. Den credential-kaldte finalizer skal forblive eksplicit caller-/intent-/objektvalideret og ikke anon-eksekverbar. Performance advisor returnerede senest count-vector `47/21/67/18`; den er ikke triageret. `public.spatial_ref_sys` må ikke ændres alene eller automatisk, fordi det kan blokere legitim PostGIS-adgang. Miljøejer skal vælge grants og read-policy først.
+
+### 4.1 Dronefotos
+
+- Brug den synlige `Upload`-fane eller projektgrænse → projekt-scopet `FØR`-CTA som indgang til monitoring-uploadet (`/app/connect/upload`); skriv ikke nye dronefotos direkte til den generelle projektmedietabel. Manglende eller malformed projektgeometri skal stoppe flowet før upload-CTA'en.
+- Originalfilen og dens SHA-256 er autoritative. Bevar den versionerede rå EXIF/XMP-envelope og parserfejl sammen med normaliserede felter; kopier ikke kun de synlige GPS-felter.
+- Browserens preview/EXIF må kun sendes som ubetroet `user_metadata`. `detected_metadata`, validerings-/importresultater og workflowstatus skrives af en betroet backend efter verifikation; de må aldrig løftes direkte fra browserpayloaden.
+- Aktivér ikke automatisk et foto på kortet ved manglende/modstridende GPS, ukendt UTC eller parsefejl. Brug aldrig projektcentroid som erstatning.
+- Et EXIF-kamerapunkt er ikke et billed-footprint, en ortofoto-georeference eller dokumentation for fotogrammetrisk nøjagtighed.
+- Projektbundet BEFORE-batch, serverudstedt upload-intent med eksakt pending-row-binding, 6 MiB TUS-chunks, retry-samme-intent og exact-path orphan-reconciliation er implementeret. Upload `13b16848-a2c5-480f-b3f2-f0468bc53c08` bestod rigtig credential-båret intent/TUS/finalize, gav `secure_receipt_chain_ok = true` og overlevede UI-reload. Det beviser en afsluttet happy path, ikke resume af en aktiv transfer eller en 120-fils batch. Canonical routing til `drone_assets`, evidence size/MIME-kontrakt, Worker-secrets, cleanup-scheduling og server-side metadataekstraktion er **AFVENTER**.
+- Hent en monitoring-original fra uploadcenterets rækkehandling. Knappen må kun være aktiv ved gyldigt `received_at` og en kendt modtaget status; legacy `draft` kræver `intent_request_id=null`. Pending eller inkonsistent `draft`, `archived`, ukendt status og malformed modtagelsestid skal forblive blokeret. UI'et sender kun upload-id plus aktuelt projekt-id; servicen genhenter eksakt RLS-scopet række, validerer status/path og udsteder derefter højst et 300-sekunders bearer-link med download-disposition. Brug aldrig en path fra browseren, og betragt ikke den lokale kildegate som credential-/expiry-/revoke-runtimebevis.
+
+### 4.2 Projektgrænse og geodataeksport
+
+- `projects.geometry_polygon` er den aktuelle canonical boundary. Brug `persistProjectBoundary`/`clearProjectBoundary`; skriv ikke enkelte `geometry_*`-felter direkte fra UI.
+- Import accepterer højst 2 MiB og én GeoJSON `Polygon` eller `Feature<Polygon>` i WGS84 med højst 500 reelle vertices. Åbne, ikke-endelige/out-of-range, duplikerede, selvkrydsende eller arealløse ringe afvises før skrivning. Polygon-huller valideres og fratrækkes areal/centroid; MultiPolygon/FeatureCollection afvises tydeligt.
+- Kortredigering kræver eksplicit Gem/Annuller. Laget fryses under persistence, og en fejl må ikke vise succes eller fjerne brugerens mulighed for retry.
+- Canonical GeoJSON og den deraf afledte observations-CSV skal bruge den databaseverificerede eksportvej. Preview/seed, simulerede sensorer og tavs RPC-fallback må ikke kunne downloades gennem denne vej. Connect metrics-/zone-CSV er separate udtræk og må ikke antages at have samme garanti uden egen guard og provenance.
+- `get_project_geojson`-observationer dybdevalideres som Point, MultiPoint, LineString, MultiLineString, Polygon eller MultiPolygon med finite WGS84-koordinater og gyldige ringe. Ukendt geometri og 200 eller flere observationsfeatures stoppes; præcis 200 kan være RPC'ens cap og må ikke præsenteres som komplet eksport.
+- Seed-geometri må kun bruges i eksplicit preview/ukonfigureret miljø. En databaseprojekt-række med ryddet boundary skal forblive tom og må ikke genoplives fra seed.
+- Ugemte boundary-edits skal blokere tegning, upload, clear, projektskift og canonical download, indtil brugeren vælger Gem eller Annuller.
+- Lokal UI-lock beskytter én hook-instans, og servicekontrakten kontrollerer den returnerede database-række før success. Boundary-rækken og `get_project_geojson` læses endnu ikke som ét atomisk, versionsbundet snapshot. Det kræver database-/RPC-versionering sammen med cross-tab/-bruger konflikthåndtering, immutable revisioner og live read-after-write og er `AFVENTER`.
+- Boundary save/clear invaliderer projektmetrics, og manglende/ugyldigt `calculated_at` stoppes. Friskhed kan ikke sammenlignes med den aktuelle boundary, fordi schemaet mangler en fælles boundary-/source-version; en fuld stale-metrics-guard er `AFVENTER` schema-/RPC-versionering.
+
+### 4.3 Officiel vandløbsstreng
+
+- Vandløbsaksen er en separat projektressource i `monitoring_zones` med `zone_type=watercourse`; skriv aldrig en `LineString` eller `MultiLineString` til `projects.geometry_polygon` eller de Polygon-begrænsede projektområder.
+- Browseren må kun sende en bounded søgetekst eller et valideret Dataforsyningen-UUID. Serveren genhenter geometrien fra det faste allowlistede HTTPS-endpoint før save; klientleveret geometri, kilde-URL, hash eller provenance må ikke persisteres som officiel sandhed.
+- Ved load kræves provenance-schema `gofreyra.watercourse-reach-source/v1`, korrekt kilde, EPSG:4326, UUID-afledt URL og matchende SHA-256. Kilden genhentes og geometrien sammenlignes; mismatch eller upstream-fejl skal fejle lukket frem for at vise rækken som verificeret.
+- Hele den navngivne stednavnegeometri er kun kortreference. Før dronefotos, Før/Efter-målinger eller rapport kobles juridisk til strækningen, skal den konkrete delstrækning vælges/klippes og forsynes med fra-/til-stationering samt kommunalt regulativ eller seneste kontrol-/as-built-opmåling.
+- Applikationslaget tillader én aktiv vandløbsreference og afviser eksisterende dubletter. Atomisk beskyttelse mod to samtidige første writes kræver en særskilt, RLS-testet unik constraint eller RPC og er **AFVENTER**.
+
+## 5. Kvalitetsgate
+
+Kør i denne rækkefølge og log kommando, dato, miljø, exit og commit:
+
+```powershell
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+Kør desuden målrettede tests før hele suiten. Verificeret worktree 2026-09-13, cyklus 026: typecheck PASS; evidence-/private-Storage-suiten 1 fil/51 tests PASS; målrettet ESLint/Prettier på to authored filer 0 fund; fuld serial Vitest 59 filer/542 tests PASS; normalt produktionsbuild og `git diff --check` PASS med kendte warnings. Ved den brugerautoriserede stagingudgivelse efter cyklus 025 bestod typecheck, 4 filer/62 tests, `build:staging`, bundle/ref-secretkontrol og Wrangler `--strict --dry-run`; appcommit `f337920` er aktiv 100 % som Worker-version `75f856e9-5915-44ad-9923-e2dd41f3d573`, mens cyklus 026 endnu ikke er deployet. Migrationskilden har pgTAP `plan(128)`, men hele suiten er ikke runtime-kørt; cyklus 025's lokale pgTAP-/DB-lintforsøg stoppede begge på `ECONNREFUSED 127.0.0.1:54322`. Seneste globale lint er fortsat rød med 5.188 errors/23 warnings og skal ned på 0 før P0-release.
+
+`.github/workflows/ci.yml` er den ikke-deployende app-CI. Den har kun `contents: read`, persisterer ikke checkout-credentials, modtager ingen secrets og må ikke kalde Supabase, Wrangler eller deploy. Den kører ved pull request, accepteret push til `main` eller manuel dispatch med Node 22.14.0 og npm-lockfilen: ren install, typecheck, `verify:faktorer`, serial Vitest og normal build. Global lint er fortsat en synlig releaseblokering og må ikke tilføjes som `continue-on-error`; workflowkilden og lokale ækvivalente gates er ikke det samme som en bestået hosted Linux-kørsel.
+
+Ved Supabase-/RLS-ændringer skal app-gaten suppleres i denne rækkefølge på en disponibel, entydigt lokal stack:
+
+```powershell
+npm run supabase:start
+npm run supabase:reset:local
+npm run supabase:test:db
+npm run supabase:lint:db
+```
+
+Log CLI-version, kommando, exit og testantal. En statisk migrationsregression eller en skrevet pgTAP-fil dokumenterer kun kildekontrakten; RLS-/Storage-adfærd er først verificeret, når reset, pgTAP og relevante API/Storage-cases faktisk er kørt som `anon`/`authenticated` brugere fra mindst to organisationer.
+
+På Windows springes Lovable MCP-routegeneratoren over, fordi den aktuelle pakke sammenligner blandede slash-formater; de genererede MCP-ruter ligger allerede i Git. På andre platforme kører pluginet fortsat i dev, aldrig i produktionsbuild. Genaktivér ikke Windows-pluginet uden en verificeret upstream-fix.
+
+Der er endnu ingen verificeret Playwright-harness. En lokal pgTAP-harness findes nu, men den er ikke kørt, fordi container-runtime mangler. P0 kræver browserrejse på desktop/relevant mobil, konsol/netværkskontrol og negative to-tenant-/Storage-tests før release candidate.
+
+## 6. Kildeadaptere og jobs
+
+- Start i preview kun til UI-udvikling; en live gate skal vise faktisk status og `fetched_at`.
+- Verificér endpoint, capabilities/collection, timeout, CRS og vilkår før kilden markeres live.
+- Ved timeout/4xx/5xx: gem fejlkontekst uden secret og vis kilden som fejlet; returnér ikke preview med live-success.
+- En dedikeret worker til fotogrammetri/COG/tiles er ikke verificeret. P0 må indlæse færdige afledte leverancer; tung behandling er **AFVENTER** konkret behov.
+
+## 7. Rapporter
+
+Aktuel kode kan generere en `jsPDF`-blob og en `documents`-række. Det er ikke den færdige P0-procedure. Før kundebrug skal følgende være verificeret:
+
+1. rapporten genereres fra et låst input-snapshot;
+2. PDF og manifest gemmes som versionsfaste Storage-aktiver med checksum;
+3. obligatoriske sektioner og manglende data valideres;
+4. godkendelse låser versionen; ny generering opretter en ny version;
+5. downloadet PDF inspiceres for klip, tomme sektioner og læsbarhed.
+
+## 8. Fejlsøgning
+
+- **Stale lock:** Sammenlign `package.json` og lock uden at kassere brugerændringer; synkronisér én gang, og bevis derefter frisk `npm ci`.
+- **Build OOM:** Brug kun det versionsstyrede `npm run build`; scriptet sætter 4 GB heap. En OOM ved standardheap er miljø-/værktøjsevidens, ikke et bestået build.
+- **Sandbox read-denied:** Genkør den samme nødvendige, ikke-destruktive gate med korrekt godkendelse. Ændr ikke kode for at skjule miljøfejlen.
+- **Supabase mangler:** Kontrollér kun nøglenavne/presence. Seed-fallback og statisk SQL-inspektion kan ikke verificere auth/RLS/persistence. Ved `permission denied` på målprojektet må et andet synligt projekt ikke bruges som substitut; markér live evidens `AFVENTER`.
+- **RLS-fejl:** Reproducer med bruger-JWT og en anden tenant; brug aldrig service role som workaround.
+- **Project create + `RETURNING` 42501:** Kontroller først, om kaldet bruger `.insert(...).select(...)`. Den aktuelle `projects_read` validerer via en separat genlæsning af projekt-ID'et, som ikke ser den nye række i samme Postgres command snapshot. Bevar policyen; brug den versionsstyrede kendt-UUID/plain-insert-vej og en separat efterfølgende RLS-read/selection. En policyudvidelse kræver ny tenanttrusselsmodel og negative rolletests.
+- **Intent/TUS/finalize fejler:** Genbrug kun samme request-ID, fil og eksakte intent-path ved retry. En draft må ikke markeres modtaget uden vellykket server-finalize. Hvis Storage-objektet findes, men rækken forbliver `draft` med en `pg_catalog.coalesce`-fejl, kontrollér at `20260912132006_fix_finalize_upload_intent_coalesce.sql` er registreret; opret ikke en parallel intent som omgåelse. Cancel arkiverer intentmetadata, men sletter ikke nødvendigvis et allerede overført objekt; behold intent-ID/path til smal, autoriseret reconciliation og forsøg aldrig en bred bucket-oprydning.
+- **Orphan-reconciliation fejler:** Kald kun `POST /api/public/monitoring/reconcile-uploads` fra betroet server/cron med den dedikerede `MONITORING_CRON_API_SECRET`. Standardbatch er 25, maksimum 100, og standardlease er 300 sekunder. Den eksakte `lease_expires_at` persisteres i den private ledger i claim-transaktionen og må ikke genberegnes i Workeren. Ved SQLSTATE `42702` skal `20260912110614_fix_upload_orphan_claim_conflict.sql` være registreret; den målretter primary-key-constrainten eksplicit. Workerens databaseclaim er kort, mens Storage-sletningen sker bagefter. En fejl frigiver jobbet til retry og gemmer kun saniteret diagnostik. Slet aldrig direkte i `storage.objects`, og markér ikke et claim komplet, hvis Storage API eller completion-RPC fejler. Secrets, scheduling og deploy kræver særskilt mandat.
+- **Kildedata mangler:** Kontrollér katalogstatus, URL, capabilities, CRS, timeout og vilkår; markér `AFVENTER` frem for at opfinde data.
+- **Rapport afviger:** Sammenlign inputversioner, manifest/checksum og metodeversion; overskriv aldrig en godkendt rapport.
+
+## 9. Afslut en cyklus
+
+Opdatér `EXECUTION_STATE.md`, `P0_BACKLOG.md`, `QA_MATRIX.md` og `RUN_LOG.md` med observeret evidens. Commit kun én sammenhængende ændring efter bestået relevant gate; push er ikke merge eller produktion. Ved credentials, tenantlækage, datatab, ukendt remote-divergens eller manglende mandat: stop og rapportér præcis blokering.

@@ -6,7 +6,7 @@
  *   - Tegn projektgrænse (gemmes på projektet) — op til MAX_DRAW_POINTS punkter
  *   - Tegn zone (åbner gem-dialog)
  *   - Mål areal (ha + omkreds, gemmes ikke)
- *   - Redigér tegnede former (træk i hjørnepunkter)
+ *   - Redigér den gemte projektgrænse med eksplicit Gem/Annuller
  * Lag: 4 base layers + zoner + §3 + vandløb + NDVI + sensorer
  */
 
@@ -17,13 +17,13 @@ import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import type { Zone, ZoneType, GeoJsonPolygon } from "@/services/zones-service";
 import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS, calculatePolygonArea } from "@/services/zones-service";
-import { OrthophotoOverlayControl } from "@/components/maps/OrthophotoOverlayControl";
-import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import type { IoTSensor } from "@/services/iot-simulation-service";
+import { MAX_PROJECT_POLYGON_VERTICES, validateProjectPolygon } from "@/services/geo-service";
+import type { DroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-export type DrawMode = "none" | "boundary" | "zone" | "measure" | "centerline";
+export type DrawMode = "none" | "boundary" | "zone" | "measure";
 export type BaseLayer = "satellite" | "osm" | "terrain" | "topo";
 
 export interface WmsOverlay {
@@ -45,21 +45,30 @@ export interface MapEditorMapProps {
   boundaryGeoJSON?: GeoJsonPolygon | null;
   zones?: Zone[];
   sensors?: IoTSensor[];
-  mediaItems?: ProjectMediaItem[];
-  photoPositions?: Array<{ id: string; title: string; lat: number; lng: number; url: string }>;
+  droneUploadPoints?: DroneUploadMapPoint[];
   showSensors?: boolean;
+  showDroneUploads?: boolean;
   showParagraph3?: boolean;
   showWatercourses?: boolean;
   showNdviOverlay?: boolean;
   ndviValue?: number | null;
   paragraph3Areas?: Array<{ id: string; natureType: string; geojson: GeoJsonPolygon | null }>;
   watercourseFeatures?: Array<{ id: string; name?: string; coordinates: number[][] }>;
+  /** Zoom to a newly loaded official watercourse without treating it as a boundary. */
+  fitWatercourses?: boolean;
   drawMode?: DrawMode;
   onDrawModeChange?: (mode: DrawMode) => void;
   onZoneCreated?: (geojson: GeoJsonPolygon, areaHa: number) => void;
   onZoneClicked?: (zone: Zone) => void;
-  onBoundaryDrawn?: (geojson: GeoJsonPolygon, areaHa: number) => void;
-  onCenterlineDrawn?: (geometry: import("geojson").LineString) => void;
+  onBoundaryDrawn?: (
+    geojson: GeoJsonPolygon,
+    areaHa: number,
+    source?: string,
+  ) => void | boolean | Promise<void | boolean>;
+  /** Prevent new boundary draw/edit while another boundary workflow is active. */
+  boundaryBusy?: boolean;
+  /** Reports whether the persistent boundary currently has unsaved local edits. */
+  onBoundaryEditStateChange?: (isEditing: boolean) => void;
   onMeasurement?: (areaHa: number, perimeterM: number) => void;
   /** External center commands (e.g. from address search). Changes trigger flyTo. */
   centerOverride?: { lat: number; lng: number; zoom?: number } | null;
@@ -125,12 +134,11 @@ const DRAW_STYLES: Record<
 > = {
   boundary: { color: "#2BC48A", fillOpacity: 0.15 },
   zone: { color: "#f59e0b", fillOpacity: 0.2 },
-  centerline: { color: "#0284c7", fillOpacity: 0 },
   measure: { color: "#6366f1", fillOpacity: 0.12, dashArray: "5 5" },
 };
 
 /** Hårdt loft for punkter pr. tegnet flade — fladen afsluttes automatisk ved loftet. */
-export const MAX_DRAW_POINTS = 500;
+export const MAX_DRAW_POINTS = MAX_PROJECT_POLYGON_VERTICES;
 
 /** Matrikel-vektorlaget hentes først fra dette zoomniveau (DAWA-opslag pr. udsnit). */
 export const CADASTRE_MIN_ZOOM = 15;
@@ -157,6 +165,56 @@ export function polygonPerimeterM(latLngs: [number, number][]): number {
   return Math.round(total);
 }
 
+function appendDronePopupRow(container: HTMLElement, label: string, value: string): void {
+  const row = document.createElement("div");
+  const labelNode = document.createElement("span");
+  const valueNode = document.createElement("span");
+  labelNode.textContent = `${label}: `;
+  labelNode.style.fontWeight = "600";
+  valueNode.textContent = value;
+  row.append(labelNode, valueNode);
+  container.append(row);
+}
+
+/** Build the popup entirely with text nodes so upload-controlled metadata is never parsed as HTML. */
+function buildDroneUploadPopup(point: DroneUploadMapPoint): HTMLElement {
+  const popup = document.createElement("div");
+  popup.style.minWidth = "220px";
+
+  const title = document.createElement("strong");
+  title.textContent = point.fileName;
+  popup.append(title);
+
+  const warning = document.createElement("div");
+  warning.textContent = "Ubekræftet kameraposition";
+  warning.style.color = "#b45309";
+  warning.style.fontWeight = "600";
+  warning.style.margin = "4px 0";
+  popup.append(warning);
+
+  appendDronePopupRow(popup, "Optaget", new Date(point.capturedAt).toLocaleString("da-DK"));
+  appendDronePopupRow(
+    popup,
+    "Position",
+    `${point.coordinates.lat.toFixed(6)}, ${point.coordinates.lng.toFixed(6)}`,
+  );
+  if (point.altitudeM != null) {
+    appendDronePopupRow(popup, "Højde", `${point.altitudeM.toFixed(1)} m`);
+  }
+  if (point.directionDeg != null) {
+    appendDronePopupRow(popup, "Retning", `${point.directionDeg.toFixed(0)}°`);
+  }
+  if (point.cameraLabel) appendDronePopupRow(popup, "Kamera", point.cameraLabel);
+
+  const limitation = document.createElement("div");
+  limitation.textContent = "Kun til orientering – ikke footprint eller rapportbevis.";
+  limitation.style.marginTop = "6px";
+  limitation.style.fontSize = "11px";
+  limitation.style.color = "#6b7280";
+  popup.append(limitation);
+  return popup;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function MapEditorMap({
@@ -168,22 +226,24 @@ export function MapEditorMap({
   boundaryGeoJSON,
   zones = [],
   sensors = [],
-  photoPositions = [],
-  mediaItems = [],
+  droneUploadPoints = [],
   showSensors = true,
+  showDroneUploads = true,
   showParagraph3 = true,
   showWatercourses = true,
   showNdviOverlay = false,
   ndviValue,
   paragraph3Areas = [],
   watercourseFeatures = [],
+  fitWatercourses = false,
   drawMode: drawModeProp,
   onDrawModeChange,
   onZoneCreated,
   onZoneClicked,
   onBoundaryDrawn,
+  boundaryBusy = false,
+  onBoundaryEditStateChange,
   onMeasurement,
-  onCenterlineDrawn,
   centerOverride,
   wmsOverlays,
   addressMarker,
@@ -204,6 +264,7 @@ export function MapEditorMap({
     wl: import("leaflet").FeatureGroup | null;
     ndvi: import("leaflet").GeoJSON | null;
     sensors: import("leaflet").FeatureGroup | null;
+    droneUploads: import("leaflet").FeatureGroup | null;
     drawn: import("leaflet").FeatureGroup | null;
     activeDrawer: {
       disable: () => void;
@@ -211,7 +272,7 @@ export function MapEditorMap({
       completeShape?: () => void;
       _markers?: unknown[];
     } | null;
-    editHandler: { enable: () => void; disable: () => void; save: () => void } | null;
+    editHandler: { enable: () => void; disable: () => void } | null;
     wms: Map<string, import("leaflet").TileLayer.WMS>;
     addressMarker: import("leaflet").Marker | null;
     preview: import("leaflet").GeoJSON | null;
@@ -224,6 +285,7 @@ export function MapEditorMap({
     wl: null,
     ndvi: null,
     sensors: null,
+    droneUploads: null,
     drawn: null,
     activeDrawer: null,
     editHandler: null,
@@ -233,15 +295,21 @@ export function MapEditorMap({
     cadastre: null,
   });
 
-  // Intern mode-state, synkroniseret med evt. controlled prop
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Intern mode-state, synkroniseret med evt. controlled prop. En ekstern
+  // drawMode må ikke kunne genstarte Geoman, mens grænsen redigeres/gemmes.
   const [internalMode, setInternalMode] = useState<DrawMode>("none");
-  const drawMode = drawModeProp ?? internalMode;
+  const requestedDrawMode = drawModeProp ?? internalMode;
+  const drawingBlocked = boundaryBusy || isEditing || isSavingEdit;
+  const drawMode = drawingBlocked ? "none" : requestedDrawMode;
   const drawModeRef = useRef<DrawMode>(drawMode);
   useEffect(() => {
     drawModeRef.current = drawMode;
   }, [drawMode]);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [boundaryRenderVersion, setBoundaryRenderVersion] = useState(0);
   const [baseLayer, setBaseLayer] = useState<BaseLayer>("satellite");
   const [measurement, setMeasurement] = useState<{ areaHa: number; perimeterM: number } | null>(
     null,
@@ -249,6 +317,25 @@ export function MapEditorMap({
   const [ready, setReady] = useState(false);
   // Live-tæller for punkter under tegning
   const [drawingPoints, setDrawingPoints] = useState(0);
+
+  useEffect(() => {
+    onBoundaryEditStateChange?.(isEditing);
+    return () => onBoundaryEditStateChange?.(false);
+  }, [isEditing, onBoundaryEditStateChange]);
+
+  const onDrawModeChangeRef = useRef(onDrawModeChange);
+  useEffect(() => {
+    onDrawModeChangeRef.current = onDrawModeChange;
+  }, [onDrawModeChange]);
+
+  useEffect(() => {
+    if (!drawingBlocked || requestedDrawMode === "none") return;
+    // Controlled callers får samme tydelige nulstilling som den interne state.
+    // `drawMode` er allerede effektivt "none", så Geoman kan ikke nå at starte.
+    setInternalMode("none");
+    setDrawingPoints(0);
+    onDrawModeChangeRef.current?.("none");
+  }, [drawingBlocked, requestedDrawMode]);
 
   const setMode = useCallback(
     (mode: DrawMode) => {
@@ -285,22 +372,10 @@ export function MapEditorMap({
   }, [onFeaturePicked]);
 
   // Holder callbacks friske i event handlers
-  const callbacksRef = useRef({
-    onZoneCreated,
-    onBoundaryDrawn,
-    onMeasurement,
-    onZoneClicked,
-    onCenterlineDrawn,
-  });
+  const callbacksRef = useRef({ onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked });
   useEffect(() => {
-    callbacksRef.current = {
-      onZoneCreated,
-      onBoundaryDrawn,
-      onMeasurement,
-      onZoneClicked,
-      onCenterlineDrawn,
-    };
-  }, [onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked, onCenterlineDrawn]);
+    callbacksRef.current = { onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked };
+  }, [onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked]);
 
   // ── Init ─────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -352,26 +427,36 @@ export function MapEditorMap({
           const mode = drawModeRef.current;
           const layer = e.layer as import("leaflet").Polygon;
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const gj = (layer as any).toGeoJSON() as { geometry: GeoJsonPolygon };
-          if (mode === "centerline") {
-            callbacksRef.current.onCenterlineDrawn?.(
-              gj.geometry as unknown as import("geojson").LineString,
-            );
+          // Et sent create-event efter stop/busy må aldrig blive behandlet som
+          // en zone eller gemt som en ny projektgrænse.
+          if (mode === "none") {
             map.removeLayer(layer);
-            setInternalMode("none");
-            onDrawModeChange?.("none");
+            layersRef.current.activeDrawer = null;
             return;
           }
-          const polygon = gj.geometry;
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const gj = (layer as any).toGeoJSON() as { geometry: GeoJsonPolygon };
+          const validation = validateProjectPolygon(gj.geometry);
+          if (!validation.valid) {
+            map.removeLayer(layer);
+            toast.error(validation.error);
+            layersRef.current.activeDrawer = null;
+            setInternalMode("none");
+            onDrawModeChangeRef.current?.("none");
+            return;
+          }
+          const polygon = validation.polygon as GeoJsonPolygon;
           const ha = await calculatePolygonArea(polygon);
 
-          const ring: [number, number][] = (
-            layer.getLatLngs()[0] as Array<{ lat: number; lng: number }>
-          ).map((ll) => [ll.lat, ll.lng] as [number, number]);
+          const ring: [number, number][] =
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ((layer as any).getLatLngs()[0] as Array<{ lat: number; lng: number }>).map(
+              (ll) => [ll.lat, ll.lng] as [number, number],
+            );
           const perimeterM = polygonPerimeterM([...ring, ring[0]]);
 
-          const style = DRAW_STYLES[mode === "none" ? "zone" : mode];
+          const style = DRAW_STYLES[mode];
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (layer as any).setStyle?.({ ...style, weight: 2, fillColor: style.color });
 
@@ -383,13 +468,37 @@ export function MapEditorMap({
           setMeasurement({ areaHa: ha, perimeterM });
 
           const cb = callbacksRef.current;
-          if (mode === "boundary") cb.onBoundaryDrawn?.(polygon, ha);
-          else if (mode === "zone") cb.onZoneCreated?.(polygon, ha);
-          else if (mode === "measure") cb.onMeasurement?.(ha, perimeterM);
-
           layersRef.current.activeDrawer = null;
           setInternalMode("none");
-          onDrawModeChange?.("none");
+          onDrawModeChangeRef.current?.("none");
+
+          if (mode === "boundary") {
+            if (!cb.onBoundaryDrawn) {
+              drawnItems.removeLayer(layer);
+              setMeasurement(null);
+              toast.error("Projektgrænsen kan ikke gemmes i denne kortvisning.");
+              return;
+            }
+            try {
+              const saved = await cb.onBoundaryDrawn(polygon, ha, "manual");
+              if (saved === false) {
+                drawnItems.removeLayer(layer);
+                setMeasurement(null);
+                return;
+              }
+              drawnItems.removeLayer(layer);
+            } catch (error) {
+              drawnItems.removeLayer(layer);
+              setMeasurement(null);
+              toast.error(
+                error instanceof Error ? error.message : "Projektgrænsen kunne ikke gemmes.",
+              );
+            }
+          } else if (mode === "zone") {
+            cb.onZoneCreated?.(polygon, ha);
+          } else if (mode === "measure") {
+            cb.onMeasurement?.(ha, perimeterM);
+          }
         });
 
         // Live tælling af tegnede vertices + hårdt loft på MAX_DRAW_POINTS.
@@ -403,9 +512,7 @@ export function MapEditorMap({
               if (next >= MAX_DRAW_POINTS) {
                 // Afslut fladen automatisk — ellers vokser den ukontrolleret.
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (map as any).pm?.Draw?.[
-                  drawModeRef.current === "centerline" ? "Line" : "Polygon"
-                ]?._finishShape?.();
+                (map as any).pm?.Draw?.Polygon?._finishShape?.();
                 toast.info(`Maks ${MAX_DRAW_POINTS} punkter — fladen er afsluttet automatisk.`);
               }
               return next;
@@ -450,7 +557,7 @@ export function MapEditorMap({
     if (drawMode === "none" || !pm) return;
 
     const style = DRAW_STYLES[drawMode];
-    pm.enableDraw(drawMode === "centerline" ? "Line" : "Polygon", {
+    pm.enableDraw("Polygon", {
       allowSelfIntersection: false,
       continueDrawing: false,
       tooltips: false,
@@ -461,47 +568,119 @@ export function MapEditorMap({
     // Ensartet interface for værktøjslinjens Fortryd/Afslut/Annuller-knapper.
     layersRef.current.activeDrawer = {
       disable: () => pm.disableDraw(),
-      deleteLastVertex: () =>
-        pm.Draw?.[drawMode === "centerline" ? "Line" : "Polygon"]?._removeLastVertex?.(),
-      completeShape: () =>
-        pm.Draw?.[drawMode === "centerline" ? "Line" : "Polygon"]?._finishShape?.(),
+      deleteLastVertex: () => pm.Draw?.Polygon?._removeLastVertex?.(),
+      completeShape: () => pm.Draw?.Polygon?._finishShape?.(),
     };
   }, [drawMode, ready]);
 
-  // ── Redigér tegnede former (geoman pr. lag) ──────────────────────────────────
-  const toggleEdit = useCallback(() => {
-    const map = mapRef.current;
-    const drawnItems = layersRef.current.drawn;
-    if (!map || !drawnItems) return;
+  // ── Redigér den persistente projektgrænse (Geoman pr. polygonlag) ────────────
+  const startBoundaryEdit = useCallback(() => {
+    const boundary = layersRef.current.boundary;
+    if (!boundary || !onBoundaryDrawn || boundaryBusy) return;
 
-    if (isEditing) {
-      layersRef.current.editHandler?.save();
+    setMode("none");
+    let editableLayers = 0;
+    boundary.eachLayer((layer) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pm = (layer as any).pm;
+      if (!pm?.enable) return;
+      pm.enable({ allowSelfIntersection: false });
+      editableLayers += 1;
+    });
+    if (editableLayers !== 1) {
+      boundary.eachLayer((layer) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (layer as any).pm?.disable?.();
+      });
+      toast.error("Projektgrænsen kunne ikke åbnes til redigering som én Polygon.");
+      return;
+    }
+
+    layersRef.current.editHandler = {
+      enable: () => {
+        boundary.eachLayer((layer) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (layer as any).pm?.enable?.({ allowSelfIntersection: false });
+        });
+      },
+      disable: () => {
+        boundary.eachLayer((layer) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (layer as any).pm?.disable?.();
+        });
+      },
+    };
+    setIsEditing(true);
+  }, [boundaryBusy, onBoundaryDrawn, setMode]);
+
+  const saveBoundaryEdit = useCallback(async () => {
+    const boundary = layersRef.current.boundary;
+    const callback = callbacksRef.current.onBoundaryDrawn;
+    if (!boundary || !callback || boundaryBusy || isSavingEdit) return;
+
+    let rawGeometry: unknown = null;
+    let polygonCount = 0;
+    boundary.eachLayer((layer) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const feature = (layer as any).toGeoJSON?.() as
+        | { type?: string; geometry?: unknown }
+        | undefined;
+      if (feature?.type === "Feature") {
+        polygonCount += 1;
+        rawGeometry = feature.geometry;
+      }
+    });
+
+    if (polygonCount !== 1) {
+      toast.error("Projektgrænsen skal bestå af præcis én Polygon.");
+      return;
+    }
+
+    const validation = validateProjectPolygon(rawGeometry);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
+    // Frys Geoman-laget før den første await. Snapshot og persistence kan
+    // dermed ikke komme ud af takt med vertices, som brugeren stadig flytter.
+    layersRef.current.editHandler?.disable();
+    setIsSavingEdit(true);
+    try {
+      const polygon = validation.polygon as GeoJsonPolygon;
+      const nextAreaHa = await calculatePolygonArea(polygon);
+      const saved = await callback(polygon, nextAreaHa, "manual");
+      if (saved === false) {
+        layersRef.current.editHandler?.enable();
+        return;
+      }
+
       layersRef.current.editHandler?.disable();
       layersRef.current.editHandler = null;
+      setMeasurement(null);
       setIsEditing(false);
-    } else {
-      const handler = {
-        enable: () => {
-          drawnItems.eachLayer((l) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (l as any).pm?.enable?.({ allowSelfIntersection: false });
-          });
-        },
-        disable: () => {
-          drawnItems.eachLayer((l) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (l as any).pm?.disable?.();
-          });
-        },
-        save: () => {
-          /* geoman opdaterer lagene live — intet separat save-trin */
-        },
-      };
-      handler.enable();
-      layersRef.current.editHandler = handler;
-      setIsEditing(true);
+      toast.success("Projektgrænsen er gemt");
+    } catch (error) {
+      layersRef.current.editHandler?.enable();
+      toast.error(error instanceof Error ? error.message : "Projektgrænsen kunne ikke gemmes.");
+    } finally {
+      setIsSavingEdit(false);
     }
-  }, [isEditing]);
+  }, [boundaryBusy, isSavingEdit]);
+
+  const cancelBoundaryEdit = useCallback(() => {
+    if (isSavingEdit) return;
+    layersRef.current.editHandler?.disable();
+    layersRef.current.editHandler = null;
+    setIsEditing(false);
+    // Geoman ændrer laget in-place. Genrender fra den uændrede prop for at
+    // gendanne den persistente geometri uden at skrive noget.
+    setBoundaryRenderVersion((version) => version + 1);
+  }, [isSavingEdit]);
+
+  useEffect(() => {
+    if (boundaryBusy && isEditing && !isSavingEdit) cancelBoundaryEdit();
+  }, [boundaryBusy, cancelBoundaryEdit, isEditing, isSavingEdit]);
 
   const clearDrawings = useCallback(() => {
     layersRef.current.drawn?.clearLayers();
@@ -530,10 +709,20 @@ export function MapEditorMap({
     (async () => {
       const L = await import("leaflet");
       const map = mapRef.current!;
+      layersRef.current.editHandler?.disable();
+      layersRef.current.editHandler = null;
+      setIsEditing(false);
+      setIsSavingEdit(false);
       if (layersRef.current.boundary) map.removeLayer(layersRef.current.boundary);
+      layersRef.current.boundary = null;
       if (!boundaryGeoJSON) return;
+      const validation = validateProjectPolygon(boundaryGeoJSON);
+      if (!validation.valid) {
+        toast.error(`Den gemte projektgrænse er ugyldig: ${validation.error}`);
+        return;
+      }
       const layer = L.geoJSON(
-        { type: "Feature", geometry: boundaryGeoJSON, properties: {} } as never,
+        { type: "Feature", geometry: validation.polygon, properties: {} } as never,
         { style: { color: "#2BC48A", weight: 3, fillColor: "#2BC48A", fillOpacity: 0.08 } },
       )
         .bindPopup(`<strong>${projectName}</strong>${areaHa ? `<br/>${areaHa} ha` : ""}`)
@@ -541,7 +730,7 @@ export function MapEditorMap({
       layersRef.current.boundary = layer;
       map.fitBounds(layer.getBounds(), { padding: [40, 40] });
     })();
-  }, [boundaryGeoJSON, projectName, areaHa, ready]);
+  }, [boundaryGeoJSON, projectName, areaHa, ready, boundaryRenderVersion]);
 
   // ── Zoner (ryd tegninger når en zone er gemt) ────────────────────────────────
   const prevZoneCount = useRef(zones.length);
@@ -616,6 +805,8 @@ export function MapEditorMap({
       layersRef.current.wl = group;
       watercourseFeatures.forEach((wc) => {
         if (wc.coordinates.length < 2) return;
+        const popup = document.createElement("span");
+        popup.textContent = wc.name ?? "Vandløb";
         L.polyline(
           wc.coordinates.map((c) => [c[1], c[0]] as [number, number]),
           {
@@ -624,11 +815,15 @@ export function MapEditorMap({
             opacity: 0.85,
           },
         )
-          .bindPopup(wc.name ?? "Vandløb")
+          .bindPopup(popup)
           .addTo(group);
       });
+      if (fitWatercourses && group.getLayers().length > 0) {
+        const bounds = group.getBounds();
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+      }
     })();
-  }, [showWatercourses, watercourseFeatures, ready]);
+  }, [showWatercourses, watercourseFeatures, fitWatercourses, ready]);
 
   // ── NDVI overlay ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -684,6 +879,66 @@ export function MapEditorMap({
       });
     })();
   }, [showSensors, sensors, ready]);
+
+  // ── Rå dronefoto-positioner ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    const layers = layersRef.current;
+
+    if (layers.droneUploads) {
+      map.removeLayer(layers.droneUploads);
+      layers.droneUploads = null;
+    }
+    if (!showDroneUploads || droneUploadPoints.length === 0) return;
+
+    let disposed = false;
+    let nextGroup: import("leaflet").FeatureGroup | null = null;
+
+    void (async () => {
+      const L = await import("leaflet");
+      if (disposed || mapRef.current !== map) return;
+
+      const normalizedProjectId = projectId.toLowerCase();
+      const group = new L.FeatureGroup();
+      droneUploadPoints.forEach((point) => {
+        const { lat: pointLat, lng: pointLng } = point.coordinates;
+        if (
+          point.projectId.toLowerCase() !== normalizedProjectId ||
+          point.positionTrust !== "raw_unvalidated" ||
+          !Number.isFinite(pointLat) ||
+          !Number.isFinite(pointLng) ||
+          Math.abs(pointLat) > 90 ||
+          Math.abs(pointLng) > 180
+        ) {
+          return;
+        }
+
+        L.circleMarker([pointLat, pointLng], {
+          radius: 7,
+          color: "#ffffff",
+          weight: 2,
+          fillColor: "#f59e0b",
+          fillOpacity: 0.95,
+        })
+          .bindPopup(buildDroneUploadPopup(point))
+          .addTo(group);
+      });
+
+      if (disposed || mapRef.current !== map || group.getLayers().length === 0) return;
+      group.addTo(map);
+      nextGroup = group;
+      layers.droneUploads = group;
+    })();
+
+    return () => {
+      disposed = true;
+      if (nextGroup && layers.droneUploads === nextGroup) {
+        if (map.hasLayer(nextGroup)) map.removeLayer(nextGroup);
+        layers.droneUploads = null;
+      }
+    };
+  }, [droneUploadPoints, projectId, ready, showDroneUploads]);
 
   // ── Center override (from address search) ─────────────────────────────────────
   useEffect(() => {
@@ -850,35 +1105,6 @@ export function MapEditorMap({
     })();
   }, [previewPolygon, ready]);
 
-  // Original-photo positions only; missing GPS never receives a project centroid.
-  useEffect(() => {
-    if (!ready || !mapRef.current) return;
-    let disposed = false;
-    let group: import("leaflet").FeatureGroup | undefined;
-    void import("leaflet").then((L) => {
-      if (disposed || !mapRef.current) return;
-      group = L.featureGroup().addTo(mapRef.current);
-      photoPositions.forEach((photo) => {
-        const popup = document.createElement("div");
-        const name = document.createElement("strong");
-        name.textContent = photo.title;
-        popup.appendChild(name);
-        const img = document.createElement("img");
-        img.src = photo.url;
-        img.alt = photo.title;
-        img.style.maxWidth = "220px";
-        popup.appendChild(img);
-        L.circleMarker([photo.lat, photo.lng], { radius: 5, color: "#a21caf", fillOpacity: 0.85 })
-          .bindPopup(popup)
-          .addTo(group!);
-      });
-    });
-    return () => {
-      disposed = true;
-      group?.remove();
-    };
-  }, [photoPositions, ready]);
-
   // ── Cursor for pick-mode ──────────────────────────────────────────────────
   useEffect(() => {
     const el = containerRef.current;
@@ -897,31 +1123,23 @@ export function MapEditorMap({
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 px-3 py-2 bg-card border-b flex-wrap">
         <span className="text-xs text-muted-foreground">Tegn:</span>
-        {onCenterlineDrawn && (
-          <button
-            onClick={() => setMode(drawMode === "centerline" ? "none" : "centerline")}
-            className={toolBtn(drawMode === "centerline", "bg-sky-600 text-white border-sky-600")}
-          >
-            Vandløbslinje
-          </button>
-        )}
         <button
           onClick={() => setMode(drawMode === "boundary" ? "none" : "boundary")}
-          className={toolBtn(
-            drawMode === "boundary",
-            "bg-emerald-600 text-white border-emerald-600",
-          )}
+          disabled={boundaryBusy || isEditing || isSavingEdit || !onBoundaryDrawn}
+          className={`${toolBtn(drawMode === "boundary", "bg-emerald-600 text-white border-emerald-600")} disabled:opacity-40 disabled:cursor-not-allowed`}
         >
           ⬠ Projektgrænse
         </button>
         <button
           onClick={() => setMode(drawMode === "zone" ? "none" : "zone")}
+          disabled={isEditing || isSavingEdit}
           className={toolBtn(drawMode === "zone", "bg-amber-500 text-white border-amber-500")}
         >
           ⬠ Zone
         </button>
         <button
           onClick={() => setMode(drawMode === "measure" ? "none" : "measure")}
+          disabled={isEditing || isSavingEdit}
           className={toolBtn(drawMode === "measure", "bg-violet-600 text-white border-violet-600")}
         >
           📐 Mål areal
@@ -929,12 +1147,32 @@ export function MapEditorMap({
 
         <div className="w-px h-4 bg-border mx-1" />
 
-        <button
-          onClick={toggleEdit}
-          className={toolBtn(isEditing, "bg-blue-600 text-white border-blue-600")}
-        >
-          ✏️ {isEditing ? "Gem redigering" : "Redigér"}
-        </button>
+        {isEditing ? (
+          <>
+            <button
+              onClick={() => void saveBoundaryEdit()}
+              disabled={boundaryBusy || isSavingEdit}
+              className={toolBtn(true, "bg-blue-600 text-white border-blue-600")}
+            >
+              {isSavingEdit ? "Gemmer …" : "✓ Gem grænse"}
+            </button>
+            <button
+              onClick={cancelBoundaryEdit}
+              disabled={isSavingEdit}
+              className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium disabled:opacity-50"
+            >
+              ✕ Annuller
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={startBoundaryEdit}
+            disabled={boundaryBusy || !boundaryGeoJSON || !onBoundaryDrawn}
+            className={`${toolBtn(false, "")} disabled:opacity-40 disabled:cursor-not-allowed`}
+          >
+            ✏️ Redigér grænse
+          </button>
+        )}
         <button onClick={clearDrawings} className={toolBtn(false, "")}>
           🗑 Ryd tegninger
         </button>
@@ -965,12 +1203,6 @@ export function MapEditorMap({
       {/* ── Kort ───────────────────────────────────────────────────────────── */}
       <div className="relative flex-1 min-h-0">
         <div ref={containerRef} className="h-full w-full" />
-        <OrthophotoOverlayControl
-          key={projectId}
-          map={ready ? mapRef.current : null}
-          items={mediaItems}
-          projectId={projectId}
-        />
 
         {drawMode !== "none" && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/98 backdrop-blur rounded-xl shadow-lg border px-3 py-2 flex items-center gap-2 flex-wrap max-w-[95%]">
@@ -978,8 +1210,6 @@ export function MapEditorMap({
               {drawMode === "boundary" && "Tegning aktiv — klik på kortet for at tilføje punkter"}
               {drawMode === "zone" && "Tegn zone — klik punkter"}
               {drawMode === "measure" && "Tegn måleområde"}
-              {drawMode === "centerline" &&
-                "Tegn vandløbslinje - klik punkter i den valgte retning"}
             </span>
             <span className="text-xs text-muted-foreground border-l pl-2">
               {drawingPoints} punkt{drawingPoints === 1 ? "" : "er"}
@@ -994,10 +1224,10 @@ export function MapEditorMap({
             </button>
             <button
               onClick={finishShape}
-              disabled={drawingPoints < (drawMode === "centerline" ? 2 : 3)}
+              disabled={drawingPoints < 3}
               className="text-xs px-2.5 py-1 rounded-md border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              ✓ {drawMode === "centerline" ? "Afslut linje" : "Afslut flade"}
+              ✓ Afslut flade
             </button>
             <button
               onClick={cancelDrawing}

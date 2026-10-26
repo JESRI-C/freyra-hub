@@ -1,0 +1,83 @@
+{
+  "schema": "gofreyra.public-source-candidates/v1",
+  "recordedAt": "2026-10-13T16:20:06.484Z",
+  "scope": {
+    "watercourse": "Bykær Bæk",
+    "municipality": "Haderslev",
+    "meetingDate": "2026-11-10",
+    "referenceOnly": true,
+    "selectedMunicipalReach": false,
+    "selectionStatus": "not_clarified_by_user",
+    "userClarification": "Det er endnu ikke afklaret",
+    "userClarificationDate": "2026-10-13",
+    "automaticProjectMutation": false,
+    "appBaselineIntegration": "not_implemented"
+  },
+  "landingPage": "https://www.haderslev.dk/demokrati/hoeringer-og-afgoerelser/alle-hoeringer-og-afgoerelser/vvm-screeningsafgoerelse-for-regulering-af-bykaer-baek-ved-matrnr-187-oersted-oksenvad",
+  "documents": [
+    {
+      "documentType": "environmental_screening_decision",
+      "title": "VVM-screeningsafgørelse for Regulering af Bykær Bæk, ved matr.nr. 187 Ørsted, Oksenvad",
+      "sourceUrl": "https://www.haderslev.dk/media/2umfxcs2/vvm-screeningsafgoerelse-for-regulering-af-bykaer-baek-ved-matrnr-187-oersted-oksenvad.pdf",
+      "provider": "Haderslev Kommune",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "bytes": 512043,
+      "sha256": "393e5b736d46a505c29bb79ae30fe9a640856ba2afb87f392f54ee9f7889721e",
+      "fetchedAt": "2026-10-13T16:20:06.302Z",
+      "serverLastModified": "2026-06-16T11:35:51Z",
+      "pages": 9,
+      "governingWatercourseRegulation": false,
+      "screeningIsNotPermission": true,
+      "documentClaims": {
+        "location": "Matrikel 187 Ørsted, Oksenvad",
+        "reportedReach": {
+          "fromStationM": 7,
+          "toStationM": 90,
+          "approximate": true,
+          "lengthM": 83
+        },
+        "reportedOpeningMonth": "2025-10",
+        "referencePages": [1, 2]
+      },
+      "claimStatus": "public_document_statement_not_verified_field_observation",
+      "acceptedMunicipalReach": false,
+      "georeferencedReachExtracted": false
+    },
+    {
+      "documentType": "environmental_screening_application",
+      "title": "VVM Ansøgning Regulering af Bykær Bæk",
+      "sourceUrl": "https://www.haderslev.dk/media/s1fikylf/vvm-ansoegning-regulering-af-bykaer-baek.pdf",
+      "provider": "Haderslev Kommune",
+      "httpStatus": 200,
+      "contentType": "application/pdf",
+      "bytes": 719134,
+      "sha256": "f0534bf6cd89dc494efe0a63116790f2b87a3860143c94972d624222bd474970",
+      "fetchedAt": "2026-10-13T16:20:06.484Z",
+      "serverLastModified": "2026-06-16T11:37:33Z",
+      "pages": 17,
+      "governingWatercourseRegulation": false,
+      "acceptedMunicipalReach": false,
+      "georeferencedReachExtracted": false
+    }
+  ],
+  "stillNotRetrieved": [
+    "governing_watercourse_regulation",
+    "watercourse_act_permission_for_the_selected_case",
+    "current_control_or_as_built_survey"
+  ],
+  "generalOfficialSources": [
+    {
+      "kind": "municipal_watercourse_information",
+      "sourceUrl": "https://www.haderslev.dk/service/natur-og-klima/vandloeb/"
+    },
+    {
+      "kind": "municipal_public_map_and_historical_aerial_photos",
+      "sourceUrl": "https://www.haderslev.dk/om-kommunen/kommunen-paa-kort"
+    }
+  ],
+  "privateContactDataCopied": false,
+  "fullPdfFilesCommitted": false,
+  "measurementOrMaintenanceConclusion": false,
+  "reviewerAssigned": false
+}

@@ -1,0 +1,252 @@
+{
+  "schema": "gofreyra.dependency-risk-delta/v1",
+  "reviewedAt": "2026-10-13T17:18:16Z",
+  "scope": "Read-only working-tree lock delta and npm production-dependency audit; deployed runtime and credential configuration were not inspected",
+  "dependencyRemediationPerformed": false,
+  "gitMutationsPerformed": false,
+  "hostedOperationsPerformed": false,
+  "evidence": {
+    "packageJsonSha256": "e10d5263af887cdff6c2267ded9865a8c4682d67536c14acce4b52580a3a9a23",
+    "packageLockSha256": "b226c138dee9df64bac5098ba2be72c9e087083114dd05d595a80acdf6e4ea6a",
+    "npmAuditSha256": "1b0b13aebfa6a886a9a19251497e842a37fa1bf4883267d4fb8ae5f6e3896487",
+    "npmAuditCommand": "npm audit --omit=dev --json --ignore-scripts",
+    "npmAuditReportVersion": 2,
+    "npmAuditExitCode": 1,
+    "npmAuditExitMeaning": "Known vulnerable package entries were reported; the registry request succeeded",
+    "auditArchive": "tmp/dependency-risk-prod-audit-2026-10-13.json",
+    "lockDeltaMethod": "Read-only git diff of package.json and package-lock.json against HEAD; read-only npm ls confirmed installed dependency paths",
+    "privateConfigurationRead": false,
+    "liveExploitTestsPerformed": false
+  },
+  "delta": {
+    "rootReportedInstallUsedIgnoreScripts": true,
+    "addedPackages": [
+      {
+        "name": "proj4",
+        "version": "2.22.0",
+        "direct": true,
+        "npmVulnerabilityEntry": false,
+        "affectedNodeMatches": 0
+      },
+      {
+        "name": "mgrs",
+        "version": "1.0.0",
+        "direct": false,
+        "via": "proj4",
+        "npmVulnerabilityEntry": false,
+        "affectedNodeMatches": 0
+      },
+      {
+        "name": "wkt-parser",
+        "version": "1.6.0",
+        "direct": false,
+        "via": "proj4",
+        "npmVulnerabilityEntry": false,
+        "affectedNodeMatches": 0
+      }
+    ],
+    "removedPackages": [],
+    "changedExistingLockedVersions": [],
+    "newKnownAdvisoryEntries": 0,
+    "currentUse": {
+      "file": "src/services/baseline/raster-query-projection.ts",
+      "input": "Validated numeric Danish lng/lat coordinates; fixed WGS84 and ETRS89/UTM32 projection definitions",
+      "arbitraryUploadedWktParsingObserved": false,
+      "projectedSampleLimit": 20000,
+      "surveyAccuracyAccepted": false
+    },
+    "limitation": "Zero registry findings for these three versions covers known advisories in this snapshot; it does not establish absence of undisclosed defects or accept geospatial accuracy"
+  },
+  "npmProductionScope": {
+    "affectedPackageEntries": {
+      "critical": 0,
+      "high": 19,
+      "moderate": 8,
+      "low": 7,
+      "info": 0,
+      "total": 34
+    },
+    "uniqueAdvisoryUrls": 58,
+    "countMeaning": "Entries include parents affected through vulnerable transitive dependencies. Production dependency declarations also contain build and emulator tools",
+    "rootReportedFullInstallScope": {
+      "critical": 0,
+      "high": 20,
+      "moderate": 11,
+      "low": 7,
+      "total": 38,
+      "independentlyRerunHere": false
+    },
+    "scopeComparison": "The 34 production-scope entries and 38 full-install entries use different scopes. Their difference is not a remediation result"
+  },
+  "priorityFindings": [
+    {
+      "priority": "P1",
+      "package": "@ai-sdk/provider-utils",
+      "installedVersion": "4.0.27",
+      "npmSeverity": "low",
+      "advisory": "GHSA-866g-f22w-33x8",
+      "paths": ["ai@6.0.191", "@ai-sdk/openai-compatible@2.0.48"],
+      "primaryReferences": [
+        "https://github.com/vercel/ai/pull/16374",
+        "https://github.com/vercel/ai/commit/b30e43ac3fae2432a40b4f4f27f844f3d78b119e",
+        "https://github.com/vercel/ai/releases/tag/@ai-sdk/provider-utils@4.0.33"
+      ],
+      "observedReachability": "Report drafts, module insights, decisions and species functions call generateText through openai-compatible. Its JSON success/error handlers reach response.text() without the shared byte limit; nonstream generation uses this path",
+      "codeEvidence": [
+        "src/lib/report-draft.functions.ts:49",
+        "src/lib/ai.functions.ts:40",
+        "src/lib/decisions-assistant.functions.ts:88",
+        "src/lib/species-id.functions.ts:68",
+        "node_modules/@ai-sdk/openai-compatible/dist/index.mjs:570",
+        "node_modules/@ai-sdk/provider-utils/dist/index.mjs:2530",
+        "node_modules/@ai-sdk/provider-utils/dist/index.mjs:2593"
+      ],
+      "impactCondition": "An oversized response from the configured AI upstream can exhaust response-reading memory. The app uses a fixed gateway URL; arbitrary caller-selected upstream URLs were not found",
+      "patchCandidate": ">=4.0.33 is a patch release within the installed 4.x line. Both ai@6.0.191 and @ai-sdk/openai-compatible@2.0.48 pin exactly 4.0.27, so a normal transitive refresh cannot replace those exact pins. A tested compatible parent update or scoped override must make both paths resolve the patched version; response-boundary tests are required",
+      "status": "Existing reachable response-reader issue; remediation was not performed"
+    },
+    {
+      "priority": "P1",
+      "package": "fast-uri",
+      "installedVersion": "3.1.6",
+      "npmSeverity": "high",
+      "advisories": ["GHSA-qw65-cvwx-89v3", "GHSA-58mr-gqgx-xq4g", "GHSA-hrr3-gc8f-f4qj"],
+      "path": "@lovable.dev/mcp-js -> @modelcontextprotocol/sdk -> ajv",
+      "primaryReferences": [
+        "https://github.com/fastify/fast-uri/security/advisories/GHSA-58mr-gqgx-xq4g",
+        "https://github.com/fastify/fast-uri/security/advisories/GHSA-hrr3-gc8f-f4qj"
+      ],
+      "observedReachability": "The existing built server contains _libs/ajv.mjs importing _libs/fast-uri.mjs. App-level hostname allowlists using fast-uri output were not found",
+      "impactCondition": "Host-confusion advisories require using parser output for a trust decision before routing the original URI. Such a customer bypass was not demonstrated",
+      "patchCandidate": ">=3.1.8 to cover the observed 3.x ranges; retain MCP/AJV compatibility checks",
+      "status": "Existing server-bundled package; exploit prerequisite remains unproven"
+    },
+    {
+      "priority": "P1",
+      "package": "@modelcontextprotocol/sdk",
+      "installedVersion": "1.28.0",
+      "npmSeverity": "high",
+      "advisory": "GHSA-6qxp-vccf-f47h",
+      "path": "@lovable.dev/mcp-js@0.20.1",
+      "primaryReferences": [
+        "https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-6qxp-vccf-f47h"
+      ],
+      "observedReachability": "The Lovable adapter imports McpServer and WebStandardStreamableHTTPServerTransport. The app configures a fixed OAuth issuer as a server; outbound SDK OAuth-client use was not found",
+      "impactCondition": "The advisory affects OAuth clients holding credentials while connecting to an untrusted MCP server. The vendor explicitly excludes SDK server use",
+      "patchCandidate": "1.31.0 or later in the 1.x line through a tested vendor update or scoped compatible override",
+      "status": "Existing pinned advisory; the observed server path does not meet this advisory's client prerequisite"
+    },
+    {
+      "priority": "P1_hygiene",
+      "package": "dompurify",
+      "installedVersion": "3.4.14",
+      "npmSeverity": "low",
+      "advisories": ["GHSA-p98j-92pf-mc4p", "GHSA-6688-9rhm-gjv2"],
+      "path": "jspdf@4.2.1",
+      "primaryReferences": [
+        "https://github.com/cure53/DOMPurify/security/advisories/GHSA-p98j-92pf-mc4p",
+        "https://github.com/cure53/DOMPurify/security/advisories/GHSA-6688-9rhm-gjv2"
+      ],
+      "observedReachability": "DOMPurify exists in the built library set. App PDF code uses jsPDF text and drawing methods; jsPDF.html, app DOMPurify calls, IN_PLACE and sanitizer hooks were not found",
+      "impactCondition": "These findings require in-place node sanitization and a relevant hook or serialize/reparse path. That report-output path was not observed",
+      "patchCandidate": ">=3.4.16 with PDF regression checks",
+      "status": "Existing report dependency; current advisory prerequisites were not observed"
+    },
+    {
+      "priority": "P1_hygiene",
+      "package": "hono",
+      "installedVersion": "4.13.5",
+      "npmSeverity": "moderate",
+      "advisory": "GHSA-hxh3-vqpv-xpqv",
+      "path": "@modelcontextprotocol/sdk",
+      "primaryReferences": [
+        "https://github.com/honojs/hono/security/advisories/GHSA-hxh3-vqpv-xpqv"
+      ],
+      "impactCondition": "Untrusted strings must reach affected hono/jsx server boundary/root positions. No app hono/jsx rendering path was found; the app uses React/TanStack",
+      "patchCandidate": ">=4.13.7 through compatible parent resolution",
+      "status": "Existing transitive package; affected rendering path was not observed"
+    },
+    {
+      "priority": "P1_tooling_slice",
+      "packages": [
+        "vite",
+        "postcss",
+        "source-map-js",
+        "browserslist",
+        "js-yaml",
+        "nanoid",
+        "braces",
+        "chokidar"
+      ],
+      "primaryReferences": [
+        "https://github.com/vitejs/vite/security/advisories/GHSA-fx2h-pf6j-xcff",
+        "https://github.com/postcss/postcss/security/advisories/GHSA-fxqj-rqcc-2cmp",
+        "https://github.com/7rulnik/source-map-js/releases/tag/v1.2.2",
+        "https://github.com/micromatch/braces/issues/70"
+      ],
+      "observedScope": "Installed build/watch tooling. Current app source does not expose customer CSS/YAML/glob processing through these packages",
+      "impactCondition": "Exposure changes if a vulnerable development server is reachable by untrusted users or builds ingest attacker-controlled source/configuration",
+      "action": "Choose compatible patch updates and watch/build regression tests in a separate slice; npm parent fixAvailable is not proof of a braces leaf patch",
+      "status": "Existing tooling findings; deployed development-server exposure was not checked"
+    },
+    {
+      "priority": "P1_emulator_slice",
+      "packages": ["undici@7.24.8", "undici@7.28.0", "ws@8.18.0", "sharp@0.34.5", "sharp@0.35.2"],
+      "paths": [
+        "@cloudflare/vite-plugin -> miniflare",
+        "nitro -> env-runner -> miniflare",
+        "@tanstack/start-plugin-core -> cheerio"
+      ],
+      "primaryReferences": [
+        "https://github.com/nodejs/undici/releases/tag/v7.29.1",
+        "https://github.com/websockets/ws/security/advisories/GHSA-96hv-2xvq-fx4p"
+      ],
+      "observedScope": "Pinned emulator/build dependency paths. Customer JPEG original validation uses structural checks and exifr; an app sharp/undici/ws import was not found",
+      "impactCondition": "Actual Undici proxy/cache/WebSocket or native image-processing use must be traced before assigning customer-runtime exposure. Cloudflare fetch and Node's built-in fetch have separate implementations",
+      "action": "Assess Cloudflare/Nitro/Miniflare parent compatibility and both dependency copies; do not run audit fix --force or force a beta parent upgrade",
+      "status": "Existing conditional findings; parent/native upgrades were not tested"
+    }
+  ],
+  "separateActivationGate": {
+    "priority": "P0_if_AI_routes_are_enabled_for_customer_use",
+    "newDependencyAdvisory": false,
+    "observation": "The four AI server functions inspected show no requireSupabaseAuth middleware or explicit abortSignal. They cap caller input/output tokens but use the upstream JSON response path",
+    "files": [
+      "src/lib/ai.functions.ts",
+      "src/lib/report-draft.functions.ts",
+      "src/lib/decisions-assistant.functions.ts",
+      "src/lib/species-id.functions.ts"
+    ],
+    "configurationInspected": false,
+    "actualEnabledExposureVerified": false,
+    "action": "Before enabling customer-facing AI calls, verify ordinary auth, rate/concurrency and response deadline/byte limits in a separate authorized change; keep missing-key branches disabled where applicable"
+  },
+  "previousP0DependencyPatches": [
+    { "name": "seroval", "version": "1.6.3", "npmVulnerabilityEntry": false },
+    {
+      "name": "xlsx",
+      "version": "0.20.3",
+      "distribution": "Existing vendored official tarball",
+      "npmVulnerabilityEntry": false
+    }
+  ],
+  "otherIntakeAndAuthPackagesWithoutEntriesInThisSnapshot": [
+    { "name": "@supabase/supabase-js", "version": "2.106.2" },
+    { "name": "tus-js-client", "version": "4.3.1" },
+    { "name": "exifr", "version": "7.1.3" },
+    { "name": "fast-xml-parser", "version": "5.11.2" },
+    { "name": "geotiff", "version": "3.0.5" }
+  ],
+  "releaseAcceptance": {
+    "newProj4RegistryAdvisoryBlocked": false,
+    "allDependencyFindingsClosed": false,
+    "additionalConfirmedP0DependencyExploit": false,
+    "nextAction": "Continue the scoped source10 candidate without attributing old advisory totals to proj4. Schedule the reachable AI JSON reader and compatible runtime hygiene patches separately, with clean-install/typecheck/tests/build and a fresh audit tied to the exact resulting lock",
+    "limitations": [
+      "No private files or credential values were inspected or recorded",
+      "No deployment, live AI call, customer write or exploit was performed",
+      "Registry absence and build-library presence are evidence for this snapshot; actual deployed reachability still requires runtime acceptance",
+      "The full installation count reported by root was not recomputed in this production-only audit"
+    ]
+  }
+}

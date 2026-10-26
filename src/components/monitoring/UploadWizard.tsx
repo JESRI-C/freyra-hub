@@ -1,4 +1,3 @@
-import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 // Upload wizard drawer — classify → validate → preview → import.
 // Wires the client-side parsers in `upload-import-service` to the
 // storage + row insert in `uploads-service`. Renders a compact 4-step
@@ -22,6 +21,7 @@ import {
   parseKml,
   parseGpx,
   parseImage,
+  buildImageDetectedMetadata,
   suggestMapping,
   validateTabular,
   type ParsePreview,
@@ -31,10 +31,16 @@ import {
 import {
   detectUploadType,
   isMimeAllowed,
+  resolveUploadMime,
   uploadFile,
+  createUploadRequestId,
+  cancelUploadIntent,
   MAX_UPLOAD_BYTES,
+  type UploadIntent,
   type UploadType,
+  UploadTransferError,
 } from "@/services/monitoring/uploads-service";
+import { isReadyForAutomaticCameraPosition } from "@/services/monitoring/drone-image-metadata";
 
 interface Props {
   open: boolean;
@@ -46,7 +52,6 @@ interface Props {
 type Stage = "select" | "classify" | "validate" | "preview" | "importing" | "done" | "error";
 
 export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
-  const [droneBatch, setDroneBatch] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadType, setUploadType] = useState<UploadType>("other");
   const [preview, setPreview] = useState<ParsePreview | null>(null);
@@ -55,9 +60,10 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
   const [stage, setStage] = useState<Stage>("select");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resumeIntent, setResumeIntent] = useState<UploadIntent | undefined>();
+  const [clientRequestId, setClientRequestId] = useState(() => createUploadRequestId());
 
-  const reset = useCallback(() => {
-    setDroneBatch(false);
+  const clearState = useCallback(() => {
     setFile(null);
     setUploadType("other");
     setPreview(null);
@@ -66,11 +72,30 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
     setStage("select");
     setError(null);
     setBusy(false);
+    setResumeIntent(undefined);
+    setClientRequestId(createUploadRequestId());
   }, []);
 
+  const reset = useCallback(async (): Promise<boolean> => {
+    if (resumeIntent) {
+      try {
+        await cancelUploadIntent(resumeIntent.uploadId);
+      } catch (cancelError) {
+        setError(
+          `Upload-intent kunne ikke lukkes: ${cancelError instanceof Error ? cancelError.message : String(cancelError)}`,
+        );
+        return false;
+      }
+    }
+    clearState();
+    return true;
+  }, [clearState, resumeIntent]);
+
   const handleClose = () => {
-    reset();
-    onClose();
+    if (stage === "importing") return;
+    void reset().then((cleared) => {
+      if (cleared) onClose();
+    });
   };
 
   const parse = useCallback(async (f: File, t: UploadType) => {
@@ -81,7 +106,12 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
       if (t === "geojson" || ext === "geojson" || ext === "json") return await parseGeoJson(f);
       if (t === "kml" || ext === "kml") return await parseKml(f);
       if (t === "gpx" || ext === "gpx") return await parseGpx(f);
-      if (t === "image" || t === "drone_photo" || f.type.startsWith("image/"))
+      if (
+        t === "image" ||
+        t === "drone_photo" ||
+        t === "orthophoto" ||
+        resolveUploadMime(f).startsWith("image/")
+      )
         return await parseImage(f);
     } catch (err) {
       setError((err as Error).message);
@@ -92,11 +122,13 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
 
   const handleFile = async (f: File) => {
     setError(null);
+    setResumeIntent(undefined);
+    setClientRequestId(createUploadRequestId());
     if (f.size > MAX_UPLOAD_BYTES) {
       setError(`Filen er for stor. Maks ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`);
       return;
     }
-    const mime = f.type || "application/octet-stream";
+    const mime = resolveUploadMime(f);
     if (!isMimeAllowed(mime)) {
       setError(`Filtypen ${mime} understøttes ikke.`);
       return;
@@ -134,51 +166,34 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
         detected.polygons = preview.polygons;
         detected.bbox = preview.bbox;
       } else if (preview?.kind === "image") {
-        detected.width = preview.width;
-        detected.height = preview.height;
-        if (preview.latitude != null) detected.latitude = preview.latitude;
-        if (preview.longitude != null) detected.longitude = preview.longitude;
-        if (preview.capturedAt) detected.captured_at = preview.capturedAt;
-        if (preview.cameraMake) detected.camera_make = preview.cameraMake;
-        if (preview.cameraModel) detected.camera_model = preview.cameraModel;
+        Object.assign(detected, buildImageDetectedMetadata(preview));
       }
       await uploadFile({
         file,
         projectId,
         uploadType,
-        detectedMetadata: detected,
+        // Browser-derived preview/EXIF is untrusted user input. A backend
+        // extractor must populate detected_metadata before report use.
+        userMetadata: { client_preview: detected },
+        resumeIntent,
+        clientRequestId,
       });
+      setResumeIntent(undefined);
       setStage("done");
       onImported?.();
     } catch (err) {
+      if (err instanceof UploadTransferError) setResumeIntent(err.intent);
       setError((err as Error).message);
       setStage("error");
     }
   };
 
   const canImport = useMemo(() => {
-    if (!file || !preview) return false;
+    if (!projectId || !file || !preview) return false;
     if (preview.kind === "tabular") return preview.totalRows > 0;
     if (preview.kind === "geo") return preview.featureCount > 0;
     return true;
-  }, [file, preview]);
-
-  if (droneBatch)
-    return (
-      <Drawer
-        open={open}
-        onClose={handleClose}
-        title="Droneflyvning · batchupload"
-        subtitle="Private originaler med individuel GPS og checksum"
-        footer={<button onClick={handleClose}>Luk</button>}
-      >
-        {projectId ? (
-          <ProjectMediaUploadPanel projectId={projectId} onUploadComplete={() => onImported?.()} />
-        ) : (
-          <p>Vælg et projekt før upload.</p>
-        )}
-      </Drawer>
-    );
+  }, [file, preview, projectId]);
 
   return (
     <Drawer
@@ -188,7 +203,11 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
       subtitle="Klassificér → validér → preview → importer"
       footer={
         <>
-          <button onClick={handleClose} className="text-xs rounded-lg border bg-card px-3 py-1.5">
+          <button
+            onClick={handleClose}
+            disabled={stage === "importing"}
+            className="text-xs rounded-lg border bg-card px-3 py-1.5 disabled:opacity-40"
+          >
             Luk
           </button>
           {stage !== "done" && stage !== "importing" && (
@@ -201,20 +220,20 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
             </button>
           )}
           {stage === "done" && (
-            <button onClick={reset} className="text-xs rounded-lg border bg-card px-3 py-1.5">
+            <button
+              onClick={() => void reset()}
+              className="text-xs rounded-lg border bg-card px-3 py-1.5"
+            >
               Ny fil
             </button>
           )}
         </>
       }
     >
-      {stage === "select" && !file && (
-        <button
-          className="w-full rounded-lg border bg-primary/10 p-3 text-sm"
-          onClick={() => setDroneBatch(true)}
-        >
-          Upload en hel droneflyvning eller eksisterende ortofoto
-        </button>
+      {!projectId && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Vælg et projekt før upload. Uafgrænsede filer gemmes ikke i P0-flowet.
+        </div>
       )}
       {stage === "select" && !file && (
         <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 cursor-pointer hover:bg-muted/30">
@@ -265,6 +284,7 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
             <div className="text-[11px] text-muted-foreground mb-1">Klassificér som</div>
             <select
               value={uploadType}
+              disabled={Boolean(resumeIntent)}
               onChange={(e) => setUploadType(e.target.value as UploadType)}
               className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
             >
@@ -309,6 +329,7 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
                   <div className="text-muted-foreground mb-0.5 capitalize">{k}</div>
                   <select
                     value={mapping[k] ?? ""}
+                    disabled={Boolean(resumeIntent)}
                     onChange={(e) => {
                       const next = { ...mapping, [k]: e.target.value || undefined };
                       setMapping(next);
@@ -412,7 +433,24 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
 
       {preview?.kind === "image" && (
         <div className="rounded-lg border bg-card p-3 text-sm space-y-2">
-          <div className="font-semibold">Billed-metadata</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-semibold">Drone- og billedmetadata</div>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                preview.droneMetadata.qa.status === "ready"
+                  ? "bg-success/15 text-success"
+                  : preview.droneMetadata.qa.status === "blocked"
+                    ? "bg-destructive/15 text-destructive"
+                    : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {preview.droneMetadata.qa.status === "ready"
+                ? "Klar til kameraposition"
+                : preview.droneMetadata.qa.status === "blocked"
+                  ? "Position blokeret"
+                  : "Kræver kontrol"}
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <Stat label="Bredde" value={preview.width ?? "—"} />
             <Stat label="Højde" value={preview.height ?? "—"} />
@@ -426,6 +464,14 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
               value={preview.longitude != null ? preview.longitude.toFixed(5) : "—"}
               tone={preview.longitude != null ? "success" : "muted"}
             />
+            <Stat
+              label="Absolut højde"
+              value={preview.altitudeM != null ? `${preview.altitudeM.toFixed(2)} m` : "—"}
+            />
+            <Stat
+              label="Synsretning"
+              value={preview.directionDeg != null ? `${preview.directionDeg.toFixed(1)}°` : "—"}
+            />
           </div>
           {preview.capturedAt && (
             <div className="text-xs text-muted-foreground">
@@ -437,12 +483,29 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
               Kamera: {preview.cameraMake} {preview.cameraModel}
             </div>
           )}
-          {preview.latitude == null && (
-            <div className="text-xs text-warning-foreground flex items-start gap-1.5">
-              <AlertTriangle className="h-3 w-3 mt-0.5" /> Ingen GPS i EXIF — filen får ingen
-              kortplacering før den tagges manuelt.
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <Stat label="Metadata" value={preview.droneMetadata.extractor} />
+            <Stat label="SHA-256" value={preview.droneMetadata.file.sha256.slice(0, 12)} />
+            <Stat label="RTK" value={preview.droneMetadata.rtk.flagRaw ?? "—"} />
+            <Stat label="Footprint" value={preview.droneMetadata.footprintReadiness} />
+          </div>
+          {preview.droneMetadata.qa.errors.map((issue) => (
+            <div key={issue.code} className="text-xs text-destructive flex items-start gap-1.5">
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" /> {issue.message}
             </div>
-          )}
+          ))}
+          {preview.droneMetadata.qa.warnings.map((issue) => (
+            <div key={issue.code} className="text-xs text-amber-800 flex items-start gap-1.5">
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" /> {issue.message}
+            </div>
+          ))}
+          {!isReadyForAutomaticCameraPosition(preview.droneMetadata) ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+              Originalfil og metadata kan lægges i valideringskøen, men aktivering på kortet er
+              blokeret, indtil position og UTC-tid er verificeret. Projektets centrum anvendes
+              aldrig automatisk.
+            </div>
+          ) : null}
         </div>
       )}
 

@@ -1,12 +1,10 @@
-import { OrthophotoOverlayControl } from "./OrthophotoOverlayControl";
-import { orthophotoBounds } from "@/services/monitoring/orthophoto-raster";
-import { getPhotoMapPoints } from "./photo-map-points";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { ProjectGeometry } from "@/lib/supabase/types";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
+import type { DroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 import type { BufferZonesGeoJSON } from "@/services/geo-service";
 import type { IoTSensor } from "@/services/iot-simulation-service";
 import { SENSOR_TYPE_LABELS } from "@/services/iot-simulation-service";
@@ -51,6 +49,7 @@ export interface LiveProjectMapProps {
   projectId: string;
   height?: number;
   mediaItems?: ProjectMediaItem[];
+  droneUploadPoints?: DroneUploadMapPoint[];
   sensors?: IoTSensor[];
   dmiData?: DmiData;
   miljoeportalData?: MiljoeportalData;
@@ -91,6 +90,29 @@ function formatLastSeen(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/** Leaflet accepts a DOM node, which keeps database-controlled text out of HTML strings. */
+function popupContent(title: string, rows: string[], note?: string): HTMLDivElement {
+  const container = document.createElement("div");
+  const heading = document.createElement("strong");
+  heading.textContent = title;
+  container.append(heading);
+
+  for (const row of rows) {
+    const lineBreak = document.createElement("br");
+    const line = document.createElement("span");
+    line.textContent = row;
+    container.append(lineBreak, line);
+  }
+
+  if (note) {
+    const lineBreak = document.createElement("br");
+    const detail = document.createElement("small");
+    detail.textContent = note;
+    container.append(lineBreak, detail);
+  }
+  return container;
 }
 
 // ─── DMI overlay ─────────────────────────────────────────────────────────────
@@ -174,6 +196,7 @@ export function LiveProjectMap({
   projectId,
   height = 480,
   mediaItems,
+  droneUploadPoints,
   sensors,
   dmiData,
   miljoeportalData: _miljoeportalData,
@@ -185,7 +208,7 @@ export function LiveProjectMap({
   const mapInstance = useRef<LeafletMap | null>(null);
   const bufferDataRef = useRef<BufferZonesGeoJSON | null>(null);
   const bufferLayerRef = useRef<LeafletGeoJSON | null>(null);
-  const mediaLayerRef = useRef<LeafletGeoJSON | null>(null);
+  const mediaLayerRef = useRef<import("leaflet").LayerGroup | null>(null);
   // Sensor markers are stored as individual marker refs — we just store the
   // marker layer group instance here.
   const sensorGroupRef = useRef<import("leaflet").LayerGroup | null>(null);
@@ -199,50 +222,10 @@ export function LiveProjectMap({
   // Async Leaflet-init: natur-lags-effekten må først køre når kortet findes.
   const [mapReady, setMapReady] = useState(false);
 
-  const photoPoints = useMemo(
-    () => getPhotoMapPoints(mediaItems ?? [], projectId),
-    [mediaItems, projectId],
-  );
-  const hasPhotoPositions = photoPoints.length > 0;
-  const rasterBounds = useMemo(() => {
-    for (const item of mediaItems ?? []) {
-      if (item.projectId !== projectId || item.metadata?.asset_type !== "orthophoto") continue;
-      const reference = item.metadata.orthophoto as
-        | { crs: string | null; bbox: number[] | null }
-        | undefined;
-      if (reference) {
-        try {
-          return orthophotoBounds(reference.crs, reference.bbox);
-        } catch {
-          /* Unsupported CRS is explicit in the overlay control. */
-        }
-      }
-    }
-    return null;
-  }, [mediaItems, projectId]);
-  const hasRasterBounds = !!rasterBounds;
-  const rasterBlocker = useMemo(() => {
-    const item = (mediaItems ?? []).find(
-      (candidate) =>
-        candidate.projectId === projectId && candidate.metadata?.asset_type === "orthophoto",
-    );
-    const reference = item?.metadata?.orthophoto as
-      | { crs: string | null; bbox: number[] | null }
-      | undefined;
-    if (!reference) return null;
-    try {
-      orthophotoBounds(reference.crs, reference.bbox);
-      return null;
-    } catch (error) {
-      return error instanceof Error ? error.message : String(error);
-    }
-  }, [mediaItems, projectId]);
-
   // ── Initial map setup ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
-    if (!geometry.hasValidGeometry && !geometry.centroid && !hasPhotoPositions && !hasRasterBounds)
-      return;
+    if (!geometry.hasValidGeometry && !geometry.centroid) return;
 
     let cancelled = false;
 
@@ -279,7 +262,7 @@ export function LiveProjectMap({
         if (geometry.centroid) {
           L.marker([geometry.centroid.lat, geometry.centroid.lng])
             .addTo(map)
-            .bindPopup(`<strong>${projectName}</strong>`);
+            .bindPopup(popupContent(projectName, []));
         }
 
         map.fitBounds(poly.getBounds(), { padding: [32, 32] });
@@ -290,25 +273,8 @@ export function LiveProjectMap({
         map.setView([geometry.centroid.lat, geometry.centroid.lng], 14);
         L.marker([geometry.centroid.lat, geometry.centroid.lng])
           .addTo(map)
-          .bindPopup(`<strong>${projectName}</strong><br/>Estimeret position`)
+          .bindPopup(popupContent(projectName, ["Estimeret position"]))
           .openPopup();
-        mapInstance.current = map;
-      }
-
-      if (!mapInstance.current && photoPoints.length > 0) {
-        const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false });
-        L.tileLayer(tileUrl, { attribution: tileAttrib, maxZoom: 19 }).addTo(map);
-        map.fitBounds(L.latLngBounds(photoPoints.map((p) => p.position)), {
-          padding: [32, 32],
-          maxZoom: 18,
-        });
-        mapInstance.current = map;
-      }
-
-      if (!mapInstance.current && rasterBounds) {
-        const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false });
-        L.tileLayer(tileUrl, { attribution: tileAttrib, maxZoom: 19 }).addTo(map);
-        map.fitBounds(rasterBounds, { padding: [32, 32] });
         mapInstance.current = map;
       }
 
@@ -329,10 +295,11 @@ export function LiveProjectMap({
           L.marker([sensor.coordinates.lat, sensor.coordinates.lng], { icon })
             .addTo(group)
             .bindPopup(
-              `<strong>${sensor.label}</strong><br/>` +
-                `${SENSOR_TYPE_LABELS[sensor.type]}: ${sensor.latestValue} ${sensor.unit}<br/>` +
-                `🔋 ${sensor.batteryPercent}%<br/>` +
+              popupContent(sensor.label, [
+                `${SENSOR_TYPE_LABELS[sensor.type]}: ${sensor.latestValue} ${sensor.unit}`,
+                `🔋 ${sensor.batteryPercent}%`,
                 `📡 Sidst set: ${formatLastSeen(sensor.lastSeen)}`,
+              ]),
             );
         }
       }
@@ -354,7 +321,7 @@ export function LiveProjectMap({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geometry, projectName, projectId, hasPhotoPositions, hasRasterBounds]);
+  }, [geometry, projectName, projectId]);
 
   // ── Buffer zone toggle ────────────────────────────────────────────────────
   useEffect(() => {
@@ -386,6 +353,77 @@ export function LiveProjectMap({
     })();
   }, [activeBuffer]);
 
+  // ── Media + provisional drone camera points — synced after async queries ──
+  useEffect(() => {
+    if (!mapReady || !mapInstance.current) return;
+    const map = mapInstance.current;
+    let cancelled = false;
+
+    (async () => {
+      const L = await import("leaflet");
+      if (cancelled || !mapInstance.current) return;
+
+      if (mediaLayerRef.current) {
+        map.removeLayer(mediaLayerRef.current);
+        mediaLayerRef.current = null;
+      }
+
+      const geoItems = (mediaItems ?? []).filter((item) => Boolean(item.coordinates));
+      const uploadPoints = droneUploadPoints ?? [];
+      if (!showMedia || (geoItems.length === 0 && uploadPoints.length === 0)) return;
+
+      const group = L.layerGroup().addTo(map);
+      mediaLayerRef.current = group;
+
+      for (const item of geoItems) {
+        if (!item.coordinates) continue;
+        const icon = L.divIcon({
+          html: '<div style="width:16px;height:16px;border-radius:50%;background:#F59E0B;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:8px;">📷</div>',
+          className: "",
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        });
+        L.marker([item.coordinates.lat, item.coordinates.lng], { icon })
+          .addTo(group)
+          .bindPopup(
+            popupContent(
+              item.title,
+              [MEDIA_CATEGORY_LABELS[item.category]],
+              new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK"),
+            ),
+          );
+      }
+
+      for (const point of uploadPoints) {
+        const icon = L.divIcon({
+          html: '<div style="width:18px;height:18px;border-radius:50%;background:#7C3AED;border:2px dashed white;box-shadow:0 1px 5px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:9px;">📷</div>',
+          className: "",
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+        });
+        const details = [
+          "FØR · ubekræftet kameraposition",
+          new Date(point.capturedAt).toLocaleString("da-DK"),
+        ];
+        if (point.cameraLabel) details.push(point.cameraLabel);
+        if (point.altitudeM != null) details.push(`Højde: ${point.altitudeM.toFixed(1)} m`);
+        L.marker([point.coordinates.lat, point.coordinates.lng], { icon })
+          .addTo(group)
+          .bindPopup(
+            popupContent(
+              point.fileName,
+              details,
+              "Browseraflæst GPS, som behandles som ubekræftet i dette kortlag. Punktet er ikke et billed-footprint eller rapportbevis.",
+            ),
+          );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapReady, mediaItems, droneUploadPoints, showMedia]);
+
   // ── Natur-lag (§3 + vandløb) — synces med props ───────────────────────────
   useEffect(() => {
     if (!mapReady || !mapInstance.current) return;
@@ -405,7 +443,14 @@ export function LiveProjectMap({
           style: { color: "#16A34A", weight: 1.5, fillColor: "#22C55E", fillOpacity: 0.25 },
           onEachFeature: (feature, layer) => {
             const t = (feature.properties as Record<string, unknown>)["natureType"];
-            layer.bindPopup(`<strong>§3 beskyttet natur</strong><br/>${t ?? "Naturareal"}`);
+            const status = (feature.properties as Record<string, unknown>)["registryStatus"];
+            layer.bindPopup(
+              popupContent("§3-naturregistrering (kandidat)", [
+                String(t ?? "Naturareal"),
+                `Registreringsstatus: ${String(status ?? "Ukendt")}`,
+                "Juridisk projektbeskyttelse er ikke vurderet.",
+              ]),
+            );
           },
         }).addTo(map);
       }
@@ -419,7 +464,12 @@ export function LiveProjectMap({
           style: { color: "#0EA5E9", weight: 2, opacity: 0.85 },
           onEachFeature: (feature, layer) => {
             const navn = (feature.properties as Record<string, unknown>)["navn"];
-            layer.bindPopup(`<strong>Vandløb</strong>${navn ? `<br/>${navn}` : ""}`);
+            layer.bindPopup(
+              popupContent("Vandløbsregistrering (kandidat)", [
+                ...(navn ? [String(navn)] : []),
+                "Den kommunale delstrækning er ikke fastlagt her.",
+              ]),
+            );
           },
         }).addTo(map);
       }
@@ -429,44 +479,6 @@ export function LiveProjectMap({
       cancelled = true;
     };
   }, [mapReady, paragraph3GeoJSON, watercoursesGeoJSON]);
-
-  // Rebuild photo points when asynchronous uploads arrive; never use project centroid for a photo.
-  useEffect(() => {
-    if (!mapReady || !mapInstance.current) return;
-    const map = mapInstance.current;
-    let cancelled = false;
-    void import("leaflet").then((L) => {
-      if (cancelled || mapInstance.current !== map) return;
-      if (mediaLayerRef.current) map.removeLayer(mediaLayerRef.current);
-      const group = L.layerGroup();
-      mediaLayerRef.current = group as unknown as LeafletGeoJSON;
-      for (const { item, position } of photoPoints) {
-        const popup = document.createElement("div");
-        const title = document.createElement("strong");
-        title.textContent = item.title;
-        popup.append(title);
-        const details = document.createElement("p");
-        details.textContent = `${MEDIA_CATEGORY_LABELS[item.category]} · ${new Date(item.capturedAt ?? item.uploadedAt).toLocaleDateString("da-DK")} · GPS-fotopunkt, ikke målfast ortofoto`;
-        popup.append(details);
-        const icon = L.divIcon({
-          html: '<div style="background:#F59E0B;border:2px solid white;border-radius:50%;width:16px;height:16px">📷</div>',
-          className: "",
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
-        });
-        L.marker(position, { icon }).addTo(group).bindPopup(popup);
-      }
-      if (showMedia) group.addTo(map);
-      if (!geometry.hasValidGeometry && !geometry.centroid && photoPoints.length)
-        map.fitBounds(L.latLngBounds(photoPoints.map((p) => p.position)), {
-          padding: [32, 32],
-          maxZoom: 18,
-        });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [mapReady, photoPoints, showMedia, geometry]);
 
   // ── Show/hide sensor layer ────────────────────────────────────────────────
   useEffect(() => {
@@ -480,7 +492,7 @@ export function LiveProjectMap({
   }, [showSensors]);
 
   // ─── No geometry fallback ─────────────────────────────────────────────────
-  if (!geometry.hasValidGeometry && !geometry.centroid && !hasPhotoPositions && !hasRasterBounds) {
+  if (!geometry.hasValidGeometry && !geometry.centroid) {
     return (
       <div
         style={{ height }}
@@ -488,26 +500,20 @@ export function LiveProjectMap({
       >
         <AlertTriangle className="h-5 w-5 text-amber-400" />
         <p className="text-sm">Ingen geometri registreret</p>
-        <p className="text-xs">
-          {rasterBlocker ??
-            "Tegn en projektgrænse eller upload fotos med GPS for at aktivere kortvisning"}
-        </p>
+        <p className="text-xs">Upload en GeoJSON-polygon for at aktivere kortvisning</p>
       </div>
     );
   }
 
-  const hasMedia = hasPhotoPositions;
+  const mediaCount =
+    (mediaItems ?? []).filter((item) => Boolean(item.coordinates)).length +
+    (droneUploadPoints?.length ?? 0);
+  const hasMedia = mediaCount > 0;
   const hasSensors = (sensors ?? []).length > 0;
 
   return (
     <div className="relative rounded-xl overflow-hidden border" style={{ height }}>
       <div ref={mapRef} className="h-full w-full" />
-      <OrthophotoOverlayControl
-        key={projectId}
-        map={mapReady ? mapInstance.current : null}
-        items={mediaItems ?? []}
-        projectId={projectId}
-      />
 
       {/* ── Status badge top-left ─────────────────────────────────────────── */}
       <div className="absolute top-2 left-2 z-[1000]">
@@ -521,11 +527,7 @@ export function LiveProjectMap({
           <MapPin className="h-3 w-3" />
           {geometry.hasValidGeometry
             ? `Polygon · ${geometry.areaHa != null ? `${geometry.areaHa} ha` : "areal ukendt"}`
-            : geometry.centroid
-              ? "Kun centroid"
-              : hasPhotoPositions
-                ? "Fotos med egen GPS"
-                : "Importeret ortofoto · vælg overlay"}
+            : "Kun centroid"}
         </span>
       </div>
 
@@ -570,7 +572,7 @@ export function LiveProjectMap({
         {/* Media toggle */}
         {hasMedia && (
           <PillBtn active={showMedia} onClick={() => setShowMedia((v) => !v)}>
-            Fotos med GPS
+            Fotos · {mediaCount}
           </PillBtn>
         )}
 

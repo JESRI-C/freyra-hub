@@ -1,5 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import { askDecisionsAssistant } from "@/lib/decisions-assistant.functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useConnectContext } from "@/lib/connect-context";
@@ -579,61 +582,142 @@ function Actions({
   );
 }
 function EvidenceAssistant({ data }: { data: ProjectWorkspace }) {
+  const auth = useAuth();
+  const ask = useServerFn(askDecisionsAssistant);
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
+  const ai = useMutation({
+    mutationFn: async (input: { question: string }) => {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session || !auth.orgId)
+        throw new Error("Log ind igen for at åbne sagens AI-assistent.");
+      return ask({
+        data: {
+          accessToken: session.data.session.access_token,
+          organizationId: auth.orgId,
+          projectId: data.project.id,
+          question: input.question,
+        },
+      });
+    },
+  });
+  const errors: Record<string, string> = {
+    missing_key:
+      "AI er klargjort. Lovables hemmelige servernøgle mangler på testappen. Projektets øvrige værktøjer kan bruges imens.",
+    missing_database: "Databasen er ikke konfigureret på serveren.",
+    unauthorized: "Adgang til den valgte sag kunne ikke bekræftes. Log ind igen.",
+    data_error: "Sagens data kunne ikke indlæses. Prøv igen.",
+    invalid_sources: "AI-svaret henviste til en ukendt kilde og er derfor ikke vist.",
+    credential_in_evidence:
+      "Teksten indeholder noget, der ligner loginoplysninger eller en hemmelig nøgle. Fjern det fra spørgsmålet eller datagrundlaget.",
+    evidence_too_large: "Datagrundlaget er for stort til denne forespørgsel.",
+    rate_limit: "AI-forbindelsen har nået sin midlertidige grænse. Prøv igen senere.",
+    credits: "Lovable AI har ingen tilgængelige kreditter.",
+    unknown: "AI kunne ikke svare. Prøv igen senere.",
+  };
+  const reply = ai.data?.reply;
+  const sourceLabel = (ref: string) => {
+    const [table, id] = ref.split(":");
+    if (table === "projects" && id === data.project.id) return data.project.name;
+    const rows =
+      table === "indicators"
+        ? data.indicators
+        : table === "actions"
+          ? data.actions
+          : table === "environmental_risks"
+            ? data.risks
+            : table === "data_sources"
+              ? data.sources
+              : [];
+    const row = rows?.find((r) => r.id === id);
+    return row
+      ? "title" in row
+        ? row.title
+        : "label" in row
+          ? row.label
+          : "name" in row
+            ? row.name
+            : ref
+      : ref;
+  };
   return (
-    <Panel title="Assistent — projektets datagrundlag">
+    <Panel title="AI-assistent — projektets datagrundlag">
       <p>
-        Svarene nedenfor er en regelbaseret gennemgang af de indlæste projektregistreringer. Faglige
-        AI-udkast med kildehenvisninger laves i rapporteditoren ud fra en gemt og gennemgået
-        rapportversion.
+        Stil et spørgsmål om den valgte sag. AI bruger sagens navn og beskrivelse, indikatorer,
+        handlinger, risici og datakilder. Loginoplysninger indgår ikke i det datagrundlag, der
+        sendes til AI.
       </p>
       <form
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          const q = question.toLowerCase();
-          setAnswer(
-            q.includes("ris")
-              ? data.errors.risks
-                ? "Risici kunne ikke indlæses; vurderingen er ukendt."
-                : data.risks?.length
-                  ? data.risks
-                      .map(
-                        (r) =>
-                          `${r.title}: ${r.severity ?? "alvor ukendt"} (${r.status ?? "status ukendt"}) [environmental_risks:${r.id}]`,
-                      )
-                      .join("\n")
-                  : "Ingen risici er registreret. Det dokumenterer ikke et lavt risikoniveau."
-              : q.includes("handling") || q.includes("næste")
-                ? data.errors.actions
-                  ? "Handlinger kunne ikke indlæses."
-                  : data.actions?.length
-                    ? data.actions
-                        .map((a) => `${a.title}: ${a.status ?? "status ukendt"} [actions:${a.id}]`)
-                        .join("\n")
-                    : "Ingen handlinger registreret. Opret en konkret handling under Anbefalinger."
-                : `Projekt: ${data.project.name} [projects:${data.project.id}]. ${data.errors.indicators ? "Indikatorer kunne ikke indlæses." : `${data.indicators?.length ?? 0} indikatorer registreret.`} ${data.errors.sources ? "Kilder kunne ikke indlæses." : `${data.sources?.length ?? 0} datakilder registreret.`} Åbn Metode & datakvalitet for begrænsninger og rapporteditoren for kildebaseret AI-redigering.`,
-          );
+          ai.mutate({ question });
         }}
       >
         <label className="block">
           Spørgsmål
-          <input
-            className="block w-full border p-2"
-            required
+          <textarea
+            className="block w-full border rounded p-3"
             value={question}
+            required
+            maxLength={2000}
+            disabled={ai.isPending}
             onChange={(e) => setQuestion(e.target.value)}
           />
         </label>
-        <Button>Gennemgå projektdata</Button>
+        <Button disabled={ai.isPending || !question.trim()}>
+          {ai.isPending ? "AI gennemgår sagen…" : "Spørg AI om projektet"}
+        </Button>
       </form>
-      {answer && (
-        <p role="status" className="whitespace-pre-wrap">
-          {answer}
-        </p>
+      {ai.isPending && <p role="status">Gennemgår det valgte projekts registreringer…</p>}
+      {ai.error && <p role="alert">{ai.error.message}</p>}
+      {ai.data?.error && (
+        <p role="alert">{errors[ai.data.reason ?? "unknown"] ?? errors.unknown}</p>
       )}
-      <Link to="/app/reports/library">Åbn kildebaseret rapportassistent</Link>
+      {reply && (
+        <article className="rounded-xl border p-4 space-y-3" aria-label="AI-forslag">
+          <h3 className="font-semibold">AI-forslag — kræver faglig gennemgang</h3>
+          <p>{reply.short}</p>
+          <div>
+            <h4 className="font-medium">Grundlag</h4>
+            <ul className="list-disc pl-5">
+              {reply.basis.map((text, i) => (
+                <li key={i}>{text}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium">Anbefaling</h4>
+            <p>{reply.recommendation}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">Usikkerheder</h4>
+            <p>{reply.uncertainty}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">Næste skridt</h4>
+            <p>{reply.nextAction}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">Registreringer anvendt i svaret</h4>
+            <ul>
+              {reply.sourceIds.map((id) => (
+                <li key={id}>
+                  {sourceLabel(id)} <span className="text-xs text-muted-foreground">({id})</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </article>
+      )}
+      <p className="text-sm text-muted-foreground">
+        AI udfører ingen ændringer ud fra svaret. Et forslag er ikke en faglig godkendelse.
+        Kildebaseret redigering af en gemt rapport findes i rapportbiblioteket.
+      </p>
+      <div className="flex gap-4 flex-wrap">
+        <Link to="/app/decisions/data-quality">Se datagrundlag og begrænsninger</Link>
+        <Link to="/app/decisions/recommendations">Åbn handlinger</Link>
+        <Link to="/app/reports/library">Åbn rapportbibliotek</Link>
+      </div>
     </Panel>
   );
 }

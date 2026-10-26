@@ -37,14 +37,14 @@ Filer: `src/routes/app.projects.geometry.$slug.tsx`, `src/components/maps/MapEdi
 
 ## API'er / datakilder i brug
 
-| Kilde | Type | Nøgle | Formål |
-| --- | --- | --- | --- |
-| Dataforsyningen `/autocomplete` | REST | Nej | Adresse/stednavne-autocomplete |
-| Dataforsyningen `/reverse` | REST | Nej | Reverse geocoding (kommune/region) |
-| Dataforsyningen `wms/matrikel` | WMS | Ja (token) | Matrikelskel visuelt lag |
-| Landbrugsstyrelsen `kort.lbst.dk` | WMS/WFS | Nej | Markblokke |
-| Miljøportalen `arealdata-api` | WMS | Nej | §3-natur |
-| Esri / OSM / OpenTopoMap | Tiles | Nej | Baggrundskort |
+| Kilde                             | Type    | Nøgle      | Formål                             |
+| --------------------------------- | ------- | ---------- | ---------------------------------- |
+| Dataforsyningen `/autocomplete`   | REST    | Nej        | Adresse/stednavne-autocomplete     |
+| Dataforsyningen `/reverse`        | REST    | Nej        | Reverse geocoding (kommune/region) |
+| Dataforsyningen `wms/matrikel`    | WMS     | Ja (token) | Matrikelskel visuelt lag           |
+| Landbrugsstyrelsen `kort.lbst.dk` | WMS/WFS | Nej        | Markblokke                         |
+| Miljøportalen `arealdata-api`     | WMS     | Nej        | §3-natur                           |
+| Esri / OSM / OpenTopoMap          | Tiles   | Nej        | Baggrundskort                      |
 
 Note: brugeren nævnte at "DAWA er lukket". Dataforsyningens autocomplete-endpoint (`api.dataforsyningen.dk`) kører fortsat og er den officielt anbefalede efterfølger til det tidligere DAWA-brand. Vi flytter kaldet bag en server-fn så vi kan skifte kilde uden UI-ændring, og fjerner "DAWA" fra hjælpetekst.
 

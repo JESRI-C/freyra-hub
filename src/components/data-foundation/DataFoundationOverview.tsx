@@ -47,7 +47,7 @@ export function DataFoundationOverview() {
     <Card>
       <CardHeader
         title="Data Foundation"
-        subtitle="Tilgængelige datakilder og API-forbindelser i GoFreyra-platformen"
+        subtitle="Tilgængelige datakilder og API-forbindelser i Freyra-platformen"
         action={
           <Link
             to="/app/connect/registry"

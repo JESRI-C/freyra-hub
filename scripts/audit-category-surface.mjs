@@ -19,7 +19,7 @@ function visit(node) {
       node.properties.flatMap((property) => {
         if (!ts.isPropertyAssignment(property) || !ts.isStringLiteral(property.initializer))
           return [];
-        return [[property.name.getText(ast), property.initializer.text]];
+        return [[property.name.getText(), property.initializer.text]];
       }),
     );
     if (values.to && values.label) categories.push({ route: values.to, label: values.label });
@@ -27,6 +27,25 @@ function visit(node) {
   ts.forEachChild(node, visit);
 }
 visit(ast);
+if (sidebar.includes("WORKSPACE_TOOLS")) {
+  const tools = fs.readFileSync(
+    path.join(root, "src/components/redesign/WorkspaceTools.tsx"),
+    "utf8",
+  );
+  const extra = ts.createSourceFile(
+    "WorkspaceTools.tsx",
+    tools,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  visit(extra);
+}
+const seen = new Set();
+for (let i = categories.length - 1; i >= 0; i--) {
+  if (seen.has(categories[i].route)) categories.splice(i, 1);
+  else seen.add(categories[i].route);
+}
 
 function filesIn(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

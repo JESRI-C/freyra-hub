@@ -4,7 +4,7 @@ import { AppTopbar } from "@/components/AppTopbar";
 export const Route = createFileRoute("/app/lavbund")({
   head: () => ({
     meta: [
-      { title: "LavbundsMRV — GoFreyra" },
+      { title: "LavbundsMRV — Freyra" },
       {
         name: "description",
         content:

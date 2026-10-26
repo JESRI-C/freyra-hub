@@ -2,6 +2,8 @@
 -- Adds: project_areas, map_layers, geo_features, calculated_metrics
 -- SQL functions: get_project_geojson, get_project_metrics
 -- Run via: Supabase SQL Editor or `supabase db push`
+-- Bootstrap replay repair: historical demo child seeds require an existing parent.
+-- Databases that already applied 007 are unchanged; no deployed rows are repaired here.
 
 -- ─── PostGIS ─────────────────────────────────────────────────────────────────
 -- PostGIS is used if available. If your Supabase plan does not include it,
@@ -264,7 +266,8 @@ on conflict (slug) do nothing;
 -- ─── Seed: project area for Skallebæk ────────────────────────────────────────
 -- Uses the same coordinates as SEED_PROJECT_GEOMETRIES in platform-seed.ts
 insert into project_areas (project_id, name, area_type, geojson, area_ha)
-values (
+select seed.project_id::uuid, seed.name, seed.area_type, seed.geojson, seed.area_ha
+from (values (
   '10000000-0000-0000-0000-000000000001',
   'Skallebæk Pilotområde',
   'pilot_area',
@@ -273,23 +276,40 @@ values (
     "coordinates": [[[9.4821,55.2514],[9.4835,55.2514],[9.4835,55.2525],[9.4821,55.2525],[9.4821,55.2514]]]
   }'::jsonb,
   7.3
+)) as seed(project_id, name, area_type, geojson, area_ha)
+where exists (
+  select 1 from public.projects parent where parent.id = seed.project_id::uuid
 )
 on conflict do nothing;
 
 -- ─── Seed: demo geo_observations for Skallebæk ───────────────────────────────
-insert into geo_observations (project_id, observation_type, value, unit, properties, observed_at, geojson) values
+insert into geo_observations (project_id, observation_type, value, unit, properties, observed_at, geojson)
+select seed.project_id::uuid, seed.observation_type, seed.value, seed.unit,
+       seed.properties, seed.observed_at, seed.geojson
+from (values
   ('10000000-0000-0000-0000-000000000001', 'soil_moisture',     38.2, '%',    '{"zone":"A","depth_cm":20}'::jsonb,  now() - interval '2 hours',   '{"type":"Point","coordinates":[9.4823,55.2516]}'::jsonb),
   ('10000000-0000-0000-0000-000000000001', 'temperature',       14.7, '°C',   '{"zone":"A","sensor":"T-01"}'::jsonb, now() - interval '1 hour',    '{"type":"Point","coordinates":[9.4826,55.2518]}'::jsonb),
   ('10000000-0000-0000-0000-000000000001', 'acoustic_activity', 72.1, 'dB',   '{"zone":"B","species":"fugle"}'::jsonb, now() - interval '30 min', '{"type":"Point","coordinates":[9.4830,55.2521]}'::jsonb),
   ('10000000-0000-0000-0000-000000000001', 'vegetation_index',  0.68, 'NDVI', '{"source":"sentinel-2"}'::jsonb,      now() - interval '5 days',   '{"type":"Point","coordinates":[9.4828,55.2520]}'::jsonb),
   ('10000000-0000-0000-0000-000000000001', 'water_level',       1.23, 'm',    '{"zone":"C","stream":"Skallebæk Å"}'::jsonb, now() - interval '45 min', '{"type":"Point","coordinates":[9.4832,55.2515]}'::jsonb)
+) as seed(project_id, observation_type, value, unit, properties, observed_at, geojson)
+where exists (
+  select 1 from public.projects parent where parent.id = seed.project_id::uuid
+)
 on conflict do nothing;
 
 -- ─── Seed: calculated_metrics for Skallebæk ──────────────────────────────────
-insert into calculated_metrics (project_id, metric_key, metric_label, value, unit, method) values
+insert into calculated_metrics (project_id, metric_key, metric_label, value, unit, method)
+select seed.project_id::uuid, seed.metric_key, seed.metric_label, seed.value,
+       seed.unit, seed.method
+from (values
   ('10000000-0000-0000-0000-000000000001', 'total_area_ha',                    'Samlet areal',              7.3,   'ha',   'shoelace'),
   ('10000000-0000-0000-0000-000000000001', 'protected_nature_overlap_ha',      'Beskyttet natur overlap',   4.1,   'ha',   'simulated'),
   ('10000000-0000-0000-0000-000000000001', 'nearest_watercourse_distance_m',   'Nærmeste vandløb',          85,    'm',    'simulated'),
   ('10000000-0000-0000-0000-000000000001', 'ndvi_mean',                        'NDVI (Sentinel-2)',         0.68,  null,   'simulated'),
   ('10000000-0000-0000-0000-000000000001', 'data_completeness_score',          'Datakomplethed',            78,    '%',    'simulated')
+) as seed(project_id, metric_key, metric_label, value, unit, method)
+where exists (
+  select 1 from public.projects parent where parent.id = seed.project_id::uuid
+)
 on conflict do nothing;

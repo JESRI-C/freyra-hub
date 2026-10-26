@@ -4,20 +4,20 @@ Optaget pr. 5. juli 2026. Baseret på faktisk kildekode i `src/routes/app.connec
 
 ## Eksisterende routes
 
-| Route | Fil | Status | Note |
-|---|---|---|---|
-| `/app/connect` | `app.connect.tsx` | Layout | Topbar + tabs. Har 10 tabs, ingen projektvælger, ingen datointerval. |
-| `/app/connect/` | `app.connect.index.tsx` | Prototype | KPI-kort med hardkodede tal ("42", "36", "86%"). Fake datastrøm. AI-banner. |
-| `/app/connect/devices` | `app.connect.devices.tsx` | Prototype | Tabel læser fra `DEVICES` seed i `src/lib/connect-data.ts`. Ingen backend. Filter og drawer virker på seed. Alle knapper i drawer-footer (Test forbindelse, Send til ESG, Deaktiver) er døde. |
-| `/app/connect/sources` | `app.connect.sources.tsx` | Prototype | Læser fra seed. Ingen wizard, ingen synkronisering, ingen fejllog. |
-| `/app/connect/integrations` | `app.connect.integrations.tsx` | Prototype | Ingen backend, ingen test-forbindelse. Credentials-håndtering findes ikke. |
-| `/app/connect/live` | `app.connect.live.tsx` | Prototype | Læser `LIVE_OBSERVATIONS` fra seed. Fejlagtigt fremstillet som realtid. |
-| `/app/connect/map` | `app.connect.map.tsx` | Delvist funktionel | Bruger `useMapEditor` + `MapEditorMap` med rigtig geometri fra `projects`. Zone-tegning findes men lukker efter 3 punkter. Grid `[280px_1fr_320px]` giver horisontal scroll under ~1080 px. Højre panel skæres af. |
-| `/app/connect/upload` | `app.connect.upload.tsx` | Duplikat | Bør konsolideres ind i observations-flow. |
-| `/app/connect/quality` | `app.connect.quality.tsx` | Prototype | Tabeller med hardkodede kvalitetstal. Ingen beregnet score. |
-| `/app/connect/alerts` | `app.connect.alerts.tsx` | Prototype | Læser `ALERTS` fra seed. Ingen `monitoring_alerts`-tabel. |
-| `/app/connect/registry` | `app.connect.registry.tsx` | Duplikat | Overlapper med Enheder. |
-| `/app/connect/add` | `app.connect.add.tsx` | Wizard-stub | Ikke koblet på backend. |
+| Route                       | Fil                            | Status             | Note                                                                                                                                                                                                               |
+| --------------------------- | ------------------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/app/connect`              | `app.connect.tsx`              | Layout             | Topbar + tabs. Har 10 tabs, ingen projektvælger, ingen datointerval.                                                                                                                                               |
+| `/app/connect/`             | `app.connect.index.tsx`        | Prototype          | KPI-kort med hardkodede tal ("42", "36", "86%"). Fake datastrøm. AI-banner.                                                                                                                                        |
+| `/app/connect/devices`      | `app.connect.devices.tsx`      | Prototype          | Tabel læser fra `DEVICES` seed i `src/lib/connect-data.ts`. Ingen backend. Filter og drawer virker på seed. Alle knapper i drawer-footer (Test forbindelse, Send til ESG, Deaktiver) er døde.                      |
+| `/app/connect/sources`      | `app.connect.sources.tsx`      | Prototype          | Læser fra seed. Ingen wizard, ingen synkronisering, ingen fejllog.                                                                                                                                                 |
+| `/app/connect/integrations` | `app.connect.integrations.tsx` | Prototype          | Ingen backend, ingen test-forbindelse. Credentials-håndtering findes ikke.                                                                                                                                         |
+| `/app/connect/live`         | `app.connect.live.tsx`         | Prototype          | Læser `LIVE_OBSERVATIONS` fra seed. Fejlagtigt fremstillet som realtid.                                                                                                                                            |
+| `/app/connect/map`          | `app.connect.map.tsx`          | Delvist funktionel | Bruger `useMapEditor` + `MapEditorMap` med rigtig geometri fra `projects`. Zone-tegning findes men lukker efter 3 punkter. Grid `[280px_1fr_320px]` giver horisontal scroll under ~1080 px. Højre panel skæres af. |
+| `/app/connect/upload`       | `app.connect.upload.tsx`       | Duplikat           | Bør konsolideres ind i observations-flow.                                                                                                                                                                          |
+| `/app/connect/quality`      | `app.connect.quality.tsx`      | Prototype          | Tabeller med hardkodede kvalitetstal. Ingen beregnet score.                                                                                                                                                        |
+| `/app/connect/alerts`       | `app.connect.alerts.tsx`       | Prototype          | Læser `ALERTS` fra seed. Ingen `monitoring_alerts`-tabel.                                                                                                                                                          |
+| `/app/connect/registry`     | `app.connect.registry.tsx`     | Duplikat           | Overlapper med Enheder.                                                                                                                                                                                            |
+| `/app/connect/add`          | `app.connect.add.tsx`          | Wizard-stub        | Ikke koblet på backend.                                                                                                                                                                                            |
 
 ## Konkrete UI-fejl (baseret på skærmbillede)
 
@@ -85,6 +85,7 @@ Optaget pr. 5. juli 2026. Baseret på faktisk kildekode i `src/routes/app.connec
 ## Anbefalet oprydningsrækkefølge
 
 **Fase A (denne runde):**
+
 1. Migration for de 5 kernetabeller — færdig.
 2. Konsolidér nav fra 10 til 6 tabs (Overblik, Enheder, Datakilder, Integrationer, Live data, Kort & zoner). Wizards og lister flyttes ind under den relevante tab.
 3. Fjern hardkodede procenter fra Overblik og Enheder — erstattes med ærlig tom tilstand.

@@ -1,0 +1,142 @@
+{
+  "schema": "gofreyra.public-source11-adapter-probe/v1",
+  "observedAt": "2026-10-13T18:35:19.594Z",
+  "adapterIntegratedCodeUncommitted": true,
+  "syntheticTechnicalArea": true,
+  "municipalAcceptance": false,
+  "professionalApproval": false,
+  "hostedBaselineAcceptance": false,
+  "elapsedMs": 1509,
+  "sourceId": "water-plan-nature",
+  "status": "partial",
+  "mode": "live",
+  "coverage": {
+    "spatial": "unknown",
+    "temporal": "unknown",
+    "observedFrom": null,
+    "observedTo": null,
+    "paginationComplete": true,
+    "returnedCount": 89
+  },
+  "savedUiPayloadValidated": true,
+  "returnedCount": 89,
+  "payloadSha256": "303969dcf89173fdb5d4cb69cd48a711b52eee582140a8aa9d202e76934c7bd0",
+  "error": null,
+  "queryProjection": {
+    "sourceCrs": "EPSG:4326",
+    "sourceAxisOrder": "lng-lat",
+    "queryCrs": "EPSG:25832",
+    "queryAxisOrder": "easting-northing",
+    "bbox": [
+      515756,
+      6132196,
+      517345,
+      6136401
+    ],
+    "method": "proj4-grs80-catalog-envelope/v1",
+    "edgeSampleStepDegrees": 0.01,
+    "projectedSampleCount": 14,
+    "queryBufferM": 25,
+    "bboxRounding": "outward-to-integer-metres",
+    "datumAssumption": "wgs84-treated-as-etrs89-without-epoch-or-grid-shift",
+    "surveyAccuracyVerified": false,
+    "heightTransformed": false
+  },
+  "products": [
+    {
+      "id": "protected-nature",
+      "layer": "dai:bes_naturtyper",
+      "licence": "CC0 1.0",
+      "attribution": "Danmarks Miljøportal / Kommunerne",
+      "matchedCount": 82,
+      "receivedCandidateCount": 82,
+      "nativeGeometryCrs": [
+        "EPSG:25832"
+      ],
+      "candidateMetadataSha256": "59083b86369de7aa10e704dfe0659f674455fd37dbb71a6c1667e996c90d21e3",
+      "pagingIsTransactionSafe": false
+    },
+    {
+      "id": "protected-watercourses",
+      "layer": "dai:bes_vandloeb",
+      "licence": "CC0 1.0",
+      "attribution": "Danmarks Miljøportal / Kommunerne",
+      "matchedCount": 4,
+      "receivedCandidateCount": 4,
+      "nativeGeometryCrs": [
+        "EPSG:25832"
+      ],
+      "candidateMetadataSha256": "b3c49beeb2c423a7a288a35ad5abb6d0e719416e468ba86c5e23be5d7330e037",
+      "pagingIsTransactionSafe": false
+    },
+    {
+      "id": "vp3-watercourses",
+      "layer": "vp3_2endelig2025:vp3_2e2025_vandloeb_samlet",
+      "licence": "CC BY 4.0",
+      "attribution": "Styrelsen for Grøn Arealomlægning og Vandmiljø (SGAV)",
+      "matchedCount": 3,
+      "receivedCandidateCount": 3,
+      "nativeGeometryCrs": [
+        "EPSG:25832"
+      ],
+      "candidateMetadataSha256": "a1f928ad99dcbb2283c4ce00e04a9799bb7e06901fe860857a5ef9b0107caba4",
+      "pagingIsTransactionSafe": false
+    }
+  ],
+  "pages": [
+    {
+      "productId": "protected-nature",
+      "queryUrl": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_naturtyper&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515756%2C6132196%2C517345%2C6136401%2Curn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=50&startIndex=0&sortBy=Objekt_id",
+      "responseSha256": "66aadcaf5b64a61f968f924ffc31d843a773f4651d84b6a0c606e34fe1009198",
+      "responseBytes": 87557,
+      "startIndex": 0,
+      "requestedCount": 50,
+      "sortKey": "Objekt_id",
+      "numberMatched": 82,
+      "numberReturned": 50,
+      "totalFeatures": 82,
+      "serverTimestamp": "2026-10-13T18:35:18.275Z"
+    },
+    {
+      "productId": "protected-nature",
+      "queryUrl": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_naturtyper&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515756%2C6132196%2C517345%2C6136401%2Curn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=50&startIndex=50&sortBy=Objekt_id",
+      "responseSha256": "ba89ff2b0cd95088cea8e993b055bd51364ee6b2e0766a783be01e9b91a5b344",
+      "responseBytes": 45619,
+      "startIndex": 50,
+      "requestedCount": 50,
+      "sortKey": "Objekt_id",
+      "numberMatched": 82,
+      "numberReturned": 32,
+      "totalFeatures": 82,
+      "serverTimestamp": "2026-10-13T18:35:18.377Z"
+    },
+    {
+      "productId": "protected-watercourses",
+      "queryUrl": "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dai%3Abes_vandloeb&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515756%2C6132196%2C517345%2C6136401%2Curn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=50&startIndex=0&sortBy=Objekt_id",
+      "responseSha256": "39538f1f866cae55a64bbeecc7fedb72a71dbcb625b083214e3f110cc058cdb4",
+      "responseBytes": 4998,
+      "startIndex": 0,
+      "requestedCount": 50,
+      "sortKey": "Objekt_id",
+      "numberMatched": 4,
+      "numberReturned": 4,
+      "totalFeatures": 4,
+      "serverTimestamp": "2026-10-13T18:35:18.441Z"
+    },
+    {
+      "productId": "vp3-watercourses",
+      "queryUrl": "https://wfs2-miljoegis.mim.dk/vp3_2endelig2025/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=vp3_2endelig2025%3Avp3_2e2025_vandloeb_samlet&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&bbox=515756%2C6132196%2C517345%2C6136401%2Curn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A25832&count=50&startIndex=0&sortBy=ov_id",
+      "responseSha256": "ac979dbf795e457fb373ac72c19d94746eb43cad23ce7290f706ce06eddb1dc7",
+      "responseBytes": 15357,
+      "startIndex": 0,
+      "requestedCount": 50,
+      "sortKey": "ov_id",
+      "numberMatched": 3,
+      "numberReturned": 3,
+      "totalFeatures": 3,
+      "serverTimestamp": "2026-10-13T18:35:19.419Z"
+    }
+  ],
+  "rawUpstreamFeaturePropertiesSaved": false,
+  "credentialsRequired": false
+}
