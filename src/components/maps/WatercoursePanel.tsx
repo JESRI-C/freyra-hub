@@ -6,6 +6,7 @@ import { parseGeoJson, parseKml, parseGpx } from "@/services/monitoring/upload-i
 import { getWatercourseVersions, saveWatercourseVersion } from "@/services/watercourse-service";
 import {
   centerlineLength,
+  importCenterline,
   validateCenterline,
   watercourseGeoJSON,
   type WatercourseVersion,
@@ -74,12 +75,7 @@ export function WatercoursePanel({
           ? await parseGpx(file)
           : await parseGeoJson(file);
       if (parsed.errors.length) throw new Error(parsed.errors.join("; "));
-      const lines = parsed.geojson.features.filter((f) => f.geometry?.type === "LineString");
-      if (lines.length !== 1)
-        throw new Error(
-          "Importér præcis én sammenhængende LineString i EPSG:4326. Polygoner ændres ikke til centerlinjer.",
-        );
-      onDraftChange(validateCenterline(lines[0].geometry));
+      onDraftChange(importCenterline(parsed.geojson));
       setSource(file.name);
       setError(null);
     } catch (e) {

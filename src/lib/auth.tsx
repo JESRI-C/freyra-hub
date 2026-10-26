@@ -218,6 +218,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       const generation = ++loadGeneration.current;
       if (sessionIdentity.current !== (s?.user.id ?? null)) {
+        // Block only an identity change. Refreshing this user's session must
+        // leave the workspace mounted so drafts and uploads survive.
+        setLoading(true);
         void queryClient.cancelQueries();
         queryClient.clear();
         setOrganizations([]);
@@ -225,7 +228,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionIdentity.current = s?.user.id ?? null;
       }
       setSession(s);
-      setLoading(true);
       // Defer DB calls until the auth callback releases its lock.
       setTimeout(() => {
         if (mounted)

@@ -7,6 +7,7 @@ import {
   measuredArea,
   photoPairFlags,
   watercourseGeoJSON,
+  importCenterline,
   WATERCOURSE_METHOD,
 } from "../watercourse-geometry";
 import type { WatercourseVersion } from "../watercourse-geometry";
@@ -59,8 +60,29 @@ describe("watercourse measurement contract", () => {
     };
     const roundtrip = JSON.parse(JSON.stringify(watercourseGeoJSON(v)));
     expect(roundtrip.features[0].geometry).toEqual(line);
+    expect(importCenterline(roundtrip)).toEqual(line);
+    // GIS tools may reorder features; the segment must never become the draft.
+    roundtrip.features.reverse();
+    expect(importCenterline(roundtrip)).toEqual(line);
+    roundtrip.features.reverse();
     expect(centerlineLength(segmentGeometry(line, v.segments[0]))).toBeCloseTo(50, 3);
     expect(roundtrip.features[1].properties.centerline_version).toBe("v1");
+  });
+  it("imports a single ordinary line, but rejects ambiguous or segment-only files", () => {
+    const feature = { type: "Feature" as const, geometry: line, properties: {} };
+    const collection = { type: "FeatureCollection" as const, features: [feature] };
+    expect(importCenterline(collection)).toEqual(line);
+    expect(() => importCenterline({ ...collection, features: [feature, feature] })).toThrow();
+    expect(() => importCenterline({ ...collection, features: [] })).toThrow();
+    const centerline = { ...feature, properties: { role: "watercourse_centerline" } };
+    const segment = { ...feature, properties: { role: "watercourse_segment" } };
+    expect(() => importCenterline({ ...collection, features: [segment] })).toThrow();
+    expect(() =>
+      importCenterline({ ...collection, features: [centerline, centerline, segment] }),
+    ).toThrow();
+    expect(() =>
+      importCenterline({ ...collection, features: [centerline, feature, segment] }),
+    ).toThrow();
   });
   it("rejects duplicate and overlapping segments to prevent double counting", () => {
     expect(() =>

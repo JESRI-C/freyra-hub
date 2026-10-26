@@ -1,5 +1,5 @@
 import { length, lineString, lineSliceAlong, area, polygon } from "@turf/turf";
-import type { LineString, Polygon } from "geojson";
+import type { FeatureCollection, LineString, Polygon } from "geojson";
 
 export const WATERCOURSE_METHOD = "turf-7.3.5-geodesic-wgs84-v1";
 export interface WatercourseSegment {
@@ -51,6 +51,20 @@ export function validateCenterline(value: unknown): LineString {
 }
 export function centerlineLength(geometry: LineString): number {
   return length(lineString(geometry.coordinates), { units: "meters" });
+}
+export function importCenterline(collection: FeatureCollection): LineString {
+  const lines = collection.features.filter((feature) => feature.geometry?.type === "LineString");
+  const centerlines = lines.filter(
+    (feature) => feature.properties?.role === "watercourse_centerline",
+  );
+  // Exported stationing includes segment lines. Only the explicitly identified
+  // centerline is editable; unlabelled competing lines are still ambiguous.
+  const candidates = lines.filter((feature) => feature.properties?.role !== "watercourse_segment");
+  if (candidates.length !== 1 || (lines.length > 1 && centerlines.length !== 1))
+    throw new Error(
+      "Importér præcis én sammenhængende LineString i EPSG:4326. Polygoner ændres ikke til centerlinjer.",
+    );
+  return validateCenterline(candidates[0].geometry);
 }
 export function validateSegments(segments: WatercourseSegment[], lengthM: number): void {
   const sorted = [...segments].sort((a, b) => a.fromM - b.fromM);
