@@ -1,8 +1,12 @@
 {
-  "environment": "local_app_with_live_supabase_staging",
+  "environment": "hosted_staging",
+  "sourceRevision": "49e9364ce896cd61515c16102ee3b0ad8259a23f",
+  "workerVersion": "f8a754ca-cab7-433d-a45a-f8aa161b4989",
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
   "stagingProject": "xdvqdzdpyceojbdknofi",
-  "mainApplicationCommit": "a1e964ee3eae1f89d1f62806582e1e0f1ad3bf8b",
-  "followup": "read-only evidence dialog separately browser-tested",
+  "routeCount": 43,
+  "categoryCount": 16,
+  "tabCount": 20,
   "routes": [
     {
       "route": "/app/decisions/recommendations",
@@ -82,6 +86,10 @@
     },
     {
       "route": "/app/impact/reports",
+      "pass": true
+    },
+    {
+      "route": "/app/sources",
       "pass": true
     },
     {
@@ -173,16 +181,6 @@
       "pass": true
     }
   ],
-  "browserErrors": [],
-  "checks": {
-    "browserPersistence": true,
-    "browserProjectSwitch": true,
-    "actionPersistence": true,
-    "riskPersistence": true,
-    "readerBrowser": true,
-    "readerEvidence": true,
-    "readerMeasurementDetails": true
-  },
   "backend": {
     "versionConflict": true,
     "readerRead": true,
@@ -190,9 +188,101 @@
     "forgedScopeDenied": true,
     "projectBEmpty": true
   },
-  "offlineSqlAssertions": 61,
-  "unitTests": 277,
-  "productionChanged": false,
-  "hostedStagingDeployed": false,
-  "externalAiWiring": "not_enabled_approval_required"
+  "browserPersistence": true,
+  "browserProjectSwitch": true,
+  "actionPersistence": true,
+  "riskPersistence": true,
+  "readerBrowser": true,
+  "readerEvidence": true,
+  "readerMeasurementDetails": true,
+  "aiBoundary": "Authenticated hosted server path reached; missing key shown; provider inference not tested.",
+  "guidedSteps": [
+    {
+      "label": "Billeder",
+      "pass": true
+    },
+    {
+      "label": "Datagrundlag",
+      "pass": true
+    },
+    {
+      "label": "Verificering",
+      "pass": true
+    },
+    {
+      "label": "Baseline",
+      "pass": true
+    },
+    {
+      "label": "Beplantning",
+      "pass": true
+    },
+    {
+      "label": "Rapport",
+      "pass": true
+    }
+  ],
+  "reportTemplates": [
+    {
+      "id": "watercourse",
+      "pass": true
+    },
+    {
+      "id": "construction_baseline",
+      "pass": true
+    },
+    {
+      "id": "nature_baseline",
+      "pass": true
+    },
+    {
+      "id": "annual_followup",
+      "pass": true
+    }
+  ],
+  "reportSavedReloaded": true,
+  "unreviewedApprovalBlocked": true,
+  "exports": [
+    {
+      "format": "PDF",
+      "bytes": 36363,
+      "pass": true
+    },
+    {
+      "format": "DOCX",
+      "bytes": 12564,
+      "pass": true
+    },
+    {
+      "format": "CSV",
+      "bytes": 133,
+      "pass": true
+    },
+    {
+      "format": "GEOJSON",
+      "bytes": 122,
+      "pass": true
+    }
+  ],
+  "newCaseCreationAndReload": true,
+  "browserRuntimeErrors": [],
+  "unitTests": {
+    "files": 198,
+    "passed": 2896
+  },
+  "ci": {
+    "app": "success",
+    "evidence": "success",
+    "database": "success",
+    "runUrls": [
+      "https://github.com/JESRI-C/freyra-hub/actions/runs/40410415967",
+      "https://github.com/JESRI-C/freyra-hub/actions/runs/40410416025"
+    ]
+  },
+  "limitations": [
+    "Lovable AI server key missing; live provider inference not tested.",
+    "Navigation of six guided steps does not repeat original-photo to public-data to municipal ZIP end-to-end acceptance.",
+    "Technical acceptance is not professional or municipal acceptance of data or reports.",
+    "No production deployment or main-branch merge."
+  ]
 }
