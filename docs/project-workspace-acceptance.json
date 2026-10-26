@@ -1,0 +1,198 @@
+{
+  "environment": "local_app_with_live_supabase_staging",
+  "stagingProject": "xdvqdzdpyceojbdknofi",
+  "mainApplicationCommit": "a1e964ee3eae1f89d1f62806582e1e0f1ad3bf8b",
+  "followup": "read-only evidence dialog separately browser-tested",
+  "routes": [
+    {
+      "route": "/app/decisions/recommendations",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/risk",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/scenarios",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/data-quality",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/notes",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/assistant",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/metrics",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/csrd",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/co2",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/sources",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/audit",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/documents",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/reporting",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/projects",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/project",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/portfolio",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/credits",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/verification",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/organizations",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/reports",
+      "pass": true
+    },
+    {
+      "route": "/app/overview",
+      "pass": true
+    },
+    {
+      "route": "/app/projects",
+      "pass": true
+    },
+    {
+      "route": "/app/reports",
+      "pass": true
+    },
+    {
+      "route": "/app/connect/map",
+      "pass": true
+    },
+    {
+      "route": "/app/construction",
+      "pass": true
+    },
+    {
+      "route": "/app/connect",
+      "pass": true
+    },
+    {
+      "route": "/app/lavbund",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger",
+      "pass": true
+    },
+    {
+      "route": "/app/connect/registry",
+      "pass": true
+    },
+    {
+      "route": "/app/impact",
+      "pass": true
+    },
+    {
+      "route": "/app/public-impact",
+      "pass": true
+    },
+    {
+      "route": "/app/settings",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/users",
+      "pass": true
+    },
+    {
+      "route": "/app/system-test",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/projects",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/access",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/frameworks",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/modules",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/notifications",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/security",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/billing",
+      "pass": true
+    }
+  ],
+  "browserErrors": [],
+  "checks": {
+    "browserPersistence": true,
+    "browserProjectSwitch": true,
+    "actionPersistence": true,
+    "riskPersistence": true,
+    "readerBrowser": true,
+    "readerEvidence": true,
+    "readerMeasurementDetails": true
+  },
+  "backend": {
+    "versionConflict": true,
+    "readerRead": true,
+    "readerWriteDenied": true,
+    "forgedScopeDenied": true,
+    "projectBEmpty": true
+  },
+  "offlineSqlAssertions": 61,
+  "unitTests": 277,
+  "productionChanged": false,
+  "hostedStagingDeployed": false,
+  "externalAiWiring": "not_enabled_approval_required"
+}

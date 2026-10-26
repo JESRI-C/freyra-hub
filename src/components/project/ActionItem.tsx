@@ -151,7 +151,6 @@ export function ActionItem({
         </div>
         <div className="flex gap-1.5 shrink-0">
           <button
-            disabled={!canEdit}
             onClick={() => setEvidenceOpen(true)}
             className="text-xs border rounded-lg px-2.5 py-1 hover:bg-muted transition-colors inline-flex items-center gap-1"
             title="Håndtér evidens"
@@ -184,7 +183,12 @@ export function ActionItem({
         </div>
       </div>
 
-      <ActionEvidenceDialog action={action} open={evidenceOpen} onOpenChange={setEvidenceOpen} />
+      <ActionEvidenceDialog
+        action={action}
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+        readOnly={!canEdit}
+      />
     </>
   );
 }

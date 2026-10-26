@@ -296,10 +296,21 @@ try {
   console.log("PASS browser project switch");
   await page.goto(base + "/app/decisions/recommendations?project=" + a.id);
   await page.getByRole("button", { name: "I gang", exact: true }).click();
-  await page.getByRole("button", { name: "I gang", exact: true }).waitFor({ state: "hidden" });
+  await page
+    .locator("span")
+    .filter({ hasText: /^I gang$/ })
+    .waitFor();
   await page.reload();
   await page.getByRole("button", { name: "Færdig", exact: true }).click();
-  await page.getByRole("button", { name: "Færdig", exact: true }).waitFor({ state: "hidden" });
+  await page
+    .locator("span")
+    .filter({ hasText: /^Lukket$/ })
+    .waitFor();
+  await page.reload();
+  await page
+    .locator("span")
+    .filter({ hasText: /^Lukket$/ })
+    .waitFor();
   assert.equal(
     ok(await client.from("actions").select("status").eq("project_id", a.id).single()).status,
     "Lukket",

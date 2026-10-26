@@ -132,3 +132,5 @@ De konkrete forslag i højre kolonne er vores anvendelse af de beskrevne temaer,
 7. Afslut hver af de 15 menuindgange med browseraccept og rolle-/projektgrænser. Public impact kræver separat godkendt publicering; finansiering/effekt kræver faktisk datagrundlag.
 
 Rapportskabelonerne til baseline og årsstatus er en genbrugelig oprettelsesmulighed. De gør ikke feltdata, solmodeller, myndighedsscreening eller resten af de åbne kategoriopgaver færdige i sig selv.
+
+Implementeringsstatus efter den næste datakobling: De 20 underfaner bruger nu det valgte projekts faktiske registreringer, og de hidtil blokerede layouts viser fanernes indhold. Fem databaseændringer er afprøvet i testmiljøet, og navigationen gennem alle 15 kategorier er browserkontrolleret. [Acceptjournalen](PROJECT_WORKSPACE_ACCEPTANCE.md) angiver præcist, hvilke lagrings-/rolleforløb der bestod, og hvilke eksterne integrationer og faglige leverancer der stadig kræver særskilt accept. Den nye eksterne AI-tilkobling afventer udtrykkelig tilladelse.

@@ -457,28 +457,77 @@ create function public.has_project_role(_project_id uuid,_user_id uuid,_role tex
 create table public.audit_events(id uuid primary key default gen_random_uuid(),project_id uuid,event_type text,title text,actor text,source text,entity_type text,entity_id uuid,after_data jsonb);
 grant select,insert on public.audit_events to authenticated;
 `);
-const workspaceMigration=(await readdir('supabase/migrations')).find(n=>n.endsWith('_project_workspace_entries.sql'));
-await db.exec(await readFile(`supabase/migrations/${workspaceMigration}`,'utf8'));
-const entryId='00000000-0000-0000-0000-000000000091';
-const entrySql=`insert into project_workspace_entries(entry_id,organization_id,project_id,kind,version,title,payload) values($1,$2,$3,'decision_note',$4,'Notat',$5::jsonb) returning id`;
-const payload=JSON.stringify({basis:'Registreret grundlag',source:'Rapportversion 1'});
+const workspaceMigration = (await readdir("supabase/migrations")).find((n) =>
+  n.endsWith("_project_workspace_entries.sql"),
+);
+await db.exec(await readFile(`supabase/migrations/${workspaceMigration}`, "utf8"));
+const workspaceAuditFix = (await readdir("supabase/migrations")).find((n) =>
+  n.endsWith("_workspace_audit_uuid_fix.sql"),
+);
+await db.exec(await readFile(`supabase/migrations/${workspaceAuditFix}`, "utf8"));
+const entryId = "00000000-0000-0000-0000-000000000091";
+const entrySql = `insert into project_workspace_entries(entry_id,organization_id,project_id,kind,version,title,payload) values($1,$2,$3,'decision_note',$4,'Notat',$5::jsonb) returning id`;
+const payload = JSON.stringify({ basis: "Registreret grundlag", source: "Rapportversion 1" });
 await actor(uidA);
-await q(entrySql,[entryId,orgA,projectA,1,payload]); count++;
-await q(entrySql,[entryId,orgA,projectA,2,payload]); count++;
-await denied('stale workspace revision',entrySql,[entryId,orgA,projectA,2,payload]);
-await denied('workspace project cannot move',entrySql,[entryId,orgB,projectB,3,payload]);
-await denied('workspace invalid required fields',entrySql,['00000000-0000-0000-0000-000000000092',orgA,projectA,1,'{}']);
-await denied('workspace extra fields',entrySql,['00000000-0000-0000-0000-000000000092',orgA,projectA,1,JSON.stringify({basis:'x',source:'x',published:true})]);
-await denied('workspace immutable update',"update project_workspace_entries set title='overwrite'");
-await denied('workspace immutable delete','delete from project_workspace_entries');
-await check('workspace audit recorded','select * from audit_events where entity_id=$1',[entryId],rows=>assert.equal(rows.length,2));
+await q(entrySql, [entryId, orgA, projectA, 1, payload]);
+count++;
+await q(entrySql, [entryId, orgA, projectA, 2, payload]);
+count++;
+await denied("stale workspace revision", entrySql, [entryId, orgA, projectA, 2, payload]);
+await denied("workspace project cannot move", entrySql, [entryId, orgB, projectB, 3, payload]);
+await denied("workspace invalid required fields", entrySql, [
+  "00000000-0000-0000-0000-000000000092",
+  orgA,
+  projectA,
+  1,
+  "{}",
+]);
+await denied("workspace extra fields", entrySql, [
+  "00000000-0000-0000-0000-000000000092",
+  orgA,
+  projectA,
+  1,
+  JSON.stringify({ basis: "x", source: "x", published: true }),
+]);
+await denied(
+  "workspace immutable update",
+  "update project_workspace_entries set title='overwrite'",
+);
+await denied("workspace immutable delete", "delete from project_workspace_entries");
+await check(
+  "workspace audit recorded",
+  "select * from audit_events where entity_id=$1",
+  [entryId],
+  (rows) => assert.equal(rows.length, 2),
+);
 await actor(uidB);
-await check('workspace cross-org isolation','select * from project_workspace_entries',[],rows=>assert.equal(rows.length,0));
-await denied('workspace cross-org write',entrySql,['00000000-0000-0000-0000-000000000092',orgA,projectA,1,payload]);
-await db.exec('reset role');
-await q("insert into project_members values($1,$2,'viewer')",[projectA,uidC]);
+await check(
+  "workspace cross-org isolation",
+  "select * from project_workspace_entries",
+  [],
+  (rows) => assert.equal(rows.length, 0),
+);
+await denied("workspace cross-org write", entrySql, [
+  "00000000-0000-0000-0000-000000000092",
+  orgA,
+  projectA,
+  1,
+  payload,
+]);
+await db.exec("reset role");
+await q("insert into project_members values($1,$2,'viewer')", [projectA, uidC]);
 await actor(uidC);
-await check('workspace reader can read','select * from project_workspace_entries',[],rows=>assert.equal(rows.length,2));
-await denied('workspace reader cannot write',entrySql,['00000000-0000-0000-0000-000000000092',orgA,projectA,1,payload]);
-console.log(`PASS ${count} offline PostgreSQL/RLS assertions; 4 real migrations applied to isolated fixture.`);
+await check("workspace reader can read", "select * from project_workspace_entries", [], (rows) =>
+  assert.equal(rows.length, 2),
+);
+await denied("workspace reader cannot write", entrySql, [
+  "00000000-0000-0000-0000-000000000092",
+  orgA,
+  projectA,
+  1,
+  payload,
+]);
+console.log(
+  `PASS ${count} offline PostgreSQL/RLS assertions; 5 real migrations applied to isolated fixture.`,
+);
 await db.close();

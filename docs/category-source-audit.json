@@ -105,17 +105,11 @@
         "src/routes/app.decisions.tsx"
       ],
       "childRouteCount": 6,
-      "childDemonstrationImportCount": 6,
-      "ownDemonstrationImportCount": 1,
-      "blockingLayouts": [
-        "src/routes/app.decisions.tsx"
-      ],
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
       "browserAcceptance": "not_verified",
-      "findings": [
-        "children_hidden_by_evidence_status",
-        "legacy_demonstration_imports_need_data_binding",
-        "category_imports_demonstration_data"
-      ]
+      "findings": []
     },
     {
       "route": "/app/ledger",
@@ -125,17 +119,11 @@
         "src/routes/app.ledger.tsx"
       ],
       "childRouteCount": 7,
-      "childDemonstrationImportCount": 7,
-      "ownDemonstrationImportCount": 1,
-      "blockingLayouts": [
-        "src/routes/app.ledger.tsx"
-      ],
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
       "browserAcceptance": "not_verified",
-      "findings": [
-        "children_hidden_by_evidence_status",
-        "legacy_demonstration_imports_need_data_binding",
-        "category_imports_demonstration_data"
-      ]
+      "findings": []
     },
     {
       "route": "/app/connect/registry",
@@ -158,17 +146,11 @@
         "src/routes/app.impact.tsx"
       ],
       "childRouteCount": 7,
-      "childDemonstrationImportCount": 7,
-      "ownDemonstrationImportCount": 1,
-      "blockingLayouts": [
-        "src/routes/app.impact.tsx"
-      ],
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
+      "blockingLayouts": [],
       "browserAcceptance": "not_verified",
-      "findings": [
-        "children_hidden_by_evidence_status",
-        "legacy_demonstration_imports_need_data_binding",
-        "category_imports_demonstration_data"
-      ]
+      "findings": []
     },
     {
       "route": "/app/public-impact",
@@ -191,14 +173,11 @@
         "src/routes/app.settings.tsx"
       ],
       "childRouteCount": 8,
-      "childDemonstrationImportCount": 8,
-      "ownDemonstrationImportCount": 1,
+      "childDemonstrationImportCount": 0,
+      "ownDemonstrationImportCount": 0,
       "blockingLayouts": [],
       "browserAcceptance": "not_verified",
-      "findings": [
-        "legacy_demonstration_imports_need_data_binding",
-        "category_imports_demonstration_data"
-      ]
+      "findings": []
     },
     {
       "route": "/app/settings/users",
@@ -208,12 +187,10 @@
       ],
       "childRouteCount": 0,
       "childDemonstrationImportCount": 0,
-      "ownDemonstrationImportCount": 1,
+      "ownDemonstrationImportCount": 0,
       "blockingLayouts": [],
       "browserAcceptance": "not_verified",
-      "findings": [
-        "category_imports_demonstration_data"
-      ]
+      "findings": []
     },
     {
       "route": "/app/system-test",
