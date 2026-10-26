@@ -66,6 +66,21 @@ At indsætte `Outlet` i de tre blokerede layouts alene ville gøre gamle eksempe
 
 ## Genbrug af kode og danske løsninger
 
+### Egen kode fundet i den aktuelle dags datapakke
+
+ZIP-filen er hentet læsende og dens 100 poster har bestået ZIP/CRC-kontrol. Den indeholder faktisk den tidligere rapportgenerator og beregningskode, ikke kun færdige billeder. De fire nedenstående programmer er læst/AST-inventeret uden at blive kørt. Pakkens README og planteplan indeholder stadig den tidligere bestillingsramme, så programmets projektspecifikke tekst og tal er ikke aktuelle krav trods pakkens nye dato.
+
+| Fil i pakken | Faktisk genbrugspunkt | Nødvendig tilpasning |
+| --- | --- | --- |
+| `report_work/build_report.py` | 13 layoutfunktioner til sider, afsnit, tabeller, fotos, billedpar og billedtekster | Udskil ReportLab-design fra hardkodet tekst, projektstier og data; nyeste tekstrevision kommer fra gældende rapportindhold |
+| `report_work/solar_model.py` | NOAA-solposition, lokal tangent, modeltræer, vandprøvepunkter og ellipsoide kroners skygge | Udskil metode fra projektspecifikke datoer/stationer og fast UTC+02; gem forudsætninger og metodeversion, før modellen tilbydes generelt |
+| `report_work/revision_v2/build_reaches.py` | Shapely/pyproj-opdeling af forløb, arbejdsstrimler og overlap | Erstat hardkodet `PLAN`, arter og mængder med godkendte projektinput. GIS-strimmel er ikke opmålt brink eller tilladt planteafstand |
+| `report_work/revision_v2/render_maps_v2.py` | Kortlag, afgrænsninger, etiketter og kildebaggrunde | Parametrisér lag og projektrevision; genbrug samme geometri/versionsgrundlag i app og rapport |
+
+Dette er første genbrugsspor før nye eksterne biblioteker. Den eksisterende webeditor og PDF/DOCX-eksport forbliver den fælles vej til gemte rapporter. De Python-baserede geoprocesserings-/figurfunktioner kan tilkobles som en versionsbundet worker, så to parallelle projekt-/rapportdatamodeller undgås. Rå scripts med top-level filskrivning, netkald og gamle projektkonstanter importeres ikke direkte i produktet.
+
+### Eksterne kandidater
+
 Researchen herunder er en vurdering af dokumenterede grænseflader og kilderepositorier. Ingen ekstern kode er endnu installeret eller erklæret kompatibel med Freyra. Et produktwebsite giver inspiration og eventuelle integrationsmuligheder; det giver ikke adgang til produktets interne kode.
 
 | Kandidat | Dokumenteret anvendelse | Beslutning for Freyra |
