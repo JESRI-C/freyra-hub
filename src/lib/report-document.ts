@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getReportTemplate, REPORT_TEMPLATE_IDS, type ReportTemplateId } from "./report-templates";
 
 export const SourceSchema = z.object({
   filePath: z.string().nullable().optional(),
@@ -25,6 +26,7 @@ export const SectionSchema = z.object({
   basis: z.enum(["documented", "observed", "screening", "not_measured"]),
 });
 export const ReportContentSchema = z.object({
+  templateId: z.enum(REPORT_TEMPLATE_IDS).optional(),
   title: z.string().min(1),
   projectName: z.string().min(1),
   organizationName: z.string().min(1),
@@ -58,39 +60,26 @@ export const BASIS_LABELS = {
   screening: "Screening",
   not_measured: "Ikke målt",
 };
-const HEADINGS = [
-  "Konklusion og anbefalinger",
-  "Oversigtskort og dækning",
-  "Datagrundlag og metode",
-  "Resultater pr. delstrækning",
-  "Vegetation og bestemmelsesniveau",
-  "Træer og trægrupper",
-  "Før/efter og sammenlignelighed",
-  "Bevarelse og mulig plantning",
-  "Bindinger og screening",
-  "Begrænsninger",
-  "Fotoatlas og register",
-];
 export function newReportContent(
   projectName: string,
   organizationName: string,
   scope: string,
   audience: string,
+  templateId: ReportTemplateId = "watercourse",
 ): ReportContent {
+  const template = getReportTemplate(templateId);
   return {
-    title: `${projectName} - Vegetation og grundlag for træplantning`,
+    templateId,
+    title: `${projectName} - ${template.title}`,
     projectName,
     organizationName,
     scope,
     audience,
     sources: [],
-    sections: HEADINGS.map((title, i) => ({
+    sections: template.headings.map((title, i) => ({
       id: `section-${i + 1}`,
       title,
-      text:
-        i === 9
-          ? "Almindelige RGB-skråfotos dokumenterer ikke kg biomasse eller hydraulisk kapacitet. GPS-fotopunkter er ikke et målfast ortofoto. NDVI kræver egnede spektralbånd. Artsforslag kræver faglig godkendelse. Plantning af eksempelvis rødel eller eg kræver stedbunden vurdering."
-          : "",
+      text: i === 9 ? template.limitations : "",
       sourceIds: [],
       reviewed: false,
       basis: "not_measured",

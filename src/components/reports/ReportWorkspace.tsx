@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateEvidenceReportDraft } from "@/lib/report-draft.functions";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
@@ -23,15 +23,22 @@ import {
 } from "@/services/report-document-service";
 import { buildReportImages, type ReportImage } from "@/services/report-assets";
 import { downloadReportFile, type ReportFormat } from "@/lib/report-export";
+import {
+  getReportTemplate,
+  isReportTemplateId,
+  REPORT_TEMPLATES,
+  type ReportTemplateId,
+} from "@/lib/report-templates";
 
 export const reportSearch = (
   search: Record<string, unknown>,
-): { report?: string; version?: number } => ({
+): { report?: string; version?: number; template?: ReportTemplateId } => ({
   report: typeof search.report === "string" ? search.report : undefined,
   version:
     typeof search.version === "number" && Number.isInteger(search.version) && search.version > 0
       ? search.version
       : undefined,
+  template: isReportTemplateId(search.template) ? search.template : undefined,
 });
 type Mode = "list" | "new" | "builder" | "preview" | "readiness" | "approval" | "templates";
 const button = "rounded-lg border bg-card px-3 py-2 text-sm disabled:opacity-40";
@@ -41,10 +48,11 @@ export function ReportWorkspace({ mode }: { mode: Mode }) {
   const search = useRouterState({ select: (s) => s.location.search }) as {
     report?: string;
     version?: number;
+    template?: ReportTemplateId;
   };
   return (
     <ScopedReportWorkspace
-      key={`${currentOrg?.id}:${currentProject?.id}:${search.report}:${search.version}:${mode}`}
+      key={`${currentOrg?.id}:${currentProject?.id}:${search.report}:${search.version}:${search.template}:${mode}`}
       mode={mode}
     />
   );
@@ -57,6 +65,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
   const search = useRouterState({ select: (s) => s.location.search }) as {
     report?: string;
     version?: number;
+    template?: ReportTemplateId;
   };
   const orgId = currentOrg?.id,
     projectId = currentProject?.id,
@@ -93,14 +102,24 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
   }, [images]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const draftSeed = useRef<string | null>(null);
   useEffect(() => {
+    const seed =
+      mode === "new" && currentOrg && currentProject
+        ? `new:${orgId}:${projectId}:${search.template ?? "watercourse"}`
+        : revision?.id;
+    // Auth refreshes recreate org/project objects; saved revisions are immutable.
+    // Rehydrate only a different scope/revision, never an in-progress draft.
+    if (!seed || draftSeed.current === seed) return;
+    draftSeed.current = seed;
     setContent(
       mode === "new" && currentOrg && currentProject
         ? newReportContent(
             currentProject.name,
             currentOrg.name,
-            "Vandløbsvegetation og grundlag for træplantning",
+            getReportTemplate(search.template).scope,
             "Kunde",
+            search.template,
           )
         : (revision?.content ?? null),
     );
@@ -108,7 +127,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     setError("");
     setImages([]);
     setImagesReady(false);
-  }, [mode, orgId, projectId, reportId, revision, currentOrg, currentProject]);
+  }, [mode, orgId, projectId, reportId, revision, currentOrg, currentProject, search.template]);
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setMessage("");
@@ -187,9 +206,21 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
             Rapporter bygger på gemte projektkilder og fagligt gennemgåede afsnit. Manglende
             grundlag vises som ukendt.
           </p>
-          <Link className={button} to="/app/reports/new" search={{} as never}>
-            Opret rapport om vegetation og træplantning
-          </Link>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {REPORT_TEMPLATES.map((template) => (
+              <div key={template.id} className="rounded-lg border p-3 space-y-2">
+                <h2 className="font-semibold">{template.label}</h2>
+                <p className="text-sm text-muted-foreground">{template.description}</p>
+                <Link
+                  className={button}
+                  to="/app/reports/new"
+                  search={{ template: template.id } as never}
+                >
+                  Opret {template.label.toLowerCase()}
+                </Link>
+              </div>
+            ))}
+          </div>
           <div className="divide-y">
             {documents.data?.map((d) => (
               <div key={d.id} className="py-3 flex justify-between gap-3">
