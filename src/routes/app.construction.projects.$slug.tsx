@@ -1,5 +1,6 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import { Activity } from "lucide-react";
 import { Card } from "@/components/ui-bits";
 import { AiInsightBanner } from "@/components/ai/AiInsightBanner";
@@ -34,14 +35,6 @@ const TABS = [
 
 export const Route = createFileRoute("/app/construction/projects/$slug")({
   head: () => ({ meta: [{ title: "Byggeprojekt — GoFreyra" }] }),
-  loader: async ({ context: { queryClient }, params: { slug } }) => {
-    const summary = await queryClient.ensureQueryData({
-      queryKey: ["construction-project", slug],
-      queryFn: () => getConstructionProjectBySlug(slug),
-    });
-    if (!summary) throw notFound();
-    return summary;
-  },
   component: ConstructionProjectDetailPage,
   notFoundComponent: () => (
     <div className="p-6 text-center text-muted-foreground">Byggeprojekt ikke fundet.</div>
@@ -73,11 +66,24 @@ function getOverviewNextAction(
 function ConstructionProjectDetailPage() {
   const { slug } = Route.useParams();
 
-  const { data: summary } = useSuspenseQuery({
-    queryKey: ["construction-project", slug],
-    queryFn: () => getConstructionProjectBySlug(slug),
+  const { user, orgId } = useAuth();
+  const {
+    data: summary,
+    isPending,
+    error,
+  } = useQuery({
+    queryKey: ["construction-project", user?.id, orgId, slug],
+    queryFn: () => getConstructionProjectBySlug(slug, orgId!),
+    enabled: !!(user && orgId),
   });
 
+  if (isPending) return <p className="p-6">Indlæser byggeprojekt…</p>;
+  if (error)
+    return (
+      <p role="alert" className="p-6">
+        Projektet kunne ikke indlæses: {error.message}
+      </p>
+    );
   if (!summary) {
     return <div className="p-6 text-center text-muted-foreground">Byggeprojekt ikke fundet.</div>;
   }
@@ -110,7 +116,6 @@ function ConstructionProjectDetailPage() {
                     <div className="text-sm font-medium">{nextAction}</div>
                   </div>
                 </Card>
-
 
                 {/* Compliance mapping */}
                 <ComplianceMappingCard summary={summary} />

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   BarChart3,
@@ -59,7 +59,7 @@ function LedgerLayout() {
           </nav>
         </div>
       </div>
-      <ProjectEvidenceStatus />
+      <Outlet />
     </>
   );
 }

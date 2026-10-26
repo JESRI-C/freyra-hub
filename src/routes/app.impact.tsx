@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Layers,
@@ -59,7 +59,7 @@ function ImpactLayout() {
           </nav>
         </div>
       </div>
-      <ProjectEvidenceStatus />
+      <Outlet />
     </>
   );
 }

@@ -137,10 +137,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       <div className="p-4 border-t border-sidebar-border">
         <div className="rounded-xl bg-sidebar-accent/60 border border-sidebar-border p-3">
           <div className="text-xs text-sidebar-muted">Metodekvalitet</div>
-          <div className="text-sm font-medium mt-0.5">Dokumenteret & sporbar</div>
-          <div className="mt-2 h-1.5 rounded-full bg-sidebar-border overflow-hidden">
-            <div className="h-full w-[82%] bg-leaf" />
-          </div>
+          <div className="text-sm font-medium mt-0.5">Se projektets datakvalitet</div>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import {
   Brain,
   ListChecks,
@@ -58,7 +58,7 @@ function DecisionsLayout() {
           </nav>
         </div>
       </div>
-      <ProjectEvidenceStatus />
+      <Outlet />
     </>
   );
 }

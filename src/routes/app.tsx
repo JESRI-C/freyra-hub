@@ -5,6 +5,7 @@ import { ProjectContextBoundary } from "@/components/ProjectContextBoundary";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/app")({
+  ssr: false,
   component: AppLayout,
 });
 

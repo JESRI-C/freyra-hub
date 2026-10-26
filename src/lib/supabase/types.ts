@@ -455,8 +455,8 @@ export interface ConstructionProjectSummary {
   evidenceFiles: EvidenceFile[];
   auditEvents: AuditEvent[];
   readinessScore: number;
-  runoffRiskScore: "low" | "medium" | "high" | "critical";
-  natureSensitivityScore: "low" | "medium" | "high" | "critical";
+  runoffRiskScore: "low" | "medium" | "high" | "critical" | "unknown";
+  natureSensitivityScore: "low" | "medium" | "high" | "critical" | "unknown";
 }
 
 // Composite type for Nature Project Monitor — the primary UI-facing type

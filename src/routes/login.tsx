@@ -258,6 +258,7 @@ function LoginPage() {
         {isSignup && (
           <Field label="Fulde navn" icon={<User className="h-4 w-4" />}>
             <input
+              disabled={busy || loading}
               type="text"
               required
               value={fullName}
@@ -277,6 +278,7 @@ function LoginPage() {
           }
         >
           <input
+            disabled={busy || loading}
             type="email"
             required
             value={email}
@@ -312,6 +314,7 @@ function LoginPage() {
             }
           >
             <input
+              disabled={busy || loading}
               type={showPassword ? "text" : "password"}
               required
               minLength={6}
@@ -342,6 +345,7 @@ function LoginPage() {
         {isSignup && (
           <Field label="Bekræft adgangskode" icon={<Lock className="h-4 w-4" />}>
             <input
+              disabled={busy || loading}
               type={showPassword ? "text" : "password"}
               required
               minLength={6}
@@ -359,7 +363,7 @@ function LoginPage() {
 
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || loading}
           className="w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-medium shadow-soft hover:opacity-95 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -380,7 +384,7 @@ function LoginPage() {
             <button
               type="button"
               onClick={handleGoogle}
-              disabled={busy}
+              disabled={busy || loading}
               className="w-full rounded-xl border border-input bg-card py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 transition flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <svg className="h-4 w-4" viewBox="0 0 48 48" aria-hidden="true">

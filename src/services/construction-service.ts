@@ -3,6 +3,11 @@
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import {
+  fetchProjects,
+  fetchProjectById,
+  fetchProjectBySlug,
+  fetchEvidenceFilesByProject,
+  fetchAuditEventsByProject,
   fetchConstructionExtension,
   fetchNatureContext,
   fetchRunoffProfile,
@@ -49,8 +54,15 @@ function isConstructionType(t: string | null): t is ConstructionProjectType {
 export function getRunoffRiskScore(
   profile: RunoffProfile | null,
   ext: ConstructionProject | null,
-): "low" | "medium" | "high" | "critical" {
-  if (!profile && !ext) return "low";
+): "low" | "medium" | "high" | "critical" | "unknown" {
+  if (
+    !profile ||
+    !ext ||
+    ext.paved_area_m2 == null ||
+    profile.oil_separator_present == null ||
+    !profile.runoff_destination
+  )
+    return "unknown";
 
   let factors = 0;
 
@@ -74,8 +86,14 @@ export function getRunoffRiskScore(
 
 export function getNatureSensitivityScore(
   ctx: NatureContext | null,
-): "low" | "medium" | "high" | "critical" {
-  if (!ctx) return "low";
+): "low" | "medium" | "high" | "critical" | "unknown" {
+  if (
+    !ctx ||
+    ctx.protected_nature_present == null ||
+    ctx.watercourse_present == null ||
+    ctx.natura2000_nearby == null
+  )
+    return "unknown";
 
   const distWater = ctx.distance_to_watercourse_m ?? Infinity;
   const distNatura = ctx.distance_to_natura2000_m ?? Infinity;
@@ -161,14 +179,14 @@ async function getEvidenceForProject(projectId: string): Promise<EvidenceFile[]>
   if (!isSupabaseConfigured) {
     return SEED_EVIDENCE_FILES.filter((f) => f.project_id === projectId);
   }
-  return getEvidenceFilesByProject(projectId);
+  return fetchEvidenceFilesByProject(projectId);
 }
 
 async function getAuditForProject(projectId: string): Promise<AuditEvent[]> {
   if (!isSupabaseConfigured) {
     return SEED_AUDIT_EVENTS.filter((e) => e.project_id === projectId);
   }
-  return getAuditEventsByProject(projectId);
+  return fetchAuditEventsByProject(projectId);
 }
 
 // ─── Summary assembly ─────────────────────────────────────────────────────────
@@ -176,7 +194,9 @@ async function getAuditForProject(projectId: string): Promise<AuditEvent[]> {
 async function assembleConstructionSummary(
   projectId: string,
 ): Promise<ConstructionProjectSummary | null> {
-  const project = SEED_PROJECTS.find((p) => p.id === projectId) ?? null;
+  const project = isSupabaseConfigured
+    ? await fetchProjectById(projectId)
+    : (SEED_PROJECTS.find((p) => p.id === projectId) ?? null);
   if (!project) return null;
 
   const [
@@ -225,8 +245,11 @@ async function assembleConstructionSummary(
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function getConstructionProjects(): Promise<ConstructionProjectSummary[]> {
-  const constructionProjects = SEED_PROJECTS.filter((p) => isConstructionType(p.project_type));
+export async function getConstructionProjects(
+  organizationId?: string,
+): Promise<ConstructionProjectSummary[]> {
+  const projects = isSupabaseConfigured ? await fetchProjects(organizationId) : SEED_PROJECTS;
+  const constructionProjects = projects.filter((p) => isConstructionType(p.project_type));
   const summaries = await Promise.all(
     constructionProjects.map((p) => assembleConstructionSummary(p.id)),
   );
@@ -235,8 +258,17 @@ export async function getConstructionProjects(): Promise<ConstructionProjectSumm
 
 export async function getConstructionProjectBySlug(
   slug: string,
+  organizationId?: string,
 ): Promise<ConstructionProjectSummary | null> {
-  const project = SEED_PROJECTS.find((p) => p.slug === slug && isConstructionType(p.project_type));
+  const project = isSupabaseConfigured
+    ? await fetchProjectBySlug(slug)
+    : SEED_PROJECTS.find((p) => p.slug === slug && isConstructionType(p.project_type));
+  if (
+    project &&
+    (!isConstructionType(project.project_type) ||
+      (organizationId && project.organization_id !== organizationId))
+  )
+    return null;
   if (!project) return null;
   return assembleConstructionSummary(project.id);
 }

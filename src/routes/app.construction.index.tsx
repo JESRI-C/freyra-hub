@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import { useMemo, useState } from "react";
 import { Search, Building2, Droplets, AlertTriangle, FileCheck } from "lucide-react";
 import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bits";
@@ -9,14 +10,8 @@ import { getConstructionProjects } from "@/services/construction-service";
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
-const constructionProjectsQuery = {
-  queryKey: ["construction-projects"],
-  queryFn: () => getConstructionProjects(),
-};
-
 export const Route = createFileRoute("/app/construction/")({
   head: () => ({ meta: [{ title: "Byggeri & Natur — GoFreyra" }] }),
-  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(constructionProjectsQuery),
   component: ConstructionIndexPage,
 });
 
@@ -30,7 +25,16 @@ function ConstructionIndexPage() {
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [typeFilter, setTypeFilter] = useState("Alle typer");
 
-  const { data: summaries } = useSuspenseQuery(constructionProjectsQuery);
+  const { user, orgId } = useAuth();
+  const {
+    data: summaries = [],
+    isPending,
+    error,
+  } = useQuery({
+    queryKey: ["construction-projects", user?.id, orgId],
+    queryFn: () => getConstructionProjects(orgId!),
+    enabled: !!(user && orgId),
+  });
 
   const filtered = useMemo(() => {
     return summaries.filter((s) => {
@@ -89,12 +93,14 @@ function ConstructionIndexPage() {
         module="Byggeri & Natur"
         tone="risk"
         cacheKey={`construction:${summaries.length}:${openHighRisks}:${avgReadiness}`}
-        context={`Antal byggeprojekter: ${summaries.length}. Projekter nær vandløb: ${projectsNearWater}. Åbne kritiske/høje risici: ${openHighRisks}. Myndighedspakker klar/indsendt: ${authorityReportsReady}. Gns. readiness: ${avgReadiness}%. Top-projekter: ${summaries.slice(0, 3).map((s) => `${s.project.name} (${s.project.status})`).join("; ")}.`}
+        context={`Antal byggeprojekter: ${summaries.length}. Projekter nær vandløb: ${projectsNearWater}. Åbne kritiske/høje risici: ${openHighRisks}. Myndighedspakker klar/indsendt: ${authorityReportsReady}. Gns. readiness: ${avgReadiness}%. Top-projekter: ${summaries
+          .slice(0, 3)
+          .map((s) => `${s.project.name} (${s.project.status})`)
+          .join("; ")}.`}
       />
 
       {/* Stat bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
         <StatCard
           label="Aktive projekter"
           value={String(summaries.length)}

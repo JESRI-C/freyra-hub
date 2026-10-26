@@ -59,9 +59,8 @@ export async function saveIndicator(input: {
     project_id: input.project_id,
     event_type: "data_update",
     title: `Indikator opdateret: ${input.label}`,
-    description: input.value !== undefined
-      ? `Ny værdi: ${input.value}${input.unit ?? ""}`
-      : undefined,
+    description:
+      input.value !== undefined ? `Ny værdi: ${input.value}${input.unit ?? ""}` : undefined,
     actor: "System",
     source: "automated",
   });
@@ -102,46 +101,12 @@ function periodToSince(period: Period): string | undefined {
   return now.toISOString();
 }
 
-function seedMeasurements(indicator: Indicator, days: number): IndicatorMeasurement[] {
-  const base = indicator.value ?? 50;
-  const step = days > 90 ? 15 : days > 30 ? 7 : 3;
-  const out: IndicatorMeasurement[] = [];
-  for (let d = days; d >= 0; d -= step) {
-    const t = new Date();
-    t.setDate(t.getDate() - d);
-    const noise = (Math.sin(d * 0.7) + Math.cos(d * 0.3)) * (base * 0.08);
-    out.push({
-      id: `seed-${indicator.id}-${d}`,
-      indicator_id: indicator.id,
-      project_id: indicator.project_id,
-      measured_at: t.toISOString(),
-      value: Math.max(0, Math.round((base + noise) * 100) / 100),
-      unit: indicator.unit,
-      source: "seed",
-      confidence_score: 0.85,
-      method: "simuleret",
-      metadata: null,
-      created_at: t.toISOString(),
-    });
-  }
-  return out;
-}
-
 export async function getMeasurements(
   indicator: Indicator,
   period: Period = "90d",
 ): Promise<IndicatorMeasurement[]> {
-  const days = period === "30d" ? 30 : period === "90d" ? 90 : period === "12m" ? 365 : 365;
-  const fallback = () => seedMeasurements(indicator, days);
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    const rows = await fetchMeasurementsForIndicator(indicator.id, periodToSince(period));
-    if (rows.length === 0) return fallback();
-    return rows;
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  return fetchMeasurementsForIndicator(indicator.id, periodToSince(period));
 }
 
 export async function recordMeasurement(input: {
@@ -223,10 +188,7 @@ export async function recordMeasurement(input: {
   }
 }
 
-export function evaluateStatus(
-  indicator: Indicator,
-  value: number,
-): "ok" | "warning" | "critical" {
+export function evaluateStatus(indicator: Indicator, value: number): "ok" | "warning" | "critical" {
   const dir = indicator.threshold_direction ?? "above";
   const warn = indicator.threshold_warning ?? null;
   const crit = indicator.threshold_critical ?? null;
