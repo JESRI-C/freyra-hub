@@ -79,7 +79,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await mkdir("docs/screens/release-1.0", { recursive: true });
   await page.screenshot({
     path: "docs/screens/release-1.0/01-billeder-foer-upload.png",
-    fullPage: true,
+    fullPage: false,
   });
   // Every category remains reachable; the primary municipal workflow stays compact.
   await expect(page.getByRole("navigation", { name: "Hovedmenu" }).getByRole("link")).toHaveCount(
@@ -95,7 +95,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   });
   await page.screenshot({
     path: "docs/screens/release-1.0/02-original-uploadet.png",
-    fullPage: true,
+    fullPage: false,
   });
   await checkpoint("localization");
   await page
@@ -130,7 +130,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await prepare.click();
   await page.screenshot({
     path: "docs/screens/release-1.0/03-offentlige-data.png",
-    fullPage: true,
+    fullPage: false,
   });
   await checkpoint("public_data_and_round");
   await expect(page).toHaveURL(/round=[0-9a-f-]{36}/, { timeout: 240_000 });
@@ -199,7 +199,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(
     review.getByRole("status").filter({ hasText: "Faglig afvisning gemt" }),
   ).toBeVisible();
-  await page.screenshot({ path: "docs/screens/release-1.0/04-fotogennemgang.png", fullPage: true });
+  await page.screenshot({ path: "docs/screens/release-1.0/04-fotogennemgang.png", fullPage: false });
   await checkpoint("audit_and_planting");
   // Utility navigation must preserve the exact reviewed round.
   await page.getByRole("link", { name: "Revisionsspor", exact: true }).click();
@@ -213,13 +213,13 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(
     page.getByRole("heading", { name: "Se den dokumenterede tilstand og dens begrænsninger" }),
   ).toBeVisible();
-  await page.screenshot({ path: "docs/screens/release-1.0/05-baseline.png", fullPage: true });
+  await page.screenshot({ path: "docs/screens/release-1.0/05-baseline.png", fullPage: false });
   await page
     .getByRole("navigation", { name: "Sagens seks trin" })
     .getByRole("button", { name: /Beplantning/ })
     .click();
   await expect(page.getByText("Skitse – kræver faglig validering", { exact: true })).toBeVisible();
-  await page.screenshot({ path: "docs/screens/release-1.0/06-beplantning.png", fullPage: true });
+  await page.screenshot({ path: "docs/screens/release-1.0/06-beplantning.png", fullPage: false });
   await page
     .getByRole("navigation", { name: "Sagens seks trin" })
     .getByRole("button", { name: /Rapport/ })
@@ -274,7 +274,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await client.auth.signOut({ scope: "local" });
   await page.screenshot({
     path: "docs/screens/release-1.0/07-rapport-eksporteret.png",
-    fullPage: true,
+    fullPage: false,
   });
   await checkpoint("completed");
 });

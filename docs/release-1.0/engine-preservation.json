@@ -1,0 +1,229 @@
+{
+  "fallback": "625781906a4f49d120b6b3581261279dd889e6de",
+  "checkedAt": "2026-10-27T06:58:42.978Z",
+  "checks": [
+    {
+      "file": "src/lib/report-engine.ts",
+      "sha256": "ba6314726df4d5c0a2424b29c08b466a3aaa570bff758fbd95c013891b14bedf",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/bounded-public-read.server.ts",
+      "sha256": "afb230bc640f2d17d8ac85144d2308ce667a378cdd49cb57b23120760c112be8",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/cadastral-source.server.ts",
+      "sha256": "8819a9b2d374f6032c20a762f634f449f1bf29b15cba84b2dd6eb96bfdfcd721",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/collect-public-baseline.server.ts",
+      "sha256": "2f2744cdafa73921f02aa2dba45e7b5d79e86dbdcf90809c9b84916a135a7b3b",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/datafordeler-raster-inventory.server.ts",
+      "sha256": "47baa80fa96f0b8dc07913cf88b4424dd1e83ba9f341c5d73de81a805c0178e8",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/datafordeler-raster-inventory.ts",
+      "sha256": "94ce6144d3216cbeaa9ca13f57a4925d969817f673c5923811dcc3a3d2d0ffa5",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/dmi-historical-source.ts",
+      "sha256": "ef9365dd663e0ea2514f8e3f0dd287def6d42babb25d13e379f1f28853ec7bdc",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/orthophoto-preview.server.ts",
+      "sha256": "b3b37c6947226cc36ac38642a3dab9b8bc5405414f9a087883198e5d479ef0b8",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/planting-polygon-sources.server.ts",
+      "sha256": "c7768b05182dfadeb98b012efd883e64ba8b8086072c675bfb6435d0a398436c",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/polygon-topology.ts",
+      "sha256": "e89b34d8572e2d8f005566c886d8450bfda2b9a62603473068acb1b8349c27c2",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/public-baseline-budget.ts",
+      "sha256": "865164cc1f04a4fbf1d8a8ff74f1d45ecbf31093497c59c60c2e500bf0ac55cf",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/public-baseline-service.ts",
+      "sha256": "b4f410b8c1492da8b064515467be75b9411f2232b152af09a05d019bdb2459b9",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/public-baseline-types.ts",
+      "sha256": "f86d7317e36b7598619d4640bf472e63e965d26437d25860afd565f8e4553bd6",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/public-monitoring-stations-saved-payload.ts",
+      "sha256": "d8f976a34d83bfffe5c645d614cde388214315aeaeac3ae343a235377d0c398b",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/public-monitoring-stations-source.server.ts",
+      "sha256": "9d5978f60b56d1bd8017901ac766746947780980928ebb349bb49d1a85172a2e",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/public-monitoring-stations-source.ts",
+      "sha256": "33f8ecf57522052050e198e2934a7c592cffc3d820c28e9465b5cadd870ef6e1",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/public-source-cache.server.ts",
+      "sha256": "1e63bfa20821c277b1e34a4f11acccf10bbfa3ef1349a4e79a4196d5a6364cf2",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/raster-query-projection.ts",
+      "sha256": "59a8643cc4cd9ca7a6afb155e1d72fe7085908ddcf3dd8158188e3a60ce7d956",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/sentinel-preview.server.ts",
+      "sha256": "774e76ad7bda3957f26be0aa663061841c96f9404b9ad74919413a279fdfc605",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/sentinel-preview.ts",
+      "sha256": "bf44896e2dab8cc09330bf15ca6e28c285e112d1b00386b679afd3b7a04d90f7",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/sentinel-scene-source.ts",
+      "sha256": "1eb45e7aae95e38c5dd73ba7a9d488e4a8887d2587f28058330530f16c5d8d2b",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/soil-type-source.server.ts",
+      "sha256": "d0e300772c31d3e921bce1b5217f724f3f49524645df57ae95666c8e537f36c2",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/survey-round-media-persistence.ts",
+      "sha256": "01a385c3767d6f3ea40cc71bc803471d89311ee6e36aa5748bf5a3475d39d683",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/survey-round-note-persistence.ts",
+      "sha256": "1a44b30d679838fd33896248f47bda53e6621ac1c093dab9f78be7f34d5b1dc0",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/survey-round-persistence.ts",
+      "sha256": "8beb5dfb6f56b378a5111c322c957b1aead21fdf26174a08d7987787a11466e5",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/verification-plan-persistence.ts",
+      "sha256": "c1a0924fd5e72f2594f946d6935cebab418b49cb7055ee1d15e2753971bb9256",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/verification-plan.ts",
+      "sha256": "9f7d897a9fc58522429377ed03b12b24f17feee0856c326a10f399b84acc017d",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/verified-input-context.ts",
+      "sha256": "0ee4fb65c4720e19d557bd27b8023399fb5f6bc93f796a0b171b252fc8c0a689",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/water-plan-nature-saved-payload.ts",
+      "sha256": "124db615b2803b07fe7b41fe8f58cd1d9e305168c311854af99b3f66860f8b7d",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/water-plan-nature-source.server.ts",
+      "sha256": "22c839e88cad491699f02f6fc2b4a5d1003a410e803aa643ba013f7f7cad792d",
+      "identical": true
+    },
+    {
+      "file": "src/services/baseline/water-plan-nature-source.ts",
+      "sha256": "3b431875647b38e24ae7c36e6d42530e5e08ec957ceed24af1d9b8bbc2fd2e7e",
+      "identical": true
+    },
+    {
+      "file": "src/services/monitoring/alert-engine.ts",
+      "sha256": "79e691b7ad97681021c7e0bfbad222e8382509c557cf11e64f5cfdd93cb47025",
+      "identical": true
+    },
+    {
+      "file": "src/services/monitoring/indicator-aggregation-engine.ts",
+      "sha256": "7cf1d6bd5c7fbfa12fab411a726408d3878e43a1d33d83eefbba4cab2d57ce8c",
+      "identical": true
+    },
+    {
+      "file": "src/services/monitoring/quality-engine.ts",
+      "sha256": "107bba14267df108e7ee2fa24e40f8999145885f4fa0f520925ea2993a898125",
+      "identical": true
+    },
+    {
+      "file": "src/services/nature/biodiversity-engine.ts",
+      "sha256": "ab0ad5977a828c2a982388080e7614675785d9827c036f583265c82b8b7d08d7",
+      "identical": true
+    },
+    {
+      "file": "src/services/nature/carbon-engine.ts",
+      "sha256": "157fb2c1ea5a7a30b4bde97c589af3a61f81faa1b8d4f2d770c49155674dec21",
+      "identical": true
+    },
+    {
+      "file": "src/services/nature/water-quality-engine.ts",
+      "sha256": "90337f7c7ecc1b36672de9fe0d60ab09e289b430ef6039ec53d2b2d2ae826a83",
+      "identical": true
+    },
+    {
+      "file": "src/services/planting/planting-baseline.ts",
+      "sha256": "3eae207f87a19203c5c103a8ada66d30d7fa5d67ab4b50fabb1438708c2cc148",
+      "identical": true
+    },
+    {
+      "file": "src/services/planting/planting-literature.ts",
+      "sha256": "cf7651a9b8eb01a73fbebb461fe1b937db497201df89f02012adc5837f7fc646",
+      "identical": true
+    },
+    {
+      "file": "src/services/planting/planting-report.ts",
+      "sha256": "6bf69977d2dcbf57eb8dc3746717e8eebd32eccb0ec16fd67b92dc3ad0111e5e",
+      "identical": true
+    },
+    {
+      "file": "src/services/planting/planting-suitability.ts",
+      "sha256": "c0bb236e27f9ae1e11f873a5962154db3535cb05e227671d85928bf0e1e7e0c3",
+      "identical": true
+    },
+    {
+      "file": "src/services/satellite/ndvi-engine.ts",
+      "sha256": "8299764ec96469a80c8633dd4eb956a89991de5867bbcd7d3da4e6ff360cb18f",
+      "identical": true
+    },
+    {
+      "file": "src/services/construction-service.ts",
+      "function": "getRunoffRiskScore",
+      "sha256": "1bb0338bd99130ab3df1d7dff49900f5c92979fc918af11b9de213b123be1a53",
+      "identical": true
+    },
+    {
+      "file": "src/services/construction-service.ts",
+      "function": "getNatureSensitivityScore",
+      "sha256": "5cb8d535fcb24666896bc9193c72e04bafe26985a4adc704906cb2578d769e34",
+      "identical": true
+    }
+  ],
+  "passed": true
+}

@@ -15,6 +15,7 @@ SQL
 pg_dump --format=custom --no-owner --no-privileges --schema=public --schema=private --schema=auth --schema=storage --schema=extensions --file=tmp/release-restore/database.dump
 sha256sum tmp/release-restore/database.dump > tmp/release-restore/dump.sha256
 createdb --template=template0 freyra_release_restore
+psql --dbname=freyra_release_restore --no-psqlrc --set=ON_ERROR_STOP=1 --command='drop schema public'
 pg_restore --exit-on-error --no-owner --no-privileges --dbname=freyra_release_restore tmp/release-restore/database.dump > tmp/release-restore/restore.log 2>&1
 for db in postgres freyra_release_restore; do
  psql --dbname="$db" --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align <<'SQL' > "tmp/release-restore/${db}.json"
