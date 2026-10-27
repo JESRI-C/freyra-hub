@@ -54,15 +54,8 @@ function isConstructionType(t: string | null): t is ConstructionProjectType {
 export function getRunoffRiskScore(
   profile: RunoffProfile | null,
   ext: ConstructionProject | null,
-): "low" | "medium" | "high" | "critical" | "unknown" {
-  if (
-    !profile ||
-    !ext ||
-    ext.paved_area_m2 == null ||
-    profile.oil_separator_present == null ||
-    !profile.runoff_destination
-  )
-    return "unknown";
+): "low" | "medium" | "high" | "critical" {
+  if (!profile && !ext) return "low";
 
   let factors = 0;
 
@@ -86,14 +79,8 @@ export function getRunoffRiskScore(
 
 export function getNatureSensitivityScore(
   ctx: NatureContext | null,
-): "low" | "medium" | "high" | "critical" | "unknown" {
-  if (
-    !ctx ||
-    ctx.protected_nature_present == null ||
-    ctx.watercourse_present == null ||
-    ctx.natura2000_nearby == null
-  )
-    return "unknown";
+): "low" | "medium" | "high" | "critical" {
+  if (!ctx) return "low";
 
   const distWater = ctx.distance_to_watercourse_m ?? Infinity;
   const distNatura = ctx.distance_to_natura2000_m ?? Infinity;
@@ -232,8 +219,21 @@ async function assembleConstructionSummary(
   };
 
   const readinessScore = getConstructionReadinessScore(partialSummary);
-  const runoffRiskScore = getRunoffRiskScore(runoffProfile, constructionExt);
-  const natureSensitivityScore = getNatureSensitivityScore(natureContext);
+  const runoffRiskScore =
+    runoffProfile &&
+    constructionExt &&
+    constructionExt.paved_area_m2 != null &&
+    runoffProfile.oil_separator_present != null &&
+    runoffProfile.runoff_destination
+      ? getRunoffRiskScore(runoffProfile, constructionExt)
+      : "unknown";
+  const natureSensitivityScore =
+    natureContext &&
+    natureContext.protected_nature_present != null &&
+    natureContext.watercourse_present != null &&
+    natureContext.natura2000_nearby != null
+      ? getNatureSensitivityScore(natureContext)
+      : "unknown";
 
   return {
     ...partialSummary,

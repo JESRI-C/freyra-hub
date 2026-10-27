@@ -11,12 +11,10 @@ import {
   Send,
 } from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
-
 export const Route = createFileRoute("/app/reports")({
   head: () => ({ meta: [{ title: "Report Engine — Freyra" }] }),
   component: ReportsLayout,
 });
-
 const TABS = [
   { to: "/app/reports", label: "Rapportcenter", icon: LayoutDashboard, exact: true },
   { to: "/app/reports/new", label: "Opret rapport", icon: FilePlus },
@@ -27,7 +25,6 @@ const TABS = [
   { to: "/app/reports/library", label: "Rapportbibliotek", icon: Library },
   { to: "/app/reports/approval", label: "Godkendelse & eksport", icon: Send },
 ];
-
 function ReportsLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
@@ -35,11 +32,7 @@ function ReportsLayout() {
       <AppTopbar
         title="Rapporter"
         showWorkspaceTools={isDemoDataEnabled}
-        subtitle={
-          isDemoDataEnabled
-            ? "Eksempelvisning med opdigtede rapportdata"
-            : "Projektets registreringer og status for rapportarbejdet"
-        }
+        subtitle={"Projektets registreringer og status for rapportarbejdet"}
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
@@ -63,12 +56,7 @@ function ReportsLayout() {
           </nav>
         </div>
       </div>
-      {isDemoDataEnabled && (
-        <div role="note" className="max-w-[1400px] mx-auto px-6 pt-4 text-sm text-amber-800">
-          Offline eksempelvisning. Fund, tal, navne og godkendelser er opdigtede og gælder ingen
-          kundesag.
-        </div>
-      )}
+      {false}
       <Outlet />
     </>
   );

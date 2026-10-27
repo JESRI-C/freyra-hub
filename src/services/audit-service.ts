@@ -1,5 +1,4 @@
 // Audit Service
-
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import {
@@ -9,7 +8,6 @@ import {
 } from "@/lib/supabase/queries";
 import { SEED_AUDIT_EVENTS } from "@/data/platform-seed";
 import type { AuditEvent } from "@/lib/supabase/types";
-
 export async function getAuditEventsByProject(
   projectId: string,
   limit = 20,
@@ -18,21 +16,16 @@ export async function getAuditEventsByProject(
     SEED_AUDIT_EVENTS.filter((e) => e.project_id === projectId)
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, limit);
-  if (isDemoDataEnabled) return fallback();
   requireCustomerDatabase();
   return fetchAuditEventsByProject(projectId, limit);
 }
-
 export async function getAllAuditEvents(limit = 30): Promise<AuditEvent[]> {
   const fallback = () =>
     [...SEED_AUDIT_EVENTS].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
-  if (isDemoDataEnabled) return fallback();
   requireCustomerDatabase();
   return fetchAllAuditEvents(limit);
 }
-
 // ─── Write ────────────────────────────────────────────────────────────────────
-
 export async function logAuditEvent(input: {
   project_id?: string;
   event_type?: string;
@@ -48,9 +41,7 @@ export async function logAuditEvent(input: {
   if (!isSupabaseConfigured) return; // silent no-op i dev
   await insertAuditEvent(input);
 }
-
 // ─── CSV export ───────────────────────────────────────────────────────────────
-
 export function auditEventsToCsv(events: AuditEvent[]): string {
   const headers = [
     "created_at",
@@ -83,7 +74,6 @@ export function auditEventsToCsv(events: AuditEvent[]): string {
   );
   return [headers.join(","), ...rows].join("\n");
 }
-
 export function downloadAuditCsv(events: AuditEvent[], fileName = "audit-trail.csv"): void {
   const blob = new Blob([auditEventsToCsv(events)], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -95,7 +85,6 @@ export function downloadAuditCsv(events: AuditEvent[], fileName = "audit-trail.c
   a.remove();
   URL.revokeObjectURL(url);
 }
-
 // Returns a Lucide icon name for the event_type.
 export function auditEventIcon(eventType: string | null): string {
   switch (eventType) {

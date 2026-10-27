@@ -38,7 +38,6 @@ import { DocumentList } from "@/components/documents/DocumentList";
 import { GenerateReportDialog } from "@/components/documents/GenerateReportDialog";
 import { DocumentationScore } from "@/components/documents/DocumentationScore";
 import { computeDocumentationScore, listDocuments } from "@/services/documents-service";
-
 import { ReportPreviewCard } from "@/components/project/ReportPreviewCard";
 import { ProjectReportRecords } from "@/components/reports/ProjectReportRecords";
 import { MunicipalReportPanel } from "@/components/reports/MunicipalReportPanel";
@@ -87,9 +86,7 @@ import { buildProjectEnvironmentalContext } from "@/services/connector-service";
 import { resolveProjectGeometry, validateProjectPolygon } from "@/services/geo-service";
 import { ProjectEnvironmentalDashboard } from "@/components/data-foundation/ProjectEnvironmentalDashboard";
 import type { Action } from "@/lib/supabase/types";
-
 // ─── Icon helper ──────────────────────────────────────────────────────────────
-
 function AuditIcon({ name }: { name: string }) {
   switch (name) {
     case "ShieldCheck":
@@ -106,11 +103,14 @@ function AuditIcon({ name }: { name: string }) {
       return <Activity className="h-4 w-4" />;
   }
 }
-
 export const Route = createFileRoute("/app/projects/$slug")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { tab?: string; round?: string; step?: MunicipalStep } => ({
+  ): {
+    tab?: string;
+    round?: string;
+    step?: MunicipalStep;
+  } => ({
     ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
       ? { step: search.step as MunicipalStep }
       : {}),
@@ -145,7 +145,6 @@ export const Route = createFileRoute("/app/projects/$slug")({
     </div>
   ),
 });
-
 const TABS = [
   { id: "arbejde", label: "Undersøgelse" },
   { id: "rapporter", label: "Rapport og levering" },
@@ -162,16 +161,13 @@ const TABS = [
   { id: "miljodata", label: "Miljødata" },
   { id: "livekort", label: "Livekort" },
 ];
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
 function ProjectPage() {
   const search = Route.useSearch();
   // Existing full-app tabs and deep links retain their exact components and handlers.
   // The default and explicit steps use the guided presentation in both modes.
   return search.tab && !search.step ? <ProjectDetailPage /> : <MunicipalProjectPage />;
 }
-
 function MunicipalProjectPage() {
   const initialProject = Route.useLoaderData();
   const { slug } = Route.useParams();
@@ -207,17 +203,14 @@ function MunicipalProjectPage() {
     />
   );
 }
-
 function ProjectDetailPage() {
   const { slug } = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-
   const { data: project } = useSuspenseQuery({
     queryKey: ["project-by-slug", slug],
     queryFn: () => getProjectBySlug(slug),
   });
-
   const { user: accessUser } = useAuth();
   const loadAccess = useServerFn(getSurveyRoundAccess);
   const actualAccess = useQuery({
@@ -231,10 +224,8 @@ function ProjectDetailPage() {
     !!actualAccess.data?.canPersist &&
     !actualAccess.isError &&
     !actualAccess.isFetching;
-
   // projectId is always set when project exists; hooks below use it unconditionally
   const projectId = project?.id ?? "";
-
   // Sub-queries — all parallel via standard suspense
   const { data: indicators } = useSuspenseQuery({
     queryKey: ["indicators", projectId],
@@ -260,7 +251,6 @@ function ProjectDetailPage() {
     queryKey: ["observations", projectId],
     queryFn: () => getObservationsByProject(projectId, 10),
   });
-
   // Environmental context query
   const { data: environmentalCtx } = useSuspenseQuery({
     queryKey: ["environmental-context", slug],
@@ -275,7 +265,6 @@ function ProjectDetailPage() {
       );
     },
   });
-
   // Sites and data sources — DB-backed via suspense query
   const { data: sites } = useSuspenseQuery({
     queryKey: ["sites", projectId],
@@ -288,11 +277,9 @@ function ProjectDetailPage() {
   // Geometri: DB-tegnet polygon vinder altid over seed-data. Kun hvis projektet
   // hverken har en gemt polygon eller centroid, falder vi tilbage til seed.
   const geometry = resolveProjectGeometry(project);
-
   // A project has "real" geometry only when a polygon has been drawn or uploaded —
   // a centroid alone (from location name) is not enough to run area-based analyses.
   const hasRealGeometry = validateProjectPolygon(project?.geometry_polygon).valid;
-
   const {
     data: mediaItems,
     error: mediaError,
@@ -305,23 +292,19 @@ function ProjectDetailPage() {
       return result.data ?? [];
     },
   });
-
   const droneUploadsQuery = useQuery({
     queryKey: ["drone-upload-map-overview", projectId],
     queryFn: () => getDroneUploadMapOverview(projectId),
     enabled: !!projectId,
   });
   const droneUploadOverview = droneUploadsQuery.data;
-
   // Local action state (optimistic UI)
   const [localActions, setLocalActions] = useState<Action[]>(actions);
   const queryClient = useQueryClient();
-
   // Keep localActions in sync if the underlying query refreshes
   useEffect(() => {
     setLocalActions(actions);
   }, [actions]);
-
   const [selectedIndicator, setSelectedIndicator] = useState<(typeof indicators)[number] | null>(
     null,
   );
@@ -339,28 +322,23 @@ function ProjectDetailPage() {
     setSelectedIndicator(ind);
     setIndicatorDetailOpen(true);
   };
-
   // A failed background media refresh must not feed stale/empty evidence to the report preview.
   if (mediaError) throw mediaError;
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
   }
-
   const activeDataSourcesCount = dataSources.filter(
     (d) => d.status === "online" || d.status === "partial",
   ).length;
-
   const syncActions = async (ids: string[], newStatus: string) => {
     // Optimistic UI
     setLocalActions((prev) =>
       prev.map((a) => (ids.includes(a.id) ? { ...a, status: newStatus } : a)),
     );
-
     if (!isSupabaseConfigured) {
       toast.info("Database ikke konfigureret — kun lokal opdatering");
       return;
     }
-
     try {
       await Promise.all(
         ids.map((id) =>
@@ -382,11 +360,8 @@ function ProjectDetailPage() {
       setLocalActions(actions);
     }
   };
-
   // Generated sensor readings are available only in explicit offline demo.
-  const sensors =
-    isDemoDataEnabled && geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
-
+  const sensors: ReturnType<typeof getProjectSensors> = [];
   // Report preview
   const reportPreview = generateProjectReportPreview({
     project,
@@ -400,7 +375,6 @@ function ProjectDetailPage() {
     mediaItems,
     sensors,
   });
-
   const nextAction = getRecommendedNextAction(
     project,
     indicators,
@@ -409,7 +383,6 @@ function ProjectDetailPage() {
     sensors,
   );
   const sensorActions = suggestSensorActions(sensors);
-
   return (
     <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
       <Link
@@ -600,9 +573,7 @@ function ProjectDetailPage() {
                       {sensorActions.map((sa, i) => (
                         <div key={i} className="py-3 flex items-start gap-3">
                           <AlertTriangle
-                            className={`h-4 w-4 shrink-0 mt-0.5 ${
-                              sa.priority === "Høj" ? "text-destructive" : "text-amber-500"
-                            }`}
+                            className={`h-4 w-4 shrink-0 mt-0.5 ${sa.priority === "Høj" ? "text-destructive" : "text-amber-500"}`}
                           />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium">{sa.label}</div>
@@ -891,11 +862,7 @@ function ProjectDetailPage() {
                   <Card className="py-10 text-center">
                     <CardHeader
                       title="Ingen sensorer"
-                      subtitle={
-                        isDemoDataEnabled
-                          ? "Tilknyt en projektgeometri for at se eksempelsensorer"
-                          : "Der er ingen tilknyttede sensorer i denne visning."
-                      }
+                      subtitle={"Der er ingen tilknyttede sensorer i denne visning."}
                     />
                   </Card>
                 )}
@@ -913,9 +880,7 @@ function ProjectDetailPage() {
     </main>
   );
 }
-
 // ─── Create-action inline form ────────────────────────────────────────────────
-
 function CreateActionForm({
   projectId,
   sites,
@@ -923,8 +888,14 @@ function CreateActionForm({
   onCreated,
 }: {
   projectId: string;
-  sites: Array<{ id: string; name: string }>;
-  indicators: Array<{ id: string; label: string }>;
+  sites: Array<{
+    id: string;
+    name: string;
+  }>;
+  indicators: Array<{
+    id: string;
+    label: string;
+  }>;
   onCreated: () => void | Promise<void>;
 }) {
   const [title, setTitle] = useState("");
@@ -938,7 +909,6 @@ function CreateActionForm({
   const [requiresEvidence, setRequiresEvidence] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -978,7 +948,6 @@ function CreateActionForm({
       setSubmitting(false);
     }
   };
-
   return (
     <form onSubmit={submit} className="space-y-2 pt-3">
       <div className="text-xs font-medium text-muted-foreground">Opret ny handling</div>
@@ -1087,11 +1056,9 @@ function CreateActionForm({
     </form>
   );
 }
-
 // ─── GeometryRequiredBanner ──────────────────────────────────────────────────
 // Shown when a project has no polygon defined. All area-based analyses
 // (NDVI, biodiversity, environmental) require this before running.
-
 function GeometryRequiredBanner({
   slug,
   variant = "compact",
@@ -1101,9 +1068,7 @@ function GeometryRequiredBanner({
 }) {
   return (
     <Card
-      className={`border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/5 ${
-        variant === "detailed" ? "p-6" : "p-4"
-      }`}
+      className={`border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/5 ${variant === "detailed" ? "p-6" : "p-4"}`}
     >
       <div className="flex items-start gap-4">
         <div className="h-10 w-10 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -1131,7 +1096,6 @@ function GeometryRequiredBanner({
     </Card>
   );
 }
-
 function DroneBeforeIntakeCard({
   slug,
   projectId,
@@ -1144,7 +1108,6 @@ function DroneBeforeIntakeCard({
   hasRealGeometry: boolean;
 }) {
   const { orgId, selectOrg } = useAuth();
-
   return (
     <Card className="border-primary/25 bg-primary/5 p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1202,9 +1165,7 @@ function DroneBeforeIntakeCard({
     </Card>
   );
 }
-
 // ─── Dokumentation Tab ────────────────────────────────────────────────────────
-
 function DokumentationTab({
   projectId,
   project,
@@ -1227,7 +1188,6 @@ function DokumentationTab({
     queryFn: () => listDocuments(projectId),
     enabled: !!projectId,
   });
-
   // Evidence count per action (from linked evidence files via report_id? we use action_evidence via action id)
   // For lightweight scoring, we approximate: count evidenceFiles.length grouped none — use action.completed_at + evidenceFiles length.
   const evidenceCountByAction: Record<string, number> = {};
@@ -1240,7 +1200,6 @@ function DokumentationTab({
   for (const a of actions) {
     evidenceCountByAction[a.id] = hasAnyEvidence ? 1 : 0;
   }
-
   const score = computeDocumentationScore({
     project,
     sites,
@@ -1249,7 +1208,6 @@ function DokumentationTab({
     documents,
     evidenceCountByAction,
   });
-
   return (
     <div className="space-y-4">
       {delivery && (
@@ -1315,9 +1273,7 @@ function DokumentationTab({
     </div>
   );
 }
-
 // ─── Roller Tab ───────────────────────────────────────────────────────────────
-
 function RollerTab({ projectId }: { projectId: string }) {
   const { user } = useAuth();
   const userId = user?.id;

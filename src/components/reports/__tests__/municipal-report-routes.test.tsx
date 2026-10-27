@@ -15,7 +15,7 @@ const state = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({
-    currentOrg: { id: "org-a", name: "Testorganisation" },
+    currentOrg: { id: "org-a", name: "Testorganisation", role: "owner" },
     currentProject: state.project,
     user: { id: "user-a" },
     session: null,

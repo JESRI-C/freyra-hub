@@ -2,15 +2,14 @@ export const MUNICIPAL_BUILD_METADATA_FILE = "freyra-build.json";
 
 /** Read the value Vite will substitute, including an explicit define override. */
 export function municipalBuildMetadata(config) {
-  const key = "import.meta.env.VITE_DEMO_MODE";
-  const municipalDemo = Object.hasOwn(config.define ?? {}, key)
-    ? config.define[key] === JSON.stringify("true")
-    : config.env?.VITE_DEMO_MODE === "true";
   const revision = process.env.FREYRA_BUILD_REVISION;
   return {
     schema: "freyra.build/v1",
     viteMode: config.mode,
-    municipalDemo,
+    municipalDemo: false,
+    customerDataOnly: true,
+    municipalWorkflow: true,
+    release: "1.0",
     ...(/^[a-f0-9]{40}$/.test(revision ?? "") ? { sourceRevision: revision } : {}),
   };
 }
@@ -39,15 +38,16 @@ export function municipalBuildMetadataPlugin() {
 /** Optional delivery guard; legacy staging builds retain their existing behavior. */
 export function municipalDemoProblems(env, metadata) {
   const problems = [];
-  if (env.VITE_DEMO_MODE !== "true")
-    problems.push("VITE_DEMO_MODE skal være true til kommunens leverance");
-  if (metadata !== undefined) {
-    if (
-      metadata?.schema !== "freyra.build/v1" ||
+  if (env.VITE_DEMO_MODE === "true" || env.VITE_APP_DATA_MODE === "demo")
+    problems.push("Eksempeldata er ikke tilladt i release 1.0");
+  if (
+    metadata !== undefined &&
+    (metadata?.schema !== "freyra.build/v1" ||
       metadata.viteMode !== "staging" ||
-      metadata.municipalDemo !== true
-    )
-      problems.push("Det byggede klientartefakt dokumenterer ikke kommunetilstand i staging");
-  }
+      metadata.customerDataOnly !== true ||
+      metadata.municipalDemo !== false ||
+      metadata.release !== "1.0")
+  )
+    problems.push("Bygningen er ikke verificeret som release 1.0 med kundedata");
   return problems;
 }

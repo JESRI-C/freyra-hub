@@ -11,7 +11,7 @@ import { getConstructionProjects } from "@/services/construction-service";
 // ─── Query ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/construction/")({
-  head: () => ({ meta: [{ title: "Byggeri & Natur — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Byggeri & Natur — Freyra" }] }),
   component: ConstructionIndexPage,
 });
 

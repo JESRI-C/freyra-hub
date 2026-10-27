@@ -16,9 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { isDemoDataEnabled as isOfflineDemoMode } from "@/lib/data-mode";
 import type { PlatformStatus } from "@/lib/platform-data";
-
 /* ---------- Status badge: one source of truth platform-wide ---------- */
-
 const STATUS_TONES: Record<PlatformStatus, string> = {
   Online: "bg-success/15 text-success",
   Offline: "bg-muted text-muted-foreground",
@@ -35,7 +33,6 @@ const STATUS_TONES: Record<PlatformStatus, string> = {
   Godkendt: "bg-success/15 text-success",
   Eksporteret: "bg-accent text-accent-foreground",
 };
-
 export function StatusBadge({
   status,
   className = "",
@@ -56,7 +53,6 @@ export function StatusBadge({
     </span>
   );
 }
-
 export function ReadinessScore({
   value,
   label = "Rapportklarhed",
@@ -84,7 +80,6 @@ export function ReadinessScore({
     </div>
   );
 }
-
 export function ReportReadinessBadge({ value }: { value: number }) {
   const ready = value >= 80;
   return (
@@ -98,9 +93,7 @@ export function ReportReadinessBadge({ value }: { value: number }) {
     </span>
   );
 }
-
 /* ---------- Module status card on Overview ---------- */
-
 const MODULE_ICONS: Record<string, ReactNode> = {
   connect: <Cable className="h-4 w-4" />,
   decisions: <Brain className="h-4 w-4" />,
@@ -108,7 +101,6 @@ const MODULE_ICONS: Record<string, ReactNode> = {
   ledger: <BookCheck className="h-4 w-4" />,
   reports: <FileText className="h-4 w-4" />,
 };
-
 export function ModuleStatusCard({
   id,
   name,
@@ -155,9 +147,7 @@ export function ModuleStatusCard({
     </Link>
   );
 }
-
 /* ---------- Data flow diagram: Connect → DecisionsIQ → Impact → Ledger → Reports ---------- */
-
 export function DataFlowDiagram({
   steps,
 }: {
@@ -207,13 +197,16 @@ export function DataFlowDiagram({
     </div>
   );
 }
-
 /* ---------- Activity feed (cross-module) ---------- */
-
 export function ActivityFeed({
   items,
 }: {
-  items: { module: string; text: string; at: string; tone: "info" | "success" | "warning" }[];
+  items: {
+    module: string;
+    text: string;
+    at: string;
+    tone: "info" | "success" | "warning";
+  }[];
 }) {
   return (
     <ul className="divide-y">
@@ -243,9 +236,7 @@ export function ActivityFeed({
     </ul>
   );
 }
-
 /* ---------- Critical actions panel ---------- */
-
 export function CriticalActionsPanel({
   items,
 }: {
@@ -290,13 +281,16 @@ export function CriticalActionsPanel({
     </ul>
   );
 }
-
 /* ---------- Onboarding checklist ---------- */
-
 export function OnboardingChecklist({
   steps,
 }: {
-  steps: { id: number; label: string; done: boolean; href: string }[];
+  steps: {
+    id: number;
+    label: string;
+    done: boolean;
+    href: string;
+  }[];
 }) {
   const done = steps.filter((s) => s.done).length;
   const pct = Math.round((done / steps.length) * 100);
@@ -335,9 +329,7 @@ export function OnboardingChecklist({
     </div>
   );
 }
-
 /* ---------- Empty state, demo badge, cross-module link ---------- */
-
 export function EmptyStateCard({
   title,
   description,
@@ -372,16 +364,6 @@ export function EmptyStateCard({
   );
 }
 
-export function DemoModeBadge() {
-  if (!isOfflineDemoMode) return null;
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-warning/20 text-warning-foreground border border-warning/40">
-      <span className="h-1.5 w-1.5 rounded-full bg-warning-foreground" />
-      Demo data aktiv
-    </span>
-  );
-}
-
 export function CrossModuleLink({ to, label }: { to: string; label: string }) {
   return (
     <Link
@@ -392,11 +374,8 @@ export function CrossModuleLink({ to, label }: { to: string; label: string }) {
     </Link>
   );
 }
-
 /* ---------- Module header: shared pattern across all module index pages ---------- */
-
 import { toast } from "sonner";
-
 export function ModuleHeader({
   eyebrow,
   title,
@@ -415,8 +394,16 @@ export function ModuleHeader({
   freshness?: string;
   status?: PlatformStatus;
   readiness?: number;
-  primaryCta?: { label: string; to: string; icon?: ReactNode };
-  secondaryCta?: { label: string; to: string; icon?: ReactNode };
+  primaryCta?: {
+    label: string;
+    to: string;
+    icon?: ReactNode;
+  };
+  secondaryCta?: {
+    label: string;
+    to: string;
+    icon?: ReactNode;
+  };
 }) {
   return (
     <div className="rounded-2xl bg-card border shadow-soft overflow-hidden">
@@ -476,7 +463,6 @@ export function ModuleHeader({
     </div>
   );
 }
-
 /* Cross-module mock action helper — gives users instant feedback */
 export function actionToast(message: string, description?: string) {
   toast.success(message, { description });

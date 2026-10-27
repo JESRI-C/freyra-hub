@@ -1,28 +1,18 @@
 // Observations Service
-
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import { fetchObservationsByProject, insertObservation } from "@/lib/supabase/queries";
 import { logAuditEvent } from "@/services/audit-service";
 import { SEED_OBSERVATIONS } from "@/data/platform-seed";
 import type { Observation } from "@/lib/supabase/types";
-
 export async function getObservationsByProject(
   projectId: string,
   limit = 20,
 ): Promise<Observation[]> {
-  if (isDemoDataEnabled) {
-    return [...SEED_OBSERVATIONS]
-      .filter((o) => o.project_id === projectId)
-      .sort((a, b) => (b.observed_at ?? "").localeCompare(a.observed_at ?? ""))
-      .slice(0, limit);
-  }
   requireCustomerDatabase();
   return fetchObservationsByProject(projectId, limit);
 }
-
 // ─── Write ────────────────────────────────────────────────────────────────────
-
 export async function recordObservation(input: {
   project_id: string;
   observation_type: "sensor" | "field" | "satellite" | "drone" | "manual" | "remote";
@@ -50,18 +40,21 @@ export async function recordObservation(input: {
     source: input.observation_type === "sensor" ? "automated" : "manual",
   });
 }
-
 /**
  * The legacy simulation hook must not persist fabricated sensor observations.
  */
 export async function recordSensorBatch(
   projectId: string,
-  readings: Array<{ sensorType: string; value: number; unit: string; label: string }>,
+  readings: Array<{
+    sensorType: string;
+    value: number;
+    unit: string;
+    label: string;
+  }>,
 ): Promise<void> {
   void projectId;
   void readings;
 }
-
 export function observationTypeLabel(type: string | null): string {
   switch (type) {
     case "sensor":

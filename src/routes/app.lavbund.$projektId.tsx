@@ -6,15 +6,12 @@ import { Pill } from "@/components/ui-bits";
 import { getProject, getLinkedProjectId, setLinkedProject } from "@/services/lavbundService";
 import { getProjects as getCoreProjects, getProjectBySlug } from "@/services/projects-service";
 import { ledgerAppend } from "@/services/ledgerService";
-import { DEMO_MODE } from "@/lib/demo-mode";
 import { useAuth } from "@/lib/auth";
 import type { ProjektStatus } from "@/types/lavbund";
-
 export const Route = createFileRoute("/app/lavbund/$projektId")({
   head: () => ({ meta: [{ title: "Kort og beplantning — Freyra" }] }),
   component: ProjektLayout,
 });
-
 const TABS = [
   { to: "/app/lavbund/$projektId/kort", suffix: "kort", label: "Kort og beplantning", icon: Map },
   { to: "/app/lavbund/$projektId/klima", suffix: "klima", label: "Klima · CO₂", icon: Leaf },
@@ -32,7 +29,6 @@ const TABS = [
   },
   { to: "/app/lavbund/$projektId/rapport", suffix: "rapport", label: "Rapport", icon: FileText },
 ] as const;
-
 const STATUS_LABEL: Record<ProjektStatus, string> = {
   planlagt: "Planlagt",
   etablering: "Etablering",
@@ -47,7 +43,6 @@ const STATUS_TONE: Record<ProjektStatus, "default" | "success" | "warning" | "in
   verificeret: "success",
   overdraget: "default",
 };
-
 function ProjektLayout() {
   const { projektId } = Route.useParams();
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -55,25 +50,23 @@ function ProjektLayout() {
     queryKey: ["lavbund", "project", projektId],
     queryFn: () => getProject(projektId),
   });
-
   const core = useQuery({
     queryKey: ["core-project", projektId],
     queryFn: () => getProjectBySlug(projektId),
-    enabled: DEMO_MODE && !q.isLoading && !q.data,
+    enabled: false,
     retry: false,
   });
   // Redirect /app/lavbund/:id → /app/lavbund/:id/kort
   if (path === `/app/lavbund/${projektId}` || path === `/app/lavbund/${projektId}/`) {
     return <Navigate to="/app/lavbund/$projektId/kort" params={{ projektId }} />;
   }
-
   return (
     <div className="min-w-0">
       <div className="border-b bg-card/60">
         <div className="w-full px-4 sm:px-6 py-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <Link
-              to={DEMO_MODE ? "/app/projects" : "/app/lavbund"}
+              to={"/app/lavbund"}
               className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Alle sager
@@ -126,7 +119,6 @@ function ProjektLayout() {
     </div>
   );
 }
-
 /**
  * Kobling til Freyra-kerneprojekt: når sat, skubber bogførte snapshots den
  * verificerede CO₂-effekt til projektets co2e_reduced-indicator på dashboardet.
@@ -142,7 +134,6 @@ function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
     queryKey: ["core-projects", orgId],
     queryFn: () => getCoreProjects(orgId ?? undefined),
   });
-
   const skift = async (coreId: string) => {
     try {
       await setLinkedProject(projektId, coreId || null);
@@ -160,7 +151,6 @@ function LinkTilKerneprojekt({ projektId }: { projektId: string }) {
       toast.error(err instanceof Error ? err.message : "Kunne ikke opdatere kobling");
     }
   };
-
   return (
     <label className="hidden sm:flex flex-col items-end gap-1 text-[11px] text-muted-foreground shrink-0">
       <span className="inline-flex items-center gap-1">

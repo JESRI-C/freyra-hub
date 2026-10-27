@@ -118,7 +118,7 @@ const SEED_MAP_LAYERS: MapLayer[] = [
     name: "IoT Feltsensorer",
     slug: "sensors",
     category: "sensors",
-    provider: "GoFreyra IoT",
+    provider: "Freyra IoT",
     layerType: "sensor",
     isActive: true,
     requiresApiKey: false,

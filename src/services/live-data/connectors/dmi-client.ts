@@ -9,7 +9,6 @@ import {
 } from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
-
 export interface DmiObservation {
   parameterId: string;
   value: number;
@@ -17,7 +16,6 @@ export interface DmiObservation {
   observed: string;
   stationId: string;
 }
-
 export interface DmiWeatherData {
   temperature?: DmiObservation;
   precipitation?: DmiObservation;
@@ -26,9 +24,7 @@ export interface DmiWeatherData {
   observedAt: string;
   stationName?: string;
 }
-
 const DMI_OBS_PATH = "/v2/metObs/collections/observation/items";
-
 export const PREVIEW_DATA: DmiWeatherData = {
   temperature: {
     parameterId: "temp_dry",
@@ -61,12 +57,10 @@ export const PREVIEW_DATA: DmiWeatherData = {
   observedAt: new Date().toISOString(),
   stationName: "Preview Station",
 };
-
 export async function getStatus(): Promise<"live" | "preview" | "missing_key"> {
   const config = getLiveDataConfig();
   return config.isLiveDataEnabled ? "live" : "preview";
 }
-
 export async function fetchByGeometry(
   geometry: ProjectGeometry,
 ): Promise<ConnectorResponse<DmiWeatherData>> {
@@ -78,10 +72,8 @@ export async function fetchByGeometry(
       "invalid_geometry",
     );
   }
-
   const { lat, lng } = geometry.centroid!;
   const base = config.dmiBaseUrl;
-
   const result = await fetchConnector(async () => {
     const params = new URLSearchParams({
       parameterId: "temp_dry,precip_past10min,wind_speed,humidity",
@@ -101,7 +93,6 @@ export async function fetchByGeometry(
         };
       }>;
     };
-
     if (!Array.isArray(json.features))
       throw new Error("DMI svarede med et ugyldigt observationsformat.");
     const obs: DmiWeatherData = { observedAt: "" };
@@ -132,7 +123,6 @@ export async function fetchByGeometry(
     }
     return obs;
   });
-
   if (result.status !== "ok") return result;
   if (!result.data?.observedAt) {
     return errorResponse(
@@ -143,16 +133,12 @@ export async function fetchByGeometry(
   }
   return result;
 }
-
 export async function fetchPreview(): Promise<ConnectorResponse<DmiWeatherData>> {
-  return isDemoDataEnabled && !getLiveDataConfig().isLiveDataEnabled
-    ? previewResponse(PREVIEW_DATA)
-    : errorResponse(
-        "DMI er ikke konfigureret til live data. Eksempeldata kræver eksplicit offline demo.",
-        "disabled",
-      );
+  return errorResponse(
+    "DMI er ikke konfigureret til live data. Forbind en verificeret kilde for at hente projektdata.",
+    "disabled",
+  );
 }
-
 export function normalizeResult(
   result: ConnectorResponse<DmiWeatherData>,
 ): Record<string, unknown> {

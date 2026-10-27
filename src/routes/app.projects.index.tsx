@@ -12,7 +12,7 @@ import { ProjectMonitorCard } from "@/components/project/ProjectMonitorCard";
 import { Leaf, FolderOpen, AlertCircle, BarChart2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import type { NatureProjectSummary } from "@/lib/supabase/types";
-import { DEMO_MODE } from "@/lib/demo-mode";
+import { MUNICIPAL_WORKFLOW } from "@/lib/municipal-workflow";
 import { useAuth } from "@/lib/auth";
 import {
   canCreateProject,
@@ -83,9 +83,13 @@ function ProjectsIndexPage() {
   const [localSummaries, setLocalSummaries] = useState<NatureProjectSummary[]>([]);
 
   const { data: querySummaries } = useSuspenseQuery({
-    queryKey: [DEMO_MODE ? "municipal-project-list" : "nature-project-summaries", orgId, user?.id],
+    queryKey: [
+      MUNICIPAL_WORKFLOW ? "municipal-project-list" : "nature-project-summaries",
+      orgId,
+      user?.id,
+    ],
     queryFn: async () => {
-      if (!DEMO_MODE) return getAllNatureProjectSummaries(orgId);
+      if (!MUNICIPAL_WORKFLOW) return getAllNatureProjectSummaries(orgId);
       // Municipal cards show only project metadata; no per-case indicator,
       // report or audit queries are needed for this navigation screen.
       const projects = await getProjects(orgId);
@@ -316,7 +320,7 @@ function ProjectsIndexPage() {
           </div>
         )}
         <PageHeader
-          title={DEMO_MODE ? "Sager" : "Projektoversigt"}
+          title={MUNICIPAL_WORKFLOW ? "Sager" : "Projektoversigt"}
           description="Fra de første dronebilleder til en samlet, sporbar aflevering"
           actions={
             <div className="flex items-center gap-2">
@@ -339,7 +343,7 @@ function ProjectsIndexPage() {
         />
 
         {/* Stat bar — klikbare filtre */}
-        {!DEMO_MODE && (
+        {!MUNICIPAL_WORKFLOW && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               label="Projekter i alt"
@@ -443,7 +447,7 @@ function ProjectsIndexPage() {
         {filtered.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((s) =>
-              DEMO_MODE || startStep ? (
+              MUNICIPAL_WORKFLOW || startStep ? (
                 <Link
                   key={s.project.id}
                   to="/app/projects/$slug"

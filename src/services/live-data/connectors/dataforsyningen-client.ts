@@ -9,7 +9,6 @@ import {
 } from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
-
 export interface GeoPlace {
   name: string;
   type: string;
@@ -17,23 +16,19 @@ export interface GeoPlace {
   region?: string;
   coordinates: [number, number];
 }
-
 export interface DataforsyningenData {
   nearestPlaces: GeoPlace[];
   municipalityName?: string;
   regionName?: string;
   fetchedAt: string;
 }
-
 const DATAFORDELER_BASE = "https://services.datafordeler.dk";
 const OPEN_REVERSE_BASE = "https://api.dataforsyningen.dk/reverse";
-
 interface ReverseGeoResponse {
   kommunekode?: string;
   kommunenavn?: string;
   regionsnavn?: string;
 }
-
 const PREVIEW_DATA: DataforsyningenData = {
   nearestPlaces: [
     {
@@ -53,20 +48,17 @@ const PREVIEW_DATA: DataforsyningenData = {
   regionName: "Region Syddanmark",
   fetchedAt: new Date().toISOString(),
 };
-
 export async function getStatus(): Promise<"live" | "preview" | "missing_key"> {
   const config = getLiveDataConfig();
   // Open geocoding API is always available when live data is enabled
   if (!config.isLiveDataEnabled) return "preview";
   return "live";
 }
-
 export async function fetchByGeometry(
   geometry: ProjectGeometry,
 ): Promise<ConnectorResponse<DataforsyningenData>> {
   const config = getLiveDataConfig();
   if (!config.isLiveDataEnabled) return fetchPreview();
-
   if (!hasSourceGeometry(geometry)) {
     return errorResponse(
       "Dataforsyningen kræver en gyldig projektgeometri med koordinater.",
@@ -74,7 +66,6 @@ export async function fetchByGeometry(
     );
   }
   const { lat, lng } = geometry.centroid!;
-
   // Path A: Datafordeler key present — use full place-name API
   if (config.credentials.datafordeler.present) {
     const key = config.credentials.datafordeler.key!;
@@ -88,7 +79,7 @@ export async function fetchByGeometry(
         srid: "4326",
       });
       const url = `${DATAFORDELER_BASE}/STEDNAVNE/Stednavne/1/rest/Stednavn?${params}`;
-      const res = await fetchWithTimeout(url, { timeoutMs: 10_000 });
+      const res = await fetchWithTimeout(url, { timeoutMs: 10000 });
       if (!res.ok) throw new Error(`Datafordeler API ${res.status}`);
       const json = (await res.json()) as {
         features?: Array<{
@@ -98,7 +89,9 @@ export async function fetchByGeometry(
             kommune?: string;
             region?: string;
           };
-          geometry: { coordinates: [number, number] };
+          geometry: {
+            coordinates: [number, number];
+          };
         }>;
       };
       if (!Array.isArray(json.features))
@@ -121,7 +114,6 @@ export async function fetchByGeometry(
           result.latencyMs,
         );
   }
-
   // Path B: Open reverse-geocoding (no key required)
   const openResult = await fetchConnector(async () => {
     const params = new URLSearchParams({
@@ -129,7 +121,7 @@ export async function fetchByGeometry(
       y: String(lat),
       srid: "4326",
     });
-    const res = await fetchWithTimeout(`${OPEN_REVERSE_BASE}?${params}`, { timeoutMs: 10_000 });
+    const res = await fetchWithTimeout(`${OPEN_REVERSE_BASE}?${params}`, { timeoutMs: 10000 });
     if (!res.ok) throw new Error(`Dataforsyningen reverse API ${res.status}`);
     const json = (await res.json()) as ReverseGeoResponse;
     return {
@@ -148,16 +140,12 @@ export async function fetchByGeometry(
         openResult.latencyMs,
       );
 }
-
 export async function fetchPreview(): Promise<ConnectorResponse<DataforsyningenData>> {
-  return isDemoDataEnabled && !getLiveDataConfig().isLiveDataEnabled
-    ? previewResponse(PREVIEW_DATA)
-    : errorResponse(
-        "Dataforsyningen er ikke konfigureret til live data. Eksempeldata kræver eksplicit offline demo.",
-        "disabled",
-      );
+  return errorResponse(
+    "Dataforsyningen er ikke konfigureret til live data. Forbind en verificeret kilde for at hente projektdata.",
+    "disabled",
+  );
 }
-
 export function normalizeResult(
   result: ConnectorResponse<DataforsyningenData>,
 ): Record<string, unknown> {

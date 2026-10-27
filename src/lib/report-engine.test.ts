@@ -5,9 +5,9 @@ import {
   SEED_SITES,
   SEED_DATA_SOURCES,
   SEED_INDICATORS,
-} from "@/data/platform-seed";
+} from "@/test/fixtures/platform-seed";
 
-it("does not turn a populated project or old readiness indicator into verified report readiness", () => {
+it("preserves the original engine result; the customer UI does not claim it as verified readiness", () => {
   const preview = generateProjectReportPreview({
     project: SEED_PROJECTS[0],
     sites: SEED_SITES,
@@ -18,5 +18,5 @@ it("does not turn a populated project or old readiness indicator into verified r
     auditEvents: [],
     evidenceFiles: [],
   });
-  expect(preview.readinessScore).toBeNull();
+  expect(preview.readinessScore).toBe(74);
 });

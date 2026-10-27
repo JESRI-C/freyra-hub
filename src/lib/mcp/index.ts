@@ -10,10 +10,10 @@ const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unse
 
 export default defineMcp({
   name: "gofreyra-mcp",
-  title: "GoFreyra MCP",
+  title: "Freyra MCP",
   version: "0.1.0",
   instructions:
-    "Tools for GoFreyra — a nature-data, sensor and ESG platform. Use `list_lavbund_projects` to enumerate LavbundsMRV projects and `get_lavbund_project` for the full CO₂/phosphorus snapshot plus DecisionsIQ recommendations for one project. `echo` verifies connectivity.",
+    "Tools for Freyra — a nature-data, sensor and ESG platform. Use `list_lavbund_projects` to enumerate LavbundsMRV projects and `get_lavbund_project` for the full CO₂/phosphorus snapshot plus DecisionsIQ recommendations for one project. `echo` verifies connectivity.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",

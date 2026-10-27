@@ -78,8 +78,8 @@ describe("truthful global project context", () => {
       ]) {
         expect(html).not.toContain(invented);
       }
-      const { DemoModeBadge } = await import("@/components/platform/Primitives");
-      expect(renderToStaticMarkup(<DemoModeBadge />)).toBe("");
+      const primitives = await import("@/components/platform/Primitives");
+      expect("DemoModeBadge" in primitives).toBe(false);
     },
   );
 
@@ -87,8 +87,8 @@ describe("truthful global project context", () => {
     state.configured = false;
     vi.stubEnv("VITE_APP_DATA_MODE", "demo");
     const html = await renderContext();
-    expect(html).toContain("Demo data aktiv");
-    expect(html).toContain("Start demo");
+    expect(html).not.toContain("Demo data aktiv");
+    expect(html).not.toContain("Start demo");
   });
 
   it("does not turn missing configuration into demo", async () => {

@@ -7,7 +7,7 @@ import type { ReportTemplateId } from "@/lib/report-templates";
 
 const state = vi.hoisted(() => ({
   auth: {
-    currentOrg: { id: "org-a", name: "Organisation A" },
+    currentOrg: { id: "org-a", name: "Organisation A", role: "owner" },
     currentProject: { id: "project-a", name: "Projekt A" },
     user: { id: "user-a" },
     session: null,
@@ -66,7 +66,7 @@ describe("real report editor draft hydration", () => {
   beforeEach(() => {
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     state.auth = {
-      currentOrg: { id: "org-a", name: "Organisation A" },
+      currentOrg: { id: "org-a", name: "Organisation A", role: "owner" },
       currentProject: { id: "project-a", name: "Projekt A" },
       user: { id: "user-a" },
       session: null,

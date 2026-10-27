@@ -38,31 +38,32 @@ import {
 } from "@/services/monitoring/alerts-service";
 import { supabase } from "@/lib/supabase/client";
 import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
-
 export const Route = createFileRoute("/app/connect/alerts")({
   component: Page,
 });
-
-type LiveAlert = MonitoringAlert & { __live: true };
-type DemoAlert = (typeof ALERTS)[0] & { __live?: false };
+type LiveAlert = MonitoringAlert & {
+  __live: true;
+};
+type DemoAlert = (typeof ALERTS)[0] & {
+  __live?: false;
+};
 type AnyAlert = LiveAlert | DemoAlert;
-
 function severityRank(s: string): "critical" | "medium" | "low" {
   if (s === "critical" || s === "high") return "critical";
   if (s === "medium" || s === "warning") return "medium";
   return "low";
 }
-
 function Page() {
   const { projectId } = useConnectContext();
   const [filter, setFilter] = useState<string>("all");
   const [selected, setSelected] = useState<AnyAlert | null>(null);
   const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
   const [running, setRunning] = useState(false);
-  const [lastRun, setLastRun] = useState<{ fired: number; detected: number; ranAt: string } | null>(
-    null,
-  );
-
+  const [lastRun, setLastRun] = useState<{
+    fired: number;
+    detected: number;
+    ranAt: string;
+  } | null>(null);
   const liveAlertsQuery = useQuery({
     queryKey: ["monitoring-alerts", projectId],
     queryFn: async (): Promise<LiveAlert[]> => {
@@ -73,13 +74,11 @@ function Page() {
     },
     enabled: !!projectId && !isDemoDataEnabled,
   });
-
   const live = liveAlertsQuery.isError ? [] : (liveAlertsQuery.data ?? []);
   const useDemo = isDemoDataEnabled;
-  const source: AnyAlert[] = useDemo ? (ALERTS as AnyAlert[]) : live;
+  const source: AnyAlert[] = live;
   const filtered =
     filter === "all" ? source : source.filter((a) => severityRank(a.severity) === filter);
-
   const rulesQuery = useQuery({
     queryKey: ["alert-rules", projectId],
     queryFn: () => {
@@ -100,10 +99,9 @@ function Page() {
   const averageAcknowledgementHours = acknowledgementTimes.length
     ? acknowledgementTimes.reduce((sum, duration) => sum + duration, 0) /
       acknowledgementTimes.length /
-      3_600_000
+      3600000
     : null;
   const countLabel = (count: number) => (hasLiveSnapshot ? String(count) : "—");
-
   async function handleRunNow() {
     if (!projectId) {
       toast.error("Vælg et projekt først");
@@ -123,7 +121,6 @@ function Page() {
       setRunning(false);
     }
   }
-
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -160,12 +157,12 @@ function Page() {
         </div>
       )}
 
-      {!useDemo && !projectId && (
+      {!projectId && (
         <Card className="p-4 text-sm text-muted-foreground">
           Vælg et projekt for at se dets alarmer.
         </Card>
       )}
-      {!useDemo && liveAlertsQuery.isError && (
+      {liveAlertsQuery.isError && (
         <Card className="p-4 text-sm text-destructive">
           <div role="alert">
             Alarmer kunne ikke hentes. Oversigten og tallene er ikke tilgængelige.
@@ -179,22 +176,18 @@ function Page() {
           </div>
         </Card>
       )}
-      {useDemo && (
-        <Card className="p-4 text-sm text-muted-foreground">Demovisning med eksempelalarmer.</Card>
-      )}
+      {false}
 
       <Section
         title="Aktive alarmregler"
         subtitle={
-          useDemo
-            ? "Regler kræver en kundedatabase"
-            : !projectId
-              ? "Vælg et projekt"
-              : rulesQuery.isError
-                ? "Regler kunne ikke hentes"
-                : rulesQuery.isLoading
-                  ? "Henter…"
-                  : `${rulesQuery.data?.length ?? 0} regler i backend`
+          !projectId
+            ? "Vælg et projekt"
+            : rulesQuery.isError
+              ? "Regler kunne ikke hentes"
+              : rulesQuery.isLoading
+                ? "Henter…"
+                : `${rulesQuery.data?.length ?? 0} regler i backend`
         }
       >
         {rulesQuery.isError && (
@@ -254,8 +247,7 @@ function Page() {
                     </td>
                   </tr>
                 ))}
-                {!useDemo &&
-                  !!projectId &&
+                {!!projectId &&
                   !rulesQuery.isLoading &&
                   !rulesQuery.isError &&
                   (rulesQuery.data ?? []).length === 0 && (
@@ -285,66 +277,49 @@ function Page() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <ConnectionHealthCard
           label="Aktive alerts"
-          value={useDemo ? "17" : countLabel(activeAlerts.length)}
+          value={countLabel(activeAlerts.length)}
           icon={<Bell className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Kritiske"
-          value={
-            useDemo
-              ? "3"
-              : countLabel(
-                  activeAlerts.filter((alert) => severityRank(alert.severity) === "critical")
-                    .length,
-                )
-          }
+          value={countLabel(
+            activeAlerts.filter((alert) => severityRank(alert.severity) === "critical").length,
+          )}
           tone="danger"
           icon={<AlertTriangle className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Medium"
-          value={
-            useDemo
-              ? "6"
-              : countLabel(
-                  activeAlerts.filter((alert) => severityRank(alert.severity) === "medium").length,
-                )
-          }
+          value={countLabel(
+            activeAlerts.filter((alert) => severityRank(alert.severity) === "medium").length,
+          )}
           tone="warning"
           icon={<AlertCircle className="h-5 w-5" />}
         />
         <ConnectionHealthCard
           label="Lav"
-          value={
-            useDemo
-              ? "8"
-              : countLabel(
-                  activeAlerts.filter((alert) => severityRank(alert.severity) === "low").length,
-                )
-          }
+          value={countLabel(
+            activeAlerts.filter((alert) => severityRank(alert.severity) === "low").length,
+          )}
           icon={<Info className="h-5 w-5" />}
         />
         <ConnectionHealthCard
-          label={useDemo ? "Løst denne uge" : "Løst (hentede)"}
-          value={
-            useDemo ? "12" : countLabel(live.filter((alert) => alert.status === "resolved").length)
-          }
+          label={"Løst (hentede)"}
+          value={countLabel(live.filter((alert) => alert.status === "resolved").length)}
           tone="success"
           icon={<CheckCircle2 className="h-5 w-5" />}
         />
         <ConnectionHealthCard
-          label={useDemo ? "Ø svartid" : "Ø tid til bekræftelse"}
+          label={"Ø tid til bekræftelse"}
           value={
-            useDemo
-              ? "2 t"
-              : hasLiveSnapshot && averageAcknowledgementHours !== null
-                ? `${averageAcknowledgementHours.toLocaleString("da-DK", { maximumFractionDigits: 1 })} t`
-                : "—"
+            hasLiveSnapshot && averageAcknowledgementHours !== null
+              ? `${averageAcknowledgementHours.toLocaleString("da-DK", { maximumFractionDigits: 1 })} t`
+              : "—"
           }
           icon={<Clock className="h-5 w-5" />}
         />
       </div>
-      {!useDemo && projectId && (
+      {projectId && (
         <p className="text-xs text-muted-foreground">
           {liveAlertsQuery.isLoading
             ? "Henter alarmer…"
@@ -424,7 +399,7 @@ function Page() {
                   </tr>
                 );
               })}
-              {filtered.length === 0 && (useDemo || hasLiveSnapshot) && (
+              {filtered.length === 0 && hasLiveSnapshot && (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     Ingen alarmer i dette filter.
@@ -436,72 +411,14 @@ function Page() {
         </div>
       </Card>
 
-      {useDemo && (
-        <div className="grid lg:grid-cols-2 gap-4">
-          <Section title="Alerts over tid" subtitle="Sidste 7 dage by severity">
-            <Bars
-              data={[
-                { label: "Man", value: 4 },
-                { label: "Tir", value: 6 },
-                { label: "Ons", value: 3 },
-                { label: "Tor", value: 8 },
-                { label: "Fre", value: 5 },
-                { label: "Lør", value: 2 },
-                { label: "Søn", value: 7 },
-              ]}
-            />
-          </Section>
-
-          <Card className="p-5 bg-gradient-to-br from-card to-leaf/15">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold">Operationelle anbefalinger</div>
-                <ul className="text-sm mt-2 space-y-1.5 text-foreground/90 list-disc pl-5">
-                  <li>
-                    Indfør automatisk batteri-alert ved 25% for kameratraps for at reducere "Low
-                    battery" alerts.
-                  </li>
-                  <li>
-                    Aktivér token rotation på Airtable for at undgå tilbagevendende "Expiring
-                    token".
-                  </li>
-                  <li>
-                    Tilføj duplikat-detektion på Scope 3 CSV-import for at undgå manuelle
-                    re-uploads.
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+      {false}
 
       <Drawer
         open={!!selected}
         onClose={() => setSelected(null)}
         title={selected?.title ?? ""}
         subtitle={selected?.id}
-        footer={
-          useDemo ? (
-            <>
-              <button className="text-xs rounded-lg bg-primary text-primary-foreground px-3 py-1.5">
-                Marker som løst
-              </button>
-              <button className="text-xs rounded-lg border bg-card px-3 py-1.5">
-                Opret opgave
-              </button>
-              <button className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5">
-                <Send className="h-3.5 w-3.5" /> Send til DecisionsIQ
-              </button>
-              <button className="text-xs rounded-lg border bg-card px-3 py-1.5 inline-flex items-center gap-1.5">
-                <ExternalLink className="h-3.5 w-3.5" /> Se datakilde
-              </button>
-            </>
-          ) : undefined
-        }
+        footer={undefined}
       >
         {selected &&
           (() => {
@@ -583,7 +500,6 @@ function Page() {
     </main>
   );
 }
-
 function toRow(a: AnyAlert): {
   id: string;
   title: string;
@@ -628,7 +544,6 @@ function toRow(a: AnyAlert): {
     status: demo.status,
   };
 }
-
 function KV({ label, v }: { label: string; v: React.ReactNode }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-3">

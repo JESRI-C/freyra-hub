@@ -37,10 +37,10 @@ export const PROJECT_FACTS = {
 // ─── Strategisk positionering ────────────────────────────────────────────────
 
 export const KEY_MESSAGE =
-  "Biodiversitet er ikke CO₂. GoFreyra reducerer ikke natur til én simpel score. Hver vurdering kan rummer metode, kontekst, datakilde, konfidensniveau, usikkerhed og anbefalet brug.";
+  "Biodiversitet er ikke CO₂. Freyra reducerer ikke natur til én simpel score. Hver vurdering kan rummer metode, kontekst, datakilde, konfidensniveau, usikkerhed og anbefalet brug.";
 
 export const POSITIONING_STATEMENT =
-  "GoFreyra hjælper kommuner, rådgivere, lodsejere, virksomheder og fonde med at føre naturprojekter fra arealplanlægning og lodsejerdialog til biodiversitetsmonitorering, rapportering og offentlig effekt­dokumentation.";
+  "Freyra hjælper kommuner, rådgivere, lodsejere, virksomheder og fonde med at føre naturprojekter fra arealplanlægning og lodsejerdialog til biodiversitetsmonitorering, rapportering og offentlig effekt­dokumentation.";
 
 // ─── Nature-projekt dashboard-kort ───────────────────────────────────────────
 

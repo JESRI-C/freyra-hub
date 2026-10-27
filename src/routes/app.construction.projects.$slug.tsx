@@ -34,7 +34,7 @@ const TABS = [
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/construction/projects/$slug")({
-  head: () => ({ meta: [{ title: "Byggeprojekt — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Byggeprojekt — Freyra" }] }),
   component: ConstructionProjectDetailPage,
   notFoundComponent: () => (
     <div className="p-6 text-center text-muted-foreground">Byggeprojekt ikke fundet.</div>

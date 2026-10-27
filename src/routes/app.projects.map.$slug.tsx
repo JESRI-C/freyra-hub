@@ -75,7 +75,7 @@ const CONNECTOR_STATUS: ConnectorStatusItem[] = [
     name: "IoT Feltsensorer",
     slug: "iot",
     status: "preview",
-    provider: "GoFreyra IoT (simuleret)",
+    provider: "Freyra IoT (simuleret)",
   },
 ];
 
@@ -381,7 +381,7 @@ function GeoMapPage() {
                       name: "IoT Feltsensorer",
                       slug: "sensors",
                       category: "sensors",
-                      provider: "GoFreyra IoT",
+                      provider: "Freyra IoT",
                       layerType: "sensor",
                       isActive: true,
                       requiresApiKey: false,

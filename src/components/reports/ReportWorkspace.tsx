@@ -5,6 +5,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, PageHeader } from "@/components/ui-bits";
 import { useAuth } from "@/lib/auth";
+import { getMyProjectRole, permissionsFor } from "@/services/project-members-service";
 import {
   BASIS_LABELS,
   moveSection,
@@ -81,6 +82,14 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     queryFn: () => getReportRevisions(orgId!, projectId!, reportId!),
     enabled: !!orgId && !!projectId && !!reportId && mode !== "new",
   });
+  const access = useQuery({
+    queryKey: ["project-role", user?.id, orgId, projectId],
+    queryFn: () => getMyProjectRole(projectId!, user!.id),
+    enabled: !!user && !!orgId && !!projectId,
+  });
+  const canEdit =
+    ["owner", "admin"].includes(currentOrg?.role ?? "") ||
+    permissionsFor(access.data ?? null).canEdit;
   const revision = revisions.data?.find((r) =>
     search.version ? r.version === search.version : true,
   );
@@ -141,6 +150,10 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     }
   }
   async function save(status: ReportStatus) {
+    if (!canEdit) {
+      setError("Din adgang er læseadgang. Rapportversioner kan ikke oprettes eller ændres.");
+      return;
+    }
     if (!content || !orgId || !projectId) return;
     await run(async () => {
       const saved = await saveReportDocument({
@@ -187,6 +200,11 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
   return (
     <main className="p-6 max-w-[1400px] mx-auto space-y-4">
       <PageHeader title={title} description={`${currentOrg.name} / ${currentProject.name}`} />
+      {!canEdit && (
+        <p role="note">
+          Din adgang er læseadgang. Du kan åbne og eksportere gemte rapportversioner.
+        </p>
+      )}
       {error && (
         <p role="alert" className="rounded-lg border border-destructive p-3">
           {error}
@@ -211,13 +229,15 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               <div key={template.id} className="rounded-lg border p-3 space-y-2">
                 <h2 className="font-semibold">{template.label}</h2>
                 <p className="text-sm text-muted-foreground">{template.description}</p>
-                <Link
-                  className={button}
-                  to="/app/reports/new"
-                  search={{ template: template.id } as never}
-                >
-                  Opret {template.label.toLowerCase()}
-                </Link>
+                {canEdit && (
+                  <Link
+                    className={button}
+                    to="/app/reports/new"
+                    search={{ template: template.id } as never}
+                  >
+                    Opret {template.label.toLowerCase()}
+                  </Link>
+                )}
               </div>
             ))}
           </div>
@@ -285,7 +305,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
           </p>
         </Card>
       )}
-      {content && (mode === "new" || mode === "builder") && (
+      {canEdit && content && (mode === "new" || mode === "builder") && (
         <>
           <Card className="p-5 space-y-3">
             <label className="block">
@@ -589,7 +609,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               <li key={i}>{issue}</li>
             ))}
           </ul>
-          {mode === "approval" && (
+          {canEdit && mode === "approval" && (
             <div className="flex gap-2">
               <button
                 className={button}

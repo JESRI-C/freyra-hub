@@ -76,6 +76,11 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await checkpoint("login_navigation");
   await expect(page.getByRole("navigation", { name: "Sagens seks trin" })).toBeVisible();
   await checkpoint("upload_original");
+  await mkdir("docs/screens/release-1.0", { recursive: true });
+  await page.screenshot({
+    path: "docs/screens/release-1.0/01-billeder-foer-upload.png",
+    fullPage: true,
+  });
   // Every category remains reachable; the primary municipal workflow stays compact.
   await expect(page.getByRole("navigation", { name: "Hovedmenu" }).getByRole("link")).toHaveCount(
     2,
@@ -87,6 +92,10 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await upload.click();
   await expect(page.getByRole("button", { name: "Luk", exact: true })).toHaveCount(0, {
     timeout: 180_000,
+  });
+  await page.screenshot({
+    path: "docs/screens/release-1.0/02-original-uploadet.png",
+    fullPage: true,
   });
   await checkpoint("localization");
   await page
@@ -119,6 +128,10 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   });
   await expect(prepare).toBeEnabled();
   await prepare.click();
+  await page.screenshot({
+    path: "docs/screens/release-1.0/03-offentlige-data.png",
+    fullPage: true,
+  });
   await checkpoint("public_data_and_round");
   await expect(page).toHaveURL(/round=[0-9a-f-]{36}/, { timeout: 240_000 });
   const roundId = new URL(page.url()).searchParams.get("round");
@@ -186,6 +199,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(
     review.getByRole("status").filter({ hasText: "Faglig afvisning gemt" }),
   ).toBeVisible();
+  await page.screenshot({ path: "docs/screens/release-1.0/04-fotogennemgang.png", fullPage: true });
   await checkpoint("audit_and_planting");
   // Utility navigation must preserve the exact reviewed round.
   await page.getByRole("link", { name: "Revisionsspor", exact: true }).click();
@@ -194,9 +208,18 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(review.getByText("Originalt dronefoto", { exact: true })).toBeVisible();
   await page
     .getByRole("navigation", { name: "Sagens seks trin" })
+    .getByRole("button", { name: /Baseline/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Se den dokumenterede tilstand og dens begrænsninger" }),
+  ).toBeVisible();
+  await page.screenshot({ path: "docs/screens/release-1.0/05-baseline.png", fullPage: true });
+  await page
+    .getByRole("navigation", { name: "Sagens seks trin" })
     .getByRole("button", { name: /Beplantning/ })
     .click();
   await expect(page.getByText("Skitse – kræver faglig validering", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "docs/screens/release-1.0/06-beplantning.png", fullPage: true });
   await page
     .getByRole("navigation", { name: "Sagens seks trin" })
     .getByRole("button", { name: /Rapport/ })
@@ -249,6 +272,10 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
     contentType: "application/json",
   });
   await client.auth.signOut({ scope: "local" });
+  await page.screenshot({
+    path: "docs/screens/release-1.0/07-rapport-eksporteret.png",
+    fullPage: true,
+  });
   await checkpoint("completed");
 });
 

@@ -1,4 +1,4 @@
-// GoFreyra database types — mirrors 001_gofreyra_core_schema.sql
+// Freyra database types — mirrors 001_gofreyra_core_schema.sql
 
 // ─── GeoJSON types (minimal, no external lib needed) ──────────────────────────
 

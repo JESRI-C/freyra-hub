@@ -105,8 +105,7 @@ function RegistryPage() {
           -filen.
         </p>
         <p>
-          Preview-tilstand returnerer geografisk realistiske eksempeldata fra Danmark og EU uden
-          nettrafik, så platformen aldrig fejler ved manglende API-nøgler.
+          Kilder uden konfiguration eller dokumenteret dækning returnerer ingen projektresultater.
         </p>
       </div>
     </main>

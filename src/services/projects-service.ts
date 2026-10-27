@@ -1,5 +1,4 @@
 // Configured projects always come from Supabase. A source error is never demo data.
-
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import {
@@ -19,22 +18,17 @@ import { getAuditEventsByProject } from "./audit-service";
 import { getReportsByProject } from "./reports-service";
 import { computeAreaHa, computeCentroid, validateProjectPolygon } from "./geo-service";
 import type { GeoJSONPolygon } from "@/lib/supabase/types";
-
 function seedProjects(organizationId?: string): Project[] {
   if (organizationId) return SEED_PROJECTS.filter((p) => p.organization_id === organizationId);
   return SEED_PROJECTS;
 }
-
 export async function getProjects(organizationId?: string): Promise<Project[]> {
-  if (isDemoDataEnabled) return seedProjects(organizationId);
   requireCustomerDatabase();
   return fetchProjects(organizationId);
 }
-
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   const fallback = () =>
     SEED_PROJECTS.find((p) => p.slug === slug) ?? SEED_PROJECTS.find((p) => p.id === slug) ?? null;
-  if (isDemoDataEnabled) return fallback();
   requireCustomerDatabase();
   const bySlug = await fetchProjectBySlug(slug);
   if (bySlug) return bySlug;
@@ -45,16 +39,12 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
   }
   return null;
 }
-
 export async function getProjectById(id: string): Promise<Project | null> {
   const fallback = () => SEED_PROJECTS.find((p) => p.id === id) ?? null;
-  if (isDemoDataEnabled) return fallback();
   requireCustomerDatabase();
   return fetchProjectById(id);
 }
-
 // ─── Write ────────────────────────────────────────────────────────────────────
-
 export async function createProject(input: {
   name: string;
   slug: string;
@@ -64,7 +54,10 @@ export async function createProject(input: {
   description?: string;
   start_date?: string;
   organization_id?: string;
-}): Promise<{ id: string; slug: string | null }> {
+}): Promise<{
+  id: string;
+  slug: string | null;
+}> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   const project = await insertProject({ ...input, status: "planning" });
   void logAuditEvent({
@@ -77,7 +70,6 @@ export async function createProject(input: {
   });
   return project;
 }
-
 export async function updateProjectDetails(
   id: string,
   input: Partial<{
@@ -110,31 +102,29 @@ export async function updateProjectDetails(
   });
   return updatedProject;
 }
-
 export interface PersistedProjectBoundary {
   polygon: GeoJSONPolygon;
   areaHa: number;
-  centroid: { lat: number; lng: number };
+  centroid: {
+    lat: number;
+    lng: number;
+  };
   source: string;
 }
-
 type ProjectBoundaryUpdater = (
   id: string,
   input: Parameters<typeof updateProjectDetails>[1],
 ) => Promise<Project | void>;
-
 export class BoundaryOperationInProgressError extends Error {
   constructor() {
     super("En anden ændring af projektgrænsen er allerede i gang. Vent, og prøv igen.");
     this.name = "BoundaryOperationInProgressError";
   }
 }
-
 export interface BoundaryOperationGuard {
   isBusy: () => boolean;
   run: <T>(operation: () => Promise<T>) => Promise<T>;
 }
-
 /** Synchronous admission guard: only one boundary write may be in flight. */
 export function createBoundaryOperationGuard(): BoundaryOperationGuard {
   let busy = false;
@@ -151,7 +141,6 @@ export function createBoundaryOperationGuard(): BoundaryOperationGuard {
     },
   };
 }
-
 export function projectBoundaryMutationErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "Ukendt fejl";
   const normalized = message.toLowerCase();
@@ -165,7 +154,6 @@ export function projectBoundaryMutationErrorMessage(error: unknown): string {
   }
   return message;
 }
-
 /**
  * Canonical persistence boundary for every map/import source. Validation and
  * derived values happen here so callers cannot persist a malformed polygon or
@@ -173,14 +161,16 @@ export function projectBoundaryMutationErrorMessage(error: unknown): string {
  */
 export async function persistProjectBoundary(
   projectId: string,
-  input: { polygon: unknown; source?: string },
+  input: {
+    polygon: unknown;
+    source?: string;
+  },
   update: ProjectBoundaryUpdater = updateProjectDetails,
 ): Promise<PersistedProjectBoundary> {
   const validation = validateProjectPolygon(input.polygon);
   if (!validation.valid) {
     throw new Error(validation.error);
   }
-
   const centroid = computeCentroid(validation.polygon);
   if (!centroid) {
     throw new Error("Projektgrænsens centroid kunne ikke beregnes.");
@@ -189,7 +179,6 @@ export async function persistProjectBoundary(
   if (!Number.isFinite(areaHa) || areaHa <= 0) {
     throw new Error("Projektgrænsens areal kunne ikke beregnes.");
   }
-
   const source = input.source ?? "manual";
   const updatedProject = await update(projectId, {
     geometry_polygon: validation.polygon,
@@ -198,7 +187,6 @@ export async function persistProjectBoundary(
     geometry_centroid_lat: centroid.lat,
     geometry_centroid_lng: centroid.lng,
   });
-
   if (updatedProject) {
     const persistedValidation = validateProjectPolygon(updatedProject.geometry_polygon);
     const polygonMatches =
@@ -216,10 +204,8 @@ export async function persistProjectBoundary(
       );
     }
   }
-
   return { polygon: validation.polygon, areaHa, centroid, source };
 }
-
 /** Clear every canonical geometry field together so no stale map position survives. */
 export async function clearProjectBoundary(
   projectId: string,
@@ -245,37 +231,26 @@ export async function clearProjectBoundary(
     );
   }
 }
-
 export async function getSitesByProject(projectId: string): Promise<Site[]> {
-  if (isDemoDataEnabled) {
-    return SEED_SITES.filter((s) => s.project_id === projectId);
-  }
   requireCustomerDatabase();
   return fetchSitesByProject(projectId);
 }
-
 export async function getDataSourcesByProject(projectId: string): Promise<DataSource[]> {
-  if (isDemoDataEnabled) {
-    return SEED_DATA_SOURCES.filter((d) => d.project_id === projectId);
-  }
   requireCustomerDatabase();
   return fetchDataSourcesByProject(projectId);
 }
-
 // Returns a rich summary for the Nature Project Monitor view.
 export async function getNatureProjectSummary(
   projectId: string,
 ): Promise<NatureProjectSummary | null> {
   const project = await getProjectById(projectId);
   if (!project) return null;
-
   const [indicators, auditEvents, reports, dataSources] = await Promise.all([
     getIndicatorsByProject(projectId),
     getAuditEventsByProject(projectId),
     getReportsByProject(projectId),
     getDataSourcesByProject(projectId),
   ]);
-
   return {
     project,
     indicators,
@@ -286,7 +261,6 @@ export async function getNatureProjectSummary(
     latestReport: reports[0] ?? null,
   };
 }
-
 // Returns all project summaries for the platform overview.
 export async function getAllNatureProjectSummaries(
   organizationId?: string,

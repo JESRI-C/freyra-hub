@@ -33,7 +33,7 @@ export interface ProjectReportPreview {
   recommendedActions: string[];
   evidenceSummary: string[];
   auditSummary: string[];
-  readinessScore: number | null;
+  readinessScore: number;
 }
 
 interface GenerateInput {
@@ -77,8 +77,38 @@ export function generateProjectReportPreview({
   mediaItems,
   sensors,
 }: GenerateInput): ProjectReportPreview {
-  // Completeness is not professional verification or report acceptance.
-  const readinessScore: number | null = null;
+  // ── Readiness score ─────────────────────────────────────────────────────────
+  const readinessIndicator = indicators.find((i) => i.key === "report_readiness");
+  let readinessScore: number;
+
+  if (readinessIndicator?.value !== null && readinessIndicator?.value !== undefined) {
+    readinessScore = readinessIndicator.value;
+  } else {
+    // Derive from data completeness
+    const hasDescription = project.description ? 20 : 0;
+    const hasSites = sites.length > 0 ? 20 : 0;
+    const hasDataSources = dataSources.filter((d) => d.status === "online").length > 0 ? 20 : 0;
+    const hasIndicators = indicators.length > 0 ? 20 : 0;
+    const hasEvidence = evidenceFiles.length > 0 ? 20 : 0;
+    readinessScore = hasDescription + hasSites + hasDataSources + hasIndicators + hasEvidence;
+  }
+
+  // ── Media bonus scoring ─────────────────────────────────────────────────────
+  if (mediaItems && mediaItems.length > 0) {
+    if (mediaItems.length >= 3) readinessScore = Math.min(100, readinessScore + 10);
+    if (mediaItems.some((m) => m.isReportReady)) readinessScore = Math.min(100, readinessScore + 5);
+    if (mediaItems.some((m) => !!m.coordinates)) readinessScore = Math.min(100, readinessScore + 5);
+    if (mediaItems.some((m) => m.category === "field_photo" || m.category === "before_after")) {
+      readinessScore = Math.min(100, readinessScore + 5);
+    }
+  }
+
+  // ── IoT sensor bonus scoring ────────────────────────────────────────────────
+  if (sensors && sensors.length > 0) {
+    const onlineSensors = sensors.filter((s) => s.status === "online");
+    if (onlineSensors.length > 0) readinessScore = Math.min(100, readinessScore + 5);
+    if (onlineSensors.length >= 3) readinessScore = Math.min(100, readinessScore + 5);
+  }
 
   // ── Key findings from indicators ────────────────────────────────────────────
   const keyFindings: string[] = [];

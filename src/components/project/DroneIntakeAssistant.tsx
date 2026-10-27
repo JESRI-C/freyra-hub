@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MapPin, Sparkles } from "lucide-react";
-import { DEMO_MODE } from "@/lib/demo-mode";
+import { AUTOMATIC_PHOTO_REVIEW_ENABLED } from "@/lib/municipal-workflow";
 import type { Project } from "@/lib/supabase/types";
 import { localizeDroneOriginals } from "@/lib/drone-localization.functions";
 import { inspectDroneImage } from "@/lib/drone-image-inspection.functions";
@@ -299,7 +299,7 @@ function Intake({
   async function analyze(fixed = prepared, isCurrent = current()) {
     // Municipal release deliberately uses manual comparison. Keep this execution
     // guard as well as hiding controls: binding completion must not invoke AI.
-    if (DEMO_MODE) return;
+    if (!AUTOMATIC_PHOTO_REVIEW_ENABLED) return;
     const eligible = fixed ? droneIntakeAiPhotos(fixed.photos) : [];
     if (!fixed || !isCurrent() || imageBusy.current || cursor.current >= eligible.length) return;
     imageBusy.current = true;
@@ -347,7 +347,7 @@ function Intake({
   }
   function skipFailedPhoto() {
     if (
-      DEMO_MODE ||
+      !AUTOMATIC_PHOTO_REVIEW_ENABLED ||
       !prepared ||
       !bindingsComplete ||
       !imageError ||
@@ -411,12 +411,13 @@ function Intake({
       );
     setBindingsComplete(true);
     setStage(
-      `${fixed.photos.length} fotos er tilknyttet den gemte undersøgelse. ${DEMO_MODE ? "Fortsæt med manuel sammenligning i Gennemgang." : "Fortsæt med spørgsmålene nedenfor."}`,
+      `${fixed.photos.length} fotos er tilknyttet den gemte undersøgelse. ${!AUTOMATIC_PHOTO_REVIEW_ENABLED ? "Fortsæt med manuel sammenligning i Gennemgang." : "Fortsæt med spørgsmålene nedenfor."}`,
     );
     await Promise.resolve()
       .then(onPhotosChanged)
       .catch(() => undefined);
-    if (!DEMO_MODE && isCurrent() && cursor.current === 0) await analyze(fixed, isCurrent);
+    if (!!AUTOMATIC_PHOTO_REVIEW_ENABLED && isCurrent() && cursor.current === 0)
+      await analyze(fixed, isCurrent);
   }
 
   async function prepare() {
@@ -524,7 +525,7 @@ function Intake({
             <p className="text-sm text-muted-foreground">
               {batch.mediaIds.length} kontrollerede originaler i denne serie. Programmet foreslår
               først stedet. Når du har bekræftet det, hentes offentlige data, og{" "}
-              {DEMO_MODE
+              {!AUTOMATIC_PHOTO_REVIEW_ENABLED
                 ? "billederne knyttes til den gemte undersøgelse til manuel sammenligning."
                 : "billederne bruges til at stille konkrete spørgsmål."}
             </p>
@@ -543,7 +544,7 @@ function Intake({
               : `${localization?.photos.filter((photo) => isDroneCameraLocationStatus(photo.status)).length ?? 0} fotos med kameraposition til stedforslag.`}
           </p>
           <p>
-            {DEMO_MODE
+            {!AUTOMATIC_PHOTO_REVIEW_ENABLED
               ? "Automatisk billedvurdering er ikke frigivet til kommunal brug. Sammenhold originalfoto og offentlige kilder i Gennemgang."
               : !prepared || !bindingsComplete
                 ? "Billed-AI starter efter bekræftet sted, datagrundlag og billedtilknytning."
@@ -552,7 +553,7 @@ function Intake({
                   : `${completedCount} af ${aiPhotos.length} billedudkast gennemgået i denne arbejdsgang.`}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {DEMO_MODE
+            {!AUTOMATIC_PHOTO_REVIEW_ENABLED
               ? "Gemte AI-vurderinger og deres begrænsninger kan fortsat læses. Manglende eller ubrugelige vurderinger kræver manuel gennemgang."
               : "De første 12 tilknyttede fotos gennemgås automatisk efter datagrundlaget. Flere fortsættes i hold på 12. Udkast og spørgsmål skal gennemgås fagligt."}
           </p>
@@ -567,7 +568,7 @@ function Intake({
             {imageError}
           </p>
         )}
-        {!DEMO_MODE && oversizedCount > 0 && (
+        {!!AUTOMATIC_PHOTO_REVIEW_ENABLED && oversizedCount > 0 && (
           <p className="text-sm text-amber-700">
             {oversizedCount} originaler afventer billedanalyse på grund af grænsen på 20 MB. De er
             tilknyttet undersøgelsen og bevares til manuel gennemgang.
@@ -579,7 +580,7 @@ function Intake({
             gennemgang: {skippedPhotos.map((photo) => photo.fileName).join(", ")}.
           </p>
         )}
-        {!DEMO_MODE &&
+        {!!AUTOMATIC_PHOTO_REVIEW_ENABLED &&
           prepared &&
           bindingsComplete &&
           !analyzing &&
@@ -595,7 +596,7 @@ function Intake({
                 : `Analyser de næste ${Math.min(12, aiPhotos.length - nextIndex)} fotos`}
             </button>
           )}
-        {!DEMO_MODE &&
+        {!!AUTOMATIC_PHOTO_REVIEW_ENABLED &&
           prepared &&
           bindingsComplete &&
           imageError &&
