@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Script } from "node:vm";
 import {
   AtlasReviewSchema,
   documentedPhotoComparison,
@@ -178,6 +179,9 @@ describe("photo-atlas data and provenance", () => {
       dataset([{ ...photo, observation: '</script><img src=x onerror="hostile()">' }]),
     );
     const html = buildPhotoAtlasHtml(atlas, new Map(), "<script>hostile()</script>");
+    const program = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)?.[1];
+    expect(program).toBeTruthy();
+    expect(() => new Script(program!)).not.toThrow();
     expect(html).not.toContain("</script><img src=x");
     expect(html).toContain("\\u003c/script>");
     expect(html).toContain("&lt;script&gt;hostile()");

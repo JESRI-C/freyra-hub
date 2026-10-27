@@ -1,5 +1,6 @@
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import { extractDroneImageMetadata } from "./monitoring/drone-image-metadata";
+import { getProjectMedia } from "./project-media-service";
 import { parsePhotoAtlas, ATLAS_METHOD, type PhotoAtlas } from "@/lib/photo-atlas";
 
 /** Read the authorized original, never its thumbnail or a signed URL as provenance. */
@@ -23,7 +24,10 @@ export async function atlasFromProjectOriginals(
   if (!items.length)
     throw new Error("Projektet har endnu ingen originalfotos. Upload billeder nedenfor først.");
   const photos = [];
-  for (const item of items) {
+  for (const reference of items) {
+    const refreshed = await getProjectMedia(projectId, reference.id);
+    if (!refreshed.data) throw new Error(refreshed.error ?? "Originalen kunne ikke åbnes.");
+    const item = refreshed.data;
     const response = await fetch(item.url, {
       credentials: "omit",
       signal: AbortSignal.timeout(90000),

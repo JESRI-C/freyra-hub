@@ -240,6 +240,23 @@ export async function countCanonicalProjectOriginals(projectId: string): Promise
   if (error || count == null) throw new Error("Billederne kunne ikke hentes.");
   return count;
 }
+/** Refresh a single private link immediately before downloading a batch item. */
+export async function getProjectMedia(
+  projectId: string,
+  mediaId: string,
+): Promise<MediaServiceResult<ProjectMediaItem>> {
+  if (!isSupabaseConfigured || !supabase)
+    return { data: null, error: "Kundedatabasen er ikke konfigureret." };
+  const { data, error } = await getDb()!
+    .from("project_media")
+    .select("*")
+    .eq("project_id", projectId)
+    .eq("id", mediaId)
+    .single();
+  if (error || !data)
+    return { data: null, error: "Originalen blev ikke fundet, eller projektadgangen er ændret." };
+  return materializePrivateMedia(data as Record<string, unknown>, projectId);
+}
 export async function listProjectMedia(
   projectId: string,
 ): Promise<MediaServiceResult<ProjectMediaItem[]>> {

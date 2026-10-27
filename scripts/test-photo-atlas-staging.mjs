@@ -82,6 +82,18 @@ try {
   await atlas.getByRole("heading", { name: "Fotoatlas og baseline", exact: true }).waitFor();
   await atlas.getByText("Indlæser fotoatlas…", { exact: true }).waitFor({ state: "hidden" });
   const existing = await atlas.getByLabel("Gemte fotoatlas og baselines").count();
+  if (existing) {
+    const reference = await client
+      .from("evidence_files")
+      .select("id")
+      .eq("project_id", project.id)
+      .eq("evidence_type", "freyra_photo_atlas_v1")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    assert.equal(reference.error, null);
+    if (reference.data[0])
+      await atlas.getByLabel("Gemte fotoatlas og baselines").selectOption(reference.data[0].id);
+  }
   if (!existing) {
     await atlas
       .getByText("Indlæs eksisterende fotoatlas eller baselinedata", { exact: true })
@@ -101,6 +113,7 @@ try {
     .filter({ hasText: "274 af 274 fotos" })
     .waitFor({ timeout: 240000 });
   result.steps.push("274 reference photos persisted and loaded through private storage");
+  const importedSourceId = await atlas.getByLabel("Gemte fotoatlas og baselines").inputValue();
   console.log("PASS private source load");
   assert.equal(await atlas.getByLabel("Optagedato").locator("option").count(), 4);
   assert.equal(await atlas.getByLabel("Vandløb").locator("option").count(), 5);
@@ -122,7 +135,7 @@ try {
   await dialog.getByRole("alert").filter({ hasText: "Bekræftet art kræver" }).waitFor();
   await dialog.getByLabel("Status for artsbestemmelse").selectOption("suggestion");
   await dialog
-    .getByLabel("Synligt på fotoet", { exact: true })
+    .getByLabel("Synligt på fotoet")
     .fill("TEKNISK gemmeprøve – den faglige beskrivelse afventer godkendelse.");
   await dialog
     .getByLabel("Synlige adgangsforhold og praktiske udfordringer")
@@ -230,6 +243,7 @@ try {
     await readPage.goto(base + "/app/projects/" + project.id, { waitUntil: "networkidle" });
     await readPage.getByRole("button", { name: "Fotoatlas", exact: true }).click();
     const readAtlas = readPage.getByRole("region", { name: "Projektets fotoatlas og baseline" });
+    await readAtlas.getByLabel("Gemte fotoatlas og baselines").selectOption(importedSourceId);
     await readAtlas
       .getByRole("status")
       .filter({ hasText: "274 af 274 fotos" })
