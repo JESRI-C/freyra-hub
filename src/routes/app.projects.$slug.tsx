@@ -72,6 +72,7 @@ import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/re
 import { listProjectMedia } from "@/services/project-media-service";
 import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
 import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
+import { ProjectPhotoAtlas } from "@/components/project-workspace/ProjectPhotoAtlas";
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
@@ -210,7 +211,7 @@ function ProjectDetailPage() {
     queryKey: ["project-by-slug", slug],
     queryFn: () => getProjectBySlug(slug),
   });
-  const { user: accessUser } = useAuth();
+  const { user: accessUser, currentOrg } = useAuth();
   const loadAccess = useServerFn(getSurveyRoundAccess);
   const actualAccess = useQuery({
     queryKey: ["municipal-case-access", accessUser?.id, project?.id],
@@ -751,6 +752,21 @@ function ProjectDetailPage() {
             {/* ── Medier ─────────────────────────────────────────────────── */}
             {active === "medier" && (
               <div className="space-y-5">
+                {project.organization_id ? (
+                  <ProjectPhotoAtlas
+                    key={projectId}
+                    scope={{ organizationId: project.organization_id, projectId }}
+                    projectName={project.name}
+                    organizationName={currentOrg?.name ?? "Organisation ikke valgt"}
+                    purpose={project.description ?? ""}
+                    canEdit={canEdit}
+                    media={mediaItems}
+                  />
+                ) : (
+                  <p className="rounded-lg border p-4">
+                    Projektet skal tilknyttes en organisation, før fotoatlas kan indlæses og gemmes.
+                  </p>
+                )}
                 {geometry.hasValidGeometry && (
                   <div className="rounded-xl overflow-hidden border">
                     <ProjectGeometryMap
@@ -763,14 +779,18 @@ function ProjectDetailPage() {
                 )}
                 <div className="grid lg:grid-cols-[1fr_360px] gap-5 items-start">
                   <ProjectMediaGallery items={mediaItems} isLoading={mediaLoading} />
-                  <ProjectMediaUploadPanel
-                    projectId={projectId}
-                    projectCentroid={geometry.centroid ?? undefined}
-                    onUploadComplete={() =>
-                      void queryClient.invalidateQueries({ queryKey: ["project-media", projectId] })
-                    }
-                    onDroneBatchImported={() => void droneUploadsQuery.refetch()}
-                  />
+                  {canEdit && (
+                    <ProjectMediaUploadPanel
+                      projectId={projectId}
+                      projectCentroid={geometry.centroid ?? undefined}
+                      onUploadComplete={() =>
+                        void queryClient.invalidateQueries({
+                          queryKey: ["project-media", projectId],
+                        })
+                      }
+                      onDroneBatchImported={() => void droneUploadsQuery.refetch()}
+                    />
+                  )}
                 </div>
               </div>
             )}

@@ -341,7 +341,15 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 className={button}
                 onClick={() =>
                   void run(async () => {
-                    const sources = await loadReportSources(projectId!);
+                    const loaded = await loadReportSources(projectId!);
+                    const sources = [
+                      ...new Map(
+                        [
+                          ...loaded,
+                          ...content.sources.filter((s) => s.kind === "atlas_illustration"),
+                        ].map((s) => [s.id, s]),
+                      ).values(),
+                    ];
                     setContent({
                       ...content,
                       sources,
@@ -373,11 +381,19 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
             <div className="flex flex-wrap gap-2">
               <button
                 className={button}
-                disabled={busy}
+                disabled={busy || !content.sections.some((section) => section.id === "section-4")}
                 onClick={() =>
                   void run(async () => {
                     const observations = await loadReviewedReportObservations(projectId!, orgId!);
-                    const sources = await loadReportSources(projectId!);
+                    const loaded = await loadReportSources(projectId!);
+                    const sources = [
+                      ...new Map(
+                        [
+                          ...loaded,
+                          ...content.sources.filter((s) => s.kind === "atlas_illustration"),
+                        ].map((s) => [s.id, s]),
+                      ).values(),
+                    ];
                     setContent({
                       ...content,
                       sources,

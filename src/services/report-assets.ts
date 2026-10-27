@@ -1,5 +1,6 @@
 import { reportMapPlan } from "@/lib/report-map";
 import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ReportRevision } from "@/lib/report-document";
 export interface ReportImage {
   id: string;
@@ -99,6 +100,49 @@ export async function buildReportImages(revision: ReportRevision): Promise<Repor
     });
   }
   let totalBytes = 0;
+  const atlasSources = revision.content.sources.filter(
+    (source) => source.kind === "atlas_illustration",
+  );
+  if (atlasSources.length) {
+    // Resolve the report's scope from its authorized row, never from a caller-supplied path.
+    const report = await (supabase as unknown as SupabaseClient)
+      .from("report_documents")
+      .select("organization_id,project_id")
+      .eq("id", revision.report_id)
+      .single();
+    if (report.error || !report.data)
+      throw new Error("Rapportens projektadgang kunne ikke bekræftes.");
+    const scope = report.data as { organization_id: string; project_id: string };
+    const { loadPhotoAtlas } = await import("./photo-atlas-service");
+    const { atlasReportImages } = await import("@/lib/photo-atlas-export");
+    const ids = [...new Set(atlasSources.map((source) => source.id.split(":")[1]))];
+    for (const evidenceId of ids) {
+      const atlas = await loadPhotoAtlas(
+        { organizationId: scope.organization_id, projectId: scope.project_id },
+        evidenceId,
+      );
+      const selected = atlasSources.filter((source) =>
+        source.id.startsWith(`atlas:${evidenceId}:`),
+      );
+      const photos = selected.map((source) => {
+        const photo = atlas.photos.find((p) => source.id === `atlas:${evidenceId}:${p.id}`);
+        if (
+          !photo ||
+          source.version !== `atlas-sha256:${atlas.checksum}` ||
+          (photo.sha256 ?? null) !== source.checksum
+        )
+          throw new Error("Fotoatlassets kilde eller checksum er ændret. Eksporten er stoppet.");
+        return photo;
+      });
+      const atlasImages = await atlasReportImages(atlas, photos);
+      for (const image of atlasImages) {
+        totalBytes += image.bytes.length;
+        if (totalBytes > 100 * 1024 * 1024)
+          throw new Error("Fotoatlas overstiger 100 MB. Afgræns rapporten.");
+        images.push(image);
+      }
+    }
+  }
   for (const source of revision.content.sources) {
     if (
       !source.filePath ||

@@ -46,6 +46,8 @@ export interface MapEditorMapProps {
   zones?: Zone[];
   sensors?: IoTSensor[];
   droneUploadPoints?: DroneUploadMapPoint[];
+  onDronePhotoClick?: (photoId: string) => void;
+  fitDroneUploads?: boolean;
   showSensors?: boolean;
   showDroneUploads?: boolean;
   showParagraph3?: boolean;
@@ -186,13 +188,17 @@ function buildDroneUploadPopup(point: DroneUploadMapPoint): HTMLElement {
   popup.append(title);
 
   const warning = document.createElement("div");
-  warning.textContent = "Ubekræftet kameraposition";
+  warning.textContent = point.positionNotice ?? "Ubekræftet kameraposition";
   warning.style.color = "#b45309";
   warning.style.fontWeight = "600";
   warning.style.margin = "4px 0";
   popup.append(warning);
 
-  appendDronePopupRow(popup, "Optaget", new Date(point.capturedAt).toLocaleString("da-DK"));
+  appendDronePopupRow(
+    popup,
+    "Optaget",
+    point.capturedAtLabel ?? new Date(point.capturedAt).toLocaleString("da-DK"),
+  );
   appendDronePopupRow(
     popup,
     "Position",
@@ -227,6 +233,8 @@ export function MapEditorMap({
   zones = [],
   sensors = [],
   droneUploadPoints = [],
+  onDronePhotoClick,
+  fitDroneUploads = false,
   showSensors = true,
   showDroneUploads = true,
   showParagraph3 = true,
@@ -922,11 +930,13 @@ export function MapEditorMap({
           fillOpacity: 0.95,
         })
           .bindPopup(buildDroneUploadPopup(point))
+          .on("click", () => onDronePhotoClick?.(point.uploadId))
           .addTo(group);
       });
 
       if (disposed || mapRef.current !== map || group.getLayers().length === 0) return;
       group.addTo(map);
+      if (fitDroneUploads) map.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 18 });
       nextGroup = group;
       layers.droneUploads = group;
     })();
@@ -938,7 +948,7 @@ export function MapEditorMap({
         layers.droneUploads = null;
       }
     };
-  }, [droneUploadPoints, projectId, ready, showDroneUploads]);
+  }, [droneUploadPoints, projectId, ready, showDroneUploads, onDronePhotoClick, fitDroneUploads]);
 
   // ── Center override (from address search) ─────────────────────────────────────
   useEffect(() => {

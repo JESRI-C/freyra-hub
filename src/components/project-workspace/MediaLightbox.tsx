@@ -44,7 +44,9 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
   if (!item) return null;
 
   const before = item.beforeMediaId ? items.find((m) => m.id === item.beforeMediaId) : null;
-  const dateLabel = new Date(item.capturedAt ?? item.uploadedAt).toLocaleString("da-DK");
+  const dateLabel = item.capturedAt
+    ? new Date(item.capturedAt).toLocaleString("da-DK")
+    : "Optagedato mangler";
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 flex items-stretch" onClick={onClose}>
@@ -91,8 +93,8 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
             <BeforeAfterCompare
               beforeUrl={before.url}
               afterUrl={item.url}
-              beforeLabel="Før"
-              afterLabel="Nu"
+              beforeLabel="Optagelse A"
+              afterLabel="Optagelse B"
             />
           ) : (
             <img
@@ -172,8 +174,12 @@ export function MediaLightbox({ items, activeId, onClose, onChange }: Props) {
                 className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg border hover:bg-muted"
               >
                 <Layers className="h-4 w-4" />
-                {compare ? "Vis kun aktuelt billede" : "Sammenlign før / efter"}
+                {compare ? "Vis kun aktuelt billede" : "Sammenlign optagelser"}
               </button>
+              <p className="mt-2 text-xs text-muted-foreground">
+                To fotos dokumenterer ikke i sig selv et indgreb. Brug fotoatlassets arbejdsdato og
+                kilde til en dokumenteret før-/eftersammenligning.
+              </p>
             </div>
           )}
 

@@ -1,0 +1,9 @@
+{
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "desktop": true,
+  "mobile": true,
+  "categories": 16,
+  "projectTabs": true,
+  "errors": [],
+  "passed": true
+}

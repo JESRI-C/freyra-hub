@@ -1,5 +1,5 @@
 // Evidence Service
-import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { isSupabaseConfigured, supabase, requireSupabaseUrl } from "@/lib/supabase/client";
 import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import { fetchEvidenceFilesByProject, fetchAllEvidenceFiles } from "@/lib/supabase/queries";
 import { SEED_EVIDENCE_FILES } from "@/data/platform-seed";
@@ -166,31 +166,43 @@ export async function uploadEvidenceFile(input: {
   title: string;
   evidenceType: string;
   file: File;
+  onProgress?: (percentage: number) => void;
 }): Promise<EvidenceFile | null> {
   if (!isSupabaseConfigured || !supabase) {
-    // Simulate upload in preview mode — return a mock EvidenceFile
-    const mock: EvidenceFile = {
-      id: `ev-${Date.now()}`,
-      project_id: input.projectId,
-      report_id: input.reportId ?? null,
-      title: input.title,
-      evidence_type: input.evidenceType,
-      file_type: input.file.type || null,
-      file_url: `preview/${input.projectId}/${input.file.name}`,
-      created_at: new Date().toISOString(),
-    };
-    return mock;
+    throw new Error("Dokumentationen er ikke gemt. Upload kræver en konfigureret kundedatabase.");
   }
   // Real Supabase Storage upload
   const safeName = sanitizeEvidenceFileName(input.file.name);
   const path = `${input.projectId}/${Date.now()}_${safeName}`;
-  const { error: uploadError } = await supabase.storage
-    .from(EVIDENCE_BUCKET)
-    .upload(path, input.file, {
-      cacheControl: "300",
-      contentType: input.file.type || undefined,
-      upsert: false,
-    });
+  let uploadError: { message: string } | null = null;
+  if (input.file.size > 6 * 1024 * 1024) {
+    const session = await supabase.auth.getSession();
+    if (session.error || !session.data.session) throw new Error("Upload kræver en aktiv session.");
+    const { uploadWithTus } = await import("./monitoring/resumable-upload-service");
+    try {
+      await uploadWithTus({
+        file: input.file,
+        projectUrl: requireSupabaseUrl(),
+        accessToken: session.data.session.access_token,
+        bucketName: EVIDENCE_BUCKET,
+        objectName: path,
+        contentType: input.file.type || "application/octet-stream",
+        onProgress: input.onProgress,
+      });
+    } catch {
+      uploadError = {
+        message: "Filupload blev ikke gennemført. Kontrollér forbindelse og adgang, og prøv igen.",
+      };
+    }
+  } else {
+    ({ error: uploadError } = await supabase.storage
+      .from(EVIDENCE_BUCKET)
+      .upload(path, input.file, {
+        cacheControl: "300",
+        contentType: input.file.type || undefined,
+        upsert: false,
+      }));
+  }
   if (uploadError) {
     console.error("Evidence upload failed:", uploadError);
     return null;
