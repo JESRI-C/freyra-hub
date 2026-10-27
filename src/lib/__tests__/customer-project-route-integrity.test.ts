@@ -53,6 +53,10 @@ vi.mock("@/lib/supabase/client", () => ({ isSupabaseConfigured: false, supabase:
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/components/project/ProjectHeader", () => ({ ProjectHeader: () => null }));
 vi.mock("@/components/project/ProjectTabs", () => ({ ProjectTabs: () => null }));
+// This test exercises the route's data guards. Atlas behavior has its own tests.
+vi.mock("@/components/project-workspace/ProjectPhotoAtlas", () => ({
+  ProjectPhotoAtlas: () => null,
+}));
 vi.mock("@/lib/report-engine", () => ({
   generateProjectReportPreview: state.preview,
   getRecommendedNextAction: () => null,
