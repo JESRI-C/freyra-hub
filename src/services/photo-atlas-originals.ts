@@ -37,7 +37,11 @@ export async function atlasFromProjectOriginals(
     const blob = await response.blob();
     if (blob.size > 100 * 1024 * 1024) throw new Error("En original overstiger 100 MB.");
     const filename =
-      typeof item.metadata?.original_name === "string" ? item.metadata.original_name : item.title;
+      typeof item.metadata?.original_name === "string"
+        ? item.metadata.original_name
+        : typeof item.metadata?.storage_file_name === "string"
+          ? item.metadata.storage_file_name
+          : item.title;
     const original = new File([blob], filename, { type: blob.type, lastModified: 0 });
     const metadata = await extractDroneImageMetadata(original);
     if (item.sha256 && item.sha256.toLowerCase() !== metadata.file.sha256)

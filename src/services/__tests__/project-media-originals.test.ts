@@ -70,6 +70,18 @@ beforeEach(() => {
     .mockResolvedValue({ data: { signedUrl: "private-signed-url" }, error: null });
 });
 describe("private original persistence", () => {
+  it("preserves the exact original filename and checksum for ordinary field uploads", async () => {
+    const original = {
+      ...input(),
+      category: "field_photo" as const,
+      source: "field_upload" as const,
+    };
+    const result = await uploadProjectMedia(original);
+    expect(mocks.payload.sha256).toBe("a".repeat(64));
+    expect(mocks.payload.metadata).toEqual({ original_name: "photo.jpg" });
+    expect(result.data?.metadata?.original_name).toBe("photo.jpg");
+    expect(mocks.upload.mock.calls[0][1]).toBe(original.file);
+  });
   it("stores untouched file privately, no centroid or fabricated GPS", async () => {
     const original = input();
     const result = await uploadProjectMedia(original);

@@ -60,7 +60,11 @@ try {
     await page.getByText("Andet foto eller bilag", { exact: true }).click();
     await page.getByLabel("Vælg andet foto eller bilag").setInputFiles(path.resolve(originalPath));
     await page.getByRole("button", { name: "Gem foto eller bilag", exact: true }).click();
-    await page.getByRole("status").filter({ hasText: /gemt/i }).last().waitFor();
+    await page
+      .getByRole("status")
+      .filter({ hasText: /er uploadet og afventer gennemgang/i })
+      .last()
+      .waitFor();
   }
   const atlas = page.getByRole("region", { name: "Projektets fotoatlas og baseline" });
   const build = atlas.getByRole("button", {

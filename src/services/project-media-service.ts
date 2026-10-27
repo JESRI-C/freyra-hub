@@ -152,7 +152,17 @@ function rowToMediaItem(row: Record<string, unknown>, signedUrl: string): Projec
     beforeMediaId: (row["before_media_id"] as string | null | undefined) ?? null,
     flightId: (row["flight_id"] as string | null | undefined) ?? null,
     sha256: (row["sha256"] as string | null | undefined) ?? null,
-    metadata: (row["metadata"] as Record<string, unknown> | undefined) ?? {},
+    metadata: {
+      ...((row["metadata"] as Record<string, unknown> | undefined) ?? {}),
+      // Historical field uploads retained a sanitized filename only in the path.
+      storage_file_name:
+        typeof row["file_path"] === "string"
+          ? row["file_path"]
+              .split("/")
+              .at(-1)
+              ?.replace(/^\d{13}_/, "")
+          : undefined,
+    },
   };
 }
 async function materializePrivateMedia(
@@ -394,6 +404,7 @@ export async function uploadProjectMedia(
   const timestamp = Date.now();
   const safeName = input.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const filePath = `${input.projectId}/${timestamp}_${safeName}`;
+  const checksum = await sha256(input.file);
   // Upload file to storage
   const { error: storageError } = await supabase.storage.from(BUCKET).upload(filePath, input.file, {
     cacheControl: "300",
@@ -414,6 +425,8 @@ export async function uploadProjectMedia(
     // `url` is kept only for compatibility with the current non-null schema.
     // The live application ignores persisted URL fields and signs `file_path`.
     url: "",
+    sha256: checksum,
+    metadata: { original_name: input.file.name },
     thumbnail_url: null,
     captured_at: input.capturedAt ?? null,
     lat: input.coordinates?.lat ?? null,
