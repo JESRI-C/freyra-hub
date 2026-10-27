@@ -45,6 +45,7 @@ vi.mock("@/services/report-assets", () => ({ buildReportImages: vi.fn() }));
 vi.mock("@/lib/report-export", () => ({ downloadReportFile: vi.fn() }));
 
 import { newReportContent } from "@/lib/report-document";
+import { loadReportSources } from "@/services/report-document-service";
 import { ReportWorkspace, reportSearch } from "./ReportWorkspace";
 
 let root: Root;
@@ -102,6 +103,22 @@ describe("real report editor draft hydration", () => {
     await editOrder();
     state.auth = structuredClone(state.auth);
     await render("new");
+    expect(firstSection()).toBe("Oversigtskort og dækning");
+  });
+  it("preserves edits made while the source register is loading", async () => {
+    let finish!: (sources: []) => void;
+    vi.mocked(loadReportSources).mockReturnValueOnce(
+      new Promise<[]>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    await render("new");
+    const load = [...host.querySelectorAll("button")].find(
+      (button) => button.textContent === "Indlæs projektets kilderegister",
+    );
+    await act(async () => load!.click());
+    await editOrder();
+    await act(async () => finish([]));
     expect(firstSection()).toBe("Oversigtskort og dækning");
   });
   it("starts a fresh draft after selecting another project", async () => {

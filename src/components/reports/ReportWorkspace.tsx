@@ -342,11 +342,15 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 onClick={() =>
                   void run(async () => {
                     const sources = await loadReportSources(projectId!);
-                    setContent({
-                      ...content,
-                      sources,
-                      sections: content.sections.map((s) => ({ ...s, reviewed: false })),
-                    });
+                    setContent((current) =>
+                      current
+                        ? {
+                            ...current,
+                            sources,
+                            sections: current.sections.map((s) => ({ ...s, reviewed: false })),
+                          }
+                        : current,
+                    );
                     setMessage(
                       `${sources.length} kildereferencer indlæst. Gem versionen for at fastholde dem.`,
                     );
