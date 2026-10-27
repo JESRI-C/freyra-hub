@@ -1,6 +1,6 @@
 set -euo pipefail
 # Only the disposable local CI Supabase stack is accepted. No --linked/hosted connections.
-export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=postgres
+export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=supabase_admin PGPASSWORD=postgres PGDATABASE=postgres
 [ "${CI:-}" = true ] || { echo 'Disposable CI environment required'; exit 1; }
 command -v pg_dump
 mkdir -p tmp/release-restore
