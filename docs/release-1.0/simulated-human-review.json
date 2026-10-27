@@ -1,0 +1,123 @@
+{
+  "schema": "freyra.simulated-human-review/v1",
+  "date": "2026-10-28",
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "projectId": "e4b55ce9-5b77-4b76-9981-a077284b0c5a",
+  "sourceRevision": "cfe09c4e0cbb3fac4379460dc353f9b9fea17fc1",
+  "workerVersion": "203a9441-9578-4187-ac26-c30b1010d184",
+  "browser": "Microsoft Edge / Playwright",
+  "professionalApproval": false,
+  "complete": true,
+  "sourceRaceCheck": true,
+  "latestDriveAccessNotesSaved": true,
+  "latestBaselineEvidenceId": "4b972411-9e27-4b67-b070-1961325c0932",
+  "reports": [
+    {
+      "key": "watercourse",
+      "id": "26433a55-1ea9-45cd-befa-6ee1038fac26",
+      "version": 4,
+      "status": "draft",
+      "sections": 11,
+      "allSectionsNonempty": true,
+      "professionalApproval": false,
+      "docxZipAndHeadingsChecked": true,
+      "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/reports/preview?report=26433a55-1ea9-45cd-befa-6ee1038fac26"
+    },
+    {
+      "key": "construction_baseline",
+      "id": "0c521a25-9e10-40bb-9993-6267425aaaa6",
+      "version": 2,
+      "status": "draft",
+      "sections": 11,
+      "allSectionsNonempty": true,
+      "professionalApproval": false,
+      "docxZipAndHeadingsChecked": true,
+      "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/reports/preview?report=0c521a25-9e10-40bb-9993-6267425aaaa6"
+    },
+    {
+      "key": "nature_baseline",
+      "id": "8f301d5e-1208-4e88-a025-970b25f0084a",
+      "version": 2,
+      "status": "draft",
+      "sections": 11,
+      "allSectionsNonempty": true,
+      "professionalApproval": false,
+      "docxZipAndHeadingsChecked": true,
+      "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/reports/preview?report=8f301d5e-1208-4e88-a025-970b25f0084a"
+    },
+    {
+      "key": "annual_followup",
+      "id": "bd94c0da-e274-4bbb-b1ec-766da49c1242",
+      "version": 2,
+      "status": "draft",
+      "sections": 11,
+      "allSectionsNonempty": true,
+      "professionalApproval": false,
+      "docxZipAndHeadingsChecked": true,
+      "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/reports/preview?report=bd94c0da-e274-4bbb-b1ec-766da49c1242"
+    },
+    {
+      "key": "fotoatlas",
+      "id": "930a4c4d-a29c-473f-93f1-c212f6fb805c",
+      "version": 2,
+      "status": "draft",
+      "sections": 8,
+      "allSectionsNonempty": true,
+      "professionalApproval": false,
+      "docxZipAndHeadingsChecked": false,
+      "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/reports/preview?report=930a4c4d-a29c-473f-93f1-c212f6fb805c"
+    }
+  ],
+  "pdfChecks": [
+    {
+      "file": "annual_followup.pdf",
+      "pages": 3,
+      "textCharacters": 6591,
+      "visuallyRenderedPages": [1, 2, 3],
+      "hasDraftLabel": true,
+      "replacementGlyphs": false
+    },
+    {
+      "file": "construction_baseline.pdf",
+      "pages": 3,
+      "textCharacters": 6192,
+      "visuallyRenderedPages": [1, 2, 3],
+      "hasDraftLabel": true,
+      "replacementGlyphs": false
+    },
+    {
+      "file": "fotoatlas.pdf",
+      "pages": 74,
+      "textCharacters": 141393,
+      "visuallyRenderedPages": [1, 2, 3, 5, 19, 56, 58, 74],
+      "hasDraftLabel": true,
+      "replacementGlyphs": false
+    },
+    {
+      "file": "nature_baseline.pdf",
+      "pages": 3,
+      "textCharacters": 6092,
+      "visuallyRenderedPages": [1, 2, 3],
+      "hasDraftLabel": true,
+      "replacementGlyphs": false
+    },
+    {
+      "file": "watercourse.pdf",
+      "pages": 3,
+      "textCharacters": 6253,
+      "visuallyRenderedPages": [1, 2, 3],
+      "hasDraftLabel": true,
+      "replacementGlyphs": false
+    }
+  ],
+  "findings": {
+    "fixed": "Asynchronous source-register load previously overwrote concurrent draft edits; fixed in cfe09c4, tested in unit regression and hosted browser with a deliberately delayed source response.",
+    "open": "Report library lists creation date and technical ID, not report title/type. Reports open with correct titles/content; improve library naming before municipal handover."
+  },
+  "testCount": 2919,
+  "testFiles": 199,
+  "typecheck": "passed",
+  "build": "passed",
+  "productionGo": "NO-GO",
+  "productionChanged": false
+}

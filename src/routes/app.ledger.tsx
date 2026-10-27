@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   BarChart3,
@@ -9,10 +9,11 @@ import {
   FileText,
   FileBarChart,
 } from "lucide-react";
+import { ProjectEvidenceStatus } from "@/components/ProjectEvidenceStatus";
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/ledger")({
-  head: () => ({ meta: [{ title: "Documentation & Audit Trail — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Documentation & Audit Trail — Freyra" }] }),
   component: LedgerLayout,
 });
 

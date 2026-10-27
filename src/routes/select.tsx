@@ -227,7 +227,7 @@ function SelectPage() {
                       onClick={() => {
                         selectOrg(org.id);
                         selectProject(p.id);
-                        navigate({ to: "/app/overview" });
+                        navigate({ to: "/app/projects/$slug", params: { slug: p.id } });
                       }}
                       className="w-full text-left rounded-2xl border bg-card p-4 hover:shadow-card transition flex items-center gap-3 group"
                     >

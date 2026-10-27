@@ -1,0 +1,204 @@
+{
+  "run": "336de731",
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "projects": [
+    {
+      "id": "b88ac41b-86ff-4cfe-b1cc-c633217c85e7",
+      "name": "TEKNISK FANETEST 336de731 A"
+    },
+    {
+      "id": "c743eb64-a908-4c00-bd83-c340505c5169",
+      "name": "TEKNISK FANETEST 336de731 B"
+    }
+  ],
+  "backend": {
+    "versionConflict": true,
+    "readerRead": true,
+    "readerWriteDenied": true,
+    "forgedScopeDenied": true,
+    "projectBEmpty": true
+  },
+  "routes": [
+    {
+      "route": "/app/decisions/recommendations",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/risk",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/scenarios",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/data-quality",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/notes",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions/assistant",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/metrics",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/csrd",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/co2",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/sources",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/audit",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/documents",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger/reporting",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/projects",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/project",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/portfolio",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/credits",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/verification",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/organizations",
+      "pass": true
+    },
+    {
+      "route": "/app/impact/reports",
+      "pass": true
+    },
+    {
+      "route": "/app/sources",
+      "pass": true
+    },
+    {
+      "route": "/app/overview",
+      "pass": true
+    },
+    {
+      "route": "/app/projects",
+      "pass": true
+    },
+    {
+      "route": "/app/reports",
+      "pass": true
+    },
+    {
+      "route": "/app/connect/map",
+      "pass": true
+    },
+    {
+      "route": "/app/construction",
+      "pass": true
+    },
+    {
+      "route": "/app/connect",
+      "pass": true
+    },
+    {
+      "route": "/app/lavbund",
+      "pass": true
+    },
+    {
+      "route": "/app/decisions",
+      "pass": true
+    },
+    {
+      "route": "/app/ledger",
+      "pass": true
+    },
+    {
+      "route": "/app/connect/registry",
+      "pass": true
+    },
+    {
+      "route": "/app/impact",
+      "pass": true
+    },
+    {
+      "route": "/app/public-impact",
+      "pass": true
+    },
+    {
+      "route": "/app/settings",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/users",
+      "pass": true
+    },
+    {
+      "route": "/app/system-test",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/projects",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/access",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/frameworks",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/modules",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/notifications",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/security",
+      "pass": true
+    },
+    {
+      "route": "/app/settings/billing",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "aiBoundary": "Authenticated hosted server path reached; missing key shown; provider inference not tested.",
+  "browserPersistence": true,
+  "browserProjectSwitch": true,
+  "actionPersistence": true,
+  "riskPersistence": true,
+  "readerBrowser": true,
+  "sourceRevision": "28a832062bd355dd82da151561c49cd8f0db3d93",
+  "checkedAt": "2026-10-27T22:50:47.688Z"
+}

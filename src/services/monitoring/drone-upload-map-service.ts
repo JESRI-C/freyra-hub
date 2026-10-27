@@ -43,6 +43,9 @@ export interface DroneUploadMapPoint {
   fileName: string;
   coordinates: { lat: number; lng: number };
   capturedAt: string;
+  /** Imported local timestamps must not be silently converted to a timezone. */
+  capturedAtLabel?: string;
+  positionNotice?: string;
   altitudeM?: number;
   directionDeg?: number;
   cameraLabel?: string;

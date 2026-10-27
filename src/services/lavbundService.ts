@@ -23,7 +23,6 @@ import type {
 } from "@/types/lavbund";
 import { supabase } from "@/lib/supabase/client";
 import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
-
 // Lavbund-tabellerne er nyere end den genererede Database-type — klienten
 // tilgås derfor løst her, men alle payloads er typet ved modulets rand.
 interface LooseResult<T> {
@@ -36,42 +35,68 @@ interface LooseError {
 }
 interface LooseQuery {
   eq(col: string, v: unknown): LooseQuery;
-  order(col: string, opts?: { ascending?: boolean }): LooseQuery;
+  order(
+    col: string,
+    opts?: {
+      ascending?: boolean;
+    },
+  ): LooseQuery;
   maybeSingle(): Promise<LooseResult<unknown>>;
   then<R>(onfulfilled: (v: LooseResult<unknown[] | null>) => R): Promise<R>;
 }
 interface LooseClient {
   from(table: string): {
     select(cols: string): LooseQuery;
-    upsert(rows: unknown, opts?: { onConflict?: string }): Promise<{ error: LooseError | null }>;
-    insert(rows: unknown): Promise<{ error: LooseError | null }>;
-    update(patch: unknown): { eq(col: string, v: unknown): Promise<{ error: LooseError | null }> };
-    delete(): { eq(col: string, v: unknown): Promise<{ error: LooseError | null }> };
+    upsert(
+      rows: unknown,
+      opts?: {
+        onConflict?: string;
+      },
+    ): Promise<{
+      error: LooseError | null;
+    }>;
+    insert(rows: unknown): Promise<{
+      error: LooseError | null;
+    }>;
+    update(patch: unknown): {
+      eq(
+        col: string,
+        v: unknown,
+      ): Promise<{
+        error: LooseError | null;
+      }>;
+    };
+    delete(): {
+      eq(
+        col: string,
+        v: unknown,
+      ): Promise<{
+        error: LooseError | null;
+      }>;
+    };
   };
 }
-
 function client(): LooseClient | null {
-  if (isDemoDataEnabled) return null;
   requireCustomerDatabase();
   if (!supabase) throw new Error("Kundedatabasen er ikke konfigureret.");
   return supabase as unknown as LooseClient;
 }
-
 // In-memory lager til eksplicit offline-demo.
 const projekter: LavbundsProjekt[] = MOCK_PROJEKTER.map((p) => ({ ...p }));
-
 // ─── Projekter ────────────────────────────────────────────────────────────────
-
 export async function getProjects(): Promise<LavbundsProjekt[]> {
   const db = client();
   if (db) {
     const { data, error } = await db.from("lavbund_projekter").select("payload").order("id");
     if (error) throw error;
-    return ((data ?? []) as Array<{ payload: LavbundsProjekt }>).map((r) => ({ ...r.payload }));
+    return (
+      (data ?? []) as Array<{
+        payload: LavbundsProjekt;
+      }>
+    ).map((r) => ({ ...r.payload }));
   }
   return projekter.map((p) => ({ ...p }));
 }
-
 export async function getProject(id: string): Promise<LavbundsProjekt | null> {
   const db = client();
   if (db) {
@@ -81,13 +106,14 @@ export async function getProject(id: string): Promise<LavbundsProjekt | null> {
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;
-    const row = data as { payload: LavbundsProjekt } | null;
+    const row = data as {
+      payload: LavbundsProjekt;
+    } | null;
     return row ? { ...row.payload } : null;
   }
   const p = projekter.find((x) => x.id === id) ?? null;
   return p ? { ...p } : null;
 }
-
 export async function saveProject(p: LavbundsProjekt): Promise<LavbundsProjekt> {
   const db = client();
   if (db) {
@@ -111,10 +137,8 @@ export async function saveProject(p: LavbundsProjekt): Promise<LavbundsProjekt> 
   else projekter.push({ ...p });
   return { ...p };
 }
-
 // ─── Kobling til kerneprojekt (dashboard-indicators) ─────────────────────────
-
-/** Læs hvilket GoFreyra-kerneprojekt lavbundsprojektet er koblet til. */
+/** Læs hvilket Freyra-kerneprojekt lavbundsprojektet er koblet til. */
 export async function getLinkedProjectId(projektId: string): Promise<string | null> {
   const db = client();
   if (!db) return null;
@@ -124,9 +148,14 @@ export async function getLinkedProjectId(projektId: string): Promise<string | nu
     .eq("id", projektId)
     .maybeSingle();
   if (error) throw error;
-  return (data as { linked_project_id: string | null } | null)?.linked_project_id ?? null;
+  return (
+    (
+      data as {
+        linked_project_id: string | null;
+      } | null
+    )?.linked_project_id ?? null
+  );
 }
-
 /**
  * Kobl (eller afkobl med null) lavbundsprojektet til et kerneprojekt, så
  * bogførte snapshots skubber verificeret CO₂ til projektets indicators.
@@ -144,9 +173,7 @@ export async function setLinkedProject(
     .eq("id", projektId);
   if (error) throw error;
 }
-
 // ─── Målepunkter / readings / transekter / grøfter ───────────────────────────
-
 async function listPayloads<T extends object>(
   table: string,
   projektId: string,
@@ -161,11 +188,14 @@ async function listPayloads<T extends object>(
       .eq("projekt_id", projektId)
       .order(orderCol);
     if (error) throw error;
-    return ((data ?? []) as Array<{ payload: T }>).map((r) => ({ ...r.payload }));
+    return (
+      (data ?? []) as Array<{
+        payload: T;
+      }>
+    ).map((r) => ({ ...r.payload }));
   }
   return mockRows.map((r) => ({ ...r }));
 }
-
 export async function getMaalepunkter(projektId: string): Promise<Maalepunkt[]> {
   return listPayloads(
     "lavbund_maalepunkter",
@@ -173,7 +203,6 @@ export async function getMaalepunkter(projektId: string): Promise<Maalepunkt[]> 
     MOCK_MAALEPUNKTER.filter((m) => m.projektId === projektId),
   );
 }
-
 export async function getReadings(projektId: string): Promise<VandstandsReading[]> {
   const mpIds = new Set(
     MOCK_MAALEPUNKTER.filter((m) => m.projektId === projektId).map((m) => m.id),
@@ -184,7 +213,6 @@ export async function getReadings(projektId: string): Promise<VandstandsReading[
     MOCK_READINGS.filter((r) => mpIds.has(r.maalepunktId)),
   );
 }
-
 export async function getTransekter(projektId: string): Promise<Transekt[]> {
   return listPayloads(
     "lavbund_transekter",
@@ -192,7 +220,6 @@ export async function getTransekter(projektId: string): Promise<Transekt[]> {
     MOCK_TRANSEKTER.filter((t) => t.projektId === projektId),
   );
 }
-
 export async function getGroefter(projektId: string): Promise<GroeftStraekning[]> {
   return listPayloads(
     "lavbund_groefter",
@@ -200,9 +227,7 @@ export async function getGroefter(projektId: string): Promise<GroeftStraekning[]
     MOCK_GROEFTER.filter((g) => g.projektId === projektId),
   );
 }
-
 // ─── Skrive-veje: målepunkter, pejlinger, transekter, grøfter ─────────────────
-
 /** Bekræft at kundens projekt findes; opret aldrig en demo-række i databasen. */
 async function ensureProjectRow(projektId: string): Promise<boolean> {
   const db = client();
@@ -213,12 +238,18 @@ async function ensureProjectRow(projektId: string): Promise<boolean> {
     .eq("id", projektId)
     .maybeSingle();
   if (error) throw error;
-  if ((data as { id: string } | null)?.id === projektId) return true;
+  if (
+    (
+      data as {
+        id: string;
+      } | null
+    )?.id === projektId
+  )
+    return true;
   throw new Error(
     "Lavbundsprojektet findes ikke eller er ikke tilgængeligt. Genindlæs projektet før du gemmer.",
   );
 }
-
 export async function saveMaalepunkt(m: Maalepunkt): Promise<Maalepunkt> {
   const db = client();
   if (db && (await ensureProjectRow(m.projektId))) {
@@ -231,7 +262,6 @@ export async function saveMaalepunkt(m: Maalepunkt): Promise<Maalepunkt> {
   MOCK_MAALEPUNKTER.push(m);
   return m;
 }
-
 export async function saveReading(
   projektId: string,
   r: VandstandsReading,
@@ -252,7 +282,6 @@ export async function saveReading(
   MOCK_READINGS.push(r);
   return r;
 }
-
 /** Erstat projektets transekter med den redigerede liste (fosfor-editoren). */
 export async function replaceTransekter(projektId: string, list: Transekt[]): Promise<void> {
   const db = client();
@@ -273,7 +302,6 @@ export async function replaceTransekter(projektId: string, list: Transekt[]): Pr
   }
   MOCK_TRANSEKTER.push(...list);
 }
-
 /** Erstat projektets grøftestrækninger med den redigerede liste. */
 export async function replaceGroefter(projektId: string, list: GroeftStraekning[]): Promise<void> {
   const db = client();
@@ -293,9 +321,7 @@ export async function replaceGroefter(projektId: string, list: GroeftStraekning[
   }
   MOCK_GROEFTER.push(...list);
 }
-
 // ─── Ledger ───────────────────────────────────────────────────────────────────
-
 export async function getLedger(projektId: string): Promise<LedgerPost[]> {
   const db = client();
   if (db) {
@@ -305,11 +331,14 @@ export async function getLedger(projektId: string): Promise<LedgerPost[]> {
       .eq("projekt_id", projektId)
       .order("seq", { ascending: true });
     if (error) throw error;
-    return ((data ?? []) as Array<{ payload: LedgerPost }>).map((r) => ({ ...r.payload }));
+    return (
+      (data ?? []) as Array<{
+        payload: LedgerPost;
+      }>
+    ).map((r) => ({ ...r.payload }));
   }
   return (MOCK_LEDGER[projektId] ?? []).slice();
 }
-
 export async function appendLedger(projektId: string, post: LedgerPost): Promise<LedgerPost> {
   const db = client();
   if (db && (await ensureProjectRow(projektId))) {
@@ -339,9 +368,7 @@ export async function appendLedger(projektId: string, post: LedgerPost): Promise
   MOCK_LEDGER[projektId].sort((left, right) => left.seq - right.seq);
   return post;
 }
-
 // ─── Snapshots + indicator-kobling ────────────────────────────────────────────
-
 export async function getSnapshot(projektId: string): Promise<BeregningsSnapshot | null> {
   const db = client();
   if (db) {
@@ -351,12 +378,13 @@ export async function getSnapshot(projektId: string): Promise<BeregningsSnapshot
       .eq("projekt_id", projektId)
       .maybeSingle();
     if (error) throw error;
-    const row = data as { payload: BeregningsSnapshot } | null;
+    const row = data as {
+      payload: BeregningsSnapshot;
+    } | null;
     return row ? { ...row.payload } : null;
   }
   return MOCK_SNAPSHOTS[projektId] ?? null;
 }
-
 export async function saveSnapshot(s: BeregningsSnapshot): Promise<BeregningsSnapshot> {
   const db = client();
   if (db && (await ensureProjectRow(s.projektId))) {
@@ -372,7 +400,6 @@ export async function saveSnapshot(s: BeregningsSnapshot): Promise<BeregningsSna
   MOCK_SNAPSHOTS[s.projektId] = s;
   return s;
 }
-
 /** Byg indicator-rækken som et snapshot føder ind i kerneprojektets dashboard. */
 export function buildCo2Indicator(
   linkedProjectId: string,
@@ -396,7 +423,6 @@ export function buildCo2Indicator(
     updated_at: new Date().toISOString(),
   };
 }
-
 /**
  * Er lavbundsprojektet koblet til et kerneprojekt (linked_project_id), skubbes
  * den verificerede CO₂-effekt ind i projektets co2e_reduced-indicator, så
@@ -410,22 +436,23 @@ async function syncSnapshotToIndicators(s: BeregningsSnapshot): Promise<void> {
     .select("linked_project_id")
     .eq("id", s.projektId)
     .maybeSingle();
-  const linked = (data as { linked_project_id: string | null } | null)?.linked_project_id;
+  const linked = (
+    data as {
+      linked_project_id: string | null;
+    } | null
+  )?.linked_project_id;
   if (!linked) return;
   await db
     .from("indicators")
     .upsert([buildCo2Indicator(linked, s)], { onConflict: "project_id,key" });
 }
-
 // ─── Overblik til dashboardet ────────────────────────────────────────────────
-
 export interface LavbundOverblik {
   antalProjekter: number;
   samletArealHa: number;
   krediteretTotal: number;
   verificeretTotal: number | null;
 }
-
 /** Resolve organization membership through the actual linked core-project FK. */
 async function getOrganizationLavbundProjects(organizationId: string): Promise<LavbundsProjekt[]> {
   const db = client();
@@ -438,13 +465,15 @@ async function getOrganizationLavbundProjects(organizationId: string): Promise<L
     .eq("core_project.organization_id", organizationId)
     .order("id");
   if (error) throw error;
-
   const projects: LavbundsProjekt[] = [];
   for (const row of (data ?? []) as Array<{
     id: string;
     payload: LavbundsProjekt;
     linked_project_id: string | null;
-    core_project: { id: string; organization_id: string | null } | null;
+    core_project: {
+      id: string;
+      organization_id: string | null;
+    } | null;
   }>) {
     // Never infer an organization from the editable payload or municipality.
     if (
@@ -461,16 +490,13 @@ async function getOrganizationLavbundProjects(organizationId: string): Promise<L
   }
   return projects;
 }
-
 /** Selected organization only; offline demo keeps its separate sample portfolio. */
 export async function getLavbundOverblik(organizationId?: string): Promise<LavbundOverblik> {
-  if (!isDemoDataEnabled && !organizationId) {
+  if (!organizationId) {
     throw new Error("Vælg en organisation, før du åbner lavbundsoversigten.");
   }
   const { beregnKrediteretCO2 } = await import("@/services/lavbundBeregning");
-  const projects = isDemoDataEnabled
-    ? await getProjects()
-    : await getOrganizationLavbundProjects(organizationId!);
+  const projects = await getOrganizationLavbundProjects(organizationId!);
   let verificeretTotal = 0;
   let missingSnapshot = false;
   for (const p of projects) {
@@ -491,9 +517,7 @@ export async function getLavbundOverblik(organizationId?: string): Promise<Lavbu
       missingSnapshot && !isDemoDataEnabled ? null : Math.round(verificeretTotal * 10) / 10,
   };
 }
-
 // ─── DecisionsIQ-anbefalinger ────────────────────────────────────────────────
-
 /** Regelbaserede anbefalinger ud fra projektets tilstand. */
 export async function getAnbefalinger(projektId: string): Promise<string[]> {
   const p = await getProject(projektId);

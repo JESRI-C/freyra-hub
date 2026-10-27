@@ -145,22 +145,13 @@ describe("legacy derived-analysis gate", () => {
     },
   );
 
-  it("preserves explicit offline demo previews while never persisting results", async () => {
+  it("does not let the removed offline flag bypass source verification", async () => {
     mocks.configured = false;
     vi.stubEnv("VITE_APP_DATA_MODE", "demo");
-    const [biodiversity, carbon, water] = await loadEngines(null);
-    const biodiversityResult = await biodiversity.run();
-    const carbonResult = await carbon.run();
-    const waterResult = await water.run();
-
-    expect(biodiversityResult).toMatchObject({ score: { confidence: "low" }, savedToDb: false });
-    expect(carbonResult).toMatchObject({ estimate: { confidence: "low" }, savedToDb: false });
-    expect(waterResult).toMatchObject({ risk: { nearestWatercourseM: null }, savedToDb: false });
-    expect(mocks.fetchNatureData).toHaveBeenCalledOnce();
-    expect(mocks.fetchSoilProfile).toHaveBeenCalledTimes(2);
-    expect(mocks.fetchTerrainProfile).toHaveBeenCalledOnce();
-    expect(mocks.from).not.toHaveBeenCalled();
+    for (const engine of await loadEngines(null))
+      await expect(engine.run()).rejects.toThrow("valideret offentligt datagrundlag");
+    expect(mocks.fetchNatureData).not.toHaveBeenCalled();
+    expect(mocks.fetch).not.toHaveBeenCalled();
     expect(mocks.saveIndicator).not.toHaveBeenCalled();
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
   });
 });

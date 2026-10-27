@@ -24,7 +24,7 @@ export const generateModuleInsight = createServerFn({ method: "POST" })
     }
 
     const system =
-      "Du er en ESG- og bæredygtighedsanalytiker for GoFreyra-platformen. " +
+      "Du er en ESG- og bæredygtighedsanalytiker for Freyra-platformen. " +
       "Du skriver KORTE danske forslag baseret på brugerens indsendte data, som ikke er verificeret her. " +
       "Brug aldrig floskler. Maks 2 sætninger. Returnér KUN ren tekst — ingen markdown, ingen lister.";
 

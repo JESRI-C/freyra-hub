@@ -23,7 +23,9 @@ vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options: unknown) => ({
     options,
     useParams: () => ({ slug: "pilot" }),
-    useSearch: () => ({}),
+    // The retained full-app overview is now opened through Flere sagsværktøjer.
+    // Exercise the same evidence guards on that explicit tab.
+    useSearch: () => ({ tab: "overblik" }),
     useNavigate: () => vi.fn(),
   }),
   notFound: () => new Error("not found"),
@@ -51,6 +53,10 @@ vi.mock("@/lib/supabase/client", () => ({ isSupabaseConfigured: false, supabase:
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/components/project/ProjectHeader", () => ({ ProjectHeader: () => null }));
 vi.mock("@/components/project/ProjectTabs", () => ({ ProjectTabs: () => null }));
+// This test exercises the route's data guards. Atlas behavior has its own tests.
+vi.mock("@/components/project-workspace/ProjectPhotoAtlas", () => ({
+  ProjectPhotoAtlas: () => null,
+}));
 vi.mock("@/lib/report-engine", () => ({
   generateProjectReportPreview: state.preview,
   getRecommendedNextAction: () => null,
@@ -100,10 +106,8 @@ describe("customer project evidence guards", () => {
   it("keeps generated sensor data in explicit offline demo only", () => {
     state.demo = true;
     renderProject();
-    expect(state.sensors).toHaveBeenCalledWith("project-a", { lat: 55, lng: 9 });
-    expect(state.preview).toHaveBeenCalledWith(
-      expect.objectContaining({ sensors: [{ id: "demo-sensor" }] }),
-    );
+    expect(state.sensors).not.toHaveBeenCalled();
+    expect(state.preview).toHaveBeenCalledWith(expect.objectContaining({ sensors: [] }));
   });
 
   it("rejects a media service error instead of resolving an empty evidence list", async () => {

@@ -11,12 +11,10 @@ import {
   Send,
 } from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
-
 export const Route = createFileRoute("/app/reports")({
-  head: () => ({ meta: [{ title: "Report Engine — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Report Engine — Freyra" }] }),
   component: ReportsLayout,
 });
-
 const TABS = [
   { to: "/app/reports", label: "Rapportcenter", icon: LayoutDashboard, exact: true },
   { to: "/app/reports/new", label: "Opret rapport", icon: FilePlus },
@@ -27,7 +25,6 @@ const TABS = [
   { to: "/app/reports/library", label: "Rapportbibliotek", icon: Library },
   { to: "/app/reports/approval", label: "Godkendelse & eksport", icon: Send },
 ];
-
 function ReportsLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
@@ -35,22 +32,21 @@ function ReportsLayout() {
       <AppTopbar
         title="Rapporter"
         showWorkspaceTools={isDemoDataEnabled}
-        subtitle={
-          isDemoDataEnabled
-            ? "Eksempelvisning med opdigtede rapportdata"
-            : "Projektets registreringer og status for rapportarbejdet"
-        }
+        subtitle={"Projektets registreringer og status for rapportarbejdet"}
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
-            {TABS.filter((tab) => isDemoDataEnabled || tab.exact).map((t) => {
+            {TABS.map((t) => {
               const active = t.exact ? path === t.to : path.startsWith(t.to);
               const Icon = t.icon;
               return (
                 <Link
                   key={t.to}
                   to={t.to as never}
+                  search={(previous: Record<string, unknown>) =>
+                    ({ report: previous.report, version: previous.version }) as never
+                  }
                   className={`inline-flex items-center gap-2 px-3.5 py-3 text-sm border-b-2 whitespace-nowrap transition ${active ? "border-primary text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
                 >
                   <Icon className="h-4 w-4" /> {t.label}
@@ -60,12 +56,7 @@ function ReportsLayout() {
           </nav>
         </div>
       </div>
-      {isDemoDataEnabled && (
-        <div role="note" className="max-w-[1400px] mx-auto px-6 pt-4 text-sm text-amber-800">
-          Offline eksempelvisning. Fund, tal, navne og godkendelser er opdigtede og gælder ingen
-          kundesag.
-        </div>
-      )}
+      {false}
       <Outlet />
     </>
   );

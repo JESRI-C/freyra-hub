@@ -128,3 +128,37 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+/* Preserve accessibility and existing advanced-setting controls. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  button,
+  summary,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+.advanced-settings-toggle::after {
+  content: "Vis";
+}
+details[open] > summary .advanced-settings-toggle::after {
+  content: "Skjul";
+}

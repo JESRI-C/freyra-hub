@@ -1,0 +1,25 @@
+{
+  "sourceRevision": "28a832062bd355dd82da151561c49cd8f0db3d93",
+  "environment": "hosted-staging",
+  "firstAttempt": {
+    "passed": false,
+    "stage": "public_data_and_round",
+    "observed": "A round URL was not produced within 240 seconds; the UI retained the originals and showed a processing error.",
+    "otherBrowserChecksRunning": true,
+    "rootCauseVerified": false
+  },
+  "recovery": {
+    "existingOriginalsRetained": true,
+    "publicSnapshotAndRoundCreatedInBrowser": true
+  },
+  "freshCompleteRetry": {
+    "passed": true,
+    "tests": 2,
+    "fullOriginalPublicDataReviewBaselinePlantingPdfZipSeconds": 49,
+    "newCaseResetSaveReloadSeconds": 9,
+    "completedAt": "2026-10-27T22:58:00.531Z"
+  },
+  "professionalAcceptance": false,
+  "productionReliability": "ikke verificeret; concurrent browser/load investigation required",
+  "screenshots": "docs/screens/release-1.0/"
+}

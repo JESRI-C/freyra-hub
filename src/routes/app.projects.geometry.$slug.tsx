@@ -44,7 +44,7 @@ import type {
 } from "@/services/geospatial/official-watercourse-source";
 
 export const Route = createFileRoute("/app/projects/geometry/$slug")({
-  head: () => ({ meta: [{ title: "Definér projektområde — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Definér projektområde — Freyra" }] }),
   // Geometry editing needs the browser user's Supabase session for every
   // project read/write, so this authenticated route must stay client-rendered.
   ssr: false,

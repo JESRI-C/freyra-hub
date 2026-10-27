@@ -1,0 +1,12 @@
+{
+  "projectRef": "xdvqdzdpyceojbdknofi",
+  "migration": "20261027223941_field_photo_provenance_insert",
+  "appliedToStaging": true,
+  "productionChanged": false,
+  "authenticatedMetadataInsert": true,
+  "authenticatedMetadataUpdate": false,
+  "authenticatedOriginalBucketInsert": false,
+  "rlsPoliciesChanged": false,
+  "databaseRegression": "supabase/tests/database/field_photo_provenance.test.sql",
+  "browserRegression": "photo-atlas-browser.json"
+}

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SEED_PROJECTS } from "@/data/platform-seed";
+import { SEED_PROJECTS } from "@/test/fixtures/platform-seed";
 
 const database = vi.hoisted(() => {
   const maybeSingle = vi.fn();

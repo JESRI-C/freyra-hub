@@ -34,6 +34,13 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
     "gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
   ]).toContain(new URL(baseURL!).hostname);
   const originals = required("HADERSLEV_ORIGINALS_DIR");
+  // Fail before creating a case when the fixture is a report illustration, not the camera original.
+  const original = path.join(originals, "DJI_0040.JPG");
+  expect(
+    createHash("sha256")
+      .update(await readFile(original))
+      .digest("hex"),
+  ).toBe("7a72d47c9151900ce5cfccecbef0c0a7d9177e337d308d4b1c969a0a7035b0d3");
   const client = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -59,7 +66,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
       localStorage.setItem("freyra-auth-selection-v1", JSON.stringify({ orgId, projectId: id })),
     { orgId, id },
   );
-  await page.goto(`/login?next=${encodeURIComponent(`/app/projects/${slug}`)}`);
+  await page.goto(`/login?next=${encodeURIComponent(`/app/projects/${slug}?step=billeder`)}`);
   await checkpoint("login_email");
   await page.locator('input[type="email"]').fill(email);
   await checkpoint("login_password");
@@ -67,24 +74,39 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await checkpoint("login_submit");
   await page.getByRole("button", { name: "Log ind", exact: true }).click();
   await checkpoint("login_navigation");
-  await expect(page.getByRole("navigation", { name: "Sagens fem trin" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Sagens seks trin" })).toBeVisible();
   await checkpoint("upload_original");
-  await expect(page.getByText("Finansiering og effekt", { exact: true })).toHaveCount(0);
+  await mkdir("docs/screens/release-1.0", { recursive: true });
+  await page.screenshot({
+    path: "docs/screens/release-1.0/01-billeder-foer-upload.png",
+    fullPage: false,
+  });
+  // The restored dashboard exposes every category directly in its main navigation.
+  await expect(page.getByRole("navigation", { name: "Hovedmenu" }).getByRole("link")).toHaveCount(
+    16,
+  );
   await page.getByRole("button", { name: "Tilføj dronebilleder", exact: true }).click();
-  await page
-    .locator('input[type="file"][multiple]')
-    .setInputFiles(path.join(originals, "DJI_0040.JPG"));
+  await page.locator('input[type="file"][multiple]').setInputFiles(original);
   const upload = page.getByRole("button", { name: "Upload valgte billeder", exact: true });
   await expect(upload).toBeEnabled();
   await upload.click();
   await expect(page.getByRole("button", { name: "Luk", exact: true })).toHaveCount(0, {
     timeout: 180_000,
   });
+  await page.screenshot({
+    path: "docs/screens/release-1.0/02-original-uploadet.png",
+    fullPage: false,
+  });
   await checkpoint("localization");
   await page
-    .getByRole("navigation", { name: "Sagens fem trin" })
+    .getByRole("navigation", { name: "Sagens seks trin" })
     .getByRole("button", { name: /Datagrundlag/ })
     .click();
+  // Settings are collapsed first. Opening them must preserve the EXIF-derived date.
+  const intakeSettings = page
+    .locator("details.advanced-settings")
+    .filter({ hasText: "Billedgruppe vælger fotos" });
+  await intakeSettings.locator(":scope > summary").click();
   // The label also contains explanatory text about the date and its timezone.
   await expect(page.getByLabel(/^Optagedato/)).toHaveValue("2026-08-24");
   const watercourse = page.getByRole("combobox", { name: /^Vandløb/ });
@@ -121,6 +143,10 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(
     page.getByText(/1 fotos er tilknyttet den gemte undersøgelse.*Gennemgang/),
   ).toBeVisible();
+  await page.screenshot({
+    path: "docs/screens/release-1.0/03-offentlige-data.png",
+    fullPage: false,
+  });
   await expect(
     page.getByRole("button", {
       name: /Fortsæt billedanalysen|Analyser de næste|Spring dette foto over og fortsæt/,
@@ -144,8 +170,8 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   });
   await checkpoint("photo_review");
   await page
-    .getByRole("navigation", { name: "Sagens fem trin" })
-    .getByRole("button", { name: /Gennemgang/ })
+    .getByRole("navigation", { name: "Sagens seks trin" })
+    .getByRole("button", { name: /Verificering/ })
     .click();
   const review = page.getByRole("region", { name: "Verifikation pr. fotopunkt" });
   await expect(review.getByText("Originalt dronefoto", { exact: true })).toBeVisible();
@@ -173,6 +199,10 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(
     review.getByRole("status").filter({ hasText: "Faglig afvisning gemt" }),
   ).toBeVisible();
+  await page.screenshot({
+    path: "docs/screens/release-1.0/04-fotogennemgang.png",
+    fullPage: false,
+  });
   await checkpoint("audit_and_planting");
   // Utility navigation must preserve the exact reviewed round.
   await page.getByRole("link", { name: "Revisionsspor", exact: true }).click();
@@ -180,13 +210,22 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await page.getByRole("button", { name: "Tilbage til sagsforløbet" }).click();
   await expect(review.getByText("Originalt dronefoto", { exact: true })).toBeVisible();
   await page
-    .getByRole("navigation", { name: "Sagens fem trin" })
+    .getByRole("navigation", { name: "Sagens seks trin" })
+    .getByRole("button", { name: /Baseline/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Se den dokumenterede tilstand og dens begrænsninger" }),
+  ).toBeVisible();
+  await page.screenshot({ path: "docs/screens/release-1.0/05-baseline.png", fullPage: false });
+  await page
+    .getByRole("navigation", { name: "Sagens seks trin" })
     .getByRole("button", { name: /Beplantning/ })
     .click();
   await expect(page.getByText("Skitse – kræver faglig validering", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "docs/screens/release-1.0/06-beplantning.png", fullPage: false });
   await page
-    .getByRole("navigation", { name: "Sagens fem trin" })
-    .getByRole("button", { name: /Rapport og aflevering/ })
+    .getByRole("navigation", { name: "Sagens seks trin" })
+    .getByRole("button", { name: /Rapport/ })
     .click();
   const downloading = page.waitForEvent("download", { timeout: 180_000 });
   await checkpoint("report_and_zip");
@@ -236,5 +275,98 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
     contentType: "application/json",
   });
   await client.auth.signOut({ scope: "local" });
+  await page.screenshot({
+    path: "docs/screens/release-1.0/07-rapport-eksporteret.png",
+    fullPage: false,
+  });
   await checkpoint("completed");
+});
+
+test("Start en ny sag: standarder, nulstilling, gemning og genåbning", async ({
+  page,
+  baseURL,
+}, testInfo) => {
+  expect([
+    "localhost",
+    "127.0.0.1",
+    "gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  ]).toContain(new URL(baseURL!).hostname);
+  const url = required("SUPABASE_URL");
+  expect(new URL(url).hostname).toBe("xdvqdzdpyceojbdknofi.supabase.co");
+  const client = createClient(url, required("SUPABASE_PUBLISHABLE_KEY"), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const email = required("HADERSLEV_OPERATOR_EMAIL"),
+    password = required("HADERSLEV_OPERATOR_PASSWORD");
+  const auth = await client.auth.signInWithPassword({ email, password });
+  expect(auth.error).toBeNull();
+  const orgId = required("HADERSLEV_E2E_ORG_ID");
+  const org = await client.from("organizations").select("name").eq("id", orgId).single();
+  expect(org.error).toBeNull();
+  await page.goto("/login?next=%2Fapp%2Fprojects");
+  await expect(page.locator('input[type="email"]')).toBeEnabled();
+  await page.locator('input[type="email"]').fill(email);
+  await page.locator('input[type="password"]').fill(password);
+  await page.getByRole("button", { name: "Log ind", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Hvad vil du gøre?" })).toBeVisible();
+  await page.goto("/select");
+  await page
+    .getByRole("button")
+    .filter({ hasText: org.data!.name })
+    .filter({ hasText: /projekter ·/ })
+    .click();
+  await page.getByRole("button", { name: "Åbn " + org.data!.name, exact: true }).click();
+  await page.goto("/app/projects");
+  await page.locator("button.start-action").filter({ hasText: "Start en ny sag" }).click();
+  const dialog = page.getByRole("dialog", { name: "Opret ny sag" });
+  const name = "TEKNISK UI – oprettelse " + randomUUID().slice(0, 8);
+  await dialog.getByLabel(/^Projektnavn/).fill(name);
+  const settings = dialog.locator("details.advanced-settings");
+  await expect(settings).not.toHaveAttribute("open");
+  await settings.locator(":scope > summary").click();
+  await expect(dialog.getByLabel("Projekttype", { exact: true })).toHaveValue("Naturgenopretning");
+  await dialog.getByLabel("Projekttype", { exact: true }).selectOption("Vandløbsmonitorering");
+  await dialog.getByLabel("Beskrivelse", { exact: true }).fill("Midlertidig formularkladde");
+  await dialog.getByRole("button", { name: "Aktiv", exact: true }).click();
+  await settings.getByRole("button", { name: "Nulstil til standard", exact: true }).click();
+  await expect(dialog.getByLabel(/^Projektnavn/)).toHaveValue(name);
+  await expect(dialog.getByLabel("Projekttype", { exact: true })).toHaveValue("Naturgenopretning");
+  await expect(dialog.getByLabel("Beskrivelse", { exact: true })).toHaveValue("");
+  await expect(dialog.getByLabel("Placering", { exact: true })).toHaveValue("");
+  const description =
+    "Isoleret teknisk browserprøve. Ingen faglig godkendelse eller kommunal leverance.";
+  await dialog.getByLabel("Beskrivelse", { exact: true }).fill(description);
+  await dialog.getByRole("button", { name: "Opret projekt", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Fotoatlas", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Hovedmenu" }).getByRole("link")).toHaveCount(
+    16,
+  );
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  const rows = await client
+    .from("projects")
+    .select("id, name, status, project_type, description, location_name")
+    .eq("organization_id", orgId)
+    .eq("name", name);
+  expect(rows.error).toBeNull();
+  expect(rows.data).toHaveLength(1);
+  expect(rows.data![0]).toMatchObject({
+    name,
+    status: "Planlægning",
+    project_type: "Naturgenopretning",
+    description,
+    location_name: null,
+  });
+  await testInfo.attach("case-create-control", {
+    body: JSON.stringify({
+      projectId: rows.data![0].id,
+      status: "passed",
+      createdViaBrowser: true,
+      defaultValuesReadBack: true,
+      duplicateCases: 0,
+    }),
+    contentType: "application/json",
+  });
+  await client.auth.signOut({ scope: "local" });
 });

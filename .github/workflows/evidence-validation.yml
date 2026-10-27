@@ -1,0 +1,36 @@
+name: Evidence workflow validation
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evidence-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --legacy-peer-deps
+      - name: Inventory category routes (source presence only)
+        run: node scripts/audit-category-surface.mjs
+      - name: Run offline unit and integration tests
+        run: node node_modules/vitest/vitest.mjs run --maxWorkers=1 --no-file-parallelism --testTimeout=20000
+      - name: Check types
+        run: npm run typecheck
+      - name: Build without deploying
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GOMAXPROCS: 2
+        run: npm run build -- --logLevel warn

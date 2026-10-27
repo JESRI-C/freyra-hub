@@ -131,12 +131,11 @@ describe("customer overview Lavbund data state", () => {
     expect(state.overview).not.toHaveBeenCalled();
   });
 
-  it("preserves explicit offline demo without an organization", async () => {
+  it("rejects the former offline shortcut without an organization", async () => {
     state.organizationId = null;
     state.offlineDemo = true;
     renderOverview();
-    expect(state.enabled).toBe(true);
-    await state.queryFn!();
-    expect(state.overview).toHaveBeenCalledExactlyOnceWith(undefined);
+    expect(state.enabled).toBe(false);
+    expect(state.overview).not.toHaveBeenCalled();
   });
 });

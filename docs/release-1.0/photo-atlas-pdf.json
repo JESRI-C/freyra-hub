@@ -1,0 +1,15 @@
+{
+  "pages": 73,
+  "bytes": 31884715,
+  "sha256": "957b9884dc2a70f319f204c3c2198bac65513ac7c367b05ddc7ee4393a0ddad3",
+  "firstPhotoPresent": true,
+  "lastPhotoPresent": true,
+  "draftLabel": true,
+  "imagePages": 70,
+  "imageDraws": 275,
+  "renderedPages": [1, 2, 4, 5, 73],
+  "visualReview": "passed",
+  "sourceRevision": "28a832062bd355dd82da151561c49cd8f0db3d93",
+  "reviewedPages": [1, 2, 4, 5, 73],
+  "notes": "Cover, Danish characters, method/limitations, camera map, first and last photos reviewed. 274 report illustrations plus overview. Draft status remains visible."
+}

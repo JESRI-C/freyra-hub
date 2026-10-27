@@ -9,7 +9,6 @@ import {
 } from "../live-data-client";
 import type { ConnectorResponse } from "../live-data-client";
 import type { ProjectGeometry } from "@/lib/supabase/types";
-
 export interface NatureRegistration {
   speciesName: string;
   danishName?: string;
@@ -18,16 +17,13 @@ export interface NatureRegistration {
   protected: boolean;
   source: string;
 }
-
 export interface MiljoeportalData {
   registrations: NatureRegistration[];
   protectedHabitats: string[];
   nearestProtectedArea?: string;
   fetchedAt: string;
 }
-
 const NATURDATA_BASE = "https://naturdata.miljoeportal.dk/api";
-
 const PREVIEW_DATA: MiljoeportalData = {
   registrations: [
     {
@@ -56,20 +52,16 @@ const PREVIEW_DATA: MiljoeportalData = {
   nearestProtectedArea: "Habitatområde H66 (2.1 km)",
   fetchedAt: new Date().toISOString(),
 };
-
 export async function getStatus(): Promise<"live" | "preview" | "missing_key"> {
   const config = getLiveDataConfig();
   return config.isLiveDataEnabled ? "live" : "preview";
 }
-
 const AREALDATA_WFS = "https://arealdata.miljoeportal.dk/api/wfs";
-
 export async function fetchByGeometry(
   geometry: ProjectGeometry,
 ): Promise<ConnectorResponse<MiljoeportalData>> {
   const config = getLiveDataConfig();
   if (!config.isLiveDataEnabled) return fetchPreview();
-
   if (!hasSourceGeometry(geometry)) {
     return errorResponse(
       "Miljøportal kræver en gyldig projektgeometri med koordinater.",
@@ -77,7 +69,6 @@ export async function fetchByGeometry(
     );
   }
   const { lat, lng } = geometry.centroid!;
-
   const result = await fetchConnector(async () => {
     // --- Primary source: Naturdatabasen species ---
     const params = new URLSearchParams({
@@ -86,9 +77,8 @@ export async function fetchByGeometry(
       radius: "1000",
       take: "20",
     });
-
     const res = await fetchWithTimeout(`${NATURDATA_BASE}/Species?${params}`, {
-      timeoutMs: 15_000,
+      timeoutMs: 15000,
     });
     if (!res.ok) throw new Error(`Naturdatabasen API ${res.status}`);
     const json = (await res.json()) as {
@@ -108,7 +98,6 @@ export async function fetchByGeometry(
       protected: s.protected ?? false,
       source: "Naturdatabasen",
     }));
-
     // --- Secondary source: §3-protected nature areas (Arealdata WFS) ---
     const protectedHabitats: string[] = [];
     const wfsParams = new URLSearchParams({
@@ -120,7 +109,7 @@ export async function fetchByGeometry(
       bbox: `${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}`,
     });
     const wfsRes = await fetchWithTimeout(`${AREALDATA_WFS}?${wfsParams}`, {
-      timeoutMs: 12_000,
+      timeoutMs: 12000,
     });
     if (!wfsRes.ok) throw new Error(`Arealdata WFS ${wfsRes.status}`);
     const wfsJson = (await wfsRes.json()) as {
@@ -135,14 +124,12 @@ export async function fetchByGeometry(
         `§3-beskyttede naturarealer (${count} område${count === 1 ? "" : "r"})`,
       );
     }
-
     return {
       registrations,
       protectedHabitats,
       fetchedAt: new Date().toISOString(),
     };
   });
-
   if (result.status !== "ok") return result;
   if (!result.data?.registrations.length && !result.data?.protectedHabitats.length) {
     return errorResponse(
@@ -153,16 +140,12 @@ export async function fetchByGeometry(
   }
   return result;
 }
-
 export async function fetchPreview(): Promise<ConnectorResponse<MiljoeportalData>> {
-  return isDemoDataEnabled && !getLiveDataConfig().isLiveDataEnabled
-    ? previewResponse(PREVIEW_DATA)
-    : errorResponse(
-        "Miljøportal er ikke konfigureret til live data. Eksempeldata kræver eksplicit offline demo.",
-        "disabled",
-      );
+  return errorResponse(
+    "Miljøportal er ikke konfigureret til live data. Forbind en verificeret kilde for at hente projektdata.",
+    "disabled",
+  );
 }
-
 export function normalizeResult(
   result: ConnectorResponse<MiljoeportalData>,
 ): Record<string, unknown> {

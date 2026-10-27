@@ -10,8 +10,8 @@ interface Props {
 export function BeforeAfterCompare({
   beforeUrl,
   afterUrl,
-  beforeLabel = "Før",
-  afterLabel = "Efter",
+  beforeLabel = "Optagelse A",
+  afterLabel = "Optagelse B",
 }: Props) {
   const [pos, setPos] = useState(50);
   const wrapRef = useRef<HTMLDivElement>(null);

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SEED_INDICATORS, SEED_PROJECTS } from "@/data/platform-seed";
+import { SEED_INDICATORS, SEED_PROJECTS } from "@/test/fixtures/platform-seed";
 
 const mocks = vi.hoisted(() => {
   const reportResult = vi.fn();
@@ -186,13 +186,11 @@ describe("customer data integrity", () => {
     }
   });
 
-  it("only serves preview data when demo was explicitly requested without a database", async () => {
+  it("rejects the former offline sample mode without a database", async () => {
     mocks.configured = false;
     vi.stubEnv("VITE_APP_DATA_MODE", "demo");
     for (const reader of await loadReaders()) {
-      const result = await reader.read();
-      if (Array.isArray(result)) expect(result.length, reader.name).toBeGreaterThan(0);
-      else expect(result, reader.name).not.toBeNull();
+      await expect(reader.read(), reader.name).rejects.toThrow();
       expect(reader.query).not.toHaveBeenCalled();
     }
   });

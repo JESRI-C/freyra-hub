@@ -10,6 +10,7 @@ import type { Action } from "@/lib/supabase/types";
 
 interface ActionItemProps {
   action: Action;
+  canEdit?: boolean;
   siteName?: string | null;
   indicatorLabel?: string | null;
   onStart?: (id: string) => void;
@@ -20,6 +21,7 @@ interface ActionItemProps {
 
 export function ActionItem({
   action,
+  canEdit = true,
   siteName,
   indicatorLabel,
   onStart,
@@ -44,7 +46,8 @@ export function ActionItem({
   const canComplete = !requiresEvidence || evidenceCount > 0;
 
   const startHandler = onStart ?? onMarkInProgress;
-  const completeHandler = onComplete ?? ((id: string) => onMarkCompleted?.(id));
+  const completeHandler =
+    onComplete ?? (onMarkCompleted ? (id: string) => onMarkCompleted(id) : undefined);
 
   const isOpen = action.status === "Åben" || action.status === "open";
   const isInProgress = action.status === "I gang";
@@ -180,7 +183,12 @@ export function ActionItem({
         </div>
       </div>
 
-      <ActionEvidenceDialog action={action} open={evidenceOpen} onOpenChange={setEvidenceOpen} />
+      <ActionEvidenceDialog
+        action={action}
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+        readOnly={!canEdit}
+      />
     </>
   );
 }

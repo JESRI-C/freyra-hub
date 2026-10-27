@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Layers,
@@ -9,10 +9,11 @@ import {
   Building2,
   FileBarChart,
 } from "lucide-react";
+import { ProjectEvidenceStatus } from "@/components/ProjectEvidenceStatus";
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/impact")({
-  head: () => ({ meta: [{ title: "Funding & Impact Potential — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Funding & Impact Potential — Freyra" }] }),
   component: ImpactLayout,
 });
 

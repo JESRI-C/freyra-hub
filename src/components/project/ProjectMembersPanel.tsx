@@ -36,7 +36,11 @@ export function ProjectMembersPanel({ projectId, currentUserId, permissions }: P
   const [inviteUserId, setInviteUserId] = useState("");
   const [inviteRole, setInviteRole] = useState<ProjectRole>("editor");
 
-  const { data: members = [], isLoading } = useQuery({
+  const {
+    data: members = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["project-members", projectId],
     queryFn: () => listProjectMembers(projectId),
     enabled: !!projectId,
@@ -142,7 +146,9 @@ export function ProjectMembersPanel({ projectId, currentUserId, permissions }: P
         </div>
       )}
 
-      {isLoading ? (
+      {error ? (
+        <p role="alert">Medlemmer kunne ikke indlæses: {error.message}</p>
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground py-2">Indlæser medlemmer…</p>
       ) : members.length === 0 ? (
         <div className="text-center py-8 border border-dashed rounded-lg">

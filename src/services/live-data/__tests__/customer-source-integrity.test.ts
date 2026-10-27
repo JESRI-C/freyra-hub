@@ -77,11 +77,15 @@ describe.each(connectors)("$name customer source integrity", ({ fetch: fetchSour
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("allows sample data only in explicit offline demo", async () => {
+  it("rejects sample data even with the removed offline switch", async () => {
     state.live = false;
     state.demo = true;
-    expect(await fetchSource(geometry)).toMatchObject({ mode: "preview", status: "ok" });
-    expect((await preview()).data).not.toBeNull();
+    expect(await fetchSource(geometry)).toMatchObject({
+      data: null,
+      mode: "error",
+      status: "disabled",
+    });
+    expect((await preview()).data).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
   });
 

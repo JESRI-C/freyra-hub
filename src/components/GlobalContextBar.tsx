@@ -1,14 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Activity, ChevronsUpDown, Bell, Sparkles } from "lucide-react";
-import { DEMO_MODE } from "@/lib/demo-mode";
+import { Activity, ChevronsUpDown, Sparkles } from "lucide-react";
+import { MUNICIPAL_WORKFLOW } from "@/lib/municipal-workflow";
 import { useAuth } from "@/lib/auth";
 import { isDemoDataEnabled as isOfflineDemoMode } from "@/lib/data-mode";
-import { DemoModeBadge } from "@/components/platform/Primitives";
+import { ActivityTray } from "@/components/redesign/ActivityTray";
 import { MobileSidebarTrigger } from "@/components/AppSidebar";
-
 export function GlobalContextBar() {
   const { currentOrg: org, currentProject: project } = useAuth();
-
   return (
     <div className="sticky top-0 z-30 border-b bg-card/90 backdrop-blur">
       <div className="flex items-center gap-2 px-3 sm:px-6 py-2 text-xs min-w-0">
@@ -38,7 +36,7 @@ export function GlobalContextBar() {
           <Link
             to="/app/projects/$slug"
             params={{ slug: project.slug ?? project.id }}
-            search={DEMO_MODE ? { step: "datagrundlag" } : {}}
+            search={MUNICIPAL_WORKFLOW ? { step: "datagrundlag" } : {}}
             className="hidden md:inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
           >
             <Activity className="h-3.5 w-3.5" /> Se sagens datagrundlag
@@ -50,29 +48,8 @@ export function GlobalContextBar() {
         )}
 
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          <span className="hidden sm:inline-flex">
-            <DemoModeBadge />
-          </span>
-          {isOfflineDemoMode && (
-            <Link
-              to="/app/overview"
-              className="hidden md:inline-flex items-center gap-1 rounded-lg border bg-background px-2 py-1 hover:bg-muted text-foreground"
-              title="Start guidet demo"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Start demo
-            </Link>
-          )}
-          {!DEMO_MODE && (
-            <button
-              className="relative h-7 w-7 grid place-items-center rounded-lg border bg-background hover:bg-muted"
-              title="Notifikationer"
-            >
-              <Bell className="h-3.5 w-3.5" />
-              {isOfflineDemoMode && (
-                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-destructive" />
-              )}
-            </button>
-          )}
+          {false}
+          <ActivityTray projectId={project?.id} />
         </div>
       </div>
     </div>

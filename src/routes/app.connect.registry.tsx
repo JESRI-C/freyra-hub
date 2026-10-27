@@ -7,7 +7,7 @@ import { CONNECTOR_REGISTRY, getActiveConnectors } from "@/data/connectors-regis
 import type { ConnectorCategory } from "@/lib/supabase/types";
 
 export const Route = createFileRoute("/app/connect/registry")({
-  head: () => ({ meta: [{ title: "Connector Registry — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Connector Registry — Freyra" }] }),
   component: RegistryPage,
 });
 
@@ -40,7 +40,7 @@ function RegistryPage() {
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
       <PageHeader
         title="Data Connector Registry"
-        description="Oversigt over alle tilgængelige datakilder og API-forbindelser i GoFreyra-platformen."
+        description="Oversigt over alle tilgængelige datakilder og API-forbindelser i Freyra-platformen."
         actions={
           <Link
             to="/app/projects/map/$slug"
@@ -99,14 +99,13 @@ function RegistryPage() {
       <div className="rounded-xl border bg-muted/20 p-4 text-xs text-muted-foreground space-y-1.5">
         <div className="font-medium text-foreground">Om Data Foundation</div>
         <p>
-          Data Foundation er GoFreyras dataorkestreringslaag der forbinder projektområder med danske
+          Data Foundation er Freyras dataorkestreringslaag der forbinder projektområder med danske
           og europæiske åbne miljødatakilder. Connectorer med status "Aktiv" returnerer live-data.
           Connectorer med "Klar" kræver API-konfiguration via miljøvariable i <code>.env</code>
           -filen.
         </p>
         <p>
-          Preview-tilstand returnerer geografisk realistiske eksempeldata fra Danmark og EU uden
-          nettrafik, så platformen aldrig fejler ved manglende API-nøgler.
+          Kilder uden konfiguration eller dokumenteret dækning returnerer ingen projektresultater.
         </p>
       </div>
     </main>

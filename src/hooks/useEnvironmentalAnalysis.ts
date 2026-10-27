@@ -6,21 +6,17 @@
  * Brug i Lovable UI:
  *   const { carbon, water, soil, runAll } = useEnvironmentalAnalysis(project, ndvi)
  */
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { runCarbonAnalysis } from "@/services/nature/carbon-engine";
 import { runWaterQualityAnalysis } from "@/services/nature/water-quality-engine";
 import { fetchSoilProfile, fetchTerrainProfile } from "@/services/nature/geus-service";
 import { isDemoDataEnabled } from "@/lib/data-mode";
 import type { Project } from "@/lib/supabase/types";
-
 export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number | null) {
   const queryClient = useQueryClient();
-
   const lat = project?.geometry_centroid_lat ?? null;
   const lng = project?.geometry_centroid_lng ?? null;
   const enabled = !!project && !!lat && !!lng;
-
   // CO₂-binding
   const carbonQuery = useQuery({
     queryKey: ["carbon", project?.id, ndvi],
@@ -38,7 +34,6 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
-
   // Vandkvalitetsrisiko
   const waterQuery = useQuery({
     queryKey: ["water-quality", project?.id, ndvi],
@@ -47,12 +42,11 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
     staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
-
   // Jordbundsprofil (raw, til visning)
   const soilQuery = useQuery({
     queryKey: ["soil", lat, lng],
     queryFn: async () => {
-      if (!isDemoDataEnabled) {
+      {
         throw new Error("Projektanalysen afventer et valideret offentligt datagrundlag.");
       }
       const [soil, terrain] = await Promise.all([
@@ -65,7 +59,6 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
     staleTime: 7 * 24 * 60 * 60 * 1000, // 7 dage — jordbund ændrer sig ikke
     retry: 1,
   });
-
   // Refresh alle
   const refreshMutation = useMutation({
     mutationFn: async () => {
@@ -80,28 +73,33 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
       ]);
     },
   });
-
   const sourceError =
     refreshMutation.error ?? carbonQuery.error ?? waterQuery.error ?? soilQuery.error;
   const errorMessage = sourceError
     ? sourceError instanceof Error
       ? sourceError.message
-      : typeof (sourceError as { message?: unknown }).message === "string"
-        ? (sourceError as { message: string }).message
+      : typeof (
+            sourceError as {
+              message?: unknown;
+            }
+          ).message === "string"
+        ? (
+            sourceError as {
+              message: string;
+            }
+          ).message
         : "Projektanalysen kunne ikke gennemføres. Prøv igen."
     : (carbonQuery.data?.error ?? waterQuery.data?.error ?? null);
   const carbon = errorMessage ? null : (carbonQuery.data?.estimate ?? null);
   const water = errorMessage ? null : (waterQuery.data?.risk ?? null);
   const soil = errorMessage ? null : (soilQuery.data?.soil ?? null);
   const terrain = errorMessage ? null : (soilQuery.data?.terrain ?? null);
-
   return {
     // CO₂
     carbon,
     annualCO2: carbon?.annualSequestration ?? null,
     totalCO2_30yr: carbon?.totalOver30Years ?? null,
     vegetationType: carbon?.vegetationType ?? null,
-
     // Vandkvalitet
     water,
     waterRisk: water?.overall ?? null,
@@ -109,13 +107,11 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
     watercourseDistM: water?.nearestWatercourseM ?? null,
     mitigationRequired: water?.mitigationRequired ?? false,
     waterRecs: water?.recommendations ?? [],
-
     // Jordbund
     soil,
     terrain,
     soilLabel: soil?.soilLabel ?? null,
     soilClass: soil?.dominantClass ?? null,
-
     // Loading states
     isLoading: carbonQuery.isLoading || waterQuery.isLoading || soilQuery.isLoading,
     carbonLoading: carbonQuery.isLoading,
@@ -123,13 +119,11 @@ export function useEnvironmentalAnalysis(project: Project | null, ndvi?: number 
     soilLoading: soilQuery.isLoading,
     isError: !!errorMessage,
     error: errorMessage,
-
     // Actions
     runAll: () => refreshMutation.mutate(),
     isRunning: refreshMutation.isPending,
   };
 }
-
 /**
  * Samlet miljøscore 0-100 baseret på alle indikatorer.
  * Høj score = godt miljø / lav påvirkning.
@@ -140,18 +134,19 @@ export function computeOverallEnvironmentalScore(params: {
   waterRiskScore: number | null;
   co2Annual: number | null;
   areaHa: number;
-}): { score: number; label: string; color: string } {
+}): {
+  score: number;
+  label: string;
+  color: string;
+} {
   const weights = { biodiversity: 0.35, vegetation: 0.25, water: 0.25, carbon: 0.15 };
-
   const biodiversityPart = (params.biodiversityScore ?? 50) * weights.biodiversity;
   const vegetationPart = (params.ndvi ?? 0.4) * 100 * weights.vegetation;
   const waterPart = (100 - (params.waterRiskScore ?? 50)) * weights.water; // inverter: lav risiko = høj score
   const carbonPer =
     params.co2Annual !== null ? Math.min(100, (params.co2Annual / params.areaHa) * 15) : 40;
   const carbonPart = carbonPer * weights.carbon;
-
   const score = Math.round(biodiversityPart + vegetationPart + waterPart + carbonPart);
-
   if (score >= 70) return { score, label: "Fremragende", color: "text-emerald-700" };
   if (score >= 55) return { score, label: "God", color: "text-emerald-600" };
   if (score >= 40) return { score, label: "Acceptabel", color: "text-amber-600" };

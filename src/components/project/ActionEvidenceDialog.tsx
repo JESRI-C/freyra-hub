@@ -31,10 +31,12 @@ import type { Action } from "@/lib/supabase/types";
 
 export function ActionEvidenceDialog({
   action,
+  readOnly = false,
   open,
   onOpenChange,
 }: {
   action: Action;
+  readOnly?: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -44,7 +46,11 @@ export function ActionEvidenceDialog({
   const [reference, setReference] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const { data: evidence = [], refetch } = useQuery({
+  const {
+    data: evidence = [],
+    refetch,
+    error,
+  } = useQuery({
     queryKey: ["action-evidence", action.id],
     queryFn: () => getActionEvidence(action.id),
     enabled: open,
@@ -100,6 +106,7 @@ export function ActionEvidenceDialog({
         </DialogHeader>
 
         <div className="space-y-3">
+          {error && <p role="alert">Evidens kunne ikke indlæses: {error.message}</p>}
           {/* Existing evidence */}
           {evidence.length > 0 && (
             <div className="rounded-lg border divide-y max-h-56 overflow-y-auto">
@@ -122,13 +129,15 @@ export function ActionEvidenceDialog({
                         {new Date(ev.created_at).toLocaleString("da-DK")}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDelete(ev.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                      aria-label="Fjern"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => handleDelete(ev.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label="Fjern"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -136,47 +145,49 @@ export function ActionEvidenceDialog({
           )}
 
           {/* Add new */}
-          <div className="rounded-lg border p-3 space-y-2">
-            <Label className="text-sm">Tilføj evidens</Label>
-            <Select
-              value={evidenceType}
-              onValueChange={(v) => setEvidenceType(v as typeof evidenceType)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="note">Note</SelectItem>
-                <SelectItem value="photo">Foto (medie-ID)</SelectItem>
-                <SelectItem value="document">Dokument (fil-ID)</SelectItem>
-              </SelectContent>
-            </Select>
-            {evidenceType !== "note" && (
-              <Input
-                placeholder={evidenceType === "photo" ? "Medie-ID fra galleri" : "Evidensfil-ID"}
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
+          {!readOnly && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <Label className="text-sm">Tilføj evidens</Label>
+              <Select
+                value={evidenceType}
+                onValueChange={(v) => setEvidenceType(v as typeof evidenceType)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="note">Note</SelectItem>
+                  <SelectItem value="photo">Foto (medie-ID)</SelectItem>
+                  <SelectItem value="document">Dokument (fil-ID)</SelectItem>
+                </SelectContent>
+              </Select>
+              {evidenceType !== "note" && (
+                <Input
+                  placeholder={evidenceType === "photo" ? "Medie-ID fra galleri" : "Evidensfil-ID"}
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value)}
+                />
+              )}
+              <Textarea
+                rows={2}
+                placeholder="Note eller beskrivelse"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
               />
-            )}
-            <Textarea
-              rows={2}
-              placeholder="Note eller beskrivelse"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-            <Button
-              onClick={handleAdd}
-              disabled={saving || !isSupabaseConfigured}
-              className="w-full"
-              size="sm"
-            >
-              <Paperclip className="h-4 w-4 mr-1.5" />
-              {saving ? "Gemmer…" : "Tilføj evidens"}
-            </Button>
-            {!isSupabaseConfigured && (
-              <p className="text-xs text-muted-foreground">Kræver tilkoblet database.</p>
-            )}
-          </div>
+              <Button
+                onClick={handleAdd}
+                disabled={saving || !isSupabaseConfigured}
+                className="w-full"
+                size="sm"
+              >
+                <Paperclip className="h-4 w-4 mr-1.5" />
+                {saving ? "Gemmer…" : "Tilføj evidens"}
+              </Button>
+              {!isSupabaseConfigured && (
+                <p className="text-xs text-muted-foreground">Kræver tilkoblet database.</p>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>

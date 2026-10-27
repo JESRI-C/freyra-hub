@@ -627,7 +627,7 @@ export function resolveProjectGeometry(
       hasValidGeometry: parsed.hasValidGeometry,
     };
   }
-  const allowSeedFallback = options.allowSeedFallback ?? !isSupabaseConfigured;
+  const allowSeedFallback = options.allowSeedFallback === true;
   return allowSeedFallback ? getProjectGeometrySeed(project.id) : getProjectGeometrySeed("");
 }
 

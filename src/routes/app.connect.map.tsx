@@ -31,7 +31,7 @@ import {
 } from "@/services/export-service";
 
 export const Route = createFileRoute("/app/connect/map")({
-  head: () => ({ meta: [{ title: "Kort & zoner — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Kort & zoner — Freyra" }] }),
   component: Page,
 });
 

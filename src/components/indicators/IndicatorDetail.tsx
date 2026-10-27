@@ -35,10 +35,12 @@ import type { Indicator } from "@/lib/supabase/types";
 
 export function IndicatorDetail({
   indicator,
+  readOnly = false,
   open,
   onOpenChange,
 }: {
   indicator: Indicator | null;
+  readOnly?: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -48,7 +50,11 @@ export function IndicatorDetail({
   const [configOpen, setConfigOpen] = useState(false);
   const qc = useQueryClient();
 
-  const { data: measurements = [], refetch } = useQuery({
+  const {
+    data: measurements = [],
+    refetch,
+    error: measurementsError,
+  } = useQuery({
     queryKey: ["indicator-measurements", indicator?.id, period],
     queryFn: () => (indicator ? getMeasurements(indicator, period) : Promise.resolve([])),
     enabled: !!indicator && open,
@@ -81,8 +87,11 @@ export function IndicatorDetail({
       toast.success("Måling registreret");
       setNewValue("");
       await refetch();
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["indicators"] });
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["open-actions"] });
+      qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["audit-events"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Kunne ikke gemme måling");
@@ -113,9 +122,11 @@ export function IndicatorDetail({
                   {indicator.description ? ` · ${indicator.description}` : ""}
                 </SheetDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
-                <Settings2 className="h-4 w-4 mr-1.5" /> Konfigurér
-              </Button>
+              {!readOnly && (
+                <Button variant="outline" size="sm" onClick={() => setConfigOpen(true)}>
+                  <Settings2 className="h-4 w-4 mr-1.5" /> Konfigurér
+                </Button>
+              )}
             </div>
           </SheetHeader>
 
@@ -223,25 +234,33 @@ export function IndicatorDetail({
             </div>
 
             {/* Add measurement */}
-            <div className="rounded-lg border p-3 space-y-2">
-              <Label className="text-sm">Registrér ny måling</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  step="any"
-                  value={newValue}
-                  onChange={(e) => setNewValue(e.target.value)}
-                  placeholder={`Værdi${indicator.unit ? ` (${indicator.unit})` : ""}`}
-                  disabled={!isSupabaseConfigured}
-                />
-                <Button onClick={handleAdd} disabled={saving || !newValue || !isSupabaseConfigured}>
-                  {saving ? "Gemmer…" : "Tilføj"}
-                </Button>
+            {measurementsError && (
+              <p role="alert">Målinger kunne ikke indlæses: {measurementsError.message}</p>
+            )}
+            {!readOnly && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <Label className="text-sm">Registrér ny måling</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="any"
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    placeholder={`Værdi${indicator.unit ? ` (${indicator.unit})` : ""}`}
+                    disabled={!isSupabaseConfigured}
+                  />
+                  <Button
+                    onClick={handleAdd}
+                    disabled={saving || !newValue || !isSupabaseConfigured}
+                  >
+                    {saving ? "Gemmer…" : "Tilføj"}
+                  </Button>
+                </div>
+                {!isSupabaseConfigured && (
+                  <p className="text-xs text-muted-foreground">Kræver tilkoblet database.</p>
+                )}
               </div>
-              {!isSupabaseConfigured && (
-                <p className="text-xs text-muted-foreground">Kræver tilkoblet database.</p>
-              )}
-            </div>
+            )}
 
             {/* Recent measurements table */}
             {measurements.length > 0 && (
@@ -282,7 +301,9 @@ export function IndicatorDetail({
         open={configOpen}
         onOpenChange={setConfigOpen}
         onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["project-workspace"] });
           qc.invalidateQueries({ queryKey: ["indicators"] });
+          qc.invalidateQueries({ queryKey: ["project-workspace"] });
           qc.invalidateQueries({ queryKey: ["indicator-measurements"] });
         }}
       />

@@ -111,10 +111,7 @@ function Page() {
         eyebrow="Monitoring & Field Data"
         title="Overblik"
         subtitle="Kontroltårn for feltdata — enheder, datakilder og observationer."
-        projectName={PROJECT_FACTS.name}
         freshness="—"
-        status={PROJECT_FACTS.status}
-        readiness={PROJECT_FACTS.reportReadiness}
         primaryCta={{
           label: "Tilføj enhed",
           to: "/app/connect/devices",

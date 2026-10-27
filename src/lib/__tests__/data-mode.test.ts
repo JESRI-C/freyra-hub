@@ -8,8 +8,8 @@ describe("customer versus demo data", () => {
     }
   });
 
-  it("allows explicit offline demo but never mixes demo with a configured customer database", () => {
-    expect(resolveDemoDataMode("demo", false)).toBe(true);
+  it("rejects the former offline switch even without a database", () => {
+    expect(resolveDemoDataMode("demo", false)).toBe(false);
     expect(resolveDemoDataMode("demo", true)).toBe(false);
   });
 });

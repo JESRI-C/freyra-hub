@@ -96,15 +96,22 @@ describe("kommunens arbejdsflade", () => {
       "roller",
     ]);
   });
-  it("viser kun Sager i DEMO-menuen og bevarer /select til arbejdspladsvalg og logout", async () => {
+  it("viser hele dashboardmenuen uanset historiske flag og bevarer arbejdspladsvalg", async () => {
     vi.resetModules();
     vi.stubEnv("VITE_DEMO_MODE", "true");
     const { AppSidebar } = await import("@/components/AppSidebar");
     const html = renderToStaticMarkup(createElement(AppSidebar));
     const navigation = html.match(/<nav\b[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? "";
-    expect(navigation.match(/href="[^"]+"/g)).toEqual(['href="/app/projects"']);
-    expect(navigation).toContain("Sager");
-    expect(html).not.toContain("Indstillinger");
+    expect(navigation.match(/href="[^"]+"/g)).toHaveLength(16);
+    expect(navigation).toContain('href="/app/overview"');
+    expect(navigation).toContain('href="/app/projects"');
+    expect(navigation).toContain("Naturprojekter");
+    expect(navigation).toContain("Kilder");
+    expect(navigation).toContain("Rapporter");
+    expect(html).toContain("Indstillinger");
+    expect(html).toContain('href="/app/impact"');
+    expect(html).toContain('href="/app/connect"');
+    expect(html).toContain('href="/app/lavbund"');
     expect(html).toContain('href="/select"');
   });
 });

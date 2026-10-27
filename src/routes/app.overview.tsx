@@ -27,14 +27,11 @@ import { isDemoDataEnabled } from "@/lib/data-mode";
 import { getAllNatureProjectSummaries } from "@/services/projects-service";
 import { getAllOpenActions } from "@/services/actions-service";
 import { getAllReports } from "@/services/reports-service";
-
 export const Route = createFileRoute("/app/overview")({
-  head: () => ({ meta: [{ title: "Dashboard — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Freyra" }] }),
   component: DashboardPage,
 });
-
 // ─── Static structure copy (module map & workflow) ───────────────────────────
-
 const WORKFLOW_STEPS = [
   "Project intake",
   "Area intelligence",
@@ -46,7 +43,6 @@ const WORKFLOW_STEPS = [
   "Reports",
   "Public impact",
 ];
-
 const REPOSITIONED_MODULES = [
   {
     label: "Monitoring & Field Data",
@@ -84,13 +80,10 @@ const REPOSITIONED_MODULES = [
     icon: FileText,
   },
 ];
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
 function DashboardPage() {
   const { currentOrg, currentProject } = useAuth();
   const orgId = currentOrg?.id ?? "";
-
   const { data: summaries } = useSuspenseQuery({
     queryKey: ["nature-project-summaries", orgId],
     queryFn: () => getAllNatureProjectSummaries(orgId),
@@ -103,7 +96,6 @@ function DashboardPage() {
     queryKey: ["all-reports", orgId],
     queryFn: () => getAllReports(),
   });
-
   const kpis = useMemo(() => {
     const activeProjects = summaries.filter((s) => s.project.status !== "Afsluttet").length;
     const totalHa = summaries.reduce((a, s) => a + (Number(s.project.geometry_area_ha) || 0), 0);
@@ -152,7 +144,6 @@ function DashboardPage() {
       },
     ];
   }, [summaries, openActions, allReports]);
-
   const criticalActions = useMemo(() => {
     const nameById = new Map(summaries.map((s) => [s.project.id, s.project.name] as const));
     return openActions.slice(0, 5).map((a) => ({
@@ -167,7 +158,6 @@ function DashboardPage() {
             : ("default" as const),
     }));
   }, [openActions, summaries]);
-
   const portfolio = useMemo(
     () =>
       summaries.slice(0, 6).map((s) => {
@@ -189,7 +179,6 @@ function DashboardPage() {
       }),
     [summaries],
   );
-
   return (
     <main className="p-6 max-w-[1500px] w-full mx-auto space-y-6">
       {/* 1. Hero */}
@@ -304,7 +293,7 @@ function DashboardPage() {
             </span>
           </div>
           <p className="text-sm leading-relaxed text-foreground/85">
-            <strong>Biodiversitet er ikke CO₂.</strong> GoFreyra reducerer ikke natur til én simpel
+            <strong>Biodiversitet er ikke CO₂.</strong> Freyra reducerer ikke natur til én simpel
             score. Hver vurdering kan kobles til metode, kontekst, datakilder, usikkerhed og
             anbefalet anvendelse.
           </p>
@@ -433,7 +422,6 @@ function DashboardPage() {
     </main>
   );
 }
-
 function KpiMini({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-muted/50 px-2 py-1.5">
@@ -442,9 +430,7 @@ function KpiMini({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
 // ─── LavbundsMRV-status på forsiden ───────────────────────────────────────────
-
 function LavbundTile() {
   const { currentOrg } = useAuth();
   const organizationId = currentOrg?.id;
@@ -455,10 +441,9 @@ function LavbundTile() {
       return getLavbundOverblik(organizationId);
     },
     staleTime: 5 * 60 * 1000,
-    enabled: isDemoDataEnabled || Boolean(organizationId),
+    enabled: Boolean(organizationId),
   });
-
-  if (!isDemoDataEnabled && !organizationId) return null;
+  if (!organizationId) return null;
   if (error) {
     return (
       <Card>
@@ -470,9 +455,7 @@ function LavbundTile() {
       </Card>
     );
   }
-
   if (!data || data.antalProjekter === 0) return null;
-
   return (
     <Card>
       <CardHeader

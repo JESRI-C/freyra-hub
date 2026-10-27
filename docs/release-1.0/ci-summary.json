@@ -1,0 +1,42 @@
+{
+  "schema": "freyra.release-ci/v1",
+  "commit": "28a832062bd355dd82da151561c49cd8f0db3d93",
+  "run": "https://github.com/JESRI-C/freyra-hub/actions/runs/40596816699",
+  "typecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 24
+  },
+  "build": "passed",
+  "unitTests": {
+    "files": 199,
+    "passed": 2918,
+    "failed": 0
+  },
+  "postgresTests": {
+    "files": 13,
+    "passed": 822,
+    "failed": 0
+  },
+  "concurrencyScenarios": {
+    "passed": 29,
+    "failed": 0
+  },
+  "fullDatabaseDumpRestore": {
+    "passed": true,
+    "target": "disposable-local-supabase",
+    "sourceRole": "supabase_admin",
+    "hostedCustomerRecovery": false,
+    "includesStorageBytes": false
+  },
+  "rlsHarness": {
+    "passed": 79,
+    "migrationsReplayedTwice": 6
+  },
+  "genuineHostedViewerChecks": 20,
+  "atlasViewerDeniedWrites": [
+    "project_workspace_entries",
+    "evidence-files",
+    "project_media.metadata"
+  ]
+}

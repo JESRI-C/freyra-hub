@@ -1,9 +1,10 @@
+import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MapPin, Sparkles } from "lucide-react";
-import { DEMO_MODE } from "@/lib/demo-mode";
+import { AUTOMATIC_PHOTO_REVIEW_ENABLED } from "@/lib/municipal-workflow";
 import type { Project } from "@/lib/supabase/types";
 import { localizeDroneOriginals } from "@/lib/drone-localization.functions";
 import { inspectDroneImage } from "@/lib/drone-image-inspection.functions";
@@ -298,7 +299,7 @@ function Intake({
   async function analyze(fixed = prepared, isCurrent = current()) {
     // Municipal release deliberately uses manual comparison. Keep this execution
     // guard as well as hiding controls: binding completion must not invoke AI.
-    if (DEMO_MODE) return;
+    if (!AUTOMATIC_PHOTO_REVIEW_ENABLED) return;
     const eligible = fixed ? droneIntakeAiPhotos(fixed.photos) : [];
     if (!fixed || !isCurrent() || imageBusy.current || cursor.current >= eligible.length) return;
     imageBusy.current = true;
@@ -346,7 +347,7 @@ function Intake({
   }
   function skipFailedPhoto() {
     if (
-      DEMO_MODE ||
+      !AUTOMATIC_PHOTO_REVIEW_ENABLED ||
       !prepared ||
       !bindingsComplete ||
       !imageError ||
@@ -410,12 +411,13 @@ function Intake({
       );
     setBindingsComplete(true);
     setStage(
-      `${fixed.photos.length} fotos er tilknyttet den gemte undersøgelse. ${DEMO_MODE ? "Fortsæt med manuel sammenligning i Gennemgang." : "Fortsæt med spørgsmålene nedenfor."}`,
+      `${fixed.photos.length} fotos er tilknyttet den gemte undersøgelse. ${!AUTOMATIC_PHOTO_REVIEW_ENABLED ? "Fortsæt med manuel sammenligning i Gennemgang." : "Fortsæt med spørgsmålene nedenfor."}`,
     );
     await Promise.resolve()
       .then(onPhotosChanged)
       .catch(() => undefined);
-    if (!DEMO_MODE && isCurrent() && cursor.current === 0) await analyze(fixed, isCurrent);
+    if (!!AUTOMATIC_PHOTO_REVIEW_ENABLED && isCurrent() && cursor.current === 0)
+      await analyze(fixed, isCurrent);
   }
 
   async function prepare() {
@@ -523,7 +525,7 @@ function Intake({
             <p className="text-sm text-muted-foreground">
               {batch.mediaIds.length} kontrollerede originaler i denne serie. Programmet foreslår
               først stedet. Når du har bekræftet det, hentes offentlige data, og{" "}
-              {DEMO_MODE
+              {!AUTOMATIC_PHOTO_REVIEW_ENABLED
                 ? "billederne knyttes til den gemte undersøgelse til manuel sammenligning."
                 : "billederne bruges til at stille konkrete spørgsmål."}
             </p>
@@ -542,7 +544,7 @@ function Intake({
               : `${localization?.photos.filter((photo) => isDroneCameraLocationStatus(photo.status)).length ?? 0} fotos med kameraposition til stedforslag.`}
           </p>
           <p>
-            {DEMO_MODE
+            {!AUTOMATIC_PHOTO_REVIEW_ENABLED
               ? "Automatisk billedvurdering er ikke frigivet til kommunal brug. Sammenhold originalfoto og offentlige kilder i Gennemgang."
               : !prepared || !bindingsComplete
                 ? "Billed-AI starter efter bekræftet sted, datagrundlag og billedtilknytning."
@@ -551,7 +553,7 @@ function Intake({
                   : `${completedCount} af ${aiPhotos.length} billedudkast gennemgået i denne arbejdsgang.`}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {DEMO_MODE
+            {!AUTOMATIC_PHOTO_REVIEW_ENABLED
               ? "Gemte AI-vurderinger og deres begrænsninger kan fortsat læses. Manglende eller ubrugelige vurderinger kræver manuel gennemgang."
               : "De første 12 tilknyttede fotos gennemgås automatisk efter datagrundlaget. Flere fortsættes i hold på 12. Udkast og spørgsmål skal gennemgås fagligt."}
           </p>
@@ -566,7 +568,7 @@ function Intake({
             {imageError}
           </p>
         )}
-        {!DEMO_MODE && oversizedCount > 0 && (
+        {!!AUTOMATIC_PHOTO_REVIEW_ENABLED && oversizedCount > 0 && (
           <p className="text-sm text-amber-700">
             {oversizedCount} originaler afventer billedanalyse på grund af grænsen på 20 MB. De er
             tilknyttet undersøgelsen og bevares til manuel gennemgang.
@@ -578,7 +580,7 @@ function Intake({
             gennemgang: {skippedPhotos.map((photo) => photo.fileName).join(", ")}.
           </p>
         )}
-        {!DEMO_MODE &&
+        {!!AUTOMATIC_PHOTO_REVIEW_ENABLED &&
           prepared &&
           bindingsComplete &&
           !analyzing &&
@@ -594,7 +596,7 @@ function Intake({
                 : `Analyser de næste ${Math.min(12, aiPhotos.length - nextIndex)} fotos`}
             </button>
           )}
-        {!DEMO_MODE &&
+        {!!AUTOMATIC_PHOTO_REVIEW_ENABLED &&
           prepared &&
           bindingsComplete &&
           imageError &&
@@ -646,230 +648,249 @@ function Intake({
           </p>
         )}
         {localization && (
-          <fieldset disabled={localizing || preparing || !!prepared} className="space-y-4">
-            <legend className="mb-2 font-medium">
-              <MapPin className="mr-1 inline h-4 w-4" />
-              Bekræft sted og optagedato
-            </legend>
-            {localization.clusters.length > 1 && (
-              <label className="block text-sm">
-                Billedgruppe
-                <select
-                  className="mt-1 block w-full rounded-md border bg-background p-2"
-                  value={cluster?.id ?? ""}
-                  onChange={(event) => {
-                    const id = event.target.value;
-                    if (id === localization.combinedCluster?.id) {
-                      void locate(current(), "all_photos");
-                    } else if (
-                      localization.clusters.find((item) => item.id === id)?.searchStatus ===
-                      "pending"
-                    ) {
-                      void locate(current(), undefined, id);
-                    } else {
-                      setClusterId(id);
-                      setReferenceId("");
-                    }
-                  }}
-                >
-                  {localization.clusters.map((item, index) => (
-                    <option key={item.id} value={item.id}>
-                      Område {index + 1} — {item.mediaIds.length} fotos
-                      {item.isolated ? " — ligger alene" : ""}
-                    </option>
-                  ))}
-                  {localization.combinedCluster && (
-                    <option
-                      value={localization.combinedCluster.id}
-                      disabled={localization.combinedCluster.searchStatus === "too_broad"}
-                    >
-                      Alle seriens fotopunkter — {localization.combinedCluster.mediaIds.length}{" "}
-                      fotos
-                      {localization.combinedCluster.searchStatus === "too_broad"
-                        ? " — området er for stort"
-                        : ""}
-                    </option>
-                  )}
-                </select>
-              </label>
-            )}
-            {allSeriesSelected && (
-              <p className="rounded border bg-muted/40 p-3 text-sm">
-                Du har valgt alle seriens fotopunkter. Søgeområdet bygger på originalernes faktiske
-                GPS-positioner med 100 m kant. Det er ikke billeddækning eller en fagligt godkendt
-                afgrænsning af sagen eller delstrækning A–E. Vælg den officielle vandløbsreference
-                og bekræft datoen, før området gemmes.
-              </p>
-            )}
-            {localization.combinedCluster?.searchStatus === "too_broad" && (
-              <p className="text-sm text-amber-700">
-                Seriens samlede søgning overstiger 5 km i diagonal eller 10 km². Vælg en mindre
-                billedgruppe; fjernliggende fotopunkter sammenlægges ikke automatisk.
-              </p>
-            )}
-            {cluster && searchLabels[cluster.searchStatus] && (
-              <p className="text-sm text-amber-700">{searchLabels[cluster.searchStatus]}</p>
-            )}
-            {!!cluster?.excludedCandidateCount && (
-              <p className="text-xs text-muted-foreground">
-                {cluster.excludedCandidateCount} kildeposter er udeladt fra forslagene, fordi deres
-                type, status eller primære navn ikke opfylder kravene til en aktuel officiel
-                vandløbsreference.
-              </p>
-            )}
-            {hasExistingArea && (
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={useProposedArea}
-                  disabled={!cluster}
-                  onChange={(event) => {
-                    setUseProposedArea(event.target.checked);
-                    setReferenceId("");
-                  }}
-                />
-                <span>
-                  Brug kameraernes foreslåede søgeområde i stedet for sagens gemte område. Det gemte
-                  område bruges, når feltet ikke er valgt.
-                </span>
-              </label>
-            )}
-            {areaAssessment.outsideCount > 0 && (
-              <p role="alert" className="text-sm text-amber-700">
-                {areaAssessment.outsideCount} af de valgte fotos har kameraposition uden for det
-                valgte område. Der hentes ikke data, før du vælger kameraernes foreslåede søgeområde
-                eller retter området på kortet. Kamerapositionen er ikke billedets dækningsområde;
-                sammenhængen skal stadig gennemgås fagligt.
-              </p>
-            )}
-            {hasExistingArea &&
-              !useProposedArea &&
-              localization.photos.some((photo) => !isDroneCameraLocationStatus(photo.status)) && (
+          <p className="rounded-lg border bg-secondary p-4 text-sm leading-6">
+            Stedforslag til {batch.mediaIds.length} fotos er klar. Kontrollér billedgruppe, område,
+            vandløb og optagedato i Avancerede indstillinger nedenfor. Bekræft derefter for at hente
+            kilderne.
+          </p>
+        )}
+        {localization && (
+          <AdvancedSettings
+            description="Billedgruppe vælger fotos fra samme sted; standard er første gruppe. Søgeområde bruger sagens gemte område, medmindre du vælger kameraernes forslag. Vandløb følger den gemte reference eller det eksisterende entydige forslag og kræver dit valg ved tvivl. Optagedato foreslås fra originalerne. Fotos uden sikker position medtages kun ved din særskilte bekræftelse."
+            onReset={() => {
+              setClusterId(localization.clusters[0]?.id ?? "");
+              setReferenceId("");
+              setUseProposedArea(false);
+              setIncludeUnlocated(false);
+              setRecordingDate(droneIntakeRecordingDate(localization) ?? "");
+            }}
+            disabled={localizing || preparing || !!prepared}
+          >
+            <fieldset disabled={localizing || preparing || !!prepared} className="space-y-4">
+              <legend className="mb-2 font-medium">
+                <MapPin className="mr-1 inline h-4 w-4" />
+                Bekræft sted og optagedato
+              </legend>
+              {localization.clusters.length > 1 && (
+                <label className="block text-sm">
+                  Billedgruppe
+                  <select
+                    className="mt-1 block w-full rounded-md border bg-background p-2"
+                    value={cluster?.id ?? ""}
+                    onChange={(event) => {
+                      const id = event.target.value;
+                      if (id === localization.combinedCluster?.id) {
+                        void locate(current(), "all_photos");
+                      } else if (
+                        localization.clusters.find((item) => item.id === id)?.searchStatus ===
+                        "pending"
+                      ) {
+                        void locate(current(), undefined, id);
+                      } else {
+                        setClusterId(id);
+                        setReferenceId("");
+                      }
+                    }}
+                  >
+                    {localization.clusters.map((item, index) => (
+                      <option key={item.id} value={item.id}>
+                        Område {index + 1} — {item.mediaIds.length} fotos
+                        {item.isolated ? " — ligger alene" : ""}
+                      </option>
+                    ))}
+                    {localization.combinedCluster && (
+                      <option
+                        value={localization.combinedCluster.id}
+                        disabled={localization.combinedCluster.searchStatus === "too_broad"}
+                      >
+                        Alle seriens fotopunkter — {localization.combinedCluster.mediaIds.length}{" "}
+                        fotos
+                        {localization.combinedCluster.searchStatus === "too_broad"
+                          ? " — området er for stort"
+                          : ""}
+                      </option>
+                    )}
+                  </select>
+                </label>
+              )}
+              {allSeriesSelected && (
+                <p className="rounded border bg-muted/40 p-3 text-sm">
+                  Du har valgt alle seriens fotopunkter. Søgeområdet bygger på originalernes
+                  faktiske GPS-positioner med 100 m kant. Det er ikke billeddækning eller en fagligt
+                  godkendt afgrænsning af sagen eller delstrækning A–E. Vælg den officielle
+                  vandløbsreference og bekræft datoen, før området gemmes.
+                </p>
+              )}
+              {localization.combinedCluster?.searchStatus === "too_broad" && (
+                <p className="text-sm text-amber-700">
+                  Seriens samlede søgning overstiger 5 km i diagonal eller 10 km². Vælg en mindre
+                  billedgruppe; fjernliggende fotopunkter sammenlægges ikke automatisk.
+                </p>
+              )}
+              {cluster && searchLabels[cluster.searchStatus] && (
+                <p className="text-sm text-amber-700">{searchLabels[cluster.searchStatus]}</p>
+              )}
+              {!!cluster?.excludedCandidateCount && (
+                <p className="text-xs text-muted-foreground">
+                  {cluster.excludedCandidateCount} kildeposter er udeladt fra forslagene, fordi
+                  deres type, status eller primære navn ikke opfylder kravene til en aktuel officiel
+                  vandløbsreference.
+                </p>
+              )}
+              {hasExistingArea && (
                 <label className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
-                    checked={includeUnlocated}
-                    onChange={(event) => setIncludeUnlocated(event.target.checked)}
+                    checked={useProposedArea}
+                    disabled={!cluster}
+                    onChange={(event) => {
+                      setUseProposedArea(event.target.checked);
+                      setReferenceId("");
+                    }}
                   />
                   <span>
-                    Jeg bekræfter, at seriens{" "}
-                    {
-                      localization.photos.filter(
-                        (photo) => !isDroneCameraLocationStatus(photo.status),
-                      ).length
-                    }{" "}
-                    fotos uden sikker position også er fra sagens gemte område og skal tilknyttes.
+                    Brug kameraernes foreslåede søgeområde i stedet for sagens gemte område. Det
+                    gemte område bruges, når feltet ikke er valgt.
                   </span>
                 </label>
               )}
-            {(hasExistingArea || cluster) && (
-              <>
-                <p className="text-xs text-muted-foreground">
-                  Kortet viser{" "}
-                  {proposedArea
-                    ? "et søgeområde omkring kameraernes positioner"
-                    : "sagens gemte område"}
-                  . Kamerapositioner og søgeområde er ikke billedets dækningsområde eller en
-                  godkendt kommunal delstrækning.
+              {areaAssessment.outsideCount > 0 && (
+                <p role="alert" className="text-sm text-amber-700">
+                  {areaAssessment.outsideCount} af de valgte fotos har kameraposition uden for det
+                  valgte område. Der hentes ikke data, før du vælger kameraernes foreslåede
+                  søgeområde eller retter området på kortet. Kamerapositionen er ikke billedets
+                  dækningsområde; sammenhængen skal stadig gennemgås fagligt.
                 </p>
-                <LiveProjectMap
-                  geometry={mapGeometry}
-                  projectName={project.name}
-                  projectId={project.id}
-                  height={240}
-                  watercoursesGeoJSON={watercourses}
-                />
-              </>
-            )}
-            <label className="block text-sm">
-              Vandløb
-              <select
-                className="mt-1 block w-full rounded-md border bg-background p-2"
-                value={effectiveReferenceId}
-                onChange={(event) => setReferenceId(event.target.value)}
-              >
-                <option value="">Vælg vandløb — flere muligheder kræver dit valg</option>
-                {savedReference.data && (
-                  <option value={savedReference.data.id}>
-                    {savedReference.data.name} — sagens gemte reference
-                  </option>
+              )}
+              {hasExistingArea &&
+                !useProposedArea &&
+                localization.photos.some((photo) => !isDroneCameraLocationStatus(photo.status)) && (
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={includeUnlocated}
+                      onChange={(event) => setIncludeUnlocated(event.target.checked)}
+                    />
+                    <span>
+                      Jeg bekræfter, at seriens{" "}
+                      {
+                        localization.photos.filter(
+                          (photo) => !isDroneCameraLocationStatus(photo.status),
+                        ).length
+                      }{" "}
+                      fotos uden sikker position også er fra sagens gemte område og skal tilknyttes.
+                    </span>
+                  </label>
                 )}
-                {cluster?.candidates
-                  .filter((candidate) => candidate.reference.id !== savedReference.data?.id)
-                  .map((candidate) => (
-                    <option key={candidate.reference.id} value={candidate.reference.id}>
-                      {candidate.reference.name} — cirka {candidate.distanceM} m fra kameraerne
-                      {cluster.suggestedReferenceId === candidate.reference.id
-                        ? " — foreslået"
-                        : ""}
+              {(hasExistingArea || cluster) && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Kortet viser{" "}
+                    {proposedArea
+                      ? "et søgeområde omkring kameraernes positioner"
+                      : "sagens gemte område"}
+                    . Kamerapositioner og søgeområde er ikke billedets dækningsområde eller en
+                    godkendt kommunal delstrækning.
+                  </p>
+                  <LiveProjectMap
+                    geometry={mapGeometry}
+                    projectName={project.name}
+                    projectId={project.id}
+                    height={240}
+                    watercoursesGeoJSON={watercourses}
+                  />
+                </>
+              )}
+              <label className="block text-sm">
+                Vandløb
+                <select
+                  className="mt-1 block w-full rounded-md border bg-background p-2"
+                  value={effectiveReferenceId}
+                  onChange={(event) => setReferenceId(event.target.value)}
+                >
+                  <option value="">Vælg vandløb — flere muligheder kræver dit valg</option>
+                  {savedReference.data && (
+                    <option value={savedReference.data.id}>
+                      {savedReference.data.name} — sagens gemte reference
                     </option>
-                  ))}
-              </select>
-            </label>
-            {selectedReference && (
-              <p className="text-xs text-muted-foreground">{selectedReference.disclaimer}</p>
-            )}
-            <Link
-              to="/app/projects/geometry/$slug"
-              params={{ slug: project.id }}
-              className="block text-sm underline"
-            >
-              Vælg eller ret område og vandløb på kortet
-            </Link>
-            <label className="block text-sm">
-              Optagedato
-              <input
-                type="date"
-                className="mt-1 block rounded-md border bg-background p-2"
-                value={recordingDate}
-                onChange={(event) => setRecordingDate(event.target.value)}
-              />
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Datoen foreslås fra originalerne, når billederne har samme kalenderdato. Kontrollér
-                datoen, før du bekræfter. Offentlige data hentes for de 30 kalenderdage frem til din
-                valgte dato.
-              </span>
-            </label>
-            {dateConfirmationCount > 0 && (
-              <p className="text-sm text-amber-700">
-                {dateConfirmationCount} fotos har GPS og et lokalt optagetidspunkt uden tidszone.
-                GPS bruges kun til stedforslaget. Bekræft den lokale optagedato ovenfor; UTC-tiden
-                forbliver ukendt, og originalernes kontrolstatus ændres ikke.
-              </p>
-            )}
-            <p className="text-sm">
-              {selectedPhotos.length} af seriens {batch.mediaIds.length} fotos tilknyttes denne
-              undersøgelse. Fotos fra andre billedgrupper indgår ikke.
-            </p>
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
-              disabled={
-                localizing ||
-                !effectiveReferenceId ||
-                !recordingDate ||
-                !selectedPhotos.length ||
-                areaAssessment.outsideCount > 0 ||
-                (!hasExistingArea && !cluster) ||
-                !access.data?.canPersist ||
-                savedProject.isPending ||
-                savedReference.isPending
-              }
-              onClick={() => void prepare()}
-            >
-              {preparing && <Loader2 className="h-4 w-4 animate-spin" />}
-              {preparing
-                ? stage
-                : dateConfirmationCount > 0
-                  ? "Bekræft sted og lokal optagedato, hent data og tilknyt billeder"
-                  : "Bekræft sted, hent data og tilknyt billeder"}
-            </button>
-            {access.data && !access.data.canPersist && (
+                  )}
+                  {cluster?.candidates
+                    .filter((candidate) => candidate.reference.id !== savedReference.data?.id)
+                    .map((candidate) => (
+                      <option key={candidate.reference.id} value={candidate.reference.id}>
+                        {candidate.reference.name} — cirka {candidate.distanceM} m fra kameraerne
+                        {cluster.suggestedReferenceId === candidate.reference.id
+                          ? " — foreslået"
+                          : ""}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              {selectedReference && (
+                <p className="text-xs text-muted-foreground">{selectedReference.disclaimer}</p>
+              )}
+              <Link
+                to="/app/projects/geometry/$slug"
+                params={{ slug: project.id }}
+                className="block text-sm underline"
+              >
+                Vælg eller ret område og vandløb på kortet
+              </Link>
+              <label className="block text-sm">
+                Optagedato
+                <input
+                  type="date"
+                  className="mt-1 block rounded-md border bg-background p-2"
+                  value={recordingDate}
+                  onChange={(event) => setRecordingDate(event.target.value)}
+                />
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Datoen foreslås fra originalerne, når billederne har samme kalenderdato.
+                  Kontrollér datoen, før du bekræfter. Offentlige data hentes for de 30 kalenderdage
+                  frem til din valgte dato.
+                </span>
+              </label>
+              {dateConfirmationCount > 0 && (
+                <p className="text-sm text-amber-700">
+                  {dateConfirmationCount} fotos har GPS og et lokalt optagetidspunkt uden tidszone.
+                  GPS bruges kun til stedforslaget. Bekræft den lokale optagedato ovenfor; UTC-tiden
+                  forbliver ukendt, og originalernes kontrolstatus ændres ikke.
+                </p>
+              )}
               <p className="text-sm">
-                En projektleder eller redaktør skal bekræfte stedet og hente datagrundlaget.
+                {selectedPhotos.length} af seriens {batch.mediaIds.length} fotos tilknyttes denne
+                undersøgelse. Fotos fra andre billedgrupper indgår ikke.
               </p>
-            )}
-          </fieldset>
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+                disabled={
+                  localizing ||
+                  !effectiveReferenceId ||
+                  !recordingDate ||
+                  !selectedPhotos.length ||
+                  areaAssessment.outsideCount > 0 ||
+                  (!hasExistingArea && !cluster) ||
+                  !access.data?.canPersist ||
+                  savedProject.isPending ||
+                  savedReference.isPending
+                }
+                onClick={() => void prepare()}
+              >
+                {preparing && <Loader2 className="h-4 w-4 animate-spin" />}
+                {preparing
+                  ? stage
+                  : dateConfirmationCount > 0
+                    ? "Bekræft sted og lokal optagedato, hent data og tilknyt billeder"
+                    : "Bekræft sted, hent data og tilknyt billeder"}
+              </button>
+              {access.data && !access.data.canPersist && (
+                <p className="text-sm">
+                  En projektleder eller redaktør skal bekræfte stedet og hente datagrundlaget.
+                </p>
+              )}
+            </fieldset>
+          </AdvancedSettings>
         )}
         {preparationError && (
           <p role="alert" className="text-sm text-destructive">

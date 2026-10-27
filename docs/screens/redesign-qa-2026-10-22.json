@@ -1,0 +1,71 @@
+{
+  "checkedAt": "2026-10-22T20:38:43.411Z",
+  "baseCommit": "625781906a4f49d120b6b3581261279dd889e6de",
+  "applicationCommit": "ebe8e86",
+  "pullRequest": 17,
+  "environment": "User-authorized temporary Cloudflare remote dev session via localhost:8788; online staging unchanged",
+  "scope": "UI only; existing services and database schema unchanged",
+  "unit": {
+    "files": 172,
+    "tests": 2790,
+    "status": "passed"
+  },
+  "typecheck": "passed",
+  "lint": {
+    "errors": 0,
+    "existingWarnings": 23
+  },
+  "stagingBuild": "passed",
+  "navigation": {
+    "status": "passed",
+    "seconds": 57.5,
+    "browserErrors": 0,
+    "desktop": [
+      1440,
+      1000
+    ],
+    "mobile": [
+      375,
+      812
+    ],
+    "invalidRoundRecovery": true
+  },
+  "existingReport": {
+    "status": "passed",
+    "seconds": 26.2,
+    "sha256": "a07aec981f2a2868be75d93e99b8b701a7742dd5ff5724160300397d708441b5",
+    "images": 6
+  },
+  "delivery": {
+    "status": "passed",
+    "seconds": 54.7,
+    "technicalProjectId": "2d660a74-5a18-4322-83fa-b0deacfa2843",
+    "reportId": "db3e6d30-83b9-42fe-ae23-a8a16a1ff9a5",
+    "originalSha256": "7a72d47c9151900ce5cfccecbef0c0a7d9177e337d308d4b1c969a0a7035b0d3",
+    "zipBytes": 432748,
+    "zipSha256": "11a717aaf6821382fd54e7374d694f9c40122c5b6b5c607400f47e16d56017fb",
+    "files": 6,
+    "aiAttempts": 0,
+    "photoReviews": 1,
+    "reviewDecision": "rejected"
+  },
+  "ci": {
+    "testedHead": "e6cebd307cc4b56c9921b2fb0b4401cc50201df7",
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/39848598514",
+    "app": "success",
+    "database": "success",
+    "pgTapTests": 814
+  },
+  "professionalApproval": false,
+  "municipalUserAcceptance": false,
+  "productionApproval": false,
+  "caseCreation": {
+    "status": "passed",
+    "seconds": 9.6,
+    "createdViaBrowser": true,
+    "defaultsAndResetVerified": true,
+    "savedValuesReadBack": true,
+    "reopened": true,
+    "duplicateCases": 0
+  }
+}

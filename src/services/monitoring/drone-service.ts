@@ -34,3 +34,20 @@ export async function listFlightAssets(flightId: string): Promise<DroneAsset[]> 
   if (error) throw error;
   return (data as DroneAsset[] | null) ?? [];
 }
+
+/** Survey metadata augments the existing flight record, without making up flight geometry. */
+export async function createSurvey(
+  projectId: string,
+  phase: import("./drone-ingest").SurveyPhase,
+  date: string,
+): Promise<DroneFlight> {
+  if (!projectId || !date || Number.isNaN(new Date(date).getTime()))
+    throw new Error("Vælg projekt og gyldig flyvedato.");
+  return createFlight({
+    project_id: projectId,
+    flown_at: new Date(date).toISOString(),
+    status: "uploaded",
+    purpose: phase,
+    metadata: { phase, schema_version: 1 },
+  });
+}

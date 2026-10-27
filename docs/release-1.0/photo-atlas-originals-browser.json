@@ -1,0 +1,11 @@
+{
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "projectId": "c00bd7a1-ba9f-47fc-b0ec-c86f58e70054",
+  "sha256": "7a72d47c9151900ce5cfccecbef0c0a7d9177e337d308d4b1c969a0a7035b0d3",
+  "steps": [
+    "Real original uploaded through UI; fresh authorized original download; same SHA-256; EXIF date and camera GPS; no invented watercourse, reach or species; persisted atlas export without signed URLs"
+  ],
+  "passed": true,
+  "errors": [],
+  "sourceRevision": "28a832062bd355dd82da151561c49cd8f0db3d93"
+}

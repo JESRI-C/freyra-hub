@@ -189,7 +189,7 @@ export async function generateProjectReport(
     pdf.setFontSize(8);
     pdf.setTextColor(150);
     pdf.text(
-      `GoFreyra - KLADDE - fagligt review ikke dokumenteret - Side ${p}/${pages}`,
+      `Freyra - KLADDE - fagligt review ikke dokumenteret - Side ${p}/${pages}`,
       40,
       pdf.internal.pageSize.getHeight() - 20,
     );

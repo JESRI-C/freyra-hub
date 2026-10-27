@@ -1,4 +1,4 @@
-// GoFreyra IoT Simulation Service
+// Freyra IoT Simulation Service
 // Generates deterministic, simulated field sensor data for project maps and dashboards.
 
 export type SensorType =

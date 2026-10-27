@@ -1,26 +1,16 @@
 // Data Sources Service
-
 import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import { fetchDataSourcesByProject, fetchAllDataSources } from "@/lib/supabase/queries";
 import { SEED_DATA_SOURCES } from "@/data/platform-seed";
 import type { DataSource } from "@/lib/supabase/types";
-
 export async function getDataSourcesByProjectAsync(projectId: string): Promise<DataSource[]> {
-  if (isDemoDataEnabled) {
-    return SEED_DATA_SOURCES.filter((d) => d.project_id === projectId);
-  }
   requireCustomerDatabase();
   return fetchDataSourcesByProject(projectId);
 }
-
 export async function getAllDataSources(): Promise<DataSource[]> {
-  if (isDemoDataEnabled) {
-    return [...SEED_DATA_SOURCES].sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }
   requireCustomerDatabase();
   return fetchAllDataSources();
 }
-
 export function dataSourceStatusTone(status: string): "success" | "warning" | "danger" | "neutral" {
   switch (status) {
     case "online":
@@ -35,7 +25,6 @@ export function dataSourceStatusTone(status: string): "success" | "warning" | "d
       return "neutral";
   }
 }
-
 export function dataSourceStatusLabel(status: string): string {
   switch (status) {
     case "online":
@@ -50,11 +39,10 @@ export function dataSourceStatusLabel(status: string): string {
       return status;
   }
 }
-
 export function formatLastSync(lastSyncAt: string | null): string {
   if (!lastSyncAt) return "Aldrig";
   const diff = Date.now() - new Date(lastSyncAt).getTime();
-  const mins = Math.floor(diff / 60_000);
+  const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${mins} min siden`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs} t siden`;
