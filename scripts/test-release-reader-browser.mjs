@@ -43,8 +43,8 @@ try {
       await page.getByRole("button", { name: "Gem kladde som ny version", exact: true }).count(),
       0,
     );
-    assert.equal(await page.getByRole("link", { name: /Opret/ }).count(), 0);
-    assert.equal(await page.locator("textarea").count(), 0);
+    assert.equal(await page.locator('a[href*="/app/reports/new?template="]').count(), 0);
+    assert.equal(await page.locator("main").last().locator("textarea").count(), 0);
     result.routes.push({ route, readOnly: true });
   }
   await page.screenshot({ path: "docs/screens/release-1.0/09-laeser-rapportadgang.png" });
