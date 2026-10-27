@@ -24,69 +24,34 @@ import {
 } from "@/services/lavbundService";
 import type { Transekt } from "@/types/lavbund";
 
-describe("lavbund skrive-veje (eksplicit offline-demo)", () => {
-  it("saveMaalepunkt + saveReading kan registreres og læses tilbage", async () => {
-    const projects = await getProjects();
-    const projektId = projects[0].id;
-
-    const mp = {
-      id: "MP-TEST-99",
-      projektId,
-      type: "markpejling" as const,
-      position: { x: 50, y: 50 },
-      intensiteter: ["minimal", "standard", "intensiv"] as const,
-    };
-    await saveMaalepunkt({ ...mp, intensiteter: [...mp.intensiteter] });
-    const mps = await getMaalepunkter(projektId);
-    expect(mps.some((m) => m.id === "MP-TEST-99")).toBe(true);
-
-    const before = (await getReadings(projektId)).length;
-    await saveReading(projektId, {
-      maalepunktId: "MP-TEST-99",
-      tidspunkt: "2026-07-13T12:00:00Z",
-      dybdeM: 0.35,
-      kilde: "manuel_pejling",
-    });
-    const after = await getReadings(projektId);
-    expect(after.length).toBe(before + 1);
-    expect(after.some((r) => r.maalepunktId === "MP-TEST-99" && r.dybdeM === 0.35)).toBe(true);
+describe("customer writes require confirmed database persistence", () => {
+  it("does not persist a field observation offline", async () => {
+    await expect(
+      saveMaalepunkt({
+        id: "offline",
+        projektId: "missing",
+        type: "markpejling",
+        position: { x: 50, y: 50 },
+        intensiteter: ["standard"],
+      }),
+    ).rejects.toThrow();
+    await expect(
+      saveReading("missing", {
+        maalepunktId: "offline",
+        tidspunkt: "2026-07-13T12:00:00Z",
+        dybdeM: 0.35,
+        kilde: "manuel_pejling",
+      }),
+    ).rejects.toThrow();
+    await expect(getMaalepunkter("missing")).rejects.toThrow();
+    await expect(getReadings("missing")).rejects.toThrow();
   });
-
-  it("replaceTransekter erstatter projektets transekter", async () => {
-    const projects = await getProjects();
-    const projektId = projects[0].id;
-    const nye: Transekt[] = [
-      {
-        nr: 1,
-        projektId,
-        fase: "foer",
-        landskabstype: "moraene",
-        vandloebsType: 2,
-        georegion: 5,
-        vandloebsform: "udrettet",
-        laengdeM: 120,
-        hoejVegetationSide1: 20,
-        hoejVegetationSide2: 30,
-        brinkHoejdeSide1M: 0.8,
-        brinkHoejdeSide2M: 0.7,
-        brinkLaengdeSide1M: 100,
-        brinkLaengdeSide2M: 100,
-      },
-    ];
-    await replaceTransekter(projektId, nye);
-    const efter = await getTransekter(projektId);
-    expect(efter).toHaveLength(1);
-    expect(efter[0].laengdeM).toBe(120);
+  it("does not replace transects offline", async () => {
+    await expect(replaceTransekter("missing", [])).rejects.toThrow();
+    await expect(getTransekter("missing")).rejects.toThrow();
   });
-});
-
-describe("getLavbundOverblik (eksplicit offline-demo)", () => {
-  it("summerer projekter, areal og krediteret CO2", async () => {
+  it("does not invent portfolio totals", async () => {
     const { getLavbundOverblik } = await import("@/services/lavbundService");
-    const o = await getLavbundOverblik();
-    expect(o.antalProjekter).toBeGreaterThan(0);
-    expect(o.samletArealHa).toBeGreaterThan(0);
-    expect(o.krediteretTotal).toBeGreaterThan(0);
-    expect(typeof o.verificeretTotal).toBe("number");
+    await expect(getLavbundOverblik()).rejects.toThrow();
   });
 });

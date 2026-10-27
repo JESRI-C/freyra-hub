@@ -51,17 +51,11 @@ describe("buildCo2Indicator", () => {
   });
 });
 
-describe("lavbundService i eksplicit offline-demo", () => {
-  it("getProjects leverer demo-projekter", async () => {
-    const projects = await getProjects();
-    expect(projects.length).toBeGreaterThan(0);
-    expect(projects[0].navn).toBeTruthy();
+describe("customer persistence requires a database", () => {
+  it("does not return sample projects", async () => {
+    await expect(getProjects()).rejects.toThrow();
   });
-
-  it("getSnapshot returnerer mock-snapshot eller null uden at kaste", async () => {
-    const projects = await getProjects();
-    const snap = await getSnapshot(projects[0].id);
-    // Mock kan have et snapshot for demo-projektet; vigtigst: ingen exception.
-    expect(snap === null || typeof snap.co2.verificeretTotal === "number").toBe(true);
+  it("does not return a generated snapshot", async () => {
+    await expect(getSnapshot("missing")).rejects.toThrow();
   });
 });

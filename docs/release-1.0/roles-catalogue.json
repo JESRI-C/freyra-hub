@@ -1,0 +1,4424 @@
+{
+  "schema": "freyra.role-audit/v1",
+  "environment": "staging",
+  "project": "xdvqdzdpyceojbdknofi",
+  "scope": "catalogue_review_not_a_browser_pass",
+  "tables": [
+    {
+      "schema": "private",
+      "table": "drone_image_inspection_requests",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "private",
+      "table": "upload_intent_orphan_cleanup_leases",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "action_evidence",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "actions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "alert_comments",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "alert_rules",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "audit_events",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "authority_submissions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "calculated_metrics",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "connector_fetch_logs",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "construction_projects",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "data_exports",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "data_quality_assessments",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "data_quality_issues",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "data_quality_rules",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "data_source_mappings",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "data_sources",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "device_maintenance_logs",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "device_measurements",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "device_parameters",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "documents",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "drone_assets",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "drone_flights",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "drone_image_inspection_answer_versions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "drone_image_inspections",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "drone_processing_jobs",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "environmental_analyses",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "environmental_risks",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "evidence_files",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "field_observations",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "geo_features",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "geo_observations",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "impact_units",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "indicator_measurements",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "indicators",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "integration_connections",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "integration_runs",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "lavbund_groefter",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "lavbund_ledger",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "lavbund_maalepunkter",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "lavbund_projekter",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "lavbund_readings",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "lavbund_snapshots",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "lavbund_transekter",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "map_layers",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "mitigation_measures",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "monitoring_alerts",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "monitoring_devices",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "monitoring_zones",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "municipal_report_versions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "nature_contexts",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "observation_media",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "observations",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "organization_memberships",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "organizations",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "photo_point_review_versions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "profiles",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "project_areas",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "project_baseline_snapshots",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "project_media",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "project_media_promotion_requests",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "project_media_upload_origins",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "project_members",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "project_workspace_entries",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "projects",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "report_documents",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "report_revisions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "reports",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "runoff_profiles",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "sensors",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "sites",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "spatial_ref_sys",
+      "rls": false,
+      "owner": "supabase_admin",
+      "extension_owned": true
+    },
+    {
+      "schema": "public",
+      "table": "survey_round_media_versions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "survey_round_note_versions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "survey_round_versions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "upload_import_jobs",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "uploads",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "verification_plan_versions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "watercourse_observation_reviews",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "watercourse_observations",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "public",
+      "table": "watercourse_versions",
+      "rls": true,
+      "owner": "postgres",
+      "extension_owned": false
+    },
+    {
+      "schema": "storage",
+      "table": "buckets",
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "extension_owned": false
+    },
+    {
+      "schema": "storage",
+      "table": "buckets_analytics",
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "extension_owned": false
+    },
+    {
+      "schema": "storage",
+      "table": "buckets_vectors",
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "extension_owned": false
+    },
+    {
+      "schema": "storage",
+      "table": "migrations",
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "extension_owned": false
+    },
+    {
+      "schema": "storage",
+      "table": "objects",
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "extension_owned": false
+    },
+    {
+      "schema": "storage",
+      "table": "s3_multipart_uploads",
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "extension_owned": false
+    },
+    {
+      "schema": "storage",
+      "table": "s3_multipart_uploads_parts",
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "extension_owned": false
+    },
+    {
+      "schema": "storage",
+      "table": "vector_indexes",
+      "rls": true,
+      "owner": "supabase_storage_admin",
+      "extension_owned": false
+    }
+  ],
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "action_evidence",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM actions parent\n  WHERE ((parent.id = action_evidence.action_id) AND private.can_contribute_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "action_evidence",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM actions parent\n  WHERE ((parent.id = action_evidence.action_id) AND private.can_contribute_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM actions parent\n  WHERE ((parent.id = action_evidence.action_id) AND private.can_contribute_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "action_evidence",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM actions parent\n  WHERE ((parent.id = action_evidence.action_id) AND private.can_manage_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "action_evidence",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM actions parent\n  WHERE ((parent.id = action_evidence.action_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "action_evidence",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM actions parent\n  WHERE ((parent.id = action_evidence.action_id) AND private.can_read_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "action_evidence",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM actions parent\n  WHERE ((parent.id = action_evidence.action_id) AND private.can_write_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM actions parent\n  WHERE ((parent.id = action_evidence.action_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "actions",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "actions",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "actions",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "actions",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "alert_comments",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_alerts parent\n  WHERE ((parent.id = alert_comments.alert_id) AND private.can_manage_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "alert_comments",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM monitoring_alerts parent\n  WHERE ((parent.id = alert_comments.alert_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "alert_comments",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_alerts parent\n  WHERE ((parent.id = alert_comments.alert_id) AND private.can_read_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "alert_comments",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_alerts parent\n  WHERE ((parent.id = alert_comments.alert_id) AND private.can_write_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM monitoring_alerts parent\n  WHERE ((parent.id = alert_comments.alert_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "alert_rules",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(((project_id IS NOT NULL) AND private.can_manage_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_manage_organization(organization_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "alert_rules",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(((project_id IS NOT NULL) AND private.can_write_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "alert_rules",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(((project_id IS NOT NULL) AND private.can_read_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_read_organization(organization_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "alert_rules",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(((project_id IS NOT NULL) AND private.can_write_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id)))",
+      "with_check": "(((project_id IS NOT NULL) AND private.can_write_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "audit_events",
+      "policyname": "audit_events_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "audit_events",
+      "policyname": "audit_events_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "authority_submissions",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "authority_submissions",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "authority_submissions",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "authority_submissions",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "calculated_metrics",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "calculated_metrics",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "calculated_metrics",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "calculated_metrics",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "connector_fetch_logs",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "connector_fetch_logs",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "connector_fetch_logs",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "connector_fetch_logs",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "construction_projects",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "construction_projects",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "construction_projects",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "construction_projects",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_exports",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_exports",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_exports",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_exports",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_assessments",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_assessments",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_assessments",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_assessments",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_issues",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_issues",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_issues",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_issues",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_rules",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(((project_id IS NOT NULL) AND private.can_manage_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_manage_organization(organization_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_rules",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(((project_id IS NOT NULL) AND private.can_write_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_rules",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(((project_id IS NOT NULL) AND private.can_read_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_read_organization(organization_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_quality_rules",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(((project_id IS NOT NULL) AND private.can_write_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id)))",
+      "with_check": "(((project_id IS NOT NULL) AND private.can_write_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_source_mappings",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM data_sources parent\n  WHERE ((parent.id = data_source_mappings.data_source_id) AND private.can_manage_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_source_mappings",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM data_sources parent\n  WHERE ((parent.id = data_source_mappings.data_source_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_source_mappings",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM data_sources parent\n  WHERE ((parent.id = data_source_mappings.data_source_id) AND private.can_read_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_source_mappings",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM data_sources parent\n  WHERE ((parent.id = data_source_mappings.data_source_id) AND private.can_write_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM data_sources parent\n  WHERE ((parent.id = data_source_mappings.data_source_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_sources",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_sources",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_sources",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "data_sources",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_maintenance_logs",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_maintenance_logs.device_id) AND private.can_manage_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_maintenance_logs",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_maintenance_logs.device_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_maintenance_logs",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_maintenance_logs.device_id) AND private.can_read_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_maintenance_logs",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_maintenance_logs.device_id) AND private.can_write_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_maintenance_logs.device_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_measurements",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_measurements.device_id) AND private.can_manage_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_measurements",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_measurements.device_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_measurements",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_measurements.device_id) AND private.can_read_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_measurements",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_measurements.device_id) AND private.can_write_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_measurements.device_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_parameters",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_parameters.device_id) AND private.can_manage_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_parameters",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_parameters.device_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_parameters",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_parameters.device_id) AND private.can_read_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "device_parameters",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_parameters.device_id) AND private.can_write_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM monitoring_devices parent\n  WHERE ((parent.id = device_parameters.device_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "documents",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "documents",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "documents",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "documents",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_assets",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM drone_flights parent\n  WHERE ((parent.id = drone_assets.flight_id) AND private.can_contribute_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_assets",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM drone_flights parent\n  WHERE ((parent.id = drone_assets.flight_id) AND private.can_contribute_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM drone_flights parent\n  WHERE ((parent.id = drone_assets.flight_id) AND private.can_contribute_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_assets",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM drone_flights parent\n  WHERE ((parent.id = drone_assets.flight_id) AND private.can_manage_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_assets",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM drone_flights parent\n  WHERE ((parent.id = drone_assets.flight_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_assets",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM drone_flights parent\n  WHERE ((parent.id = drone_assets.flight_id) AND private.can_read_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_assets",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM drone_flights parent\n  WHERE ((parent.id = drone_assets.flight_id) AND private.can_write_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM drone_flights parent\n  WHERE ((parent.id = drone_assets.flight_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "Organisation flight access",
+      "permissive": "PERMISSIVE",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM (projects p\n     JOIN organization_memberships m ON ((m.organization_id = p.organization_id)))\n  WHERE ((p.id = drone_flights.project_id) AND (m.user_id = auth.uid()))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM (projects p\n     JOIN organization_memberships m ON ((m.organization_id = p.organization_id)))\n  WHERE ((p.id = drone_flights.project_id) AND (m.user_id = auth.uid()))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_contribute_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_contribute_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_contribute_project(project_id)",
+      "with_check": "private.can_contribute_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_flights",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_image_inspection_answer_versions",
+      "policyname": "drone_image_answers_project_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_image_inspections",
+      "policyname": "drone_image_inspection_project_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_processing_jobs",
+      "policyname": "Project job read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM drone_flights f\n  WHERE ((f.id = drone_processing_jobs.flight_id) AND (f.project_id = drone_processing_jobs.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_processing_jobs",
+      "policyname": "Project job request",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((status = 'blocked'::text) AND (progress = 0) AND (provider_job_id IS NULL) AND (outputs = '[]'::jsonb) AND (EXISTS ( SELECT 1\n   FROM drone_flights f\n  WHERE ((f.id = drone_processing_jobs.flight_id) AND (f.project_id = drone_processing_jobs.project_id)))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_processing_jobs",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_processing_jobs",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_processing_jobs",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "drone_processing_jobs",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "environmental_analyses",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "environmental_analyses",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "environmental_analyses",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "environmental_analyses",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "environmental_risks",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "environmental_risks",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "environmental_risks",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "environmental_risks",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "evidence_files",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "evidence_files",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "evidence_files",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "evidence_files",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "evidence_files",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "evidence_files",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "field_observations",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "field_observations",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "field_observations",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "field_observations",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "field_observations",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "field_observations",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "geo_features",
+      "policyname": "reference_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "geo_observations",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "geo_observations",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "geo_observations",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "geo_observations",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "geo_observations",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "geo_observations",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "impact_units",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "impact_units",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "impact_units",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "impact_units",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "indicator_measurements",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "indicator_measurements",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "indicator_measurements",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "indicator_measurements",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "indicators",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "indicators",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "indicators",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "indicators",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "integration_connections",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "integration_connections",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "integration_connections",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "integration_connections",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "integration_runs",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "integration_runs",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "integration_runs",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "integration_runs",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_groefter",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_groefter.projekt_id) AND private.can_manage_project(parent.linked_project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_groefter",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_groefter.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_groefter",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "is_lavbund_projekt_member(projekt_id, auth.uid())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_groefter",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_groefter.projekt_id) AND private.can_write_project(parent.linked_project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_groefter.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_ledger",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_ledger.projekt_id) AND private.can_manage_project(parent.linked_project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_ledger",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_ledger.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_ledger",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "is_lavbund_projekt_member(projekt_id, auth.uid())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_ledger",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_ledger.projekt_id) AND private.can_write_project(parent.linked_project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_ledger.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_maalepunkter",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_maalepunkter.projekt_id) AND private.can_manage_project(parent.linked_project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_maalepunkter",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_maalepunkter.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_maalepunkter",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "is_lavbund_projekt_member(projekt_id, auth.uid())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_maalepunkter",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_maalepunkter.projekt_id) AND private.can_write_project(parent.linked_project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_maalepunkter.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_projekter",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((linked_project_id IS NOT NULL) AND private.can_manage_project(linked_project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_projekter",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((linked_project_id IS NOT NULL) AND private.can_write_project(linked_project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_projekter",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((linked_project_id IS NOT NULL) AND private.can_read_project(linked_project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_projekter",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((linked_project_id IS NOT NULL) AND private.can_write_project(linked_project_id))",
+      "with_check": "((linked_project_id IS NOT NULL) AND private.can_write_project(linked_project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_readings",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_readings.projekt_id) AND private.can_manage_project(parent.linked_project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_readings",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_readings.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_readings",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "is_lavbund_projekt_member(projekt_id, auth.uid())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_readings",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_readings.projekt_id) AND private.can_write_project(parent.linked_project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_readings.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_snapshots",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_snapshots.projekt_id) AND private.can_manage_project(parent.linked_project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_snapshots",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_snapshots.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_snapshots",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "is_lavbund_projekt_member(projekt_id, auth.uid())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_snapshots",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_snapshots.projekt_id) AND private.can_write_project(parent.linked_project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_snapshots.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_transekter",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_transekter.projekt_id) AND private.can_manage_project(parent.linked_project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_transekter",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_transekter.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_transekter",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "is_lavbund_projekt_member(projekt_id, auth.uid())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "lavbund_transekter",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_transekter.projekt_id) AND private.can_write_project(parent.linked_project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM lavbund_projekter parent\n  WHERE ((parent.id = lavbund_transekter.projekt_id) AND private.can_write_project(parent.linked_project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "map_layers",
+      "policyname": "reference_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "mitigation_measures",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "mitigation_measures",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "mitigation_measures",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "mitigation_measures",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_alerts",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_alerts",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_alerts",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_alerts",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_devices",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_devices",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_devices",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_devices",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_zones",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_zones",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_zones",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "monitoring_zones",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "municipal_report_versions",
+      "policyname": "municipal_report_project_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "nature_contexts",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "nature_contexts",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "nature_contexts",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "nature_contexts",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observation_media",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM field_observations parent\n  WHERE ((parent.id = observation_media.observation_id) AND private.can_contribute_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observation_media",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM field_observations parent\n  WHERE ((parent.id = observation_media.observation_id) AND private.can_contribute_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM field_observations parent\n  WHERE ((parent.id = observation_media.observation_id) AND private.can_contribute_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observation_media",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM field_observations parent\n  WHERE ((parent.id = observation_media.observation_id) AND private.can_manage_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observation_media",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM field_observations parent\n  WHERE ((parent.id = observation_media.observation_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observation_media",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM field_observations parent\n  WHERE ((parent.id = observation_media.observation_id) AND private.can_read_project(parent.project_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observation_media",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM field_observations parent\n  WHERE ((parent.id = observation_media.observation_id) AND private.can_write_project(parent.project_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM field_observations parent\n  WHERE ((parent.id = observation_media.observation_id) AND private.can_write_project(parent.project_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observations",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observations",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observations",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observations",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observations",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "observations",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organization_memberships",
+      "policyname": "organization_memberships_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(private.is_organization_owner(organization_id) AND (user_id IS DISTINCT FROM auth.uid()))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organization_memberships",
+      "policyname": "organization_memberships_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(private.can_manage_organization(organization_id) AND (user_id IS DISTINCT FROM auth.uid()) AND ((role <> 'owner'::text) OR private.is_organization_owner(organization_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organization_memberships",
+      "policyname": "organization_memberships_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_organization(organization_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organization_memberships",
+      "policyname": "organization_memberships_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(private.can_manage_organization(organization_id) AND (user_id IS DISTINCT FROM auth.uid()) AND ((role <> 'owner'::text) OR private.is_organization_owner(organization_id)))",
+      "with_check": "(private.can_manage_organization(organization_id) AND (user_id IS DISTINCT FROM auth.uid()) AND ((role <> 'owner'::text) OR private.is_organization_owner(organization_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organizations",
+      "policyname": "organizations_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.is_organization_owner(id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organizations",
+      "policyname": "organizations_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(auth.uid() IS NOT NULL)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organizations",
+      "policyname": "organizations_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_organization(id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organizations",
+      "policyname": "organizations_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_manage_organization(id)",
+      "with_check": "private.can_manage_organization(id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "photo_point_review_versions",
+      "policyname": "photo_point_review_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "Users can insert their own profile",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(auth.uid() = id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "Users can update their own profile",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(auth.uid() = id)",
+      "with_check": "(auth.uid() = id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "Users can view their own profile",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(auth.uid() = id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_areas",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_areas",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_areas",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_areas",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_baseline_snapshots",
+      "policyname": "baseline_project_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "Keep original records",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(sha256 IS NULL)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "Media project boundary",
+      "permissive": "RESTRICTIVE",
+      "cmd": "ALL",
+      "roles": "{authenticated}",
+      "qual": "((EXISTS ( SELECT 1\n   FROM (projects p\n     JOIN organization_memberships m ON ((m.organization_id = p.organization_id)))\n  WHERE ((p.id = project_media.project_id) AND (m.user_id = auth.uid())))) OR is_project_member(project_id, auth.uid()))",
+      "with_check": "((EXISTS ( SELECT 1\n   FROM (projects p\n     JOIN organization_memberships m ON ((m.organization_id = p.organization_id)))\n  WHERE ((p.id = project_media.project_id) AND (m.user_id = auth.uid())))) OR is_project_member(project_id, auth.uid()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "field_contribution_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "field_contribution_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_contribute_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_contribute_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_contribute_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_contribute_project(project_id)",
+      "with_check": "private.can_contribute_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media_promotion_requests",
+      "policyname": "project_media_promotion_request_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_media_upload_origins",
+      "policyname": "project_media_origin_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_members",
+      "policyname": "project_members_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_manage_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_members",
+      "policyname": "project_members_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_manage_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_members",
+      "policyname": "project_members_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_members",
+      "policyname": "project_members_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_manage_project(project_id)",
+      "with_check": "private.can_manage_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_workspace_entries",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_workspace_entries",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_workspace_entries",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_workspace_entries",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_workspace_entries",
+      "policyname": "workspace_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((created_by = auth.uid()) AND is_org_member(auth.uid(), organization_id) AND (EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = project_workspace_entries.project_id) AND (p.organization_id = project_workspace_entries.organization_id)))) AND (has_org_role(auth.uid(), organization_id, ARRAY['owner'::text, 'admin'::text, 'editor'::text]) OR has_project_role(project_id, auth.uid(), 'admin'::project_role) OR has_project_role(project_id, auth.uid(), 'project_manager'::project_role) OR has_project_role(project_id, auth.uid(), 'editor'::project_role)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_workspace_entries",
+      "policyname": "workspace_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(is_org_member(auth.uid(), organization_id) AND (EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = project_workspace_entries.project_id) AND (p.organization_id = project_workspace_entries.organization_id)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "policyname": "projects_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_manage_project(id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "policyname": "projects_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((organization_id IS NOT NULL) AND private.can_write_organization(organization_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "policyname": "projects_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "policyname": "projects_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_manage_project(id)",
+      "with_check": "(private.can_manage_project(id) AND (organization_id IS NOT NULL))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_documents",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_documents",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_documents",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_documents",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_documents",
+      "policyname": "report_documents_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((created_by = auth.uid()) AND is_org_member(auth.uid(), organization_id) AND (EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = report_documents.project_id) AND (p.organization_id = report_documents.organization_id)))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_documents",
+      "policyname": "report_documents_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = report_documents.project_id) AND (p.organization_id = report_documents.organization_id)))) AND is_org_member(auth.uid(), organization_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_revisions",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(( SELECT d.project_id\n   FROM report_documents d\n  WHERE (d.id = report_revisions.report_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_revisions",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_write_project(( SELECT d.project_id\n   FROM report_documents d\n  WHERE (d.id = report_revisions.report_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_revisions",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(( SELECT d.project_id\n   FROM report_documents d\n  WHERE (d.id = report_revisions.report_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_revisions",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(( SELECT d.project_id\n   FROM report_documents d\n  WHERE (d.id = report_revisions.report_id)))",
+      "with_check": "private.can_write_project(( SELECT d.project_id\n   FROM report_documents d\n  WHERE (d.id = report_revisions.report_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_revisions",
+      "policyname": "report_revisions_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((created_by = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM report_documents d\n  WHERE (d.id = report_revisions.report_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_revisions",
+      "policyname": "report_revisions_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM report_documents d\n  WHERE (d.id = report_revisions.report_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reports",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reports",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reports",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reports",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "runoff_profiles",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "runoff_profiles",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "runoff_profiles",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "runoff_profiles",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sensors",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sensors",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sensors",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sensors",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sites",
+      "policyname": "tenant_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_manage_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sites",
+      "policyname": "tenant_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sites",
+      "policyname": "tenant_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_read_project(project_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sites",
+      "policyname": "tenant_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((project_id IS NOT NULL) AND private.can_write_project(project_id))",
+      "with_check": "((project_id IS NOT NULL) AND private.can_write_project(project_id))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "survey_round_media_versions",
+      "policyname": "round_media_project_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "survey_round_note_versions",
+      "policyname": "round_note_project_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "survey_round_versions",
+      "policyname": "survey_round_project_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "upload_import_jobs",
+      "policyname": "upload_import_jobs_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM uploads upload\n  WHERE ((upload.id = upload_import_jobs.upload_id) AND (((upload.project_id IS NULL) AND (upload.organization_id IS NULL) AND (upload.uploaded_by = auth.uid())) OR ((upload.project_id IS NOT NULL) AND private.can_manage_project(upload.project_id)) OR ((upload.project_id IS NULL) AND (upload.organization_id IS NOT NULL) AND private.can_manage_organization(upload.organization_id))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "upload_import_jobs",
+      "policyname": "upload_import_jobs_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM uploads upload\n  WHERE ((upload.id = upload_import_jobs.upload_id) AND (((upload.project_id IS NULL) AND (upload.organization_id IS NULL) AND (upload.uploaded_by = auth.uid())) OR ((upload.project_id IS NOT NULL) AND private.can_contribute_project(upload.project_id)) OR ((upload.project_id IS NULL) AND (upload.organization_id IS NOT NULL) AND private.can_write_organization(upload.organization_id))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "upload_import_jobs",
+      "policyname": "upload_import_jobs_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM uploads upload\n  WHERE ((upload.id = upload_import_jobs.upload_id) AND (((upload.project_id IS NULL) AND (upload.organization_id IS NULL) AND (upload.uploaded_by = auth.uid())) OR ((upload.project_id IS NOT NULL) AND private.can_read_project(upload.project_id)) OR ((upload.project_id IS NULL) AND (upload.organization_id IS NOT NULL) AND private.can_read_organization(upload.organization_id))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "upload_import_jobs",
+      "policyname": "upload_import_jobs_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM uploads upload\n  WHERE ((upload.id = upload_import_jobs.upload_id) AND (((upload.project_id IS NULL) AND (upload.organization_id IS NULL) AND (upload.uploaded_by = auth.uid())) OR ((upload.project_id IS NOT NULL) AND private.can_contribute_project(upload.project_id)) OR ((upload.project_id IS NULL) AND (upload.organization_id IS NOT NULL) AND private.can_write_organization(upload.organization_id))))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM uploads upload\n  WHERE ((upload.id = upload_import_jobs.upload_id) AND (((upload.project_id IS NULL) AND (upload.organization_id IS NULL) AND (upload.uploaded_by = auth.uid())) OR ((upload.project_id IS NOT NULL) AND private.can_contribute_project(upload.project_id)) OR ((upload.project_id IS NULL) AND (upload.organization_id IS NOT NULL) AND private.can_write_organization(upload.organization_id))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "uploads",
+      "policyname": "uploads_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(((intent_request_id IS NULL) OR (received_at IS NOT NULL)) AND (((project_id IS NULL) AND (organization_id IS NULL) AND (uploaded_by = auth.uid())) OR ((project_id IS NOT NULL) AND private.can_manage_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_manage_organization(organization_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "uploads",
+      "policyname": "uploads_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((uploaded_by = auth.uid()) AND (split_part(storage_path, '/'::text, 1) = (uploaded_by)::text) AND (((project_id IS NULL) AND (organization_id IS NULL)) OR ((project_id IS NOT NULL) AND private.can_contribute_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "uploads",
+      "policyname": "uploads_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(((project_id IS NULL) AND (organization_id IS NULL) AND (uploaded_by = auth.uid())) OR ((project_id IS NOT NULL) AND private.can_read_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_read_organization(organization_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "uploads",
+      "policyname": "uploads_update",
+      "permissive": "PERMISSIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "((uploaded_by = auth.uid()) AND (split_part(storage_path, '/'::text, 1) = (uploaded_by)::text) AND (((project_id IS NULL) AND (organization_id IS NULL)) OR ((project_id IS NOT NULL) AND private.can_contribute_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id))))",
+      "with_check": "((uploaded_by = auth.uid()) AND (split_part(storage_path, '/'::text, 1) = (uploaded_by)::text) AND (((project_id IS NULL) AND (organization_id IS NULL)) OR ((project_id IS NOT NULL) AND private.can_contribute_project(project_id)) OR ((project_id IS NULL) AND (organization_id IS NOT NULL) AND private.can_write_organization(organization_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "verification_plan_versions",
+      "policyname": "verification_plan_project_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observation_reviews",
+      "policyname": "Approve accessible observations",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((approved_by = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM watercourse_observations o\n  WHERE (o.id = watercourse_observation_reviews.observation_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observation_reviews",
+      "policyname": "Read observation reviews",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM watercourse_observations o\n  WHERE (o.id = watercourse_observation_reviews.observation_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observation_reviews",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(( SELECT o.project_id\n   FROM watercourse_observations o\n  WHERE (o.id = watercourse_observation_reviews.observation_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observation_reviews",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_write_project(( SELECT o.project_id\n   FROM watercourse_observations o\n  WHERE (o.id = watercourse_observation_reviews.observation_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observation_reviews",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(( SELECT o.project_id\n   FROM watercourse_observations o\n  WHERE (o.id = watercourse_observation_reviews.observation_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observation_reviews",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(( SELECT o.project_id\n   FROM watercourse_observations o\n  WHERE (o.id = watercourse_observation_reviews.observation_id)))",
+      "with_check": "private.can_write_project(( SELECT o.project_id\n   FROM watercourse_observations o\n  WHERE (o.id = watercourse_observation_reviews.observation_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observations",
+      "policyname": "Insert observations within organization",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((created_by = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM watercourse_versions v\n  WHERE ((v.id = watercourse_observations.centerline_version_id) AND (v.project_id = watercourse_observations.project_id) AND (v.organization_id = watercourse_observations.organization_id)))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observations",
+      "policyname": "Read observations within organization",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM watercourse_versions v\n  WHERE ((v.id = watercourse_observations.centerline_version_id) AND (v.project_id = watercourse_observations.project_id) AND (v.organization_id = watercourse_observations.organization_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observations",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observations",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observations",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_observations",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_versions",
+      "policyname": "Append authorized watercourse versions",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((created_by = auth.uid()) AND (EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = watercourse_versions.project_id) AND (p.organization_id = watercourse_versions.organization_id) AND is_org_member(auth.uid(), p.organization_id)))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_versions",
+      "policyname": "Read authorized watercourse versions",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects p\n  WHERE ((p.id = watercourse_versions.project_id) AND (p.organization_id = watercourse_versions.organization_id) AND is_org_member(auth.uid(), p.organization_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_versions",
+      "policyname": "release_delete_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_versions",
+      "policyname": "release_insert_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_versions",
+      "policyname": "release_read_scope",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "private.can_read_project(project_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "watercourse_versions",
+      "policyname": "release_update_role",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "private.can_write_project(project_id)",
+      "with_check": "private.can_write_project(project_id)"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Private original insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id = 'project-originals'::text) AND private.can_contribute_project(private.originals_project_id(name)))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "Private original read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'project-originals'::text) AND private.can_read_project(private.originals_project_id(name)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "evidence_files_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'evidence-files'::text) AND private.storage_path_matches_project(name) AND (private.can_manage_project(private.storage_project_id(name)) OR ((owner_id = ( SELECT (auth.uid())::text AS uid)) AND (created_at >= (now() - '00:15:00'::interval)) AND private.can_contribute_project(private.storage_project_id(name)) AND (NOT (EXISTS ( SELECT 1\n   FROM evidence_files evidence\n  WHERE (evidence.file_url = objects.name)))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "evidence_files_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id = 'evidence-files'::text) AND private.storage_path_matches_project(name) AND private.can_contribute_project(private.storage_project_id(name)))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "evidence_files_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'evidence-files'::text) AND private.storage_path_matches_project(name) AND private.can_read_project(private.storage_project_id(name)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "monitoring_uploads_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'monitoring-uploads'::text) AND private.can_delete_monitoring_object(name) AND ((EXISTS ( SELECT 1\n   FROM uploads upload\n  WHERE (upload.storage_path = objects.name))) OR ((owner_id = ( SELECT (auth.uid())::text AS uid)) AND (created_at >= (now() - '00:15:00'::interval)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "monitoring_uploads_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id = 'monitoring-uploads'::text) AND private.can_write_monitoring_object(name))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "monitoring_uploads_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'monitoring-uploads'::text) AND private.can_read_monitoring_object(name))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "project_media_delete",
+      "permissive": "PERMISSIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'project-media'::text) AND private.storage_path_matches_project(name) AND (private.can_manage_project(private.storage_project_id(name)) OR ((owner_id = ( SELECT (auth.uid())::text AS uid)) AND (created_at >= (now() - '00:15:00'::interval)) AND private.can_contribute_project(private.storage_project_id(name)) AND (NOT (EXISTS ( SELECT 1\n   FROM project_media media\n  WHERE (media.file_path = objects.name)))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "project_media_insert",
+      "permissive": "PERMISSIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id = 'project-media'::text) AND private.storage_path_matches_project(name) AND private.can_contribute_project(private.storage_project_id(name)))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "project_media_read",
+      "permissive": "PERMISSIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id = 'project-media'::text) AND private.storage_path_matches_project(name) AND private.can_read_project(private.storage_project_id(name)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "promoted_drone_original_no_delete",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(NOT private.is_promoted_drone_storage_reference(bucket_id, name, id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "promoted_drone_original_no_insert",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "(NOT private.is_promoted_drone_storage_reference(bucket_id, name, id))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "promoted_drone_original_no_update",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(NOT private.is_promoted_drone_storage_reference(bucket_id, name, id))",
+      "with_check": "(NOT private.is_promoted_drone_storage_reference(bucket_id, name, id))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "release_original_insert_guard",
+      "permissive": "RESTRICTIVE",
+      "cmd": "INSERT",
+      "roles": "{authenticated}",
+      "qual": null,
+      "with_check": "((bucket_id <> 'project-originals'::text) OR private.can_contribute_project(private.originals_project_id(name)))"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "release_original_no_delete",
+      "permissive": "RESTRICTIVE",
+      "cmd": "DELETE",
+      "roles": "{authenticated}",
+      "qual": "(bucket_id <> 'project-originals'::text)",
+      "with_check": null
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "release_original_no_update",
+      "permissive": "RESTRICTIVE",
+      "cmd": "UPDATE",
+      "roles": "{authenticated}",
+      "qual": "(bucket_id <> 'project-originals'::text)",
+      "with_check": "(bucket_id <> 'project-originals'::text)"
+    },
+    {
+      "schemaname": "storage",
+      "tablename": "objects",
+      "policyname": "release_original_read_guard",
+      "permissive": "RESTRICTIVE",
+      "cmd": "SELECT",
+      "roles": "{authenticated}",
+      "qual": "((bucket_id <> 'project-originals'::text) OR private.can_read_project(private.originals_project_id(name)))",
+      "with_check": null
+    }
+  ],
+  "buckets": [
+    {
+      "id": "evidence-files",
+      "public": false,
+      "file_size_limit": null,
+      "allowed_mime_types": null
+    },
+    {
+      "id": "monitoring-uploads",
+      "public": false,
+      "file_size_limit": 209715200,
+      "allowed_mime_types": [
+        "image/*",
+        "video/*",
+        "audio/*",
+        "application/pdf",
+        "application/json",
+        "application/geo+json",
+        "application/vnd.google-earth.kml+xml",
+        "application/gpx+xml",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "application/zip",
+        "application/x-zip-compressed",
+        "text/csv",
+        "text/plain",
+        "text/xml",
+        "application/xml"
+      ]
+    },
+    {
+      "id": "project-media",
+      "public": false,
+      "file_size_limit": 52428800,
+      "allowed_mime_types": [
+        "image/*",
+        "application/pdf"
+      ]
+    },
+    {
+      "id": "project-originals",
+      "public": false,
+      "file_size_limit": 209715200,
+      "allowed_mime_types": null
+    }
+  ],
+  "views": [
+    {
+      "schema": "public",
+      "view": "geography_columns",
+      "options": null
+    },
+    {
+      "schema": "public",
+      "view": "geometry_columns",
+      "options": null
+    },
+    {
+      "schema": "public",
+      "view": "municipal_report_latest_answers",
+      "options": [
+        "security_invoker=true"
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "schema": "private",
+      "proname": "add_project_creator_as_admin",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "audit_upload_created",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "can_contribute_project",
+      "arguments": "_project_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_delete_monitoring_object",
+      "arguments": "_object_name text",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_manage_organization",
+      "arguments": "_organization_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_manage_project",
+      "arguments": "_project_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_read_monitoring_object",
+      "arguments": "_object_name text",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_read_organization",
+      "arguments": "_organization_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_read_project",
+      "arguments": "_project_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_write_monitoring_object",
+      "arguments": "_object_name text",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_write_organization",
+      "arguments": "_organization_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "can_write_project",
+      "arguments": "_project_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "is_organization_owner",
+      "arguments": "_organization_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "is_promoted_drone_storage_reference",
+      "arguments": "_bucket text, _path text, _object_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "private",
+      "proname": "require_action_evidence_project_match",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "require_device_parameter_match",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "require_matching_project_organization",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "require_project_parent_match",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "require_quality_assessment_scope_match",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "require_quality_issue_measurement_match",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "require_upload_storage_identity",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "proname": "storage_path_matches_project",
+      "arguments": "_object_name text",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "add_creator_as_owner",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "public",
+      "proname": "cancel_upload_intent",
+      "arguments": "p_upload_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "claim_upload_intent_orphans",
+      "arguments": "p_limit integer, p_lease_seconds integer",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "public",
+      "proname": "complete_upload_intent_orphan_cleanup",
+      "arguments": "p_upload_id uuid, p_claim_token uuid, p_error text",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "public",
+      "proname": "create_upload_intent",
+      "arguments": "p_project_id uuid, p_original_file_name text, p_mime_type text, p_file_size bigint, p_client_request_id uuid, p_zone_id uuid, p_upload_type text, p_user_metadata jsonb",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "finalize_upload_intent",
+      "arguments": "p_upload_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "handle_new_user",
+      "arguments": "",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "public",
+      "proname": "has_org_role",
+      "arguments": "_user_id uuid, _org_id uuid, _roles text[]",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "has_project_role",
+      "arguments": "_project_id uuid, _user_id uuid, _role project_role",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "is_lavbund_projekt_member",
+      "arguments": "_projekt_id text, _user_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "is_org_member",
+      "arguments": "_user_id uuid, _org_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "is_project_admin",
+      "arguments": "_project_id uuid, _user_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "is_project_member",
+      "arguments": "_project_id uuid, _user_id uuid",
+      "security_definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "st_estimatedextent",
+      "arguments": "text, text, text, boolean",
+      "security_definer": true,
+      "settings": null,
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "st_estimatedextent",
+      "arguments": "text, text, text",
+      "security_definer": true,
+      "settings": null,
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "proname": "st_estimatedextent",
+      "arguments": "text, text",
+      "security_definer": true,
+      "settings": null,
+      "anon_execute": true,
+      "authenticated_execute": true
+    }
+  ]
+}

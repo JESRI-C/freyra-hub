@@ -256,18 +256,12 @@ describe("municipal manual image comparison", () => {
       expect(state.prepared).toHaveBeenCalledTimes(1);
       expect(state.changed).toHaveBeenCalledTimes(1);
       expect(markup).toContain("1 fotos er tilknyttet den gemte undersøgelse");
-      expect(state.run).toHaveBeenCalledTimes(demo ? 0 : 1);
+      expect(state.run).not.toHaveBeenCalled();
       expect(state.inspect).not.toHaveBeenCalled(); // Chunk runner is explicitly mocked.
-      if (demo) {
-        expect(markup).toContain("Automatisk billedvurdering er ikke frigivet til kommunal brug.");
-        expect(markup).toContain("Fortsæt med manuel sammenligning i Gennemgang.");
-        expect(markup).not.toMatch(
-          /Billed-AI starter|gennemgås automatisk|Analyser de næste|Fortsæt billedanalysen|Spring dette foto over/,
-        );
-      } else {
-        expect(markup).toContain("billedudkast gennemgået i denne arbejdsgang");
-        expect(markup).not.toContain("ikke frigivet til kommunal brug");
-      }
+      expect(markup).toContain("Fortsæt med manuel sammenligning i Gennemgang.");
+      expect(markup).not.toMatch(
+        /Billed-AI starter|gennemgås automatisk|Analyser de næste|Fortsæt billedanalysen/,
+      );
       cleanup?.();
     },
   );

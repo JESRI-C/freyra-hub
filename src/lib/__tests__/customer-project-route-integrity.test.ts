@@ -102,10 +102,8 @@ describe("customer project evidence guards", () => {
   it("keeps generated sensor data in explicit offline demo only", () => {
     state.demo = true;
     renderProject();
-    expect(state.sensors).toHaveBeenCalledWith("project-a", { lat: 55, lng: 9 });
-    expect(state.preview).toHaveBeenCalledWith(
-      expect.objectContaining({ sensors: [{ id: "demo-sensor" }] }),
-    );
+    expect(state.sensors).not.toHaveBeenCalled();
+    expect(state.preview).toHaveBeenCalledWith(expect.objectContaining({ sensors: [] }));
   });
 
   it("rejects a media service error instead of resolving an empty evidence list", async () => {

@@ -1,0 +1,89 @@
+{
+  "environment": "staging",
+  "freshViewer": true,
+  "provisionedBy": "scripts/provision-municipal-reader.mjs",
+  "checks": [
+    {
+      "label": "editor can create report draft",
+      "pass": true
+    },
+    {
+      "label": "editor can append a labelled technical watercourse version",
+      "pass": true
+    },
+    {
+      "label": "editor can request a blocked technical job",
+      "pass": true
+    },
+    {
+      "label": "editor can upload a private technical object",
+      "pass": true
+    },
+    {
+      "label": "viewer scoped SELECT report_documents",
+      "pass": true
+    },
+    {
+      "label": "viewer scoped SELECT watercourse_versions",
+      "pass": true
+    },
+    {
+      "label": "viewer scoped SELECT drone_processing_jobs",
+      "pass": true
+    },
+    {
+      "label": "viewer scoped SELECT project_workspace_entries",
+      "pass": true
+    },
+    {
+      "label": "viewer scoped SELECT project_media",
+      "pass": true
+    },
+    {
+      "label": "viewer can read saved revision",
+      "pass": true
+    },
+    {
+      "label": "viewer report document INSERT denied",
+      "pass": true
+    },
+    {
+      "label": "viewer report revision INSERT denied",
+      "pass": true
+    },
+    {
+      "label": "viewer report save RPC denied",
+      "pass": true
+    },
+    {
+      "label": "viewer watercourse version INSERT denied",
+      "pass": true
+    },
+    {
+      "label": "viewer dronejob INSERT denied",
+      "pass": true
+    },
+    {
+      "label": "viewer flight INSERT denied",
+      "pass": true
+    },
+    {
+      "label": "viewer original upload denied by hosted Storage",
+      "pass": true
+    },
+    {
+      "label": "viewer downloads assigned original bytes",
+      "pass": true
+    },
+    {
+      "label": "viewer original overwrite denied",
+      "pass": true
+    },
+    {
+      "label": "viewer deletion leaves original bytes unchanged",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "pass": true
+}

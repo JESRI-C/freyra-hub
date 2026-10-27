@@ -95,6 +95,22 @@ jobs:
             --database postgresql://postgres:postgres@127.0.0.1:54322/postgres \
             --checkout-sha '${{ github.sha }}'
 
+      - name: Restore a real database dump to a disposable database
+        env:
+          CI: "true"
+        run: bash scripts/test-release-restore.sh
+
+      - name: Preserve credential-free restore evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-restore-evidence
+          path: |
+            tmp/release-restore/result.json
+            tmp/release-restore/restore.log
+            tmp/release-restore/dump.sha256
+          if-no-files-found: ignore
+
       - name: Check database functions
         env:
           PGPASSWORD: postgres

@@ -1,0 +1,15 @@
+{
+  "schema": "freyra.health/v1",
+  "checkedAt": "2026-10-27T06:39:15.538Z",
+  "environment": "staging",
+  "test": true,
+  "checks": [
+    {
+      "path": "/unavailable",
+      "status": 503,
+      "ok": false
+    }
+  ],
+  "ok": false,
+  "incidentKey": "246c33b7050aeb7fb3ec6312afdb2945f234efee38613bdd70effeb0312231f7"
+}

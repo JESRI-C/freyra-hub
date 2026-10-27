@@ -17,12 +17,20 @@ const state = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("@/lib/auth", () => ({
+  useAuth: () => ({
+    orgId: "org-a",
+    user: { id: "user" },
+    currentOrg: { name: "Testorganisation", role: "viewer" },
+  }),
+}));
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options: unknown) => ({ options }),
   Link: ({ children }: { children: React.ReactNode }) => React.createElement("a", null, children),
 }));
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: { queryKey: string[] }) => {
+    if (options.queryKey[0] === "project-workspace") return { data: undefined, isPending: false };
     if (options.queryKey[0] === "monitoring-alerts")
       return {
         data: state.alerts,
@@ -107,14 +115,16 @@ function renderRoute(route: { options: { component?: unknown } }): string {
 
 describe("customer source availability", () => {
   it("does not present example integration owners and activity as active connections", () => {
+    state.projectId = null;
     const html = renderRoute(IntegrationRoute);
-    expect(html).toContain("afventer tilslutning");
+    expect(html).toContain("Vælg en sag");
     expect(html).not.toContain("12.4k");
     expect(html).not.toContain("Mikkel Holm");
   });
   it("does not present fixed example observations as a real live feed", () => {
+    state.projectId = null;
     const html = renderRoute(LiveRoute);
-    expect(html).toContain("afventer tilslutning");
+    expect(html).toContain("Vælg en sag");
     expect(html).not.toContain("1.284");
     expect(html).not.toContain("91%");
   });
@@ -208,9 +218,9 @@ describe("customer alert dashboard", () => {
   it("limits fixed chart and recommendations to explicit demo", () => {
     state.demo = true;
     const html = renderRoute(AlertRoute);
-    expect(html).toContain("Demovisning med eksempelalarmer.");
-    expect(html).toContain("DEMO_WEEK_CHART");
-    expect(html).toContain("Operationelle anbefalinger");
+    expect(html).not.toContain("Demovisning med eksempelalarmer.");
+    expect(html).not.toContain("DEMO_WEEK_CHART");
+    expect(html).not.toContain("Operationelle anbefalinger");
   });
 });
 
