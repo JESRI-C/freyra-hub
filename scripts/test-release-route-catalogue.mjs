@@ -33,11 +33,14 @@ for (const name of await fs.readdir("src/routes")) {
 const report = {
   schema: "freyra.route-catalogue/v1",
   base: "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
-  sourceRevision: "a99c322542263b0e12bc37f9bfc6de64f8b3addb",
+  sourceRevision: null,
   scope: "Read-only render and demo-text check; does not prove every external integration",
   routes: [],
   errors: [],
 };
+const build = await (await fetch(report.base + "/freyra-build.json")).json();
+assert.equal(build.viteMode, "staging");
+report.sourceRevision = build.sourceRevision;
 const browser = await chromium.launch({ channel: "msedge", headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });

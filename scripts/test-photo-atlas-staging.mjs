@@ -57,6 +57,7 @@ const result = {
   passed: false,
 };
 const browser = await chromium.launch({ channel: "msedge", headless: true });
+let currentPage;
 async function contextFor(session, viewport = { width: 1440, height: 1100 }) {
   const context = await browser.newContext({ viewport, acceptDownloads: true });
   await context.addInitScript(
@@ -74,6 +75,7 @@ async function contextFor(session, viewport = { width: 1440, height: 1100 }) {
 try {
   const context = await contextFor(auth.data.session),
     page = await context.newPage();
+  currentPage = page;
   page.setDefaultTimeout(90000);
   page.on("pageerror", (e) => result.errors.push(e.message));
   await page.goto(base + "/app/projects/" + project.id, { waitUntil: "networkidle" });
@@ -153,6 +155,7 @@ try {
   await page.screenshot({ path: "docs/screens/photo-atlas/02-fotogennemgang.png", fullPage: true });
   await dialog.getByRole("button", { name: "Gem fotogennemgang som ny version" }).click();
   await dialog.waitFor({ state: "hidden" });
+  console.log("PASS saved review");
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Fotoatlas", exact: true }).click();
   await atlas.getByRole("status").filter({ hasText: "274 af 274 fotos" }).waitFor();
@@ -173,6 +176,7 @@ try {
   const offline = await context.newPage();
   await offline.goto("file:///" + htmlPath.replaceAll("\\", "/"));
   await offline.getByRole("status").filter({ hasText: "274 af 274 fotos" }).waitFor();
+  console.log("PASS offline atlas initialization");
   await offline.locator("#search").fill("DRN-001");
   await offline.getByRole("status").filter({ hasText: "1 af 274 fotos" }).waitFor();
   await offline.getByRole("button", { name: /DRN-001 ·/ }).click();
@@ -199,6 +203,7 @@ try {
   const pdfDownload = page.waitForEvent("download", { timeout: 240000 });
   await atlas.getByRole("button", { name: "Eksporter rapport og fotoatlas som PDF" }).click();
   const pdf = await pdfDownload;
+  console.log("PASS PDF downloaded");
   await pdf.saveAs(path.resolve("tmp/photo-atlas-acceptance/report.pdf"));
   assert.equal(await pdf.failure(), null);
   result.steps.push("Saved report versions, 274-photo PDF, JSON baseline with persisted reviews");
@@ -269,10 +274,16 @@ try {
       payload: row.payload,
     });
     assert.ok(denied.error, "Viewer must not write review");
+    assert.equal(
+      denied.error.code,
+      "42501",
+      "Review rejection must come from RLS, not malformed input",
+    );
     const upload = await readerClient.storage
       .from("evidence-files")
       .upload(`${project.id}/viewer-denied.json`, new Blob(["{}"], { type: "application/json" }));
     assert.ok(upload.error, "Viewer must not upload evidence");
+    assert.match(upload.error.message, /row.level security|policy|permission/i);
     const foreign = await readerClient
       .from("evidence_files")
       .select("id")
@@ -288,6 +299,12 @@ try {
   }
   assert.deepEqual(result.errors, []);
   result.passed = true;
+} catch (error) {
+  if (currentPage && !currentPage.isClosed()) {
+    await currentPage.screenshot({ path: "tmp/photo-atlas-acceptance/failure.png" });
+    console.log("Visible alerts:", await currentPage.getByRole("alert").allTextContents());
+  }
+  throw error;
 } finally {
   await browser.close();
   await client.auth.signOut({ scope: "local" });

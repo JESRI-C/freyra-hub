@@ -288,11 +288,9 @@ describe("private project media", () => {
       singleResults: [{ data: mediaRow(), error: null }],
     });
     mocks.dbFrom.mockReturnValue(builder);
-    const file = {
-      name: "feltfoto.jpg",
-      size: 12,
+    const file = new File(["TEKNISK private original bytes"], "feltfoto.jpg", {
       type: "image/jpeg",
-    } as File;
+    });
 
     const result = await uploadProjectMedia({
       projectId: PROJECT_ID,
