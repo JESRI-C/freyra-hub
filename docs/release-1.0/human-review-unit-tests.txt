@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 C:/Users/jespe/JBR Freelance/Freyra development - Dokumenter/4. Produktudvikling/Freyra-dashboard 28032025/arbejde/freyra-hub-bykaer
+
+
+ Test Files  199 passed (199)
+      Tests  2919 passed (2919)
+   Start at  00:23:42
+   Duration  84.30s (transform 7.54s, setup 0ms, import 76.74s, tests 46.38s, environment 1.93s)
+

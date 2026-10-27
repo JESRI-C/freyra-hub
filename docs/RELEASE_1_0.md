@@ -1,12 +1,20 @@
 # Freyra release 1.0
 
+## Opfølgning: simuleret brugerkontrol 28.10.2026
+
+Fem forskellige rapportkladder er nu gemt og genåbnet i den isolerede testsag: vandløb, byggeri/naturbaseline, naturbaseline, årsstatus og fotoatlas. Fire PDF/DOCX-par og et 74-siders atlas med 274 illustrationer og ét kort er eksporteret og kontrolleret. [Kontrolnotatet](SIMULERET_BRUGERKONTROL.md) beskriver præcis, hvilke sider og arbejdsgange der er verificeret, samt de tilbageværende fund.
+
+Kontrollen fandt teksttab, når kilderegisterets svar kom efter brugerens indtastning. Rettet i **cfe09c4e0cbb3fac4379460dc353f9b9fea17fc1**, verificeret med regressionstest og et forsinket kildesvar i den hostede browser. Hele testsuiten: **2.919 bestået / 199 filer**; typecheck og staging-build består. Worker **203a9441-9578-4187-ac26-c30b1010d184** kører appkilden cfe09c4. Ingen migrationer eller motorændringer i denne opfølgning.
+
+Rapportbibliotekets navnevisning er et åbent brugervenlighedsfund: rapporterne vises med dato/id, ikke titel/type. Alle fem kan åbnes med korrekt titel og indhold. Drive-kopier af rapporterne afventer særskilt godkendelse efter automatisk afvist upload; de er gemt i testappen og lokalt. **NO-GO for kommunal drift og produktion er uændret**; kontrollen lukker ikke SMTP, komplet hostet gendannelse, overvågning, faglig accept eller rollbackgeneralprøve.
+
 **27.10.2026: NO-GO for kommunal driftsibrugtagning. Produktion: NO-GO.** Testappen og nedenstående tekniske prøver fungerer. Verificerede loginmails, samlet hostet gendannelse, aktiv løbende overvågning og navngiven faglig accept mangler. En teknisk prøve er ikke en kommunal godkendelse.
 
 Ingen push/merge til main, produktionsmigration eller produktionsudgivelse er udført. Fallback 625781906a4f49d120b6b3581261279dd889e6de er urørt. Arbejdet ligger på codex/release-1.0, oprettet direkte derfra. [Draft-PR 19](https://github.com/JESRI-C/freyra-hub/pull/19) går ind i codex/haderslev-demo-2710 og merges ikke af agenten.
 
 ## Version og bevisgrænse
 
-[Testapp](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev): Worker c9cadbcc-750f-4b70-a092-2bcc09d661e9, appkilde 28a832062bd355dd82da151561c49cd8f0db3d93. Det fulde dashboard er gendannet efter Jespers bekræftelse. Fotoatlas og rapportflow er udbygget med de gældende Drive-referencer. [Deploymentkvittering](release-1.0/deployment.json), [audit og bevisgrænser](REPORT_ATLAS_AUDIT.md).
+[Testapp](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev): Worker 203a9441-9578-4187-ac26-c30b1010d184, appkilde cfe09c4e0cbb3fac4379460dc353f9b9fea17fc1. Den brede browser-/databasetest nedenfor blev udført på 28a8320; den efterfølgende rettelse og målrettede rapportkontrol er dokumenteret ovenfor. Det fulde dashboard er gendannet efter Jespers bekræftelse. Fotoatlas og rapportflow er udbygget med de gældende Drive-referencer. [Deploymentkvittering](release-1.0/deployment.json), [audit og bevisgrænser](REPORT_ATLAS_AUDIT.md).
 
 Kun stagingdatabasen xdvqdzdpyceojbdknofi er ændret. Produktion ikrmcetjutqcjtwfhzfv er ikke ændret. Produktions-SMTP og migrationsledger er **ikke verificeret** med den tilgængelige konto.
 
