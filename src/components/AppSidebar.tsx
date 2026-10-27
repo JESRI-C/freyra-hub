@@ -139,12 +139,13 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border">
+        <Link to="/select" onClick={onNavigate} className="mb-3 block text-xs underline">
+          Arbejdsplads og log ud
+        </Link>
         <div className="rounded-xl bg-sidebar-accent/60 border border-sidebar-border p-3">
           <div className="text-xs text-sidebar-muted">Metodekvalitet</div>
           <div className="text-sm font-medium mt-0.5">Dokumenteret & sporbar</div>
-          <div className="mt-2 h-1.5 rounded-full bg-sidebar-border overflow-hidden">
-            <div className="h-full w-[82%] bg-leaf" />
-          </div>
+          <p className="mt-2 text-xs text-sidebar-muted">Kildestatus vises på den enkelte sag.</p>
         </div>
       </div>
     </div>
