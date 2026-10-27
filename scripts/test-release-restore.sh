@@ -8,7 +8,7 @@ psql --no-psqlrc --set=ON_ERROR_STOP=1 <<'SQL'
 select set_config('request.jwt.claim.sub','ea000000-0000-4000-8000-000000000001',false);
 insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data) values('ea000000-0000-4000-8000-000000000001','disposable-restore@example.test','{}','{}');
 insert into public.organizations(id,name,type,country) values('eb000000-0000-4000-8000-000000000001','DISPOSABLE RESTORE FIXTURE','test','Denmark');
-insert into public.organization_memberships(user_id,organization_id,role) values('ea000000-0000-4000-8000-000000000001','eb000000-0000-4000-8000-000000000001','owner');
+insert into public.organization_memberships(user_id,organization_id,role) values('ea000000-0000-4000-8000-000000000001','eb000000-0000-4000-8000-000000000001','owner') on conflict (user_id,organization_id) do update set role=excluded.role;
 insert into public.projects(id,organization_id,name) values('ec000000-0000-4000-8000-000000000001','eb000000-0000-4000-8000-000000000001','DISPOSABLE RESTORE FIXTURE');
 select public.save_report_revision(null,'eb000000-0000-4000-8000-000000000001','ec000000-0000-4000-8000-000000000001',0,'draft','{"title":"DISPOSABLE RESTORE FIXTURE","scope":"Technical recovery only","audience":"CI","sections":[{"id":"limit","title":"Limitations","text":"No customer findings.","basis":"not_measured","sourceIds":[],"reviewed":false}],"sources":[]}');
 SQL

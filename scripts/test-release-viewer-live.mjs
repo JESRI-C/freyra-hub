@@ -193,14 +193,12 @@ try {
     "viewer report document INSERT denied",
   );
   deny(
-    await viewer
-      .from("report_revisions")
-      .insert({
-        report_id: revision.report_id,
-        version: revision.version + 1,
-        status: "draft",
-        content,
-      }),
+    await viewer.from("report_revisions").insert({
+      report_id: revision.report_id,
+      version: revision.version + 1,
+      status: "draft",
+      content,
+    }),
     "viewer report revision INSERT denied",
   );
   deny(
@@ -223,14 +221,12 @@ try {
     "viewer dronejob INSERT denied",
   );
   deny(
-    await viewer
-      .from("drone_flights")
-      .insert({
-        project_id: project.id,
-        purpose: "TEKNISK AFVIST FORSØG",
-        status: "planned",
-        flown_at: new Date().toISOString(),
-      }),
+    await viewer.from("drone_flights").insert({
+      project_id: project.id,
+      purpose: "TEKNISK AFVIST FORSØG",
+      status: "planned",
+      flown_at: new Date().toISOString(),
+    }),
     "viewer flight INSERT denied",
   );
   const failedUpload = await viewer.storage
