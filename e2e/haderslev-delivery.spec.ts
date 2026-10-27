@@ -66,7 +66,7 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
       localStorage.setItem("freyra-auth-selection-v1", JSON.stringify({ orgId, projectId: id })),
     { orgId, id },
   );
-  await page.goto(`/login?next=${encodeURIComponent(`/app/projects/${slug}`)}`);
+  await page.goto(`/login?next=${encodeURIComponent(`/app/projects/${slug}?step=billeder`)}`);
   await checkpoint("login_email");
   await page.locator('input[type="email"]').fill(email);
   await checkpoint("login_password");
@@ -81,9 +81,9 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
     path: "docs/screens/release-1.0/01-billeder-foer-upload.png",
     fullPage: false,
   });
-  // Every category remains reachable; the primary municipal workflow stays compact.
+  // The restored dashboard exposes every category directly in its main navigation.
   await expect(page.getByRole("navigation", { name: "Hovedmenu" }).getByRole("link")).toHaveCount(
-    2,
+    16,
   );
   await page.getByRole("button", { name: "Tilføj dronebilleder", exact: true }).click();
   await page.locator('input[type="file"][multiple]').setInputFiles(original);
@@ -316,6 +316,7 @@ test("Start en ny sag: standarder, nulstilling, gemning og genåbning", async ({
     .filter({ hasText: /projekter ·/ })
     .click();
   await page.getByRole("button", { name: "Åbn " + org.data!.name, exact: true }).click();
+  await page.goto("/app/projects");
   await page.locator("button.start-action").filter({ hasText: "Start en ny sag" }).click();
   const dialog = page.getByRole("dialog", { name: "Opret ny sag" });
   const name = "TEKNISK UI – oprettelse " + randomUUID().slice(0, 8);

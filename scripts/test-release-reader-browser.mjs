@@ -30,7 +30,7 @@ try {
   await page.getByRole("button", { name: "Log ind", exact: true }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/login"));
   result.passwordLogin = true;
-  await page.goto(base + "/app/projects/" + reader.projectId);
+  await page.goto(base + "/app/projects/" + reader.projectId + "?step=billeder");
   await page.getByRole("navigation", { name: "Sagens seks trin" }).waitFor();
   await page.waitForFunction(
     () =>

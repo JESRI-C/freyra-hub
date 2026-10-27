@@ -157,16 +157,15 @@ const TABS = [
   { id: "audit", label: "Revisionsspor" },
   { id: "roller", label: "Roller" },
   { id: "dokumentation", label: "Dokumentation" },
-  { id: "medier", label: "Medier" },
+  { id: "medier", label: "Fotoatlas" },
   { id: "miljodata", label: "Miljødata" },
   { id: "livekort", label: "Livekort" },
 ];
 // ─── Page ─────────────────────────────────────────────────────────────────────
 function ProjectPage() {
   const search = Route.useSearch();
-  // Existing full-app tabs and deep links retain their exact components and handlers.
-  // The default and explicit steps use the guided presentation in both modes.
-  return search.tab && !search.step ? <ProjectDetailPage /> : <MunicipalProjectPage />;
+  // The complete dashboard is the default. Explicit step links retain the working case flow.
+  return search.step ? <MunicipalProjectPage /> : <ProjectDetailPage />;
 }
 function MunicipalProjectPage() {
   const initialProject = Route.useLoaderData();
@@ -403,8 +402,7 @@ function ProjectDetailPage() {
 
       <ProjectTabs
         tabs={TABS}
-        activeTab={search.tab ?? "arbejde"}
-        primaryTabIds={["arbejde", "rapporter"]}
+        activeTab={search.tab ?? "overblik"}
         onTabChange={(tab) => void navigate({ search: { ...search, tab }, replace: true })}
       >
         {(active) => (

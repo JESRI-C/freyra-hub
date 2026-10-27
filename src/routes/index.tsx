@@ -10,5 +10,5 @@ function Index() {
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
   if (!orgId) return <Navigate to="/select" />;
-  return <Navigate to="/app/projects" />;
+  return <Navigate to="/app/overview" />;
 }

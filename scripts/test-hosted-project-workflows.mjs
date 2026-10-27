@@ -52,7 +52,7 @@ try {
     },
     { org: qa.organizationId, id: project.id, session: login.data.session },
   );
-  await page.goto(base + "/app/projects/" + project.id);
+  await page.goto(base + "/app/projects/" + project.id + "?step=billeder");
   const steps = page.getByRole("navigation", { name: "Sagens seks trin" });
   await steps.waitFor();
   for (const label of [
