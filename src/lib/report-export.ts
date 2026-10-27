@@ -91,7 +91,9 @@ export function reportLines(revision: ReportRevision): string[] {
     ]),
     "Kilderegister",
     ...(c.sources.length ? [] : ["Ingen registrerede kilder."]),
-    "Fotoatlas medtager kun JPEG/PNG-kilder med gemt filsti og originalchecksum. Øvrige kilder er kun medtaget som referencer.",
+    c.photoAtlas
+      ? "Fotobilaget indeholder visningskopier fra den registrerede atlasfil. Originalreferencer og registrerede originalchecksums fremgår ved fotoerne; de erstatter ikke verificerede originalfiler."
+      : "Fotoatlas medtager kun JPEG/PNG-kilder med gemt filsti og originalchecksum. Øvrige kilder er kun medtaget som referencer.",
     ...c.sources.flatMap((s) => [
       `${s.id}: ${s.title}`,
       `Metode: ${s.method}; version: ${s.version}`,
@@ -222,7 +224,51 @@ export async function generateReportFile(
         y += heading ? 7 : 5;
       }
     }
+    let atlasY: number | null = null;
     for (const image of images) {
+      if (revision.content.photoAtlas && image.id.startsWith("atlas:")) {
+        pdf.setFontSize(7);
+        const lines = pdf.splitTextToSize(image.caption, 94) as string[];
+        const scale = Math.min(74 / image.width, 50 / image.height);
+        const rowHeight =
+          Math.max(image.height * scale, lines.length * 2.9 + (image.sourceUrl ? 5 : 0)) + 9;
+        if (rowHeight <= 242) {
+          if (atlasY === null || atlasY + rowHeight > 278) {
+            pdf.addPage();
+            pdf.setFontSize(14);
+            pdf.setTextColor(25, 60, 47);
+            pdf.text("Freyra · fotobilag", 20, 20);
+            pdf.setTextColor(25, 35, 29);
+            pdf.setFontSize(7);
+            pdf.text(
+              "Rapportillustrationer · kamera-GPS er ikke motivposition · artsbud kræver kontrol",
+              20,
+              26,
+            );
+            atlasY = 33;
+          }
+          pdf.addImage(
+            image.bytes,
+            image.format.toUpperCase(),
+            20,
+            atlasY,
+            image.width * scale,
+            image.height * scale,
+          );
+          pdf.setFontSize(7);
+          lines.forEach((line, index) => pdf.text(line, 98, atlasY! + 3 + index * 2.9));
+          if (image.sourceUrl)
+            pdf.textWithLink(
+              "Originalens kildehenvisning (klik)",
+              98,
+              atlasY + 6 + lines.length * 2.9,
+              { url: image.sourceUrl },
+            );
+          atlasY += rowHeight;
+          continue;
+        }
+      }
+      atlasY = null;
       pdf.addPage();
       pdf.setFontSize(16);
       pdf.text(image.id === "gps-overview" ? "Fotopositioner" : "Fotoatlas", 20, 22);

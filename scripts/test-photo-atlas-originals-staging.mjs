@@ -50,6 +50,7 @@ const sha256 = createHash("sha256")
 const result = { base, projectId: project.id, sha256, steps: [], passed: false, errors: [] };
 result.sourceRevision = (await (await fetch(base + "/freyra-build.json")).json()).sourceRevision;
 const browser = await chromium.launch({ channel: "msedge", headless: true });
+let currentPage;
 try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1100 },
@@ -66,6 +67,7 @@ try {
     { session: auth.data.session, org: qa.organizationId, project: project.id },
   );
   const page = await context.newPage();
+  currentPage = page;
   page.setDefaultTimeout(90000);
   page.on("pageerror", (e) => result.errors.push(e.message));
   await page.goto(base + "/app/projects/" + project.id, { waitUntil: "networkidle" });
@@ -81,11 +83,12 @@ try {
     await page.getByText("Andet foto eller bilag", { exact: true }).click();
     await page.getByLabel("Vælg andet foto eller bilag").setInputFiles(path.resolve(originalPath));
     await page.getByRole("button", { name: "Gem foto eller bilag", exact: true }).click();
-    await page
+    const uploaded = page
       .getByRole("status")
-      .filter({ hasText: /er uploadet og afventer gennemgang/i })
-      .last()
-      .waitFor();
+      .filter({ hasText: /er uploadet og afventer gennemgang/i });
+    const failed = page.getByRole("alert");
+    await uploaded.or(failed).first().waitFor();
+    if (await failed.count()) throw new Error((await failed.allTextContents()).join("; "));
   }
   const atlas = page.getByRole("region", { name: "Projektets fotoatlas og baseline" });
   const build = atlas.getByRole("button", {
@@ -124,6 +127,12 @@ try {
   assert.deepEqual(result.errors, []);
   result.passed = true;
   await context.close();
+} catch (error) {
+  if (currentPage && !currentPage.isClosed()) {
+    await currentPage.screenshot({ path: "tmp/photo-atlas-acceptance/original-failure.png" });
+    console.log("Visible alerts:", await currentPage.getByRole("alert").allTextContents());
+  }
+  throw error;
 } finally {
   await browser.close();
   await client.auth.signOut({ scope: "local" });

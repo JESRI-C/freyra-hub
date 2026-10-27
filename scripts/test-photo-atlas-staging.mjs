@@ -286,6 +286,17 @@ try {
       .upload(`${project.id}/viewer-denied.json`, new Blob(["{}"], { type: "application/json" }));
     assert.ok(upload.error, "Viewer must not upload evidence");
     assert.match(upload.error.message, /row.level security|policy|permission/i);
+    const mediaWrite = await readerClient.from("project_media").insert({
+      project_id: project.id,
+      title: "TEKNISK AFVIST LÆSERFOTO",
+      category: "field_photo",
+      source: "field_upload",
+      file_path: `${project.id}/1777777777000_reader-denied.jpg`,
+      url: "",
+      metadata: { original_name: "reader-denied.jpg" },
+    });
+    assert.equal(mediaWrite.error?.code, "42501");
+    assert.match(mediaWrite.error?.message ?? "", /row.level security/i);
     const foreign = await readerClient
       .from("evidence_files")
       .select("id")

@@ -56,7 +56,13 @@ export function atlasReportContent(input: {
     },
     {
       title: "Observationer og vegetationsbeskrivelser",
-      text: photos.map((p) => atlasPhotoText(p, reviews.get(p.id)?.review)).join("\n\n"),
+      text: `Fotobilaget indeholder illustration, foto-ID, optagedato, observation og vegetation for alle ${photos.length} valgte fotos. ${photos.filter((p) => reviews.has(p.id)).length} fotos har en gemt brugergennemgang; dette er ikke i sig selv en faglig godkendelse.\n\n${
+        photos
+          .filter((p) => reviews.has(p.id))
+          .map((p) => atlasPhotoText(p, reviews.get(p.id)?.review))
+          .join("\n\n") ||
+        "Der er endnu ingen særskilt gemt fotogennemgang. De importerede beskrivelser fremgår af fotobilaget."
+      }`,
       basis: "observed",
     },
     {
@@ -66,13 +72,18 @@ export function atlasReportContent(input: {
           .map((p) => {
             const r = reviews.get(p.id)?.review;
             const species = r ? r.species : speciesText(p);
-            return species
-              ? `${p.id}: ${species}. ${r?.speciesStatus === "field_confirmed" ? "Brugerregistreret feltbekræftelse: " + r.confirmationEvidence + ". Fagperson: " + r.reviewer : "Foreløbigt artsbud; relevant kontrol mangler."}`
+            return species && r?.speciesStatus === "field_confirmed"
+              ? `${p.id}: ${species}. Brugerregistreret feltbekræftelse: ${r.confirmationEvidence}. Fagperson: ${r.reviewer}`
               : "";
           })
           .filter(Boolean)
           .join("\n\n") ||
-        "Der er ingen artsregistreringer i det valgte grundlag. Dronefotos alene udgør ikke en sikker artsbestemmelse.",
+        (photos.some(
+          (p) => reviews.get(p.id)?.review.species || (!reviews.has(p.id) && p.species.length),
+        )
+          ? "Foreløbige artsbud fremgår af det enkelte foto i fotobilaget. Ingen arter er registreret bekræftet ved relevant feltkontrol."
+          : "Der er ingen artsregistreringer i det valgte grundlag.") +
+          " Dronefotos alene udgør ikke en sikker artsbestemmelse.",
       basis: "screening",
     },
     {
@@ -120,7 +131,7 @@ export function atlasReportContent(input: {
     },
     {
       title: "Metode, kilder og faglige begrænsninger",
-      text: `${atlas.method}\n\n${ATLAS_METHOD}\n\nKildedatasæt: ${atlas.title}. Version: ${atlas.version}. Fotoatlasfilens SHA-256: ${atlas.checksum}. Illustrationer er visningskopier. Oprindelige filer er ikke blevet hentet eller omskrevet som del af denne import.\n\nVandstand, temperatur, ilt og pH er ikke målt her. Formelt økologisk tilstand eller effekt af plantning beregnes ikke fra disse billeder. Lokale optagetider uden tidszone omregnes ikke til UTC. Alle afsnit afventer faglig rapportgennemgang. Atlasdokumentet har ingen serverregistreret originalkontrolsum og kan ikke alene danne grundlag for en godkendt rapport.\n\nFotoregister med originalreferencer (ikke verificeret ved atlasimport):\n${photos.map((p) => `${p.id} · ${p.filename} · ${p.source || "Originalreference mangler"} · Registreret original-SHA-256: ${p.sha256 || "Mangler"}`).join("\n\n")}`,
+      text: `${atlas.method}\n\n${ATLAS_METHOD}\n\nKildedatasæt: ${atlas.title}. Version: ${atlas.version}. Fotoatlasfilens SHA-256: ${atlas.checksum}. Illustrationer er visningskopier. Oprindelige filer er ikke blevet hentet eller omskrevet som del af denne import.\n\nVandstand, temperatur, ilt og pH er ikke målt her. Formelt økologisk tilstand eller effekt af plantning beregnes ikke fra disse billeder. Lokale optagetider uden tidszone omregnes ikke til UTC. Alle afsnit afventer faglig rapportgennemgang. Atlasdokumentet har ingen serverregistreret originalkontrolsum og kan ikke alene danne grundlag for en godkendt rapport.\n\nFotoregister med originalreferencer (ikke verificeret ved atlasimport) er samlet i fotobilaget: foto-ID, filnavn, optagedato, beskrivelse, kamera-GPS, registreret original-SHA-256 og klikbar kildehenvisning. De samme oplysninger kan hentes som selvstændigt HTML-atlas og baseline-JSON.`,
       basis: "documented",
     },
   ];
@@ -136,6 +147,28 @@ export function atlasReportContent(input: {
       evidenceId: atlas.evidenceId,
       checksum: atlas.checksum,
       photoIds: photos.map((p) => p.id),
+      captions: Object.fromEntries(
+        photos.map((p) => {
+          const r = reviews.get(p.id)?.review;
+          const species = r ? r.species : speciesText(p);
+          return [
+            p.id,
+            [
+              `${p.id} · ${p.filename}`,
+              `${photoDateLabel(p)} · ${p.watercourse || "Tilknytning uafklaret"}`,
+              (r ? r.observation : p.observation) || "Observation mangler.",
+              `Vegetation: ${(r ? r.vegetation : p.vegetation) || "Ikke beskrevet"}`,
+              species
+                ? `${r?.speciesStatus === "field_confirmed" ? "Brugerregistreret feltkontrol" : "Foreløbigt artsbud"}: ${species}`
+                : "Arter ikke registreret.",
+              r?.subjectPosition ? "Motivplacering: " + r.subjectPosition : "",
+              r?.closePhotoIds ? "Nærfotos: " + r.closePhotoIds : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          ];
+        }),
+      ),
     },
     sections: sections.map((s, i) => ({
       id: `atlas-section-${i + 1}`,
@@ -159,6 +192,7 @@ export function decodeAtlasImage(photo: AtlasPhoto) {
 export async function atlasReportImages(
   atlas: PhotoAtlas & { evidenceId: string },
   photos = atlas.photos,
+  captions?: Record<string, string>,
 ): Promise<ReportImage[]> {
   const images: ReportImage[] = [];
   for (const photo of photos) {
@@ -169,7 +203,8 @@ export async function atlasReportImages(
     );
     images.push({
       id: `atlas:${atlas.evidenceId}:${photo.id}`,
-      caption: `${photo.id} · ${photo.filename} · ${photo.watercourse || "Tilknytning uafklaret"} · ${photoDateLabel(photo)} · Kamera ${photo.lat ?? "?"}, ${photo.lon ?? "?"}. Rapportillustration; originalreference og begrænsninger fremgår af kildelisten.`,
+      caption: `${captions?.[photo.id] ?? atlasPhotoText(photo)}\nKamera-GPS: ${photo.lat ?? "?"}, ${photo.lon ?? "?"}\nRegistreret original-SHA-256: ${photo.sha256 || "Mangler"}`,
+      sourceUrl: photo.source || undefined,
       bytes: decoded.bytes,
       format: decoded.format,
       width: bitmap.width,

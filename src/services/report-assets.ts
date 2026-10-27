@@ -5,6 +5,7 @@ import type { ReportRevision } from "@/lib/report-document";
 export interface ReportImage {
   id: string;
   caption: string;
+  sourceUrl?: string;
   bytes: Uint8Array;
   format: "jpeg" | "png";
   width: number;
@@ -53,7 +54,7 @@ export async function buildReportImages(revision: ReportRevision): Promise<Repor
       if (!photo) throw new Error("Et foto mangler i det gemte atlas. Eksporten er stoppet.");
       return photo;
     });
-    atlasImages = await atlasReportImages(atlas, selected);
+    atlasImages = await atlasReportImages(atlas, selected, manifest.captions);
     for (const photo of selected)
       if (photo.lat != null && photo.lon != null)
         points.push({

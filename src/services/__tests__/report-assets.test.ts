@@ -54,7 +54,7 @@ describe("frozen atlas evidence authorization", () => {
     atlasMocks.load.mockResolvedValue(atlas);
     atlasMocks.images.mockResolvedValue([]);
     expect(await buildReportImages(frozen())).toEqual([]);
-    expect(atlasMocks.images).toHaveBeenCalledWith(atlas, [first]);
+    expect(atlasMocks.images).toHaveBeenCalledWith(atlas, [first], undefined);
   });
   it("requires the atlas's existing evidence reference in the source register", async () => {
     const revision = frozen();

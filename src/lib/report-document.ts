@@ -39,6 +39,7 @@ export const ReportContentSchema = z.object({
       evidenceId: z.string().uuid(),
       checksum: z.string().regex(/^[a-f0-9]{64}$/),
       photoIds: z.array(z.string().min(1).max(120)).min(1).max(10000),
+      captions: z.record(z.string(), z.string().max(40000)).optional(),
     })
     .optional(),
 });
