@@ -56,7 +56,8 @@ export function DataSourcesPanel({
   }, [dataSources, siteFilter]);
 
   async function refresh() {
-    await queryClient.invalidateQueries({ queryKey: ["data-sources", projectId] });
+    await queryClient.invalidateQueries({ queryKey: ["project-workspace"] });
+    queryClient.invalidateQueries({ queryKey: ["data-sources", projectId] });
   }
 
   async function handleDelete(ds: DataSource) {

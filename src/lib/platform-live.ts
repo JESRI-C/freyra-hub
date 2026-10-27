@@ -5,7 +5,8 @@
 // src/components/platform/Primitives.tsx.
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchAllAuditEvents, fetchAllOpenActions } from "@/lib/supabase/queries";
+import { fetchAuditEventsByProject, fetchOpenActionsByProject } from "@/lib/supabase/queries";
+import { useConnectContext } from "@/lib/connect-context";
 import { useAuth } from "@/lib/auth";
 
 type FeedItem = { module: string; text: string; at: string; tone: "info" | "success" | "warning" };
@@ -49,11 +50,12 @@ function moduleFromSource(source?: string | null): string {
 }
 
 export function useLiveActivityFeed(): FeedItem[] {
-  const { user } = useAuth();
+  const { user, orgId } = useAuth();
+  const { projectId } = useConnectContext();
   const { data } = useQuery({
-    queryKey: ["live-activity-feed", user?.id ?? ""],
-    queryFn: () => fetchAllAuditEvents(20),
-    enabled: !!user,
+    queryKey: ["live-activity-feed", user?.id ?? "", orgId, projectId],
+    queryFn: () => fetchAuditEventsByProject(projectId!, 20),
+    enabled: !!(user && orgId && projectId),
     staleTime: 30_000,
   });
   if (!data) return [];
@@ -66,11 +68,12 @@ export function useLiveActivityFeed(): FeedItem[] {
 }
 
 export function useLiveCriticalActions(): CriticalAction[] {
-  const { user } = useAuth();
+  const { user, orgId } = useAuth();
+  const { projectId } = useConnectContext();
   const { data } = useQuery({
-    queryKey: ["live-critical-actions", user?.id ?? ""],
-    queryFn: () => fetchAllOpenActions(),
-    enabled: !!user,
+    queryKey: ["live-critical-actions", user?.id ?? "", orgId, projectId],
+    queryFn: () => fetchOpenActionsByProject(projectId!),
+    enabled: !!(user && orgId && projectId),
     staleTime: 30_000,
   });
   if (!data) return [];

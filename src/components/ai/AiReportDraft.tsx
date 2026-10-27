@@ -11,7 +11,7 @@ type Props = {
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  missing_key: "Lovable AI er ikke aktiveret i workspacet.",
+  missing_key: "Billedvurdering er ikke aktiveret i arbejdspladsen.",
   rate_limit: "For mange forespørgsler. Prøv igen om lidt.",
   credits: "AI-credits er opbrugt. Tilføj credits under Settings → Workspace → Usage.",
   unknown: "Kunne ikke generere udkast lige nu.",

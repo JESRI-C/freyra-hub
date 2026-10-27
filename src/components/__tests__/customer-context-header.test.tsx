@@ -47,8 +47,13 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 async function renderContext() {
+  const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
   const { GlobalContextBar } = await import("@/components/GlobalContextBar");
-  return renderToStaticMarkup(<GlobalContextBar />);
+  return renderToStaticMarkup(
+    <QueryClientProvider client={new QueryClient()}>
+      <GlobalContextBar />
+    </QueryClientProvider>,
+  );
 }
 
 describe("truthful global project context", () => {

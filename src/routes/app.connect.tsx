@@ -6,7 +6,7 @@ import { ConnectTopbar } from "@/components/connect/ConnectTopbar";
 export const Route = createFileRoute("/app/connect")({
   head: () => ({
     meta: [
-      { title: "Monitoring & Field Data — GoFreyra" },
+      { title: "Monitoring & Field Data — Freyra" },
       {
         name: "description",
         content:

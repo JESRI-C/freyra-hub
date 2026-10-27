@@ -119,10 +119,9 @@ export async function getMeasurements(
   indicator: Indicator,
   period: Period = "90d",
 ): Promise<IndicatorMeasurement[]> {
-  const days = period === "30d" ? 30 : period === "90d" ? 90 : period === "12m" ? 365 : 365;
-  const fallback = () => seedMeasurements(indicator, days);
-  if (isDemoDataEnabled) return fallback();
-  requireCustomerDatabase();
+  if (isDemoDataEnabled)
+    return seedMeasurements(indicator, period === "30d" ? 30 : period === "90d" ? 90 : 365);
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   return fetchMeasurementsForIndicator(indicator.id, periodToSince(period));
 }
 

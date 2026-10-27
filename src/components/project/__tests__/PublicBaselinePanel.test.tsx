@@ -98,4 +98,24 @@ describe("public baseline review panel", () => {
     expect(html).not.toContain("Adgang til denne version er tilbagekaldt");
     expect(html).not.toContain("Danske Stednavne");
   });
+  it("does not substitute the latest cached baseline while the selected investigation is opening", async () => {
+    state.snapshot = await makeSnapshot();
+    const html = renderToStaticMarkup(
+      <PublicBaselinePanel project={project} awaitingPinnedSnapshot />,
+    );
+    expect(html).toContain("præcise kildeversion");
+    expect(html).not.toContain("Danske Stednavne");
+  });
+  it("does not display a different version in place of an explicitly pinned baseline", async () => {
+    state.snapshot = await makeSnapshot();
+    const html = renderToStaticMarkup(
+      <PublicBaselinePanel
+        project={project}
+        pinnedSnapshotId="20000000-0000-4000-8000-000000000099"
+      />,
+    );
+    expect(html).toContain("fastlåste datagrundlag");
+    expect(html).not.toContain("Danske Stednavne");
+    expect(html).toContain("disabled");
+  });
 });

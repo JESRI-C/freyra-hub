@@ -1,0 +1,22 @@
+{
+  "checkedAtUtc": "2026-10-22T18:45:35.092Z",
+  "stagingOrigin": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "sourceCommit": "625781906a4f49d120b6b3581261279dd889e6de",
+  "method": "Read-only navigation and existing PDF download with technical QA account",
+  "sourceOfDeploymentCommit": "Repository control receipt, not inferred from URL",
+  "caseMutations": 0,
+  "reviewWithoutSelectionShowsChooseInvestigation": true,
+  "explicitInvestigationPhotoPoints": 6,
+  "existingReportPdfDownloaded": true,
+  "reportBytes": 2163225,
+  "reportSha256": "a07aec981f2a2868be75d93e99b8b701a7742dd5ff5724160300397d708441b5",
+  "expectedHashMatches": true,
+  "prototypeUsersPageRedirectsToCases": true,
+  "observedBrowserErrors": 0,
+  "status": "passed",
+  "limits": [
+    "No new upload/review/report mutation tested in this audit",
+    "No municipal user acceptance or production readiness claimed",
+    "Screenshots show staging, not unpublished redesign"
+  ]
+}

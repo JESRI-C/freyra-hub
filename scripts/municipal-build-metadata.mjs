@@ -6,7 +6,13 @@ export function municipalBuildMetadata(config) {
   const municipalDemo = Object.hasOwn(config.define ?? {}, key)
     ? config.define[key] === JSON.stringify("true")
     : config.env?.VITE_DEMO_MODE === "true";
-  return { schema: "freyra.build/v1", viteMode: config.mode, municipalDemo };
+  const revision = process.env.FREYRA_BUILD_REVISION;
+  return {
+    schema: "freyra.build/v1",
+    viteMode: config.mode,
+    municipalDemo,
+    ...(/^[a-f0-9]{40}$/.test(revision ?? "") ? { sourceRevision: revision } : {}),
+  };
 }
 
 /** No environment values other than the public, boolean presentation mode are emitted. */

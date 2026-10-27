@@ -64,7 +64,6 @@ vi.mock("@tanstack/react-start", async (importOriginal) => {
 
 import { generateModuleInsight } from "../ai.functions";
 import { generateReportDraft } from "../report-draft.functions";
-import { askDecisionsAssistant } from "../decisions-assistant.functions";
 import { identifySpeciesFromImage } from "../species-id.functions";
 import { AiGatewayError } from "../ai-gateway.server";
 import { AI_IMAGE_MAX_BYTES } from "../ai-image-input";
@@ -85,8 +84,6 @@ const DATA = {
 };
 const CALLS = [
   { name: "insight", fn: generateModuleInsight, data: DATA.insight },
-  { name: "report draft", fn: generateReportDraft, data: DATA.draft },
-  { name: "decisions", fn: askDecisionsAssistant, data: DATA.decision },
   { name: "species", fn: identifySpeciesFromImage, data: DATA.species },
 ];
 
@@ -114,7 +111,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("all four AI server functions execute ordinary server auth first", () => {
+describe("ordinary AI helpers execute server auth; scoped AI has dedicated boundary suites", () => {
   it.each(CALLS)(
     "rejects anonymous $name before missing-key handling or any provider",
     async ({ fn, data }) => {
@@ -169,52 +166,13 @@ describe("all four AI server functions execute ordinary server auth first", () =
     });
   });
 
-  it("returns a schema-checked report draft without elevating it to professional acceptance", async () => {
-    const draft = {
-      title: "Udkast",
-      executiveSummary: "Indsendt datagrundlag",
-      keyFindings: ["Fund1", "Fund2"],
-      risks: ["Datamangler"],
-      recommendations: ["Kontrol1", "Kontrol2"],
-      nextSteps: ["Faglig review"],
-    };
-    mocks.generateText.mockResolvedValue({ experimental_output: draft });
-    expect(await generateReportDraft({ data: DATA.draft })).toEqual({ error: null, draft });
-    expect(mocks.generateText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        maxRetries: 0,
-        maxOutputTokens: 1200,
-        system: expect.stringContaining("ikke fagligt godkendt"),
-      }),
-    );
-    mocks.generateText.mockResolvedValue({
-      experimental_output: { ...draft, title: "x".repeat(201) },
-    });
+  it("keeps the legacy unscoped report endpoint closed even with valid credentials", async () => {
     expect(await generateReportDraft({ data: DATA.draft })).toEqual({
-      error: "unknown",
+      error: "authorization_required",
       draft: null,
     });
-  });
-
-  it("accepts only bounded decision input and structured reply", async () => {
-    const reply = {
-      short: "Forslag",
-      basis: ["Indsendte tal"],
-      recommendation: "Kontrollér",
-      uncertainty: "Ukendt",
-      nextAction: "Review",
-    };
-    mocks.generateText.mockResolvedValue({ experimental_output: reply });
-    expect(await askDecisionsAssistant({ data: DATA.decision })).toEqual({
-      error: false,
-      reason: null,
-      reply,
-    });
-    mocks.gateway.mockClear();
-    await expect(
-      askDecisionsAssistant({ data: { ...DATA.decision, actions: [{ title: "x".repeat(301) }] } }),
-    ).rejects.toThrow();
     expect(mocks.gateway).not.toHaveBeenCalled();
+    expect(mocks.generateText).not.toHaveBeenCalled();
   });
 
   it("passes valid inline caller image bytes without remote download or project-binding claims", async () => {
@@ -310,9 +268,9 @@ describe("all four AI server functions execute ordinary server auth first", () =
 
   it("keeps HTTP classifications while malformed/oversized species outputs fail closed", async () => {
     mocks.gateway.mockRejectedValueOnce(new AiGatewayError("rate_limit"));
-    expect(await generateReportDraft({ data: DATA.draft })).toEqual({
-      error: "rate_limit",
-      draft: null,
+    expect(await generateModuleInsight({ data: DATA.insight })).toMatchObject({
+      error: true,
+      headline: "Kortvarig grænse nået",
     });
     for (const text of [
       "not JSON",

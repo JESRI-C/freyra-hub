@@ -4,7 +4,7 @@ import { Card, CardHeader, PageHeader, Pill, StatCard } from "@/components/ui-bi
 import { Database, Layers, GitBranch, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/app/data")({
-  head: () => ({ meta: [{ title: "Datakilder — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Datakilder — Freyra" }] }),
   component: Page,
 });
 

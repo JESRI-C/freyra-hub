@@ -6,6 +6,7 @@ import { GeometryStatusCard } from "./GeometryStatusCard";
 // ─── Score chip helpers ───────────────────────────────────────────────────────
 
 const RISK_COLORS = {
+  unknown: "bg-muted text-muted-foreground",
   low: "bg-emerald-100 text-emerald-700",
   medium: "bg-amber-100 text-amber-700",
   high: "bg-orange-100 text-orange-700",
@@ -13,6 +14,7 @@ const RISK_COLORS = {
 };
 
 const RISK_LABELS = {
+  unknown: "Ikke vurderet",
   low: "Lav",
   medium: "Moderat",
   high: "Høj",
@@ -138,7 +140,7 @@ export function ProjectEnvironmentalDashboard({ ctx }: ProjectEnvironmentalDashb
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <div>
-            <strong>Geometri mangler</strong> — Miljøanalysen bruger preview-data. Upload en
+            <strong>Geometri mangler</strong> - Miljøanalysen er ikke beregnet. Upload en
             GeoJSON-polygon for at aktivere geografisk analyse.
           </div>
         </div>
@@ -166,11 +168,15 @@ export function ProjectEnvironmentalDashboard({ ctx }: ProjectEnvironmentalDashb
 
         <div className="flex items-center gap-2 rounded-xl border bg-card px-3 py-2">
           <div className="text-xs text-muted-foreground">Datadækning</div>
-          <span className="text-xs font-semibold">{scores.dataCompleteness}%</span>
+          <span className="text-xs font-semibold">
+            {scores.dataCompleteness == null ? "Ukendt" : `${scores.dataCompleteness}%`}
+          </span>
           <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full bg-primary rounded-full"
-              style={{ width: `${scores.dataCompleteness}%` }}
+              style={{
+                width: `${scores.dataCompleteness ?? 0}%`,
+              }}
             />
           </div>
         </div>

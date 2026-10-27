@@ -23,7 +23,7 @@ import { BiodiversityCard } from "@/components/project/BiodiversityCard";
 import type { ConnectorStatusItem } from "@/components/maps/ConnectorStatusPanel";
 
 export const Route = createFileRoute("/app/projects/map/$slug")({
-  head: () => ({ meta: [{ title: "Geodata-kort — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Geodata-kort — Freyra" }] }),
   // The project and map queries need the browser-persisted Supabase session.
   // Server rendering would run them without the user's JWT and can false-404.
   ssr: false,

@@ -1,3 +1,5 @@
+import { inspectOrthophoto } from "./monitoring/orthophoto-metadata";
+import { readOriginalMetadata, sha256 } from "./monitoring/drone-ingest";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { isDemoDataEnabled } from "@/lib/data-mode";
 import type {
@@ -19,6 +21,7 @@ interface UntypedQueryBuilder {
   delete(): UntypedQueryBuilder;
   eq(column: string, value: unknown): UntypedQueryBuilder;
   limit(count: number): UntypedQueryBuilder;
+  range(from: number, to: number): UntypedQueryBuilder;
   order(column: string, opts?: { ascending: boolean }): UntypedQueryBuilder;
   single(): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
   then(
@@ -49,14 +52,18 @@ export interface UploadMediaInput {
   tags: string[];
   coordinates?: { lat: number; lng: number; altitudeM?: number; accuracyM?: number };
   capturedAt?: string;
+  flightId?: string;
+  assetType?: "original" | "orthophoto";
 }
 
 export interface MediaServiceResult<T> {
   data: T | null;
   error: string | null;
+  duplicate?: boolean;
 }
 
 const BUCKET = "project-media";
+const ORIGINALS_BUCKET = "project-originals";
 const SIGNED_URL_TTL_SECONDS = 5 * 60;
 
 function getAuthorizedMediaPath(row: Record<string, unknown>): string | null {
@@ -137,6 +144,9 @@ function rowToMediaItem(row: Record<string, unknown>, signedUrl: string): Projec
     documentId: (row["document_id"] as string | null | undefined) ?? null,
     direction: (row["direction"] as number | null | undefined) ?? null,
     beforeMediaId: (row["before_media_id"] as string | null | undefined) ?? null,
+    flightId: (row["flight_id"] as string | null | undefined) ?? null,
+    sha256: (row["sha256"] as string | null | undefined) ?? null,
+    metadata: (row["metadata"] as Record<string, unknown> | undefined) ?? {},
   };
 }
 
@@ -180,6 +190,25 @@ async function materializePrivateMedia(
       };
     }
   }
+  if (bucket === ORIGINALS_BUCKET) {
+    const checksum = row["sha256"];
+    const scope = row["upload_scope"];
+    const path = getAuthorizedMediaPath(row);
+    if (
+      typeof checksum !== "string" ||
+      !/^[a-f0-9]{64}$/.test(checksum) ||
+      typeof scope !== "string" ||
+      path !== `${row["project_id"]}/${scope}/${checksum}`
+    )
+      return { data: null, error: "Originalens filreference eller checksum er ugyldig." };
+    if (!supabase) return { data: null, error: "Databasen er ikke konfigureret." };
+    const signed = await supabase.storage
+      .from(ORIGINALS_BUCKET)
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    if (signed.error || !signed.data)
+      return { data: null, error: signed.error?.message ?? "Originalen kunne ikke åbnes." };
+    return { data: rowToMediaItem(row, signed.data.signedUrl), error: null };
+  }
   if (bucket !== BUCKET || row["original_role"] != null)
     return {
       data: null,
@@ -219,17 +248,21 @@ export async function listProjectMedia(
       : { data: null, error: "Kundedatabasen er ikke konfigureret." };
   }
 
-  const { data, error } = await getDb()!
-    .from("project_media")
-    .select("*")
-    .eq("project_id", projectId)
-    .order("uploaded_at", { ascending: false });
-
-  if (error) {
-    return { data: null, error: error.message };
+  const rows: Record<string, unknown>[] = [];
+  for (let offset = 0; ; offset += 500) {
+    let query = getDb()!
+      .from("project_media")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("uploaded_at", { ascending: false });
+    if (typeof query.order === "function") query = query.order("id", { ascending: true });
+    const paged = typeof query.range === "function";
+    const { data, error } = await (paged ? query.range(offset, offset + 499) : query);
+    if (error) return { data: null, error: error.message };
+    const page = (data ?? []) as Record<string, unknown>[];
+    rows.push(...page);
+    if (!paged || page.length < 500) break;
   }
-
-  const rows = (data ?? []) as Record<string, unknown>[];
   const materialized = await Promise.all(
     rows.map((row) => materializePrivateMedia(row, projectId)),
   );
@@ -246,9 +279,103 @@ export async function listProjectMedia(
 
 // Upload a file to storage and insert a DB record
 // Storage path: `{projectId}/{timestamp}_{filename}`
+async function uploadPrivateOriginal(
+  input: UploadMediaInput,
+): Promise<MediaServiceResult<ProjectMediaItem>> {
+  if (!isSupabaseConfigured || supabase === null)
+    return { data: null, error: "Supabase ikke konfigureret. Filen er ikke gemt." };
+  if (!input.projectId) return { data: null, error: "Vælg et projekt før upload." };
+  if (input.file.size > 200 * 1024 * 1024)
+    return { data: null, error: "Maksimal filstørrelse er 200 MB." };
+  const checksum = await sha256(input.file);
+  const metadata = await readOriginalMetadata(input.file);
+  const orthophoto = input.assetType === "orthophoto" ? await inspectOrthophoto(input.file) : null;
+  const scope = input.flightId ?? "field";
+  const { data: existing, error: lookupError } = await getDb()!
+    .from("project_media")
+    .select("*")
+    .eq("project_id", input.projectId)
+    .eq("sha256", checksum)
+    .eq("upload_scope", scope)
+    .limit(1);
+  if (lookupError) return { data: null, error: lookupError.message };
+  if (Array.isArray(existing) && existing.length) {
+    const result = await materializePrivateMedia(existing[0], input.projectId);
+    return { ...result, duplicate: true };
+  }
+  const filePath = `${input.projectId}/${scope}/${checksum}`;
+  const { error: storageError } = await supabase.storage
+    .from(ORIGINALS_BUCKET)
+    .upload(filePath, input.file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: input.file.type || "application/octet-stream",
+    });
+  // A previous upload may have reached storage before its metadata insert failed.
+  if (storageError && !/already exists|duplicate/i.test(storageError.message))
+    return { data: null, error: storageError.message };
+  const coordinates =
+    metadata.latitude !== null && metadata.longitude !== null
+      ? {
+          lat: metadata.latitude,
+          lng: metadata.longitude,
+          altitudeM: metadata.altitudeM ?? undefined,
+        }
+      : input.coordinates;
+
+  // Insert DB record
+  const insertPayload = {
+    project_id: input.projectId,
+    title: input.title,
+    description: input.description ?? null,
+    category: input.category,
+    source: input.source,
+    file_path: filePath,
+    url: "",
+    storage_bucket: ORIGINALS_BUCKET,
+    sha256: checksum,
+    upload_scope: scope,
+    flight_id: input.flightId ?? null,
+    metadata: {
+      ...metadata,
+      original_name: input.file.name,
+      asset_type: input.assetType ?? "original",
+      orthophoto,
+      gps_source: metadata.latitude !== null ? "exif" : coordinates ? "manual" : "missing",
+    },
+    direction: metadata.direction,
+    thumbnail_url: null,
+    captured_at: metadata.capturedAt ?? input.capturedAt ?? null,
+    lat: coordinates?.lat ?? null,
+    lng: coordinates?.lng ?? null,
+    altitude_m: coordinates?.altitudeM ?? null,
+    accuracy_m: coordinates?.accuracyM ?? null,
+    is_report_ready: input.isReportReady,
+    tags: input.tags,
+    status: "uploaded" as MediaStatus,
+    file_size_bytes: input.file.size,
+    mime_type: input.file.type || null,
+  };
+
+  const { data: insertData, error: insertError } = await getDb()!
+    .from("project_media")
+    .insert(insertPayload)
+    .select()
+    .single();
+
+  if (insertError) {
+    // Preserve original for safe retry; never delete a possibly shared checksum object.
+    return { data: null, error: insertError.message };
+  }
+
+  return materializePrivateMedia(insertData as Record<string, unknown>, input.projectId);
+}
+
 export async function uploadProjectMedia(
   input: UploadMediaInput,
 ): Promise<MediaServiceResult<ProjectMediaItem>> {
+  if (input.source === "drone" || input.category === "drone_image" || input.assetType)
+    return uploadPrivateOriginal(input);
   if (!isSupabaseConfigured || supabase === null) {
     return {
       data: null,

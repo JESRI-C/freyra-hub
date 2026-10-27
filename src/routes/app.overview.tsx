@@ -29,7 +29,7 @@ import { getAllOpenActions } from "@/services/actions-service";
 import { getAllReports } from "@/services/reports-service";
 
 export const Route = createFileRoute("/app/overview")({
-  head: () => ({ meta: [{ title: "Dashboard — GoFreyra" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Freyra" }] }),
   component: DashboardPage,
 });
 
@@ -304,7 +304,7 @@ function DashboardPage() {
             </span>
           </div>
           <p className="text-sm leading-relaxed text-foreground/85">
-            <strong>Biodiversitet er ikke CO₂.</strong> GoFreyra reducerer ikke natur til én simpel
+            <strong>Biodiversitet er ikke CO₂.</strong> Freyra reducerer ikke natur til én simpel
             score. Hver vurdering kan kobles til metode, kontekst, datakilder, usikkerhed og
             anbefalet anvendelse.
           </p>

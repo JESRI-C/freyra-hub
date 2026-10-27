@@ -81,7 +81,8 @@ export function DataSourceWizard({ projectId, sites, onClose, onCreated }: Props
         last_sync_message: testResult?.message ?? null,
       });
       toast.success("Datakilde oprettet");
-      await queryClient.invalidateQueries({ queryKey: ["data-sources", projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["project-workspace"] });
+      queryClient.invalidateQueries({ queryKey: ["data-sources", projectId] });
       await onCreated();
       onClose();
     } catch (err) {

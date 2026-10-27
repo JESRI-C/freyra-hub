@@ -118,9 +118,9 @@ export interface ProjectEnvironmentalContext {
   soilContext: EnvironmentalContextResult | null;
   overallReadiness: "complete" | "partial" | "pending";
   scores: {
-    natureSensitivity: "low" | "medium" | "high" | "critical";
-    runoffRisk: "low" | "medium" | "high" | "critical";
-    dataCompleteness: number; // 0-100
+    natureSensitivity: "low" | "medium" | "high" | "critical" | "unknown";
+    runoffRisk: "low" | "medium" | "high" | "critical" | "unknown";
+    dataCompleteness: number | null; // null = coverage not established
   };
   geometry: ProjectGeometry;
   liveData?: LiveDataSnapshot;
@@ -455,8 +455,8 @@ export interface ConstructionProjectSummary {
   evidenceFiles: EvidenceFile[];
   auditEvents: AuditEvent[];
   readinessScore: number;
-  runoffRiskScore: "low" | "medium" | "high" | "critical";
-  natureSensitivityScore: "low" | "medium" | "high" | "critical";
+  runoffRiskScore: "low" | "medium" | "high" | "critical" | "unknown";
+  natureSensitivityScore: "low" | "medium" | "high" | "critical" | "unknown";
 }
 
 // Composite type for Nature Project Monitor — the primary UI-facing type

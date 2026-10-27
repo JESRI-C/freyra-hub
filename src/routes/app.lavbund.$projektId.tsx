@@ -94,11 +94,11 @@ function ProjektLayout() {
               )}
             </div>
           </div>
-          {!DEMO_MODE && <LinkTilKerneprojekt projektId={projektId} />}
+          <LinkTilKerneprojekt projektId={projektId} />
         </div>
         <div className="w-full px-4 sm:px-6">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
-            {TABS.filter((t) => !DEMO_MODE || ["kort"].includes(t.suffix)).map((t) => {
+            {TABS.map((t) => {
               const full = `/app/lavbund/${projektId}/${t.suffix}`;
               const active = path.startsWith(full);
               const Icon = t.icon;
