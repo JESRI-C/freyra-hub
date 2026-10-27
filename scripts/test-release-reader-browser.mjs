@@ -32,6 +32,11 @@ try {
   result.passwordLogin = true;
   await page.goto(base + "/app/projects/" + reader.projectId);
   await page.getByRole("navigation", { name: "Sagens seks trin" }).waitFor();
+  await page.waitForFunction(
+    () =>
+      !document.body.innerText.includes("Henter status") &&
+      !document.body.innerText.includes("Henter gemte oplysninger"),
+  );
   await page.screenshot({ path: "docs/screens/release-1.0/08-laeser-ren-login.png" });
   for (const route of ["/app/reports", "/app/reports/new", "/app/reports/templates"]) {
     await page.goto(base + route);

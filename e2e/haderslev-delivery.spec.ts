@@ -128,10 +128,6 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   });
   await expect(prepare).toBeEnabled();
   await prepare.click();
-  await page.screenshot({
-    path: "docs/screens/release-1.0/03-offentlige-data.png",
-    fullPage: false,
-  });
   await checkpoint("public_data_and_round");
   await expect(page).toHaveURL(/round=[0-9a-f-]{36}/, { timeout: 240_000 });
   const roundId = new URL(page.url()).searchParams.get("round");
@@ -147,6 +143,10 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(
     page.getByText(/1 fotos er tilknyttet den gemte undersøgelse.*Gennemgang/),
   ).toBeVisible();
+  await page.screenshot({
+    path: "docs/screens/release-1.0/03-offentlige-data.png",
+    fullPage: false,
+  });
   await expect(
     page.getByRole("button", {
       name: /Fortsæt billedanalysen|Analyser de næste|Spring dette foto over og fortsæt/,
