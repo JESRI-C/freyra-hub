@@ -2,12 +2,13 @@
   "schema": "freyra.release-deployment/v1",
   "environment": "staging",
   "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
-  "workerVersion": "0896f4ff-d130-495c-bafc-efef2fa3b8cd",
-  "sourceRevision": "a99c322542263b0e12bc37f9bfc6de64f8b3addb",
+  "workerVersion": "c9cadbcc-750f-4b70-a092-2bcc09d661e9",
+  "sourceRevision": "28a832062bd355dd82da151561c49cd8f0db3d93",
   "subsequentAppCodeChanges": false,
   "customerDataOnly": true,
   "municipalDemo": false,
   "productionChanged": false,
   "fallback": "625781906a4f49d120b6b3581261279dd889e6de",
-  "main": "7dc33f4c75e431d7ceba47d16d54cd1f5cdbb30e"
+  "main": "7dc33f4c75e431d7ceba47d16d54cd1f5cdbb30e",
+  "checkedAt": "2026-10-27T22:50:47.675Z"
 }

@@ -1,7 +1,7 @@
 {
   "schema": "freyra.route-catalogue/v1",
   "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
-  "sourceRevision": "a99c322542263b0e12bc37f9bfc6de64f8b3addb",
+  "sourceRevision": "28a832062bd355dd82da151561c49cd8f0db3d93",
   "scope": "Read-only render and demo-text check; does not prove every external integration",
   "routes": [
     {

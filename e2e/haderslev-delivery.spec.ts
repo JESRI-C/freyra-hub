@@ -337,7 +337,10 @@ test("Start en ny sag: standarder, nulstilling, gemning og genåbning", async ({
     "Isoleret teknisk browserprøve. Ingen faglig godkendelse eller kommunal leverance.";
   await dialog.getByLabel("Beskrivelse", { exact: true }).fill(description);
   await dialog.getByRole("button", { name: "Opret projekt", exact: true }).click();
-  await expect(page.getByRole("navigation", { name: "Sagens seks trin" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Fotoatlas", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Hovedmenu" }).getByRole("link")).toHaveCount(
+    16,
+  );
   await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();

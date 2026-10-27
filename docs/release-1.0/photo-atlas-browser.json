@@ -1,0 +1,24 @@
+{
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "projectId": "e4b55ce9-5b77-4b76-9981-a077284b0c5a",
+  "source": {
+    "schema": "freyra.build/v1",
+    "viteMode": "staging",
+    "municipalDemo": false,
+    "customerDataOnly": true,
+    "municipalWorkflow": true,
+    "release": "1.0",
+    "sourceRevision": "28a832062bd355dd82da151561c49cd8f0db3d93"
+  },
+  "steps": [
+    "274 reference photos persisted and loaded through private storage",
+    "Search, dates, unresolved watercourses, zoom, invalid field confirmation, reviewed note and reload persistence",
+    "Standalone 274-photo HTML export opens, searches and zooms without the app",
+    "Saved report versions, 274-photo PDF, JSON baseline with persisted reviews",
+    "Mobile 390px atlas and dialog without page overflow",
+    "Other project remains empty; imported case data does not follow project navigation",
+    "Fresh viewer context reads 274 photos; no mutation controls; real backend review insert and evidence upload denied"
+  ],
+  "errors": [],
+  "passed": true
+}

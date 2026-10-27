@@ -6,13 +6,19 @@ Ingen push/merge til main, produktionsmigration eller produktionsudgivelse er ud
 
 ## Version og bevisgrænse
 
-[Testapp](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev): Worker 0896f4ff-d130-495c-bafc-efef2fa3b8cd, appkilde a99c322542263b0e12bc37f9bfc6de64f8b3addb. Senere commits ændrer prøver, driftsscripts og dokumentation; produktets appkode er uændret. [Deploymentkvittering](release-1.0/deployment.json).
+[Testapp](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev): Worker c9cadbcc-750f-4b70-a092-2bcc09d661e9, appkilde 28a832062bd355dd82da151561c49cd8f0db3d93. Det fulde dashboard er gendannet efter Jespers bekræftelse. Fotoatlas og rapportflow er udbygget med de gældende Drive-referencer. [Deploymentkvittering](release-1.0/deployment.json), [audit og bevisgrænser](REPORT_ATLAS_AUDIT.md).
 
 Kun stagingdatabasen xdvqdzdpyceojbdknofi er ændret. Produktion ikrmcetjutqcjtwfhzfv er ikke ændret. Produktions-SMTP og migrationsledger er **ikke verificeret** med den tilgængelige konto.
 
-[Grøn CI](https://github.com/JESRI-C/freyra-hub/actions/runs/40466400151), commit 77aed71dbd51471bd33e523ae01d2f7cc7f0c0b7: **2.892 tests i 198 filer, 814 PostgreSQL-kontroller i 12 filer og 29 samtidighedsscenarier**; typecheck, lint og build består. Lint: 0 fejl, 24 eksisterende advarsler. [Kvittering](release-1.0/ci-summary.json).
+[Grøn CI](https://github.com/JESRI-C/freyra-hub/actions/runs/40596816699), appkilde 28a832062bd355dd82da151561c49cd8f0db3d93: **2.918 tests i 199 filer, 822 PostgreSQL-kontroller i 13 filer og 29 samtidighedsscenarier**; typecheck, lint og build består. Lint: 0 fejl, 24 eksisterende advarsler. Databasedump er gendannet til separat disponibel database. [Kvittering](release-1.0/ci-summary.json).
 
-Browserprøverne bruger originale fotobytes og offentlige kilder i tydeligt mærkede tekniske testsager. De erstatter hverken kundens sag eller faglig accept. [Gældende Drive-reference](https://drive.google.com/file/d/1BynA_7pBq91XG96qHuCJ1z8sV_1Wv070/view): rapporten fra 26.10, ændret 26.10.2026 kl. 20:14 UTC, 17.766.312 bytes. Ingen antalsramme for træer er opfundet.
+Browserprøverne bruger originale fotobytes og offentlige kilder i tydeligt mærkede tekniske testsager. De erstatter hverken kundens sag eller faglig accept. [Gældende Drive-reference](https://drive.google.com/file/d/1BynA_7pBq91XG96qHuCJ1z8sV_1Wv070/view): filen er ændret 27.10.2026 kl. 21:33:56 UTC, 25.376.583 bytes, 26 sider. Den tidligere revision fra 26.10 er historisk. Atlas og baseline fra 27.10 indeholder 274 ens foto-ID'er, filnavne og registrerede originalchecksums. Optagelsernes datoer er august/september; en ny filrevision er ikke en ny optagelse. Ingen antalsramme for træer er opfundet.
+
+Den nye atlasprøve består i browser: import/genåbning, søgning og filtre, zoom, afvist artsbekræftelse uden dokumentation, versionsgemte noter, adskilte projekter, HTML/JSON/PDF, 390-pixels mobilvisning og virkelig læseradgang. Læserens notat-, kildefil- og metadataindsættelser afvises af RLS. Originalfoto til atlas består med identisk SHA-256, filnavn, EXIF-dato og kamera-GPS. Den eksporterede PDF har 73 sider med alle 274 illustrationer og ét oversigtskort; forside, metode, kort samt første og sidste fotosider er visuelt gennemgået. [Atlas](release-1.0/photo-atlas-browser.json), [original](release-1.0/photo-atlas-originals-browser.json), [PDF](release-1.0/photo-atlas-pdf.json), [screenshots](screens/photo-atlas/).
+
+Atlasrapporter er kladder: importerede originalchecksums er kildehenvisninger. De bliver ikke til verificerede originalkilder eller faglig accept ved importen. Deling sker med eksporteret HTML-fil; intet offentligt kundelink eller offentlig bucket er aktiveret.
+
+Den første gentagelse af det komplette datatrin fejlede under parallel browserafprøvning. Genoptagelse med de bevarede originaler lykkedes; derefter bestod et nyt komplet forløb på en ny testsag på 49 sekunder og opret/genåbn sag på 9 sekunder. Årsagen til den første fejl er **ikke verificeret**. Fejlen skjules ikke af genkørslen: før produktion kræves en kontrolleret gentagelses-/belastningsprøve med separat fejllogning. [Forløb og bevisgrænse](release-1.0/complete-flow-browser.json).
 
 ## Kontrol a–j
 
@@ -42,6 +48,11 @@ OK gælder den beskrevne stagingprøve eller dokumentation, ikke automatisk prod
 | f901af1, 50a036e          | Virkelig viewer/API/storage-prøve og regression for forbudt offlinefallback.                                                                             |
 | 67f10cd                   | Sammenligning af 44 motorfiler/funktioner med fallback.                                                                                                  |
 | 1c678fe, 8e35bea, 77aed71 | Leveret/deduplikeret alarm, ren læserlogin og fuld isoleret databasegendannelse med systemfunktioner.                                                    |
+| 9c68f54, a53a1c2          | Fuldt tidligere dashboard, direkte adgang til alle kategorier og ingen opfundet kvalitetsprocent.                                                        |
+| 238a065, d4efd62          | Projektafgrænset fotoatlas, genbrug af EXIF/TUS/kort, faglige gennemgange og sikker selvstændig HTML-eksport.                                            |
+| a20b908, 50e53c3          | Bevar feltfotoets originalnavn og bytekontrolsum uden at bruge droneoriginalernes beskyttede identitetskolonner.                                         |
+| 34aacf9, 479d578          | Serverkontrolleret evidence-reference, fast atlasfilhash og foto-ID'er pr. rapportversion; alle faglige oplysninger i atlasfilen.                        |
+| 28a8320                   | Kompakt fotobilag med frosne fototekster; snæver idempotent metadata-INSERT-rettelse og ægte læserafvisning.                                             |
 
 44 beskyttede motorfiler/funktioner er identiske med fallback: baseline, plante-, natur-, satellit-, monitorerings- og rapportmotor samt to beregningsfunktioner for byggeri. Kun linjeskift normaliseres. [Hashbevis](release-1.0/engine-preservation.json). Præsentationen viser manglende grundlag frem for opfundne resultater.
 
@@ -101,9 +112,9 @@ release-operations.yml er afprøvet med faktisk alarmlevering/deduplikering. Git
 
 ## Go-live-plan til Jespers godkendelse
 
-1. Luk c, f, g og j: adresser, verificeret SMTP, navngiven faglig godkender, aktiv overvågning/vagt og komplet hostet gendannelse. Foretag ny GO/NO-GO.
+1. Luk c, f, g og j: adresser, verificeret SMTP, navngiven faglig godkender, aktiv overvågning/vagt og komplet hostet gendannelse. Afklar den første fejl i datatrinnet med gentagelses-/belastningsprøve. Foretag ny GO/NO-GO.
 2. Fastlås konkret release-SHA og beviserne. Bevar 6257819/fallback-grenen urørt. Draft-PR'en merges ikke som del af prøven.
-3. Læs produktionens faktiske migrationsledger/bindings og afstem version/checksum. PR 18-filer: 20261026150933_bykaer_reports, 20261026150952_watercourse_versions, 20261026151127_drone_originals_and_jobs, 20261026203728_project_workspace_entries, 20261026204749_workspace_audit_uuid_fix. Sikkerhedsrettelse: 20261027055753_release_1_0_reader_boundaries. Antal manglende produktionsmigrationer er **ikke verificeret**. Dry-run/genafspilning sker på kopi af den faktiske database.
+3. Læs produktionens faktiske migrationsledger/bindings og afstem version/checksum. PR 18-filer: 20261026150933_bykaer_reports, 20261026150952_watercourse_versions, 20261026151127_drone_originals_and_jobs, 20261026203728_project_workspace_entries, 20261026204749_workspace_audit_uuid_fix. Sikkerhedsrettelse: 20261027055753_release_1_0_reader_boundaries. Atlasarbejdet tilføjer 20261027223941_field_photo_provenance_insert: kun INSERT(metadata) på eksisterende project_media, under uændret RLS; ingen rettighed til de beskyttede originalfelter. Antal manglende produktionsmigrationer er **ikke verificeret**. Dry-run/genafspilning sker på kopi af den faktiske database.
 4. Tag verificeret komplet backup, mål gendannelse og gennemfør rollbackgeneralprøve. Registrér tidligere produktions-Worker/bindings uden hemmeligheder i repo.
 5. **Jesper skriver ja til konkret SHA, migrationsliste, målprojekt, deploymål, brugeradresser og rollback.** Ingen push/merge til main eller db push mod ikrmcetjutqcjtwfhzfv før dette ja. Main-merge kan udløse produktionsmigrationer.
 6. Efter godkendelse: afstemte idempotente migrationer og stram RLS før kommunale brugere; deploy tilsvarende godkendt produktionsbuild med korrekte mål/bevarede serverhemmeligheder. Kontroller bundle/bindings. Ingen demoflag eller seed-script.

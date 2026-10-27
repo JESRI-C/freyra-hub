@@ -1,6 +1,6 @@
 {
   "fallback": "625781906a4f49d120b6b3581261279dd889e6de",
-  "checkedAt": "2026-10-27T22:05:44.483Z",
+  "checkedAt": "2026-10-27T22:49:11.285Z",
   "checks": [
     {
       "file": "src/lib/report-engine.ts",
