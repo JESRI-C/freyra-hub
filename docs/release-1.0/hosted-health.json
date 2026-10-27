@@ -1,0 +1,19 @@
+{
+  "schema": "freyra.health/v1",
+  "checkedAt": "2026-10-27T07:12:27.950Z",
+  "environment": "staging",
+  "test": false,
+  "checks": [
+    {
+      "path": "/login",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "path": "/freyra-build.json",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "ok": true
+}

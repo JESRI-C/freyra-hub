@@ -1,0 +1,12 @@
+{
+  "schema": "freyra.alarm-proof/v1",
+  "actualHttp503": true,
+  "delivered": true,
+  "channel": "GitHub issue",
+  "issue": "https://github.com/JESRI-C/freyra-hub/issues/20",
+  "assignee": "JESRI-C",
+  "run": "https://github.com/JESRI-C/freyra-hub/actions/runs/40465559480",
+  "deduplicationVerifiedBy": "https://github.com/JESRI-C/freyra-hub/actions/runs/40465968100",
+  "continuousScheduleActive": false,
+  "emailOrPhoneReceiptVerified": false
+}

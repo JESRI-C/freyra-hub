@@ -33,6 +33,7 @@ try {
     .eq("original_role", "drone_original")
     .like("file_path", "%/DJI_0040.JPG")
     .like("projects.name", "TEKNISK E2E%")
+    .order("uploaded_at", { ascending: false })
     .limit(1)
     .single();
   assert.equal(result.error, null);
@@ -53,8 +54,7 @@ try {
   assert.equal(hash(restored), expected);
   const gps = await exifr.gps(restored);
   assert.ok(gps && Number.isFinite(gps.latitude) && Number.isFinite(gps.longitude));
-  assert.ok(Math.abs(gps.latitude - row.lat) < 0.000001);
-  assert.ok(Math.abs(gps.longitude - row.lng) < 0.000001);
+  assert.deepEqual(gps, await exifr.gps(source));
   const receipt = {
     schema: "freyra.original-recovery/v1",
     checkedAt: new Date().toISOString(),

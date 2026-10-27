@@ -1,0 +1,14 @@
+{
+  "schema": "freyra.original-recovery/v1",
+  "checkedAt": "2026-10-27T07:19:44.378Z",
+  "source": "hosted-staging-private-original",
+  "target": "isolated-local-files",
+  "sourceProject": "f7c563b7-2fe3-4a69-9d96-6800f36ae4ed",
+  "bytes": 14158283,
+  "sha256": "7a72d47c9151900ce5cfccecbef0c0a7d9177e337d308d4b1c969a0a7035b0d3",
+  "exifGpsPreserved": true,
+  "sourceModified": false,
+  "databaseRecovered": false,
+  "fullHostedRecovery": false,
+  "passed": true
+}

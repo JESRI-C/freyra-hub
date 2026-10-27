@@ -1,0 +1,75 @@
+{
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "projectId": "b88ac41b-86ff-4cfe-b1cc-c633217c85e7",
+  "steps": [
+    {
+      "label": "Billeder",
+      "pass": true
+    },
+    {
+      "label": "Datagrundlag",
+      "pass": true
+    },
+    {
+      "label": "Verificering",
+      "pass": true
+    },
+    {
+      "label": "Baseline",
+      "pass": true
+    },
+    {
+      "label": "Beplantning",
+      "pass": true
+    },
+    {
+      "label": "Rapport",
+      "pass": true
+    }
+  ],
+  "templates": [
+    {
+      "id": "watercourse",
+      "pass": true
+    },
+    {
+      "id": "construction_baseline",
+      "pass": true
+    },
+    {
+      "id": "nature_baseline",
+      "pass": true
+    },
+    {
+      "id": "annual_followup",
+      "pass": true
+    }
+  ],
+  "exports": [
+    {
+      "format": "PDF",
+      "bytes": 36359,
+      "pass": true
+    },
+    {
+      "format": "DOCX",
+      "bytes": 12563,
+      "pass": true
+    },
+    {
+      "format": "CSV",
+      "bytes": 133,
+      "pass": true
+    },
+    {
+      "format": "GEOJSON",
+      "bytes": 122,
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "reportId": "faa902f7-10f1-4e48-8218-be90547d587a",
+  "savedReloaded": true,
+  "unreviewedApprovalBlocked": true,
+  "pass": true
+}

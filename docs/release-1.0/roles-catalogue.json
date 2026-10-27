@@ -3976,10 +3976,7 @@
       "id": "project-media",
       "public": false,
       "file_size_limit": 52428800,
-      "allowed_mime_types": [
-        "image/*",
-        "application/pdf"
-      ]
+      "allowed_mime_types": ["image/*", "application/pdf"]
     },
     {
       "id": "project-originals",
@@ -4002,9 +3999,7 @@
     {
       "schema": "public",
       "view": "municipal_report_latest_answers",
-      "options": [
-        "security_invoker=true"
-      ]
+      "options": ["security_invoker=true"]
     }
   ],
   "functions": [
@@ -4013,9 +4008,7 @@
       "proname": "add_project_creator_as_admin",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4024,9 +4017,7 @@
       "proname": "audit_upload_created",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4035,9 +4026,7 @@
       "proname": "can_contribute_project",
       "arguments": "_project_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4046,9 +4035,7 @@
       "proname": "can_delete_monitoring_object",
       "arguments": "_object_name text",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4057,9 +4044,7 @@
       "proname": "can_manage_organization",
       "arguments": "_organization_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4068,9 +4053,7 @@
       "proname": "can_manage_project",
       "arguments": "_project_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4079,9 +4062,7 @@
       "proname": "can_read_monitoring_object",
       "arguments": "_object_name text",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4090,9 +4071,7 @@
       "proname": "can_read_organization",
       "arguments": "_organization_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4101,9 +4080,7 @@
       "proname": "can_read_project",
       "arguments": "_project_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4112,9 +4089,7 @@
       "proname": "can_write_monitoring_object",
       "arguments": "_object_name text",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4123,9 +4098,7 @@
       "proname": "can_write_organization",
       "arguments": "_organization_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4134,9 +4107,7 @@
       "proname": "can_write_project",
       "arguments": "_project_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4145,9 +4116,7 @@
       "proname": "is_organization_owner",
       "arguments": "_organization_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4156,9 +4125,7 @@
       "proname": "is_promoted_drone_storage_reference",
       "arguments": "_bucket text, _path text, _object_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4167,9 +4134,7 @@
       "proname": "require_action_evidence_project_match",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4178,9 +4143,7 @@
       "proname": "require_device_parameter_match",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4189,9 +4152,7 @@
       "proname": "require_matching_project_organization",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4200,9 +4161,7 @@
       "proname": "require_project_parent_match",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4211,9 +4170,7 @@
       "proname": "require_quality_assessment_scope_match",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4222,9 +4179,7 @@
       "proname": "require_quality_issue_measurement_match",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4233,9 +4188,7 @@
       "proname": "require_upload_storage_identity",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4244,9 +4197,7 @@
       "proname": "storage_path_matches_project",
       "arguments": "_object_name text",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4255,9 +4206,7 @@
       "proname": "add_creator_as_owner",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4266,9 +4215,7 @@
       "proname": "cancel_upload_intent",
       "arguments": "p_upload_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4277,9 +4224,7 @@
       "proname": "claim_upload_intent_orphans",
       "arguments": "p_limit integer, p_lease_seconds integer",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4288,9 +4233,7 @@
       "proname": "complete_upload_intent_orphan_cleanup",
       "arguments": "p_upload_id uuid, p_claim_token uuid, p_error text",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4299,9 +4242,7 @@
       "proname": "create_upload_intent",
       "arguments": "p_project_id uuid, p_original_file_name text, p_mime_type text, p_file_size bigint, p_client_request_id uuid, p_zone_id uuid, p_upload_type text, p_user_metadata jsonb",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4310,9 +4251,7 @@
       "proname": "finalize_upload_intent",
       "arguments": "p_upload_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4321,9 +4260,7 @@
       "proname": "handle_new_user",
       "arguments": "",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": false
     },
@@ -4332,9 +4269,7 @@
       "proname": "has_org_role",
       "arguments": "_user_id uuid, _org_id uuid, _roles text[]",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4343,9 +4278,7 @@
       "proname": "has_project_role",
       "arguments": "_project_id uuid, _user_id uuid, _role project_role",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4354,9 +4287,7 @@
       "proname": "is_lavbund_projekt_member",
       "arguments": "_projekt_id text, _user_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4365,9 +4296,7 @@
       "proname": "is_org_member",
       "arguments": "_user_id uuid, _org_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4376,9 +4305,7 @@
       "proname": "is_project_admin",
       "arguments": "_project_id uuid, _user_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },
@@ -4387,9 +4314,7 @@
       "proname": "is_project_member",
       "arguments": "_project_id uuid, _user_id uuid",
       "security_definer": true,
-      "settings": [
-        "search_path=\"\""
-      ],
+      "settings": ["search_path=\"\""],
       "anon_execute": false,
       "authenticated_execute": true
     },

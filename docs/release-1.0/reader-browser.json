@@ -1,0 +1,23 @@
+{
+  "schema": "freyra.reader-browser/v1",
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "cleanContext": true,
+  "passwordLogin": true,
+  "projectId": "b88ac41b-86ff-4cfe-b1cc-c633217c85e7",
+  "routes": [
+    {
+      "route": "/app/reports",
+      "readOnly": true
+    },
+    {
+      "route": "/app/reports/new",
+      "readOnly": true
+    },
+    {
+      "route": "/app/reports/templates",
+      "readOnly": true
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

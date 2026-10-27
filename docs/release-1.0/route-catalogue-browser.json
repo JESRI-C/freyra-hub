@@ -1,0 +1,345 @@
+{
+  "schema": "freyra.route-catalogue/v1",
+  "base": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "sourceRevision": "a99c322542263b0e12bc37f9bfc6de64f8b3addb",
+  "scope": "Read-only render and demo-text check; does not prove every external integration",
+  "routes": [
+    {
+      "route": "/app",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/add",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/alerts",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/devices",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/integrations",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/live",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/map",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/quality",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/registry",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/sources",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/connect/upload",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/construction/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/data",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/decisions",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/decisions/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/decisions/assistant",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/decisions/data-quality",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/decisions/notes",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/decisions/recommendations",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/decisions/risk",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/decisions/scenarios",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact/credits",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact/organizations",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact/portfolio",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact/project",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact/projects",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact/reports",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/impact/verification",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/lavbund",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/lavbund/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger/audit",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger/co2",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger/csrd",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger/documents",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger/metrics",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger/reporting",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/ledger/sources",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/overview",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/projects/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/public-impact",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports/approval",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports/builder",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports/library",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports/new",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports/preview",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports/readiness",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/reports/templates",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/access",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/billing",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/frameworks",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/modules",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/notifications",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/projects",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/security",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/settings/users",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/sources",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "route": "/app/system-test",
+      "pass": true,
+      "problems": []
+    }
+  ],
+  "errors": [],
+  "passed": true
+}
