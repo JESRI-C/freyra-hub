@@ -528,7 +528,7 @@ await denied("workspace reader cannot write", entrySql, [
   payload,
 ]);
 
-await db.exec('reset role; create schema private; grant usage on schema private to authenticated;');
+await db.exec("reset role; create schema private; grant usage on schema private to authenticated;");
 await db.exec(`
 create function private.can_read_project(pid uuid) returns boolean language sql stable security definer set search_path=public as $$ select public.is_project_member(pid,auth.uid()) or exists(select 1 from projects p where p.id=pid and public.has_org_role(auth.uid(),p.organization_id,array['owner','admin'])) $$;
 create function private.can_write_project(pid uuid) returns boolean language sql stable security definer set search_path=public as $$ select exists(select 1 from projects p where p.id=pid and public.has_org_role(auth.uid(),p.organization_id,array['owner','admin'])) or exists(select 1 from project_members m where m.project_id=pid and m.user_id=auth.uid() and m.role in ('admin','project_manager','editor')) $$;
@@ -536,28 +536,97 @@ create function private.can_contribute_project(pid uuid) returns boolean languag
 grant execute on all functions in schema private to authenticated;
 update organization_memberships set role='viewer' where user_id='00000000-0000-0000-0000-000000000003';
 `);
-const releaseMigration = (await readdir('supabase/migrations')).find(n=>n.endsWith('_release_1_0_reader_boundaries.sql'));
-await db.exec(await readFile('supabase/migrations/'+releaseMigration,'utf8'));
-const fullMigrationNames=[...migrationNames,workspaceMigration,workspaceAuditFix,releaseMigration];
-for(const name of fullMigrationNames) await db.exec(await readFile('supabase/migrations/'+name,'utf8'));
-count++;console.log('PASS six migrations replay idempotently');
+const releaseMigration = (await readdir("supabase/migrations")).find((n) =>
+  n.endsWith("_release_1_0_reader_boundaries.sql"),
+);
+await db.exec(await readFile("supabase/migrations/" + releaseMigration, "utf8"));
+const fullMigrationNames = [
+  ...migrationNames,
+  workspaceMigration,
+  workspaceAuditFix,
+  releaseMigration,
+];
+for (const name of fullMigrationNames)
+  await db.exec(await readFile("supabase/migrations/" + name, "utf8"));
+count++;
+console.log("PASS six migrations replay idempotently");
 await actor(uidC);
-for(const table of ['report_documents','report_revisions','watercourse_versions','watercourse_observations','watercourse_observation_reviews','project_media','project_workspace_entries']){
- const {rows}=await q('select * from '+table); assert.ok(rows.length>0,table+' viewer read');count++;
+for (const table of [
+  "report_documents",
+  "report_revisions",
+  "watercourse_versions",
+  "watercourse_observations",
+  "watercourse_observation_reviews",
+  "project_media",
+  "project_workspace_entries",
+]) {
+  const { rows } = await q("select * from " + table);
+  assert.ok(rows.length > 0, table + " viewer read");
+  count++;
 }
-async function roleDenied(label,sql,args=[]){try{await q(sql,args);throw new Error(label+': unexpectedly allowed')}catch(e){assert.equal(e.code,'42501',label+': must be denied by RLS, not invalid content');count++;console.log('PASS '+label)}}
-const doc=(await q('select id from report_documents limit 1')).rows[0];
-const revision=(await q('select * from report_revisions where report_id=$1 order by version desc limit 1',[doc.id])).rows[0];
-await roleDenied('viewer cannot create report document','insert into report_documents(organization_id,project_id) values($1,$2)',[orgA,projectA]);
-await roleDenied('viewer cannot append report revision','insert into report_revisions(report_id,version,status,content) values($1,$2,$3,$4)',[doc.id,revision.version+1,'draft',JSON.stringify(revision.content)]);
-await roleDenied('viewer cannot call report save RPC','select save_report_revision(null,$1,$2,0,$3,$4)',[orgA,projectA,'draft',JSON.stringify(revision.content)]);
-await roleDenied('viewer cannot append watercourse version',`insert into watercourse_versions(organization_id,project_id,version,geometry,crs,direction,source,length_m,method,segments) select organization_id,project_id,version+1,geometry,crs,direction,source,length_m,method,segments from watercourse_versions where id=$1`,[v.id]);
-await roleDenied('viewer cannot create dronejob',`insert into drone_processing_jobs(project_id,flight_id,input_version,input_manifest) values($1,$2,$3,'[]')`,[projectA,flightA,'c'.repeat(64)]);
-await roleDenied('viewer cannot upload original',`insert into storage.objects(bucket_id,name) values('project-originals',$1)`,[projectA+'/'+flightA+'/'+'c'.repeat(64)]);
-await roleDenied('viewer cannot add flight','insert into drone_flights(project_id) values($1)',[projectA]);
-await check('viewer reads own private original','select * from storage.objects',[],rows=>assert.ok(rows.length>0));
+async function roleDenied(label, sql, args = []) {
+  try {
+    await q(sql, args);
+    throw new Error(label + ": unexpectedly allowed");
+  } catch (e) {
+    assert.equal(e.code, "42501", label + ": must be denied by RLS, not invalid content");
+    count++;
+    console.log("PASS " + label);
+  }
+}
+const doc = (await q("select id from report_documents limit 1")).rows[0];
+const revision = (
+  await q("select * from report_revisions where report_id=$1 order by version desc limit 1", [
+    doc.id,
+  ])
+).rows[0];
+await roleDenied(
+  "viewer cannot create report document",
+  "insert into report_documents(organization_id,project_id) values($1,$2)",
+  [orgA, projectA],
+);
+await roleDenied(
+  "viewer cannot append report revision",
+  "insert into report_revisions(report_id,version,status,content) values($1,$2,$3,$4)",
+  [doc.id, revision.version + 1, "draft", JSON.stringify(revision.content)],
+);
+await roleDenied(
+  "viewer cannot call report save RPC",
+  "select save_report_revision(null,$1,$2,0,$3,$4)",
+  [orgA, projectA, "draft", JSON.stringify(revision.content)],
+);
+await roleDenied(
+  "viewer cannot append watercourse version",
+  `insert into watercourse_versions(organization_id,project_id,version,geometry,crs,direction,source,length_m,method,segments) select organization_id,project_id,version+1,geometry,crs,direction,source,length_m,method,segments from watercourse_versions where id=$1`,
+  [v.id],
+);
+await roleDenied(
+  "viewer cannot create dronejob",
+  `insert into drone_processing_jobs(project_id,flight_id,input_version,input_manifest) values($1,$2,$3,'[]')`,
+  [projectA, flightA, "c".repeat(64)],
+);
+await roleDenied(
+  "viewer cannot upload original",
+  `insert into storage.objects(bucket_id,name) values('project-originals',$1)`,
+  [projectA + "/" + flightA + "/" + "c".repeat(64)],
+);
+await roleDenied("viewer cannot add flight", "insert into drone_flights(project_id) values($1)", [
+  projectA,
+]);
+await check("viewer reads own private original", "select * from storage.objects", [], (rows) =>
+  assert.ok(rows.length > 0),
+);
 await actor(uidA);
-await q(`insert into drone_processing_jobs(project_id,flight_id,input_version,input_manifest) values($1,$2,$3,'[]')`,[projectA,flightA,'c'.repeat(64)]);count++;
-await q(`insert into storage.objects(bucket_id,name) values('project-originals',$1)`,[projectA+'/'+flightA+'/'+'c'.repeat(64)]);count++;
-console.log(`PASS ${count} offline PostgreSQL/RLS assertions including viewer boundaries and six idempotent migrations.`);
+await q(
+  `insert into drone_processing_jobs(project_id,flight_id,input_version,input_manifest) values($1,$2,$3,'[]')`,
+  [projectA, flightA, "c".repeat(64)],
+);
+count++;
+await q(`insert into storage.objects(bucket_id,name) values('project-originals',$1)`, [
+  projectA + "/" + flightA + "/" + "c".repeat(64),
+]);
+count++;
+console.log(
+  `PASS ${count} offline PostgreSQL/RLS assertions including viewer boundaries and six idempotent migrations.`,
+);
 await db.close();
