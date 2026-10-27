@@ -199,7 +199,10 @@ test("originalupload → offentlige data → gennemgang → PDF og ZIP", async (
   await expect(
     review.getByRole("status").filter({ hasText: "Faglig afvisning gemt" }),
   ).toBeVisible();
-  await page.screenshot({ path: "docs/screens/release-1.0/04-fotogennemgang.png", fullPage: false });
+  await page.screenshot({
+    path: "docs/screens/release-1.0/04-fotogennemgang.png",
+    fullPage: false,
+  });
   await checkpoint("audit_and_planting");
   // Utility navigation must preserve the exact reviewed round.
   await page.getByRole("link", { name: "Revisionsspor", exact: true }).click();

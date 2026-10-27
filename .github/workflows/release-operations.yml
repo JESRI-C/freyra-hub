@@ -1,0 +1,76 @@
+name: Release staging operations
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/release-operations.yml
+      - scripts/check-release-health.mjs
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      alarm_test:
+        type: boolean
+        default: false
+        description: Send a clearly labelled controlled HTTP 503 alarm
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: freyra-staging-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/release-1.0')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+      - name: Probe public endpoints or a controlled failing HTTP server
+        env:
+          ALARM_TEST: ${{ github.event_name == 'pull_request' || inputs.alarm_test == true }}
+        run: |
+          if [ "$ALARM_TEST" = true ]; then
+            node scripts/check-release-health.mjs tmp/operations/health.json --test-failure
+          else
+            node scripts/check-release-health.mjs tmp/operations/health.json || true
+          fi
+      - name: Deliver and deduplicate the alarm
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const health = JSON.parse(fs.readFileSync('tmp/operations/health.json', 'utf8'));
+            const marker = health.test ? '<!-- freyra:staging:controlled-alarm-test -->' : '<!-- freyra:staging:health -->';
+            const issues = await github.paginate(github.rest.issues.listForRepo, { ...context.repo, state: 'all', creator: 'github-actions[bot]', per_page: 100 });
+            const previous = issues.find(issue => issue.body?.includes(marker));
+            if (!health.ok) {
+              if (previous?.state === 'open' || (health.test && previous)) {
+                core.notice('Existing incident retained: ' + previous.html_url);
+              } else {
+                const issue = await github.rest.issues.create({
+                  ...context.repo,
+                  assignees: ['JESRI-C'],
+                  title: health.test ? '[Freyra staging] AFPRØVET: kontrolleret HTTP 503-alarm' : '[Freyra staging] Fejl på offentlig sundhedskontrol',
+                  body: marker + '\n\n' + (health.test ? 'Kontrolleret alarmtest. Dette er ikke et udfald på testappen. En rigtig lokal HTTP-server svarede 503, kontrollen opdagede fejlen, og dette issue dokumenterer leveringen til Jespers GitHub-konto.' : 'Kontrollen af testappen fejler. Jesper Riel er første tekniske eskalation. Kunders projekter og loginoplysninger er ikke medtaget.') + '\n\n```json\n' + JSON.stringify(health, null, 2) + '\n```\n\nKørsel: https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId,
+                });
+                core.notice('Alarm delivered: ' + issue.data.html_url);
+              }
+            } else if (previous?.state === 'open' && !health.test) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: previous.number, body: 'De offentlige kontroller består igen. Automatisk genopretning observeret ' + health.checkedAt + '. Årsag og kundekonsekvens skal stadig vurderes af driftsansvarlig.' });
+              await github.rest.issues.update({ ...context.repo, issue_number: previous.number, state: 'closed' });
+            }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-public-health
+          path: tmp/operations/health.json
+          retention-days: 35
