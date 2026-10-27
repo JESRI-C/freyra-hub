@@ -151,7 +151,12 @@ function rowToMediaItem(row: Record<string, unknown>, signedUrl: string): Projec
     direction: (row["direction"] as number | null | undefined) ?? null,
     beforeMediaId: (row["before_media_id"] as string | null | undefined) ?? null,
     flightId: (row["flight_id"] as string | null | undefined) ?? null,
-    sha256: (row["sha256"] as string | null | undefined) ?? null,
+    sha256:
+      (row["sha256"] as string | null | undefined) ??
+      ((row["metadata"] as Record<string, unknown> | undefined)?.original_sha256 as
+        | string
+        | undefined) ??
+      null,
     metadata: {
       ...((row["metadata"] as Record<string, unknown> | undefined) ?? {}),
       // Historical field uploads retained a sanitized filename only in the path.
@@ -425,8 +430,9 @@ export async function uploadProjectMedia(
     // `url` is kept only for compatibility with the current non-null schema.
     // The live application ignores persisted URL fields and signs `file_path`.
     url: "",
-    sha256: checksum,
-    metadata: { original_name: input.file.name },
+    // The top-level checksum is reserved by the DB for immutable project-originals paths.
+    // Ordinary field uploads retain their byte checksum in provenance metadata.
+    metadata: { original_name: input.file.name, original_sha256: checksum },
     thumbnail_url: null,
     captured_at: input.capturedAt ?? null,
     lat: input.coordinates?.lat ?? null,

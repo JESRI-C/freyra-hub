@@ -77,8 +77,12 @@ describe("private original persistence", () => {
       source: "field_upload" as const,
     };
     const result = await uploadProjectMedia(original);
-    expect(mocks.payload.sha256).toBe("a".repeat(64));
-    expect(mocks.payload.metadata).toEqual({ original_name: "photo.jpg" });
+    expect(mocks.payload.sha256).toBeUndefined();
+    expect(mocks.payload.metadata).toEqual({
+      original_name: "photo.jpg",
+      original_sha256: "a".repeat(64),
+    });
+    expect(result.data?.sha256).toBe("a".repeat(64));
     expect(result.data?.metadata?.original_name).toBe("photo.jpg");
     expect(mocks.upload.mock.calls[0][1]).toBe(original.file);
   });

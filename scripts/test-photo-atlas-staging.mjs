@@ -158,6 +158,7 @@ try {
   console.log("PASS saved review");
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Fotoatlas", exact: true }).click();
+  await atlas.getByLabel("Gemte fotoatlas og baselines").selectOption(importedSourceId);
   await atlas.getByRole("status").filter({ hasText: "274 af 274 fotos" }).waitFor();
   await atlas.getByLabel("Søg i fotoatlas").fill("TEKNISK gemmeprøve");
   await atlas.getByRole("status").filter({ hasText: "1 af 274 fotos" }).waitFor();
@@ -215,6 +216,7 @@ try {
   await page.screenshot({ path: "docs/screens/photo-atlas/05-rapport.png", fullPage: false });
   await page.goto(base + "/app/projects/" + project.id, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Fotoatlas", exact: true }).click();
+  await atlas.getByLabel("Gemte fotoatlas og baselines").selectOption(importedSourceId);
   await atlas.getByRole("status").filter({ hasText: "274 af 274 fotos" }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
   await atlas.getByLabel("Søg i fotoatlas").fill("DRN-001");
