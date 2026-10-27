@@ -25,6 +25,48 @@ function canvasBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
 export async function buildReportImages(revision: ReportRevision): Promise<ReportImage[]> {
   const images: ReportImage[] = [];
   const points = revision.content.sources.filter((s) => s.position);
+  let atlasImages: ReportImage[] = [];
+  const manifest = revision.content.photoAtlas;
+  if (manifest) {
+    if (!revision.content.sources.some((source) => source.id === `evidence:${manifest.evidenceId}`))
+      throw new Error("Fotoatlasset mangler i rapportens kilderegister.");
+    const report = await (supabase as unknown as SupabaseClient)
+      .from("report_documents")
+      .select("organization_id,project_id")
+      .eq("id", revision.report_id)
+      .single();
+    if (report.error || !report.data)
+      throw new Error("Rapportens projektadgang kunne ikke bekræftes.");
+    const { loadPhotoAtlas } = await import("./photo-atlas-service");
+    const { atlasReportImages } = await import("@/lib/photo-atlas-export");
+    const atlas = await loadPhotoAtlas(
+      { organizationId: report.data.organization_id, projectId: report.data.project_id },
+      manifest.evidenceId,
+    );
+    if (
+      atlas.checksum !== manifest.checksum ||
+      new Set(manifest.photoIds).size !== manifest.photoIds.length
+    )
+      throw new Error("Fotoatlassets kilde eller checksum er ændret. Eksporten er stoppet.");
+    const selected = manifest.photoIds.map((id) => {
+      const photo = atlas.photos.find((p) => p.id === id);
+      if (!photo) throw new Error("Et foto mangler i det gemte atlas. Eksporten er stoppet.");
+      return photo;
+    });
+    atlasImages = await atlasReportImages(atlas, selected);
+    for (const photo of selected)
+      if (photo.lat != null && photo.lon != null)
+        points.push({
+          id: photo.id,
+          title: photo.filename,
+          kind: "atlas_illustration",
+          capturedAt: photo.time ?? null,
+          checksum: null,
+          position: [photo.lon, photo.lat],
+          method: "Kamera-GPS fra fotoatlas; motivplacering uafklaret",
+          version: atlas.checksum,
+        });
+  }
   if (points.length) {
     const canvas = document.createElement("canvas");
     canvas.width = 1400;
@@ -40,8 +82,9 @@ export async function buildReportImages(revision: ReportRevision): Promise<Repor
     ctx.rect(70, 100, 1250, 620);
     ctx.clip();
     try {
+      const signal = AbortSignal.timeout(15000);
       for (const tile of plan.tiles) {
-        const response = await fetch(tile.url, { credentials: "omit" });
+        const response = await fetch(tile.url, { credentials: "omit", signal });
         if (!response.ok) throw new Error("Kortfelt utilgængeligt");
         const bitmap = await createImageBitmap(await response.blob());
         ctx.drawImage(bitmap, 70 + tile.left, 100 + tile.top, 256, 256);
@@ -100,48 +143,11 @@ export async function buildReportImages(revision: ReportRevision): Promise<Repor
     });
   }
   let totalBytes = 0;
-  const atlasSources = revision.content.sources.filter(
-    (source) => source.kind === "atlas_illustration",
-  );
-  if (atlasSources.length) {
-    // Resolve the report's scope from its authorized row, never from a caller-supplied path.
-    const report = await (supabase as unknown as SupabaseClient)
-      .from("report_documents")
-      .select("organization_id,project_id")
-      .eq("id", revision.report_id)
-      .single();
-    if (report.error || !report.data)
-      throw new Error("Rapportens projektadgang kunne ikke bekræftes.");
-    const scope = report.data as { organization_id: string; project_id: string };
-    const { loadPhotoAtlas } = await import("./photo-atlas-service");
-    const { atlasReportImages } = await import("@/lib/photo-atlas-export");
-    const ids = [...new Set(atlasSources.map((source) => source.id.split(":")[1]))];
-    for (const evidenceId of ids) {
-      const atlas = await loadPhotoAtlas(
-        { organizationId: scope.organization_id, projectId: scope.project_id },
-        evidenceId,
-      );
-      const selected = atlasSources.filter((source) =>
-        source.id.startsWith(`atlas:${evidenceId}:`),
-      );
-      const photos = selected.map((source) => {
-        const photo = atlas.photos.find((p) => source.id === `atlas:${evidenceId}:${p.id}`);
-        if (
-          !photo ||
-          source.version !== `atlas-sha256:${atlas.checksum}` ||
-          (photo.sha256 ?? null) !== source.checksum
-        )
-          throw new Error("Fotoatlassets kilde eller checksum er ændret. Eksporten er stoppet.");
-        return photo;
-      });
-      const atlasImages = await atlasReportImages(atlas, photos);
-      for (const image of atlasImages) {
-        totalBytes += image.bytes.length;
-        if (totalBytes > 100 * 1024 * 1024)
-          throw new Error("Fotoatlas overstiger 100 MB. Afgræns rapporten.");
-        images.push(image);
-      }
-    }
+  for (const image of atlasImages) {
+    totalBytes += image.bytes.length;
+    if (totalBytes > 100 * 1024 * 1024)
+      throw new Error("Fotoatlas overstiger 100 MB. Afgræns rapporten.");
+    images.push(image);
   }
   for (const source of revision.content.sources) {
     if (

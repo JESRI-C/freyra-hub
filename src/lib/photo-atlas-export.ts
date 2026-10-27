@@ -20,17 +20,21 @@ export function atlasReportContent(input: {
   purpose: string;
 }): ReportContent {
   const { atlas, photos, reviews } = input;
-  const sourceId = (photo: AtlasPhoto) => `atlas:${atlas.evidenceId}:${photo.id}`;
-  const sources: ReportSource[] = photos.map((photo) => ({
-    id: sourceId(photo),
-    title: `${photo.id} · ${photo.filename}`,
-    kind: "atlas_illustration",
-    capturedAt: photo.time ?? photo.date ?? null,
-    checksum: photo.sha256 ?? null,
-    position: photo.lat != null && photo.lon != null ? [photo.lon, photo.lat] : null,
-    method: `Rapportillustration fra indlæst fotoatlas. Originalreference: ${photo.source || "mangler"}. Originalens SHA-256 er en reference fra kilderegisteret; originalfilen er ikke hentet/verificeret ved denne import. Kamera-GPS er ikke motivposition.`,
-    version: `atlas-sha256:${atlas.checksum}`,
-  }));
+  // Use the existing, server-canonicalized evidence reference. Imported original
+  // checksums must not masquerade as verified project_media original checksums.
+  const sources: ReportSource[] = [
+    {
+      id: `evidence:${atlas.evidenceId}`,
+      title: atlas.title,
+      kind: "freyra_photo_atlas_v1",
+      capturedAt: null,
+      checksum: null,
+      position: null,
+      method:
+        "Registreret fotoatlas; originalernes checksums er kildehenvisninger, ikke verificerede originalfiler.",
+      version: atlas.version,
+    },
+  ];
   const sections: {
     title: string;
     text: string;
@@ -116,7 +120,7 @@ export function atlasReportContent(input: {
     },
     {
       title: "Metode, kilder og faglige begrænsninger",
-      text: `${atlas.method}\n\n${ATLAS_METHOD}\n\nKildedatasæt: ${atlas.title}. Version: ${atlas.version}. Fotoatlasfilens SHA-256: ${atlas.checksum}. Illustrationer er visningskopier; originalreferencer og registrerede originalchecksums fremgår af kildelisten. Oprindelige filer er ikke blevet hentet eller omskrevet som del af denne import.\n\nVandstand, temperatur, ilt og pH er ikke målt her. Formelt økologisk tilstand eller effekt af plantning beregnes ikke fra disse billeder. Lokale optagetider uden tidszone omregnes ikke til UTC. Alle afsnit afventer faglig rapportgennemgang.`,
+      text: `${atlas.method}\n\n${ATLAS_METHOD}\n\nKildedatasæt: ${atlas.title}. Version: ${atlas.version}. Fotoatlasfilens SHA-256: ${atlas.checksum}. Illustrationer er visningskopier. Oprindelige filer er ikke blevet hentet eller omskrevet som del af denne import.\n\nVandstand, temperatur, ilt og pH er ikke målt her. Formelt økologisk tilstand eller effekt af plantning beregnes ikke fra disse billeder. Lokale optagetider uden tidszone omregnes ikke til UTC. Alle afsnit afventer faglig rapportgennemgang. Atlasdokumentet har ingen serverregistreret originalkontrolsum og kan ikke alene danne grundlag for en godkendt rapport.\n\nFotoregister med originalreferencer (ikke verificeret ved atlasimport):\n${photos.map((p) => `${p.id} · ${p.filename} · ${p.source || "Originalreference mangler"} · Registreret original-SHA-256: ${p.sha256 || "Mangler"}`).join("\n\n")}`,
       basis: "documented",
     },
   ];
@@ -128,6 +132,11 @@ export function atlasReportContent(input: {
     scope: "Fotobaseret baseline, vegetation, stedbundne forslag og opfølgning",
     audience: "Kommune og projektets fagpersoner",
     sources,
+    photoAtlas: {
+      evidenceId: atlas.evidenceId,
+      checksum: atlas.checksum,
+      photoIds: photos.map((p) => p.id),
+    },
     sections: sections.map((s, i) => ({
       id: `atlas-section-${i + 1}`,
       title: s.title,

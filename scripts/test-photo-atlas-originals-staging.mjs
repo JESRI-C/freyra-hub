@@ -72,11 +72,12 @@ try {
   await page.getByRole("button", { name: "Fotoatlas", exact: true }).click();
   const media = await client
     .from("project_media")
-    .select("id")
-    .eq("project_id", project.id)
-    .eq("sha256", sha256);
+    .select("id,sha256,metadata")
+    .eq("project_id", project.id);
   assert.equal(media.error, null);
-  if (!media.data.length) {
+  if (
+    !media.data.some((row) => row.sha256 === sha256 || row.metadata?.original_sha256 === sha256)
+  ) {
     await page.getByText("Andet foto eller bilag", { exact: true }).click();
     await page.getByLabel("Vælg andet foto eller bilag").setInputFiles(path.resolve(originalPath));
     await page.getByRole("button", { name: "Gem foto eller bilag", exact: true }).click();

@@ -34,6 +34,13 @@ export const ReportContentSchema = z.object({
   audience: z.string().min(1),
   sections: z.array(SectionSchema),
   sources: z.array(SourceSchema),
+  photoAtlas: z
+    .object({
+      evidenceId: z.string().uuid(),
+      checksum: z.string().regex(/^[a-f0-9]{64}$/),
+      photoIds: z.array(z.string().min(1).max(120)).min(1).max(10000),
+    })
+    .optional(),
 });
 export type ReportContent = z.infer<typeof ReportContentSchema>;
 export type ReportSource = z.infer<typeof SourceSchema>;

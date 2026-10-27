@@ -341,15 +341,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 className={button}
                 onClick={() =>
                   void run(async () => {
-                    const loaded = await loadReportSources(projectId!);
-                    const sources = [
-                      ...new Map(
-                        [
-                          ...loaded,
-                          ...content.sources.filter((s) => s.kind === "atlas_illustration"),
-                        ].map((s) => [s.id, s]),
-                      ).values(),
-                    ];
+                    const sources = await loadReportSources(projectId!);
                     setContent({
                       ...content,
                       sources,
@@ -385,15 +377,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 onClick={() =>
                   void run(async () => {
                     const observations = await loadReviewedReportObservations(projectId!, orgId!);
-                    const loaded = await loadReportSources(projectId!);
-                    const sources = [
-                      ...new Map(
-                        [
-                          ...loaded,
-                          ...content.sources.filter((s) => s.kind === "atlas_illustration"),
-                        ].map((s) => [s.id, s]),
-                      ).values(),
-                    ];
+                    const sources = await loadReportSources(projectId!);
                     setContent({
                       ...content,
                       sources,

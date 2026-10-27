@@ -1,8 +1,68 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const storage = vi.hoisted(() => ({ from: vi.fn(), createSignedUrl: vi.fn() }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { storage } }));
+const atlasMocks = vi.hoisted(() => ({ from: vi.fn(), load: vi.fn(), images: vi.fn() }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { storage, from: atlasMocks.from } }));
+vi.mock("../photo-atlas-service", () => ({ loadPhotoAtlas: atlasMocks.load }));
+vi.mock("@/lib/photo-atlas-export", () => ({ atlasReportImages: atlasMocks.images }));
 import { buildReportImages } from "../report-assets";
 import { newReportContent, type ReportRevision } from "@/lib/report-document";
+describe("frozen atlas evidence authorization", () => {
+  const frozen = () => {
+    const revision = fixture();
+    revision.content.sources = [
+      {
+        ...revision.content.sources[0],
+        id: "evidence:atlas-file",
+        kind: "freyra_photo_atlas_v1",
+        checksum: null,
+        filePath: undefined,
+        storageBucket: undefined,
+      },
+    ];
+    revision.content.photoAtlas = {
+      evidenceId: "atlas-file",
+      checksum: "c".repeat(64),
+      photoIds: ["PHOTO-1"],
+    };
+    return revision;
+  };
+  const authorize = (result: unknown) => {
+    const query = { select: () => query, eq: () => query, single: async () => result };
+    atlasMocks.from.mockReturnValue(query);
+  };
+  beforeEach(() => vi.resetAllMocks());
+  it("stops before downloading an atlas when the report row is inaccessible", async () => {
+    authorize({ data: null, error: { message: "RLS" } });
+    await expect(buildReportImages(frozen())).rejects.toThrow("projektadgang");
+    expect(atlasMocks.load).not.toHaveBeenCalled();
+  });
+  it("rejects an atlas whose exact file bytes changed after the report was saved", async () => {
+    authorize({ data: { organization_id: "own-org", project_id: "own-project" }, error: null });
+    atlasMocks.load.mockResolvedValue({ checksum: "d".repeat(64), photos: [] });
+    await expect(buildReportImages(frozen())).rejects.toThrow("checksum er ændret");
+    expect(atlasMocks.load).toHaveBeenCalledWith(
+      { organizationId: "own-org", projectId: "own-project" },
+      "atlas-file",
+    );
+    expect(atlasMocks.images).not.toHaveBeenCalled();
+  });
+  it("only renders the selected photos from the authorized frozen atlas", async () => {
+    authorize({ data: { organization_id: "own-org", project_id: "own-project" }, error: null });
+    const first = { id: "PHOTO-1", lat: null, lon: null },
+      second = { id: "PHOTO-2", lat: null, lon: null };
+    const atlas = { checksum: "c".repeat(64), photos: [first, second] };
+    atlasMocks.load.mockResolvedValue(atlas);
+    atlasMocks.images.mockResolvedValue([]);
+    expect(await buildReportImages(frozen())).toEqual([]);
+    expect(atlasMocks.images).toHaveBeenCalledWith(atlas, [first]);
+  });
+  it("requires the atlas's existing evidence reference in the source register", async () => {
+    const revision = frozen();
+    revision.content.sources = [];
+    await expect(buildReportImages(revision)).rejects.toThrow("kilderegister");
+    expect(atlasMocks.load).not.toHaveBeenCalled();
+  });
+});
 function fixture(): ReportRevision {
   const content = newReportContent("P", "O", "S", "A");
   content.sources = [

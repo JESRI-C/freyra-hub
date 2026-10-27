@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Script } from "node:vm";
+import { ReportContentSchema, validateReportRevision } from "../report-document";
 import {
   AtlasReviewSchema,
   documentedPhotoComparison,
@@ -128,7 +129,11 @@ describe("photo-atlas data and provenance", () => {
     );
   });
   it("builds draft sections from sources without invented measurements or approvals", () => {
-    const atlas = { ...read(dataset()), evidenceId: "test-source", checksum: "b".repeat(64) };
+    const atlas = {
+      ...read(dataset()),
+      evidenceId: "00000000-0000-4000-8000-000000000010",
+      checksum: "b".repeat(64),
+    };
     const content = atlasReportContent({
       atlas,
       photos: atlas.photos,
@@ -139,8 +144,11 @@ describe("photo-atlas data and provenance", () => {
     });
     expect(content.sections.every((s) => !s.reviewed)).toBe(true);
     expect(content.sections.map((s) => s.text).join(" ")).toContain("ikke målt");
-    expect(content.sources[0].method).toContain("ikke hentet/verificeret");
-    expect(content.sources[0].version).toBe("atlas-sha256:" + "b".repeat(64));
+    expect(content.sources[0].id).toBe("evidence:" + atlas.evidenceId);
+    expect(content.sources[0].checksum).toBeNull();
+    expect(ReportContentSchema.parse(content).photoAtlas?.checksum).toBe(atlas.checksum);
+    expect(content.sections.at(-1)?.text).toContain("ikke verificeret ved atlasimport");
+    expect(() => validateReportRevision(content, "approved")).toThrow();
   });
   it("does not resurrect a cleared species suggestion in report or atlas exports", () => {
     const atlas = { ...read(dataset()), evidenceId: "test-source", checksum: "b".repeat(64) };
