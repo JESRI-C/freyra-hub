@@ -80,6 +80,7 @@ try {
   await page.getByRole("button", { name: "Fotoatlas", exact: true }).click();
   const atlas = page.getByRole("region", { name: "Projektets fotoatlas og baseline" });
   await atlas.getByRole("heading", { name: "Fotoatlas og baseline", exact: true }).waitFor();
+  await atlas.getByText("Indlæser fotoatlas…", { exact: true }).waitFor({ state: "hidden" });
   const existing = await atlas.getByLabel("Gemte fotoatlas og baselines").count();
   if (!existing) {
     await atlas
@@ -100,15 +101,18 @@ try {
     .filter({ hasText: "274 af 274 fotos" })
     .waitFor({ timeout: 240000 });
   result.steps.push("274 reference photos persisted and loaded through private storage");
-  assert.equal(await atlas.getByLabel("Optagedato", { exact: true }).locator("option").count(), 4);
-  assert.equal(await atlas.getByLabel("Vandløb", { exact: true }).locator("option").count(), 5);
-  await atlas.getByLabel("Vandløb", { exact: true }).selectOption("Uafklaret");
+  console.log("PASS private source load");
+  assert.equal(await atlas.getByLabel("Optagedato").locator("option").count(), 4);
+  assert.equal(await atlas.getByLabel("Vandløb").locator("option").count(), 5);
+  await atlas.getByLabel("Vandløb").selectOption("Uafklaret");
   assert.ok(!(await atlas.innerText()).includes("274 af 274 fotos"));
-  await atlas.getByLabel("Vandløb", { exact: true }).selectOption("");
+  await atlas.getByLabel("Vandløb").selectOption("");
+  console.log("PASS dates and unresolved watercourse filter");
   await atlas.getByLabel("Søg i fotoatlas").fill("DRN-001");
   await atlas.getByRole("status").filter({ hasText: "1 af 274 fotos" }).waitFor();
   await atlas.getByRole("button", { name: /DRN-001 ·/ }).click();
   const dialog = page.getByRole("dialog");
+  console.log("Opened photo dialog");
   await dialog.getByRole("heading", { name: /DRN-001 ·/ }).waitFor();
   await dialog.getByLabel("Billedzoom").fill("2");
   assert.ok((await dialog.innerText()).includes("tidszone ukendt"));
@@ -243,15 +247,13 @@ try {
     assert.equal(rows.error, null);
     assert.ok(rows.data.length);
     const row = rows.data[0];
-    const denied = await readerClient
-      .from("project_workspace_entries")
-      .insert({
-        organization_id: qa.organizationId,
-        project_id: project.id,
-        kind: row.kind,
-        title: "TEKNISK AFVIST LÆSER",
-        payload: row.payload,
-      });
+    const denied = await readerClient.from("project_workspace_entries").insert({
+      organization_id: qa.organizationId,
+      project_id: project.id,
+      kind: row.kind,
+      title: "TEKNISK AFVIST LÆSER",
+      payload: row.payload,
+    });
     assert.ok(denied.error, "Viewer must not write review");
     const upload = await readerClient.storage
       .from("evidence-files")
