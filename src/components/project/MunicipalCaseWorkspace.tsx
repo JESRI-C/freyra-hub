@@ -32,6 +32,7 @@ import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "./ProjectMembersPanel";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { PhotoComparisonPanel } from "./PhotoComparisonPanel";
+import { adjacentMunicipalStep } from "@/lib/municipal-workflow";
 
 export const MUNICIPAL_STEPS = [
   {
@@ -84,7 +85,7 @@ export const MUNICIPAL_STEPS = [
   },
   {
     id: "beplantning",
-    label: "Beplantning",
+    label: "Beplantning (valgfri)",
     icon: Leaf,
     title: "Undersøg mulighederne langs vandløbet",
     description:
@@ -155,6 +156,8 @@ export function MunicipalCaseWorkspace({
   const progress = useCaseProgress(user?.id, project.id, selectedRoundId);
   const index = MUNICIPAL_STEPS.findIndex((item) => item.id === step);
   const current = MUNICIPAL_STEPS[index];
+  const previousStep = adjacentMunicipalStep(step, -1);
+  const nextStep = adjacentMunicipalStep(step, 1);
   const hasArea = validateProjectPolygon(project.geometry_polygon).valid;
   const readOnly = access.data?.userId === user?.id && !access.data?.canPersist;
   const photoCount = media.isError ? undefined : media.data;
@@ -444,7 +447,7 @@ export function MunicipalCaseWorkspace({
                 ...(!progress.reviewsComplete
                   ? ["Gennemgå fotopunkterne i Verificering, og gem begrundede beslutninger."]
                   : []),
-                "Faglig accept af baseline, beplantning og rapport skal afklares med den ansvarlige.",
+                "Faglig accept af baseline, udførelse og rapport skal afklares med den ansvarlige. Beplantning er valgfri.",
               ]}
             />
             <div className="rounded-xl border bg-card p-5">
@@ -502,20 +505,20 @@ export function MunicipalCaseWorkspace({
         <footer className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t bg-card/95 p-3 backdrop-blur sm:static sm:rounded-xl sm:border sm:p-4">
           <button
             className="rounded-lg px-3 py-2 text-sm disabled:opacity-40"
-            disabled={index === 0}
-            onClick={() => onStep(MUNICIPAL_STEPS[index - 1].id)}
+            disabled={!previousStep}
+            onClick={() => previousStep && onStep(previousStep)}
           >
             Forrige trin
           </button>
           <span className="hidden text-xs text-muted-foreground sm:inline">
             {index + 1} af {MUNICIPAL_STEPS.length} · {current.label}
           </span>
-          {index < MUNICIPAL_STEPS.length - 1 ? (
+          {nextStep ? (
             <button
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              onClick={() => onStep(MUNICIPAL_STEPS[index + 1].id)}
+              onClick={() => onStep(nextStep)}
             >
-              Videre til {MUNICIPAL_STEPS[index + 1].label.toLowerCase()}
+              Videre til {MUNICIPAL_STEPS.find((item) => item.id === nextStep)?.label.toLowerCase()}
               <ArrowRight className="size-4" />
             </button>
           ) : (

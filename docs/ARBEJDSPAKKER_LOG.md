@@ -137,3 +137,16 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
   forbudt kvantitativ måling). Typecheck efter F07/F08 består.
 - Status: delvist dækket; ny hosted mobil-/browserprøve og rigtig kundeserie
   er ikke afprøvet. Ingen præcis arealmotor aktiveret. Næste: F09.
+
+## F09
+
+- Ændring: kerneforløbet går fra dokumenteret udførelse og sammenligning til
+  rapport uden obligatorisk plantning. Beplantning er stadig synlig som valgfri
+  funktion og beholder sit eksisterende link. Ingen faglige kategorier fjernet.
+- Billedsammenligning har nu en navngiven native skyder med tastaturbetjening,
+  label og aflæselig fordeling. Formularer bruger labels og særskilte fejl/status.
+- Prøver: fire navigation-/DOM-interaktionstests består. De tester blandt
+  andet levering uden plantning, historisk plantelink, fokusérbar skyder og
+  ændret visuelt split via input. Dette er ikke hosted mobil- eller WCAG-accept.
+- Status: delvist dækket. Telefon-/desktop-browser, fokusforløb og reel
+  medarbejders forståelse er ikke afprøvet. Næste: F10, frosset aflevering.

@@ -3,6 +3,22 @@ export const MUNICIPAL_WORKFLOW = true;
 /** Text assistance and automatic image review have separate release gates. */
 export const AUTOMATIC_PHOTO_REVIEW_ENABLED = false;
 
+/** Optional planting remains directly addressable but is not a delivery prerequisite. */
+export const MUNICIPAL_CORE_STEP_IDS = [
+  "billeder",
+  "datagrundlag",
+  "gennemgang",
+  "baseline",
+  "udfoerelse",
+  "sammenligning",
+  "rapport",
+] as const;
+export function adjacentMunicipalStep(step: string, direction: -1 | 1) {
+  if (step === "beplantning") return direction === 1 ? "rapport" : "sammenligning";
+  const index = MUNICIPAL_CORE_STEP_IDS.findIndex((id) => id === step);
+  return index < 0 ? undefined : MUNICIPAL_CORE_STEP_IDS[index + direction];
+}
+
 export const MUNICIPAL_PROJECT_TABS = new Set([
   "arbejde",
   "rapporter",
