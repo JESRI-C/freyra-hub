@@ -6,29 +6,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import {
-  ringToWkt,
-  ringToDawaPolygonParam,
-  jordstykkeLabel,
-  jordstykkeAreaHa,
-  markblokLabel,
-  markblokAreaHa,
-  capResults,
-  type AreaFeature,
-  type LngLat,
-} from "@/services/geo-lookup-transform";
-
-const AUTOCOMPLETE_URL = "https://api.dataforsyningen.dk/autocomplete";
-// DAWA jordstykker (matrikler) — gratis, nøglefri del af Dataforsyningen.
-const DAWA_JORDSTYKKER = "https://api.dataforsyningen.dk/jordstykker";
-
-// Landbrugsstyrelsens markblok-WFS (åbne data). Hvis endpoint navnene
-// ændrer sig kan de justeres her uden UI-ændringer.
-const LBST_WFS = "https://kort.lbst.dk/service";
-
-// Datafordeleren matrikel-WFS. Kræver service-bruger.
-const DAF_MATRIKEL_WFS =
-  "https://services.datafordeler.dk/MATRIKEL/MatrikelGaeldendeOgForeloebigWFS/1.0.0/WFS";
+import type { AreaFeature } from "@/services/geo-lookup-transform";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -48,13 +26,7 @@ const PolygonInput = z.object({
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export interface PlaceSuggestion {
-  tekst: string;
-  type: string;
-  href?: string;
-  lat?: number;
-  lng?: number;
-}
+export type { PlaceSuggestion } from "@/services/place-search.server";
 
 export interface PickedFeature {
   source: "markblok" | "matrikel";
@@ -66,317 +38,54 @@ export interface PickedFeature {
   disclaimer: string;
 }
 
-interface WfsFeatureCollection {
-  features?: Array<{
-    id?: string;
-    properties?: Record<string, unknown>;
-    geometry?: { type: string; coordinates: unknown };
-  }>;
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
-  const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), 10_000);
-  try {
-    return await fetch(url, { ...init, signal: ac.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/** Parse JSON, men returner null hvis serveren svarer med HTML e.l. */
-async function safeJson<T>(res: Response): Promise<T | null> {
-  const ct = res.headers.get("content-type") ?? "";
-  const text = await res.text();
-  if (!ct.includes("json")) {
-    // Endpoint svarede med HTML/tekst — typisk fordi WFS-URL'en er flyttet
-    // eller kræver andre parametre. Log serverside og lad kaldet fejle blødt.
-    console.warn(`[geo-search] Ikke-JSON respons (${ct || "ukendt"}):`, text.slice(0, 200));
-    return null;
-  }
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return null;
-  }
-}
-
-function ringAreaHa(coords: number[][]): number {
-  if (coords.length < 4) return 0;
-  // Shoelace with equirectangular scaling at first vertex latitude.
-  const lat0 = coords[0]?.[1] ?? 55;
-  const mPerLat = 111_320;
-  const mPerLng = 111_320 * Math.cos((lat0 * Math.PI) / 180);
-  let a = 0;
-  for (let i = 0; i < coords.length - 1; i++) {
-    const [x1, y1] = coords[i] as [number, number];
-    const [x2, y2] = coords[i + 1] as [number, number];
-    a += x1 * mPerLng * (y2 * mPerLat) - x2 * mPerLng * (y1 * mPerLat);
-  }
-  return Math.abs(a) / 2 / 10_000;
-}
-
-function polygonFromWfsGeometry(
-  geom: { type: string; coordinates: unknown } | undefined,
-): { type: "Polygon"; coordinates: number[][][] } | null {
-  if (!geom) return null;
-  if (geom.type === "Polygon") {
-    return { type: "Polygon", coordinates: geom.coordinates as number[][][] };
-  }
-  if (geom.type === "MultiPolygon") {
-    // Return the largest ring as a single Polygon for now — MultiPolygon
-    // storage requires a schema change (project_boundaries table).
-    const polys = geom.coordinates as number[][][][];
-    let best: number[][][] | null = null;
-    let bestArea = 0;
-    for (const p of polys) {
-      const ring = p[0];
-      if (!ring) continue;
-      const a = ringAreaHa(ring);
-      if (a > bestArea) {
-        bestArea = a;
-        best = p;
-      }
-    }
-    return best ? { type: "Polygon", coordinates: best } : null;
-  }
-  return null;
-}
-
-// ─── Public endpoints ────────────────────────────────────────────────────────
-
 export const searchPlaces = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => SearchInput.parse(raw))
-  .handler(async ({ data }): Promise<PlaceSuggestion[]> => {
-    const url = `${AUTOCOMPLETE_URL}?q=${encodeURIComponent(data.q)}&per_side=8&fuzzy=`;
-    const res = await safeFetch(url);
-    if (!res.ok) return [];
-    const items = (await res.json()) as Array<{
-      tekst: string;
-      type: string;
-      data?: {
-        href?: string;
-        x?: number;
-        y?: number;
-      };
-    }>;
-    return items.map((it) => ({
-      tekst: it.tekst,
-      type: it.type,
-      href: it.data?.href,
-      lat: it.data?.y,
-      lng: it.data?.x,
-    }));
+  .handler(async ({ data }) => {
+    const { findPlaces } = await import("@/services/place-search.server");
+    return findPlaces(data.q);
   });
 
 export const resolvePlace = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => ResolveInput.parse(raw))
-  .handler(async ({ data }): Promise<{ lat: number; lng: number } | null> => {
-    const res = await safeFetch(data.href);
-    if (!res.ok) return null;
-    const detail = (await res.json()) as {
-      adgangspunkt?: { koordinater?: [number, number] };
-      visueltcenter?: [number, number];
-    };
-    const coords = detail.adgangspunkt?.koordinater ?? detail.visueltcenter;
-    if (!coords) return null;
-    return { lng: coords[0], lat: coords[1] };
+  .handler(async ({ data }) => {
+    const { resolveAddress } = await import("@/services/place-search.server");
+    return resolveAddress(data.href);
   });
 
 export const pickMarkblok = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => PointInput.parse(raw))
   .handler(async ({ data }): Promise<PickedFeature | null> => {
-    const params = new URLSearchParams({
-      SERVICENAME: "marker_wfs_v3",
-      SERVICE: "WFS",
-      VERSION: "2.0.0",
-      REQUEST: "GetFeature",
-      TYPENAMES: "Markblokke",
-      SRSNAME: "EPSG:4326",
-      COUNT: "1",
-      OUTPUTFORMAT: "application/json",
-      CQL_FILTER: `INTERSECTS(geom, POINT(${data.lng} ${data.lat}))`,
-    });
-    const res = await safeFetch(`${LBST_WFS}?${params}`);
-    if (!res.ok) return null;
-    const fc = await safeJson<WfsFeatureCollection>(res);
-    const f = fc?.features?.[0];
-    const poly = polygonFromWfsGeometry(f?.geometry);
-    if (!f || !poly) return null;
-    const props = f.properties ?? {};
-    const label = String(
-      props["MARKBLOKNR"] ?? props["Marknr"] ?? props["MB_NR"] ?? f.id ?? "Markblok",
-    );
-    return {
-      source: "markblok",
-      label: `Markblok ${label}`,
-      properties: normalizeProps(props),
-      geometry: poly,
-      areaHa: Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
-      attribution: "© Landbrugsstyrelsen / Styrelsen for Grøn Arealomlægning og Vandmiljø",
-      disclaimer: "Markblokke er en offentlig arealreference og ikke en juridisk ejendomsgrænse.",
-    };
+    const { pickProjectArea } = await import("@/services/project-area-lookup.server");
+    return pickProjectArea("markblok", data.lat, data.lng);
   });
 
-/**
- * Punkt-opslag af matrikel (jordstykke). Primær kilde: DAWA/Dataforsyningen
- * jordstykker — gratis og nøglefri, så matrikel-valg virker uden opsætning.
- * Datafordeler-WFS bruges kun som fallback når service-bruger-creds er sat.
- */
 export const pickMatrikel = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => PointInput.parse(raw))
   .handler(async ({ data }): Promise<PickedFeature | null> => {
-    const fromDawa = await pickMatrikelDawa(data.lat, data.lng);
-    if (fromDawa) return fromDawa;
-    return pickMatrikelDatafordeler(data.lat, data.lng);
+    const { pickProjectArea } = await import("@/services/project-area-lookup.server");
+    return pickProjectArea("matrikel", data.lat, data.lng);
   });
-
-async function pickMatrikelDawa(lat: number, lng: number): Promise<PickedFeature | null> {
-  const params = new URLSearchParams({
-    x: String(lng),
-    y: String(lat),
-    srid: "4326",
-    format: "geojson",
-  });
-  const res = await safeFetch(`${DAWA_JORDSTYKKER}?${params}`);
-  if (!res.ok) return null;
-  const fc = await safeJson<WfsFeatureCollection>(res);
-  const f = fc?.features?.[0];
-  const poly = polygonFromWfsGeometry(f?.geometry);
-  if (!f || !poly) return null;
-  const props = f.properties ?? {};
-  return {
-    source: "matrikel",
-    label: jordstykkeLabel(props),
-    properties: normalizeProps(props),
-    geometry: poly,
-    areaHa:
-      jordstykkeAreaHa(props) ?? Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
-    attribution: "© SDFI / Dataforsyningen (DAWA)",
-    disclaimer:
-      "Matrikeldata vises som digital reference. Endelig præcis grænse kræver landinspektørfaglig vurdering.",
-  };
-}
-
-async function pickMatrikelDatafordeler(lat: number, lng: number): Promise<PickedFeature | null> {
-  const user = process.env.DATAFORDELER_USER;
-  const pass = process.env.DATAFORDELER_PASS;
-  if (!user || !pass) return null; // ingen creds — DAWA var eneste mulighed
-  const params = new URLSearchParams({
-    username: user,
-    password: pass,
-    SERVICE: "WFS",
-    VERSION: "2.0.0",
-    REQUEST: "GetFeature",
-    TYPENAMES: "mat:Jordstykke_Gaeldende",
-    SRSNAME: "EPSG:4326",
-    COUNT: "1",
-    OUTPUTFORMAT: "application/json",
-    CQL_FILTER: `INTERSECTS(geometri, POINT(${lng} ${lat}))`,
-  });
-  const res = await safeFetch(`${DAF_MATRIKEL_WFS}?${params}`);
-  if (!res.ok) return null;
-  const fc = await safeJson<WfsFeatureCollection>(res);
-  const f = fc?.features?.[0];
-  const poly = polygonFromWfsGeometry(f?.geometry);
-  if (!f || !poly) return null;
-  const props = f.properties ?? {};
-  const mnr = String(props["matrikelnummer"] ?? "?");
-  const ejerlav = String(props["ejerlavsnavn"] ?? props["ejerlavskode"] ?? "?");
-  return {
-    source: "matrikel",
-    label: `Matr.nr. ${mnr}, ${ejerlav}`,
-    properties: normalizeProps(props),
-    geometry: poly,
-    areaHa: Math.round(ringAreaHa(poly.coordinates[0] ?? []) * 100) / 100,
-    attribution: "© Geodatastyrelsen / Datafordeleren",
-    disclaimer:
-      "Matrikeldata vises som digital reference. Endelig præcis grænse kræver landinspektørfaglig vurdering.",
-  };
-}
-
-// ─── Områdeopslag: hvilke matrikler/markblokke ligger i et tegnet område ─────
 
 export interface AreaLookupResult {
   items: AreaFeature[];
   truncated: boolean;
 }
-
-const AREA_LOOKUP_MAX = 500;
-
-/** Matrikler (jordstykker) der skærer polygonen — DAWA, pagineret op til 500. */
 export const listMatriklerInArea = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => PolygonInput.parse(raw))
   .handler(async ({ data }): Promise<AreaLookupResult> => {
-    const ring = data.ring as LngLat[];
-    const all: AreaFeature[] = [];
-    const perPage = 100;
-    for (let page = 1; page <= Math.ceil(AREA_LOOKUP_MAX / perPage) + 1; page++) {
-      const params = new URLSearchParams({
-        polygon: ringToDawaPolygonParam(ring),
-        srid: "4326",
-        format: "geojson",
-        per_side: String(perPage),
-        side: String(page),
-      });
-      const res = await safeFetch(`${DAWA_JORDSTYKKER}?${params}`);
-      if (!res.ok) break;
-      const fc = await safeJson<WfsFeatureCollection>(res);
-      const feats = fc?.features ?? [];
-      for (const f of feats) {
-        const props = f.properties ?? {};
-        all.push({
-          id: String(f.id ?? `${props["ejerlavkode"] ?? ""}-${props["matrikelnr"] ?? all.length}`),
-          label: jordstykkeLabel(props),
-          areaHa: jordstykkeAreaHa(props),
-          geometry: (f.geometry ?? null) as AreaFeature["geometry"],
-        });
-      }
-      if (feats.length < perPage || all.length > AREA_LOOKUP_MAX) break;
-    }
-    return capResults(all, AREA_LOOKUP_MAX);
+    const { lookupProjectArea } = await import("@/services/project-area-lookup.server");
+    return lookupProjectArea("matrikel", data.ring);
   });
-
-/** Markblokke der skærer polygonen — LBST-WFS med INTERSECTS, op til 500. */
 export const listMarkblokkeInArea = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => PolygonInput.parse(raw))
   .handler(async ({ data }): Promise<AreaLookupResult> => {
-    const ring = data.ring as LngLat[];
-    const params = new URLSearchParams({
-      SERVICENAME: "marker_wfs_v3",
-      SERVICE: "WFS",
-      VERSION: "2.0.0",
-      REQUEST: "GetFeature",
-      TYPENAMES: "Markblokke",
-      SRSNAME: "EPSG:4326",
-      COUNT: String(AREA_LOOKUP_MAX),
-      OUTPUTFORMAT: "application/json",
-      CQL_FILTER: `INTERSECTS(geom, ${ringToWkt(ring)})`,
-    });
-    const res = await safeFetch(`${LBST_WFS}?${params}`);
-    if (!res.ok) return { items: [], truncated: false };
-    const fc = await safeJson<WfsFeatureCollection>(res);
-    const feats = fc?.features ?? [];
-    const items: AreaFeature[] = feats.map((f, i) => {
-      const props = f.properties ?? {};
-      return {
-        id: String(f.id ?? i),
-        label: markblokLabel(props, f.id != null ? String(f.id) : undefined),
-        areaHa: markblokAreaHa(props),
-        geometry: (f.geometry ?? null) as AreaFeature["geometry"],
-      };
-    });
-    return capResults(items, AREA_LOOKUP_MAX);
+    const { lookupProjectArea } = await import("@/services/project-area-lookup.server");
+    return lookupProjectArea("markblok", data.ring);
   });
 
-function normalizeProps(props: Record<string, unknown>): Record<string, string | number | null> {
-  const out: Record<string, string | number | null> = {};
-  for (const [k, v] of Object.entries(props)) {
-    if (v == null) out[k] = null;
-    else if (typeof v === "number") out[k] = v;
-    else out[k] = String(v);
-  }
-  return out;
-}
+export const listLowlandInArea = createServerFn({ method: "POST" })
+  .inputValidator((raw: unknown) => PolygonInput.parse(raw))
+  .handler(async ({ data }): Promise<AreaLookupResult> => {
+    const { lookupProjectArea } = await import("@/services/project-area-lookup.server");
+    return lookupProjectArea("lowland", data.ring);
+  });

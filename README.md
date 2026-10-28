@@ -1,4 +1,12 @@
-# Freyra — Haderslev 27.10.2026
+# Freyra
+
+Aktuel udviklingsreference: [afstemning og pakkestatus](docs/F00_AFSTEMNING.md).
+Første sammenhængende brugeropgave er projekt, originalmateriale, baseline,
+faktisk udført indsats, sammenlignelig før/efter, rapport og næste opfølgning.
+Plantning er valgfri. Historiske forløb og testbeviser nedenfor bevares som
+dateret dokumentation; de er ikke accept af nye ændringer.
+
+## Historisk Haderslev-forløb, 27.10.2026
 
 [Aktuel plan](docs/HADERSLEV_PLAN_2026-11-10.md) · [15-minutters mødemanuskript og go/no-go](docs/HADERSLEV_DEMO_2710.md)
 

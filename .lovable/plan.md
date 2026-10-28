@@ -1,3 +1,7 @@
+> Historisk designplan. Gældende udviklingsreference er
+> [F00 og pakkestatus](../docs/F00_AFSTEMNING.md). Før/efter og dokumenteret
+> udførelse prioriteres; plantning er valgfri. Eksisterende navigation bevares.
+
 # Freyra: én sag i fem trin (designplan)
 
 Denne plan er kun et designforslag. Den ændrer ingen filer, ingen data og publicerer ikke noget. Den kan bygges ovenpå de funktioner, der findes i dag.

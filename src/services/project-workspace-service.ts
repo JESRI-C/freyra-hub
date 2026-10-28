@@ -108,11 +108,17 @@ export async function saveWorkspaceEntry(
     title: string;
     payload: Record<string, string>;
     previous?: WorkspaceEntry;
+    entryId?: string;
   },
 ) {
   validateEntry(input.kind, input.title, input.payload);
   await assertProjectScope(scope);
   const previous = input.previous;
+  if (input.entryId) {
+    WorkspaceEntrySchema.shape.entry_id.parse(input.entryId);
+    if (previous && previous.entry_id !== input.entryId)
+      throw new Error("Registreringens identitet er ændret. Genindlæs sagen.");
+  }
   if (
     previous &&
     (previous.project_id !== scope.projectId ||
@@ -125,7 +131,7 @@ export async function saveWorkspaceEntry(
     .insert({
       organization_id: scope.organizationId,
       project_id: scope.projectId,
-      entry_id: previous?.entry_id ?? crypto.randomUUID(),
+      entry_id: previous?.entry_id ?? input.entryId ?? crypto.randomUUID(),
       kind: input.kind,
       version: (previous?.version ?? 0) + 1,
       title: input.title.trim(),

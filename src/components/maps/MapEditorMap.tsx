@@ -41,6 +41,10 @@ export interface MapEditorMapProps {
   projectName: string;
   lat: number;
   lng: number;
+  initialZoom?: number;
+  locationPoints?: Array<{ id: string; label: string; lat: number; lng: number }>;
+  locationBounds?: Array<[number, number]> | null;
+  onLayerStatus?: (id: string, message: string | null) => void;
   areaHa?: number | null;
   boundaryGeoJSON?: GeoJsonPolygon | null;
   zones?: Zone[];
@@ -86,6 +90,7 @@ export interface MapEditorMapProps {
    * kortudsnittet ved zoom ≥ CADASTRE_MIN_ZOOM og opdateres når kortet flyttes.
    */
   showCadastreParcels?: boolean;
+  showLowlandPolygons?: boolean;
   /** Preview polygon for a picked feature (shown before confirm). */
   previewPolygon?: GeoJsonPolygon | null;
   height?: number;
@@ -252,12 +257,17 @@ export function MapEditorMap({
   boundaryBusy = false,
   onBoundaryEditStateChange,
   onMeasurement,
+  initialZoom = 15,
+  locationPoints = [],
+  locationBounds,
+  onLayerStatus,
   centerOverride,
   wmsOverlays,
   addressMarker,
   pickMode,
   onFeaturePicked,
   showCadastreParcels = false,
+  showLowlandPolygons = false,
   previewPolygon,
   height = 540,
   className,
@@ -285,6 +295,7 @@ export function MapEditorMap({
     addressMarker: import("leaflet").Marker | null;
     preview: import("leaflet").GeoJSON | null;
     cadastre: import("leaflet").GeoJSON | null;
+    lowland: import("leaflet").GeoJSON | null;
   }>({
     base: null,
     boundary: null,
@@ -301,6 +312,7 @@ export function MapEditorMap({
     addressMarker: null,
     preview: null,
     cadastre: null,
+    lowland: null,
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -411,7 +423,7 @@ export function MapEditorMap({
 
       const map = L.map(containerRef.current, {
         center: [lat, lng],
-        zoom: 15,
+        zoom: initialZoom,
         zoomControl: true,
         scrollWheelZoom: true,
       });
@@ -958,6 +970,37 @@ export function MapEditorMap({
     });
   }, [centerOverride, ready]);
 
+  const layerStatusRef = useRef(onLayerStatus);
+  layerStatusRef.current = onLayerStatus;
+  const locationLayerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    let cancelled = false;
+    void import("leaflet").then((L) => {
+      if (cancelled || !mapRef.current) return;
+      if (locationLayerRef.current) mapRef.current.removeLayer(locationLayerRef.current);
+      const group = L.layerGroup();
+      for (const p of locationPoints) {
+        const label = document.createElement("span");
+        label.textContent = p.label + " · Kameraposition, ikke billeddækning";
+        L.circleMarker([p.lat, p.lng], { radius: 6, color: "#2563eb", fillOpacity: 0.8 })
+          .bindTooltip(label)
+          .addTo(group);
+      }
+      group.addTo(mapRef.current);
+      locationLayerRef.current = group;
+    });
+    return () => {
+      cancelled = true;
+      if (locationLayerRef.current && mapRef.current)
+        mapRef.current.removeLayer(locationLayerRef.current);
+    };
+  }, [locationPoints, ready]);
+  useEffect(() => {
+    if (!mapRef.current || !ready || !locationBounds?.length) return;
+    mapRef.current.fitBounds(locationBounds, { padding: [30, 30], maxZoom: 17 });
+  }, [locationBounds, ready]);
+
   // ── WMS overlays (matrikelskel, markblokke, etc.) ────────────────────────────
   useEffect(() => {
     if (!mapRef.current || !ready) return;
@@ -982,17 +1025,25 @@ export function MapEditorMap({
           opacity: o.opacity ?? 0.7,
           attribution: o.attribution,
         });
+        layerStatusRef.current?.(o.id, "Henter kortlag …");
+        layer.on("tileerror", () =>
+          layerStatusRef.current?.(o.id, "Kortlaget kunne ikke vises. Prøv igen eller zoom ind."),
+        );
+        layer.on("tileload", () =>
+          layerStatusRef.current?.(o.id, "Kortlag hentet. Indhold afhænger af sted og zoom."),
+        );
         layer.addTo(map);
         layersRef.current.wms.set(o.id, layer);
       });
     })();
   }, [wmsOverlays, ready]);
 
-  // ── Matrikelskel som vektorlag (DAWA — gratis, ingen token) ────────────────
+  // ── Gældende matrikler via serverens validerede Datafordeler-adapter ────────────────
   const cadastreSeqRef = useRef(0);
   useEffect(() => {
     if (!mapRef.current || !ready) return;
     const map = mapRef.current;
+    let cancelled = false;
 
     const clearLayer = () => {
       if (layersRef.current.cadastre) {
@@ -1008,8 +1059,13 @@ export function MapEditorMap({
 
     const load = async () => {
       const seq = ++cadastreSeqRef.current;
+      layerStatusRef.current?.("cadastre", "Henter matrikler …");
       if (map.getZoom() < CADASTRE_MIN_ZOOM) {
         clearLayer();
+        layerStatusRef.current?.(
+          "cadastre",
+          "Zoom ind til niveau 15 eller tættere for at se matrikler.",
+        );
         return;
       }
       const b = map.getBounds();
@@ -1033,7 +1089,7 @@ export function MapEditorMap({
         const { listMatriklerInArea } = await import("@/lib/geo-search.functions");
         const result = await listMatriklerInArea({ data: { ring } });
         // Stale-guard: kortet kan være flyttet mens vi ventede.
-        if (seq !== cadastreSeqRef.current || !mapRef.current) return;
+        if (cancelled || seq !== cadastreSeqRef.current || !mapRef.current) return;
         const L = await import("leaflet");
         clearLayer();
         const features = result.items
@@ -1043,30 +1099,137 @@ export function MapEditorMap({
             properties: { label: it.label, areaHa: it.areaHa },
             geometry: it.geometry as { type: string; coordinates: unknown },
           }));
+        layerStatusRef.current?.(
+          "cadastre",
+          result.truncated
+            ? "Matrikeludsnittet er delvist. Zoom tættere ind."
+            : features.length
+              ? "Matrikler hentet fra Datafordeleren."
+              : "Ingen matrikler i dette kortudsnit.",
+        );
         if (features.length === 0) return;
         const layer = L.geoJSON({ type: "FeatureCollection", features } as never, {
           style: CADASTRE_STYLE,
           onEachFeature: (feature, l) => {
             const p = feature.properties as { label?: string; areaHa?: number | null };
-            l.bindTooltip(
-              `${p.label ?? "Matrikel"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`,
-              { sticky: true, direction: "top" },
-            );
+            const label = document.createElement("span");
+            label.textContent = `${p.label ?? "Kortflade"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`;
+            l.bindTooltip(label, { sticky: true, direction: "top" });
           },
         }).addTo(map);
         layersRef.current.cadastre = layer;
       } catch {
-        // Opslag fejlede (offline/API nede) — kortet virker stadig uden laget.
+        if (!cancelled && seq === cadastreSeqRef.current) {
+          clearLayer();
+          layerStatusRef.current?.("cadastre", "Matrikeltjenesten kunne ikke hentes. Prøv igen.");
+        }
       }
     };
 
     void load();
     map.on("moveend", load);
     return () => {
+      cancelled = true;
       map.off("moveend", load);
       clearLayer();
     };
   }, [showCadastreParcels, ready]);
+
+  const lowlandSeqRef = useRef(0);
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    let cancelled = false;
+
+    const clearLayer = () => {
+      if (layersRef.current.lowland) {
+        map.removeLayer(layersRef.current.lowland);
+        layersRef.current.lowland = null;
+      }
+    };
+
+    if (!showLowlandPolygons) {
+      clearLayer();
+      return;
+    }
+
+    const load = async () => {
+      const seq = ++lowlandSeqRef.current;
+      layerStatusRef.current?.("kulstof2022", "Henter Kulstof2022 …");
+      if (map.getZoom() < 13) {
+        clearLayer();
+        layerStatusRef.current?.(
+          "kulstof2022",
+          "Zoom ind til niveau 13 eller tættere for at se kulstofflader.",
+        );
+        return;
+      }
+      const b = map.getBounds();
+      // Clamp til dansk område (server-fn'ens validering kræver 7-16 / 54-58).
+      const clampLng = (v: number) => Math.min(16, Math.max(7, v));
+      const clampLat = (v: number) => Math.min(58, Math.max(54, v));
+      const w = clampLng(b.getWest());
+      const e = clampLng(b.getEast());
+      const s = clampLat(b.getSouth());
+      const n = clampLat(b.getNorth());
+      if (w >= e || s >= n) return; // udsnit helt uden for DK
+      const ring: [number, number][] = [
+        [w, s],
+        [e, s],
+        [e, n],
+        [w, n],
+        [w, s],
+      ];
+
+      try {
+        const { listLowlandInArea } = await import("@/lib/geo-search.functions");
+        const result = await listLowlandInArea({ data: { ring } });
+        // Stale-guard: kortet kan være flyttet mens vi ventede.
+        if (cancelled || seq !== lowlandSeqRef.current || !mapRef.current) return;
+        const L = await import("leaflet");
+        clearLayer();
+        const features = result.items
+          .filter((it) => it.geometry != null)
+          .map((it) => ({
+            type: "Feature" as const,
+            properties: { label: it.label, areaHa: it.areaHa },
+            geometry: it.geometry as { type: string; coordinates: unknown },
+          }));
+        layerStatusRef.current?.(
+          "kulstof2022",
+          result.truncated
+            ? "Kulstofudsnittet er delvist. Zoom tættere ind."
+            : features.length
+              ? "Kulstof2022 hentet (uden klasseinddeling)."
+              : "Ingen registrerede kulstofflader i dette udsnit.",
+        );
+        if (features.length === 0) return;
+        const layer = L.geoJSON({ type: "FeatureCollection", features } as never, {
+          style: { color: "#b45309", weight: 1, fillOpacity: 0.25 },
+          onEachFeature: (feature, l) => {
+            const p = feature.properties as { label?: string; areaHa?: number | null };
+            const label = document.createElement("span");
+            label.textContent = `${p.label ?? "Kortflade"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`;
+            l.bindTooltip(label, { sticky: true, direction: "top" });
+          },
+        }).addTo(map);
+        layersRef.current.lowland = layer;
+      } catch {
+        if (!cancelled && seq === lowlandSeqRef.current) {
+          clearLayer();
+          layerStatusRef.current?.("kulstof2022", "Kulstoftjenesten kunne ikke hentes. Prøv igen.");
+        }
+      }
+    };
+
+    void load();
+    map.on("moveend", load);
+    return () => {
+      cancelled = true;
+      map.off("moveend", load);
+      clearLayer();
+    };
+  }, [showLowlandPolygons, ready]);
 
   // ── Adressemarkør (fra søgning) ────────────────────────────────────────────
   useEffect(() => {
@@ -1079,13 +1242,18 @@ export function MapEditorMap({
         layersRef.current.addressMarker = null;
       }
       if (!addressMarker) return;
-      const m = L.marker([addressMarker.lat, addressMarker.lng])
-        .bindPopup(`<strong>${addressMarker.label}</strong>`)
+      const addressLabel = document.createElement("strong");
+      addressLabel.textContent = addressMarker.label;
+      const m = L.marker([addressMarker.lat, addressMarker.lng], {
+        interactive: !pickMode,
+        keyboard: !pickMode,
+      })
+        .bindPopup(addressLabel)
         .addTo(map);
-      m.openPopup();
+      if (!pickMode) m.openPopup();
       layersRef.current.addressMarker = m;
     })();
-  }, [addressMarker, ready]);
+  }, [addressMarker, pickMode, ready]);
 
   // ── Preview polygon (fra markblok/matrikel klik) ──────────────────────────
   useEffect(() => {
@@ -1196,7 +1364,7 @@ export function MapEditorMap({
           </button>
         )}
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex max-w-full flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Baggrund:</span>
           {(Object.keys(BASE_LAYERS) as BaseLayer[]).map((key) => (
             <button

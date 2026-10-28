@@ -305,6 +305,36 @@ export async function listProjectMedia(
     error: null,
   };
 }
+
+/** Location hints only: no file URLs or signed originals are requested for map setup. */
+export async function getProjectPhotoPositions(projectId: string) {
+  const db = getDb();
+  if (!db) throw new Error("Kundedatabasen er ikke konfigureret.");
+  const { data, error } = await db
+    .from("project_media")
+    .select("id,project_id,title,lat,lng")
+    .eq("project_id", projectId)
+    .order("id", { ascending: true })
+    .limit(500);
+  if (error) throw new Error("Billedernes positioner kunne ikke hentes.");
+  return ((data ?? []) as Record<string, unknown>[]).flatMap((row) => {
+    if (
+      row.project_id !== projectId ||
+      typeof row.lat !== "number" ||
+      typeof row.lng !== "number" ||
+      !Number.isFinite(row.lat) ||
+      !Number.isFinite(row.lng) ||
+      row.lat < 54 ||
+      row.lat > 58 ||
+      row.lng < 7 ||
+      row.lng > 16
+    )
+      return [];
+    return [
+      { id: String(row.id), label: String(row.title || "Billede"), lat: row.lat, lng: row.lng },
+    ];
+  });
+}
 // Upload a file to storage and insert a DB record
 // Storage path: `{projectId}/{timestamp}_{filename}`
 async function uploadPrivateOriginal(

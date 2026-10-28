@@ -626,7 +626,367 @@ await q(`insert into storage.objects(bucket_id,name) values('project-originals',
   projectA + "/" + flightA + "/" + "c".repeat(64),
 ]);
 count++;
+// Minimal fixture for the existing action table used by the additive workflow guard.
+await db.exec(`
+  reset role;
+  create table public.actions(id uuid primary key, project_id uuid not null, title text default 'Synthetic action',
+    description text, status text, due_date date, owner text, action_type text, completed_at timestamptz);
+  create table public.survey_round_versions(id uuid primary key, project_id uuid not null, manifest_sha256 text, baseline_id uuid, plan_id uuid);
+  create table public.project_baseline_snapshots(id uuid primary key, project_id uuid not null, manifest_sha256 text, manifest jsonb);
+  create table public.verification_plan_versions(id uuid primary key, project_id uuid not null, manifest_sha256 text, manifest jsonb);
+  grant select on public.actions, public.survey_round_versions, public.project_baseline_snapshots, public.verification_plan_versions to authenticated;
+  grant insert,update on public.actions to authenticated;
+`);
+const workflowMigration = (await readdir("supabase/migrations")).find((name) =>
+  name.endsWith("_freeze_workflow_report_inputs.sql"),
+);
+await db.exec(await readFile("supabase/migrations/" + workflowMigration, "utf8"));
+await db.exec(await readFile("supabase/migrations/" + workflowMigration, "utf8"));
+const actionId = "00000000-0000-0000-0000-000000000095";
+await q("insert into actions values($1,$2)", [actionId, projectA]);
+await actor(uidA);
+const work = {
+  schema: "freyra.action-execution/v1",
+  actionId,
+  dataBasis: "real",
+  surveyRoundId: null,
+  workType: "weed_cutting",
+  stage: "planned",
+  actualDate: null,
+  actualEndDate: null,
+  method: null,
+  reach: "",
+  performedBy: null,
+  sourceReference: "",
+  evidenceIds: [],
+  deviation: "",
+  correctionReason: "",
+  coverage: "unknown",
+  coverageDescription: "",
+};
+const workPayload = {
+  basis: "Synthetic fixture only",
+  source: "action-execution:" + actionId,
+  decision: JSON.stringify(work),
+};
+const workId = (await q(entrySql, [actionId, orgA, projectA, 1, JSON.stringify(workPayload)]))
+  .rows[0].id;
+const workRow = (await q("select * from project_workspace_entries where id=$1", [workId])).rows[0];
+for (const [label, changed] of [
+  [
+    "plan cannot claim actual date",
+    { actualDate: "2026-08-30", correctionReason: "Synthetic correction" },
+  ],
+  [
+    "performed work requires source",
+    {
+      stage: "performed",
+      actualDate: "2026-08-30",
+      reach: "Synthetic reach",
+      correctionReason: "Synthetic correction",
+    },
+  ],
+  [
+    "invalid calendar date is rejected",
+    {
+      stage: "performed",
+      actualDate: "2026-02-30",
+      reach: "Synthetic reach",
+      sourceReference: "Synthetic log",
+      correctionReason: "Synthetic correction",
+    },
+  ],
+  [
+    "foreign attachment is rejected",
+    {
+      evidenceIds: ["00000000-0000-0000-0000-000000000099"],
+      correctionReason: "Synthetic correction",
+    },
+  ],
+  ["correction requires reason", {}],
+])
+  await denied(label, entrySql, [
+    actionId,
+    orgA,
+    projectA,
+    2,
+    JSON.stringify({ ...workPayload, decision: JSON.stringify({ ...work, ...changed }) }),
+  ]);
+const compareId = "00000000-0000-0000-0000-000000000096";
+const pair = {
+  schema: "freyra.photo-comparison/v1",
+  comparisonId: compareId,
+  executionRevisionId: workId,
+  beforeId: mediaA,
+  afterId: mediaA2,
+  parameter: "visible_vegetation",
+  samePlaceEvidence: "",
+  commonCoverage: "unknown",
+  coverageDescription: "",
+  excludedAreas: "",
+  captureDifferences: "",
+  conclusion: "",
+  correctionReason: "",
+  quantitative: false,
+};
+const pairPayload = {
+  basis: "Synthetic incomplete pair",
+  source: "photo-comparison:" + compareId,
+  decision: JSON.stringify(pair),
+};
+await denied("direct API cannot enable quantitative photo result", entrySql, [
+  compareId,
+  orgA,
+  projectA,
+  1,
+  JSON.stringify({ ...pairPayload, decision: JSON.stringify({ ...pair, quantitative: true }) }),
+]);
+await denied("direct API cannot use foreign photo", entrySql, [
+  compareId,
+  orgA,
+  projectA,
+  1,
+  JSON.stringify({ ...pairPayload, decision: JSON.stringify({ ...pair, afterId: mediaB }) }),
+]);
+await q(entrySql, [compareId, orgA, projectA, 1, JSON.stringify(pairPayload)]);
+count++;
+const taskId = "00000000-0000-0000-0000-000000000097";
+const task = {
+  schema: "freyra.workflow-followup/v1",
+  eventKey: "synthetic-event",
+  title: "Synthetic followup",
+  reason: "Synthetic incomplete pair",
+  sourceIds: [workId],
+  status: "proposed",
+  assignee: null,
+  dueDate: null,
+  notes: "",
+  resolutionReason: "",
+};
+const taskPayload = {
+  basis: task.reason,
+  source: "workflow-followup:" + taskId,
+  decision: JSON.stringify(task),
+};
+await denied("direct API cannot dismiss without reason", entrySql, [
+  taskId,
+  orgA,
+  projectA,
+  1,
+  JSON.stringify({ ...taskPayload, decision: JSON.stringify({ ...task, status: "dismissed" }) }),
+]);
+await denied("direct API cannot reference foreign followup source", entrySql, [
+  taskId,
+  orgA,
+  projectA,
+  1,
+  JSON.stringify({
+    ...taskPayload,
+    decision: JSON.stringify({ ...task, sourceIds: ["00000000-0000-0000-0000-000000000099"] }),
+  }),
+]);
+await q(entrySql, [taskId, orgA, projectA, 1, JSON.stringify(taskPayload)]);
+count++;
+const followupRpc = "select save_workflow_followup_revision($1,$2,$3,$4,$5,$6::jsonb) as revision";
+const assignedTask = {
+  ...task,
+  status: "assigned",
+  assignee: "Synthetic contributor",
+  dueDate: "2026-11-01",
+};
+await q(followupRpc, [
+  taskId,
+  orgA,
+  projectA,
+  1,
+  task.title,
+  JSON.stringify({ ...taskPayload, decision: JSON.stringify(assignedTask) }),
+]);
+await check(
+  "followup reuses existing action list with assignment and date",
+  "select * from actions where id=$1",
+  [taskId],
+  (rows) => {
+    assert.equal(rows[0].status, "I gang");
+    assert.equal(rows[0].owner, "Synthetic contributor");
+    assert.equal(rows[0].action_type, "workflow_followup");
+  },
+);
+await q(followupRpc, [
+  taskId,
+  orgA,
+  projectA,
+  2,
+  task.title,
+  JSON.stringify({
+    ...taskPayload,
+    decision: JSON.stringify({
+      ...assignedTask,
+      status: "dismissed",
+      resolutionReason: "Synthetic dismissal",
+    }),
+  }),
+]);
+await check(
+  "dismissed followup closes only its documentation action",
+  "select status from actions where id=$1",
+  [taskId],
+  (rows) => assert.equal(rows[0].status, "Lukket"),
+);
+await denied(
+  "generic action update cannot lose followup history",
+  "update actions set status='Åben' where id=$1",
+  [taskId],
+);
+await denied("stale followup writer cannot overwrite dismissal", followupRpc, [
+  taskId,
+  orgA,
+  projectA,
+  2,
+  task.title,
+  JSON.stringify(taskPayload),
+]);
+await denied("followup cannot overwrite physical action", followupRpc, [
+  actionId,
+  orgA,
+  projectA,
+  1,
+  task.title,
+  JSON.stringify({ ...taskPayload, source: "workflow-followup:" + actionId }),
+]);
+await actor(uidC);
+await roleDenied("viewer cannot create or update followup action", followupRpc, [
+  taskId,
+  orgA,
+  projectA,
+  3,
+  task.title,
+  JSON.stringify(taskPayload),
+]);
+await actor(uidA);
+const workflow = {
+  schema: "freyra.workflow-report/v1",
+  generatorVersion: "workflow-report/v1",
+  projectId: projectA,
+  organizationId: orgA,
+  dataBasis: "real",
+  inputs: [workRow],
+  baselines: [],
+  plans: [],
+  rounds: [],
+  limitations: ["Synthetic fixture, no customer acceptance"],
+  review: null,
+};
+const workflowContent = { ...content, workflowSnapshot: workflow };
+const frozen = (await q(rpc, [null, orgA, projectA, 0, "draft", JSON.stringify(workflowContent)]))
+  .rows[0].revision;
+count++;
+await denied("workflow source cannot be forged", rpc, [
+  null,
+  orgA,
+  projectA,
+  0,
+  "draft",
+  JSON.stringify({
+    ...workflowContent,
+    workflowSnapshot: { ...workflow, inputs: [{ ...workRow, title: "Forged" }] },
+  }),
+]);
+await denied("workflow cannot move to foreign project", rpc, [
+  null,
+  orgA,
+  projectA,
+  0,
+  "draft",
+  JSON.stringify({ ...workflowContent, workflowSnapshot: { ...workflow, projectId: projectB } }),
+]);
+await denied("workflow approval requires exact scope review", rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  1,
+  "approved",
+  JSON.stringify(workflowContent),
+]);
+const reviewed = {
+  ...workflow,
+  review: {
+    scope: "documentation",
+    decision: "accepted",
+    inputIds: [workId],
+    reason: "Synthetic documentation review fixture only",
+    sectionTexts: Object.fromEntries(content.sections.map((section) => [section.id, section.text])),
+  },
+};
+await q(rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  1,
+  "approved",
+  JSON.stringify({ ...workflowContent, workflowSnapshot: reviewed }),
+]);
+count++;
+await denied("workflow review does not approve changed result", rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  2,
+  "approved",
+  JSON.stringify({
+    ...workflowContent,
+    sections: content.sections.map((section) => ({ ...section, text: "Changed" })),
+    workflowSnapshot: reviewed,
+  }),
+]);
+await q(entrySql, [
+  actionId,
+  orgA,
+  projectA,
+  2,
+  JSON.stringify({
+    ...workPayload,
+    decision: JSON.stringify({ ...work, correctionReason: "Synthetic correction" }),
+  }),
+]);
+await denied("stale workflow snapshot must be refreshed", rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  2,
+  "draft",
+  JSON.stringify(workflowContent),
+]);
+await check(
+  "historical workflow report retains original input",
+  "select content from report_revisions where id=$1",
+  [frozen.id],
+  (rows) => assert.equal(rows[0].content.workflowSnapshot.inputs[0].version, 1),
+);
+console.log("PASS workflow snapshot integrity, review scope, stale input and migration replay");
+// Revocation must affect a new request even while organization membership remains.
+await db.exec("reset role");
+await q("delete from project_members where project_id=$1 and user_id=$2", [projectA, uidC]);
+await actor(uidC);
+for (const table of [
+  "report_documents",
+  "report_revisions",
+  "watercourse_versions",
+  "watercourse_observations",
+  "project_media",
+  "project_workspace_entries",
+  "storage.objects",
+]) {
+  await check("revoked membership cannot read " + table, "select * from " + table, [], (rows) =>
+    assert.equal(rows.length, 0),
+  );
+}
+await roleDenied(
+  "revoked member cannot grant self admin",
+  "insert into project_members(project_id,user_id,role) values($1,$2,'admin')",
+  [projectA, uidC],
+);
 console.log(
-  `PASS ${count} offline PostgreSQL/RLS assertions including viewer boundaries and six idempotent migrations.`,
+  `PASS ${count} offline PostgreSQL/RLS assertions including viewer boundaries, revocation and six idempotent migrations.`,
 );
 await db.close();

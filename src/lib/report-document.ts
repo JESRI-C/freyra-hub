@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getReportTemplate, REPORT_TEMPLATE_IDS, type ReportTemplateId } from "./report-templates";
+import { WorkflowReportSnapshotSchema } from "./workflow-report";
 
 export const SourceSchema = z.object({
   filePath: z.string().nullable().optional(),
@@ -26,6 +27,7 @@ export const SectionSchema = z.object({
   basis: z.enum(["documented", "observed", "screening", "not_measured"]),
 });
 export const ReportContentSchema = z.object({
+  workflowSnapshot: WorkflowReportSnapshotSchema.optional(),
   templateId: z.enum(REPORT_TEMPLATE_IDS).optional(),
   title: z.string().min(1),
   projectName: z.string().min(1),
@@ -96,6 +98,21 @@ export function newReportContent(
 }
 export function reportIssues(content: ReportContent): string[] {
   const issues: string[] = [];
+  if (
+    content.workflowSnapshot &&
+    (content.workflowSnapshot.review?.decision !== "accepted" ||
+      content.workflowSnapshot.dataBasis !== "real")
+  )
+    issues.push(
+      "Workflowgrundlaget mangler versionsafgrænset dokumentationsreview af virkelige data.",
+    );
+  const review = content.workflowSnapshot?.review;
+  if (
+    review &&
+    (Object.keys(review.sectionTexts).length !== content.sections.length ||
+      content.sections.some((section) => review.sectionTexts[section.id] !== section.text))
+  )
+    issues.push("Dokumentationsreviewet gælder en anden udgave af rapportens resultater.");
   if (!content.sources.length) issues.push("Rapporten mangler kilder.");
   if (content.sources.some((s) => !s.checksum || !/^[a-f0-9]{64}$/.test(s.checksum)))
     issues.push("Originalfilernes checksums er ikke dokumenteret for alle kilder.");

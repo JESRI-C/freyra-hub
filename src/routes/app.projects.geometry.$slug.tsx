@@ -20,6 +20,8 @@ import {
 import { toast } from "sonner";
 import { Card } from "@/components/ui-bits";
 import { MapEditorMap, type WmsOverlay } from "@/components/maps/MapEditorMap";
+import { getProjectPhotoPositions } from "@/services/project-media-service";
+import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
 import { AddressSearch } from "@/components/maps/AddressSearch";
 import { useMapEditor } from "@/hooks/useMapEditor";
 import { getProjectBySlug } from "@/services/projects-service";
@@ -65,7 +67,7 @@ export const Route = createFileRoute("/app/projects/geometry/$slug")({
   ),
 });
 
-const DK_FALLBACK = { lat: 56.0, lng: 10.5 };
+const DK_FALLBACK = { lat: 56.15, lng: 10.3 };
 
 // Datafordeler-token til visning af matrikellag (WMS er offentligt token-baseret).
 const DAF_TOKEN = import.meta.env.VITE_DATAFORSYNINGEN_TOKEN as string | undefined;
@@ -77,7 +79,7 @@ const OVERLAY_DEFS: Record<
 > = {
   cadastre: {
     label: "Matrikelskel",
-    description: "Ejendoms- og matrikelgrænser — vises som vektorer fra Dataforsyningen (zoom ind)",
+    description: "Gældende matrikler fra Datafordeleren (zoom ind)",
     url: `https://api.dataforsyningen.dk/wms/matrikel${DAF_TOKEN ? `?token=${DAF_TOKEN}` : ""}`,
     layers: "MatrikelSkel,Centroide",
     opacity: 0.9,
@@ -90,9 +92,9 @@ const OVERLAY_DEFS: Record<
   },
   fieldBlocks: {
     label: "Markblokke",
-    description: "Landbrugsstyrelsens markblokke",
-    url: "https://kort.lbst.dk/service?SERVICENAME=marker_wms_v3",
-    layers: "Markblokke",
+    description: "Markblokke 2026 · register ved laglukning 4. maj 2026",
+    url: "https://geodata.fvm.dk/geoserver/ows",
+    layers: "Markblokke:Markblokke_2026",
     opacity: 0.55,
     transparent: true,
     format: "image/png",
@@ -101,14 +103,19 @@ const OVERLAY_DEFS: Record<
   protectedNature: {
     label: "§3 Beskyttet natur",
     description: "Miljøportalens beskyttede naturarealer",
-    url: "https://arealdata-api.miljoeportal.dk/download/wms/main",
-    layers: "dai:bes_nat_samlet_offentlig",
+    url: "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wms",
+    layers: "dai:bes_naturtyper",
     opacity: 0.55,
     transparent: true,
     format: "image/png",
     attribution: "© Danmarks Miljøportal",
   },
-  kulstof2022: { ...KULSTOF2022_WMS, transparent: true, format: "image/png" },
+  kulstof2022: {
+    ...KULSTOF2022_WMS,
+    description: "Kulstof2022 · registrerede kulstofflader, uden klasseinddeling (zoom ind)",
+    transparent: true,
+    format: "image/png",
+  },
 };
 
 type OverlayKey = keyof typeof OVERLAY_DEFS;
@@ -122,10 +129,12 @@ function GeometryEditorPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [enabled, setEnabled] = useState<Record<OverlayKey, boolean>>({
     cadastre: false,
-    fieldBlocks: true,
+    fieldBlocks: false,
     protectedNature: false,
     kulstof2022: false,
   });
+  const [locationBounds, setLocationBounds] = useState<Array<[number, number]> | null>(null);
+  const [layerStatus, setLayerStatus] = useState<Record<string, string | null>>({});
   const [center, setCenter] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [addressMarker, setAddressMarker] = useState<{
     lat: number;
@@ -145,6 +154,28 @@ function GeometryEditorPage() {
     queryKey: ["project-by-slug", slug],
     queryFn: () => getProjectBySlug(slug),
   });
+
+  const photoQuery = useQuery({
+    queryKey: ["project-location-hints", project?.id],
+    enabled: !!project?.id,
+    queryFn: async () => {
+      const [media, uploads] = await Promise.all([
+        getProjectPhotoPositions(project!.id),
+        getDroneUploadMapOverview(project!.id),
+      ]);
+      return [
+        ...media,
+        ...uploads.points.map((p) => ({
+          id: p.uploadId,
+          label: p.fileName,
+          lat: p.coordinates.lat,
+          lng: p.coordinates.lng,
+        })),
+      ];
+    },
+    staleTime: 60_000,
+  });
+  const locationPoints = useMemo(() => photoQuery.data ?? [], [photoQuery.data]);
 
   const suggestedWatercourseName = (project?.location_name || project?.name || "")
     .split(/[–—]/, 1)[0]
@@ -191,7 +222,7 @@ function GeometryEditorPage() {
         .filter((k) => enabled[k])
         // Matrikel-WMS'en virker kun med token — uden token dækker vektorlaget
         // (showCadastreParcels), så vi undlader døde WMS-requests.
-        .filter((k) => !(k === "cadastre" && !DAF_TOKEN))
+        .filter((k) => k !== "cadastre" && k !== "kulstof2022")
         .map((k) => ({ id: k, ...OVERLAY_DEFS[k] })),
     [enabled],
   );
@@ -444,14 +475,66 @@ function GeometryEditorPage() {
           <Card className="p-4 space-y-2">
             <SectionTitle n={1}>Find sted</SectionTitle>
             <AddressSearch
+              initialQuery={project.location_name || project.municipality || ""}
               onSelect={(p) => {
+                setLocationBounds(null);
                 setCenter({ lat: p.lat, lng: p.lng, zoom: 17 });
                 setAddressMarker({ lat: p.lat, lng: p.lng, label: p.label });
               }}
             />
             <p className="text-[11px] text-muted-foreground">
-              Adresse, vej, stednavn eller koordinater. Kortet zoomer direkte ind på stedet.
+              Søg på adresse eller stednavn, og vælg et forslag. Du kan også indtaste koordinater.
+              Uden gemt område vises Danmark først.
             </p>
+          </Card>
+
+          <Card className="p-4 space-y-2">
+            <div className="text-sm font-semibold">Find området ud fra billeder</div>
+            <p className="text-xs text-muted-foreground">
+              Billedernes GPS viser kameraets placering, ikke billeddækningen eller projektgrænsen.
+              Området gemmes først, når du vælger eller tegner det.
+            </p>
+            {photoQuery.isPending ? (
+              <p role="status" className="text-xs">
+                Henter billedpositioner …
+              </p>
+            ) : photoQuery.isError ? (
+              <p role="alert" className="text-xs text-destructive">
+                Billedpositionerne kunne ikke hentes. Prøv at genindlæse.
+              </p>
+            ) : locationPoints.length ? (
+              <>
+                <button
+                  type="button"
+                  className={toolButton(false, false)}
+                  onClick={() => {
+                    setCenter(null);
+                    setLocationBounds(locationPoints.map((p) => [p.lat, p.lng]));
+                  }}
+                >
+                  <MapPin className="h-4 w-4" />
+                  Vis {locationPoints.length} billedpositioner
+                </button>
+                <p className="text-[11px] text-muted-foreground">
+                  Op til 500 registrerede billeder og 500 droneuploads undersøges. Manglende GPS
+                  bliver ikke gættet.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Ingen brugbare billedpositioner registreret på projektet endnu.
+                </p>
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug }}
+                  search={{ step: "billeder" }}
+                  className="inline-block text-xs underline text-primary"
+                >
+                  Gå til projektets billeder
+                </Link>
+              </>
+            )}
           </Card>
 
           {/* 2. Vælg projektgrænse */}
@@ -472,7 +555,7 @@ function GeometryEditorPage() {
               onClick={() => activatePick("matrikel")}
               disabled={boundaryUiBusy}
               className={toolButton(pickMode === "matrikel", boundaryUiBusy)}
-              title="Kræver Datafordeler service-bruger på serveren"
+              title="Vælg en gældende matrikel fra Datafordeleren"
             >
               <Grid3x3 className="h-4 w-4" />
               Vælg matrikel
@@ -574,7 +657,12 @@ function GeometryEditorPage() {
                   <span className="flex-1 min-w-0">
                     <span className="block font-medium text-foreground">{def.label}</span>
                     <span className="block text-muted-foreground">{def.description}</span>
-                    {missingToken && enabled[key] && key === "cadastre" && (
+                    {enabled[key] && layerStatus[key] && (
+                      <span role="status" className="block mt-1 text-muted-foreground">
+                        {layerStatus[key]}
+                      </span>
+                    )}
+                    {missingToken && enabled[key] && key === "cadastre" && !layerStatus[key] && (
                       <span className="block mt-1 text-muted-foreground">
                         Vises som vektorer (zoom ind til niveau 15+).
                       </span>
@@ -590,136 +678,154 @@ function GeometryEditorPage() {
 
           {/* 4. Officiel vandløbsstreng — separat fra projektgrænsen */}
           <Card className="p-4 space-y-3">
-            <SectionTitle n={4}>Vandløbsstreng</SectionTitle>
-            <p className="text-[11px] text-muted-foreground">
-              Find en navngivet, officiel linje fra Datafordeleren. Strengen gemmes som
-              monitoreringsreference og ændrer ikke projektgrænsen. Navneregistret er statisk siden
-              september 2025; kommunens regulativ og kontrolopmåling afklarer den konkrete
-              undersøgelsesstrækning.
-            </p>
-            <form
-              className="flex gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void handleWatercourseSearch();
-              }}
+            <details
+              open={
+                /vandløb|watercourse/i.test(project.project_type || "") ||
+                !!activeWatercourse ||
+                undefined
+              }
             >
-              <input
-                value={watercourseQuery}
-                onChange={(event) => setWatercourseQuery(event.target.value)}
-                placeholder="Fx Bykær Bæk"
-                aria-label="Vandløbsnavn"
-                className="min-w-0 flex-1 rounded-lg border bg-background px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/30"
-              />
-              <button
-                type="submit"
-                disabled={watercourseQuery.trim().length < 2 || watercourseOperation !== null}
-                className="inline-flex items-center justify-center rounded-lg border px-2.5 text-primary hover:bg-primary/5 disabled:opacity-50"
-                aria-label="Søg efter vandløb"
-              >
-                {watercourseOperation === "search" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-              </button>
-            </form>
-
-            {watercourseResults.length > 0 && (
-              <div className="space-y-1.5" aria-label="Vandløbsresultater">
-                {watercourseResults.map((result) => (
+              <summary className="cursor-pointer text-sm font-semibold">
+                4 · Vandløb (valgfrit)
+              </summary>
+              <div className="space-y-3 pt-3">
+                <p className="text-xs text-muted-foreground">
+                  Brug dette ved opgaver, der omfatter et vandløb. Du kan fortsætte uden en
+                  vandløbsstreng.
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Find en navngivet, officiel linje fra Datafordeleren. Strengen gemmes som
+                  monitoreringsreference og ændrer ikke projektgrænsen. Navneregistret er statisk
+                  siden september 2025; kommunens regulativ og kontrolopmåling afklarer den konkrete
+                  undersøgelsesstrækning.
+                </p>
+                <form
+                  className="flex gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handleWatercourseSearch();
+                  }}
+                >
+                  <input
+                    value={watercourseQuery}
+                    onChange={(event) => setWatercourseQuery(event.target.value)}
+                    placeholder="Fx Bykær Bæk"
+                    aria-label="Vandløbsnavn"
+                    className="min-w-0 flex-1 rounded-lg border bg-background px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                   <button
-                    key={result.id}
-                    type="button"
-                    onClick={() => void handleWatercoursePreview(result)}
-                    disabled={watercourseOperation !== null}
-                    className="w-full rounded-lg border p-2.5 text-left text-xs hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50"
+                    type="submit"
+                    disabled={watercourseQuery.trim().length < 2 || watercourseOperation !== null}
+                    className="inline-flex items-center justify-center rounded-lg border px-2.5 text-primary hover:bg-primary/5 disabled:opacity-50"
+                    aria-label="Søg efter vandløb"
                   >
-                    <span className="block font-medium text-foreground">{result.name}</span>
-                    <span className="block text-muted-foreground">
-                      {result.municipalities.join(", ") || "Kommune ikke angivet"} ·{" "}
-                      {result.nameStatus}
-                    </span>
+                    {watercourseOperation === "search" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
                   </button>
-                ))}
-              </div>
-            )}
+                </form>
 
-            {watercourseOperation === "preview" && (
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Henter officiel geometri …
-              </p>
-            )}
+                {watercourseResults.length > 0 && (
+                  <div className="space-y-1.5" aria-label="Vandløbsresultater">
+                    {watercourseResults.map((result) => (
+                      <button
+                        key={result.id}
+                        type="button"
+                        onClick={() => void handleWatercoursePreview(result)}
+                        disabled={watercourseOperation !== null}
+                        className="w-full rounded-lg border p-2.5 text-left text-xs hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50"
+                      >
+                        <span className="block font-medium text-foreground">{result.name}</span>
+                        <span className="block text-muted-foreground">
+                          {result.municipalities.join(", ") || "Kommune ikke angivet"} ·{" "}
+                          {result.nameStatus}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-            {activeWatercourse && (
-              <div className="space-y-2 rounded-lg border border-blue-300 bg-blue-50/60 p-3 text-xs text-blue-950 dark:bg-blue-950/20 dark:text-blue-100">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-semibold">{activeWatercourse.name}</div>
-                    <div className="text-blue-800/80 dark:text-blue-200/80">
-                      {(activeWatercourse.lengthM / 1000).toFixed(2)} km ·{" "}
-                      {activeWatercourse.segmentCount} delstrækninger ·{" "}
-                      {activeWatercourse.vertexCount} punkter
+                {watercourseOperation === "preview" && (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Henter officiel geometri …
+                  </p>
+                )}
+
+                {activeWatercourse && (
+                  <div className="space-y-2 rounded-lg border border-blue-300 bg-blue-50/60 p-3 text-xs text-blue-950 dark:bg-blue-950/20 dark:text-blue-100">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-semibold">{activeWatercourse.name}</div>
+                        <div className="text-blue-800/80 dark:text-blue-200/80">
+                          {(activeWatercourse.lengthM / 1000).toFixed(2)} km ·{" "}
+                          {activeWatercourse.segmentCount} delstrækninger ·{" "}
+                          {activeWatercourse.vertexCount} punkter
+                        </div>
+                        {activeWatercourse.municipalities.length > 0 && (
+                          <div className="text-blue-800/80 dark:text-blue-200/80">
+                            {activeWatercourse.municipalities.join(", ")}
+                          </div>
+                        )}
+                      </div>
+                      <a
+                        href="https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-bearbejdet-wfs/"
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Læs om datakilden"
+                        aria-label="Læs om datakilden"
+                        className="text-blue-700 hover:text-blue-900 dark:text-blue-300"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
                     </div>
-                    {activeWatercourse.municipalities.length > 0 && (
-                      <div className="text-blue-800/80 dark:text-blue-200/80">
-                        {activeWatercourse.municipalities.join(", ")}
+                    <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
+                      {activeWatercourse.disclaimer}
+                    </p>
+                    {!watercoursePreview && savedWatercourseQuery.data && (
+                      <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
+                        Gemt reference. Kilden genkontrolleres, når et nyt datagrundlag oprettes.
+                        {!savedWatercourseQuery.data.sourceProvider &&
+                          " Denne reference stammer fra den udfasede DAWA-kilde. Søg og gem en reference fra Datafordeleren for at oprette et nyt datagrundlag."}
+                      </p>
+                    )}
+                    {watercoursePreview ? (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleWatercourseSave()}
+                          disabled={watercourseOperation !== null}
+                          className="flex-1 rounded-md bg-blue-700 px-2.5 py-1.5 font-medium text-white hover:bg-blue-800 disabled:opacity-50"
+                        >
+                          {watercourseOperation === "save" ? "Gemmer …" : "Gem på projektet"}
+                        </button>
+                        {savedWatercourseQuery.data && (
+                          <button
+                            type="button"
+                            onClick={() => setWatercoursePreview(null)}
+                            disabled={watercourseOperation !== null}
+                            className="rounded-md border border-blue-300 px-2.5 py-1.5"
+                          >
+                            Brug gemt
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="font-medium text-emerald-700 dark:text-emerald-400">
+                        Gemt på projektet · kilde-ID {activeWatercourse.id}
                       </div>
                     )}
                   </div>
-                  <a
-                    href="https://datafordeler.dk/dataoversigt/danske-stednavne/danske-stednavne-bearbejdet-wfs/"
-                    target="_blank"
-                    rel="noreferrer"
-                    title="Læs om datakilden"
-                    aria-label="Læs om datakilden"
-                    className="text-blue-700 hover:text-blue-900 dark:text-blue-300"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-                <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
-                  {activeWatercourse.disclaimer}
-                </p>
-                {!watercoursePreview && savedWatercourseQuery.data && (
-                  <p className="text-[10px] leading-relaxed text-blue-800/75 dark:text-blue-200/75">
-                    Gemt reference. Kilden genkontrolleres, når et nyt datagrundlag oprettes.
-                    {!savedWatercourseQuery.data.sourceProvider &&
-                      " Denne reference stammer fra den udfasede DAWA-kilde. Søg og gem en reference fra Datafordeleren for at oprette et nyt datagrundlag."}
+                )}
+
+                {savedWatercourseQuery.isError && (
+                  <p className="text-xs text-destructive">
+                    Kunne ikke læse en gemt vandløbsstreng.
                   </p>
                 )}
-                {watercoursePreview ? (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleWatercourseSave()}
-                      disabled={watercourseOperation !== null}
-                      className="flex-1 rounded-md bg-blue-700 px-2.5 py-1.5 font-medium text-white hover:bg-blue-800 disabled:opacity-50"
-                    >
-                      {watercourseOperation === "save" ? "Gemmer …" : "Gem på projektet"}
-                    </button>
-                    {savedWatercourseQuery.data && (
-                      <button
-                        type="button"
-                        onClick={() => setWatercoursePreview(null)}
-                        disabled={watercourseOperation !== null}
-                        className="rounded-md border border-blue-300 px-2.5 py-1.5"
-                      >
-                        Brug gemt
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="font-medium text-emerald-700 dark:text-emerald-400">
-                    Gemt på projektet · kilde-ID {activeWatercourse.id}
-                  </div>
-                )}
               </div>
-            )}
-
-            {savedWatercourseQuery.isError && (
-              <p className="text-xs text-destructive">Kunne ikke læse en gemt vandløbsstreng.</p>
-            )}
+            </details>
           </Card>
 
           {/* 5. Aktuelt område */}
@@ -795,6 +901,14 @@ function GeometryEditorPage() {
             projectName={project.name}
             lat={lat}
             lng={lng}
+            initialZoom={hasPolygon ? 15 : 6}
+            locationPoints={locationPoints}
+            locationBounds={locationBounds}
+            onLayerStatus={(id, message) =>
+              setLayerStatus((current) =>
+                current[id] === message ? current : { ...current, [id]: message },
+              )
+            }
             areaHa={project.geometry_area_ha ?? undefined}
             boundaryGeoJSON={
               persistedGeometryValidation?.valid ? persistedGeometryValidation.polygon : null
@@ -815,6 +929,7 @@ function GeometryEditorPage() {
             pickMode={pickMode}
             onFeaturePicked={handleFeaturePick}
             showCadastreParcels={enabled.cadastre}
+            showLowlandPolygons={enabled.kulstof2022}
             previewPolygon={
               (pickedFeature?.geometry ?? highlightGeom ?? null) as GeoJsonPolygon | null
             }

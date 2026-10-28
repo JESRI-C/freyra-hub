@@ -27,9 +27,14 @@ import { validateProjectPolygon } from "@/services/geo-service";
 import { DroneSurveyWorkspace } from "./DroneSurveyWorkspace";
 import { PublicBaselinePanel } from "./PublicBaselinePanel";
 import { MunicipalReportPanel } from "@/components/reports/MunicipalReportPanel";
+import { WorkflowReportPanel } from "@/components/reports/WorkflowReportPanel";
 import { PlantingSuitabilityPanel } from "@/components/lavbund/PlantingSuitabilityPanel";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "./ProjectMembersPanel";
+import { ActionExecutionPanel } from "./ActionExecutionPanel";
+import { PhotoComparisonPanel } from "./PhotoComparisonPanel";
+import { adjacentMunicipalStep } from "@/lib/municipal-workflow";
+import { WorkflowFollowupPanel } from "./WorkflowFollowupPanel";
 
 export const MUNICIPAL_STEPS = [
   {
@@ -65,8 +70,24 @@ export const MUNICIPAL_STEPS = [
       "Baseline er dit gemte udgangspunkt. Se de daterede kilder og deres mangler, før du bruger dem til at vurdere en ændring.",
   },
   {
+    id: "udfoerelse",
+    label: "Udførelse",
+    icon: CheckCircle2,
+    title: "Registrér hvad der faktisk blev udført",
+    description:
+      "Knyt skæredato, metode, delstrækning og arbejdsdokumentation til en handling. Planlagt arbejde er ikke udførelse.",
+  },
+  {
+    id: "sammenligning",
+    label: "Før og efter",
+    icon: Eye,
+    title: "Sammenlign samme strækning før og efter arbejdet",
+    description:
+      "Vælg originaler og den dokumenterede udførelse. Beskriv fælles dækning, skjulte områder og optageforskelle.",
+  },
+  {
     id: "beplantning",
-    label: "Beplantning",
+    label: "Beplantning (valgfri)",
     icon: Leaf,
     title: "Undersøg mulighederne langs vandløbet",
     description:
@@ -137,6 +158,8 @@ export function MunicipalCaseWorkspace({
   const progress = useCaseProgress(user?.id, project.id, selectedRoundId);
   const index = MUNICIPAL_STEPS.findIndex((item) => item.id === step);
   const current = MUNICIPAL_STEPS[index];
+  const previousStep = adjacentMunicipalStep(step, -1);
+  const nextStep = adjacentMunicipalStep(step, 1);
   const hasArea = validateProjectPolygon(project.geometry_polygon).valid;
   const readOnly = access.data?.userId === user?.id && !access.data?.canPersist;
   const photoCount = media.isError ? undefined : media.data;
@@ -147,6 +170,8 @@ export function MunicipalCaseWorkspace({
     datagrundlag: progress.hasRound,
     gennemgang: progress.reviewsComplete,
     baseline: !!activeBaseline,
+    udfoerelse: false,
+    sammenligning: false,
     beplantning: false,
     rapport: progress.hasReport,
   };
@@ -176,6 +201,10 @@ export function MunicipalCaseWorkspace({
       : "Der er endnu ingen åbnet kildeversion for dette forløb.",
     beplantning:
       "En skitse kræver faglig validering. A–E-arealer uden dokumentation står som ukendte.",
+    udfoerelse:
+      "Gem faktisk udførelse særskilt fra planen. Uafklaret metode og dækning forbliver synlige mangler.",
+    sammenligning:
+      "Optagelser er ikke automatisk sammenlignelige. Ændret udførelsesgrundlag kræver ny vurdering.",
     rapport: progress.hasReport
       ? "En rapportkladde er gemt for den valgte undersøgelse. Faglig accept afventer."
       : "Vælg en undersøgelse, og kontrollér manglerne før rapporten dannes.",
@@ -309,7 +338,7 @@ export function MunicipalCaseWorkspace({
           <section aria-label={current.label} className="min-w-0 space-y-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Trin {index + 1} af 6
+                Trin {index + 1} af {MUNICIPAL_STEPS.length}
               </p>
               <h2 className="mt-2 text-xl font-semibold sm:text-2xl">{current.title}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -389,10 +418,45 @@ export function MunicipalCaseWorkspace({
               </>
             )}
             {step === "rapport" && (
-              <MunicipalReportPanel
-                projectId={project.id}
+              <>
+                {project.organization_id && (
+                  <WorkflowReportPanel
+                    key={project.id}
+                    scope={{ projectId: project.id, organizationId: project.organization_id }}
+                    selectedRoundId={selectedRoundId}
+                    canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
+                  />
+                )}
+                {project.organization_id && (
+                  <WorkflowFollowupPanel
+                    key={"followup:" + project.id}
+                    scope={{ projectId: project.id, organizationId: project.organization_id }}
+                    canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
+                  />
+                )}
+                <details>
+                  <summary>Rapport for én undersøgelsesrunde (eksisterende spor)</summary>
+                  <MunicipalReportPanel
+                    projectId={project.id}
+                    selectedRoundId={selectedRoundId}
+                    onSelectRound={onRound}
+                  />
+                </details>
+              </>
+            )}
+            {step === "udfoerelse" && project.organization_id && (
+              <ActionExecutionPanel
+                key={project.id}
+                scope={{ projectId: project.id, organizationId: project.organization_id }}
+                canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
                 selectedRoundId={selectedRoundId}
-                onSelectRound={onRound}
+              />
+            )}
+            {step === "sammenligning" && project.organization_id && (
+              <PhotoComparisonPanel
+                key={project.id}
+                scope={{ projectId: project.id, organizationId: project.organization_id }}
+                canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
               />
             )}
           </section>
@@ -405,7 +469,7 @@ export function MunicipalCaseWorkspace({
                 ...(!progress.reviewsComplete
                   ? ["Gennemgå fotopunkterne i Verificering, og gem begrundede beslutninger."]
                   : []),
-                "Faglig accept af baseline, beplantning og rapport skal afklares med den ansvarlige.",
+                "Faglig accept af baseline, udførelse og rapport skal afklares med den ansvarlige. Beplantning er valgfri.",
               ]}
             />
             <div className="rounded-xl border bg-card p-5">
@@ -463,20 +527,20 @@ export function MunicipalCaseWorkspace({
         <footer className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t bg-card/95 p-3 backdrop-blur sm:static sm:rounded-xl sm:border sm:p-4">
           <button
             className="rounded-lg px-3 py-2 text-sm disabled:opacity-40"
-            disabled={index === 0}
-            onClick={() => onStep(MUNICIPAL_STEPS[index - 1].id)}
+            disabled={!previousStep}
+            onClick={() => previousStep && onStep(previousStep)}
           >
             Forrige trin
           </button>
           <span className="hidden text-xs text-muted-foreground sm:inline">
-            {index + 1} af 6 · {current.label}
+            {index + 1} af {MUNICIPAL_STEPS.length} · {current.label}
           </span>
-          {index < MUNICIPAL_STEPS.length - 1 ? (
+          {nextStep ? (
             <button
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              onClick={() => onStep(MUNICIPAL_STEPS[index + 1].id)}
+              onClick={() => onStep(nextStep)}
             >
-              Videre til {MUNICIPAL_STEPS[index + 1].label.toLowerCase()}
+              Videre til {MUNICIPAL_STEPS.find((item) => item.id === nextStep)?.label.toLowerCase()}
               <ArrowRight className="size-4" />
             </button>
           ) : (

@@ -1,3 +1,7 @@
+> Historisk leveranceplan. Se [gældende afstemning](F00_AFSTEMNING.md).
+> Før/efter og faktisk udførelse er nu i første kerneforløb; plantning er
+> valgfri. Nedenstående datoer, afgrænsninger og testbeviser er historiske.
+
 # Freyra til Haderslev Kommune — levering 27.10.2026
 
 Denne plan erstatter planen med dato 10. november. Filnavnet bevares for eksisterende links. **27. oktober 2026 er selve leverancen, ikke en forpremiere.** De tidligere, daterede tekniske beviser er bevaret i [historikken](HADERSLEV_PLAN_HISTORIK_2026-10-15.md); gamle testtal er ikke godkendelse af denne version.
