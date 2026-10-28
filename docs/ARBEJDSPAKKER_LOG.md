@@ -99,3 +99,24 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
   tilstrækkelig dækning. Faktisk dækning og udførelseskobling skal fremgå
   eksplicit i de følgende pakker. Rigtig førserie og feltaccept er ikke
   afprøvet. Næste: F07, struktureret faktisk udførelse.
+
+## F07
+
+- Ændring: action-execution-kontrakt og scoped service kobler faktisk
+  udførelse til eksisterende actions, survey_round_versions og evidence_files.
+  Uforanderlige decision_note-versioner genbruges; ingen ny tabel/migration.
+  Stabil entry_id fra handlingen gør samtidige første gemninger til konflikt
+  frem for to udførelsesspor. Rettelser kræver årsag og bruger den åbnede
+  version, så baggrundsopdateringer ikke skjult overskriver nyere ændringer.
+- Brugerflade: Udførelse-trin med valg/oprettelse af handling, faktisk
+  dato/periode, metode, udfører, delstrækning, bilag, afvigelser og dækning.
+  Ukendt metode forbliver null. Planlagte handlinger får ingen faktisk dato.
+- Filer: action-execution.ts, action-execution-service.ts,
+  ActionExecutionPanel.tsx, project-workspace-service.ts,
+  MunicipalCaseWorkspace.tsx og to nye testfiler.
+- Prøver: 12 tests i tre filer består, herunder manglende/fremmed handling,
+  fremmed bilag/besøg, ugyldige datoer, rettelsesårsag og stabil identitet.
+  Typekontrol fandt nullable organisationsreference; panelet åbnes nu kun med
+  en kendt organisationsreference. Endelig type-/UI-kontrol følger.
+- Status: under udvikling indtil den samlede UI-/versionsprøve. Faktisk
+  kundeskæring er ikke afprøvet. Næste: F08, versionsbundet sammenligning.

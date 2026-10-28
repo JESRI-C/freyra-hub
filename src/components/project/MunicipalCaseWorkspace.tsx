@@ -30,6 +30,7 @@ import { MunicipalReportPanel } from "@/components/reports/MunicipalReportPanel"
 import { PlantingSuitabilityPanel } from "@/components/lavbund/PlantingSuitabilityPanel";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "./ProjectMembersPanel";
+import { ActionExecutionPanel } from "./ActionExecutionPanel";
 
 export const MUNICIPAL_STEPS = [
   {
@@ -63,6 +64,14 @@ export const MUNICIPAL_STEPS = [
     title: "Se den dokumenterede tilstand og dens begrænsninger",
     description:
       "Baseline er dit gemte udgangspunkt. Se de daterede kilder og deres mangler, før du bruger dem til at vurdere en ændring.",
+  },
+  {
+    id: "udfoerelse",
+    label: "Udførelse",
+    icon: CheckCircle2,
+    title: "Registrér hvad der faktisk blev udført",
+    description:
+      "Knyt skæredato, metode, delstrækning og arbejdsdokumentation til en handling. Planlagt arbejde er ikke udførelse.",
   },
   {
     id: "beplantning",
@@ -147,6 +156,7 @@ export function MunicipalCaseWorkspace({
     datagrundlag: progress.hasRound,
     gennemgang: progress.reviewsComplete,
     baseline: !!activeBaseline,
+    udfoerelse: false,
     beplantning: false,
     rapport: progress.hasReport,
   };
@@ -176,6 +186,8 @@ export function MunicipalCaseWorkspace({
       : "Der er endnu ingen åbnet kildeversion for dette forløb.",
     beplantning:
       "En skitse kræver faglig validering. A–E-arealer uden dokumentation står som ukendte.",
+    udfoerelse:
+      "Gem faktisk udførelse særskilt fra planen. Uafklaret metode og dækning forbliver synlige mangler.",
     rapport: progress.hasReport
       ? "En rapportkladde er gemt for den valgte undersøgelse. Faglig accept afventer."
       : "Vælg en undersøgelse, og kontrollér manglerne før rapporten dannes.",
@@ -309,7 +321,7 @@ export function MunicipalCaseWorkspace({
           <section aria-label={current.label} className="min-w-0 space-y-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Trin {index + 1} af 6
+                Trin {index + 1} af {MUNICIPAL_STEPS.length}
               </p>
               <h2 className="mt-2 text-xl font-semibold sm:text-2xl">{current.title}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -395,6 +407,14 @@ export function MunicipalCaseWorkspace({
                 onSelectRound={onRound}
               />
             )}
+            {step === "udfoerelse" && project.organization_id && (
+              <ActionExecutionPanel
+                key={project.id}
+                scope={{ projectId: project.id, organizationId: project.organization_id }}
+                canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
+                selectedRoundId={selectedRoundId}
+              />
+            )}
           </section>
           <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
             <ActivityTray
@@ -469,7 +489,7 @@ export function MunicipalCaseWorkspace({
             Forrige trin
           </button>
           <span className="hidden text-xs text-muted-foreground sm:inline">
-            {index + 1} af 6 · {current.label}
+            {index + 1} af {MUNICIPAL_STEPS.length} · {current.label}
           </span>
           {index < MUNICIPAL_STEPS.length - 1 ? (
             <button
