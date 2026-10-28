@@ -626,7 +626,29 @@ await q(`insert into storage.objects(bucket_id,name) values('project-originals',
   projectA + "/" + flightA + "/" + "c".repeat(64),
 ]);
 count++;
+// Revocation must affect a new request even while organization membership remains.
+await db.exec("reset role");
+await q("delete from project_members where project_id=$1 and user_id=$2", [projectA, uidC]);
+await actor(uidC);
+for (const table of [
+  "report_documents",
+  "report_revisions",
+  "watercourse_versions",
+  "watercourse_observations",
+  "project_media",
+  "project_workspace_entries",
+  "storage.objects",
+]) {
+  await check("revoked membership cannot read " + table, "select * from " + table, [], (rows) =>
+    assert.equal(rows.length, 0),
+  );
+}
+await roleDenied(
+  "revoked member cannot grant self admin",
+  "insert into project_members(project_id,user_id,role) values($1,$2,'admin')",
+  [projectA, uidC],
+);
 console.log(
-  `PASS ${count} offline PostgreSQL/RLS assertions including viewer boundaries and six idempotent migrations.`,
+  `PASS ${count} offline PostgreSQL/RLS assertions including viewer boundaries, revocation and six idempotent migrations.`,
 );
 await db.close();

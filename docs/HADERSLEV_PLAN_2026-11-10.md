@@ -1,3 +1,7 @@
+> Historisk leveranceplan. Se [gældende afstemning](F00_AFSTEMNING.md).
+> Før/efter og faktisk udførelse er nu i første kerneforløb; plantning er
+> valgfri. Nedenstående datoer, afgrænsninger og testbeviser er historiske.
+
 # Freyra til Haderslev Kommune — levering 27.10.2026
 
 Denne plan erstatter planen med dato 10. november. Filnavnet bevares for eksisterende links. **27. oktober 2026 er selve leverancen, ikke en forpremiere.** De tidligere, daterede tekniske beviser er bevaret i [historikken](HADERSLEV_PLAN_HISTORIK_2026-10-15.md); gamle testtal er ikke godkendelse af denne version.
@@ -38,7 +42,3 @@ Manglende RLS-accept, backup/genopretningsbevis, fungerende kommunelogin eller g
 Automatisk billedvurdering afventer dokumenteret billedkvalitet og stabile svar. [Seks-fotoprøven](HADERSLEV_KONTROL_2026-10-22.md) gav fire gyldige kvalitetsafvisninger og to ugyldige svar, altså ingen brugbare AI-observationer. AI-start og genforsøg er derfor skjult i `DEMO_MODE`; gemte resultater, datamangler og manuel faglig gennemgang bevares. Skema, begrænset syntaksreparation, ét genforsøg og fallback til et gyldigt resultat for præcis samme evidens bevares uden for DEMO. Det manuelle kommuneforløb og rapportgenerator v3 bestod den samlede stagingprøve 22.10, inklusive nul AI-forsøg og læserens identiske rapport. Senere releases kræver egen genprøve.
 
 NDVI-pixelanalyse, målte lokale effekter, før/efter-serier, sensorer, automatisk arts- og plejeplan og generel produktionslancering er uden for leverancen. Arealer pr. A–E afventer godkendte delstrækningsgeometrier. Ukendte hektartotaler er accepteret indtil senere faglig afgrænsning og er ikke i sig selv en leveranceblokering. Manglende kildelag og manglende ortofotopixels forbliver synlige datamangler, til de er verificeret.
-> Historisk leveranceplan. Se [gældende afstemning](F00_AFSTEMNING.md).
-> Før/efter og faktisk udførelse er nu i første kerneforløb; plantning er
-> valgfri. Nedenstående datoer, afgrænsninger og testbeviser er historiske.
-

@@ -1,3 +1,7 @@
+> Historisk designplan. Gældende udviklingsreference er
+> [F00 og pakkestatus](../docs/F00_AFSTEMNING.md). Før/efter og dokumenteret
+> udførelse prioriteres; plantning er valgfri. Eksisterende navigation bevares.
+
 # Freyra: én sag i fem trin (designplan)
 
 Denne plan er kun et designforslag. Den ændrer ingen filer, ingen data og publicerer ikke noget. Den kan bygges ovenpå de funktioner, der findes i dag.
@@ -159,7 +163,3 @@ De faste farver (`text-white` m.fl.) bliver erstattet med `*-foreground`-tokens.
 - En "sag" svarer til det nuværende naturprojekt, så der kommer ikke en ny datastruktur.
 - Engelske moduler som Funding og LavbundsMRV bliver skjult som standard, men ikke slettet.
 - Den foreslåede skrifttype og grønne farve kan udskiftes, hvis I har en designmanual.
-> Historisk designplan. Gældende udviklingsreference er
-> [F00 og pakkestatus](../docs/F00_AFSTEMNING.md). Før/efter og dokumenteret
-> udførelse prioriteres; plantning er valgfri. Eksisterende navigation bevares.
-

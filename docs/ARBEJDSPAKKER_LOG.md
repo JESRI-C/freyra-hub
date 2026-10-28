@@ -1,0 +1,34 @@
+# Arbejdspakkelog
+
+Ingen kunde-/faglig pilotaccept er registreret. Alle nye prøver bruger
+syntetiske fixtures lokalt. Ingen mail, deploy eller produktionsændring.
+Basiskode: b39ffbc; arbejdsgren: codex/bykaer-pilot-v1.
+
+## F00
+
+- Ændring/genbrug: afstemt hovedgren, PR18, PR19, separate checkouts,
+  eksisterende instruktioner, CI, versionsmodeller og migrationsledger.
+  Ingen AGENTS.md fundet i de undersøgte projektmapper.
+- Filer: README, .lovable/plan.md, HADERSLEV_PLAN_2026-11-10.md,
+  F00_AFSTEMNING.md og PAKKESTATUS.md. Commit f6848d6.
+- Prøver: staging-preflight og typecheck består; lint 0 fejl/24 eksisterende
+  advarsler; 45 målrettede atlas/rapport/drone-tests og 135 basisregressioner
+  består. 79 eksisterende offline PostgreSQL/RLS-assertions består.
+- Miljø: staging ledger læst read-only: 30 migrationer, seneste 20261027223941.
+  Aktuelt hosted appbuild og produktionsrevision kunne ikke identificeres.
+- Status: lokal afstemning dækket og verificeret; hosted afventer ekstern
+  afprøvning. Næste: F01.
+
+## F01
+
+- Genbrug: dedikeret serverauth, scoped ingest, eksisterende tenant-hardening,
+  projektroller og restrictive releasepolicies. Ingen ny rollemodel.
+- Ændring: offline RLS-harness prøver nu tilbagekaldelse ved nye forespørgsler
+  til rapporter, geometri, observationer, filer og workspace samt selvvalgt admin.
+- URL-begrænsning: generelle medier og evidenslinks lever 5 minutter;
+  droneoriginalens særskilte flow 60 sekunder. Tilbagekaldelse stopper nye
+  autoriserede opslag; allerede udstedt bearer-URL kan leve til udløb.
+- Prøver: se efterfølgende resultatlinje. Harness er en afgrænset PostgreSQL-
+  fixture, ikke fuld Supabase-migrationsreplay eller hosted Storage-byteprøve.
+- Status: delvist dækket. Live tilbagekaldelse, browserbundle og selvbetjening
+  med faktisk medarbejderrolle afventer ekstern afprøvning. Næste: F02.
