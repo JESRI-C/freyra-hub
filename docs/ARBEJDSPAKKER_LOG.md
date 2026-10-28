@@ -73,3 +73,16 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
   kørsel. Yderligere 200 tests i syv filer består.
 - Status: delvist dækket. Udførelsesrevisionens kobling til sammenligning er
   konkret restarbejde i F07/F08. Ingen migration tilføjet. Næste: F05.
+
+## F05
+
+- Dokumenteret genbrug: originalmetadata, SHA-256, scoped private medier,
+  resumable upload-intents/finalize og dronebatch. Ændrede bytes er en ny kilde.
+- Prøver: project-media-originals, drone-ingest, drone-image-metadata,
+  uploads-service-security og supabase-upload-intents-migration består i de
+  ovenstående kørsler (bundle-timeout og isoleret genprøve er angivet under F04).
+- Ingen filgrænse er ændret uden et konkret behov; kundens aftalte filantal
+  og typer er ikke udledt af testfixtures.
+- Status: delvist dækket. Fuld batch med faktiske kundetyper, afbrudt net,
+  genoptagelse og genhentning i hosted Storage er ikke afprøvet på ny.
+  Næste: F06.
