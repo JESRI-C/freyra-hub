@@ -6,6 +6,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { Landmark, Grid2x2, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 import {
   listMatriklerInArea,
@@ -20,8 +21,6 @@ interface Props {
   onHighlight?: (geometry: GeoJsonPolygon | null) => void;
 }
 
-const EMPTY: AreaLookupResult = { items: [], truncated: false };
-
 export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
   const matrikelFn = useServerFn(listMatriklerInArea);
   const markblokFn = useServerFn(listMarkblokkeInArea);
@@ -34,32 +33,17 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
     if (!raw || raw.length < 3) return null;
     return downsampleRing(raw as LngLat[], 500);
   }, [polygon]);
-  const ringKey = useMemo(
-    () => (ring ? JSON.stringify(ring.slice(0, 8)) + ring.length : "none"),
-    [ring],
-  );
+  const ringKey = useMemo(() => (ring ? JSON.stringify(ring) : "none"), [ring]);
 
   const matrikler = useQuery({
     queryKey: ["area-matrikler", ringKey],
-    queryFn: async () => {
-      try {
-        return await matrikelFn({ data: { ring: ring! } });
-      } catch {
-        return EMPTY;
-      }
-    },
+    queryFn: () => matrikelFn({ data: { ring: ring! } }),
     enabled: !!ring,
     staleTime: 10 * 60 * 1000,
   });
   const markblokke = useQuery({
     queryKey: ["area-markblokke", ringKey],
-    queryFn: async () => {
-      try {
-        return await markblokFn({ data: { ring: ring! } });
-      } catch {
-        return EMPTY;
-      }
-    },
+    queryFn: () => markblokFn({ data: { ring: ring! } }),
     enabled: !!ring,
     staleTime: 10 * 60 * 1000,
   });
@@ -79,12 +63,22 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
     if (g.type === "Polygon") onHighlight?.(g as GeoJsonPolygon);
     else if (g.type === "MultiPolygon") {
       const first = (g.coordinates as number[][][][])[0];
-      if (first) onHighlight?.({ type: "Polygon", coordinates: first } as GeoJsonPolygon);
+      if ((g.coordinates as number[][][][]).length === 1 && first)
+        onHighlight?.({ type: "Polygon", coordinates: first } as GeoJsonPolygon);
+      else {
+        setHighlightedId(null);
+        onHighlight?.(null);
+        toast.info(
+          "Fladen har flere dele. Vælg eller tegn et samlet projektområde; der vises ikke kun én del.",
+        );
+      }
     }
   };
 
   const totalHa = (r?: AreaLookupResult) =>
-    Math.round((r?.items ?? []).reduce((s, i) => s + (i.areaHa ?? 0), 0) * 10) / 10;
+    r?.items.length && r.items.every((item) => item.areaHa != null)
+      ? `${Math.round(r.items.reduce((sum, item) => sum + item.areaHa!, 0) * 10) / 10} ha`
+      : "areal ikke opgjort";
 
   const section = (
     key: "matrikler" | "markblokke",
@@ -92,6 +86,7 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
     icon: React.ReactNode,
     result: AreaLookupResult | undefined,
     loading: boolean,
+    failed: boolean,
   ) => {
     const open = openList === key;
     const items = result?.items ?? [];
@@ -106,7 +101,9 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
           <span className="text-xs text-muted-foreground ml-auto">
             {loading
               ? "Slår op…"
-              : `${items.length}${result?.truncated ? "+" : ""} · ${totalHa(result)} ha`}
+              : failed
+                ? "Opslag fejlede"
+                : `${items.length}${result?.truncated ? "+" : ""} · ${totalHa(result)}`}
           </span>
           {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
@@ -114,7 +111,9 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
           <ul className="max-h-56 overflow-y-auto divide-y">
             {items.length === 0 && !loading && (
               <li className="px-3 py-2 text-xs text-muted-foreground">
-                Ingen fundet i området{result === undefined ? " (opslag fejlede)" : ""}.
+                {failed
+                  ? "Kortkilden kunne ikke hentes. Prøv igen eller genindlæs."
+                  : "Ingen fundet i området."}
               </li>
             )}
             {items.map((it) => (
@@ -135,7 +134,7 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
             ))}
             {result?.truncated && (
               <li className="px-3 py-1.5 text-[11px] text-amber-600">
-                Viser de første 500 — indsnævr området for fuldt overblik.
+                Udtrækket er delvist. Indsnævr området for fuldt overblik.
               </li>
             )}
           </ul>
@@ -156,6 +155,7 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
         <Landmark className="h-3.5 w-3.5 text-primary" />,
         matrikler.data,
         matrikler.isLoading,
+        matrikler.isError,
       )}
       {section(
         "markblokke",
@@ -163,10 +163,11 @@ export function AreaCadastrePanel({ polygon, onHighlight }: Props) {
         <Grid2x2 className="h-3.5 w-3.5 text-primary" />,
         markblokke.data,
         markblokke.isLoading,
+        markblokke.isError,
       )}
       <p className="text-[11px] text-muted-foreground">
-        Kilder: SDFI/Dataforsyningen (matrikler) · Landbrugsstyrelsen (markblokke). Klik på en række
-        for at se den på kortet.
+        Kilder: Geodatastyrelsen / Datafordeleren (matrikler) · Landbrugs- og Fiskeristyrelsen
+        (Markblokke 2026). Klik på en række for at se den på kortet.
       </p>
     </div>
   );

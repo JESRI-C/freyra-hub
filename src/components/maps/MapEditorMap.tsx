@@ -1364,7 +1364,7 @@ export function MapEditorMap({
           </button>
         )}
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex max-w-full flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Baggrund:</span>
           {(Object.keys(BASE_LAYERS) as BaseLayer[]).map((key) => (
             <button

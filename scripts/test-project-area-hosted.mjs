@@ -1,7 +1,7 @@
 /** Staging-only project setup acceptance. Synthetic fixtures; no invites or mail. */
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
-import { randomUUID, randomBytes } from "node:crypto";
+import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
 import { booleanPointInPolygon, point, bbox } from "@turf/turf";
@@ -172,6 +172,14 @@ try {
       .eq("id", fixture.projectId),
     "Reset only technical fixture area",
   );
+  ok(
+    await admin
+      .from("project_media")
+      .update({ lat: null, lng: null })
+      .eq("id", fixture.mediaId)
+      .eq("project_id", fixture.projectId),
+    "Reset only synthetic GPS fixture",
+  );
   await page.goto(geometryUrl());
   await page.locator(".leaflet-container").waitFor();
   await page.getByText("Ingen brugbare billedpositioner registreret på projektet endnu.").waitFor();
@@ -207,6 +215,9 @@ try {
   await page.getByRole("button", { name: "Brug som projektgrænse", exact: true }).waitFor();
   await page.screenshot({ path: dir + "/parcel-preview.png", fullPage: true });
   await page.getByRole("button", { name: "Brug som projektgrænse", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Brug som projektgrænse", exact: true })
+    .waitFor({ state: "hidden" });
   await page.getByRole("button", { name: "Fortsæt til projekt", exact: true }).waitFor();
   const parcel = ok(
     await admin
@@ -219,6 +230,9 @@ try {
   assert.equal(parcel.geometry_source, "matrikel");
   assert.equal(parcel.geometry_polygon.type, "Polygon");
   await page.reload();
+  await page
+    .getByRole("button", { name: "Brug som projektgrænse", exact: true })
+    .waitFor({ state: "hidden" });
   await page.getByRole("button", { name: "Fortsæt til projekt", exact: true }).waitFor();
   await pass("3a: live cadastral pick is explicitly saved and survives reload");
   await page.getByRole("button", { name: "Vælg matrikel", exact: true }).click(); // enable pick solely to expose low-zoom status
@@ -252,6 +266,9 @@ try {
   await centerClick();
   await page.getByRole("button", { name: "Brug som projektgrænse", exact: true }).waitFor();
   await page.getByRole("button", { name: "Brug som projektgrænse", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Brug som projektgrænse", exact: true })
+    .waitFor({ state: "hidden" });
   await page.getByRole("button", { name: "Fortsæt til projekt", exact: true }).waitFor();
   const block = ok(
     await admin
@@ -268,11 +285,19 @@ try {
     if (!(await cb.isChecked())) await cb.check();
   }
   await page.getByText("Matrikler hentet fra Datafordeleren.", { exact: true }).waitFor();
-  await page.getByText(/Kulstof2022 hentet|Ingen registrerede kulstofflader/).waitFor();
+  await page
+    .getByText(/Kulstof2022 hentet|Ingen registrerede kulstofflader|Kulstofudsnittet er delvist/)
+    .waitFor();
   await page
     .getByText("Kortlag hentet. Indhold afhænger af sted og zoom.", { exact: true })
     .first()
     .waitFor();
+  await page.waitForFunction(() => {
+    const images = Array.from(document.querySelectorAll("img.leaflet-tile"));
+    return ["geodata.fvm.dk", "arealeditering-dist-geo.miljoeportal.dk"].every((host) =>
+      images.some((image) => image.src.includes(host) && image.complete && image.naturalWidth > 0),
+    );
+  });
   assert.ok(
     await page
       .locator("img.leaflet-tile")
@@ -292,6 +317,9 @@ try {
         ),
       ),
   );
+  result.lowlandVisiblePolygons = await page.locator('path[stroke="#b45309"]').count();
+  assert.ok(result.lowlandVisiblePolygons > 0, "Actual lowland reference polygons rendered");
+  await page.getByRole("combobox", { name: "Find sted" }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: dir + "/layers-desktop.png", fullPage: true });
   await pass("4: real field/nature tile images and cadastral/lowland vector statuses render");
   const water = page
@@ -305,23 +333,47 @@ try {
     await admin.from("projects").select("geometry_polygon").eq("id", fixture.projectId).single(),
     "Current boundary",
   );
+  const pixels = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 4;
+    canvas.height = 4;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#2563eb";
+    context.fillRect(0, 0, 4, 4);
+    return canvas.toDataURL("image/png").split(",")[1];
+  });
+  const pixelBytes = Buffer.from(pixels, "base64");
+  const pixelPath = fixture.projectId + "/synthetic-gps-" + fixture.mediaId + ".png";
+  ok(
+    await admin.storage
+      .from("project-media")
+      .upload(pixelPath, pixelBytes, { upsert: true, contentType: "image/png" }),
+    "Synthetic pixel storage fixture",
+  );
   ok(
     await admin.from("project_media").upsert({
       id: fixture.mediaId,
       project_id: fixture.projectId,
       title: "SYNTHETIC GPS location hint",
       category: "field_photo",
-      source: "manual",
+      source: "field_upload",
+      file_path: pixelPath,
+      storage_bucket: "project-media",
+      mime_type: "image/png",
       url: "",
       lat: 56.23,
       lng: 10.58,
-      metadata: { synthetic: true, fixture: "project-area" },
+      metadata: {
+        synthetic: true,
+        fixture: "project-area",
+        original_sha256: createHash("sha256").update(pixelBytes).digest("hex"),
+      },
     }),
     "Synthetic GPS metadata fixture",
   );
   await page.reload();
   await page.getByRole("button", { name: "Vis 1 billedpositioner", exact: true }).click();
-  await page.locator(".leaflet-interactive").first().waitFor();
+  await page.locator('path[stroke="#2563eb"]').first().waitFor();
   assert.deepEqual(
     ok(
       await admin.from("projects").select("geometry_polygon").eq("id", fixture.projectId).single(),
@@ -348,6 +400,11 @@ try {
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
   );
   await page.screenshot({ path: dir + "/mobile.png", fullPage: true });
+  const mobileMap = page.locator(".leaflet-container");
+  await mobileMap.scrollIntoViewIfNeeded();
+  const bounds = await mobileMap.boundingBox();
+  assert.ok(bounds && bounds.x >= -1 && bounds.x + bounds.width <= 391);
+  await page.screenshot({ path: dir + "/mobile-map.png" });
   await pass("loaded mobile project setup has no horizontal overflow");
   assert.deepEqual(result.errors, []);
   result.passed = true;
