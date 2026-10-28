@@ -77,4 +77,3 @@ describe("project area picks reuse current validated baseline adapters", () => {
     await expect(pickProjectArea("matrikel", 56.005, 10.005)).rejects.toThrow("flere dele");
   });
 });
-
