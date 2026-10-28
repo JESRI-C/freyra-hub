@@ -47,3 +47,14 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
   projekt som fallback; projektcache og geometri forbliver versionsafgrænsede.
 - Status: lokalt dokumenteret genbrug; samlet pakke delvist dækket.
   Hosted refresh/hurtige projektskift er ikke afprøvet. Næste: F03.
+
+## F03
+
+- Dokumenteret genbrug: data-mode/demo-mode og customer-source-integrity.
+  Ukendt flag eller manglende database aktiverer ikke eksempeldata. Historisk
+  offlinefallback afvises. readiness bruges ikke som ubekræftet kvalitetsscore.
+- Prøver: data-mode/demo-mode i de 135 basisprøver; customer-source-integrity
+  indgår i den nye 200-tests-kørsel sammen med upload/baseline/round-auth.
+- Ingen produktændring nødvendig i denne afgrænsning.
+- Status: delvist dækket; tom kundesag og eksport på hosted release er
+  ikke afprøvet på ny. Næste: F04.
