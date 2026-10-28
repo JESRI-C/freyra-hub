@@ -317,6 +317,7 @@ try {
         ),
       ),
   );
+  await page.getByRole("button", { name: /Matrikler.*areal ikke opgjort/ }).waitFor();
   result.lowlandVisiblePolygons = await page.locator('path[stroke="#b45309"]').count();
   assert.ok(result.lowlandVisiblePolygons > 0, "Actual lowland reference polygons rendered");
   await page.getByRole("combobox", { name: "Find sted" }).scrollIntoViewIfNeeded();
@@ -402,10 +403,55 @@ try {
   await page.screenshot({ path: dir + "/mobile.png", fullPage: true });
   const mobileMap = page.locator(".leaflet-container");
   await mobileMap.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() =>
+    Array.from(document.querySelectorAll(".leaflet-tile-pane img")).some(
+      (image) => image.complete && image.naturalWidth > 0,
+    ),
+  );
+  await page.waitForTimeout(500);
   const bounds = await mobileMap.boundingBox();
   assert.ok(bounds && bounds.x >= -1 && bounds.x + bounds.width <= 391);
   await page.screenshot({ path: dir + "/mobile-map.png" });
-  await pass("loaded mobile project setup has no horizontal overflow");
+  const topography = await page
+    .getByRole("button", { name: "Topografi", exact: true })
+    .boundingBox();
+  assert.ok(
+    topography &&
+      topography.x >= bounds.x &&
+      topography.x + topography.width <= bounds.x + bounds.width + 1,
+    "All mobile background controls fit",
+  );
+  const freshContext = await browser.newContext({
+    storageState: await context.storageState(),
+    viewport: { width: 390, height: 844 },
+  });
+  const freshPage = await freshContext.newPage();
+  freshPage.setDefaultTimeout(45000);
+  freshPage.on("pageerror", (error) => result.errors.push(error.message));
+  await freshPage.goto(geometryUrl());
+  await freshPage.getByRole("button", { name: "Vis 1 billedpositioner", exact: true }).waitFor();
+  await freshPage.locator(".leaflet-container").scrollIntoViewIfNeeded();
+  await freshPage.waitForFunction(() =>
+    Array.from(document.querySelectorAll(".leaflet-tile-pane img")).some(
+      (image) => image.complete && image.naturalWidth > 0,
+    ),
+  );
+  const freshBounds = await freshPage.locator(".leaflet-container").boundingBox();
+  const freshTopography = await freshPage
+    .getByRole("button", { name: "Topografi", exact: true })
+    .boundingBox();
+  assert.ok(
+    freshBounds &&
+      freshTopography &&
+      freshTopography.x >= freshBounds.x &&
+      freshTopography.x + freshTopography.width <= freshBounds.x + freshBounds.width + 1,
+    "Fresh mobile controls fit",
+  );
+  await freshPage.screenshot({ path: dir + "/fresh-mobile.png" });
+  await freshContext.close();
+  await pass(
+    "fresh and resized mobile maps load real tiles and retain every background control without overflow",
+  );
   assert.deepEqual(result.errors, []);
   result.passed = true;
 } catch (e) {

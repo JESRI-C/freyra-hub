@@ -1,0 +1,64 @@
+{
+  "schema": "freyra.project-area-acceptance/v1",
+  "sourceRevision": "e2a08f585d914f47bfbd5c4c9fb538eee9ed6b3c",
+  "checks": [
+    {
+      "name": "UI project creation with fresh password login and isolated technical organization",
+      "passed": true
+    },
+    {
+      "name": "2: unsited project starts with Denmark overview rather than Samsø close-up",
+      "passed": true
+    },
+    {
+      "name": "1: live official address, partial search and attributed place-name selection move the map",
+      "passed": true
+    },
+    {
+      "name": "3a: live cadastral pick is explicitly saved and survives reload",
+      "passed": true
+    },
+    {
+      "name": "3b: live 2026 field-block pick saves actual containing polygon",
+      "passed": true
+    },
+    {
+      "name": "4: real field/nature tile images and cadastral/lowland vector statuses render",
+      "passed": true
+    },
+    {
+      "name": "6: project photo GPS guides view without changing the saved boundary",
+      "passed": true
+    },
+    {
+      "name": "5: watercourse remains optional for nature tasks and expands for watercourse tasks",
+      "passed": true
+    },
+    {
+      "name": "fresh and resized mobile maps load real tiles and retain every background control without overflow",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "syntheticOnly": true,
+  "noMail": true,
+  "customerAcceptance": false,
+  "lowlandVisiblePolygons": 24,
+  "passed": true,
+  "staging": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "workerVersion": "4f968b72-ff7d-43b5-b4c9-94e092b6f67c",
+  "fallbackWorkerVersion": "3a4b7e93-8605-4b7b-89b5-efca6f69a616",
+  "ci": {
+    "buildRun": 40753110783,
+    "gatesRun": 40753110761,
+    "bothPassed": true,
+    "artifactSha256": "ad1e2a3cdcd5f5723eded1acfe36fcae6275c2899f73ebaba858ff7a2f5f1d27"
+  },
+  "harnessSha256": "5b6ff9383da4f92bfac85df80198d6b15cecdf584d4598c4447fa2d2709582d0",
+  "limitations": [
+    "Technical fixtures only; real public map services were read.",
+    "Lowland display was explicitly partial; 24 polygons rendered without carbon classes.",
+    "Multipart project boundaries still require manual delimitation or supported full geometry; no part is silently discarded.",
+    "Formal customer/professional acceptance and hosted DB plus original-file restore remain untested."
+  ]
+}

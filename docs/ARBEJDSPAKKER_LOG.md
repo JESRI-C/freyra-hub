@@ -245,3 +245,14 @@ afvist generisk statusændring.
 - Kunde-/fagprøven og samlet DB+Storage-restore står fortsat ikke afprøvet.
 - Konkret rest: feltfoto-hash i rapportkilderegister samt færdigindlæst
   mobilkontrol. Disse må ikke udlægges som bestået kilde-/mobilaccept.
+
+### Projektoprettelse efter skærmgennemgang
+
+- Seks rettelsespunkter implementeret og afprøvet på staging; ni browserchecks
+  består med rigtige offentlige kortkilder og syntetisk projekt/billedfixture.
+- Kilde e2a08f5, Worker 4f968b72-ff7d-43b5-b4c9-94e092b6f67c. GitHub-kode-
+  og databasekontroller består. Se PROJECT_CREATION_FIXES.md og den afpersonificerede
+  project-area-staging-acceptance.json for prøver, versioner og begrænsninger.
+- Manglende arealer og kildefejl vises uden falske nul-/tomresultater. Lavbund
+  er delvist udtrukket og vises uden klasseinddeling. Kamera-GPS ændrer ikke grænser.
+- Ingen produktion, main-merge, mail eller invitation. Bykær-kundeaccept står åben.

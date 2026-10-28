@@ -130,3 +130,12 @@ Næste afgrænsede arbejde er originalhash i rapportkilderegister og færdigindl
 mobilkontrol; kundens skærelog/originalserie/faglige beslutning afventer eksternt.
 Eksisterende sikkerhedsadvisor-fund er ikke ændret af denne migration; ingen nye
 workflowfunktioner er security definer. Fuldt migrationsreplay er fortsat åbent.
+
+## Supplerende kontrol ved projektoprettelsesrettelser
+
+GitHub-kørslen 40753110761 på e2a08f585d914f47bfbd5c4c9fb538eee9ed6b3c
+består både app-gates og fresh local migrations/isolation. Det tidligere åbne
+fulde migrationsreplay er dermed gennemført på en disponibel CI-database,
+inklusive tilhørende isolation-/samtidigheds-/restorekontroller. Det er fortsat
+ikke en samlet hosted DB+Storage-gendannelse eller en kundes accept.
+Staging kører nu projektoprettelsesrettelserne; se PROJECT_CREATION_FIXES.md.
