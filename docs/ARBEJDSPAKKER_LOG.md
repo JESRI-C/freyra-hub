@@ -32,3 +32,18 @@ Basiskode: b39ffbc; arbejdsgren: codex/bykaer-pilot-v1.
   fixture, ikke fuld Supabase-migrationsreplay eller hosted Storage-byteprøve.
 - Status: delvist dækket. Live tilbagekaldelse, browserbundle og selvbetjening
   med faktisk medarbejderrolle afventer ekstern afprøvning. Næste: F02.
+
+Resultat F01: **87 PostgreSQL/RLS-assertions bestået**; serverauth og
+tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
+
+## F02
+
+- Dokumenteret genbrug: ProjectContextBoundary, resolveProjectSelection,
+  auth-cache/projektvalg, scoped workspace og watercourse-versioner.
+- Prøver: auth-query-cache, auth-project-selection, watercourse-geometry og
+  project-workspace-service indgår i de 135 beståede basisprøver. DB-harness
+  kontrollerer separat projektadgang og immutable geometri.
+- Konkret kodefund: utilgængeligt projekt giver eksplicit fejl, ikke første
+  projekt som fallback; projektcache og geometri forbliver versionsafgrænsede.
+- Status: lokalt dokumenteret genbrug; samlet pakke delvist dækket.
+  Hosted refresh/hurtige projektskift er ikke afprøvet. Næste: F03.
