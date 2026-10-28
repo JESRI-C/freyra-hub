@@ -120,3 +120,20 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
   en kendt organisationsreference. Endelig type-/UI-kontrol følger.
 - Status: under udvikling indtil den samlede UI-/versionsprøve. Faktisk
   kundeskæring er ikke afprøvet. Næste: F08, versionsbundet sammenligning.
+
+## F08
+
+- Ændring: struktureret fotopar med præcis udførelsesrevision og to private
+  originalreferencer. Samme sted, fælles dækning, udeladte områder,
+  optageforskelle og begrænsninger følger den immutable sammenligningsversion.
+- En nyere udførelsesversion viser genvurderingsbehov. Planlagt indsats,
+  manglende optagetid/kontrolsum, samme original og utilstrækkelig dækning
+  bliver ikke et dokumenteret før/efter-resultat. Utilstrækkeligt materiale
+  kan stadig gemmes som begrænset kladde.
+- Filer: photo-comparison.ts, photo-comparison-service.ts,
+  PhotoComparisonPanel.tsx, MunicipalCaseWorkspace.tsx og to testfiler.
+- Prøver: 11 tests i to filer består (forkert/manglende grundlag, fremmed
+  udførelse, utilgængelige originaler, versionsskift, skjulte arealer og
+  forbudt kvantitativ måling). Typecheck efter F07/F08 består.
+- Status: delvist dækket; ny hosted mobil-/browserprøve og rigtig kundeserie
+  er ikke afprøvet. Ingen præcis arealmotor aktiveret. Næste: F09.

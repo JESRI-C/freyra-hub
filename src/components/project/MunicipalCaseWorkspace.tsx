@@ -31,6 +31,7 @@ import { PlantingSuitabilityPanel } from "@/components/lavbund/PlantingSuitabili
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "./ProjectMembersPanel";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
+import { PhotoComparisonPanel } from "./PhotoComparisonPanel";
 
 export const MUNICIPAL_STEPS = [
   {
@@ -72,6 +73,14 @@ export const MUNICIPAL_STEPS = [
     title: "Registrér hvad der faktisk blev udført",
     description:
       "Knyt skæredato, metode, delstrækning og arbejdsdokumentation til en handling. Planlagt arbejde er ikke udførelse.",
+  },
+  {
+    id: "sammenligning",
+    label: "Før og efter",
+    icon: Eye,
+    title: "Sammenlign samme strækning før og efter arbejdet",
+    description:
+      "Vælg originaler og den dokumenterede udførelse. Beskriv fælles dækning, skjulte områder og optageforskelle.",
   },
   {
     id: "beplantning",
@@ -157,6 +166,7 @@ export function MunicipalCaseWorkspace({
     gennemgang: progress.reviewsComplete,
     baseline: !!activeBaseline,
     udfoerelse: false,
+    sammenligning: false,
     beplantning: false,
     rapport: progress.hasReport,
   };
@@ -188,6 +198,8 @@ export function MunicipalCaseWorkspace({
       "En skitse kræver faglig validering. A–E-arealer uden dokumentation står som ukendte.",
     udfoerelse:
       "Gem faktisk udførelse særskilt fra planen. Uafklaret metode og dækning forbliver synlige mangler.",
+    sammenligning:
+      "Optagelser er ikke automatisk sammenlignelige. Ændret udførelsesgrundlag kræver ny vurdering.",
     rapport: progress.hasReport
       ? "En rapportkladde er gemt for den valgte undersøgelse. Faglig accept afventer."
       : "Vælg en undersøgelse, og kontrollér manglerne før rapporten dannes.",
@@ -413,6 +425,13 @@ export function MunicipalCaseWorkspace({
                 scope={{ projectId: project.id, organizationId: project.organization_id }}
                 canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
                 selectedRoundId={selectedRoundId}
+              />
+            )}
+            {step === "sammenligning" && project.organization_id && (
+              <PhotoComparisonPanel
+                key={project.id}
+                scope={{ projectId: project.id, organizationId: project.organization_id }}
+                canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
               />
             )}
           </section>
