@@ -86,3 +86,16 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
 - Status: delvist dækket. Fuld batch med faktiske kundetyper, afbrudt net,
   genoptagelse og genhentning i hosted Storage er ikke afprøvet på ny.
   Næste: F06.
+
+## F06
+
+- Dokumenteret genbrug: baseline-snapshots, verification-plan-versioner,
+  survey-round-versioner og deres medietilknytning; ingen parallel besøgstabel.
+- Prøver: survey-round-persistence, verification-plan-persistence,
+  survey-round-media-persistence, collect-public-baseline og round/media-auth
+  består. De afviser ændret kildehash, falsk godkendelse, baglæns periode og
+  fremmede projekter; genåbning bruger det gemte grundlag.
+- Status: delvist dækket. En registreret undersøgelse er ikke automatisk
+  tilstrækkelig dækning. Faktisk dækning og udførelseskobling skal fremgå
+  eksplicit i de følgende pakker. Rigtig førserie og feltaccept er ikke
+  afprøvet. Næste: F07, struktureret faktisk udførelse.
