@@ -17,7 +17,8 @@ begin
      or j->>'schema' is distinct from 'freyra.action-execution/v1'
      or source is distinct from 'action-execution:'||new.entry_id::text
      or j->>'actionId' is distinct from new.entry_id::text
-     or not exists(select 1 from public.actions a where a.id=new.entry_id and a.project_id=new.project_id)
+     or not exists(select 1 from public.actions a where a.id=new.entry_id and a.project_id=new.project_id
+       and a.action_type is distinct from 'workflow_followup')
      or coalesce(j->>'dataBasis','') not in ('real','synthetic','demo')
      or coalesce(j->>'stage','') not in ('planned','performed')
      or coalesce(j->>'workType','') not in ('weed_cutting','other')
@@ -25,6 +26,9 @@ begin
      or jsonb_typeof(j->'evidenceIds') is distinct from 'array'
      or jsonb_array_length(j->'evidenceIds')>20
    then raise exception 'Invalid execution contract'; end if;
+   if (select count(*) from jsonb_array_elements(j->'evidenceIds')) <>
+      (select count(distinct x) from jsonb_array_elements(j->'evidenceIds') x)
+   then raise exception 'Duplicate execution attachment'; end if;
    foreach field in array array['reach','sourceReference','deviation','correctionReason','coverageDescription'] loop
      if jsonb_typeof(j->field) is distinct from 'string' or length(j->>field)>2000
      then raise exception 'Invalid execution text'; end if;
@@ -90,6 +94,16 @@ begin
      or (j->>'status'='assigned' and length(btrim(coalesce(j->>'assignee','')))=0)
      or (j->>'status' in ('dismissed','completed') and length(btrim(coalesce(j->>'resolutionReason','')))=0)
    then raise exception 'Invalid followup contract'; end if;
+   foreach field in array array['eventKey','title','reason','notes','resolutionReason'] loop
+     if jsonb_typeof(j->field) is distinct from 'string' then raise exception 'Invalid followup text'; end if;
+   end loop;
+   if length(j->>'notes')>2000 or length(j->>'resolutionReason')>2000
+     or jsonb_typeof(j->'assignee') not in ('string','null')
+     or length(coalesce(j->>'assignee',''))>500
+     or jsonb_typeof(j->'dueDate') not in ('string','null')
+     or (select count(*) from jsonb_array_elements(j->'sourceIds')) <>
+        (select count(distinct x) from jsonb_array_elements(j->'sourceIds') x)
+   then raise exception 'Invalid followup metadata'; end if;
    if j->>'dueDate' is not null then
      if (j->>'dueDate')!~'^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then raise exception 'Invalid followup date'; end if;
      perform (j->>'dueDate')::date;
@@ -215,3 +229,65 @@ returns text language sql immutable security invoker set search_path=public
 as $$ select 'freyra.workflow-report/v1'::text $$;
 revoke all on function public.workflow_report_contract_version() from public,anon;
 grant execute on function public.workflow_report_contract_version() to authenticated;
+
+-- Reuse the action list atomically; workspace keeps the immutable source/status history.
+create or replace function public.save_workflow_followup_revision(
+ _entry_id uuid, _organization_id uuid, _project_id uuid, _expected_version integer,
+ _title text, _payload jsonb
+) returns jsonb language plpgsql security invoker set search_path=public as $$
+declare saved public.project_workspace_entries; latest integer; j jsonb;
+begin
+ if auth.uid() is null or not private.can_write_project(_project_id)
+   or not exists(select 1 from public.projects p where p.id=_project_id and p.organization_id=_organization_id)
+   or _payload->>'source' is distinct from 'workflow-followup:'||_entry_id::text
+ then raise exception 'Followup project access denied' using errcode='42501'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(_entry_id::text,0));
+ select coalesce(max(version),0) into latest from public.project_workspace_entries where entry_id=_entry_id;
+ if latest<>_expected_version then raise exception 'Followup changed; reload before saving'; end if;
+ if exists(select 1 from public.actions a where a.id=_entry_id
+   and (a.project_id is distinct from _project_id or a.action_type is distinct from 'workflow_followup'))
+ then raise exception 'Existing action is not this documentation task'; end if;
+ insert into public.project_workspace_entries(entry_id,organization_id,project_id,kind,version,title,payload)
+ values(_entry_id,_organization_id,_project_id,'decision_note',latest+1,_title,_payload)
+ returning * into saved;
+ j:=(_payload->>'decision')::jsonb;
+ insert into public.actions(id,project_id,title,description,status,due_date,owner,action_type,completed_at)
+ values(_entry_id,_project_id,j->>'title',(j->>'reason')||E'\nKilder: '||(j->'sourceIds')::text,
+   case j->>'status' when 'assigned' then 'I gang' when 'dismissed' then 'Lukket' when 'completed' then 'Lukket' else 'Åben' end,
+   (j->>'dueDate')::date,j->>'assignee','workflow_followup',
+   case when j->>'status' in ('dismissed','completed') then now() else null end)
+ on conflict(id) do update set title=excluded.title,description=excluded.description,status=excluded.status,
+   due_date=excluded.due_date,owner=excluded.owner,completed_at=excluded.completed_at;
+ return to_jsonb(saved);
+end $$;
+revoke all on function public.save_workflow_followup_revision(uuid,uuid,uuid,integer,text,jsonb) from public,anon;
+grant execute on function public.save_workflow_followup_revision(uuid,uuid,uuid,integer,text,jsonb) to authenticated;
+
+-- Generic action buttons must not silently bypass the followup's source/status history.
+create or replace function public.validate_workflow_followup_action()
+returns trigger language plpgsql security invoker set search_path=public as $$
+declare j jsonb; expected_status text;
+begin
+ if tg_op='DELETE' then
+   if old.action_type='workflow_followup' then raise exception 'Dismiss the followup with a reason instead of deleting its history'; end if;
+   return old;
+ end if;
+ if tg_op='UPDATE' and old.action_type='workflow_followup' and new.action_type is distinct from 'workflow_followup'
+ then raise exception 'Followup action type is immutable'; end if;
+ if new.action_type is distinct from 'workflow_followup' then return new; end if;
+ select (e.payload->>'decision')::jsonb into j from public.project_workspace_entries e
+ where e.entry_id=new.id and e.project_id=new.project_id
+   and e.payload->>'source'='workflow-followup:'||new.id::text order by e.version desc limit 1;
+ expected_status:=case j->>'status' when 'assigned' then 'I gang' when 'dismissed' then 'Lukket' when 'completed' then 'Lukket' else 'Åben' end;
+ if j is null or new.title is distinct from j->>'title'
+   or new.description is distinct from (j->>'reason')||E'\nKilder: '||(j->'sourceIds')::text
+   or new.status is distinct from expected_status
+   or new.owner is distinct from j->>'assignee'
+   or new.due_date is distinct from (j->>'dueDate')::date
+ then raise exception 'Edit the followup with source and status history'; end if;
+ return new;
+end $$;
+revoke all on function public.validate_workflow_followup_action() from public,anon,authenticated;
+drop trigger if exists zzz_workflow_followup_action on public.actions;
+create trigger zzz_workflow_followup_action before insert or update or delete on public.actions
+ for each row execute function public.validate_workflow_followup_action();

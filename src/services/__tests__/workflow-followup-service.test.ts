@@ -11,6 +11,14 @@ vi.mock("@/services/project-workspace-service", () => ({
 }));
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {
+    rpc: async (_name: string, args: Record<string, unknown>) => ({
+      error: null,
+      data: await mocks.save(scope, {
+        entryId: args._entry_id,
+        title: args._title,
+        payload: args._payload,
+      }),
+    }),
     from: () => {
       const q = {
         select: () => q,

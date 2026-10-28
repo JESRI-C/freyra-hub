@@ -10,11 +10,7 @@ import {
   type FollowupCandidate,
   type WorkflowFollowup,
 } from "@/lib/workflow-followup";
-import {
-  assertProjectScope,
-  saveWorkspaceEntry,
-  type ProjectScope,
-} from "./project-workspace-service";
+import { assertProjectScope, type ProjectScope } from "./project-workspace-service";
 import { listActionExecutions } from "./action-execution-service";
 import {
   listPhotoComparisons,
@@ -67,20 +63,26 @@ export async function saveWorkflowFollowup(
     .in("id", followup.sourceIds);
   if (sources.error || sources.data?.length !== followup.sourceIds.length)
     throw new Error("Opgavens kildeversioner er ikke tilgængelige på sagen.");
-  return saveWorkspaceEntry(scope, {
-    kind: "decision_note",
-    entryId,
-    previous,
-    title: followup.title,
-    payload: {
-      source: "workflow-followup:" + entryId,
-      basis: followup.reason,
-      decision: JSON.stringify(followup),
-      uncertainty: "Intern dokumentationsopgave; ingen fysisk udførelse eller tilladelse.",
-      owner: followup.assignee ?? "",
-      alternatives: "",
+  const { data, error } = await (supabase as unknown as SupabaseClient).rpc(
+    "save_workflow_followup_revision",
+    {
+      _entry_id: entryId,
+      _organization_id: scope.organizationId,
+      _project_id: scope.projectId,
+      _expected_version: previous?.version ?? 0,
+      _title: followup.title,
+      _payload: {
+        source: "workflow-followup:" + entryId,
+        basis: followup.reason,
+        decision: JSON.stringify(followup),
+        uncertainty: "Intern dokumentationsopgave; ingen fysisk udførelse eller tilladelse.",
+        owner: followup.assignee ?? "",
+        alternatives: "",
+      },
     },
-  });
+  );
+  if (error) throw new Error(error.message);
+  return WorkspaceEntrySchema.parse(data);
 }
 /** Repeated events preserve assignment, dismissal and completion. Unique entry/version handles concurrency. */
 export async function ensureWorkflowFollowups(

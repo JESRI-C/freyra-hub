@@ -57,11 +57,12 @@ export async function saveActionExecution(
   const db = supabase as unknown as SupabaseClient;
   const action = await db
     .from("actions")
-    .select("id")
+    .select("id,action_type")
     .eq("id", execution.actionId)
     .eq("project_id", scope.projectId)
     .single();
-  if (action.error || !action.data) throw new Error("Handlingen er ikke tilgængelig på sagen.");
+  if (action.error || !action.data || action.data.action_type === "workflow_followup")
+    throw new Error("Handlingen er ikke tilgængelig på sagen.");
   if (execution.surveyRoundId) {
     const round = await db
       .from("survey_round_versions")

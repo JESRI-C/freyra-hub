@@ -167,11 +167,13 @@ export function ActionExecutionPanel({
           }
         >
           <option value="">Vælg handling</option>
-          {(workspace.data?.actions ?? []).map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.title}
-            </option>
-          ))}
+          {(workspace.data?.actions ?? [])
+            .filter((a) => a.action_type !== "workflow_followup")
+            .map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.title}
+              </option>
+            ))}
         </select>
       </label>
       {!canEdit && (

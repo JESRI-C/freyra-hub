@@ -206,3 +206,12 @@ faktisk dato, ugyldig kalenderdato, fremmed bilag/foto/kilde, forbudt
 kvantitativt fotopar og afvisning uden begrundelse. **33 målrettede tests i
 otte filer** består efter de sidste kontraktændringer. Ingen ny tabel i
 appen; fixturetabellerne findes kun i den isolerede harness.
+
+F11 integration: opfølgningsopgaver bruger også den eksisterende actions-liste.
+En transaktion gemmer opgave og immutable revisionsnote sammen. Tildeling,
+frist og afslutning spejles i actions; ingen separat opgaveliste i databasen.
+Generiske statusændringer må ikke omgå historikken, og en dokumentationsopgave
+må ikke overskrive eller forveksles med en fysisk indsats. Handlingskortet
+åbner derfor det versionsgemte opfølgningsforløb. DB-prøven er udvidet til
+**112 assertions** inklusive tildeling, afvisning, forældet writer, viewer og
+afvist generisk statusændring.

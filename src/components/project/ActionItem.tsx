@@ -7,6 +7,7 @@ import { ActionEvidenceDialog } from "./ActionEvidenceDialog";
 import { Paperclip, ShieldAlert, MapPin, Target } from "lucide-react";
 import { toast } from "sonner";
 import type { Action } from "@/lib/supabase/types";
+import { Link } from "@tanstack/react-router";
 
 interface ActionItemProps {
   action: Action;
@@ -52,6 +53,27 @@ export function ActionItem({
   const isOpen = action.status === "Åben" || action.status === "open";
   const isInProgress = action.status === "I gang";
   const isClosed = action.status === "Lukket" || action.status === "closed";
+  if (action.action_type === "workflow_followup" && action.project_id)
+    return (
+      <div className="space-y-2 border-b py-3 text-sm">
+        <p className="font-medium">{action.title}</p>
+        <p>
+          {action.status} · {action.owner || "Ansvarlig ikke aftalt"} ·{" "}
+          {action.due_date || "Dato ikke aftalt"}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Intern dokumentationsopgave; status og begrundelse gemmes i opfølgningshistorikken.
+        </p>
+        <Link
+          to="/app/projects/$slug"
+          params={{ slug: action.project_id }}
+          search={{ step: "rapport" }}
+          className="underline"
+        >
+          Åbn opfølgning og historik
+        </Link>
+      </div>
+    );
 
   function handleComplete() {
     if (!canComplete) {
