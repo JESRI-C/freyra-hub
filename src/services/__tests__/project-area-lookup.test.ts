@@ -52,6 +52,15 @@ describe("project area picks reuse current validated baseline adapters", () => {
     vi.mocked(fetchCadastralSource).mockResolvedValue(source({ parcels: [] }, false) as never);
     await expect(pickProjectArea("matrikel", 56.005, 10.005)).rejects.toThrow("ufuldstændigt");
   });
+  it("accepts a single-part MultiPolygon without dropping coordinates", async () => {
+    vi.mocked(fetchPlantingPolygonSource).mockResolvedValue(
+      source({
+        geometries: [{ type: "MultiPolygon", coordinates: [shape.coordinates] }],
+        featureIds: ["mb-1"],
+      }) as never,
+    );
+    expect((await pickProjectArea("markblok", 56.005, 10.005))?.geometry).toEqual(shape);
+  });
   it("never silently discards parts of a multipart property", async () => {
     vi.mocked(fetchCadastralSource).mockResolvedValue(
       source({
@@ -60,7 +69,7 @@ describe("project area picks reuse current validated baseline adapters", () => {
             id: "parcel-1",
             parcelNumber: "12a",
             landRegisterAreaCode: "123",
-            geometry: { type: "MultiPolygon", coordinates: [shape.coordinates] },
+            geometry: { type: "MultiPolygon", coordinates: [shape.coordinates, shape.coordinates] },
           },
         ],
       }) as never,
@@ -68,3 +77,4 @@ describe("project area picks reuse current validated baseline adapters", () => {
     await expect(pickProjectArea("matrikel", 56.005, 10.005)).rejects.toThrow("flere dele");
   });
 });
+

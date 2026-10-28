@@ -92,11 +92,15 @@ export async function pickProjectArea(source: "matrikel" | "markblok", lat: numb
     return null;
   }
   const item = selected[0];
-  if (item.geometry?.type !== "Polygon")
+  const candidate =
+    item.geometry?.type === "MultiPolygon" && item.geometry.coordinates.length === 1
+      ? { type: "Polygon" as const, coordinates: item.geometry.coordinates[0] }
+      : item.geometry;
+  if (candidate?.type !== "Polygon")
     throw new Error(
       "Fladen består af flere dele. Upload den fulde afgrænsning eller tegn det ønskede projektområde manuelt.",
     );
-  const shape = validateProjectPolygon(item.geometry);
+  const shape = validateProjectPolygon(candidate);
   if (!shape.valid)
     throw new Error(
       "Den valgte flade kan ikke bruges som projektgrænse. Tegn eller upload en afgrænsning.",
