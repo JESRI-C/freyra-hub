@@ -215,3 +215,21 @@ må ikke overskrive eller forveksles med en fysisk indsats. Handlingskortet
 åbner derfor det versionsgemte opfølgningsforløb. DB-prøven er udvidet til
 **112 assertions** inklusive tildeling, afvisning, forældet writer, viewer og
 afvist generisk statusændring.
+
+## F12
+
+- Resultat: lokal teknisk klargøring gennemført; **afventer ekstern afprøvning**.
+  Ingen pilot- eller faglig accept. [Acceptmatrix og næste handling](F12_ACCEPT.md).
+- Applikationskandidat b39b81b456f9dd5e58c23dfac9ce689624b4ea9c:
+  typecheck, lint (0 fejl/24 kendte advarsler), endeligt staging-build og
+  bundlekontrol består. Buildmetadata matcher kandidaten og korrekt miljø.
+- Den samlede kørsel på 2.954 beståede tests er suppleret med målrettede
+  genprøver efter de sidste kontrakt-/actions-ændringer. 112 offline SQL/RLS-
+  assertions består. Syntetisk PDF er renderet og visuelt kontrolleret.
+- Read-only hosted kontrol identificerer fortsat cfe09c4 og seneste
+  DB-migration 20261027223941; den nye workflowkontrakt er ikke anvendt.
+- Rigtig serie/skærelog, navngiven beslutning, medarbejder med skriveret og
+  relevant faglig deltager er ikke afprøvet. Hver berørt kundeprøve er åben.
+- Næste: konkret godkendt isoleret stagingudgivelse med den nye migration,
+  derefter hosted teknisk genprøve og senere den faktiske kunde-/fagprøve.
+  Ingen produktion, merge eller mail er udført.
