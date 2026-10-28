@@ -58,3 +58,18 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
 - Ingen produktændring nødvendig i denne afgrænsning.
 - Status: delvist dækket; tom kundesag og eksport på hosted release er
   ikke afprøvet på ny. Næste: F04.
+
+## F04
+
+- Dokumenteret genbrug: append-only workspace-versioner med advisory lock,
+  aktør/tid fastlagt i DB, versionskonflikter og immutable rapportinput.
+  Separate rapportspor og reviewmodeller bevares.
+- Prøver: report-document/service, project-workspace, municipal-report-replay,
+  municipal-report-inputs og municipal-report-authorization. Historiske v1/v2
+  manifest-, PDF- og ZIP-bytes prøves uændret efter nye generatorer.
+- Ny kørsel af upload/metadata/round/report: 144 tests bestået; én bundleprøve
+  overskred 15 sekunder. Præcis den prøve genkørt isoleret med 60 sekunders
+  tidsgrænse bestod på 2,32 sekunder. Fejlen er ikke skjult som en grøn første
+  kørsel. Yderligere 200 tests i syv filer består.
+- Status: delvist dækket. Udførelsesrevisionens kobling til sammenligning er
+  konkret restarbejde i F07/F08. Ingen migration tilføjet. Næste: F05.
