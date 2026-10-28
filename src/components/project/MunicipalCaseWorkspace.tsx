@@ -27,6 +27,7 @@ import { validateProjectPolygon } from "@/services/geo-service";
 import { DroneSurveyWorkspace } from "./DroneSurveyWorkspace";
 import { PublicBaselinePanel } from "./PublicBaselinePanel";
 import { MunicipalReportPanel } from "@/components/reports/MunicipalReportPanel";
+import { WorkflowReportPanel } from "@/components/reports/WorkflowReportPanel";
 import { PlantingSuitabilityPanel } from "@/components/lavbund/PlantingSuitabilityPanel";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "./ProjectMembersPanel";
@@ -416,11 +417,24 @@ export function MunicipalCaseWorkspace({
               </>
             )}
             {step === "rapport" && (
-              <MunicipalReportPanel
-                projectId={project.id}
-                selectedRoundId={selectedRoundId}
-                onSelectRound={onRound}
-              />
+              <>
+                {project.organization_id && (
+                  <WorkflowReportPanel
+                    key={project.id}
+                    scope={{ projectId: project.id, organizationId: project.organization_id }}
+                    selectedRoundId={selectedRoundId}
+                    canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
+                  />
+                )}
+                <details>
+                  <summary>Rapport for én undersøgelsesrunde (eksisterende spor)</summary>
+                  <MunicipalReportPanel
+                    projectId={project.id}
+                    selectedRoundId={selectedRoundId}
+                    onSelectRound={onRound}
+                  />
+                </details>
+              </>
             )}
             {step === "udfoerelse" && project.organization_id && (
               <ActionExecutionPanel

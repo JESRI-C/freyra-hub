@@ -95,7 +95,7 @@ gældende test- eller migrationsstatus.
 | Kilder/originaler | project_baseline_snapshots, project_media, upload_intents, evidence_files og private buckets |
 | Resultat og review | watercourse_observations/reviews, photo_point_review_versions, drone_image_inspections |
 | Indsats og bilag | actions og action_evidence; immutable projektnotater til rettelser |
-| Rapport | municipal_report_versions og municipal PDF/ZIP vælges til kerneaflevering; report_documents/revisions bevares til øvrige rapporttyper |
+| Rapport | F10 vælger report_documents/revisions med frosset workflowgrundlag til aflevering på tværs af før-/efterrunder. municipal_report_versions og dets PDF/ZIP bevares til historiske og enkeltstående runder. |
 | Opfølgning | actions, kvalitet/alerts og versionsgemte project_workspace_entries |
 | Beregningskørsel | calculated_metrics, kilde-/baselineversioner og eksisterende metodeprofiler |
 

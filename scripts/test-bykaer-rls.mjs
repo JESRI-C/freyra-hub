@@ -626,6 +626,118 @@ await q(`insert into storage.objects(bucket_id,name) values('project-originals',
   projectA + "/" + flightA + "/" + "c".repeat(64),
 ]);
 count++;
+// Minimal fixture for the existing action table used by the additive workflow guard.
+await db.exec(
+  "reset role; create table public.actions(id uuid primary key, project_id uuid not null); grant select on public.actions to authenticated;",
+);
+const workflowMigration = (await readdir("supabase/migrations")).find((name) =>
+  name.endsWith("_freeze_workflow_report_inputs.sql"),
+);
+await db.exec(await readFile("supabase/migrations/" + workflowMigration, "utf8"));
+await db.exec(await readFile("supabase/migrations/" + workflowMigration, "utf8"));
+const actionId = "00000000-0000-0000-0000-000000000095";
+await q("insert into actions values($1,$2)", [actionId, projectA]);
+await actor(uidA);
+const work = { schema: "freyra.action-execution/v1", actionId, dataBasis: "real" };
+const workPayload = {
+  basis: "Synthetic fixture only",
+  source: "action-execution:" + actionId,
+  decision: JSON.stringify(work),
+};
+const workId = (await q(entrySql, [actionId, orgA, projectA, 1, JSON.stringify(workPayload)]))
+  .rows[0].id;
+const workRow = (await q("select * from project_workspace_entries where id=$1", [workId])).rows[0];
+const workflow = {
+  schema: "freyra.workflow-report/v1",
+  generatorVersion: "workflow-report/v1",
+  projectId: projectA,
+  organizationId: orgA,
+  dataBasis: "real",
+  inputs: [workRow],
+  baselines: [],
+  plans: [],
+  rounds: [],
+  limitations: ["Synthetic fixture, no customer acceptance"],
+  review: null,
+};
+const workflowContent = { ...content, workflowSnapshot: workflow };
+const frozen = (await q(rpc, [null, orgA, projectA, 0, "draft", JSON.stringify(workflowContent)]))
+  .rows[0].revision;
+count++;
+await denied("workflow source cannot be forged", rpc, [
+  null,
+  orgA,
+  projectA,
+  0,
+  "draft",
+  JSON.stringify({
+    ...workflowContent,
+    workflowSnapshot: { ...workflow, inputs: [{ ...workRow, title: "Forged" }] },
+  }),
+]);
+await denied("workflow cannot move to foreign project", rpc, [
+  null,
+  orgA,
+  projectA,
+  0,
+  "draft",
+  JSON.stringify({ ...workflowContent, workflowSnapshot: { ...workflow, projectId: projectB } }),
+]);
+await denied("workflow approval requires exact scope review", rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  1,
+  "approved",
+  JSON.stringify(workflowContent),
+]);
+const reviewed = {
+  ...workflow,
+  review: {
+    scope: "documentation",
+    decision: "accepted",
+    inputIds: [workId],
+    reason: "Synthetic documentation review fixture only",
+    sectionTexts: Object.fromEntries(content.sections.map((section) => [section.id, section.text])),
+  },
+};
+await q(rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  1,
+  "approved",
+  JSON.stringify({ ...workflowContent, workflowSnapshot: reviewed }),
+]);
+count++;
+await denied("workflow review does not approve changed result", rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  2,
+  "approved",
+  JSON.stringify({
+    ...workflowContent,
+    sections: content.sections.map((section) => ({ ...section, text: "Changed" })),
+    workflowSnapshot: reviewed,
+  }),
+]);
+await q(entrySql, [actionId, orgA, projectA, 2, JSON.stringify(workPayload)]);
+await denied("stale workflow snapshot must be refreshed", rpc, [
+  frozen.report_id,
+  orgA,
+  projectA,
+  2,
+  "draft",
+  JSON.stringify(workflowContent),
+]);
+await check(
+  "historical workflow report retains original input",
+  "select content from report_revisions where id=$1",
+  [frozen.id],
+  (rows) => assert.equal(rows[0].content.workflowSnapshot.inputs[0].version, 1),
+);
+console.log("PASS workflow snapshot integrity, review scope, stale input and migration replay");
 // Revocation must affect a new request even while organization membership remains.
 await db.exec("reset role");
 await q("delete from project_members where project_id=$1 and user_id=$2", [projectA, uidC]);

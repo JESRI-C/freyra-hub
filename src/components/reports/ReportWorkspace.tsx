@@ -95,6 +95,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
   );
   const [content, setContent] = useState<ReportContent | null>(null);
   const [busy, setBusy] = useState(false);
+  const [workflowReviewReason, setWorkflowReviewReason] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
   const [images, setImages] = useState<ReportImage[]>([]);
   const [imagesReady, setImagesReady] = useState(false);
@@ -613,6 +614,47 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               <li key={i}>{issue}</li>
             ))}
           </ul>
+          {canEdit && mode === "approval" && content.workflowSnapshot && (
+            <div className="space-y-2">
+              <label className="block text-sm">
+                Dokumentationsreviewets omfang og begrundelse
+                <textarea
+                  className={field}
+                  value={workflowReviewReason}
+                  maxLength={3000}
+                  onChange={(event) => setWorkflowReviewReason(event.target.value)}
+                />
+              </label>
+              <button
+                className={button}
+                disabled={busy || !workflowReviewReason.trim()}
+                onClick={() =>
+                  setContent({
+                    ...content,
+                    workflowSnapshot: {
+                      ...content.workflowSnapshot!,
+                      review: {
+                        scope: "documentation",
+                        decision: "accepted",
+                        inputIds: content.workflowSnapshot!.inputs.map((entry) => entry.id),
+                        sectionTexts: Object.fromEntries(
+                          content.sections.map((section) => [section.id, section.text]),
+                        ),
+                        reason: workflowReviewReason.trim(),
+                      },
+                    },
+                  })
+                }
+              >
+                Registrér mit review af disse input og rapporttekster
+              </button>
+              <p className="text-xs">
+                Reviewet verificerer dokumentationen i det angivne omfang. Det godkender ikke en
+                kvantitativ natureffekt eller en myndighedsafgørelse. Gem reviewet som ny version
+                før godkendelse.
+              </p>
+            </div>
+          )}
           {canEdit && mode === "approval" && (
             <div className="flex gap-2">
               <button
@@ -640,6 +682,32 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
       {revision && (mode === "approval" || mode === "preview") && (
         <Card className="p-5 space-y-3">
           <h2 className="font-semibold">Eksportér gemt version {revision.version}</h2>
+          {revision.content.workflowSnapshot && (
+            <button
+              className={button}
+              disabled={busy || changed}
+              onClick={() =>
+                void run(async () => {
+                  const { buildWorkflowReportPackage } =
+                    await import("@/lib/workflow-report-package");
+                  const bytes = await buildWorkflowReportPackage(
+                    revision,
+                    imagesReady ? images : [],
+                  );
+                  const url = URL.createObjectURL(
+                    new Blob([bytes.slice().buffer], { type: "application/zip" }),
+                  );
+                  const anchor = document.createElement("a");
+                  anchor.href = url;
+                  anchor.download = "Freyra-foer-efter-v" + revision.version + ".zip";
+                  anchor.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 10000);
+                })
+              }
+            >
+              Hent PDF og kildepakke fra denne version
+            </button>
+          )}
           <p className="text-sm">
             Kladder mærkes tydeligt. Filen genereres fra den valgte gemte version og får en
             SHA-256-checksum. Fotoatlas medtager JPEG/PNG-originaler med verificeret checksum. Andre

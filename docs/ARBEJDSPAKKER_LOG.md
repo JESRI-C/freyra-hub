@@ -150,3 +150,30 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
   ændret visuelt split via input. Dette er ikke hosted mobil- eller WCAG-accept.
 - Status: delvist dækket. Telefon-/desktop-browser, fokusforløb og reel
   medarbejders forståelse er ikke afprøvet. Næste: F10, frosset aflevering.
+
+## F10
+
+- Rapportvalget er bekræftet efter kodegennemgang: report_documents/revisions
+  ejer første aflevering på tværs af før-/efterrunder. Den tidligere kandidat
+  municipal_report_versions binder én runde; dens generatorer og bytes bevares.
+  Der oprettes ikke en ny rapporttabel eller fælles revisionsnummerering.
+- Ændring: workflowSnapshot fastholder præcise workspace-versioner samt
+  baseline-, plan- og rundeversioner. Kilder kan ikke genindhentes og stiltiende
+  erstatte historiske input. Kunderapporter afviser syntetiske udførelsesposter.
+- Ny additiv migration: 20261028153415_freeze_workflow_report_inputs, oprettet
+  med repoets CLI og kun afprøvet lokalt. Den kontrollerer ejerskab, uændrede
+  input, versionskonflikter og præcist dokumentationsreview. Ingen hosted
+  database er ændret. Fuld Supabase/PostGIS-replay fra tom DB er ikke kørt.
+- Review af dokumentation kræver begrundelse, eksakte input-ID'er og samme
+  rapporttekster. Ændrede resultater arver ikke reviewet. Godkendelse er ikke
+  en myndighedsafgørelse eller en automatisk natureffekt.
+- Projektet genfinder seneste workflowrapport fra arkivet efter ny session.
+  Samme revision kan åbnes fra projekt/bibliotek og eksporteres til PDF/ZIP.
+  ZIP indeholder PDF, rapportversion, inputversioner, originalreferencer og
+  manifest med faktiske byteantal/SHA-256. Originalreferencer er ikke filbackup.
+- Prøver: 11 rapport-/eksport-/historiktests består; PDF-signatur, ZIP-indhold,
+  alle filhashes og deterministisk geneksport er kontrolleret. Offline DB-harness
+  består med 95 assertions efter den additive migration og gentaget replay.
+  Den afviser forfalsket/fremmed input, forældet grundlag og genbrugt tekstreview.
+- Status: delvist dækket. Hosted gem/genåbn, visuelt PDF-gennemsyn og relevant
+  faglig kundeaccept er ikke afprøvet på de nye ændringer. Næste: F11.

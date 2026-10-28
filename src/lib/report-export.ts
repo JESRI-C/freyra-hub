@@ -89,6 +89,18 @@ export function reportLines(revision: ReportRevision): string[] {
       `Kilder: ${s.sourceIds.join(", ") || "Ingen"}`,
       "",
     ]),
+    ...(c.workflowSnapshot
+      ? [
+          "Dokumentationsreview (ingen automatisk effektgodkendelse)",
+          c.workflowSnapshot.review
+            ? c.workflowSnapshot.review.decision +
+              ": " +
+              c.workflowSnapshot.review.reason +
+              " · inputversioner: " +
+              c.workflowSnapshot.review.inputIds.join(", ")
+            : "Afventer versionsafgrænset dokumentationsreview.",
+        ]
+      : []),
     "Kilderegister",
     ...(c.sources.length ? [] : ["Ingen registrerede kilder."]),
     c.photoAtlas
@@ -199,6 +211,11 @@ export async function generateReportFile(
   let mime: string;
   if (format === "pdf") {
     const pdf = new jsPDF();
+    if (revision.content.workflowSnapshot) {
+      // Stable exports from the frozen revision; historical generators are untouched.
+      pdf.setCreationDate(new Date(revision.created_at));
+      pdf.setFileId(revision.id.replaceAll("-", "").toUpperCase());
+    }
     pdf.addFileToVFS("FreyraReport.ttf", REPORT_FONT);
     pdf.addFont("FreyraReport.ttf", "FreyraReport", "normal");
     pdf.setFont("FreyraReport");
