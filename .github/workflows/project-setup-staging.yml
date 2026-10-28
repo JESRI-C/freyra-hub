@@ -1,0 +1,47 @@
+name: Build project setup staging artifact
+on:
+  pull_request:
+    branches: [codex/release-1.0]
+    paths:
+      - '.github/workflows/project-setup-staging.yml'
+      - 'src/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-artifact:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'codex/bykaer-pilot-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      CLOUDFLARE_ENV: staging
+      FREYRA_BUILD_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      GOMAXPROCS: '2'
+      NODE_OPTIONS: --max-old-space-size=5120
+      # Browser-safe staging configuration, already exposed by the staging client.
+      # No admin key, Datafordeler key, production settings or deploy permission.
+      VITE_SUPABASE_URL: "https://xdvqdzdpyceojbdknofi.supabase.co"
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_V063eKGinYFAnkplW0emYQ_4UdyCJQ9"
+      VITE_SUPABASE_PROJECT_ID: "xdvqdzdpyceojbdknofi"
+      SUPABASE_URL: "https://xdvqdzdpyceojbdknofi.supabase.co"
+      SUPABASE_PUBLISHABLE_KEY: "sb_publishable_V063eKGinYFAnkplW0emYQ_4UdyCJQ9"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: node node_modules/vitest/vitest.mjs run src/services/__tests__/place-search.test.ts src/services/__tests__/project-area-lookup.test.ts src/components/maps/__tests__/map-geometry.test.ts src/services/__tests__/geo-service-validation.test.ts src/services/baseline/__tests__/cadastral-source.test.ts src/services/baseline/__tests__/planting-polygon-sources.test.ts --maxWorkers=1 --no-file-parallelism
+      - run: npm run build:staging
+      - uses: actions/upload-artifact@v4
+        with:
+          name: project-setup-staging-build
+          path: .output
+          include-hidden-files: true
+          retention-days: 3
