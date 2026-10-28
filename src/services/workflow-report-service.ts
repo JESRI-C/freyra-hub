@@ -13,6 +13,8 @@ import {
 import { assertProjectScope, type ProjectScope } from "./project-workspace-service";
 import { loadReportSources, saveReportDocument } from "./report-document-service";
 import { baselineSha256 } from "./baseline/public-baseline-service";
+import { listWorkflowFollowups } from "./workflow-followup-service";
+import { latestWorkflowFollowups } from "@/lib/workflow-followup";
 
 async function pinnedInputs(
   scope: ProjectScope,
@@ -81,13 +83,15 @@ export async function buildWorkflowReportContent(
   selectedRoundId?: string,
 ): Promise<ReportContent> {
   const project = await assertProjectScope(scope);
-  const [history, comparisonHistory, sourceRegister] = await Promise.all([
+  const [history, comparisonHistory, sourceRegister, followupHistory] = await Promise.all([
     listActionExecutions(scope),
     listPhotoComparisons(scope),
     loadReportSources(scope.projectId),
+    listWorkflowFollowups(scope),
   ]);
   const executions = latestExecutions(history);
   const comparisons = latestPhotoComparisons(comparisonHistory);
+  const followups = latestWorkflowFollowups(followupHistory);
   if (!executions.length && !comparisons.length)
     throw new Error("Registrér først udførelse eller et fotopar.");
   const inspected = await Promise.all(
@@ -98,6 +102,7 @@ export async function buildWorkflowReportContent(
   const inputs = [
     ...history.filter((e) => selectedIds.has(e.id)),
     ...comparisons.map((c) => c.entry),
+    ...followups.map((r) => r.entry),
   ];
   const pinned = await pinnedInputs(scope, inputs, selectedRoundId);
   const limitations = [
@@ -208,7 +213,29 @@ export async function buildWorkflowReportContent(
     ],
     [
       "Næste opfølgning",
-      "Opfølgningsopgaver genfindes på sagen. Rapporten må kun beskrive faktisk registrerede aftaler.",
+      followups
+        .map(
+          ({ followup: f, entry }) =>
+            "v" +
+            entry.version +
+            " · " +
+            f.title +
+            "\nStatus: " +
+            f.status +
+            "\nÅrsag: " +
+            f.reason +
+            "\nAnsvarlig: " +
+            (f.assignee || "Ikke aftalt") +
+            "\nPlanlagt dato: " +
+            (f.dueDate || "Ikke aftalt") +
+            "\nBemærkning: " +
+            f.notes +
+            "\nBegrundelse: " +
+            f.resolutionReason +
+            "\nKildeversioner: " +
+            f.sourceIds.join(", "),
+        )
+        .join("\n\n") || "Der er ingen registrerede opfølgningsopgaver eller aftaler.",
     ],
   ];
   return {
@@ -231,6 +258,15 @@ export async function saveWorkflowReport(
   selectedRoundId?: string,
   previous?: ReportRevision,
 ) {
+  await assertProjectScope(scope);
+  if (!supabase) throw new Error("Database er ikke konfigureret.");
+  const contract = await (supabase as unknown as SupabaseClient).rpc(
+    "workflow_report_contract_version",
+  );
+  if (contract.error || contract.data !== "freyra.workflow-report/v1")
+    throw new Error(
+      "Testmiljøet mangler rapportens inputkontrol. Afstem migrationen før gemning; intet er gemt.",
+    );
   const content = await buildWorkflowReportContent(scope, selectedRoundId);
   return saveReportDocument({
     organizationId: scope.organizationId,

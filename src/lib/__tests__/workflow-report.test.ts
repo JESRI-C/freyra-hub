@@ -33,6 +33,7 @@ function fixture(): ReportRevision {
     created_by: uuid(5),
     content: {
       ...newReportContent("SYNTHETIC PROJECT", "SYNTHETIC ORG", "Descriptive", "Technical test"),
+      title: "SYNTHETIC PROJECT · før/efter af grødeskæring",
       sources: [
         {
           id: "media:" + uuid(8),
@@ -108,6 +109,14 @@ describe("frozen workflow report", () => {
     const original = JSON.stringify(report);
     const bytes = await buildWorkflowReportPackage(report);
     const contents = files(bytes);
+    if (process.env.FREYRA_WRITE_TEST_ARTIFACTS === "1") {
+      const { mkdir, writeFile } = await import("node:fs/promises");
+      const { resolve } = await import("node:path");
+      const directory = resolve("tmp/workflow-qa");
+      await mkdir(directory, { recursive: true });
+      await writeFile(resolve(directory, "synthetic-report.pdf"), contents["rapport.pdf"]);
+      await writeFile(resolve(directory, "synthetic-package.zip"), bytes);
+    }
     expect(new TextDecoder().decode(contents["rapport.pdf"].slice(0, 5))).toBe("%PDF-");
     expect(JSON.parse(new TextDecoder().decode(contents["rapportversion.json"]))).toEqual(report);
     const manifest = JSON.parse(new TextDecoder().decode(contents["manifest.json"]));

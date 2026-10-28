@@ -2,6 +2,7 @@ import { z } from "zod";
 import { WorkspaceEntrySchema } from "./project-workspace";
 import { ActionExecutionSchema } from "./action-execution";
 import { PhotoComparisonSchema } from "./photo-comparison";
+import { WorkflowFollowupSchema } from "./workflow-followup";
 const Uuid = z.string().uuid();
 const Hash = z.string().regex(/^[a-f0-9]{64}$/);
 const Snapshot = z
@@ -59,8 +60,11 @@ export const WorkflowReportSnapshotSchema = z
             !snapshot.inputs.some((e) => e.id === comparison.executionRevisionId)
           )
             issue("Sammenligningens udførelsesversion mangler.");
-        } else if (!entry.payload.source.startsWith("workflow-followup:"))
-          issue("Ukendt workflowkilde.");
+        } else if (entry.payload.source.startsWith("workflow-followup:")) {
+          WorkflowFollowupSchema.parse(value);
+          if (entry.payload.source !== "workflow-followup:" + entry.entry_id)
+            issue("Ugyldig opfølgningsreference.");
+        } else issue("Ukendt workflowkilde.");
       } catch {
         issue("Ugyldigt workflowinput.");
       }

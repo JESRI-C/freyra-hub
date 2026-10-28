@@ -177,3 +177,32 @@ tenant-regression indgår i de 135 beståede basisprøver. Commit 58aeb9c.
   Den afviser forfalsket/fremmed input, forældet grundlag og genbrugt tekstreview.
 - Status: delvist dækket. Hosted gem/genåbn, visuelt PDF-gennemsyn og relevant
   faglig kundeaccept er ikke afprøvet på de nye ændringer. Næste: F11.
+
+## F11
+
+- Ændring: regelbaseret hjælp foreslår interne opgaver ved manglende efterserie,
+  ukendt skæremetode, ukendt dækning og utilstrækkelige fotopar. Hver opgave har
+  årsag og konkrete kildeversioner. Ingen model/provider kræves, ingen mail sendes.
+- Stabil projektafgrænset hændelsesidentitet genbruger workspace-tabellens
+  unikke entry_id/version. Samtidige første gemninger genlæser den vindende
+  opgave. En egentlig DB-fejl bliver ikke til opdigtet succes.
+- Bruger kan tildele, datere, ændre, afvise og afslutte med revisionshistorik.
+  Gentaget hændelse bevarer tildeling/afvisning/afslutning; ændret kildeversion
+  er en ny hændelse. Et planlagt genbesøg er ikke en bekræftet aftale.
+- Opgaver genfindes efter refresh og indgår som præcise inputversioner i
+  rapportens opfølgningsafsnit. De påstår ingen fysisk udførelse eller tilladelse.
+- Prøver: otte hændelses-/persistenstests består, herunder dubletter,
+  samtidighed, respekteret afvisning, ændret grundlag og fremmed kilde.
+- Sikker videreførsel: rapportgemning kræver nu read-only kontraktprobe fra
+  den nye migration. Manglende migration giver konkret fejl før nogen gemning.
+- Status: delvist dækket. Hosted refresh, telefon/desktop og faktisk
+  aftale med medarbejderen er ikke afprøvet. Næste: F12.
+
+F11 supplerende kontrol: validering af de tre typedata ligger også i en
+additiv DB-trigger, så direkte API-kald ikke kan omgå kontrakterne. Den
+repræsentative offlinefixture manglede først besøgstabellen; fixturetabeller
+er tilføjet, og genprøven består med **106 assertions**. Herunder plan med
+faktisk dato, ugyldig kalenderdato, fremmed bilag/foto/kilde, forbudt
+kvantitativt fotopar og afvisning uden begrundelse. **33 målrettede tests i
+otte filer** består efter de sidste kontraktændringer. Ingen ny tabel i
+appen; fixturetabellerne findes kun i den isolerede harness.

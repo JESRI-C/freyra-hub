@@ -627,9 +627,14 @@ await q(`insert into storage.objects(bucket_id,name) values('project-originals',
 ]);
 count++;
 // Minimal fixture for the existing action table used by the additive workflow guard.
-await db.exec(
-  "reset role; create table public.actions(id uuid primary key, project_id uuid not null); grant select on public.actions to authenticated;",
-);
+await db.exec(`
+  reset role;
+  create table public.actions(id uuid primary key, project_id uuid not null);
+  create table public.survey_round_versions(id uuid primary key, project_id uuid not null, manifest_sha256 text, baseline_id uuid, plan_id uuid);
+  create table public.project_baseline_snapshots(id uuid primary key, project_id uuid not null, manifest_sha256 text, manifest jsonb);
+  create table public.verification_plan_versions(id uuid primary key, project_id uuid not null, manifest_sha256 text, manifest jsonb);
+  grant select on public.actions, public.survey_round_versions, public.project_baseline_snapshots, public.verification_plan_versions to authenticated;
+`);
 const workflowMigration = (await readdir("supabase/migrations")).find((name) =>
   name.endsWith("_freeze_workflow_report_inputs.sql"),
 );
@@ -638,7 +643,25 @@ await db.exec(await readFile("supabase/migrations/" + workflowMigration, "utf8")
 const actionId = "00000000-0000-0000-0000-000000000095";
 await q("insert into actions values($1,$2)", [actionId, projectA]);
 await actor(uidA);
-const work = { schema: "freyra.action-execution/v1", actionId, dataBasis: "real" };
+const work = {
+  schema: "freyra.action-execution/v1",
+  actionId,
+  dataBasis: "real",
+  surveyRoundId: null,
+  workType: "weed_cutting",
+  stage: "planned",
+  actualDate: null,
+  actualEndDate: null,
+  method: null,
+  reach: "",
+  performedBy: null,
+  sourceReference: "",
+  evidenceIds: [],
+  deviation: "",
+  correctionReason: "",
+  coverage: "unknown",
+  coverageDescription: "",
+};
 const workPayload = {
   basis: "Synthetic fixture only",
   source: "action-execution:" + actionId,
@@ -647,6 +670,36 @@ const workPayload = {
 const workId = (await q(entrySql, [actionId, orgA, projectA, 1, JSON.stringify(workPayload)]))
   .rows[0].id;
 const workRow = (await q("select * from project_workspace_entries where id=$1", [workId])).rows[0];
+for (const [label, changed] of [
+  ["plan cannot claim actual date", { actualDate: "2026-08-30", correctionReason: "Synthetic correction" }],
+  ["performed work requires source", { stage: "performed", actualDate: "2026-08-30", reach: "Synthetic reach", correctionReason: "Synthetic correction" }],
+  ["invalid calendar date is rejected", { stage: "performed", actualDate: "2026-02-30", reach: "Synthetic reach", sourceReference: "Synthetic log", correctionReason: "Synthetic correction" }],
+  ["foreign attachment is rejected", { evidenceIds: ["00000000-0000-0000-0000-000000000099"], correctionReason: "Synthetic correction" }],
+  ["correction requires reason", {}],
+]) await denied(label, entrySql, [actionId, orgA, projectA, 2,
+  JSON.stringify({ ...workPayload, decision: JSON.stringify({ ...work, ...changed }) })]);
+const compareId = "00000000-0000-0000-0000-000000000096";
+const pair = { schema: "freyra.photo-comparison/v1", comparisonId: compareId,
+  executionRevisionId: workId, beforeId: mediaA, afterId: mediaA2, parameter: "visible_vegetation",
+  samePlaceEvidence: "", commonCoverage: "unknown", coverageDescription: "", excludedAreas: "",
+  captureDifferences: "", conclusion: "", correctionReason: "", quantitative: false };
+const pairPayload = { basis: "Synthetic incomplete pair", source: "photo-comparison:" + compareId,
+  decision: JSON.stringify(pair) };
+await denied("direct API cannot enable quantitative photo result", entrySql, [compareId, orgA, projectA, 1,
+  JSON.stringify({ ...pairPayload, decision: JSON.stringify({ ...pair, quantitative: true }) })]);
+await denied("direct API cannot use foreign photo", entrySql, [compareId, orgA, projectA, 1,
+  JSON.stringify({ ...pairPayload, decision: JSON.stringify({ ...pair, afterId: mediaB }) })]);
+await q(entrySql, [compareId, orgA, projectA, 1, JSON.stringify(pairPayload)]); count++;
+const taskId = "00000000-0000-0000-0000-000000000097";
+const task = { schema: "freyra.workflow-followup/v1", eventKey: "synthetic-event", title: "Synthetic followup",
+  reason: "Synthetic incomplete pair", sourceIds: [workId], status: "proposed", assignee: null,
+  dueDate: null, notes: "", resolutionReason: "" };
+const taskPayload = { basis: task.reason, source: "workflow-followup:" + taskId, decision: JSON.stringify(task) };
+await denied("direct API cannot dismiss without reason", entrySql, [taskId, orgA, projectA, 1,
+  JSON.stringify({ ...taskPayload, decision: JSON.stringify({ ...task, status: "dismissed" }) })]);
+await denied("direct API cannot reference foreign followup source", entrySql, [taskId, orgA, projectA, 1,
+  JSON.stringify({ ...taskPayload, decision: JSON.stringify({ ...task, sourceIds: ["00000000-0000-0000-0000-000000000099"] }) })]);
+await q(entrySql, [taskId, orgA, projectA, 1, JSON.stringify(taskPayload)]); count++;
 const workflow = {
   schema: "freyra.workflow-report/v1",
   generatorVersion: "workflow-report/v1",
@@ -722,7 +775,16 @@ await denied("workflow review does not approve changed result", rpc, [
     workflowSnapshot: reviewed,
   }),
 ]);
-await q(entrySql, [actionId, orgA, projectA, 2, JSON.stringify(workPayload)]);
+await q(entrySql, [
+  actionId,
+  orgA,
+  projectA,
+  2,
+  JSON.stringify({
+    ...workPayload,
+    decision: JSON.stringify({ ...work, correctionReason: "Synthetic correction" }),
+  }),
+]);
 await denied("stale workflow snapshot must be refreshed", rpc, [
   frozen.report_id,
   orgA,

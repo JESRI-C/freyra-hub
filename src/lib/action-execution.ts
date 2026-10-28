@@ -78,7 +78,10 @@ export function executionRevisions(entries: WorkspaceEntry[]): ExecutionRevision
     .filter((e) => e.kind === "decision_note" && e.payload.source?.startsWith("action-execution:"))
     .map((entry) => {
       const execution = ActionExecutionSchema.parse(JSON.parse(entry.payload.decision));
-      if (entry.payload.source !== executionSource(execution.actionId))
+      if (
+        entry.payload.source !== executionSource(execution.actionId) ||
+        entry.entry_id !== execution.actionId
+      )
         throw new Error("Udførelsens kilde og handling stemmer ikke overens.");
       return { entry, execution };
     });

@@ -20,7 +20,10 @@ export function comparisonRevisions(entries: WorkspaceEntry[]) {
     .filter((e) => e.kind === "decision_note" && e.payload.source?.startsWith("photo-comparison:"))
     .map((entry) => {
       const comparison = PhotoComparisonSchema.parse(JSON.parse(entry.payload.decision));
-      if (entry.payload.source !== comparisonSource(comparison.comparisonId))
+      if (
+        entry.payload.source !== comparisonSource(comparison.comparisonId) ||
+        entry.entry_id !== comparison.comparisonId
+      )
         throw new Error("Sammenligningens identitet er ugyldig.");
       return { entry, comparison };
     });

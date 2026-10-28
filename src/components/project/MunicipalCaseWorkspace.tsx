@@ -34,6 +34,7 @@ import { ProjectMembersPanel } from "./ProjectMembersPanel";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { PhotoComparisonPanel } from "./PhotoComparisonPanel";
 import { adjacentMunicipalStep } from "@/lib/municipal-workflow";
+import { WorkflowFollowupPanel } from "./WorkflowFollowupPanel";
 
 export const MUNICIPAL_STEPS = [
   {
@@ -423,6 +424,13 @@ export function MunicipalCaseWorkspace({
                     key={project.id}
                     scope={{ projectId: project.id, organizationId: project.organization_id }}
                     selectedRoundId={selectedRoundId}
+                    canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
+                  />
+                )}
+                {project.organization_id && (
+                  <WorkflowFollowupPanel
+                    key={"followup:" + project.id}
+                    scope={{ projectId: project.id, organizationId: project.organization_id }}
                     canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
                   />
                 )}
