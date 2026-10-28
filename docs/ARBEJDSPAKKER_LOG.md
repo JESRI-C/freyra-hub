@@ -233,3 +233,15 @@ afvist generisk statusændring.
 - Næste: konkret godkendt isoleret stagingudgivelse med den nye migration,
   derefter hosted teknisk genprøve og senere den faktiske kunde-/fagprøve.
   Ingen produktion, merge eller mail er udført.
+
+### F12: godkendt staging og teknisk browseraccept
+
+- Migration og applikationskandidat b39b81b er udgivet på eksisterende staging
+  efter konkret brugergodkendelse. Hosted metadata og kontrakt er verificeret.
+- 11 syntetiske hosted scenarier består; PDF/ZIP-filmanifest verificeret,
+  læserens skriveret afvist, tilbagekaldt projektadgang afvist.
+- Ingen mails, kundeændringer, produktion eller main-merge. Se F12_ACCEPT.md
+  for versioner, rollbackreference, prøveomfang og tekniske begrænsninger.
+- Kunde-/fagprøven og samlet DB+Storage-restore står fortsat ikke afprøvet.
+- Konkret rest: feltfoto-hash i rapportkilderegister samt færdigindlæst
+  mobilkontrol. Disse må ikke udlægges som bestået kilde-/mobilaccept.

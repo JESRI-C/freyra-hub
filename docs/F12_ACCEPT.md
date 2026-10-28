@@ -79,3 +79,54 @@ rapporteres som sådan, indtil de faktisk er gennemført.
 Den efterfølgende kunde-/fagprøve kan først accepteres med de rigtige input
 og deltagere. F13–F29 er kortlagt, men ikke aktiveret i denne leverance.
 Der sendes ingen e-mails, heller ikke tests.
+
+## Godkendt stagingudgivelse og hosted prøve
+
+Brugerens konkrete godkendelse er modtaget og udført. Denne status erstatter
+ovenstående historiske oplysninger om ikke-deployed kandidat og manglende migration.
+
+- Staging: https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev
+- Verificeret applikationskilde: b39b81b456f9dd5e58c23dfac9ce689624b4ea9c.
+- Cloudflare Worker-version: 3a4b7e93-8605-4b7b-89b5-efca6f69a616.
+- Supabase-ledger: 20261028163056 freeze_workflow_report_inputs. Den lokale
+  kildefil hedder 20261028153415_freeze_workflow_report_inputs.sql; MCP tildelte
+  serverversionen. SQL SHA-256: A7D61CEAF08C9671B592CEFC050AF3DA16F662786D1B865B7705AE4061997FB5.
+- Før/efter migration: workspace 23, rapportrevisioner 21, actions 9 i begge
+  målinger. Ingen eksisterende kundeværdier ændret af migrationen.
+- Appfallback: Worker 203a9441-9578-4187-ac26-c30b1010d184, kilde cfe09c4e0cbb3fac4379460dc353f9b9fea17fc1.
+  Ved approllback bevares nye data/guards. Samlet hosted DB+Storage-restore er
+  fortsat ikke afprøvet; fallbackversion er ikke bevis for gendannelse.
+- Produktionsmiljø og main er urørt. Ingen mails eller invitationer sendt.
+
+`scripts/test-workflow-hosted.mjs` består med 11 scenarier og ingen registrerede
+browserfejl: projekt-/organisationsisolation; korrekt hosted version/DB-kontrakt;
+editor gemmer/genåbner udførelse; beskrivende kildebundet sammenligning; rettelse
+kræver ny vurdering; idempotent opfølgning med bevaret afvisning og actions-spejl;
+mobil uden vandret overflow; afvisning af syntetisk kunderapport; eksplicit
+syntetisk API-kladde genåbnes og eksporteres som PDF/ZIP med verificerede filhashes;
+frisk læserlogin med afvist skrive-RPC; tilbagekaldt projektmedlemskab afviser nye
+rapport-/workflowlæsninger. Allerede udstedte Storage-links er ikke prøvet for
+øjeblikkelig tilbagekaldelse.
+
+Prøverne bruger separate tekniske projekter, syntetiske pixels og adminoprettede
+ikke-leverbare testkonti. Mediefixtures er indsat via admin, ikke en bestået
+kundeupload. Adfærdsprøver bruger editor/læser og frisk passwordlogin.
+Testharness blev tilpasset de eksisterende orgroller, formularlabels og
+originalbeskyttelse; ingen beskyttelse blev svækket. Privat receipt, screenshots,
+PDF/ZIP og loginoplysninger ligger kun under ignoreret tmp/workflow-qa.
+Desktop-sammenligning og læserrapport er visuelt kontrolleret. Mobilprøven beviser
+kun overflowkravet; skærmbilledet viser indlæsning og beviser ikke en fuldt
+færdigindlæst mobilrapport.
+
+Kildebegrænsning observeret: feltfotos har hash i metadata.original_sha256,
+mens rapportens kanoniske kilderegister viser SHA-256 ikke dokumenteret, når
+sha256-kolonnen er tom. Eksportens filmanifest består, men dette beviser ikke
+originalfilernes checksums eller fuldstændige backup. Dette skal afklares før
+accept af en rigtig kundekildepakke.
+
+Kundematricens rækker står fortsat **ikke afprøvet** med faktiske Bykær-data og
+deltagere. En teknisk syntetisk API-kladde er ikke en positiv kunde-UI-rapportprøve.
+Næste afgrænsede arbejde er originalhash i rapportkilderegister og færdigindlæst
+mobilkontrol; kundens skærelog/originalserie/faglige beslutning afventer eksternt.
+Eksisterende sikkerhedsadvisor-fund er ikke ændret af denne migration; ingen nye
+workflowfunktioner er security definer. Fuldt migrationsreplay er fortsat åbent.

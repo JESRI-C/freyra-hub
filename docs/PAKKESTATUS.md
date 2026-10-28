@@ -39,3 +39,8 @@ Ingen pakke er accepteret i pilot. Live-/kundeaccept angives særskilt.
 
 F13–F29 er foreløbigt kortlagt og ikke aktiveret som del af første leverance.
 F01–F12 behandles sekventielt med genbrug, konkrete mangler og målrettede prøver.
+
+Opdatering efter godkendt stagingudgivelse: F07-F11 er nu teknisk afprøvet
+hosted med syntetiske data (11 scenarier). F12-kundeaccept er fortsat åben.
+Se F12_ACCEPT.md for præcise versioner, afgrænsning og resterende kildehash-
+og mobilprøve. Ovenstående henvisninger til afventende hosted refresh er historiske.
