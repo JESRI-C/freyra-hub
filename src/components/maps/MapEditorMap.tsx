@@ -1244,11 +1244,16 @@ export function MapEditorMap({
       if (!addressMarker) return;
       const addressLabel = document.createElement("strong");
       addressLabel.textContent = addressMarker.label;
-      const m = L.marker([addressMarker.lat, addressMarker.lng]).bindPopup(addressLabel).addTo(map);
-      m.openPopup();
+      const m = L.marker([addressMarker.lat, addressMarker.lng], {
+        interactive: !pickMode,
+        keyboard: !pickMode,
+      })
+        .bindPopup(addressLabel)
+        .addTo(map);
+      if (!pickMode) m.openPopup();
       layersRef.current.addressMarker = m;
     })();
-  }, [addressMarker, ready]);
+  }, [addressMarker, pickMode, ready]);
 
   // ── Preview polygon (fra markblok/matrikel klik) ──────────────────────────
   useEffect(() => {

@@ -73,7 +73,12 @@ ok(
     ),
   "Fixture role",
 );
-const expected = JSON.parse(await fs.readFile(".output/public/freyra-build.json", "utf8"));
+const expected = JSON.parse(
+  await fs.readFile(
+    process.env.FREYRA_BUILD_METADATA_FILE || ".output/public/freyra-build.json",
+    "utf8",
+  ),
+);
 const live = await (await fetch(BASE + "/freyra-build.json")).json();
 assert.match(expected.sourceRevision, /^[a-f0-9]{40}$/);
 assert.equal(live.sourceRevision, expected.sourceRevision);
@@ -192,7 +197,7 @@ try {
   const place = page.getByRole("option").filter({ hasText: "OpenStreetMap" }).first();
   await place.waitFor();
   await place.click();
-  await page.locator(".leaflet-popup").waitFor();
+  await page.locator(".leaflet-popup").last().waitFor();
   await pass(
     "1: live official address, partial search and attributed place-name selection move the map",
   );
