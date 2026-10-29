@@ -7,17 +7,19 @@ import { ProjectTabs } from "../ProjectTabs";
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
     params,
+    to,
     search,
     children,
     ...props
   }: {
-    params: { slug: string };
+    params?: { slug: string };
+    to: string;
     search: Record<string, string>;
     children: React.ReactNode;
   }) => (
     <a
       {...props}
-      href={`/app/projects/${params.slug}?${new URLSearchParams(Object.entries(search).filter(([, value]) => value !== undefined))}`}
+      href={`${to === "/felt" ? "/felt" : `/app/projects/${params?.slug}`}?${new URLSearchParams(Object.entries(search).filter(([, value]) => value !== undefined))}`}
     >
       {children}
     </a>
@@ -77,7 +79,7 @@ describe("mobile project navigation", () => {
   });
   it("retains the project and survey round in every field shortcut", async () => {
     const host = await render(<ProjectFieldShortcuts projectId="project-one" round="round-one" />);
-    const links = Array.from(host.querySelectorAll("a"));
+    const links = Array.from(host.querySelectorAll<HTMLAnchorElement>("nav a"));
     expect(links.length).toBe(4);
     for (const link of links) {
       const url = new URL(link.href);

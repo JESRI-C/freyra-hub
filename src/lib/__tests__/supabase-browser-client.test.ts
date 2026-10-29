@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   client: {
-    auth: { marker: "canonical-auth" },
+    auth: { marker: "canonical-auth", getSession: vi.fn() },
     from: vi.fn(),
   },
 }));
@@ -28,6 +28,21 @@ afterEach(() => {
 });
 
 describe("browser Supabase client", () => {
+  it("does not substitute another account's token in an actor-bound outbox request", async () => {
+    const canonical = await import("@/lib/supabase/client");
+    canonical.createActorBoundSupabaseClient("actor-a");
+    const callback = mocks.createClient.mock.calls.at(-1)![2].accessToken as () => Promise<string>;
+    mocks.client.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "actor-a" }, access_token: "synthetic-a" } },
+      error: null,
+    });
+    expect(await callback()).toBe("synthetic-a");
+    mocks.client.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "actor-b" }, access_token: "synthetic-b" } },
+      error: null,
+    });
+    await expect(callback()).rejects.toThrow("Sessionen er ændret");
+  });
   it("shares one GoTrue client across canonical and generated import paths", async () => {
     const canonical = await import("@/lib/supabase/client");
     const generated = await import("@/integrations/supabase/client");

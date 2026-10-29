@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), tus: vi.fn(), verify: vi.fn() }));
 vi.mock("@/lib/supabase/client", () => ({
+  createActorBoundSupabaseClient: () => ({ rpc: mocks.rpc }),
   supabase: {
     rpc: mocks.rpc,
     auth: {
@@ -39,6 +40,12 @@ beforeEach(() => {
   mocks.tus.mockResolvedValue(undefined);
 });
 describe("resumable field uploads", () => {
+  it("rejects a queued original owned by another actor before creating an intent", async () => {
+    await expect(
+      uploadFieldPhoto({ ...input(), expectedActorId: "00000000-0000-4000-8000-000000000001" }),
+    ).rejects.toThrow("anden bruger");
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
   it("sends untouched bytes only after the durable intent and missing-object response", async () => {
     mocks.rpc
       .mockResolvedValueOnce({ data: [draft], error: null })

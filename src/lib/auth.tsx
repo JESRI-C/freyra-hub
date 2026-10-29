@@ -10,6 +10,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { lockOfflineActor } from "@/lib/field-offline";
 import {
   clearQueryCacheForAuthTransition,
   clearQueryCacheForLogout,
@@ -346,6 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentOrg,
         currentProject,
         logout: async () => {
+          lockOfflineActor();
           authRevisionRef.current += 1;
           refreshGenerationRef.current += 1;
           activeUserIdRef.current = null;

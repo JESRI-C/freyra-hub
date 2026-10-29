@@ -6,6 +6,19 @@ export const FieldPhotoUuid = z
   .uuid()
   .transform((s) => s.toLowerCase());
 export const MAX_FIELD_PHOTO_BYTES = 50 * 1024 * 1024;
+export const FieldPhotoVerificationInput = z
+  .object({
+    projectId: FieldPhotoUuid,
+    uploadId: FieldPhotoUuid,
+    expectedActorId: FieldPhotoUuid.optional(),
+  })
+  .strict();
+export function fieldPhotoVerificationForActor(raw: unknown, actorId: string) {
+  const data = FieldPhotoVerificationInput.parse(raw);
+  if (data.expectedActorId && data.expectedActorId !== actorId)
+    throw new Error("Sessionen er ændret. Kontrollen kræver den oprindelige bruger.");
+  return { projectId: data.projectId, uploadId: data.uploadId };
+}
 export const FieldPhotoUploadPayload = z
   .object({
     title: z.string().trim().min(1).max(160),

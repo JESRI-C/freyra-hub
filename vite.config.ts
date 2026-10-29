@@ -7,6 +7,7 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 import { municipalBuildMetadataPlugin } from "./scripts/municipal-build-metadata.mjs";
+import { fieldOfflineBuildPlugin } from "./scripts/field-offline-build.mjs";
 
 // The MCP plugin generates development routes. Its current path-containment
 // check mixes slash styles on Windows, where the generated routes already live
@@ -42,6 +43,7 @@ export default defineConfig({
     },
     plugins: [
       municipalBuildMetadataPlugin(),
+      fieldOfflineBuildPlugin(),
       ...(process.platform === "win32" ? [] : [mcpDevPlugin]),
     ],
   },
