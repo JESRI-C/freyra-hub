@@ -136,6 +136,42 @@ describe("field photo position editor", () => {
     expect(host.textContent).toContain("Originalposition mangler");
     expect(host.textContent).toContain("Afstand kan ikke bestemmes");
   });
+  it("keeps the opening versions when background data changes during editing", async () => {
+    await open();
+    await input(host.querySelector("textarea")!, "My original edit");
+    mocks.history.mockResolvedValue([
+      {
+        id: "other",
+        version: 1,
+        lat: 55.002,
+        lng: 10,
+        status: "needs_review",
+        reason: "Other writer",
+        radius_m: 50,
+        policy_version: 0,
+        created_at: "2026-10-29T10:00:00Z",
+        created_by: "other",
+      },
+    ]);
+    mocks.policy.mockResolvedValue({ version: 1, radius_m: 10 });
+    await act(async () => {
+      await cache.invalidateQueries();
+    });
+    await settle();
+    const save = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent === "Gem observationssted som ny version",
+    )!;
+    await act(async () => save.click());
+    await settle();
+    expect(mocks.save).toHaveBeenCalledWith(
+      scope,
+      expect.objectContaining({
+        expectedVersion: 0,
+        expectedPolicyVersion: 0,
+        reason: "My original edit",
+      }),
+    );
+  });
   it("does not offer write or policy actions to a viewer", async () => {
     mocks.access.mockResolvedValue({
       userId: "actor",

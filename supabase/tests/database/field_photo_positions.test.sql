@@ -37,7 +37,8 @@ SELECT lives_ok($$SELECT pg_temp.position(55.0002,10,2,1,'fc305000-0000-4000-800
 SELECT is((SELECT status FROM public.field_photo_position_versions WHERE version=3),'needs_review','distance remains measured from original, not the last correction');
 SELECT lives_ok($$UPDATE public.project_media SET title='Revised photo title' WHERE id='fc304000-0000-4000-8000-000000000001'$$,'ordinary descriptive title editing is preserved');
 SELECT throws_ok($$UPDATE public.project_media SET lat=56 WHERE id='fc304000-0000-4000-8000-000000000001'$$,'23514',NULL,'raw coordinates cannot be overwritten');
-SELECT throws_ok($$DELETE FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'$$,'23514',NULL,'photo origin cannot be deleted');
+SELECT lives_ok($$DELETE FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'$$,'RLS filters an ordinary delete without throwing');
+SELECT is((SELECT count(*)::integer FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'),1,'ordinary delete cannot remove the original');
 SELECT ok(private.is_field_photo_storage_reference('project-media','fc302000-0000-4000-8000-000000000001/photo.jpg','fc303000-0000-4000-8000-000000000001'),'original storage object is pinned');
 SELECT set_config('request.jwt.claim.sub','fc300000-0000-4000-8000-000000000003',true);
 SELECT lives_ok($$SELECT pg_temp.position(55.0001,10,3,1,'fc305000-0000-4000-8000-000000000004')$$,'field contributor can append a correction');
@@ -48,6 +49,7 @@ SELECT throws_ok($$SELECT pg_temp.position(55.0001,10,4,1,gen_random_uuid())$$,'
 SELECT throws_ok($$UPDATE public.field_photo_position_versions SET lat=56$$,'42501',NULL,'ordinary API cannot rewrite history');
 RESET ROLE;
 SELECT throws_ok($$UPDATE public.field_photo_position_versions SET lat=56$$,'23514',NULL,'owner-level history update is rejected by immutable trigger');
+SELECT throws_ok($$DELETE FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'$$,'23514',NULL,'owner-level photo delete is rejected by immutable trigger');
 DELETE FROM public.organization_memberships WHERE user_id='fc300000-0000-4000-8000-000000000003';
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','fc300000-0000-4000-8000-000000000003',true);

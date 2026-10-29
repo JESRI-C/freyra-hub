@@ -72,6 +72,13 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
     };
   }, []);
   const retry = useRef({ payload: "", id: "" });
+  const policyBase = useRef<number | null>(null);
+  const photoBase = useRef<{
+    photoId: string;
+    version: number;
+    policyVersion: number;
+    radius: number;
+  } | null>(null);
   function requestId(input: unknown) {
     const payload = JSON.stringify(input);
     if (payload !== retry.current.payload) retry.current = { payload, id: crypto.randomUUID() };
@@ -84,6 +91,43 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
     retry: false,
   });
   const photo = photos.data?.find((p) => p.id === photoId);
+  useEffect(() => {
+    if (
+      allowed &&
+      !policy.isPending &&
+      !policy.isFetching &&
+      !policy.error &&
+      policyBase.current === null
+    ) {
+      policyBase.current = policy.data?.version ?? 0;
+      setRadius(String(policy.data?.radius_m ?? 50));
+    }
+    if (
+      photoId &&
+      history.data &&
+      !history.isFetching &&
+      !policy.isPending &&
+      !policy.isFetching &&
+      !policy.error &&
+      photoBase.current?.photoId !== photoId
+    ) {
+      photoBase.current = {
+        photoId,
+        version: history.data[0]?.version ?? 0,
+        policyVersion: policy.data?.version ?? 0,
+        radius: policy.data?.radius_m ?? 50,
+      };
+    }
+  }, [
+    allowed,
+    photoId,
+    history.data,
+    history.isFetching,
+    policy.data,
+    policy.isPending,
+    policy.isFetching,
+    policy.error,
+  ]);
   const raw = photo?.metadata.field_photo_capture as Record<string, unknown> | undefined;
   const parsedOriginal = PhotoPointSchema.safeParse(raw?.originalPosition);
   const original = parsedOriginal.success ? parsedOriginal.data : null;
@@ -92,7 +136,11 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
       ? PhotoPointSchema.safeParse({ lat: Number(lat), lng: Number(lng) })
       : null;
   const assessment = point?.success
-    ? photoPositionAssessment(original, point.data, policy.data?.radius_m ?? 50)
+    ? photoPositionAssessment(
+        original,
+        point.data,
+        photoBase.current?.radius ?? policy.data?.radius_m ?? 50,
+      )
     : null;
   const loading = access.isFetching || photos.isFetching || policy.isFetching || history.isFetching;
   const readError = access.error || photos.error || policy.error || history.error;
@@ -108,19 +156,30 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
         const input = {
           radiusM: Number(radius),
           reason: policyReason,
-          expectedVersion: policy.data?.version ?? 0,
+          expectedVersion: policyBase.current ?? 0,
         };
-        await saveFieldPhotoPolicy(scope, { ...input, requestId: requestId(input) });
+        const saved = await saveFieldPhotoPolicy(scope, { ...input, requestId: requestId(input) });
+        if (alive.current) policyBase.current = saved.version;
       } else {
         if (!point?.success || !photo) throw new Error("Angiv en gyldig breddegrad og længdegrad.");
         const input = {
           mediaId: photoId,
           point: point.data,
           reason,
-          expectedVersion: history.data?.[0]?.version ?? 0,
-          expectedPolicyVersion: policy.data?.version ?? 0,
+          expectedVersion: photoBase.current?.version ?? 0,
+          expectedPolicyVersion: photoBase.current?.policyVersion ?? 0,
         };
-        await saveFieldPhotoPosition(scope, { ...input, requestId: requestId(input) });
+        const saved = await saveFieldPhotoPosition(scope, {
+          ...input,
+          requestId: requestId(input),
+        });
+        if (alive.current)
+          photoBase.current = {
+            photoId,
+            version: saved.version,
+            policyVersion: saved.policy_version,
+            radius: saved.radius_m,
+          };
       }
       await cache.invalidateQueries({ queryKey: key });
       if (alive.current) {
@@ -139,6 +198,29 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
       if (alive.current) setBusy(false);
     }
   }
+  async function reload() {
+    const [freshPolicy, freshHistory] = await Promise.all([
+      policy.refetch(),
+      photoId ? history.refetch() : Promise.resolve(null),
+      photos.refetch(),
+    ]);
+    if (!alive.current || freshPolicy.error || freshHistory?.error) return;
+    policyBase.current = freshPolicy.data?.version ?? 0;
+    setRadius(String(freshPolicy.data?.radius_m ?? 50));
+    if (photoId) {
+      const latest = freshHistory?.data?.[0];
+      photoBase.current = {
+        photoId,
+        version: latest?.version ?? 0,
+        policyVersion: policyBase.current,
+        radius: freshPolicy.data?.radius_m ?? 50,
+      };
+      setLat(String(latest?.lat ?? photo?.lat ?? ""));
+      setLng(String(latest?.lng ?? photo?.lng ?? ""));
+      setReason("");
+    }
+    setMessage("Historikken er genindlæst. Gennemgå placering og regel før du gemmer.");
+  }
   return (
     <section
       className="space-y-3 rounded border p-4"
@@ -150,11 +232,7 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
         originalhistorik. Eksisterende kort viser stadig kamerapunktet; observationsstedet vises
         særskilt her.
       </p>
-      <Button
-        variant="outline"
-        disabled={busy || loading}
-        onClick={() => void cache.invalidateQueries({ queryKey: key })}
-      >
+      <Button variant="outline" disabled={busy || loading} onClick={() => void reload()}>
         Opdater fotos og historik
       </Button>
       {loading && <p role="status">Henter fotohistorik…</p>}
@@ -174,6 +252,7 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
               onChange={(e) => {
                 const p = photos.data?.find((p) => p.id === e.target.value);
                 setPhotoId(e.target.value);
+                photoBase.current = null;
                 setLat(p?.lat == null ? "" : String(p.lat));
                 setLng(p?.lng == null ? "" : String(p.lng));
                 setReason("");
