@@ -191,6 +191,15 @@ afterEach(() => {
 });
 
 describe("ProjectMediaUploadPanel file isolation", () => {
+  it("accepts coordinates entered with a Danish decimal keyboard", async () => {
+    await select(new File(["original"], "photo.jpg", { type: "image/jpeg" }));
+    input("Breddegrad", "55,4");
+    input("Længdegrad", "9,2");
+    input("Begrundelse for manuel placering", "Test af dansk decimaltastatur");
+    await submit();
+    expect(state.upload.mock.calls[0][0].coordinates).toEqual({ lat: 55.4, lng: 9.2 });
+  });
+
   it("retains the selected camera original during a background permission refresh", async () => {
     const image = new File(["camera-original"], "camera.jpg", { type: "image/jpeg" });
     await select(image);

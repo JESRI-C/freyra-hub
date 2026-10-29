@@ -177,8 +177,8 @@ export function ProjectMediaUploadPanel({
 
     let coordinates: { lat: number; lng: number } | undefined;
     if (manualLat.trim() || manualLng.trim()) {
-      const lat = Number(manualLat);
-      const lng = Number(manualLng);
+      const lat = Number(manualLat.replace(",", "."));
+      const lng = Number(manualLng.replace(",", "."));
       if (
         !manualLat.trim() ||
         !manualLng.trim() ||

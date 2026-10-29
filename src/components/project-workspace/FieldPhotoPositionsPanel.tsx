@@ -135,7 +135,10 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
   const original = parsedOriginal.success ? parsedOriginal.data : null;
   const point =
     lat.trim() && lng.trim()
-      ? PhotoPointSchema.safeParse({ lat: Number(lat), lng: Number(lng) })
+      ? PhotoPointSchema.safeParse({
+          lat: Number(lat.replace(",", ".")),
+          lng: Number(lng.replace(",", ".")),
+        })
       : null;
   const assessment = point?.success
     ? photoPositionAssessment(
