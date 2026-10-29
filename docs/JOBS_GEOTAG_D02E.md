@@ -18,6 +18,8 @@ Arbejdet foregår på `codex/work-order-lifecycle-v1` oven på `b6cb97c375fd5e03
 
 Migration `20261029203920_work_order_lifecycle_and_logbook.sql` er oprettet med eksisterende Supabase CLI. Den tilføjer to relaterede tabeller med RLS, sammensatte scope-FK'er og uforanderlig historik. Mutationer bruger samme opgavelås, forventet version og request-ID. Noter har selvstændig versionslås. Audit skrives atomisk; ingen udgående consumer tilføjes.
 
+Postgres-gennemgangen bruger Supabases retningslinjer for nøglebaseret pagination, RLS og transaktionslåse. Noteforespørgslen anvender projekt/opgave-føringen i sit tidsindeks. Auditkvitteringer har et afgrænset indeks på projekt, objekt, hændelse og request-ID, så hver logpost ikke skal afsøge hele projektets audit. Ingen p95- eller storskalapåstand udledes af indeksdesignet; belastningsmålingen hører fortsat til D04/D08.
+
 Nye datakontrakter/serverfunktioner ligger i `src/lib/work-order-lifecycle.ts` og `work-order-lifecycle.functions.ts`; request-klienten og fejlhåndteringen genbruges i `src/services/work-order-lifecycle-service.ts`.
 
 126 fokuserede lokale prøver i ni filer bestod, inklusive 32 service-/kontraktprøver og 11 nye mobilformularprøver. App-typecheck og fokuseret lint bestod. Mobilvisningen åbnes under **Status og logbog** på Mine opgaver og i projektets eksisterende planpanel. Plan, tildeling, adgang og status/note redigeres hver for sig. Åbne kladder låser listeopdatering og puljeovertagelse; kontoskift rydder den gamle formular. Starttid er tom, indtil udføreren angiver tidspunkt eller eksplicit vælger at indsætte nu.
