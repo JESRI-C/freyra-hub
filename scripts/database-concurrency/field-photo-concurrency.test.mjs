@@ -193,6 +193,62 @@ try {
     `SELECT json_build_object('media',(SELECT count(*) FROM public.project_media WHERE id=${upload}),'jobs',(SELECT count(*) FROM public.field_photo_processing_jobs WHERE upload_id=${upload}),'receipts',(SELECT count(*) FROM public.field_photo_receipts WHERE upload_id=${upload}));`,
   );
   assert.deepEqual(counts, { media: 1, jobs: 1, receipts: 0 });
+  const secondId = randomUUID(),
+    second = q(secondId);
+  await query(`INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES(${org},${actor},'viewer');
+    BEGIN; ${login} SELECT id FROM public.begin_field_photo_upload(${project},${second},${payload}::jsonb); COMMIT;
+    INSERT INTO storage.objects(bucket_id,name,owner_id,metadata) VALUES('project-media',${q(`${projectId}/field-uploads/${secondId}/original`)},${actor},'{"size":8,"mimetype":"image/jpeg"}');
+    BEGIN; ${login} SELECT id FROM public.finalize_field_photo_upload(${project},${second}); COMMIT;`);
+  const firstBackground = await transaction(
+    "SELECT json_build_object('background',public.claim_field_photo_background());",
+    service,
+  );
+  await firstBackground.marker("HELD");
+  const secondBackground = await transaction(
+    "SELECT json_build_object('background',public.claim_field_photo_background());",
+    service,
+  );
+  // The second transaction must complete its claim while the first is still
+  // open: SKIP LOCKED must distribute work, rather than wait on the first job.
+  await secondBackground.marker("HELD");
+  const firstClaim = firstBackground.rows().find((r) => r.background)?.background;
+  const secondClaim = secondBackground.rows().find((r) => r.background)?.background;
+  assert(
+    firstClaim && secondClaim,
+    "Two eligible jobs must be claimed while both transactions remain open",
+  );
+  assert.notEqual(firstClaim.upload.id, secondClaim.upload.id);
+  assert.deepEqual(
+    new Set([firstClaim.upload.id, secondClaim.upload.id]),
+    new Set([uploadId, secondId]),
+  );
+  await commit(firstBackground);
+  await commit(secondBackground);
+  scenarios.push({
+    name: "simultaneous_background_claims_skip_locked",
+    separateJobs: true,
+    secondClaimBeforeFirstCommit: true,
+  });
+  await query(
+    `UPDATE public.field_photo_background_jobs SET lease_until=clock_timestamp()-interval '1 second' WHERE upload_id=${q(firstClaim.upload.id)};`,
+  );
+  const [renewedRow] = await query(
+    `BEGIN; ${service} SELECT json_build_object('background',public.claim_field_photo_background()); COMMIT;`,
+  );
+  const renewed = renewedRow.background;
+  assert.equal(renewed.upload.id, firstClaim.upload.id);
+  assert.notEqual(renewed.job.lease_id, firstClaim.job.lease_id);
+  await query(
+    `BEGIN; ${service} SELECT public.fail_field_photo_background(${q(firstClaim.upload.id)},${q(firstClaim.job.lease_id)},'processing_failed'); COMMIT;`,
+  );
+  const [afterStale] = await query(
+    `SELECT json_build_object('lease',lease_id,'state',state) FROM public.field_photo_background_jobs WHERE upload_id=${q(firstClaim.upload.id)};`,
+  );
+  assert.deepEqual(afterStale, { lease: renewed.job.lease_id, state: "running" });
+  scenarios.push({
+    name: "expired_background_lease_takeover",
+    staleWorkerCannotReleaseNewLease: true,
+  });
   process.stdout.write(
     JSON.stringify({
       schema: "freyra.field-photo-local-concurrency/v1",

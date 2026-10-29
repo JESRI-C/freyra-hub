@@ -94,3 +94,4 @@ describe("field original server receipt", () => {
     expect(host.querySelector("button")?.disabled).toBe(false);
   });
 });
+vi.mock("../FieldPhotoPreviewPanel", () => ({ FieldPhotoPreviewPanel: () => null }));

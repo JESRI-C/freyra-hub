@@ -46,6 +46,15 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Typecheck isolated field photo worker
+        run: npx tsc --project tsconfig.field-photos.json --noEmit
+
+      - name: Bundle isolated field photo worker
+        run: npx esbuild workers/field-photos/index.ts --bundle --format=esm --platform=neutral --main-fields=module,main --conditions=workerd,worker,browser --external:node:* --tsconfig=tsconfig.field-photos.json --outfile=tmp/field-photo-worker/index.js
+
+      - name: Decode a synthetic image through the local Images binding
+        run: node scripts/test-field-photo-images.mjs
+
       - name: Lint
         run: npm run lint
 

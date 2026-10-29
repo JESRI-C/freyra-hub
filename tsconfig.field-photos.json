@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["workers/field-photos/**/*.ts", "types/field-photo-worker.d.ts"],
+  "compilerOptions": { "lib": ["ES2022"], "types": ["node"] }
+}

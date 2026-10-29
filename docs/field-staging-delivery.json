@@ -1,0 +1,69 @@
+{
+  "schema": "freyra.field-staging-delivery/v1",
+  "application": {
+    "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+    "sourceRevision": "a3dc06bb2af30bd9dbb4357c390ab4e575f6aa28",
+    "workerVersion": "1e09bf40-c7ec-4ae4-a6cc-8cf34a2e90a6",
+    "previousWorkerVersion": "4f968b72-ff7d-43b5-b4c9-94e092b6f67c",
+    "stagingBuildPassed": true,
+    "stagingBundleIsolationPassed": true,
+    "hostedBrowserChecked": false,
+    "hostedBrowserDecision": "User will test personally; browser origin approval was declined. No alternative browser attempted."
+  },
+  "database": {
+    "projectRef": "xdvqdzdpyceojbdknofi",
+    "migrations": [
+      "20261029072246_field_job_templates_and_versions",
+      "20261029094159_field_photo_position_versions",
+      "20261029100658_field_photo_upload_receipts",
+      "20261029130855_field_photo_background_previews"
+    ],
+    "appliedAtomically": true,
+    "exactSourceRecordedInMigrationHistory": true,
+    "newTableCount": 9,
+    "allNewTablesRlsEnabled": true,
+    "previewBucketPrivate": true,
+    "previewBucketLimitBytes": 2097152,
+    "browserCannotClaimJobs": true,
+    "serviceCanClaimJobs": true,
+    "existingMediaReferenceCountPreserved": true,
+    "existingStorageObjectCountPreserved": true
+  },
+  "backup": {
+    "kind": "private database metadata and definition snapshot in same instance",
+    "schema": "freyra_staging_backups",
+    "collections": 85,
+    "bytes": 27235747,
+    "rlsEnabled": true,
+    "externalDatabaseBackup": false,
+    "actualStorageFilesCopied": false,
+    "actualFileRecoveryTested": false
+  },
+  "testFixtures": {
+    "isolatedTestOrganization": true,
+    "labelledTestActions": 4,
+    "starterTemplates": 4,
+    "blankJobcardDrafts": 4,
+    "createdWithTestUserPrivileges": true,
+    "scopeApiChecksPassed": true,
+    "existingUserProjectsPreserved": true,
+    "credentialsCommitted": false
+  },
+  "backgroundWorker": {
+    "deployed": false,
+    "enabled": false,
+    "hostedImagesChecked": false
+  },
+  "acceptance": {
+    "hostedUploadAndServerFunction": "pending",
+    "physicalIphoneAndroid": "pending user trial",
+    "persistentOfflineCapture": "package D not implemented",
+    "bulkPhotoScale": "package E not implemented",
+    "professionalAcceptance": "pending",
+    "productionReady": false
+  },
+  "noMail": true,
+  "noAiCalls": true,
+  "noPaidImageCalls": true,
+  "productionChanged": false
+}
