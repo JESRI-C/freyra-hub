@@ -1,0 +1,71 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SELECT no_plan();
+INSERT INTO auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) VALUES
+('00000000-0000-0000-0000-000000000000','fc300000-0000-4000-8000-000000000001','authenticated','authenticated','photo-editor@example.test','',now(),'{"provider":"email"}','{}',now(),now()),
+('00000000-0000-0000-0000-000000000000','fc300000-0000-4000-8000-000000000002','authenticated','authenticated','photo-viewer@example.test','',now(),'{"provider":"email"}','{}',now(),now()),
+('00000000-0000-0000-0000-000000000000','fc300000-0000-4000-8000-000000000003','authenticated','authenticated','photo-field@example.test','',now(),'{"provider":"email"}','{}',now(),now());
+INSERT INTO public.organizations(id,name,type,country) VALUES('fc301000-0000-4000-8000-000000000001','Synthetic photo org','test','Denmark'),('fc301000-0000-4000-8000-000000000002','Synthetic foreign org','test','Denmark');
+INSERT INTO public.projects(id,organization_id,name) VALUES('fc302000-0000-4000-8000-000000000001','fc301000-0000-4000-8000-000000000001','Synthetic photo project'),('fc302000-0000-4000-8000-000000000002','fc301000-0000-4000-8000-000000000002','Synthetic foreign project');
+INSERT INTO public.organization_memberships(organization_id,user_id,role) SELECT 'fc301000-0000-4000-8000-000000000001',id,'viewer' FROM auth.users WHERE id IN('fc300000-0000-4000-8000-000000000001','fc300000-0000-4000-8000-000000000002','fc300000-0000-4000-8000-000000000003');
+INSERT INTO public.project_members(project_id,user_id,role) VALUES
+('fc302000-0000-4000-8000-000000000001','fc300000-0000-4000-8000-000000000001','editor'),('fc302000-0000-4000-8000-000000000001','fc300000-0000-4000-8000-000000000002','viewer'),('fc302000-0000-4000-8000-000000000001','fc300000-0000-4000-8000-000000000003','field');
+INSERT INTO storage.buckets(id,name,public) VALUES('project-media','project-media',false) ON CONFLICT(id) DO NOTHING;
+INSERT INTO storage.objects(id,bucket_id,name,metadata) VALUES('fc303000-0000-4000-8000-000000000001','project-media','fc302000-0000-4000-8000-000000000001/photo.jpg','{"size":8,"mimetype":"image/jpeg"}'),('fc303000-0000-4000-8000-000000000002','project-media','fc302000-0000-4000-8000-000000000001/manual.jpg','{"size":8,"mimetype":"image/jpeg"}');
+CREATE FUNCTION pg_temp.position(lat double precision,lng double precision,v integer,p integer,r uuid) RETURNS uuid LANGUAGE sql AS $$
+SELECT id FROM public.save_field_photo_position('fc302000-0000-4000-8000-000000000001','fc301000-0000-4000-8000-000000000001','fc304000-0000-4000-8000-000000000001',lat,lng,'Synthetic correction',v,p,r)
+$$;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','fc300000-0000-4000-8000-000000000001',true);
+SELECT lives_ok($$INSERT INTO public.project_media(id,project_id,title,category,source,file_path,url,mime_type,file_size_bytes,lat,lng,metadata) VALUES('fc304000-0000-4000-8000-000000000001','fc302000-0000-4000-8000-000000000001','Synthetic field photo','field_photo','field_upload','fc302000-0000-4000-8000-000000000001/photo.jpg','','image/jpeg',8,54,9,'{"original_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","field_photo_capture":{"schema":"freyra.field-photo/v1","originalPosition":{"lat":55,"lng":10},"initialPosition":{"lat":55,"lng":10},"correctionReason":""}}')$$,'new photo stores immutable source GPS');
+SELECT is((SELECT lat FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'),55::double precision,'row position follows original capture, not submitted mutable point');
+SELECT is((SELECT metadata #>> '{field_photo_capture,hashStatus}' FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'),'uploader_declared','hash is not falsely server verified');
+SELECT is((SELECT metadata #>> '{field_photo_capture,actorId}' FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'),'fc300000-0000-4000-8000-000000000001','capture actor is server assigned');
+SELECT lives_ok($$SELECT pg_temp.position(55.0001,10,0,0,'fc305000-0000-4000-8000-000000000001')$$,'a correction within the default radius is saved');
+SELECT is((SELECT radius_m FROM public.field_photo_position_versions WHERE version=1),50,'default radius is 50 metres');
+SELECT is((SELECT status FROM public.field_photo_position_versions WHERE version=1),'within_limit','small offset is within limit');
+SELECT is(pg_temp.position(55.0001,10,0,0,'fc305000-0000-4000-8000-000000000001'),(SELECT id FROM public.field_photo_position_versions WHERE version=1),'lost response retry returns the existing version');
+SELECT throws_ok($$SELECT pg_temp.position(55.0002,10,0,0,'fc305000-0000-4000-8000-000000000001')$$,'22023',NULL,'request identity cannot be reused with changed position');
+SELECT throws_ok($$SELECT pg_temp.position(55.0002,10,0,0,gen_random_uuid())$$,'40001',NULL,'stale correction is rejected');
+SELECT lives_ok($$SELECT pg_temp.position(55.001,10,1,0,'fc305000-0000-4000-8000-000000000002')$$,'an out of range point is retained for clarification');
+SELECT is((SELECT status FROM public.field_photo_position_versions WHERE version=2),'needs_review','excess movement is marked without blocking the record');
+SELECT is((SELECT lat FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'),55::double precision,'correction never changes original coordinate');
+SELECT lives_ok($$SELECT * FROM public.save_field_photo_policy('fc302000-0000-4000-8000-000000000001','fc301000-0000-4000-8000-000000000001',20,'Synthetic tighter rule',0,'fc306000-0000-4000-8000-000000000001')$$,'editor can version the distance rule');
+SELECT is((SELECT radius_m FROM public.field_photo_position_versions WHERE version=1),50,'old correction retains its rule snapshot');
+SELECT throws_ok($$SELECT pg_temp.position(55.0002,10,2,0,gen_random_uuid())$$,'40001',NULL,'stale policy cannot be silently used');
+SELECT lives_ok($$SELECT pg_temp.position(55.0002,10,2,1,'fc305000-0000-4000-8000-000000000003')$$,'new correction records the current rule');
+SELECT is((SELECT status FROM public.field_photo_position_versions WHERE version=3),'needs_review','distance remains measured from original, not the last correction');
+SELECT lives_ok($$UPDATE public.project_media SET title='Revised photo title' WHERE id='fc304000-0000-4000-8000-000000000001'$$,'ordinary descriptive title editing is preserved');
+SELECT throws_ok($$UPDATE public.project_media SET lat=56 WHERE id='fc304000-0000-4000-8000-000000000001'$$,'23514',NULL,'raw coordinates cannot be overwritten');
+SELECT lives_ok($$DELETE FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'$$,'RLS filters an ordinary delete without throwing');
+SELECT is((SELECT count(*)::integer FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'),1,'ordinary delete cannot remove the original');
+SELECT ok(private.is_field_photo_storage_reference('project-media','fc302000-0000-4000-8000-000000000001/photo.jpg','fc303000-0000-4000-8000-000000000001'),'original storage object is pinned');
+SELECT set_config('request.jwt.claim.sub','fc300000-0000-4000-8000-000000000003',true);
+SELECT lives_ok($$SELECT pg_temp.position(55.0001,10,3,1,'fc305000-0000-4000-8000-000000000004')$$,'field contributor can append a correction');
+SELECT throws_ok($$SELECT * FROM public.save_field_photo_policy('fc302000-0000-4000-8000-000000000001','fc301000-0000-4000-8000-000000000001',100,'Unauthorized',1,gen_random_uuid())$$,'42501',NULL,'field contributor cannot change the project rule');
+SELECT set_config('request.jwt.claim.sub','fc300000-0000-4000-8000-000000000002',true);
+SELECT is((SELECT count(*)::integer FROM public.field_photo_position_versions),4,'reader can inspect version history');
+SELECT throws_ok($$SELECT pg_temp.position(55.0001,10,4,1,gen_random_uuid())$$,'42501',NULL,'reader cannot register a correction');
+SELECT throws_ok($$UPDATE public.field_photo_position_versions SET lat=56$$,'42501',NULL,'ordinary API cannot rewrite history');
+RESET ROLE;
+SELECT throws_ok($$UPDATE public.field_photo_position_versions SET lat=56$$,'23514',NULL,'owner-level history update is rejected by immutable trigger');
+SELECT throws_ok($$DELETE FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000001'$$,'23514',NULL,'owner-level photo delete is rejected by immutable trigger');
+DELETE FROM public.organization_memberships WHERE user_id='fc300000-0000-4000-8000-000000000003';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','fc300000-0000-4000-8000-000000000003',true);
+SELECT is((SELECT count(*)::integer FROM public.field_photo_position_versions),0,'revoked membership hides history');
+SELECT throws_ok($$SELECT pg_temp.position(55.0001,10,3,1,'fc305000-0000-4000-8000-000000000004')$$,'42501',NULL,'retry requires current access');
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','fc300000-0000-4000-8000-000000000001',true);
+SELECT lives_ok($$INSERT INTO public.project_media(id,project_id,title,category,source,file_path,url,mime_type,file_size_bytes,metadata) VALUES('fc304000-0000-4000-8000-000000000002','fc302000-0000-4000-8000-000000000001','Synthetic no GPS photo','field_photo','field_upload','fc302000-0000-4000-8000-000000000001/manual.jpg','','image/jpeg',8,'{"original_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","field_photo_capture":{"schema":"freyra.field-photo/v1","originalPosition":null,"initialPosition":{"lat":55,"lng":10},"correctionReason":"Synthetic manual placement without GPS"}}')$$,'a manually placed photo without GPS is retained');
+SELECT is((SELECT status FROM public.field_photo_position_versions WHERE media_id='fc304000-0000-4000-8000-000000000002'),'manual_unverified','manual placement never becomes verified GPS');
+SELECT ok((SELECT distance_m IS NULL FROM public.field_photo_position_versions WHERE media_id='fc304000-0000-4000-8000-000000000002'),'unknown distance is not a false zero');
+SELECT ok((SELECT lat IS NULL AND lng IS NULL FROM public.project_media WHERE id='fc304000-0000-4000-8000-000000000002'),'manual observation is not copied into original GPS');
+SELECT throws_ok($$SELECT * FROM public.save_field_photo_policy('fc302000-0000-4000-8000-000000000001','fc301000-0000-4000-8000-000000000001',-1,'Invalid radius',1,gen_random_uuid())$$,'23514',NULL,'negative radius is rejected in the database');
+SELECT lives_ok($$INSERT INTO public.field_photo_position_versions(media_id,project_id,organization_id,version,lat,lng,reason,request_id,policy_version,radius_m,status) VALUES('fc304000-0000-4000-8000-000000000001','fc302000-0000-4000-8000-000000000001','fc301000-0000-4000-8000-000000000001',5,55.1,10,'Direct API declaration',gen_random_uuid(),99,99999,'within_limit')$$,'direct API inserts still pass through the position validator');
+SELECT is((SELECT status FROM public.field_photo_position_versions WHERE version=5),'needs_review','client cannot forge a within-limit status');
+SELECT is((SELECT radius_m FROM public.field_photo_position_versions WHERE version=5),20,'client cannot forge the policy snapshot');
+RESET ROLE;
+SELECT * FROM finish();
+ROLLBACK;

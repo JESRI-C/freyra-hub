@@ -11,6 +11,7 @@ import type {
 import { getProjectMedia as getSeedMedia } from "@/data/project-media";
 import { getCanonicalDroneMediaUrl } from "@/lib/canonical-drone-media.functions";
 import { canonicalDroneMediaReference } from "./monitoring/canonical-drone-media-reference";
+import { PhotoCaptureSchema } from "@/lib/field-photo-position";
 // Minimal interface for an untyped Supabase query builder, used to access the
 // project_media table which is not yet in the generated Database types.
 interface UntypedQueryBuilder {
@@ -56,6 +57,7 @@ function getDb(): UntypedDb | null {
   return supabase as unknown as UntypedDb | null;
 }
 export interface UploadMediaInput {
+  positionCorrectionReason?: string;
   projectId: string;
   file: File;
   title: string;
@@ -441,6 +443,38 @@ export async function uploadProjectMedia(
   const filePath = `${input.projectId}/${timestamp}_${safeName}`;
   const checksum = await sha256(input.file);
   // Upload file to storage
+  const originalMetadata =
+    input.source === "field_upload" && input.file.type.startsWith("image/")
+      ? await readOriginalMetadata(input.file)
+      : null;
+  const originalPosition =
+    originalMetadata?.latitude != null && originalMetadata.longitude != null
+      ? { lat: originalMetadata.latitude, lng: originalMetadata.longitude }
+      : null;
+  const initialPosition = input.coordinates
+    ? { lat: input.coordinates.lat, lng: input.coordinates.lng }
+    : originalPosition;
+  let capture: ReturnType<typeof PhotoCaptureSchema.parse> | null = null;
+  if (originalMetadata) {
+    try {
+      capture = PhotoCaptureSchema.parse({
+        schema: "freyra.field-photo/v1",
+        originalPosition,
+        initialPosition,
+        correctionReason: input.positionCorrectionReason ?? "",
+      });
+      if (
+        JSON.stringify(originalPosition) !== JSON.stringify(initialPosition) &&
+        !capture.correctionReason
+      )
+        return {
+          data: null,
+          error: "Angiv en begrundelse for den manuelle placering. Originalens GPS bevares.",
+        };
+    } catch {
+      return { data: null, error: "Fotoets position eller begrundelse er ugyldig." };
+    }
+  }
   const { error: storageError } = await supabase.storage.from(BUCKET).upload(filePath, input.file, {
     cacheControl: "300",
     upsert: false,
@@ -462,11 +496,15 @@ export async function uploadProjectMedia(
     url: "",
     // The top-level checksum is reserved by the DB for immutable project-originals paths.
     // Ordinary field uploads retain their byte checksum in provenance metadata.
-    metadata: { original_name: input.file.name, original_sha256: checksum },
+    metadata: {
+      original_name: input.file.name,
+      original_sha256: checksum,
+      ...(capture ? { field_photo_capture: capture, extracted_metadata: originalMetadata } : {}),
+    },
     thumbnail_url: null,
-    captured_at: input.capturedAt ?? null,
-    lat: input.coordinates?.lat ?? null,
-    lng: input.coordinates?.lng ?? null,
+    captured_at: originalMetadata?.capturedAt ?? input.capturedAt ?? null,
+    lat: capture ? (originalPosition?.lat ?? null) : (input.coordinates?.lat ?? null),
+    lng: capture ? (originalPosition?.lng ?? null) : (input.coordinates?.lng ?? null),
     altitude_m: input.coordinates?.altitudeM ?? null,
     accuracy_m: input.coordinates?.accuracyM ?? null,
     is_report_ready: input.isReportReady,

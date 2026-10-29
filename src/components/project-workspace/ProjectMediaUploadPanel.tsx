@@ -45,6 +45,7 @@ export function ProjectMediaUploadPanel({
   const [category, setCategory] = useState<MediaCategory>("field_photo");
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
+  const [positionReason, setPositionReason] = useState("");
   const [tags, setTags] = useState("");
   const [metadataPending, setMetadataPending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -74,6 +75,7 @@ export function ProjectMediaUploadPanel({
     setCategory("field_photo");
     setManualLat("");
     setManualLng("");
+    setPositionReason("");
     setTags("");
     setMetadataPending(false);
     setSuccessMsg(null);
@@ -191,6 +193,7 @@ export function ProjectMediaUploadPanel({
           .map((tag) => tag.trim())
           .filter(Boolean),
         coordinates,
+        positionCorrectionReason: positionReason,
       });
       if (!mounted.current || generation !== selectionGeneration.current) return;
       if (result.error) {
@@ -341,10 +344,11 @@ export function ProjectMediaUploadPanel({
               </label>
               <div className="space-y-2">
                 <div className="text-xs font-medium text-muted-foreground">
-                  Kameraposition (valgfri)
+                  Observationssted (valgfrit)
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Positionen er ikke en verificeret placering af det, billedet viser.
+                  Originalens GPS bevares. En ændret placering gemmes separat med begrundelse og
+                  afstandsregel. Uden original GPS markeres stedet som manuelt placeret.
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -364,6 +368,16 @@ export function ProjectMediaUploadPanel({
                     className="rounded-lg border bg-background text-xs px-3 py-2"
                   />
                 </div>
+                <label className="block">
+                  Begrundelse for manuel placering
+                  <input
+                    aria-label="Begrundelse for manuel placering"
+                    maxLength={2000}
+                    value={positionReason}
+                    onChange={(event) => setPositionReason(event.target.value)}
+                    className="w-full rounded border bg-background p-2"
+                  />
+                </label>
               </div>
             </fieldset>
           </details>
