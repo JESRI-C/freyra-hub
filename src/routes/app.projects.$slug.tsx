@@ -3,8 +3,10 @@ import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-quer
 import { useServerFn } from "@tanstack/react-start";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
-import { FieldJobCardsPanel } from "@/components/project/FieldJobCardsPanel";
-import { WorkOrderPlansPanel } from "@/components/project/WorkOrderPlansPanel";
+import {
+  ProjectWorkOrdersWorkspace,
+  type WorkOrderView,
+} from "@/components/project/ProjectWorkOrdersWorkspace";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -115,6 +117,8 @@ export const Route = createFileRoute("/app/projects/$slug")({
     tab?: string;
     round?: string;
     step?: MunicipalStep;
+    task?: string;
+    work?: WorkOrderView;
   } => ({
     ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
       ? { step: search.step as MunicipalStep }
@@ -125,6 +129,13 @@ export const Route = createFileRoute("/app/projects/$slug")({
     ...(typeof search.round === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.round)
       ? { round: search.round.toLowerCase() }
+      : {}),
+    ...(typeof search.task === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.task)
+      ? { task: search.task.toLowerCase() }
+      : {}),
+    ...(typeof search.work === "string" && ["plan", "field", "execution"].includes(search.work)
+      ? { work: search.work as WorkOrderView }
       : {}),
   }),
   head: () => ({ meta: [{ title: "Projekt — Freyra" }] }),
@@ -197,12 +208,15 @@ function MunicipalProjectPage() {
       project={project}
       step={step}
       selectedRoundId={search.round}
+      selectedActionId={search.task}
+      initialWorkOrderView={search.work}
+      onSelectAction={(task) => void navigate({ search: { ...search, task }, replace: true })}
       utility={search.tab === "audit" || search.tab === "roller" ? search.tab : undefined}
-      onStep={(next) => void navigate({ search: { step: next, round: search.round } })}
+      onStep={(next) => void navigate({ search: { ...search, tab: undefined, step: next } })}
       onRound={(round) => {
         void cache.invalidateQueries({ queryKey: ["project-by-slug", slug] });
         void cache.invalidateQueries({ queryKey: ["public-baselines", project.id] });
-        void navigate({ search: { step, round } });
+        void navigate({ search: { ...search, step, round } });
       }}
     />
   );
@@ -411,7 +425,7 @@ function ProjectDetailPage() {
       <Link
         to="/app/projects/$slug"
         params={{ slug }}
-        search={{ step: "billeder", round: search.round }}
+        search={{ step: "billeder", round: search.round, task: search.task }}
         className="inline-block text-sm text-primary underline underline-offset-4"
       >
         Til det guidede sagsforløb
@@ -424,7 +438,7 @@ function ProjectDetailPage() {
         openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
       />
 
-      <ProjectFieldShortcuts projectId={projectId} round={search.round} />
+      <ProjectFieldShortcuts projectId={projectId} round={search.round} task={search.task} />
 
       <ProjectTabs
         tabs={TABS}
@@ -586,14 +600,15 @@ function ProjectDetailPage() {
             {active === "handlinger" && (
               <div className="space-y-4">
                 {project.organization_id && (
-                  <WorkOrderPlansPanel
+                  <ProjectWorkOrdersWorkspace
                     scope={{ projectId: project.id, organizationId: project.organization_id }}
                     round={search.round}
-                  />
-                )}
-                {project.organization_id && (
-                  <FieldJobCardsPanel
-                    scope={{ projectId: project.id, organizationId: project.organization_id }}
+                    canEdit={canEdit}
+                    selectedActionId={search.task}
+                    initialView={search.work}
+                    onSelectAction={(task) =>
+                      void navigate({ search: { ...search, task }, replace: true })
+                    }
                   />
                 )}
                 {/* Sensor-derived action suggestions */}

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import {
   fetchProjectById,
@@ -142,16 +143,52 @@ export async function saveWorkspaceEntry(
   if (error) throw new Error(error.message);
   return WorkspaceEntrySchema.parse(data);
 }
-export async function createProjectAction(scope: ProjectScope, title: string, description: string) {
+export async function createProjectAction(
+  scope: ProjectScope,
+  title: string,
+  description: string,
+  actionId?: string,
+) {
   await assertProjectScope(scope);
   if (!title.trim()) throw new Error("Angiv en titel.");
-  const { data, error } = await db()
-    .from("actions")
-    .insert({ project_id: scope.projectId, title: title.trim(), description, status: "Åben" })
-    .select()
-    .single();
-  if (error) throw new Error(error.message);
-  return data as Action;
+  if (actionId) z.string().uuid().parse(actionId);
+  let failure = "Opgaven kunne ikke oprettes.";
+  try {
+    const { data, error } = await db()
+      .from("actions")
+      .insert({
+        ...(actionId ? { id: actionId } : {}),
+        project_id: scope.projectId,
+        title: title.trim(),
+        description,
+        status: "Åben",
+      })
+      .select()
+      .single();
+    if (!error && data) return data as Action;
+    failure = error?.message ?? failure;
+  } catch (error) {
+    if (error instanceof Error) failure = error.message;
+  }
+  if (actionId) {
+    // A lost INSERT reply or repeated attempt can only recover this exact identity
+    // and original payload through ordinary RLS. Never upsert or overwrite a task.
+    const { data, error } = await db()
+      .from("actions")
+      .select("*")
+      .eq("id", actionId)
+      .eq("project_id", scope.projectId)
+      .maybeSingle();
+    if (
+      !error &&
+      data?.id === actionId &&
+      data.project_id === scope.projectId &&
+      data.title === title.trim() &&
+      data.description === description
+    )
+      return data as Action;
+  }
+  throw new Error(failure);
 }
 export async function updateProjectAction(
   scope: ProjectScope,

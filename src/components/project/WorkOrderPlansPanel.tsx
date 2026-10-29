@@ -27,6 +27,7 @@ import type { ProjectScope } from "@/services/project-workspace-service";
 import { WorkOrderAccessPanel } from "./WorkOrderAccessPanel";
 import { WorkOrderAssignmentPanel } from "./WorkOrderAssignmentPanel";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
+import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
@@ -40,13 +41,19 @@ const profiles = {
 };
 const nullable = (value: string) => (value.trim() ? value : null);
 type Page = { items: WorkOrderPlanVersion[]; nextBeforeVersion: number | null };
-export function WorkOrderPlansPanel({ scope, round }: { scope: ProjectScope; round?: string }) {
+type PlanPanelProps = {
+  scope: ProjectScope;
+  round?: string;
+  selectedActionId?: string;
+  onEditing?: (value: boolean) => void;
+};
+export function WorkOrderPlansPanel(props: PlanPanelProps) {
+  const { scope } = props;
   const { user } = useAuth();
   return (
     <WorkOrderPlans
       key={`${scope.organizationId}:${scope.projectId}:${user?.id ?? "anonymous"}`}
-      scope={scope}
-      round={round}
+      {...props}
       actorId={user?.id}
     />
   );
@@ -55,31 +62,31 @@ function WorkOrderPlans({
   scope,
   round,
   actorId,
-}: {
-  scope: ProjectScope;
-  round?: string;
+  selectedActionId,
+  onEditing,
+}: PlanPanelProps & {
   actorId?: string;
 }) {
   const accessFn = useServerFn(getFieldJobAccess);
   const access = useQuery({
-    queryKey: ["work-order-plan-access", actorId, scope],
+    queryKey: ["field-job-access", actorId, scope.projectId],
     queryFn: () => accessFn({ data: { projectId: scope.projectId } }),
     enabled: !!actorId,
     retry: false,
   });
-  const enabled =
-    !!actorId &&
-    access.data?.userId === actorId &&
-    access.data.projectId === scope.projectId &&
-    !access.isError;
+  const sameAccess =
+    !!actorId && access.data?.userId === actorId && access.data.projectId === scope.projectId;
+  const enabled = sameAccess && !access.isError;
   const actions = useQuery({
-    queryKey: ["work-order-plan-actions", actorId, scope],
+    queryKey: ["field-job-actions", actorId, scope],
     queryFn: () => listFieldJobActions(scope),
     enabled,
     retry: false,
   });
-  const [actionId, setAction] = useState(""),
+  const [localActionId, setAction] = useState(""),
     [editing, setEditing] = useState(false);
+  const actionId = selectedActionId ?? localActionId;
+  useWorkOrderEditorLock(editing, onEditing);
   useBlocker({ shouldBlockFn: () => editing, enableBeforeUnload: editing });
   return (
     <section
@@ -105,50 +112,59 @@ function WorkOrderPlans({
       {(access.error || actions.error) && (
         <p role="alert">{(access.error || actions.error)?.message}</p>
       )}
-      {enabled && actions.data && (
-        <>
-          <label className="block text-sm">
-            Eksisterende opgave
-            <select
-              className={control}
-              value={actionId}
-              disabled={editing}
-              onChange={(e) => setAction(e.target.value)}
-            >
-              <option value="">Vælg opgave</option>
-              {actions.data.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.title}
-                </option>
-              ))}
-            </select>
-          </label>
+      {sameAccess && actions.data && (
+        <div hidden={!enabled || actions.isError}>
+          {selectedActionId === undefined && (
+            <label className="block text-sm">
+              Eksisterende opgave
+              <select
+                className={control}
+                value={actionId}
+                disabled={editing}
+                onChange={(e) => setAction(e.target.value)}
+              >
+                <option value="">Vælg opgave</option>
+                {actions.data.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {!actions.data.length && (
             <p className="text-sm">
               Opret en opgave på projektet, før du gemmer arbejdsgrundlaget.
             </p>
           )}
-          {actionId && actorId && (
+          {actionId && actorId && actions.data.some((a) => a.id === actionId) && (
             <PlanWorkspace
               key={actorId + actionId}
               scope={scope}
               actorId={actorId}
               actionId={actionId}
               title={actions.data.find((a) => a.id === actionId)?.title ?? "Arbejdsopgave"}
-              canPlan={access.data?.canConfigure === true && !access.isFetching}
+              canPlan={
+                enabled &&
+                !actions.isError &&
+                access.data?.canConfigure === true &&
+                !access.isFetching
+              }
               onEditing={setEditing}
             />
           )}
-        </>
+        </div>
       )}
-      <Link
-        to="/app/projects/$slug"
-        params={{ slug: scope.projectId }}
-        search={{ step: "udfoerelse", round }}
-        className="inline-block min-h-11 py-2 text-sm underline"
-      >
-        Åbn faktisk udførelse og feltregistrering
-      </Link>
+      {selectedActionId === undefined && (
+        <Link
+          to="/app/projects/$slug"
+          params={{ slug: scope.projectId }}
+          search={{ step: "udfoerelse", round, task: actionId || undefined }}
+          className="inline-block min-h-11 py-2 text-sm underline"
+        >
+          Åbn faktisk udførelse og feltregistrering
+        </Link>
+      )}
     </section>
   );
 }
@@ -269,7 +285,7 @@ function PlanWorkspace({
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
       ]);
-      await cache.invalidateQueries({ queryKey: ["work-order-plan-actions", actorId, scope] });
+      await cache.invalidateQueries({ queryKey: ["field-job-actions", actorId, scope] });
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Planen kunne ikke gemmes. Dine ændringer er bevaret.",

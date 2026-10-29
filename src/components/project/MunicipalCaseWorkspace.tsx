@@ -21,8 +21,7 @@ import { getMyProjectRole, permissionsFor } from "@/services/project-members-ser
 import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/supabase/types";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
-import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
-import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
+import { ProjectWorkOrdersWorkspace, type WorkOrderView } from "./ProjectWorkOrdersWorkspace";
 import { countCanonicalProjectOriginals } from "@/services/project-media-service";
 import { listProjectBaselines } from "@/lib/public-baseline.functions";
 import { validateProjectPolygon } from "@/services/geo-service";
@@ -33,7 +32,6 @@ import { WorkflowReportPanel } from "@/components/reports/WorkflowReportPanel";
 import { PlantingSuitabilityPanel } from "@/components/lavbund/PlantingSuitabilityPanel";
 import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { ProjectMembersPanel } from "./ProjectMembersPanel";
-import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { PhotoComparisonPanel } from "./PhotoComparisonPanel";
 import { adjacentMunicipalStep } from "@/lib/municipal-workflow";
 import { WorkflowFollowupPanel } from "./WorkflowFollowupPanel";
@@ -113,6 +111,9 @@ export function MunicipalCaseWorkspace({
   utility,
   onStep,
   onRound,
+  selectedActionId,
+  onSelectAction,
+  initialWorkOrderView,
 }: {
   project: Project;
   step: MunicipalStep;
@@ -120,6 +121,9 @@ export function MunicipalCaseWorkspace({
   utility?: "audit" | "roller";
   onStep: (step: MunicipalStep) => void;
   onRound: (id: string | undefined) => void;
+  selectedActionId?: string;
+  onSelectAction?: (id: string | undefined) => void;
+  initialWorkOrderView?: WorkOrderView;
 }) {
   const { user, selectProject, projectId: selectedProjectId } = useAuth();
   useEffect(() => {
@@ -447,22 +451,13 @@ export function MunicipalCaseWorkspace({
               </>
             )}
             {step === "udfoerelse" && project.organization_id && (
-              <WorkOrderPlansPanel
+              <ProjectWorkOrdersWorkspace
                 scope={{ projectId: project.id, organizationId: project.organization_id }}
                 round={selectedRoundId}
-              />
-            )}
-            {step === "udfoerelse" && project.organization_id && (
-              <FieldJobCardsPanel
-                scope={{ projectId: project.id, organizationId: project.organization_id }}
-              />
-            )}
-            {step === "udfoerelse" && project.organization_id && (
-              <ActionExecutionPanel
-                key={project.id}
-                scope={{ projectId: project.id, organizationId: project.organization_id }}
                 canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
-                selectedRoundId={selectedRoundId}
+                selectedActionId={selectedActionId}
+                initialView={initialWorkOrderView}
+                onSelectAction={onSelectAction}
               />
             )}
             {step === "sammenligning" && project.organization_id && (

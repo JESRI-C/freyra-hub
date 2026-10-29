@@ -16,6 +16,7 @@ import {
   assertProjectScope,
   saveWorkspaceEntry,
   updateProjectAction,
+  createProjectAction,
 } from "../project-workspace-service";
 describe("workspace authorized project boundary", () => {
   beforeEach(() => vi.resetAllMocks());
@@ -55,4 +56,61 @@ describe("workspace authorized project boundary", () => {
     );
     expect(q.eq).toHaveBeenCalledWith("project_id", "project-a");
   });
+  it("recovers a lost create reply by exact UUID, project and payload without overwriting anything", async () => {
+    mocks.project.mockResolvedValue({ id: "project-a", organization_id: "org-a" });
+    const actionId = "00000000-0000-4000-8000-000000000001";
+    const saved = {
+      id: actionId,
+      project_id: "project-a",
+      title: "Kontrol",
+      description: "Arbejde",
+    };
+    const insert = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { message: "Lost reply" } }),
+    };
+    const read = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: saved, error: null }),
+    };
+    mocks.from.mockReturnValueOnce(insert).mockReturnValueOnce(read);
+    await expect(createProjectAction(scope, " Kontrol ", "Arbejde", actionId)).resolves.toEqual(
+      saved,
+    );
+    expect(insert.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ id: actionId, project_id: "project-a", title: "Kontrol" }),
+    );
+    expect(read.eq).toHaveBeenCalledWith("id", actionId);
+    expect(read.eq).toHaveBeenCalledWith("project_id", "project-a");
+  });
+  it.each(["title", "description", "project_id"])(
+    "does not recover or overwrite a task with another %s",
+    async (changed) => {
+      mocks.project.mockResolvedValue({ id: "project-a", organization_id: "org-a" });
+      const actionId = "00000000-0000-4000-8000-000000000001";
+      const q = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ error: { message: "Duplicate identity" } }),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            id: actionId,
+            project_id: "project-a",
+            title: "Kontrol",
+            description: "Arbejde",
+            [changed]: "Other",
+          },
+          error: null,
+        }),
+      };
+      mocks.from.mockReturnValue(q);
+      await expect(createProjectAction(scope, "Kontrol", "Arbejde", actionId)).rejects.toThrow(
+        "Duplicate identity",
+      );
+      expect(q.insert).toHaveBeenCalledTimes(1);
+    },
+  );
 });

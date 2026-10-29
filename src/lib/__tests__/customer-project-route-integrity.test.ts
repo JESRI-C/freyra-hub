@@ -90,12 +90,28 @@ describe("customer project evidence guards", () => {
     const validate = Route.options.validateSearch as (value: Record<string, unknown>) => {
       tab?: string;
       round?: string;
+      task?: string;
+      work?: string;
     };
     expect(validate({ tab: "rapporter", round: "A1000000-0000-4000-8000-000000000001" })).toEqual({
       tab: "rapporter",
       round: "a1000000-0000-4000-8000-000000000001",
     });
     expect(validate({ tab: "unrecognized", round: "not-a-version" })).toEqual({});
+    expect(
+      validate({
+        step: "udfoerelse",
+        round: "A1000000-0000-4000-8000-000000000001",
+        task: "B1000000-0000-4000-8000-000000000002",
+        work: "execution",
+      }),
+    ).toEqual({
+      step: "udfoerelse",
+      round: "a1000000-0000-4000-8000-000000000001",
+      task: "b1000000-0000-4000-8000-000000000002",
+      work: "execution",
+    });
+    expect(validate({ task: "not-a-task", work: "approval" })).toEqual({});
   });
   it("does not generate simulated sensor readings or feed them to report preview in customer mode", () => {
     renderProject();

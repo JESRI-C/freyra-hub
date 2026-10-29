@@ -280,4 +280,42 @@ describe("existing actual-execution editor bound to work-order plan", () => {
     ).toBe(false);
     expect(m.saveBound).not.toHaveBeenCalled();
   });
+  it("opens the shared task with the exact history context and protects its draft without another selector", async () => {
+    const editing = vi.fn();
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <ActionExecutionPanel
+            scope={scope}
+            canEdit={true}
+            selectedActionId={actionId}
+            onEditing={editing}
+          />
+        </QueryClientProvider>,
+      ),
+    );
+    await flush();
+    expect(
+      [...host.querySelectorAll("select")].some((select) =>
+        select.querySelector(`option[value="${actionId}"]`),
+      ),
+    ).toBe(false);
+    expect(host.textContent).not.toContain("Ny planlagt handling");
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Åbn udførelsesregistrering")!
+        .click(),
+    );
+    await flush();
+    expect(m.loadContext).toHaveBeenCalledWith({
+      data: { ...scope, expectedActorId: actor, actionId, previousRevisionId: entry.id },
+    });
+    expect(editing).toHaveBeenLastCalledWith(true);
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Luk registrering uden at gemme")!
+        .click(),
+    );
+    expect(editing).toHaveBeenLastCalledWith(false);
+  });
 });

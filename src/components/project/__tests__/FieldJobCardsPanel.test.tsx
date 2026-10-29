@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: { id: "actor" } }) }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
+vi.mock("@tanstack/react-router", () => ({ useBlocker: vi.fn() }));
 vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: mocks.access }));
 vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: mocks.actions,
@@ -151,5 +152,34 @@ describe("job card editor", () => {
         correctionReason: "Feltkontrol",
       }),
     );
+  });
+  it("uses the shared task without another picker and releases its lock only after explicitly cancelling the draft", async () => {
+    const editing = vi.fn();
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <FieldJobCardsPanel scope={scope} selectedActionId="action" onEditing={editing} />
+        </QueryClientProvider>,
+      ),
+    );
+    await settle();
+    await settle();
+    expect(
+      [...host.querySelectorAll("select")].some((select) =>
+        [...select.options].some((option) => option.value === "action"),
+      ),
+    ).toBe(false);
+    const count = host.querySelector<HTMLInputElement>('input[type="number"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(count, "12");
+      count.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(editing).toHaveBeenLastCalledWith(true);
+    const cancel = [...host.querySelectorAll("button")].find(
+      (button) => button.textContent === "Fortryd ændringer i jobkort",
+    )!;
+    await act(async () => cancel.click());
+    expect(count.value).toBe("0");
+    expect(editing).toHaveBeenLastCalledWith(false);
   });
 });

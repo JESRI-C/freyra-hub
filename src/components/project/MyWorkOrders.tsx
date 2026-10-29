@@ -41,6 +41,7 @@ export function MyWorkOrders() {
 function MyTasks({ actorId }: { actorId: string }) {
   const load = useServerFn(listCurrentUserWorkOrders);
   const [editors, setEditors] = useState<Set<string>>(() => new Set());
+  const [activeTaskId, setActiveTask] = useState<string | null>(null);
   const tasks = useInfiniteQuery({
     queryKey: ["my-work-orders", actorId],
     initialPageParam: null as string | null,
@@ -65,9 +66,18 @@ function MyTasks({ actorId }: { actorId: string }) {
         </button>
       </header>
       <p className="text-sm text-muted-foreground">
-        Dine tildelte arbejdsopgaver og ledige opgaver i dine puljer. Åbn arbejdsgrundlaget, og
-        overtag en puljeopgave, når du skal udføre den.
+        Åbn en opgave for at se instruktionen og registrere dit arbejde.
       </p>
+      {activeTaskId && (
+        <button
+          type="button"
+          className={button}
+          disabled={editors.size > 0}
+          onClick={() => setActiveTask(null)}
+        >
+          ← Alle mine opgaver
+        </button>
+      )}
       {!!editors.size && (
         <p role="status" className="text-sm">
           Gem eller fortryd din kladde, før du opdaterer listen eller overtager en anden opgave.
@@ -87,20 +97,23 @@ function MyTasks({ actorId }: { actorId: string }) {
         <p className="rounded-xl border p-4">Du har ingen tildelte opgaver med en gemt plan.</p>
       )}
       {items.map((task) => (
-        <TaskCard
-          key={task.action_id}
-          task={task}
-          actorId={actorId}
-          locked={editors.size > 0}
-          onEditing={(value) =>
-            setEditors((old) => {
-              const next = new Set(old);
-              if (value) next.add(task.action_id);
-              else next.delete(task.action_id);
-              return next;
-            })
-          }
-        />
+        <div key={task.action_id} hidden={activeTaskId !== null && activeTaskId !== task.action_id}>
+          <TaskCard
+            task={task}
+            actorId={actorId}
+            active={activeTaskId === task.action_id}
+            onOpen={() => setActiveTask(task.action_id)}
+            locked={editors.size > 0}
+            onEditing={(value) =>
+              setEditors((old) => {
+                const next = new Set(old);
+                if (value) next.add(task.action_id);
+                else next.delete(task.action_id);
+                return next;
+              })
+            }
+          />
+        </div>
       ))}
       {tasks.hasNextPage && !tasks.isError && (
         <button
@@ -119,11 +132,15 @@ function TaskCard({
   actorId,
   locked,
   onEditing,
+  active,
+  onOpen,
 }: {
   task: MyWorkOrder;
   actorId: string;
   locked: boolean;
   onEditing: (value: boolean) => void;
+  active: boolean;
+  onOpen: () => void;
 }) {
   const claim = useServerFn(claimProjectWorkOrderPool),
     cache = useQueryClient();
@@ -135,7 +152,7 @@ function TaskCard({
   const inFlight = useRef(false),
     attempt = useRef<{ signature: string; requestId: string } | null>(null);
   async function take() {
-    if (inFlight.current || !task.can_claim || locked) return;
+    if (inFlight.current || !task.can_claim || locked || !active) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -179,65 +196,89 @@ function TaskCard({
               : " · Ledig"
           : ""}
       </p>
-      <details>
-        <summary className="min-h-11 cursor-pointer py-2 font-medium">Se arbejdsgrundlag</summary>
-        <WorkOrderPlanSummary row={{ plan: task.plan, version: task.plan_version }} />
-      </details>
-      {task.can_claim && (
+      {!active && (
         <button
-          className={button + " bg-primary text-primary-foreground"}
-          disabled={busy || locked}
-          onClick={() => void take()}
+          type="button"
+          className={button + " w-full bg-primary text-primary-foreground"}
+          disabled={locked}
+          onClick={onOpen}
         >
-          {busy ? "Overtager…" : "Overtag opgaven"}
+          Åbn opgave
         </button>
       )}
-      <details
-        onToggle={(e) => {
-          if (e.currentTarget.open) setStatusOpened(true);
-        }}
-      >
-        <summary
-          className="min-h-11 cursor-pointer py-2 font-medium"
-          onClick={(e) => {
-            if (locked && !editing) e.preventDefault();
+      <div hidden={!active} className="space-y-3">
+        <section aria-label="Opgavens instruktion" className="space-y-2 rounded-xl bg-muted/40 p-3">
+          <h3 className="font-medium">Det skal du gøre</h3>
+          <p className="whitespace-pre-wrap text-sm">
+            {task.plan.instructions ||
+              "Der er endnu ikke angivet en instruktion. Kontakt projektansvarlig, før arbejdet udføres."}
+          </p>
+        </section>
+        <details>
+          <summary className="min-h-11 cursor-pointer py-2 font-medium">Se arbejdsgrundlag</summary>
+          <WorkOrderPlanSummary row={{ plan: task.plan, version: task.plan_version }} />
+        </details>
+        {task.can_claim && (
+          <button
+            className={button + " bg-primary text-primary-foreground"}
+            disabled={busy || locked}
+            onClick={() => void take()}
+          >
+            {busy ? "Overtager…" : "Overtag opgaven"}
+          </button>
+        )}
+        <details
+          onToggle={(e) => {
+            if (e.currentTarget.open) setStatusOpened(true);
           }}
         >
-          Status og logbog
-        </summary>
-        {statusOpened && (
-          <fieldset
-            disabled={(locked && !editing) || busy}
-            className="min-w-0"
-            aria-label="Opgavens status og noter"
+          <summary
+            className="min-h-11 cursor-pointer py-2 font-medium"
+            onClick={(e) => {
+              if (locked && !editing) e.preventDefault();
+            }}
           >
-            <WorkOrderStatusPanel
-              scope={{
-                actionId: task.action_id,
-                organizationId: task.organization_id,
-                projectId: task.project_id,
-              }}
-              actorId={actorId}
-              onEditing={(value) => {
-                setEditing(value);
-                onEditing(value);
-              }}
-            />
-          </fieldset>
+            Status og logbog
+          </summary>
+          {statusOpened && (
+            <fieldset
+              disabled={(locked && !editing) || busy}
+              className="min-w-0"
+              aria-label="Opgavens status og noter"
+            >
+              <WorkOrderStatusPanel
+                scope={{
+                  actionId: task.action_id,
+                  organizationId: task.organization_id,
+                  projectId: task.project_id,
+                }}
+                actorId={actorId}
+                onEditing={(value) => {
+                  setEditing(value);
+                  onEditing(value);
+                }}
+              />
+            </fieldset>
+          )}
+        </details>
+        {task.can_plan && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Link
+              to="/app/projects/$slug"
+              params={{ slug: task.project_id }}
+              search={{ step: "udfoerelse", task: task.action_id, work: "execution" }}
+              className={button}
+            >
+              Registrér udført arbejde
+            </Link>
+            <Link to="/felt" search={{ project: task.project_id }} className={button}>
+              Tag fotos på projektet
+            </Link>
+          </div>
         )}
-      </details>
-      {task.can_plan && (
-        <Link
-          to="/app/projects/$slug"
-          params={{ slug: task.project_id }}
-          search={{ step: "udfoerelse" }}
-          className={button}
-        >
-          Åbn udførelse i projektet
-        </Link>
-      )}
-      {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
+        {error && <p role="alert">{error}</p>}
+        {message && <p role="status">{message}</p>}
+      </div>
     </article>
   );
 }
