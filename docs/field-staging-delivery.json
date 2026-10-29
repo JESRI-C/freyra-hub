@@ -143,5 +143,7 @@
   "noMail": true,
   "noAiCalls": true,
   "noPaidImageCalls": true,
-  "productionChanged": false
+  "productionChanged": false,
+  "historicalPackageReceipt": true,
+  "currentDeploymentReceipt": "jobs-geotag-staging-delivery.json"
 }

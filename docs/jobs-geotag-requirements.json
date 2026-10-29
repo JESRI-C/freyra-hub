@@ -44,7 +44,7 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Tilføj databasebundne relationer for operationelle opgaver; eksisterende projektidentitet genbruges."
+      "remaining": "Arbejdsordre, plan og udførelse har databasebundne relationer; observationer, tjeklister og rapport/eksport følger."
     },
     {
       "id": "ORG-02",
@@ -149,7 +149,7 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D02a plan/mobile contracts verified in CI 40937570174",
+      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
       "remaining": "Planrevision og adskilt ansvarlig findes; eksplicit tildeling, livscyklus og kobling til faktisk udfører følger i D02b."
     },
     {
@@ -180,7 +180,7 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D02a plan/mobile contracts verified in CI 40937570174",
+      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
       "remaining": "Typed vandløbsprofil og filtrerbare måleprojektioner findes; D04 fælles filtre og faktisk udførelseskobling afventer."
     },
     {
@@ -210,7 +210,7 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D02c frozen plan/execution binding implemented, database CI pending",
+      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
       "remaining": "Samme eksisterende udførelsesrevision bindes til plan og faktisk udfører; status, felt-/ekstern skrivevej, bilagskrav før aflevering og rapporteksport følger."
     },
     {
@@ -238,7 +238,7 @@
         "src/services/__tests__/work-order-access-service.test.ts",
         "supabase/tests/database/work_order_access.test.sql"
       ],
-      "coverage": "partial; D02b person assignment and history verified in CI 40938510298",
+      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
       "remaining": "Personers udførelses-/reviewadgang og historik findes; grupper og atomisk puljeovertagelse samt faktisk udførerbinding følger."
     },
     {
@@ -392,7 +392,7 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D02a plan/mobile contracts verified in CI 40937570174",
+      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
       "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes; kortinteraktion og fysisk prøve afventer."
     },
     {
@@ -1441,9 +1441,10 @@
       "databaseTestFiles": 18,
       "newD01Assertions": 71,
       "actualConcurrentAssignmentAndRetryPassed": true,
-      "hostedMigrationApplied": false,
+      "hostedMigrationApplied": true,
       "userInterfaceTested": false,
-      "pilotAccepted": false
+      "pilotAccepted": false,
+      "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json"
     }
   },
   "evidence": {
@@ -1454,9 +1455,10 @@
       "databaseAssertions": 1163,
       "planAssertions": 61,
       "actualConcurrency": true,
-      "hostedMigration": false,
-      "hostedDeployment": false,
-      "physicalMobileAcceptance": false
+      "hostedMigration": true,
+      "hostedDeployment": true,
+      "physicalMobileAcceptance": false,
+      "stagingSourceRevision": "625e2dab3447e6402be9e7caceb33bbbde09fae0"
     },
     "D02b": {
       "commit": "361e633840bdb026b0e11310a32cd85c0f465f55",
@@ -1464,9 +1466,24 @@
       "appTests": 3153,
       "databaseAssertions": 1180,
       "newDatabaseAssertions": 17,
-      "hostedMigration": false,
-      "hostedDeployment": false,
+      "hostedMigration": true,
+      "hostedDeployment": true,
+      "physicalMobileAcceptance": false,
+      "stagingSourceRevision": "625e2dab3447e6402be9e7caceb33bbbde09fae0"
+    },
+    "D02c": {
+      "commit": "625e2dab3447e6402be9e7caceb33bbbde09fae0",
+      "ciRun": 40942472409,
+      "appTests": 3176,
+      "databaseAssertions": 1219,
+      "newExecutionAssertions": 39,
+      "actualConcurrency": true,
+      "localHttpConflictsPassed": 3,
+      "hostedApiPassed": true,
+      "hostedMigration": true,
+      "hostedDeployment": true,
       "physicalMobileAcceptance": false
     }
-  }
+  },
+  "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json"
 }
