@@ -10,7 +10,7 @@ INSERT INTO public.organization_memberships(organization_id,user_id,role) SELECT
 INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES(pg_temp.k(11),pg_temp.k(7),'viewer'),(pg_temp.k(12),pg_temp.k(6),'owner');
 INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_temp.k(11),'Synthetic assigned project'),(pg_temp.k(22),pg_temp.k(11),'Synthetic other project A'),(pg_temp.k(23),pg_temp.k(12),'Synthetic other organization project');
 INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'viewer'),(pg_temp.k(21),pg_temp.k(4),'external'),(pg_temp.k(21),pg_temp.k(5),'editor');
-INSERT INTO public.actions(id,project_id,title,action_type) VALUES(pg_temp.k(31),pg_temp.k(21),'Synthetic assigned action',null),(pg_temp.k(32),pg_temp.k(21),'Synthetic unassigned action',null),(pg_temp.k(33),pg_temp.k(22),'Synthetic other project action',null),(pg_temp.k(34),pg_temp.k(23),'Synthetic other tenant action',null),(pg_temp.k(35),pg_temp.k(21),'Synthetic uninitialized action',null),(pg_temp.k(36),pg_temp.k(21),'Synthetic follow-up suggestion','workflow_followup');
+INSERT INTO public.actions(id,project_id,title,action_type) VALUES(pg_temp.k(31),pg_temp.k(21),'Synthetic assigned action',null),(pg_temp.k(32),pg_temp.k(21),'Synthetic unassigned action',null),(pg_temp.k(33),pg_temp.k(22),'Synthetic other project action',null),(pg_temp.k(34),pg_temp.k(23),'Synthetic other tenant action',null),(pg_temp.k(35),pg_temp.k(21),'Synthetic uninitialized action',null);
 INSERT INTO storage.objects(id,bucket_id,name,metadata) VALUES(pg_temp.k(91),'project-media',pg_temp.k(21)::text||'/synthetic-work-order.png','{"mimetype":"image/png","size":3}');
 
 CREATE FUNCTION pg_temp.init(a integer DEFAULT 31,req integer DEFAULT 41,org integer DEFAULT 11,proj integer DEFAULT 21) RETURNS uuid LANGUAGE sql AS $$
@@ -29,6 +29,12 @@ SELECT ok(NOT (SELECT prosecdef FROM pg_proc WHERE oid='public.save_work_order_a
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($q$INSERT INTO public.project_workspace_entries(id,entry_id,organization_id,project_id,kind,version,title,payload)
+ VALUES(pg_temp.k(81),pg_temp.k(82),pg_temp.k(11),pg_temp.k(21),'decision_note',1,'Synthetic source note','{"basis":"Synthetic source","source":"synthetic-reference","decision":"Synthetic QA note","alternatives":"","uncertainty":"","owner":""}')$q$,'synthetic follow-up source uses the existing workspace contract');
+SELECT lives_ok($q$SELECT public.save_workflow_followup_revision(pg_temp.k(36),pg_temp.k(11),pg_temp.k(21),0,'Synthetic follow-up suggestion',
+ jsonb_build_object('basis','Synthetic source','source','workflow-followup:'||pg_temp.k(36)::text,'decision',jsonb_build_object(
+ 'schema','freyra.workflow-followup/v1','eventKey','synthetic-work-order-source','title','Synthetic follow-up suggestion','reason','Synthetic QA issue','sourceIds',jsonb_build_array(pg_temp.k(81)::text),
+ 'status','proposed','assignee',NULL,'dueDate',NULL,'notes','','resolutionReason','')::text,'alternatives','','uncertainty','','owner',''))$q$,'follow-up fixture is created through the existing atomic source/history RPC');
 SELECT lives_ok($$SELECT pg_temp.init()$$,'manager initializes an existing action without creating another project');
 SELECT is(pg_temp.init(),pg_temp.k(31),'identical creation retry returns the same identity');
 SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(31) AND event_type='work_order.created'),1,'T09 creation retry writes one internal audit event');
