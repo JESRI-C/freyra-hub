@@ -102,7 +102,9 @@ describe("kommunens arbejdsflade", () => {
     const { AppSidebar } = await import("@/components/AppSidebar");
     const html = renderToStaticMarkup(createElement(AppSidebar));
     const navigation = html.match(/<nav\b[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? "";
-    expect(navigation.match(/href="[^"]+"/g)).toHaveLength(16);
+    expect(navigation.match(/href="[^"]+"/g)).toHaveLength(17);
+    expect(navigation).toContain('href="/opgaver"');
+    expect(navigation).toContain("Mine opgaver");
     expect(navigation).toContain('href="/app/overview"');
     expect(navigation).toContain('href="/app/projects"');
     expect(navigation).toContain("Naturprojekter");
