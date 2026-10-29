@@ -38,6 +38,10 @@ CREATE TRIGGER enqueue_field_photo_background AFTER INSERT ON public.field_photo
 INSERT INTO public.field_photo_background_jobs(upload_id,project_id) SELECT upload_id,project_id FROM public.field_photo_processing_jobs ON CONFLICT DO NOTHING;
 
 INSERT INTO storage.buckets(id,name,public,file_size_limit,allowed_mime_types) VALUES('field-photo-previews','field-photo-previews',false,2097152,ARRAY['image/jpeg']) ON CONFLICT(id) DO NOTHING;
+-- Explicit restrictive boundaries also cover any legacy permissive policies.
+CREATE POLICY field_preview_no_insert ON storage.objects AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK(bucket_id<>'field-photo-previews');
+CREATE POLICY field_preview_no_update ON storage.objects AS RESTRICTIVE FOR UPDATE TO authenticated USING(bucket_id<>'field-photo-previews') WITH CHECK(bucket_id<>'field-photo-previews');
+CREATE POLICY field_preview_no_delete ON storage.objects AS RESTRICTIVE FOR DELETE TO authenticated USING(bucket_id<>'field-photo-previews');
 CREATE POLICY field_preview_object_read ON storage.objects FOR SELECT TO authenticated USING(
  bucket_id='field-photo-previews' AND EXISTS(SELECT 1 FROM public.field_photo_previews p WHERE p.storage_path=name AND p.object_id=id
  AND p.object_version IS NOT DISTINCT FROM (to_jsonb(objects)->>'version') AND p.object_updated_at=updated_at AND private.can_read_project(p.project_id))

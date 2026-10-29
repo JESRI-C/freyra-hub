@@ -60,6 +60,11 @@ SELECT is((SELECT count(*)::integer FROM storage.objects WHERE id='fe303000-0000
 SELECT throws_ok($$INSERT INTO storage.objects(bucket_id,name,metadata) VALUES('field-photo-previews','client.jpg','{"size":1,"mimetype":"image/jpeg"}')$$,'42501',NULL,'browser cannot create preview objects');
 SELECT lives_ok($$DELETE FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'$$,'RLS filters ordinary preview delete');
 SELECT is((SELECT count(*)::integer FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'),1,'preview remains after attempted delete');
+SELECT set_config('request.jwt.claim.sub','fe300000-0000-4000-8000-000000000002',true);
+SELECT lives_ok($$UPDATE storage.objects SET name='changed.jpg' WHERE id='fe303000-0000-4000-8000-000000000001'$$,'RLS filters editor rename of a preview');
+SELECT lives_ok($$DELETE FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'$$,'RLS filters editor deletion of a preview');
+SELECT is((SELECT count(*)::integer FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001' AND name LIKE '%/preview-jpeg1536-v1/%'),1,'editor cannot change or remove the bound preview');
+SELECT set_config('request.jwt.claim.sub','fe300000-0000-4000-8000-000000000003',true);
 RESET ROLE;
 UPDATE storage.objects SET version='synthetic-changed' WHERE id='fe303000-0000-4000-8000-000000000001';
 SET LOCAL ROLE authenticated;
