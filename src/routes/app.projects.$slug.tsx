@@ -2,6 +2,7 @@ import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
+import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { FieldJobCardsPanel } from "@/components/project/FieldJobCardsPanel";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ import {
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
+import { ProjectFieldShortcuts } from "@/components/project/ProjectFieldShortcuts";
 import {
   MunicipalCaseWorkspace,
   MUNICIPAL_STEPS,
@@ -225,6 +227,25 @@ function ProjectDetailPage() {
     !!actualAccess.data?.canPersist &&
     !actualAccess.isError &&
     !actualAccess.isFetching;
+  const loadFieldAccess = useServerFn(getFieldJobAccess);
+  const fieldAccess = useQuery({
+    queryKey: ["field-photo-upload-access", accessUser?.id, project?.id],
+    queryFn: () => loadFieldAccess({ data: { projectId: project!.id } }),
+    enabled: !!project && !!accessUser && search.tab === "medier",
+    retry: false,
+  });
+  // Keep an existing form mounted while a focus-triggered permission check runs.
+  // The upload action is disabled until that check settles; confirmed revocation removes it.
+  const hasPhotoEditorAccess =
+    actualAccess.data?.userId === accessUser?.id &&
+    !!actualAccess.data?.canPersist &&
+    !actualAccess.isError;
+  const canUploadFieldPhoto =
+    hasPhotoEditorAccess ||
+    (fieldAccess.data?.userId === accessUser?.id &&
+      fieldAccess.data?.projectId === project?.id &&
+      !!fieldAccess.data?.canContribute &&
+      !fieldAccess.isError);
   // projectId is always set when project exists; hooks below use it unconditionally
   const projectId = project?.id ?? "";
   // Sub-queries — all parallel via standard suspense
@@ -385,7 +406,7 @@ function ProjectDetailPage() {
   );
   const sensorActions = suggestSensorActions(sensors);
   return (
-    <main className="p-6 max-w-[1200px] w-full mx-auto space-y-5 pb-16">
+    <main className="min-w-0 p-3 sm:p-6 max-w-[1200px] w-full mx-auto space-y-4 sm:space-y-5 pb-16">
       <Link
         to="/app/projects/$slug"
         params={{ slug }}
@@ -401,6 +422,8 @@ function ProjectDetailPage() {
         activeDataSourcesCount={activeDataSourcesCount}
         openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
       />
+
+      <ProjectFieldShortcuts projectId={projectId} round={search.round} />
 
       <ProjectTabs
         tabs={TABS}
@@ -757,37 +780,15 @@ function ProjectDetailPage() {
 
             {/* ── Medier ─────────────────────────────────────────────────── */}
             {active === "medier" && (
-              <div className="space-y-5">
-                {project.organization_id ? (
-                  <ProjectPhotoAtlas
-                    key={projectId}
-                    scope={{ organizationId: project.organization_id, projectId }}
-                    projectName={project.name}
-                    organizationName={currentOrg?.name ?? "Organisation ikke valgt"}
-                    purpose={project.description ?? ""}
-                    canEdit={canEdit}
-                    media={mediaItems}
-                  />
-                ) : (
-                  <p className="rounded-lg border p-4">
-                    Projektet skal tilknyttes en organisation, før fotoatlas kan indlæses og gemmes.
-                  </p>
-                )}
-                {geometry.hasValidGeometry && (
-                  <div className="rounded-xl overflow-hidden border">
-                    <ProjectGeometryMap
-                      geometry={geometry}
-                      projectName={project.name}
-                      height={280}
-                      mediaItems={mediaItems.filter((m) => !!m.coordinates)}
-                    />
-                  </div>
-                )}
-                <div className="grid lg:grid-cols-[1fr_360px] gap-5 items-start">
-                  <ProjectMediaGallery items={mediaItems} isLoading={mediaLoading} />
-                  {canEdit && (
+              <div
+                className={`grid min-w-0 gap-5 ${canUploadFieldPhoto ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
+              >
+                {canUploadFieldPhoto && (
+                  <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-3">
                     <ProjectMediaUploadPanel
                       projectId={projectId}
+                      fieldPhotosOnly={!hasPhotoEditorAccess}
+                      accessPending={actualAccess.isFetching || fieldAccess.isFetching}
                       projectCentroid={geometry.centroid ?? undefined}
                       onUploadComplete={() =>
                         void queryClient.invalidateQueries({
@@ -796,7 +797,38 @@ function ProjectDetailPage() {
                       }
                       onDroneBatchImported={() => void droneUploadsQuery.refetch()}
                     />
+                  </div>
+                )}
+                <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+                  {project.organization_id ? (
+                    <ProjectPhotoAtlas
+                      key={projectId}
+                      scope={{ organizationId: project.organization_id, projectId }}
+                      projectName={project.name}
+                      organizationName={currentOrg?.name ?? "Organisation ikke valgt"}
+                      purpose={project.description ?? ""}
+                      canEdit={canEdit}
+                      media={mediaItems}
+                    />
+                  ) : (
+                    <p className="rounded-lg border p-4">
+                      Projektet skal tilknyttes en organisation, før fotoatlas kan indlæses og
+                      gemmes.
+                    </p>
                   )}
+                </div>
+                {geometry.hasValidGeometry && (
+                  <div className="min-w-0 rounded-xl overflow-hidden border lg:col-start-1">
+                    <ProjectGeometryMap
+                      geometry={geometry}
+                      projectName={project.name}
+                      height={280}
+                      mediaItems={mediaItems.filter((m) => !!m.coordinates)}
+                    />
+                  </div>
+                )}
+                <div className="min-w-0 lg:col-start-1">
+                  <ProjectMediaGallery items={mediaItems} isLoading={mediaLoading} />
                 </div>
               </div>
             )}

@@ -38,8 +38,10 @@ import {
   downloadAtlasBlob,
 } from "@/lib/photo-atlas-export";
 
-const button = "rounded-lg border bg-card px-3 py-2 text-sm disabled:opacity-50";
-const field = "mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm";
+const button =
+  "min-h-11 max-w-full whitespace-normal rounded-lg border bg-card px-3 py-2 text-sm disabled:opacity-50";
+const field =
+  "mt-1 min-h-11 w-full min-w-0 rounded-lg border bg-background px-3 py-2 text-base sm:text-sm";
 type Props = {
   scope: ProjectScope;
   projectName: string;
@@ -174,7 +176,7 @@ export function ProjectPhotoAtlas({
   return (
     <section
       aria-label="Projektets fotoatlas og baseline"
-      className="space-y-4 rounded-xl border bg-card p-4 sm:p-5"
+      className="min-w-0 space-y-4 rounded-xl border bg-card p-3 sm:p-5 [overflow-wrap:anywhere]"
     >
       <div>
         <h2 className="text-xl font-semibold">Fotoatlas og baseline</h2>
