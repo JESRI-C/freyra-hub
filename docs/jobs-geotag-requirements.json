@@ -28,15 +28,22 @@
       "package": "D01",
       "code": [
         "src/lib/project-nature-access.server.ts",
-        "src/integrations/supabase/auth-middleware.ts"
+        "src/integrations/supabase/auth-middleware.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
       "remaining": "Tilføj databasebundne relationer for operationelle opgaver; eksisterende projektidentitet genbruges."
     },
     {
@@ -46,15 +53,22 @@
       "package": "D01",
       "code": [
         "src/lib/project-nature-access.server.ts",
-        "src/integrations/supabase/auth-middleware.ts"
+        "src/integrations/supabase/auth-middleware.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
       "remaining": "Bevar eksisterende RLS/Storage. Test den nye opgaveadgang og dens API særskilt."
     },
     {
@@ -64,15 +78,22 @@
       "package": "D01",
       "code": [
         "src/lib/project-nature-access.server.ts",
-        "src/integrations/supabase/auth-middleware.ts"
+        "src/integrations/supabase/auth-middleware.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
       "remaining": "Ekstern rolle fejler aktuelt lukket. Tilføj opgavespecifik tildeling uden projektbred læse-/skriveadgang; filvejen afprøves i D03."
     },
     {
@@ -82,15 +103,22 @@
       "package": "D01",
       "code": [
         "src/lib/project-nature-access.server.ts",
-        "src/integrations/supabase/auth-middleware.ts"
+        "src/integrations/supabase/auth-middleware.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
       "remaining": "Nye opgavedata/eksporter skal følge samme aktør- og projektnøgler. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
     },
     {
@@ -1174,15 +1202,22 @@
       "package": "D01",
       "code": [
         "src/services/project-workspace-service.ts",
-        "src/lib/__tests__/supabase-browser-client.test.ts"
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
       "remaining": "Eksisterende versions-/followup-RPC genbruges. Nye operationer kræver atomisk data, audit og intern hændelse."
     },
     {
@@ -1192,15 +1227,22 @@
       "package": "D01",
       "code": [
         "src/services/project-workspace-service.ts",
-        "src/lib/__tests__/supabase-browser-client.test.ts"
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
       "remaining": "Jobkort/upload har forventet version og request-ID; legacy action-mutationer har ikke. Tilføj operationel kontrakt."
     },
     {
@@ -1210,15 +1252,22 @@
       "package": "D01",
       "code": [
         "src/services/project-workspace-service.ts",
-        "src/lib/__tests__/supabase-browser-client.test.ts"
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
       "remaining": "Genbrug audit_events. Serveraktør, korrelation og objektversion skal fastlægges ved nye mutationer."
     },
     {
@@ -1329,5 +1378,26 @@
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     }
-  ]
+  ],
+  "packageEvidence": {
+    "D00": {
+      "commit": "c74175b",
+      "baselineTests": 56,
+      "baselineTestFiles": 10
+    },
+    "D01": {
+      "codeRevision": "312e332b1fef150f4ef5f8adf8e73187162872a9",
+      "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/28",
+      "ciRun": 40935274270,
+      "applicationTests": 3108,
+      "applicationTestFiles": 230,
+      "databaseAssertions": 1102,
+      "databaseTestFiles": 18,
+      "newD01Assertions": 71,
+      "actualConcurrentAssignmentAndRetryPassed": true,
+      "hostedMigrationApplied": false,
+      "userInterfaceTested": false,
+      "pilotAccepted": false
+    }
+  }
 }

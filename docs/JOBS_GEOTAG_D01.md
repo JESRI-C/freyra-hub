@@ -20,7 +20,11 @@ Hver rettighedsændring har forventet version, request-ID, autentificeret aktør
 - `work_order_access.test.sql` afprøver RLS, sammensatte FK'er, eksplicit reviewer, fjernet medlemskab, retur-/genforsøgsidentitet og injiceret auditfejl. Den kører kun i disponibel database.
 - Den eksisterende `field-job-concurrency.test.mjs` genbruges med to nye scenarier: konkurrerende tildeling og identisk genforsøg med faktisk PostgreSQL-lockvidne. Ingen parallel forbindelses-/testmotor tilføjes.
 
-Lokalt findes ingen Docker/PostgreSQL. SQL/RLS/samtidighed er endnu ikke markeret bestået; faktisk CI-resultat registreres efter kørsel. Ingen hosted migration er udført, og ingen ny brugerflade er udgivet med D01.
+Lokalt findes ingen Docker/PostgreSQL. Den faktiske disponible CI-prøve er nu bestået på koderevision `312e332b1fef150f4ef5f8adf8e73187162872a9`, [run 40935274270](https://github.com/JESRI-C/freyra-hub/actions/runs/40935274270). Appjobbet bestod 3.108 tests i 230 filer, typechecks, lint (0 fejl, 24 eksisterende advarsler), lokal Images-prøve og build. Databasejobbet bestod frisk migrationsreplay og 1.102 assertions i 18 filer, heraf 71 nye D01-assertions, faktisk samtidighed inklusive de to nye tildelingsscenarier, dump/restore og funktionskontrol. [Draft-PR 28](https://github.com/JESRI-C/freyra-hub/pull/28) er stablet på offlinegrenen; ingen merge.
+
+Prøven afslørede og fik rettet en INSERT/RETURNING-fejl: eksisterende projektlæsning bruges direkte i den nye rækkes læsepolitik, mens opgavespecifik ekstern læsning stadig følger det aktuelle grant. Den samme STABLE-snapshotbegrænsning beskrives i [PostgreSQL-dokumentationen](https://www.postgresql.org/docs/current/xfunc-volatility.html). En syntetisk opfølgning oprettes gennem Freyras eksisterende kilde-/historik-RPC. Ingen eksisterende validering blev slået fra.
+
+Ingen hosted migration er udført, og ingen ny brugerflade er udgivet med D01. UI-/filforløb og fuld T01-accept for kommende operationelle data er fortsat åbne. De beståede tekniske delprøver er hverken fysisk mobilprøve eller kunde-/faglig accept.
 
 ## Rollback og næste pakke
 
