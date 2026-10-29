@@ -49,6 +49,7 @@ export function ProjectMediaUploadPanel({
   const [tags, setTags] = useState("");
   const [metadataPending, setMetadataPending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [beforeBatchOpen, setBeforeBatchOpen] = useState(false);
@@ -59,6 +60,8 @@ export function ProjectMediaUploadPanel({
   const mounted = useRef(false);
   const uploadBusy = useRef(false);
   const uploadGeneration = useRef(0);
+  const uploadRequest = useRef({ payload: "", id: "" });
+  const transferController = useRef<AbortController | null>(null);
   const discardPendingWork = useCallback(() => {
     selectionGeneration.current++;
     uploadGeneration.current++;
@@ -80,6 +83,8 @@ export function ProjectMediaUploadPanel({
     setMetadataPending(false);
     setSuccessMsg(null);
     setErrorMsg(null);
+    setUploadProgress(null);
+    uploadRequest.current = { payload: "", id: "" };
   }, []);
 
   useEffect(() => {
@@ -91,6 +96,7 @@ export function ProjectMediaUploadPanel({
     setBeforeBatchOpen(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
     return () => {
+      transferController.current?.abort();
       mounted.current = false;
       discardPendingWork();
       if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -179,8 +185,11 @@ export function ProjectMediaUploadPanel({
     setIsUploading(true);
     setSuccessMsg(null);
     setErrorMsg(null);
+    setUploadProgress(null);
+    const controller = new AbortController();
+    transferController.current = controller;
     try {
-      const result = await uploadProjectMedia({
+      const uploadInput = {
         projectId,
         file: selectedFile,
         title: title.trim(),
@@ -194,6 +203,22 @@ export function ProjectMediaUploadPanel({
           .filter(Boolean),
         coordinates,
         positionCorrectionReason: positionReason,
+      } as const;
+      const identity = JSON.stringify({
+        ...uploadInput,
+        file: [selectedFile.name, selectedFile.size, selectedFile.lastModified],
+      });
+      if (uploadRequest.current.payload !== identity)
+        uploadRequest.current = { payload: identity, id: crypto.randomUUID() };
+      const result = await uploadProjectMedia({
+        ...uploadInput,
+        tags: [...uploadInput.tags],
+        uploadRequestId: uploadRequest.current.id,
+        signal: controller.signal,
+        onProgress: (percent) => {
+          if (mounted.current && generation === selectionGeneration.current)
+            setUploadProgress(percent);
+        },
       });
       if (!mounted.current || generation !== selectionGeneration.current) return;
       if (result.error) {
@@ -201,7 +226,11 @@ export function ProjectMediaUploadPanel({
       } else if (result.data) {
         resetFile();
         if (fileInputRef.current) fileInputRef.current.value = "";
-        setSuccessMsg(`"${result.data.title}" er uploadet og afventer gennemgang.`);
+        setSuccessMsg(
+          result.fieldPhotoReceipt?.status === "verified"
+            ? `"${result.data.title}" er modtaget. Serverens checksum matcher originalen; fotoet afventer faglig gennemgang.`
+            : `"${result.data.title}" er uploadet og afventer gennemgang.`,
+        );
         onUploadComplete?.(result.data);
       }
     } catch {
@@ -389,12 +418,26 @@ export function ProjectMediaUploadPanel({
           >
             {isUploading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Uploader…
+                <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                {uploadProgress === null
+                  ? "Forbereder upload…"
+                  : uploadProgress >= 100
+                    ? "Kontrollerer original…"
+                    : `Uploader ${Math.round(uploadProgress)} %…`}
               </>
             ) : (
               "Gem foto eller bilag"
             )}
           </button>
+          {isUploading && (
+            <button
+              type="button"
+              className="text-sm underline"
+              onClick={() => transferController.current?.abort()}
+            >
+              Sæt overførsel på pause
+            </button>
+          )}
         </div>
       </details>
       {successMsg && (

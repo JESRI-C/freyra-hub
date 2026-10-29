@@ -12,6 +12,8 @@ import { getProjectMedia as getSeedMedia } from "@/data/project-media";
 import { getCanonicalDroneMediaUrl } from "@/lib/canonical-drone-media.functions";
 import { canonicalDroneMediaReference } from "./monitoring/canonical-drone-media-reference";
 import { PhotoCaptureSchema } from "@/lib/field-photo-position";
+import { uploadFieldPhoto } from "./field-photo-upload-service";
+import { FieldPhotoUploadPayload, type FieldPhotoReceipt } from "@/lib/field-photo-upload";
 // Minimal interface for an untyped Supabase query builder, used to access the
 // project_media table which is not yet in the generated Database types.
 interface UntypedQueryBuilder {
@@ -57,6 +59,9 @@ function getDb(): UntypedDb | null {
   return supabase as unknown as UntypedDb | null;
 }
 export interface UploadMediaInput {
+  uploadRequestId?: string;
+  onProgress?: (percent: number) => void;
+  signal?: AbortSignal;
   positionCorrectionReason?: string;
   projectId: string;
   file: File;
@@ -80,6 +85,7 @@ export interface MediaServiceResult<T> {
   data: T | null;
   error: string | null;
   duplicate?: boolean;
+  fieldPhotoReceipt?: FieldPhotoReceipt;
 }
 const BUCKET = "project-media";
 const ORIGINALS_BUCKET = "project-originals";
@@ -473,6 +479,39 @@ export async function uploadProjectMedia(
         };
     } catch {
       return { data: null, error: "Fotoets position eller begrundelse er ugyldig." };
+    }
+  }
+  if (capture) {
+    try {
+      const result = await uploadFieldPhoto({
+        projectId: input.projectId,
+        uploadId: input.uploadRequestId ?? crypto.randomUUID(),
+        file: input.file,
+        signal: input.signal,
+        onProgress: input.onProgress,
+        payload: FieldPhotoUploadPayload.parse({
+          title: input.title,
+          description: input.description ?? null,
+          category: input.category,
+          tags: input.tags,
+          originalName: input.file.name,
+          sha256: checksum,
+          sizeBytes: input.file.size,
+          mimeType: input.file.type,
+          capturedAt: originalMetadata?.capturedAt ?? input.capturedAt ?? null,
+          capture,
+        }),
+      });
+      const media = await getProjectMedia(input.projectId, result.upload.id);
+      return { ...media, fieldPhotoReceipt: result.receipt };
+    } catch (error) {
+      return {
+        data: null,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Uploaden blev ikke kvitteret. Behold originalfilen.",
+      };
     }
   }
   const { error: storageError } = await supabase.storage.from(BUCKET).upload(filePath, input.file, {

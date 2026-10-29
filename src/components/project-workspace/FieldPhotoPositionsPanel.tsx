@@ -17,6 +17,7 @@ import {
 } from "@/services/field-photo-position-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { Button } from "@/components/ui/button";
+import { FieldPhotoReceiptPanel } from "./FieldPhotoReceiptPanel";
 const control = "mt-1 block w-full rounded border bg-background p-2";
 export function FieldPhotoPositionsPanel({ scope }: { scope: ProjectScope }) {
   const { user } = useAuth();
@@ -273,10 +274,18 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
           )}
           {photo && (
             <>
-              <p>
-                Original GPS: {original ? `${original.lat}, ${original.lng}` : "mangler"}. Filhash
-                er angivet af uploaderen og endnu ikke serververificeret.
-              </p>
+              <p>Original GPS: {original ? `${original.lat}, ${original.lng}` : "mangler"}.</p>
+              {photo.metadata.field_upload_id === photo.id && actorId ? (
+                <FieldPhotoReceiptPanel
+                  key={`${photo.id}:${actorId}`}
+                  projectId={scope.projectId}
+                  uploadId={photo.id}
+                  actorId={actorId}
+                  canContribute={!!access.data?.canContribute}
+                />
+              ) : (
+                <p>Filhash er angivet af uploaderen og endnu ikke serververificeret.</p>
+              )}
               {history.data?.[0] && (
                 <p>
                   Seneste observationssted: {history.data[0].lat}, {history.data[0].lng} ·{" "}

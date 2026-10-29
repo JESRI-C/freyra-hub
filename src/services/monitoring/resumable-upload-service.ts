@@ -92,7 +92,15 @@ export async function uploadWithTus(
         cacheControl: "3600",
       },
       fingerprint: async (file) =>
-        ["gofreyra-tus-v1", params.objectName, file.name, file.size, file.lastModified].join(":"),
+        [
+          "gofreyra-tus-v2",
+          new URL(params.projectUrl).origin,
+          params.bucketName,
+          params.objectName,
+          file.name,
+          file.size,
+          file.lastModified,
+        ].join(":"),
       onProgress: (bytesUploaded, bytesTotal) => {
         const percentage = bytesTotal > 0 ? (bytesUploaded / bytesTotal) * 100 : 0;
         params.onProgress?.(percentage, bytesUploaded, bytesTotal);
