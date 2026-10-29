@@ -18,8 +18,10 @@ vi.mock("@/lib/work-order-assignments.functions", () => ({
   claimProjectWorkOrderPool: m.claim,
 }));
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
-    <a href={to}>{children}</a>
+  Link: ({ to, children, search }: { to: string; children: React.ReactNode; search?: unknown }) => (
+    <a href={to} data-search={JSON.stringify(search)}>
+      {children}
+    </a>
   ),
 }));
 import { MyWorkOrders } from "../MyWorkOrders";
@@ -65,6 +67,9 @@ async function render() {
   );
   await flush();
 }
+async function openTask() {
+  await click("Åbn opgave");
+}
 async function click(text: string) {
   const b = [...host.querySelectorAll("button")].find((b) => b.textContent === text);
   expect(b).toBeTruthy();
@@ -90,6 +95,7 @@ afterEach(async () => {
 describe("mobile personal tasks", () => {
   it("locks list refresh and claim while a nested status or note draft is open", async () => {
     await render();
+    await openTask();
     const detail = [...host.querySelectorAll("details")].find(
       (d) => d.querySelector("summary")?.textContent === "Status og logbog",
     )!;
@@ -99,6 +105,11 @@ describe("mobile personal tasks", () => {
     });
     await flush();
     await click("Synthetic edit status");
+    expect(
+      [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "← Alle mine opgaver",
+      )?.disabled,
+    ).toBe(true);
     expect(
       [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
         ?.disabled,
@@ -123,7 +134,10 @@ describe("mobile personal tasks", () => {
   });
   it("reuses the same claim request and frozen versions after a lost response", async () => {
     await render();
+    await openTask();
     await click("Overtag opgaven");
+    await click("← Alle mine opgaver");
+    await openTask();
     await click("Overtag opgaven");
     const first = m.claim.mock.calls[0][0].data;
     expect(first).toMatchObject({
@@ -152,6 +166,7 @@ describe("mobile personal tasks", () => {
       return {};
     });
     await render();
+    await openTask();
     await click("Overtag opgaven");
     expect(host.textContent).toContain("Overtaget af dig");
     expect(
@@ -195,5 +210,29 @@ describe("mobile personal tasks", () => {
       pageSize: 20,
     });
     expect(host.textContent).toContain("Synthetic next task");
+  });
+  it("opens one task with immediate instructions and carries its exact identity to execution", async () => {
+    m.load.mockResolvedValue({ items: [{ ...task, can_plan: true }], nextAfterActionId: null });
+    await render();
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
+      true,
+    );
+    await openTask();
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
+      false,
+    );
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.textContent).toContain(
+      "Synthetic instructions",
+    );
+    expect(
+      JSON.parse(host.querySelector('a[href="/app/projects/$slug"]')!.getAttribute("data-search")!),
+    ).toEqual({ step: "udfoerelse", task: id(2), work: "execution" });
+    expect(JSON.parse(host.querySelector('a[href="/felt"]')!.getAttribute("data-search")!)).toEqual(
+      { project: id(4) },
+    );
+    await click("← Alle mine opgaver");
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
+      true,
+    );
   });
 });

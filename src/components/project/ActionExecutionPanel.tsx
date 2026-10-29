@@ -31,8 +31,15 @@ import {
   type ProjectScope,
 } from "@/services/project-workspace-service";
 import { listActionExecutions, saveActionExecution } from "@/services/action-execution-service";
+import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
-type ExecutionPanelProps = { scope: ProjectScope; canEdit: boolean; selectedRoundId?: string };
+type ExecutionPanelProps = {
+  scope: ProjectScope;
+  canEdit: boolean;
+  selectedRoundId?: string;
+  selectedActionId?: string;
+  onEditing?: (value: boolean) => void;
+};
 export function ActionExecutionPanel(props: ExecutionPanelProps) {
   const { user } = useAuth();
   return (
@@ -48,6 +55,8 @@ function ExecutionPanel({
   canEdit,
   selectedRoundId,
   actorId,
+  selectedActionId,
+  onEditing,
 }: ExecutionPanelProps & { actorId?: string }) {
   const cache = useQueryClient();
   const loadContext = useServerFn(loadProjectWorkOrderExecutionContext),
@@ -71,6 +80,7 @@ function ExecutionPanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  useWorkOrderEditorLock((!!draft && canEdit) || busy, onEditing);
   const [context, setContext] = useState<{
     plan: WorkOrderPlanVersion | null;
     binding: WorkOrderExecutionBinding | null;
@@ -274,7 +284,7 @@ function ExecutionPanel({
         <p role="status">Henter handlinger og udførelseshistorik…</p>
       )}
       {busy && !draft && <p role="status">Åbner arbejdsgrundlag…</p>}
-      {canEdit && (
+      {canEdit && selectedActionId === undefined && (
         <form
           className="flex flex-wrap gap-2"
           onSubmit={async (e) => {
@@ -313,26 +323,44 @@ function ExecutionPanel({
           </Button>
         </form>
       )}
-      <label className="block">
-        Handling
-        <select
-          className={inputClass}
-          value={actionId}
-          disabled={busy || !history.isSuccess || !!draft}
-          onChange={(e) =>
-            e.target.value ? void open(e.target.value) : (setActionId(""), setDraft(null))
-          }
-        >
-          <option value="">Vælg handling</option>
-          {(workspace.data?.actions ?? [])
-            .filter((a) => a.action_type !== "workflow_followup")
-            .map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.title}
-              </option>
-            ))}
-        </select>
-      </label>
+      {selectedActionId === undefined ? (
+        <label className="block">
+          Handling
+          <select
+            className={inputClass}
+            value={actionId}
+            disabled={busy || !history.isSuccess || !!draft}
+            onChange={(e) =>
+              e.target.value ? void open(e.target.value) : (setActionId(""), setDraft(null))
+            }
+          >
+            <option value="">Vælg handling</option>
+            {(workspace.data?.actions ?? [])
+              .filter((a) => a.action_type !== "workflow_followup")
+              .map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                </option>
+              ))}
+          </select>
+        </label>
+      ) : (
+        !draft && (
+          <Button
+            type="button"
+            className="min-h-11"
+            disabled={
+              busy ||
+              !history.isSuccess ||
+              !workspace.isSuccess ||
+              !workspace.data.actions?.some((a) => a.id === selectedActionId)
+            }
+            onClick={() => void open(selectedActionId)}
+          >
+            Åbn udførelsesregistrering
+          </Button>
+        )
+      )}
       {!canEdit && (
         <p>Du har læseadgang. En udførelse kan registreres af en medarbejder med skriveret.</p>
       )}

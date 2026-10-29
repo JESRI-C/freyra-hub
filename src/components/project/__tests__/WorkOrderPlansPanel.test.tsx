@@ -220,4 +220,26 @@ describe("work-order plan editor", () => {
     expect(host.textContent).toContain("Planen redigeres af projektets ansvarlige");
     expect(m.save).not.toHaveBeenCalled();
   });
+  it("opens the shared task directly without showing a second task selector", async () => {
+    const editing = vi.fn();
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <WorkOrderPlansPanel scope={scope} selectedActionId={actionId} onEditing={editing} />
+        </QueryClientProvider>,
+      ),
+    );
+    await settle();
+    await settle();
+    expect(host.querySelectorAll("select")).toHaveLength(0);
+    expect(m.history).toHaveBeenCalledWith({
+      data: { ...scope, actionId, beforeVersion: null, pageSize: 20 },
+    });
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Rediger plan som ny version")!
+        .click(),
+    );
+    expect(editing).toHaveBeenLastCalledWith(true);
+  });
 });

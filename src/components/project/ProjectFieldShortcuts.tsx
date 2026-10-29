@@ -2,7 +2,15 @@ import { Link } from "@tanstack/react-router";
 import { Camera, ClipboardList, FileText, Route } from "lucide-react";
 
 /** Same project, permissions and saved survey round as the full workspace. */
-export function ProjectFieldShortcuts({ projectId, round }: { projectId: string; round?: string }) {
+export function ProjectFieldShortcuts({
+  projectId,
+  round,
+  task,
+}: {
+  projectId: string;
+  round?: string;
+  task?: string;
+}) {
   return (
     <div className="space-y-2">
       <nav
@@ -39,7 +47,7 @@ export function ProjectFieldShortcuts({ projectId, round }: { projectId: string;
             key={label}
             to="/app/projects/$slug"
             params={{ slug: projectId }}
-            search={search}
+            search={{ ...search, task }}
             className="flex min-h-20 min-w-0 items-center gap-3 rounded-xl border bg-card p-3 shadow-sm transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Icon aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" />

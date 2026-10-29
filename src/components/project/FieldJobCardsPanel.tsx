@@ -20,20 +20,33 @@ import {
 } from "@/services/field-job-cards-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { Button } from "@/components/ui/button";
+import { useBlocker } from "@tanstack/react-router";
+import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded border bg-background px-3 py-2 text-base sm:text-sm";
-export function FieldJobCardsPanel({ scope }: { scope: ProjectScope }) {
+type JobCardsProps = {
+  scope: ProjectScope;
+  selectedActionId?: string;
+  onEditing?: (value: boolean) => void;
+};
+export function FieldJobCardsPanel(props: JobCardsProps) {
+  const { scope } = props;
   const { user } = useAuth();
   return (
     <JobCards
       key={`${scope.organizationId}:${scope.projectId}:${user?.id ?? "anonymous"}`}
-      scope={scope}
+      {...props}
       actorId={user?.id}
     />
   );
 }
-function JobCards({ scope, actorId }: { scope: ProjectScope; actorId?: string }) {
+function JobCards({
+  scope,
+  actorId,
+  selectedActionId,
+  onEditing,
+}: JobCardsProps & { actorId?: string }) {
   const accessFn = useServerFn(getFieldJobAccess);
   const access = useQuery({
     queryKey: ["field-job-access", actorId, scope.projectId],
@@ -41,11 +54,9 @@ function JobCards({ scope, actorId }: { scope: ProjectScope; actorId?: string })
     enabled: !!actorId,
     retry: false,
   });
-  const enabled =
-    !!actorId &&
-    access.data?.userId === actorId &&
-    access.data.projectId === scope.projectId &&
-    !access.isError;
+  const sameAccess =
+    !!actorId && access.data?.userId === actorId && access.data.projectId === scope.projectId;
+  const enabled = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
     queryFn: () => listFieldJobActions(scope),
@@ -58,7 +69,11 @@ function JobCards({ scope, actorId }: { scope: ProjectScope; actorId?: string })
     enabled,
     retry: false,
   });
-  const [actionId, setActionId] = useState("");
+  const [localActionId, setActionId] = useState("");
+  const [editing, setEditing] = useState(false);
+  const actionId = selectedActionId ?? localActionId;
+  useWorkOrderEditorLock(editing, onEditing);
+  useBlocker({ shouldBlockFn: () => editing, enableBeforeUnload: editing });
   return (
     <section
       aria-label="Jobkort"
@@ -76,16 +91,17 @@ function JobCards({ scope, actorId }: { scope: ProjectScope; actorId?: string })
       {(access.error || actions.error || templates.error) && (
         <p role="alert">{(access.error || actions.error || templates.error)?.message}</p>
       )}
-      {enabled && actions.data && templates.data && (
-        <>
+      {sameAccess && actions.data && templates.data && (
+        <div hidden={!enabled || actions.isError || templates.isError}>
           {!actions.data.length ? (
             <p>Opret først en handling på sagen for at tilknytte et jobkort.</p>
-          ) : (
+          ) : selectedActionId === undefined ? (
             <label className="block">
               Opgave
               <select
                 className={control}
                 value={actionId}
+                disabled={editing}
                 onChange={(e) => setActionId(e.target.value)}
               >
                 <option value="">Vælg opgave</option>
@@ -96,19 +112,20 @@ function JobCards({ scope, actorId }: { scope: ProjectScope; actorId?: string })
                 ))}
               </select>
             </label>
-          )}
-          {actionId && (
+          ) : null}
+          {actionId && actions.data.some((a) => a.id === actionId) && (
             <JobCardEditor
               key={actionId}
               scope={scope}
               actorId={actorId!}
               actionId={actionId}
               templates={templates.data}
-              canConfigure={!!access.data?.canConfigure && !access.isFetching}
-              canContribute={!!access.data?.canContribute && !access.isFetching}
+              canConfigure={enabled && !!access.data?.canConfigure && !access.isFetching}
+              canContribute={enabled && !!access.data?.canContribute && !access.isFetching}
+              onEditing={setEditing}
             />
           )}
-        </>
+        </div>
       )}
     </section>
   );
@@ -121,6 +138,7 @@ function JobCardEditor({
   templates,
   canConfigure,
   canContribute,
+  onEditing,
 }: {
   scope: ProjectScope;
   actorId: string;
@@ -128,6 +146,7 @@ function JobCardEditor({
   templates: Templates;
   canConfigure: boolean;
   canContribute: boolean;
+  onEditing: (value: boolean) => void;
 }) {
   const cache = useQueryClient();
   const history = useQuery({
@@ -146,6 +165,9 @@ function JobCardEditor({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [recordDirty, setRecordDirty] = useState(false);
+  const [templateDirty, setTemplateDirty] = useState(false);
+  useWorkOrderEditorLock(recordDirty || templateDirty || busy, onEditing);
   const initialized = useRef(false);
   const alive = useRef(true);
   const request = useRef({ payload: "", id: "" });
@@ -208,6 +230,8 @@ function JobCardEditor({
       await cache.invalidateQueries({ queryKey: ["field-job-templates", actorId, scope] });
       if (alive.current) {
         setTemplateId(saved.id);
+        setTemplateDirty(false);
+        setRecordDirty(true);
         setMessage("Skabelonversion gemt. Gem registreringen for at tilknytte den til opgaven.");
         request.current = { payload: "", id: "" };
       }
@@ -237,6 +261,7 @@ function JobCardEditor({
         setBase(saved);
         setValues(saved.values);
         setReason("");
+        setRecordDirty(false);
         setMessage(
           `Registrering gemt som version ${saved.version}. Det er ikke en ekspertgodkendelse.`,
         );
@@ -266,7 +291,14 @@ function JobCardEditor({
     }
   }
   return (
-    <div className="space-y-4">
+    <fieldset
+      className="min-w-0 space-y-4"
+      disabled={busy || !history.isSuccess}
+      onChangeCapture={(event) => {
+        if ((event.target as HTMLElement).closest("[data-template-editor]")) setTemplateDirty(true);
+        else setRecordDirty(true);
+      }}
+    >
       {history.isFetching && <p role="status">Henter registreringshistorik…</p>}
       {history.error && <p role="alert">{history.error.message}</p>}
       {!canContribute && <p>Du har læseadgang til jobkortet.</p>}
@@ -294,7 +326,7 @@ function JobCardEditor({
         </select>
       </label>
       {canConfigure && (
-        <details>
+        <details data-template-editor>
           <summary className="min-h-11 cursor-pointer py-2">Opret eller tilpas skabelon</summary>
           <div className="space-y-3 pt-3">
             <label className="block">
@@ -318,7 +350,10 @@ function JobCardEditor({
               <Button
                 variant="outline"
                 disabled={busy}
-                onClick={() => setDefinition(structuredClone(selected.definition))}
+                onClick={() => {
+                  setDefinition(structuredClone(selected.definition));
+                  setTemplateDirty(true);
+                }}
               >
                 Tilpas valgt skabelon
               </Button>
@@ -554,6 +589,27 @@ function JobCardEditor({
       )}
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}
+      {(recordDirty || templateDirty) && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          onClick={() => {
+            setTemplateId(base?.template_version_id ?? "");
+            setValues(base?.values ?? {});
+            setStatus(base?.status ?? "draft");
+            setReason("");
+            setDefinition(structuredClone(FIELD_JOB_STARTER_TEMPLATES[0]));
+            setRecordDirty(false);
+            setTemplateDirty(false);
+            setError("");
+            setMessage("");
+            request.current = { payload: "", id: "" };
+          }}
+        >
+          Fortryd ændringer i jobkort
+        </Button>
+      )}
       {!!history.data?.length && (
         <details>
           <summary>Historik · seneste {history.data.length} versioner</summary>
@@ -590,6 +646,6 @@ function JobCardEditor({
           </ul>
         </details>
       )}
-    </div>
+    </fieldset>
   );
 }
