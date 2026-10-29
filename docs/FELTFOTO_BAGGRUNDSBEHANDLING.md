@@ -2,7 +2,7 @@
 
 Pakke C2 er bygget oven på C1, på `codex/field-photo-processing-v1`, [draft-PR 25](https://github.com/JESRI-C/freyra-hub/pull/25). App og worker deler originale foto-ID'er og checksums. Der er ingen ny parallel originaldatabase.
 
-**Aktuel installation:** Appen og A/B/C1/C2-databasen er nu installeret i det isolerede stagingmiljø, se [kvittering](field-staging-delivery.json). Appens seneste mobilrevision er worker-version `f9ed06f7-f785-461c-9676-c21db4db85cc`, kilde `90a240efff6a1a5e0580e475ea6555cde03c1f10`. Den separate billedworker er endnu ikke udgivet eller aktiveret; automatikken er fortsat slukket. Brugerens egen telefonprøve erstatter ikke de øvrige åbne driftsprøver. Beskrivelsen nedenfor af ingen hosted ændring vedrører den oprindelige implementerings- og CI-kørsel.
+**Aktuel installation:** Appen og A/B/C1/C2-databasen er nu installeret i det isolerede stagingmiljø, se [kvittering](field-staging-delivery.json). Appens seneste mobil-/offlineversion er worker-version `011775de-95cf-40ce-a55b-4ea218caa6e0`, kilde `3fcb19953e9af6a2dc6e1d5e981a1977bc2ab1e9`. Den separate billedworker er endnu ikke udgivet eller aktiveret; automatikken er fortsat slukket. Brugerens egen telefonprøve erstatter ikke de øvrige åbne driftsprøver. Beskrivelsen nedenfor af ingen hosted ændring vedrører den oprindelige implementerings- og CI-kørsel.
 
 ## Forløb og bevaring
 

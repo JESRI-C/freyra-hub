@@ -2,6 +2,8 @@
 
 Pakke D tilføjer `/felt` og en synlig indgang fra sagens fire feltgenveje. Den samme sag, bruger og skabelonversion bruges i dashboard og feltadgang. Denne klient ændrer ingen databasetabeller. Den bygger på de allerede installerede jobkort og serverkontrollerede fotokvitteringer.
 
+**Installeret i staging:** [Draft-PR 27](https://github.com/JESRI-C/freyra-hub/pull/27), kode `3fcb19953e9af6a2dc6e1d5e981a1977bc2ab1e9`, worker `011775de-95cf-40ce-a55b-4ea218caa6e0`, bekræftet ved deployment-genlæsning som 100 % aktiv. [CI 40929575744](https://github.com/JESRI-C/freyra-hub/actions/runs/40929575744) bestod med 3.088 app-/worker-tests i 229 filer og 1.031 databaseassertions i 17 filer samt typechecks, lint, build, samtidighed og databasegenoprettelse. Stagingbuild og bundle-isolation bestod. Dette er teknisk evidens; telefon- og faglig accept står åbne.
+
 ## Brug på telefonen
 
 1. Log ind i testappen med net. Åbn en sag og vælg **Gem feltarbejdet på telefonen til offlinebrug**.
