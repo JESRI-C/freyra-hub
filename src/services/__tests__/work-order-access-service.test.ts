@@ -3,6 +3,8 @@ import {
   initializeWorkOrder,
   saveWorkOrderAccess,
   getWorkOrderAccess,
+  getWorkOrderAccessHistory,
+  getWorkOrderAccessSubjects,
 } from "../work-order-access-service";
 import { SaveWorkOrderAccessSchema } from "@/lib/work-order-access";
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -141,5 +143,101 @@ describe("request-bound work-order authority", () => {
         reason: " Adgang afsluttet ",
       }).reason,
     ).toBe("Adgang afsluttet");
+  });
+});
+describe("bounded task assignment history", () => {
+  const rpc = vi.fn(),
+    client = { rpc };
+  const historyInput = { ...scope, userId: recipient, beforeVersion: null, pageSize: 1 };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rpc.mockResolvedValue({ data: [], error: null });
+  });
+  it("distinguishes an empty subject/history list from an unavailable service", async () => {
+    expect(await getWorkOrderAccessHistory(client, actor, historyInput)).toEqual({
+      items: [],
+      nextBeforeVersion: null,
+    });
+    expect(
+      await getWorkOrderAccessSubjects(client, actor, { ...scope, afterUserId: null, pageSize: 1 }),
+    ).toEqual({ items: [], nextAfterUserId: null });
+    rpc.mockResolvedValue({
+      data: null,
+      error: { code: "42501", message: "private scope details" },
+    });
+    await expect(getWorkOrderAccessHistory(client, actor, historyInput)).rejects.toMatchObject({
+      statusCode: 403,
+      message: "Arbejdsopgaven er ikke tilgængelig.",
+    });
+  });
+  it("passes bounded scope and returns a lookahead cursor without dropping the last shown revision", async () => {
+    rpc.mockResolvedValue({ data: [{ ...row, version: 2 }, row], error: null });
+    expect(await getWorkOrderAccessHistory(client, actor, historyInput)).toEqual({
+      items: [{ ...row, version: 2 }],
+      nextBeforeVersion: 2,
+    });
+    expect(rpc).toHaveBeenCalledWith("get_work_order_access_history", {
+      p_action_id: scope.actionId,
+      p_project_id: scope.projectId,
+      p_organization_id: scope.organizationId,
+      p_user_id: recipient,
+      p_before_version: null,
+      p_page_size: 1,
+    });
+  });
+  it.each([
+    { ...row, user_id: actor },
+    { ...row, project_id: id(90) },
+    { ...row, organization_id: id(90) },
+    { ...row, action_id: id(90) },
+  ])("rejects substituted target or scope %j", async (value) => {
+    rpc.mockResolvedValue({ data: [value], error: null });
+    await expect(getWorkOrderAccessHistory(client, actor, historyInput)).rejects.toBeInstanceOf(
+      Error,
+    );
+  });
+  it("rejects repeated, unordered and out-of-cursor revisions", async () => {
+    for (const rows of [
+      [row, row],
+      [row, { ...row, version: 2 }],
+    ]) {
+      rpc.mockResolvedValue({ data: rows, error: null });
+      await expect(getWorkOrderAccessHistory(client, actor, historyInput)).rejects.toMatchObject({
+        statusCode: 503,
+      });
+    }
+    rpc.mockResolvedValue({ data: [row], error: null });
+    await expect(
+      getWorkOrderAccessHistory(client, actor, { ...historyInput, beforeVersion: 1 }),
+    ).rejects.toMatchObject({ statusCode: 503 });
+  });
+  it("paginates subject IDs with a strict unique cursor", async () => {
+    rpc.mockResolvedValue({ data: [{ user_id: id(5) }, { user_id: id(6) }], error: null });
+    expect(
+      await getWorkOrderAccessSubjects(client, actor, {
+        ...scope,
+        afterUserId: id(4),
+        pageSize: 1,
+      }),
+    ).toEqual({ items: [id(5)], nextAfterUserId: id(5) });
+    for (const rows of [
+      [{ user_id: id(4) }],
+      [{ user_id: id(6) }, { user_id: id(5) }],
+      [{ user_id: "not-an-id" }],
+    ]) {
+      rpc.mockResolvedValue({ data: rows, error: null });
+      await expect(
+        getWorkOrderAccessSubjects(client, actor, { ...scope, afterUserId: id(4), pageSize: 1 }),
+      ).rejects.toMatchObject({ statusCode: 503 });
+    }
+  });
+  it("rejects unbounded and unauthenticated history before the RPC", async () => {
+    await expect(
+      getWorkOrderAccessHistory(client, actor, { ...historyInput, pageSize: 10000 }),
+    ).rejects.toMatchObject({ statusCode: 422 });
+    await expect(
+      getWorkOrderAccessSubjects(client, "", { ...scope, afterUserId: null, pageSize: 1 }),
+    ).rejects.toMatchObject({ statusCode: 403 });
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

@@ -50,6 +50,7 @@ vi.mock("@/services/field-job-cards-service", () => ({ listFieldJobActions: m.ac
 vi.mock("@/services/project-members-service", () => ({ listProjectMembers: m.members }));
 vi.mock("@/lib/supabase/queries", () => ({ fetchSitesByProject: m.sites }));
 vi.mock("@/services/watercourse-service", () => ({ getWatercourseVersions: m.centerlines }));
+vi.mock("../WorkOrderAccessPanel", () => ({ WorkOrderAccessPanel: () => null }));
 import { WorkOrderPlansPanel } from "../WorkOrderPlansPanel";
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 const row = () => ({

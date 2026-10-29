@@ -212,18 +212,25 @@
       "code": [
         "src/services/actions-service.ts",
         "src/services/action-execution-service.ts",
-        "src/services/field-job-cards-service.ts"
+        "src/services/field-job-cards-service.ts",
+        "src/components/project/WorkOrderAccessPanel.tsx",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261029191105_work_order_access_history.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "src/components/project/__tests__/WorkOrderAccessPanel.test.tsx",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "supabase/tests/database/work_order_access.test.sql"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Fritekst-owner er ikke sikker person-/gruppetildeling. Versionsbundet tildeling og atomisk puljeovertagelse mangler."
+      "coverage": "partial; D02b person assignment and history verified in CI 40938510298",
+      "remaining": "Personers udførelses-/reviewadgang og historik findes; grupper og atomisk puljeovertagelse samt faktisk udførerbinding følger."
     },
     {
       "id": "JOB-05",
@@ -1438,6 +1445,16 @@
       "databaseAssertions": 1163,
       "planAssertions": 61,
       "actualConcurrency": true,
+      "hostedMigration": false,
+      "hostedDeployment": false,
+      "physicalMobileAcceptance": false
+    },
+    "D02b": {
+      "commit": "361e633840bdb026b0e11310a32cd85c0f465f55",
+      "ciRun": 40938510298,
+      "appTests": 3153,
+      "databaseAssertions": 1180,
+      "newDatabaseAssertions": 17,
       "hostedMigration": false,
       "hostedDeployment": false,
       "physicalMobileAcceptance": false
