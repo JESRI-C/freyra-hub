@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/supabase/types";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
+import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { countCanonicalProjectOriginals } from "@/services/project-media-service";
 import { listProjectBaselines } from "@/lib/public-baseline.functions";
 import { validateProjectPolygon } from "@/services/geo-service";
@@ -444,6 +445,12 @@ export function MunicipalCaseWorkspace({
                   />
                 </details>
               </>
+            )}
+            {step === "udfoerelse" && project.organization_id && (
+              <WorkOrderPlansPanel
+                scope={{ projectId: project.id, organizationId: project.organization_id }}
+                round={selectedRoundId}
+              />
             )}
             {step === "udfoerelse" && project.organization_id && (
               <FieldJobCardsPanel

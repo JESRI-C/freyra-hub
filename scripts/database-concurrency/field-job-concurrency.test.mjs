@@ -266,6 +266,70 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
+  const plan = q(
+    JSON.stringify({
+      schema: "freyra.work-order-plan/v1",
+      title: "Synthetic concurrency plan",
+      description: "",
+      instructions: "",
+      profile: null,
+      responsibleId: null,
+      siteId: null,
+      watercourseVersionId: null,
+      locationNote: "",
+      plannedStart: null,
+      plannedEnd: null,
+      priority: null,
+      plannedMethod: null,
+      watercourse: null,
+    }),
+  );
+  const planCall = (expected, request, reason = "") =>
+    `public.save_work_order_plan(${action},${org},${project},${expected},${plan}::jsonb,${q(reason)},${q(request)})`;
+  const planWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${planCall(0, randomUUID())};`,
+    "PLAN_HELD",
+  );
+  await planWinner.marker("PLAN_HELD");
+  const planStale = await transaction(capture(planCall(0, randomUUID())), "PLAN_STALE");
+  await actualLock(planStale, planWinner);
+  await commit(planWinner);
+  await planStale.marker("PLAN_STALE");
+  assert.equal(planStale.rows().find((row) => row.result)?.result, "40001");
+  await commit(planStale);
+  scenarios.push({
+    name: "competing_work_order_plan",
+    actualLockVerified: true,
+    staleSqlstate: "40001",
+  });
+  const planRequest = randomUUID();
+  const planRetryWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${planCall(1, planRequest, "Synthetic plan correction")};`,
+    "PLAN_RETRY_HELD",
+  );
+  await planRetryWinner.marker("PLAN_RETRY_HELD");
+  const planRetry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${planCall(1, planRequest, "Synthetic plan correction")};`,
+    "PLAN_RETRY_DONE",
+  );
+  await actualLock(planRetry, planRetryWinner);
+  await commit(planRetryWinner);
+  await planRetry.marker("PLAN_RETRY_DONE");
+  assert.equal(
+    planRetry.rows().find((row) => row.id)?.id,
+    planRetryWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(planRetry);
+  const [planAfter] = await query(
+    `SELECT json_build_object('versions',(SELECT count(*) FROM public.work_order_plan_versions WHERE action_id=${action}), 'events',(SELECT count(*) FROM public.audit_events WHERE entity_id=${action} AND event_type='work_order.plan_saved'));`,
+  );
+  assert.deepEqual(planAfter, { versions: 2, events: 2 });
+  scenarios.push({
+    name: "identical_work_order_plan_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
   process.stdout.write(
     JSON.stringify({
       schema: "freyra.field-job-local-concurrency/v1",

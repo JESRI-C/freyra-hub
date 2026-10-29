@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { FieldJobCardsPanel } from "@/components/project/FieldJobCardsPanel";
+import { WorkOrderPlansPanel } from "@/components/project/WorkOrderPlansPanel";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -584,6 +585,12 @@ function ProjectDetailPage() {
             {/* ── Handlinger ─────────────────────────────────────────────── */}
             {active === "handlinger" && (
               <div className="space-y-4">
+                {project.organization_id && (
+                  <WorkOrderPlansPanel
+                    scope={{ projectId: project.id, organizationId: project.organization_id }}
+                    round={search.round}
+                  />
+                )}
                 {project.organization_id && (
                   <FieldJobCardsPanel
                     scope={{ projectId: project.id, organizationId: project.organization_id }}

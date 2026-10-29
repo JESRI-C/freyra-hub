@@ -18,7 +18,7 @@ export interface WorkOrderRequestClient {
     args: Record<string, unknown>,
   ): PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>;
 }
-function checkScope(
+export function checkScope(
   row: { action_id: string; organization_id: string; project_id: string },
   scope: WorkOrderScope,
 ) {
@@ -29,33 +29,34 @@ function checkScope(
   )
     throw new WorkOrderRequestError("access");
 }
-function checkActor(actorId: string, expected?: string) {
+export function checkActor(actorId: string, expected?: string) {
   if (
     !z.string().uuid().safeParse(actorId).success ||
     (expected !== undefined && expected !== actorId)
   )
     throw new WorkOrderRequestError("access");
 }
-async function request(
+export async function request(
   client: WorkOrderRequestClient,
   name: string,
   args: Record<string, unknown>,
 ) {
   const { data, error } = await client.rpc(name, args);
-  if (error) {
-    const code = error.code;
-    throw new WorkOrderRequestError(
-      code === "42501"
-        ? "access"
-        : code === "40001" || code === "23505"
-          ? "conflict"
-          : code === "22023" || code === "23514" || code === "23503" || code === "23502"
-            ? "validation"
-            : "unavailable",
-    );
-  }
+  if (error) workOrderRpcFailure(error);
   if (!Array.isArray(data) || data.length !== 1) throw new WorkOrderRequestError("unavailable");
   return data[0];
+}
+export function workOrderRpcFailure(error: { code?: string }): never {
+  const code = error.code;
+  throw new WorkOrderRequestError(
+    code === "42501"
+      ? "access"
+      : code === "40001" || code === "23505"
+        ? "conflict"
+        : code === "22023" || code === "23514" || code === "23503" || code === "23502"
+          ? "validation"
+          : "unavailable",
+  );
 }
 export async function initializeWorkOrder(
   client: WorkOrderRequestClient,
