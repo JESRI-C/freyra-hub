@@ -99,7 +99,10 @@ $$;
 REVOKE ALL ON FUNCTION private.is_work_order_member(uuid,uuid), private.can_read_work_order(uuid), private.can_execute_work_order(uuid), private.can_review_work_order(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION private.is_work_order_member(uuid,uuid), private.can_read_work_order(uuid), private.can_execute_work_order(uuid), private.can_review_work_order(uuid) TO authenticated;
 
-CREATE POLICY work_orders_read ON public.work_orders FOR SELECT TO authenticated USING(private.can_read_work_order(action_id));
+-- INSERT ... RETURNING must also authorize its new row: a STABLE same-table
+-- helper uses the statement snapshot and cannot discover that row yet.
+CREATE POLICY work_orders_read ON public.work_orders FOR SELECT TO authenticated
+ USING(private.can_read_project(project_id) OR private.can_read_work_order(action_id));
 CREATE POLICY work_orders_insert ON public.work_orders FOR INSERT TO authenticated
  WITH CHECK(created_by=auth.uid() AND private.can_write_project(project_id));
 CREATE POLICY work_order_access_read ON public.work_order_access_versions FOR SELECT TO authenticated
