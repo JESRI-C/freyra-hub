@@ -39,5 +39,6 @@ Ved fejl i staging slås det nye panel fra gennem en fremadrettet kodeændring; 
 - Ny udviklingsgren oprettet fra den gennemgåede kode.
 - Første kontrakt og fire blanke domæneskabeloner implementeret; målrettede kontraktprøver bestod.
 - Databasekontrakt, services og brugerflade er implementeret på udviklingsgrenen. Jobkort findes under Handlinger og Udførelse. Fire skabeloner kan tilpasses med egne felter; registreringer fastholder deres skabelonversion og rettelseshistorik.
-- 24 målrettede kontrakt-, service- og interaktive brugerfladeprøver bestod. Typecheck, målrettet lint og stagingbuild bestod. Den samlede testsuite køres særskilt; der er endnu ikke et slutresultat.
+- 24 målrettede kontrakt-, service- og interaktive brugerfladeprøver bestod. Samlet testsuite: 2.990 tests i 215 filer bestod. Typecheck, fuld lint (0 fejl, 24 eksisterende advarsler) og stagingbuild bestod.
 - 70 databaseassertions og et separat scenarie med samtidige PostgreSQL-forbindelser er skrevet og koblet til CI. De er ikke kørt lokalt, da PostgreSQL/Docker ikke er tilgængelig. Migrationen er ikke anvendt hosted. Pakke A er derfor implementeret lokalt, men afventer database- og stagingaccept.
+- Arbejdet er til review i [draft-PR 22](https://github.com/JESRI-C/freyra-hub/pull/22), målrettet den eksisterende pilotgren. Der er ikke merged eller udgivet.
