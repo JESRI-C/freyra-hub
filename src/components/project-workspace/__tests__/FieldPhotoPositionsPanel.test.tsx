@@ -186,3 +186,4 @@ describe("field photo position editor", () => {
     );
   });
 });
+vi.mock("../FieldPhotoReceiptPanel", () => ({ FieldPhotoReceiptPanel: () => null }));

@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   effects: [] as { index: number; run: () => void | (() => void) }[],
   cleanups: new Map<number, () => void>(),
   writes: 0,
+  actorId: "synthetic-actor",
   gps: vi.fn<(file: File) => Promise<{ latitude: number; longitude: number } | undefined>>(),
   upload:
     vi.fn<
@@ -57,6 +58,7 @@ vi.mock("react", async (original) => {
   };
 });
 vi.mock("@/lib/supabase/client", () => ({ isSupabaseConfigured: true }));
+vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: { id: state.actorId } }) }));
 vi.mock("@/services/project-media-service", () => ({ uploadProjectMedia: state.upload }));
 vi.mock("exifr", () => ({ default: { gps: state.gps } }));
 vi.mock("@/components/monitoring/DroneBeforeBatchWizard", () => ({
@@ -167,6 +169,7 @@ beforeEach(() => {
   state.effects = [];
   state.cleanups.clear();
   state.writes = 0;
+  state.actorId = "synthetic-actor";
   state.gps.mockReset().mockResolvedValue(undefined);
   state.upload.mockReset().mockResolvedValue({ data: saved, error: null });
   props = {
@@ -188,6 +191,30 @@ afterEach(() => {
 });
 
 describe("ProjectMediaUploadPanel file isolation", () => {
+  it("preserves the same intent when a failed upload is retried", async () => {
+    state.upload.mockResolvedValue({ data: null, error: "Serverkontrol mangler" });
+    await select(new File(["a"], "A.jpg", { type: "image/jpeg" }));
+    await submit();
+    await submit();
+    expect(state.upload.mock.calls[0][0].uploadRequestId).toBe(
+      state.upload.mock.calls[1][0].uploadRequestId,
+    );
+    expect(labelled("Titel").props.value).toBe("A");
+  });
+  it("pauses the transfer and discards old results when the user changes", async () => {
+    const pending = deferred<{ data: ProjectMediaItem | null; error: string | null }>();
+    state.upload.mockReturnValue(pending.promise);
+    await select(new File(["a"], "A.jpg", { type: "image/jpeg" }));
+    const submission = submit();
+    const signal = state.upload.mock.calls[0][0].signal!;
+    state.actorId = "another-actor";
+    tree();
+    expect(signal.aborted).toBe(true);
+    pending.resolve({ data: saved, error: null });
+    await submission;
+    expect(props.onUploadComplete).not.toHaveBeenCalled();
+    expect(labelled("Titel").props.value).toBe("");
+  });
   it("clears GPS, metadata and the old preview when GPS photo A is replaced by no-GPS photo B", async () => {
     state.gps
       .mockResolvedValueOnce({ latitude: 55.4, longitude: 9.2 })

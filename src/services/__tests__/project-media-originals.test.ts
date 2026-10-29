@@ -6,7 +6,9 @@ const mocks = vi.hoisted(() => ({
   upload: vi.fn(),
   remove: vi.fn(),
   signed: vi.fn(),
+  fieldUpload: vi.fn(),
 }));
+vi.mock("../field-photo-upload-service", () => ({ uploadFieldPhoto: mocks.fieldUpload }));
 vi.mock("@/lib/supabase/client", () => ({
   isSupabaseConfigured: true,
   supabase: {
@@ -63,6 +65,21 @@ beforeEach(() => {
   mocks.existing = [];
   mocks.insertError = null;
   mocks.payload = {};
+  mocks.fieldUpload.mockReset().mockImplementation(async (input) => {
+    mocks.payload = {
+      project_id: input.projectId,
+      file_path: `${input.projectId}/synthetic.jpg`,
+      storage_bucket: "project-media",
+      lat: null,
+      lng: null,
+      metadata: {
+        original_name: input.payload.originalName,
+        original_sha256: input.payload.sha256,
+        field_photo_capture: input.payload.capture,
+      },
+    };
+    return { upload: { id: "media" }, receipt: { status: "verified" } };
+  });
   mocks.upload.mockReset().mockResolvedValue({ error: null });
   mocks.remove.mockReset();
   mocks.signed
@@ -97,7 +114,7 @@ describe("private original persistence", () => {
         correctionReason: "Manual field location",
       },
     });
-    expect(mocks.upload.mock.calls[0][1].name).toBe("photo.jpg");
+    expect(mocks.fieldUpload.mock.calls[0][0].file.name).toBe("photo.jpg");
   });
   it("preserves the exact original filename and checksum for ordinary field uploads", async () => {
     const original = {
@@ -119,7 +136,9 @@ describe("private original persistence", () => {
     });
     expect(result.data?.sha256).toBe("a".repeat(64));
     expect(result.data?.metadata?.original_name).toBe("photo.jpg");
-    expect(mocks.upload.mock.calls[0][1]).toBe(original.file);
+    expect(mocks.fieldUpload.mock.calls[0][0].file).toBe(original.file);
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(result.fieldPhotoReceipt?.status).toBe("verified");
   });
   it("stores untouched file privately, no centroid or fabricated GPS", async () => {
     const original = input();

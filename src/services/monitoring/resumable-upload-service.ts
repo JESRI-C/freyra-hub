@@ -24,7 +24,9 @@ interface TusOptionsLike {
   metadata: Record<string, string>;
   fingerprint: (file: File) => Promise<string>;
   onProgress: (bytesUploaded: number, bytesTotal: number) => void;
-  onBeforeRequest: () => void | Promise<void>;
+  onBeforeRequest: (request: {
+    setHeader(name: string, value: string): void;
+  }) => void | Promise<void>;
   onError: (error: Error) => void;
   onSuccess: () => void;
 }
@@ -47,6 +49,7 @@ export async function uploadWithTus(
     file: File;
     projectUrl: string;
     accessToken: string;
+    getAccessToken?: () => Promise<string>;
     bucketName: string;
     objectName: string;
     contentType: string;
@@ -92,13 +95,27 @@ export async function uploadWithTus(
         cacheControl: "3600",
       },
       fingerprint: async (file) =>
-        ["gofreyra-tus-v1", params.objectName, file.name, file.size, file.lastModified].join(":"),
+        [
+          "gofreyra-tus-v2",
+          new URL(params.projectUrl).origin,
+          params.bucketName,
+          params.objectName,
+          file.name,
+          file.size,
+          file.lastModified,
+        ].join(":"),
       onProgress: (bytesUploaded, bytesTotal) => {
         const percentage = bytesTotal > 0 ? (bytesUploaded / bytesTotal) * 100 : 0;
         params.onProgress?.(percentage, bytesUploaded, bytesTotal);
       },
-      onBeforeRequest: () => {
+      onBeforeRequest: async (request) => {
         if (params.signal?.aborted) throw abortError();
+        if (params.getAccessToken) {
+          const token = await params.getAccessToken();
+          if (!token) throw new Error("Upload kræver en aktiv session.");
+          if (params.signal?.aborted) throw abortError();
+          request.setHeader("authorization", `Bearer ${token}`);
+        }
       },
       onError: (error) => finish(() => reject(error)),
       onSuccess: () => finish(resolve),

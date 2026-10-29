@@ -97,6 +97,9 @@ jobs:
           node scripts/database-concurrency/field-job-concurrency.test.mjs \
             --disposable-local \
             --database postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          node scripts/database-concurrency/field-photo-concurrency.test.mjs \
+            --disposable-local \
+            --database postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
       - name: Restore a real database dump to a disposable database
         env:
