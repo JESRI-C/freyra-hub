@@ -43,3 +43,22 @@ export function requireSupabaseUrl(): string {
 }
 
 export const supabase = browserClient;
+
+/** No extra auth store. Every request obtains a token for this actor or fails closed. */
+export function createActorBoundSupabaseClient(actorId: string): SupabaseClient<Database> {
+  if (!actorId) throw new Error("Brugeridentitet mangler.");
+  const canonical = requireSupabaseClient();
+  return createClient<Database>(supabaseUrl, supabaseKey, {
+    accessToken: async () => {
+      const current = await canonical.auth.getSession();
+      if (
+        current.error ||
+        current.data.session?.user.id !== actorId ||
+        !current.data.session.access_token
+      )
+        throw new Error("Sessionen er ændret. Registreringen bevares til den oprindelige bruger.");
+      return current.data.session.access_token;
+    },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}

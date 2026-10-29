@@ -14,6 +14,7 @@ import { Route as SelectRouteImport } from './routes/select'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FeltRouteImport } from './routes/felt'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSystemTestRouteImport } from './routes/app.system-test'
@@ -123,6 +124,11 @@ const McpRoute = McpRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeltRoute = FeltRouteImport.update({
+  id: '/felt',
+  path: '/felt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -566,6 +572,7 @@ const ApiPublicMonitoringEvaluateRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -658,6 +665,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -744,6 +752,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -838,6 +847,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/felt'
     | '/login'
     | '/mcp'
     | '/reset-password'
@@ -930,6 +940,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/felt'
     | '/login'
     | '/mcp'
     | '/reset-password'
@@ -1015,6 +1026,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/felt'
     | '/login'
     | '/mcp'
     | '/reset-password'
@@ -1108,6 +1120,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  FeltRoute: typeof FeltRoute
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -1157,6 +1170,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/felt': {
+      id: '/felt'
+      path: '/felt'
+      fullPath: '/felt'
+      preLoaderRoute: typeof FeltRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -1999,6 +2019,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  FeltRoute: FeltRoute,
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
   ResetPasswordRoute: ResetPasswordRoute,
