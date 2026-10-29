@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { uploadProjectMedia } from "@/services/project-media-service";
 import { DroneBeforeBatchWizard } from "@/components/monitoring/DroneBeforeBatchWizard";
 import exifr from "exifr";
+import { useAuth } from "@/lib/auth";
 
 interface ProjectMediaUploadPanelProps {
   projectId: string;
@@ -38,6 +39,7 @@ export function ProjectMediaUploadPanel({
   onUploadComplete,
   onDroneBatchImported,
 }: ProjectMediaUploadPanelProps) {
+  const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -102,7 +104,7 @@ export function ProjectMediaUploadPanel({
       if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = null;
     };
-  }, [projectId, resetFile, discardPendingWork]);
+  }, [projectId, user?.id, resetFile, discardPendingWork]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;

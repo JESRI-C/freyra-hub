@@ -23,6 +23,7 @@ export async function uploadFieldPhoto(input: {
   onProgress?: (percent: number) => void;
   signal?: AbortSignal;
 }) {
+  if (input.signal?.aborted) throw new Error("Uploaden er sat på pause. Behold originalfilen.");
   const projectId = FieldPhotoUuid.parse(input.projectId),
     uploadId = FieldPhotoUuid.parse(input.uploadId);
   const payload = FieldPhotoUploadPayload.parse(input.payload);
@@ -69,6 +70,10 @@ export async function uploadFieldPhoto(input: {
     upload = parseFieldPhotoUpload(finalized.data[0], projectId, uploadId);
     if (!upload.received_at) throw new Error("Serveren har ikke bekræftet modtagelsen.");
   }
+  if (input.signal?.aborted)
+    throw new Error(
+      "Overførslen er modtaget; serverkontrollen er sat på pause. Behold originalfilen.",
+    );
   const receipt = parseFieldPhotoReceipt(
     await verifyFieldPhoto({ data: { projectId, uploadId } }),
     upload,

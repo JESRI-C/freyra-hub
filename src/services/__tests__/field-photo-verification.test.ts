@@ -98,12 +98,10 @@ describe("durable verification requests", () => {
   });
   it("recovers the same existing receipt without downloading again", async () => {
     const d = deps();
-    d.rpc
-      .mockReset()
-      .mockResolvedValue({
-        data: { upload: received, receipt: verified, leaseId: null },
-        error: null,
-      });
+    d.rpc.mockReset().mockResolvedValue({
+      data: { upload: received, receipt: verified, leaseId: null },
+      error: null,
+    });
     expect(await executeVerifyFieldPhoto(input, actorId, requestClient(), d)).toEqual(verified);
     expect(d.hash).not.toHaveBeenCalled();
   });
@@ -145,12 +143,10 @@ describe("durable verification requests", () => {
   });
   it("rejects a falsely verified receipt with another stored object", async () => {
     const d = deps();
-    d.rpc
-      .mockReset()
-      .mockResolvedValue({
-        data: { upload: received, receipt: { ...verified, object_version: "v2" }, leaseId: null },
-        error: null,
-      });
+    d.rpc.mockReset().mockResolvedValue({
+      data: { upload: received, receipt: { ...verified, object_version: "v2" }, leaseId: null },
+      error: null,
+    });
     await expect(executeVerifyFieldPhoto(input, actorId, requestClient(), d)).rejects.toThrow(
       "matcher ikke",
     );
