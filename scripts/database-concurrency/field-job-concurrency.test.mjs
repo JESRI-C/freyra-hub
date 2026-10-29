@@ -330,6 +330,75 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
+  const execution = {
+    schema: "freyra.action-execution/v1",
+    actionId: action.slice(1, -1),
+    surveyRoundId: null,
+    dataBasis: "synthetic",
+    workType: "weed_cutting",
+    stage: "performed",
+    actualDate: "2026-10-08",
+    actualEndDate: null,
+    method: "Synthetic actual method",
+    reach: "Synthetic reach",
+    performedBy: "Synthetic colleague",
+    sourceReference: "Synthetic work log",
+    evidenceIds: [],
+    deviation: "",
+    correctionReason: "",
+    coverage: "limited",
+    coverageDescription: "Synthetic partial reach",
+  };
+  const executionPlan = planRetryWinner.rows().find((row) => row.id)?.id;
+  const executionCall = (expected, request) =>
+    `public.save_work_order_execution(${action},${org},${project},${q(executionPlan)},2,${expected},${q(JSON.stringify({ ...execution, correctionReason: expected > 0 ? "Synthetic correction" : "" }))}::jsonb,${actor},'',${q(request)})`;
+  const executionWinner = await transaction(
+    `SELECT json_build_object('id',workspace_entry_id) FROM ${executionCall(0, randomUUID())};`,
+    "EXECUTION_HELD",
+  );
+  await executionWinner.marker("EXECUTION_HELD");
+  const executionStale = await transaction(
+    capture(executionCall(0, randomUUID())),
+    "EXECUTION_STALE",
+  );
+  await actualLock(executionStale, executionWinner);
+  await commit(executionWinner);
+  await executionStale.marker("EXECUTION_STALE");
+  assert.equal(executionStale.rows().find((row) => row.result)?.result, "40001");
+  await commit(executionStale);
+  scenarios.push({
+    name: "competing_work_order_execution",
+    actualLockVerified: true,
+    staleSqlstate: "40001",
+  });
+  const executionRequest = randomUUID();
+  const executionRetryWinner = await transaction(
+    `SELECT json_build_object('id',workspace_entry_id) FROM ${executionCall(1, executionRequest)};`,
+    "EXECUTION_RETRY_HELD",
+  );
+  await executionRetryWinner.marker("EXECUTION_RETRY_HELD");
+  const executionRetry = await transaction(
+    `SELECT json_build_object('id',workspace_entry_id) FROM ${executionCall(1, executionRequest)};`,
+    "EXECUTION_RETRY_DONE",
+  );
+  await actualLock(executionRetry, executionRetryWinner);
+  await commit(executionRetryWinner);
+  await executionRetry.marker("EXECUTION_RETRY_DONE");
+  assert.equal(
+    executionRetry.rows().find((row) => row.id)?.id,
+    executionRetryWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(executionRetry);
+  const [executionAfter] = await query(
+    `SELECT json_build_object('bindings',(SELECT count(*) FROM public.work_order_execution_bindings WHERE action_id=${action}),'workspace',(SELECT count(*) FROM public.project_workspace_entries WHERE entry_id=${action}),'events',(SELECT count(*) FROM public.audit_events WHERE entity_id=${action} AND event_type='work_order.execution_saved'));`,
+  );
+  assert.deepEqual(executionAfter, { bindings: 2, workspace: 2, events: 2 });
+  scenarios.push({
+    name: "identical_work_order_execution_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
   process.stdout.write(
     JSON.stringify({
       schema: "freyra.field-job-local-concurrency/v1",

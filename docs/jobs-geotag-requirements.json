@@ -191,18 +191,27 @@
       "code": [
         "src/services/actions-service.ts",
         "src/services/action-execution-service.ts",
-        "src/services/field-job-cards-service.ts"
+        "src/services/field-job-cards-service.ts",
+        "src/lib/work-order-execution.ts",
+        "src/lib/work-order-execution.functions.ts",
+        "src/services/work-order-execution-service.ts",
+        "src/components/project/ActionExecutionPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261029191811_work_order_execution_bindings.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "src/services/__tests__/work-order-execution-service.test.ts",
+        "src/components/project/__tests__/ActionExecutionPanel.test.tsx",
+        "supabase/tests/database/work_order_plans.test.sql",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Genbrug immutable udførelsesnotater. Tilføj kontrolleret relation til opgaveplan og afvigelsesbilag."
+      "coverage": "partial; D02c frozen plan/execution binding implemented, database CI pending",
+      "remaining": "Samme eksisterende udførelsesrevision bindes til plan og faktisk udfører; status, felt-/ekstern skrivevej, bilagskrav før aflevering og rapporteksport følger."
     },
     {
       "id": "JOB-04",

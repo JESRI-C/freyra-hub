@@ -1,5 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useBlocker } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth";
+import {
+  loadProjectWorkOrderExecutionContext,
+  saveProjectWorkOrderExecution,
+} from "@/lib/work-order-execution.functions";
+import type { WorkOrderPlanVersion } from "@/lib/work-order-plan";
+import {
+  workOrderExecutionGapLabels,
+  type WorkOrderExecutionBinding,
+} from "@/lib/work-order-execution";
+import { listProjectMembers } from "@/services/project-members-service";
 import { Button } from "@/components/ui/button";
 import type { WorkspaceEntry } from "@/lib/project-workspace";
 import {
@@ -16,22 +29,32 @@ import {
 } from "@/services/project-workspace-service";
 import { listActionExecutions, saveActionExecution } from "@/services/action-execution-service";
 
-export function ActionExecutionPanel({
+type ExecutionPanelProps = { scope: ProjectScope; canEdit: boolean; selectedRoundId?: string };
+export function ActionExecutionPanel(props: ExecutionPanelProps) {
+  const { user } = useAuth();
+  return (
+    <ExecutionPanel
+      key={`${user?.id ?? "anonymous"}:${props.scope.organizationId}:${props.scope.projectId}`}
+      {...props}
+      actorId={user?.id}
+    />
+  );
+}
+function ExecutionPanel({
   scope,
   canEdit,
   selectedRoundId,
-}: {
-  scope: ProjectScope;
-  canEdit: boolean;
-  selectedRoundId?: string;
-}) {
+  actorId,
+}: ExecutionPanelProps & { actorId?: string }) {
   const cache = useQueryClient();
+  const loadContext = useServerFn(loadProjectWorkOrderExecutionContext),
+    saveBound = useServerFn(saveProjectWorkOrderExecution);
   const workspace = useQuery({
-    queryKey: ["project-workspace", scope.organizationId, scope.projectId],
+    queryKey: ["project-workspace", scope.organizationId, scope.projectId, actorId],
     queryFn: () => loadProjectWorkspace(scope),
     retry: false,
   });
-  const key = ["action-executions", scope.organizationId, scope.projectId];
+  const key = ["action-executions", scope.organizationId, scope.projectId, actorId];
   const history = useQuery({
     queryKey: key,
     queryFn: () => listActionExecutions(scope),
@@ -44,6 +67,21 @@ export function ActionExecutionPanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [context, setContext] = useState<{
+    plan: WorkOrderPlanVersion | null;
+    binding: WorkOrderExecutionBinding | null;
+  } | null>(null);
+  const [performedById, setPerformedById] = useState<string | null>(null),
+    [deviationReason, setDeviationReason] = useState("");
+  const attempt = useRef<{ signature: string; id: string } | null>(null),
+    saving = useRef(false);
+  const members = useQuery({
+    queryKey: ["execution-members", actorId, scope],
+    queryFn: () => listProjectMembers(scope.projectId),
+    enabled: !!actorId && canEdit,
+    retry: false,
+  });
+  useBlocker({ shouldBlockFn: () => !!draft && canEdit, enableBeforeUnload: !!draft && canEdit });
   useEffect(() => {
     setActionId("");
     setDraft(null);
@@ -52,31 +90,73 @@ export function ActionExecutionPanel({
     setMessage("");
   }, [scope.organizationId, scope.projectId]);
   // Do not reset an edited form when a background response arrives.
-  function open(id: string) {
-    setActionId(id);
+  async function open(id: string) {
+    if (!actorId) return;
     setError("");
     setMessage("");
+    setBusy(true);
     const existing = history.data
       ? latestExecutions(history.data).find((e) => e.execution.actionId === id)
       : undefined;
-    setBaseVersion(existing?.entry);
-    setDraft(
-      existing
-        ? { ...existing.execution, correctionReason: "" }
-        : { ...emptyExecution(id), surveyRoundId: selectedRoundId ?? null },
-    );
+    try {
+      const loaded = await loadContext({
+        data: {
+          ...scope,
+          expectedActorId: actorId,
+          actionId: id,
+          previousRevisionId: existing?.entry.id ?? null,
+        },
+      });
+      setActionId(id);
+      setBaseVersion(existing?.entry);
+      setContext(loaded);
+      attempt.current = null;
+      setPerformedById(loaded.binding?.performed_by_id ?? null);
+      setDeviationReason(loaded.binding?.deviation_reason ?? "");
+      setDraft(
+        existing
+          ? { ...existing.execution, correctionReason: "" }
+          : { ...emptyExecution(id), surveyRoundId: selectedRoundId ?? null },
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Plan og udførelse kunne ikke kontrolleres.");
+    } finally {
+      setBusy(false);
+    }
   }
   async function save() {
-    if (!draft || !canEdit) return;
+    if (!draft || !canEdit || !actorId || !context || saving.current) return;
+    saving.current = true;
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      const saved = await saveActionExecution(
-        scope,
-        ActionExecutionSchema.parse(draft),
-        baseVersion,
-      );
+      const execution = ActionExecutionSchema.parse(draft);
+      const signature = JSON.stringify({
+        execution,
+        base: baseVersion?.version ?? 0,
+        planId: context.plan?.id,
+        performedById,
+        deviationReason: deviationReason.trim(),
+      });
+      if (attempt.current?.signature !== signature)
+        attempt.current = { signature, id: crypto.randomUUID() };
+      const saved = context.plan
+        ? await saveBound({
+            data: {
+              ...scope,
+              actionId: draft.actionId,
+              expectedActorId: actorId,
+              planVersionId: context.plan.id,
+              expectedPlanVersion: context.plan.version,
+              expectedVersion: baseVersion?.version ?? 0,
+              requestId: attempt.current.id,
+              execution,
+              performedById,
+              deviationReason,
+            },
+          })
+        : await saveActionExecution(scope, execution, baseVersion);
       await cache.invalidateQueries({ queryKey: key });
       setDraft(null);
       setActionId("");
@@ -88,10 +168,12 @@ export function ActionExecutionPanel({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Kunne ikke gemme. Prøv igen.");
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
-  const inputClass = "mt-1 block w-full rounded border bg-background p-2";
+  const inputClass =
+    "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background p-2 text-base";
   const textFields = [
     ["actualDate", "Faktisk startdato", "date"],
     ["actualEndDate", "Faktisk slutdato (valgfri)", "date"],
@@ -117,6 +199,7 @@ export function ActionExecutionPanel({
       {(workspace.isFetching || history.isFetching) && (
         <p role="status">Henter handlinger og udførelseshistorik…</p>
       )}
+      {busy && !draft && <p role="status">Åbner arbejdsgrundlag…</p>}
       {canEdit && (
         <form
           className="flex flex-wrap gap-2"
@@ -132,7 +215,7 @@ export function ActionExecutionPanel({
               );
               await cache.invalidateQueries({ queryKey: ["project-workspace"] });
               setNewTitle("");
-              open(action.id);
+              await open(action.id);
             } catch (e) {
               setError(e instanceof Error ? e.message : "Kunne ikke oprette handling.");
             } finally {
@@ -148,10 +231,10 @@ export function ActionExecutionPanel({
               required
               maxLength={200}
               className={inputClass}
-              disabled={busy}
+              disabled={busy || !!draft}
             />
           </label>
-          <Button className="self-end" disabled={busy}>
+          <Button className="self-end min-h-11" disabled={busy || !!draft}>
             Opret handling
           </Button>
         </form>
@@ -161,9 +244,9 @@ export function ActionExecutionPanel({
         <select
           className={inputClass}
           value={actionId}
-          disabled={busy || !history.isSuccess}
+          disabled={busy || !history.isSuccess || !!draft}
           onChange={(e) =>
-            e.target.value ? open(e.target.value) : (setActionId(""), setDraft(null))
+            e.target.value ? void open(e.target.value) : (setActionId(""), setDraft(null))
           }
         >
           <option value="">Vælg handling</option>
@@ -192,6 +275,70 @@ export function ActionExecutionPanel({
               Udførelse ·{" "}
               {baseVersion ? "version " + (baseVersion.version + 1) : "første registrering"}
             </legend>
+            {context?.plan && (
+              <div className="rounded-xl border bg-muted/30 p-3 text-sm">
+                <p>
+                  Arbejdsgrundlag: {context.plan.plan.title} · plan version {context.plan.version}.
+                </p>
+                <p>
+                  Planlagt: {context.plan.plan.plannedStart ?? "start uafklaret"}
+                  {context.plan.plan.plannedEnd ? ` til ${context.plan.plan.plannedEnd}` : ""}.
+                  Planlagt metode: {context.plan.plan.plannedMethod ?? "uafklaret"}.
+                </p>
+                {context.binding && (
+                  <p>
+                    Den tidligere udførelse henviser til plan version {context.binding.plan_version}
+                    . Denne rettelse knyttes til det viste arbejdsgrundlag.
+                  </p>
+                )}
+              </div>
+            )}
+            {context?.plan && (
+              <>
+                <label className="block">
+                  Registreret udfører
+                  <select
+                    className={inputClass}
+                    value={performedById ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value || null;
+                      setPerformedById(value);
+                      const person = members.data?.find((m) => m.user_id === value);
+                      if (person)
+                        setDraft({
+                          ...draft,
+                          performedBy:
+                            person.display_name ||
+                            person.email ||
+                            "Projektmedlem · " + person.user_id.slice(-8),
+                        });
+                    }}
+                  >
+                    <option value="">Udførerens identitet er uafklaret</option>
+                    {performedById &&
+                      !members.data?.some(
+                        (m) => m.user_id === performedById && m.role !== "viewer",
+                      ) && <option value={performedById}>Tidligere registreret udfører</option>}
+                    {members.data
+                      ?.filter((m) => m.role !== "viewer")
+                      .map((m) => (
+                        <option key={m.user_id} value={m.user_id}>
+                          {m.display_name || m.email || "Projektmedlem · " + m.user_id.slice(-8)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                {members.isError && (
+                  <p role="alert">
+                    Medlemslisten kunne ikke hentes. Den tidligere udfører bevares.
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Den faktiske udfører vælges særskilt fra planens ansvarlige og den bruger, der
+                  gemmer registreringen.
+                </p>
+              </>
+            )}
             <label className="block">
               Status
               <select
@@ -251,6 +398,18 @@ export function ActionExecutionPanel({
                 </label>
               ))}
             </div>
+            {context?.plan && draft.deviation && (
+              <label className="block">
+                Begrundelse for afvigelsen
+                <textarea
+                  className={inputClass}
+                  required
+                  maxLength={2000}
+                  value={deviationReason}
+                  onChange={(e) => setDeviationReason(e.target.value)}
+                />
+              </label>
+            )}
             <label className="block">
               Faktisk undersøgelsesdækning
               <select
@@ -289,12 +448,42 @@ export function ActionExecutionPanel({
               ))}
             </fieldset>
           </fieldset>
+          {context?.binding && context.binding.documentation_gaps.length > 0 && (
+            <div className="text-sm">
+              <p>Afklaringer i gemt version {context.binding.version}:</p>
+              <ul>
+                {context.binding.documentation_gaps.map((gap) => (
+                  <li key={gap}>{workOrderExecutionGapLabels[gap]}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <ul className="text-sm">
             {executionGaps(draft).map((gap) => (
               <li key={gap}>{gap}</li>
             ))}
           </ul>
-          {canEdit && <Button disabled={busy || !history.isSuccess}>Gem udførelsesversion</Button>}
+          <div className="flex flex-wrap gap-2">
+            {canEdit && (
+              <Button className="min-h-11" disabled={busy || !history.isSuccess}>
+                Gem udførelsesversion
+              </Button>
+            )}
+            <Button
+              className="min-h-11"
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                setDraft(null);
+                setActionId("");
+                setContext(null);
+                setError("");
+              }}
+            >
+              Luk registrering uden at gemme
+            </Button>
+          </div>
         </form>
       )}
       {actionId && (
