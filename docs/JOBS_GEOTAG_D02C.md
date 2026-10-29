@@ -20,7 +20,11 @@ Udførerens medlemsvurdering gemmes sammen med revisionen. Fjernelse eller rolle
 
 ## Prøver og kendte mangler
 
-96 fokuserede appprøver i ni filer bestod lokalt. Det omfatter 19 nye serviceprøver og fire nye UI-prøver med plan i uge 39 og faktisk udførelse i uge 41, forfalskede kvitteringer, kontoændring, legacy-læsning, konflikt og genforsøg. Fokuseret lint bestod. App-typecheck bestod også. Faktisk database-CI afventer.
+96 fokuserede appprøver i ni filer bestod lokalt. Det omfatter service- og UI-prøver med plan i uge 39 og faktisk udførelse i uge 41, forfalskede kvitteringer, kontoændring, legacy-læsning, konflikt og genforsøg. Fokuseret lint og app-typecheck bestod også. CI på `a25e7d68b6383ff809fa8e5ed4a8aa487cc6b615`, [run 40940625369](https://github.com/JESRI-C/freyra-hub/actions/runs/40940625369), bestod 3.175 appprøver i 236 filer, build/typechecks/lint samt 1.219 databaseassertions, faktisk samtidighed, database-dump/restore og funktionskontrol.
+
+Den efterfølgende API-prøve i isoleret staging afslørede en transportfejl, som SQL-prøven ikke kunne se: forventet versionskonflikt med SQLSTATE `40001` blev HTTP 500 og gentagne kald. Loggen viste korrekt databaseafvisning uden datatab. PostgREST dokumenterer både [40*-oversættelsen og PTxyz-fejlkoder til HTTP-status](https://docs.postgrest.org/en/stable/references/errors.html). En additiv migration, `20261029194025_work_order_api_conflict_status.sql`, skifter kun de syv udtrykkeligt navngivne arbejdsordre-funktioners forventede versionskonflikter til `PT409`. Native PostgreSQL-serialiseringsfejl forbliver `40001`; servicegrænsen håndterer begge. Oprindelige migrationer redigeres ikke efter installation.
+
+Samtidighedsprøven kontrollerer nu også tre faktiske HTTP-kald mod den disponible lokale Supabase-API: forældet plan, tildeling og udførelse skal returnere HTTP 409 med `PT409` inden kaldets timeout. Den genbruger en lokal, syntetisk aktør og lokal JWT, uden Auth-mail, hosted endpoint eller udskrift af nøgler. 52 fokuserede prøver i tre berørte appfiler bestod efter rettelsen; den udvidede CI afventer.
 
 Eksisterende `work_order_plans.test.sql` udvides med faktisk udførelse, fjernet medlemskab, planændring, rå API-skrivning, udskudt integritet, auditfejl og rollback. Den eksisterende PostgreSQL-samtidighedsprøve udvides med to scenarier for udførelse; samme forbindelser og lockvidne genbruges. Der bruges kun syntetiske fixtures.
 
@@ -28,4 +32,6 @@ Hele D02 er fortsat åben: grupper, puljeovertagelse, serverstyret livscyklus og
 
 ## Tilbagerulning og næste del
 
-Ingen hosted migration, deployment, mail/SMS, invitation, betalt provider eller merge udføres her. Efter schema-installation må en app-rollback ikke sende arbejdsordrer gennem det gamle ubundne save; en kompatibel rollback skal beholde bindings-RPC eller deaktivere gemning for nye arbejdsordrer. Legacy-handlinger uden arbejdsordre bevarer deres tidligere vej. Historik og originale notater slettes ikke. Næste del er D02's resterende tildelings-/statusforløb, derefter D03 feltdata og originaler.
+De fire grundmigrationer er installeret i den eksisterende isolerede staging-database med kildefingeraftryk og de CLI-genererede versionsnumre. Før testfixtures var alle 50 projekter, 16 handlinger, 110 mediereferencer, 252 Storage-objekter og 31 workspace-poster bevaret. Fire nye tabeller har RLS, og den private integritetstrigger kan ikke kaldes direkte af browserrollen. Staging-appens nye deployment og konfliktrettelsens migration afventer den udvidede CI og API-prøve. Ingen produktion, mail/SMS, invitation, betalt provider eller merge er udført.
+
+Efter schema-installation må en app-rollback ikke sende arbejdsordrer gennem det gamle ubundne save; en kompatibel rollback skal beholde bindings-RPC eller deaktivere gemning for nye arbejdsordrer. Legacy-handlinger uden arbejdsordre bevarer deres tidligere vej. Historik og originale notater slettes ikke. Næste del er D02's resterende tildelings-/statusforløb, derefter D03 feltdata og originaler.

@@ -1,7 +1,7 @@
 /** Real PostgreSQL connections on an explicitly disposable LOCAL stack only. */
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { spawn, spawnSync } from "node:child_process";
+import { randomUUID, createHmac } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   assertDisposableLocalConnection,
@@ -231,12 +231,12 @@ try {
   await actualLock(accessStale, accessWinner);
   await commit(accessWinner);
   await accessStale.marker("ACCESS_STALE");
-  assert.equal(accessStale.rows().find((row) => row.result)?.result, "40001");
+  assert.equal(accessStale.rows().find((row) => row.result)?.result, "PT409");
   await commit(accessStale);
   scenarios.push({
     name: "competing_task_assignment",
     actualLockVerified: true,
-    staleSqlstate: "40001",
+    staleSqlstate: "PT409",
   });
   const accessRequest = randomUUID();
   const accessRetryWinner = await transaction(
@@ -266,24 +266,23 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
-  const plan = q(
-    JSON.stringify({
-      schema: "freyra.work-order-plan/v1",
-      title: "Synthetic concurrency plan",
-      description: "",
-      instructions: "",
-      profile: null,
-      responsibleId: null,
-      siteId: null,
-      watercourseVersionId: null,
-      locationNote: "",
-      plannedStart: null,
-      plannedEnd: null,
-      priority: null,
-      plannedMethod: null,
-      watercourse: null,
-    }),
-  );
+  const planValue = {
+    schema: "freyra.work-order-plan/v1",
+    title: "Synthetic concurrency plan",
+    description: "",
+    instructions: "",
+    profile: null,
+    responsibleId: null,
+    siteId: null,
+    watercourseVersionId: null,
+    locationNote: "",
+    plannedStart: null,
+    plannedEnd: null,
+    priority: null,
+    plannedMethod: null,
+    watercourse: null,
+  };
+  const plan = q(JSON.stringify(planValue));
   const planCall = (expected, request, reason = "") =>
     `public.save_work_order_plan(${action},${org},${project},${expected},${plan}::jsonb,${q(reason)},${q(request)})`;
   const planWinner = await transaction(
@@ -295,12 +294,12 @@ try {
   await actualLock(planStale, planWinner);
   await commit(planWinner);
   await planStale.marker("PLAN_STALE");
-  assert.equal(planStale.rows().find((row) => row.result)?.result, "40001");
+  assert.equal(planStale.rows().find((row) => row.result)?.result, "PT409");
   await commit(planStale);
   scenarios.push({
     name: "competing_work_order_plan",
     actualLockVerified: true,
-    staleSqlstate: "40001",
+    staleSqlstate: "PT409",
   });
   const planRequest = randomUUID();
   const planRetryWinner = await transaction(
@@ -364,12 +363,12 @@ try {
   await actualLock(executionStale, executionWinner);
   await commit(executionWinner);
   await executionStale.marker("EXECUTION_STALE");
-  assert.equal(executionStale.rows().find((row) => row.result)?.result, "40001");
+  assert.equal(executionStale.rows().find((row) => row.result)?.result, "PT409");
   await commit(executionStale);
   scenarios.push({
     name: "competing_work_order_execution",
     actualLockVerified: true,
-    staleSqlstate: "40001",
+    staleSqlstate: "PT409",
   });
   const executionRequest = randomUUID();
   const executionRetryWinner = await transaction(
@@ -398,6 +397,110 @@ try {
     actualLockVerified: true,
     oneRevision: true,
     oneInternalEvent: true,
+  });
+  // SQL-only assertions missed PostgREST's 500/retry handling of SQLSTATE 40001.
+  // Verify the real disposable LOCAL HTTP boundary without Auth mail or hosted access.
+  const status = spawnSync("supabase", ["status", "--output", "json"], {
+    encoding: "utf8",
+    env: environment,
+    shell: false,
+    maxBuffer: 1024 * 1024,
+  });
+  assert.equal(status.status, 0, "Disposable Supabase status must be readable");
+  let local;
+  try {
+    local = JSON.parse(status.stdout);
+  } catch {
+    throw Error("Disposable Supabase status was not valid JSON");
+  }
+  assert.equal(
+    new URL(local.API_URL).origin,
+    "http://127.0.0.1:54321",
+    "HTTP checks must stay on the disposable local API",
+  );
+  assert.equal(typeof local.JWT_SECRET, "string", "Local JWT signing material must exist");
+  assert.equal(typeof local.ANON_KEY, "string", "Local API key must exist");
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const unsigned =
+    encode({ alg: "HS256", typ: "JWT" }) +
+    "." +
+    encode({
+      sub: actor.slice(1, -1),
+      role: "authenticated",
+      aud: "authenticated",
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 600,
+    });
+  const jwt =
+    unsigned + "." + createHmac("sha256", local.JWT_SECRET).update(unsigned).digest("base64url");
+  const common = {
+    p_action_id: action.slice(1, -1),
+    p_organization_id: org.slice(1, -1),
+    p_project_id: project.slice(1, -1),
+  };
+  const staleRequests = [
+    [
+      "save_work_order_plan",
+      {
+        ...common,
+        p_expected_version: 0,
+        p_plan: planValue,
+        p_correction_reason: "",
+        p_request_id: randomUUID(),
+      },
+    ],
+    [
+      "save_work_order_access",
+      {
+        ...common,
+        p_user_id: actor.slice(1, -1),
+        p_expected_version: 0,
+        p_active: true,
+        p_can_execute: true,
+        p_can_review: false,
+        p_reason: "Synthetic stale grant",
+        p_request_id: randomUUID(),
+      },
+    ],
+    [
+      "save_work_order_execution",
+      {
+        ...common,
+        p_plan_version_id: executionPlan,
+        p_expected_plan_version: 2,
+        p_expected_version: 0,
+        p_execution: execution,
+        p_performed_by_id: actor.slice(1, -1),
+        p_deviation_reason: "",
+        p_request_id: randomUUID(),
+      },
+    ],
+  ];
+  for (const [endpoint, payload] of staleRequests) {
+    const response = await fetch(`http://127.0.0.1:54321/rest/v1/rpc/${endpoint}`, {
+      method: "POST",
+      headers: {
+        apikey: local.ANON_KEY,
+        authorization: `Bearer ${jwt}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5000),
+    });
+    assert.equal(
+      response.status,
+      409,
+      `${endpoint} must return a domain conflict, not HTTP 500 or a retry loop`,
+    );
+    const body = await response.json();
+    assert.equal(body.code, "PT409");
+  }
+  scenarios.push({
+    name: "local_http_stale_plan_assignment_execution",
+    requests: 3,
+    httpStatus: 409,
+    sqlstate: "PT409",
+    noAuthEmails: true,
   });
   process.stdout.write(
     JSON.stringify({

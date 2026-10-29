@@ -53,7 +53,7 @@ SELECT is((SELECT planned_start FROM public.work_order_plan_versions),NULL::date
 SELECT is((SELECT bottom_width_m FROM public.work_order_plan_versions),0::numeric,'T07 measured zero survives the database projection');
 SELECT is((SELECT length_m FROM public.work_order_plan_versions),NULL::numeric,'unknown length does not become zero');
 SELECT throws_ok($$SELECT pg_temp.save(0,61,pg_temp.plan()||'{"title":"Changed request content"}')$$,'22023',NULL,'same request key rejects different content');
-SELECT throws_ok($$SELECT pg_temp.save(0,62)$$,'40001',NULL,'stale plan cannot overwrite current version');
+SELECT throws_ok($$SELECT pg_temp.save(0,62)$$,'PT409',NULL,'stale plan cannot overwrite current version');
 SELECT throws_ok($$SELECT pg_temp.save(1,62)$$,'22023',NULL,'later version requires a correction reason');
 SELECT lives_ok($$SELECT pg_temp.save(1,62,pg_temp.plan()||jsonb_build_object('siteId',pg_temp.k(51),'watercourseVersionId',pg_temp.k(53),'responsibleId',pg_temp.k(2),'plannedStart','2026-11-02'),'31',11,21,'Synthetic explicit plan correction')$$,'plan correction binds existing project relations without changing actual execution');
 SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions WHERE version=1 AND plan=pg_temp.plan()),1,'T10 original plan stays unchanged after correction');
@@ -68,7 +68,7 @@ SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('watercourseVersionId',pg_temp.k(54)),32)$$,'23503',NULL,'foreign centerline cannot be attached');
 SELECT is((SELECT count(*)::integer FROM public.work_orders WHERE action_id=pg_temp.k(32)),0,'foreign relation rolls back initialization too');
 SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organization_id,project_id,version,plan,request_id,created_by) VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),4,pg_temp.plan(),pg_temp.k(65),pg_temp.k(2))$$,'42501',NULL,'Data API cannot spoof plan actor');
-SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organization_id,project_id,version,plan,request_id,correction_reason) VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),99,pg_temp.plan(),pg_temp.k(65),'Synthetic raw insert')$$,'40001',NULL,'Data API cannot skip plan versions');
+SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organization_id,project_id,version,plan,request_id,correction_reason) VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),99,pg_temp.plan(),pg_temp.k(65),'Synthetic raw insert')$$,'PT409',NULL,'Data API cannot skip plan versions');
 SELECT lives_ok($$SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),0,true,true,false,'Synthetic assigned executor',pg_temp.k(70))$$,'concrete external executor is assigned without project access');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),3,'assigned external executor can read its task plan history');
@@ -129,7 +129,7 @@ SELECT is((SELECT membership_snapshot->>'projectRole' FROM public.work_order_exe
 SELECT is((SELECT created_by FROM public.work_order_execution_bindings),pg_temp.k(1),'recording actor is distinct from actual performer');
 SELECT is((SELECT performed_by_id FROM public.work_order_execution_bindings),pg_temp.k(2),'performer identity is distinct from plan responsibility and recorder');
 SELECT throws_ok($$SELECT pg_temp.execution_save(0,81,pg_temp.execution()||'{"method":"Changed retry"}')$$,'22023',NULL,'actual retry key rejects changed payload');
-SELECT throws_ok($$SELECT pg_temp.execution_save(0,82)$$,'40001',NULL,'stale actual revision cannot overwrite');
+SELECT throws_ok($$SELECT pg_temp.execution_save(0,82)$$,'PT409',NULL,'stale actual revision cannot overwrite');
 SELECT throws_ok($$SELECT pg_temp.execution_save(1,82,pg_temp.execution()||'{"correctionReason":"Synthetic change","deviation":"Synthetic different reach"}')$$,'22023',NULL,'deviation requires explicit reason');
 SELECT throws_ok($$SELECT pg_temp.execution_save(1,82,pg_temp.execution()||'{"correctionReason":"Synthetic change"}',3)$$,'22023',NULL,'reader cannot become a new actual performer');
 SELECT lives_ok($$SELECT pg_temp.execution_save(1,82,pg_temp.execution()||'{"correctionReason":"Synthetic correction","deviation":"Synthetic different reach"}',2,'Synthetic access restriction')$$,'actual deviation can be recorded with visible missing-attachment gap');
@@ -140,9 +140,9 @@ SELECT is((SELECT count(*)::integer FROM public.project_members WHERE project_id
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(31)),2,'failed raw execution leaves no unbound workspace revision');
 SELECT lives_ok($$SELECT pg_temp.save(4,83,pg_temp.plan(),31,11,21,'Synthetic later plan')$$,'later plan is appended after actual execution');
 SELECT is((SELECT count(*)::integer FROM public.work_order_execution_bindings WHERE plan_version=4),2,'later plan does not relink historical execution');
-SELECT throws_ok($$SELECT pg_temp.execution_save(2,84,pg_temp.execution()||'{"correctionReason":"Synthetic stale plan"}')$$,'40001',NULL,'open old plan cannot silently acquire later plan content');
+SELECT throws_ok($$SELECT pg_temp.execution_save(2,84,pg_temp.execution()||'{"correctionReason":"Synthetic stale plan"}')$$,'PT409',NULL,'open old plan cannot silently acquire later plan content');
 SELECT throws_ok($$INSERT INTO public.work_order_execution_bindings(workspace_entry_id,action_id,organization_id,project_id,version,plan_version_id,plan_version,performed_by_id,deviation_reason,documentation_gaps,coverage,request_id)
- SELECT workspace_entry_id,action_id,organization_id,project_id,version,plan_version_id,plan_version,performed_by_id,'',ARRAY[]::text[],coverage,pg_temp.k(87) FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31) AND version=1$$,'40001','Plan changed; reopen before saving execution','raw binding cannot bypass the current plan check');
+ SELECT workspace_entry_id,action_id,organization_id,project_id,version,plan_version_id,plan_version,performed_by_id,'',ARRAY[]::text[],coverage,pg_temp.k(87) FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31) AND version=1$$,'PT409','Plan changed; reopen before saving execution','raw binding cannot bypass the current plan check');
 SELECT is(pg_temp.execution_save(),(SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE request_id=pg_temp.k(81)),'committed retry stays idempotent even after a newer plan');
 -- Removing a member must not erase or rewrite who did the recorded work.
 RESET ROLE;

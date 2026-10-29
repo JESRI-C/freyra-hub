@@ -92,6 +92,7 @@ describe("request-bound work-order authority", () => {
   });
   it.each([
     ["40001", 409],
+    ["PT409", 409],
     ["23505", 409],
     ["42501", 403],
     ["23503", 422],
