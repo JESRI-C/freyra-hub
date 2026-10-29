@@ -10,6 +10,8 @@ export const SaveWorkOrderExecutionSchema = WorkOrderScopeSchema.extend({
   planVersionId: z.string().uuid(),
   expectedPlanVersion: z.number().int().positive(),
   expectedVersion: z.number().int().min(0).max(2147483646),
+  assignmentVersionId: z.string().uuid().nullable().default(null),
+  expectedAssignmentVersion: z.number().int().min(0).max(2147483646).default(0),
   requestId: z.string().uuid(),
   execution: ActionExecutionSchema,
   performedById: z.string().uuid().nullable(),
@@ -17,6 +19,12 @@ export const SaveWorkOrderExecutionSchema = WorkOrderScopeSchema.extend({
 })
   .strict()
   .superRefine((value, ctx) => {
+    if ((value.assignmentVersionId === null) !== (value.expectedAssignmentVersion === 0))
+      ctx.addIssue({
+        code: "custom",
+        path: ["assignmentVersionId"],
+        message: "Tildelingens identitet og version skal følge hinanden.",
+      });
     if (value.actionId !== value.execution.actionId)
       ctx.addIssue({
         code: "custom",
@@ -45,6 +53,7 @@ export const WorkOrderExecutionBindingSchema = z
     version: z.number().int().positive(),
     plan_version_id: z.string().uuid(),
     plan_version: z.number().int().positive(),
+    assignment_version_id: z.string().uuid().nullable().optional(),
     performed_by_id: z.string().uuid().nullable(),
     membership_snapshot: z
       .object({

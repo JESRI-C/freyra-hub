@@ -398,6 +398,115 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
+  // D02d: actual separate candidates compete for one pool owner.
+  const poolActor = q(randomUUID()),
+    poolAction = q(randomUUID()),
+    poolGroup = q(randomUUID());
+  const crewMembers = [actor.slice(1, -1), poolActor.slice(1, -1)].sort();
+  const crewSql = `ARRAY[${crewMembers.map(q).join(",")}]::uuid[]`;
+  const poolSetup = await query(`
+    INSERT INTO auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
+    VALUES('00000000-0000-0000-0000-000000000000',${poolActor},'authenticated','authenticated','pool-concurrency-${randomUUID()}@example.test','',now(),'{"provider":"email"}','{}',now(),now());
+    INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES(${org},${poolActor},'viewer');
+    INSERT INTO public.project_members(project_id,user_id,role) VALUES(${project},${poolActor},'external');
+    INSERT INTO public.actions(id,project_id,title) VALUES(${poolAction},${project},'Synthetic pool task');
+    BEGIN;${login}
+    SELECT json_build_object('planId',id) FROM public.save_work_order_plan(${poolAction},${org},${project},0,${plan}::jsonb,'',${q(randomUUID())});
+    SELECT id FROM public.save_work_order_group(${poolGroup},${org},${project},0,'Synthetic pool crew',true,${crewSql},'',${q(randomUUID())});
+    COMMIT;`);
+  const poolPlan = poolSetup.find((row) => row.planId)?.planId;
+  assert.match(poolPlan, /^[0-9a-f-]{36}$/);
+  const groupCall = (request) =>
+    `public.save_work_order_group(${poolGroup},${org},${project},1,'Synthetic pool crew revised',true,${crewSql},'Synthetic group correction',${q(request)})`;
+  const groupWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${groupCall(randomUUID())};`,
+    "GROUP_HELD",
+  );
+  await groupWinner.marker("GROUP_HELD");
+  const groupStale = await transaction(capture(groupCall(randomUUID())), "GROUP_STALE");
+  await actualLock(groupStale, groupWinner);
+  await commit(groupWinner);
+  await groupStale.marker("GROUP_STALE");
+  assert.equal(groupStale.rows().find((row) => row.result)?.result, "PT409");
+  await commit(groupStale);
+  const poolGroupVersion = groupWinner.rows().find((row) => row.id)?.id;
+  scenarios.push({
+    name: "competing_group_revision",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+  });
+  const poolConfigure = (expected, request) =>
+    `public.configure_work_order_assignment(${poolAction},${org},${project},${expected},${q(poolPlan)},'pool',${crewSql},${q(poolGroupVersion)},'Synthetic pool setup',${q(request)})`;
+  const configureWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${poolConfigure(0, randomUUID())};`,
+    "POOL_CONFIG_HELD",
+  );
+  await configureWinner.marker("POOL_CONFIG_HELD");
+  const configureStale = await transaction(
+    capture(poolConfigure(0, randomUUID())),
+    "POOL_CONFIG_STALE",
+  );
+  await actualLock(configureStale, configureWinner);
+  await commit(configureWinner);
+  await configureStale.marker("POOL_CONFIG_STALE");
+  assert.equal(configureStale.rows().find((row) => row.result)?.result, "PT409");
+  await commit(configureStale);
+  scenarios.push({
+    name: "competing_pool_configuration",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+  });
+  const poolClaim = (expected, request) =>
+    `public.claim_work_order_pool(${poolAction},${org},${project},${expected},${q(poolPlan)},${q(request)})`;
+  const claimWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${poolClaim(1, randomUUID())};`,
+    "POOL_CLAIM_HELD",
+  );
+  await claimWinner.marker("POOL_CLAIM_HELD");
+  const claimLoser = await transaction(
+    `SELECT set_config('request.jwt.claim.sub',${poolActor},true);${capture(poolClaim(1, randomUUID()))}`,
+    "POOL_CLAIM_LOST",
+  );
+  await actualLock(claimLoser, claimWinner);
+  await commit(claimWinner);
+  await claimLoser.marker("POOL_CLAIM_LOST");
+  assert.equal(claimLoser.rows().find((row) => row.result)?.result, "PT409");
+  await commit(claimLoser);
+  scenarios.push({
+    name: "two_distinct_pool_claimants",
+    actualLockVerified: true,
+    oneOwner: true,
+    loserSqlstate: "PT409",
+  });
+  await query(`BEGIN;${login}SELECT id FROM ${poolConfigure(2, randomUUID())};COMMIT;`);
+  const poolRetryRequest = randomUUID();
+  const poolRetryWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${poolClaim(3, poolRetryRequest)};`,
+    "POOL_RETRY_HELD",
+  );
+  await poolRetryWinner.marker("POOL_RETRY_HELD");
+  const poolRetry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${poolClaim(3, poolRetryRequest)};`,
+    "POOL_RETRY_DONE",
+  );
+  await actualLock(poolRetry, poolRetryWinner);
+  await commit(poolRetryWinner);
+  await poolRetry.marker("POOL_RETRY_DONE");
+  assert.equal(
+    poolRetry.rows().find((row) => row.id)?.id,
+    poolRetryWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(poolRetry);
+  const [poolAfter] = await query(
+    `SELECT json_build_object('versions',(SELECT count(*) FROM public.work_order_assignment_versions WHERE action_id=${poolAction}),'claimEvents',(SELECT count(*) FROM public.audit_events WHERE entity_id=${poolAction} AND event_type='work_order.pool_claimed'),'currentOwnerMatches',(SELECT claimed_by=${actor}::uuid FROM public.work_order_assignment_versions WHERE action_id=${poolAction} ORDER BY version DESC LIMIT 1));`,
+  );
+  assert.deepEqual(poolAfter, { versions: 4, claimEvents: 2, currentOwnerMatches: true });
+  scenarios.push({
+    name: "identical_pool_claim_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
   // SQL-only assertions missed PostgREST's 500/retry handling of SQLSTATE 40001.
   // Verify the real disposable LOCAL HTTP boundary without Auth mail or hosted access.
   const status = spawnSync("supabase", ["status", "--output", "json"], {
@@ -475,6 +584,46 @@ try {
         p_request_id: randomUUID(),
       },
     ],
+    [
+      "save_work_order_group",
+      {
+        p_group_id: poolGroup.slice(1, -1),
+        p_organization_id: org.slice(1, -1),
+        p_project_id: project.slice(1, -1),
+        p_expected_version: 1,
+        p_name: "Synthetic pool crew revised",
+        p_active: true,
+        p_member_ids: crewMembers,
+        p_correction_reason: "Synthetic stale group",
+        p_request_id: randomUUID(),
+      },
+    ],
+    [
+      "configure_work_order_assignment",
+      {
+        p_action_id: poolAction.slice(1, -1),
+        p_organization_id: org.slice(1, -1),
+        p_project_id: project.slice(1, -1),
+        p_expected_version: 0,
+        p_plan_version_id: poolPlan,
+        p_mode: "pool",
+        p_candidate_user_ids: crewMembers,
+        p_source_group_version_id: poolGroupVersion,
+        p_reason: "Synthetic stale assignment",
+        p_request_id: randomUUID(),
+      },
+    ],
+    [
+      "claim_work_order_pool",
+      {
+        p_action_id: poolAction.slice(1, -1),
+        p_organization_id: org.slice(1, -1),
+        p_project_id: project.slice(1, -1),
+        p_expected_version: 3,
+        p_plan_version_id: poolPlan,
+        p_request_id: randomUUID(),
+      },
+    ],
   ];
   for (const [endpoint, payload] of staleRequests) {
     const response = await fetch(`http://127.0.0.1:54321/rest/v1/rpc/${endpoint}`, {
@@ -496,8 +645,8 @@ try {
     assert.equal(body.code, "PT409");
   }
   scenarios.push({
-    name: "local_http_stale_plan_assignment_execution",
-    requests: 3,
+    name: "local_http_stale_plan_access_execution_group_assignment_claim",
+    requests: 6,
     httpStatus: 409,
     sqlstate: "PT409",
     noAuthEmails: true,

@@ -4,32 +4,33 @@
   "application": {
     "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
     "testPath": "/app/projects/6b560dd2-ec96-42f2-90b5-b395ca0109af?step=udfoerelse",
-    "sourceRevision": "625e2dab3447e6402be9e7caceb33bbbde09fae0",
-    "workerVersion": "a563c7cb-4980-438b-a397-2d69d5ca392c",
-    "previousWorkerVersion": "011775de-95cf-40ce-a55b-4ea218caa6e0",
-    "deploymentId": "f98b7af8-94e4-484c-a264-3ae3b2c59dc9",
+    "sourceRevision": "6413a946e87f12c94bc09da18a521e39e3820fdb",
+    "workerVersion": "827e1ec1-886c-4c92-9144-32ded6ee734e",
+    "previousWorkerVersion": "a563c7cb-4980-438b-a397-2d69d5ca392c",
+    "deploymentId": "407011de-e8d6-42dd-ac76-95ae1986dd06",
     "readbackPercent": 100,
     "stagingBuildAndIsolationPassed": true,
     "hostedBrowserChecked": false,
-    "hostedServerFunctionJourneyChecked": false
+    "hostedServerFunctionJourneyChecked": false,
+    "mobileTaskPath": "/opgaver"
   },
   "ci": {
-    "run": 40942472409,
-    "sourceRevision": "625e2dab3447e6402be9e7caceb33bbbde09fae0",
+    "run": 40949524564,
+    "sourceRevision": "6413a946e87f12c94bc09da18a521e39e3820fdb",
     "applicationPassed": true,
-    "applicationTests": 3176,
-    "applicationTestFiles": 236,
+    "applicationTests": 3226,
+    "applicationTestFiles": 239,
     "databasePassed": true,
-    "databaseAssertions": 1219,
-    "databaseTestFiles": 19,
+    "databaseAssertions": 1304,
+    "databaseTestFiles": 20,
     "actualConcurrencyPassed": true,
-    "localHttpConflictRequests": 3,
+    "localHttpConflictRequests": 6,
     "localHttpConflictStatus": 409,
     "databaseDumpRestorePassed": true
   },
   "database": {
     "projectRef": "xdvqdzdpyceojbdknofi",
-    "migrationTransactions": "five ordered individual migrations",
+    "migrationTransactions": "six ordered individual migrations",
     "migrations": [
       {
         "sourceFile": "20261029183735_work_order_scope_and_access.sql",
@@ -55,10 +56,15 @@
         "sourceFile": "20261029194025_work_order_api_conflict_status.sql",
         "version": "20261029194025",
         "normalizedMd5": "ad3771c527c0f40ef4ab3f02718c8fe9"
+      },
+      {
+        "sourceFile": "20261029195747_work_order_groups_and_pool_assignments.sql",
+        "version": "20261029195747",
+        "normalizedMd5": "e5bb3da95907ce824a3ddd57e137de10"
       }
     ],
     "migrationLedgerAlignedOnlyAfterExactSourceHashMatch": true,
-    "newTables": 4,
+    "newTables": 6,
     "allNewTablesRls": true,
     "browserHistoryUpdateAllowed": false,
     "deferredIntegrityFunctionDirectCallAllowed": false,
@@ -68,7 +74,7 @@
   "hostedApi": {
     "schema": "freyra.jobs-geotag-staging-api/v1",
     "projectRef": "xdvqdzdpyceojbdknofi",
-    "sourceRevision": "625e2dab3447e6402be9e7caceb33bbbde09fae0",
+    "sourceRevision": "6413a946e87f12c94bc09da18a521e39e3820fdb",
     "syntheticOnly": true,
     "plans": [
       {
@@ -109,10 +115,7 @@
     "hostedAppBrowserTested": false,
     "explicitTestProjectMembership": true,
     "execution": {
-      "createdUnperformedSyntheticRecord": true,
-      "immutablePlanVersion": 1,
-      "idempotentRetry": true,
-      "notPerformedGap": true
+      "preservedExistingExecution": true
     }
   },
   "dataPreserved": {
@@ -120,17 +123,17 @@
     "actions": 16,
     "mediaReferences": 110,
     "storageObjectReferences": 252,
-    "workspaceBefore": 31,
+    "workspaceBefore": 32,
     "workspaceAfter": 32,
-    "addedWorkspaceRecord": "one labelled synthetic unperformed execution",
+    "addedWorkspaceRecord": "none in D02d; previous labelled synthetic unperformed execution preserved",
     "otherUserProjectsPreserved": true,
     "storageFilesCopied": false,
     "actualStorageRestoreTested": false
   },
   "offlineProgramCache": {
-    "revision": "18c64f23b37da130d2397ffc",
-    "publicAssetCount": 195,
-    "publicAssetBytes": 6035685,
+    "revision": "58eae0fe939eff1a66aa1876",
+    "publicAssetCount": 196,
+    "publicAssetBytes": 6063356,
     "allPathsChecked": true,
     "privateApiOrStorageResponsesCached": false,
     "physicalOfflineTrial": false
@@ -144,10 +147,11 @@
     "D03ThroughD08": false,
     "actualMobileCamera": false,
     "professionalBykaerPilot": false,
-    "productionReady": false
+    "productionReady": false,
+    "D02dGroupsPoolsTechnical": true
   },
   "remaining": [
-    "D02 groups, atomic pool claim, lifecycle and logbook",
+    "D02 server-driven lifecycle and unified logbook",
     "D03 task-scoped field observations and private original files",
     "D04 shared filters, totals and map/list scale",
     "D05 version-bound submission/review",
@@ -159,7 +163,8 @@
     "https://github.com/JESRI-C/freyra-hub/pull/28",
     "https://github.com/JESRI-C/freyra-hub/pull/29",
     "https://github.com/JESRI-C/freyra-hub/pull/30",
-    "https://github.com/JESRI-C/freyra-hub/pull/31"
+    "https://github.com/JESRI-C/freyra-hub/pull/31",
+    "https://github.com/JESRI-C/freyra-hub/pull/32"
   ],
   "noMail": true,
   "noSms": true,
@@ -167,5 +172,74 @@
   "noAiCalls": true,
   "noPaidImageCalls": true,
   "processingWorkerActivated": false,
-  "productionChanged": false
+  "productionChanged": false,
+  "hostedGroupsApi": {
+    "schema": "freyra.jobs-geotag-groups-staging-api/v1",
+    "projectRef": "xdvqdzdpyceojbdknofi",
+    "sourceRevision": "6413a946e87f12c94bc09da18a521e39e3820fdb",
+    "syntheticOnly": true,
+    "assignments": [
+      {
+        "profile": "nature",
+        "version": 1,
+        "mode": "group",
+        "leftOpenForMobileTrial": false
+      },
+      {
+        "profile": "construction",
+        "version": 2,
+        "claimedByCurrentActor": true,
+        "idempotentRetry": true,
+        "staleClaimHttp409": true
+      },
+      {
+        "profile": "grazing",
+        "version": 1,
+        "mode": "pool",
+        "leftOpenForMobileTrial": true
+      }
+    ],
+    "actualMobileTested": false,
+    "hostedAppBrowserTested": false,
+    "noMail": true,
+    "noSms": true,
+    "noInvitations": true,
+    "noAiCalls": true,
+    "noPaidImageCalls": true,
+    "group": {
+      "version": 1,
+      "idempotentRetry": true,
+      "staleHttp409": true
+    },
+    "myTasks": {
+      "countInTestProject": 4,
+      "actorPinned": true,
+      "unclaimedPoolRequiresTakeover": true
+    },
+    "foreignScopeDenied": true
+  },
+  "groupPostflight": {
+    "audit": {
+      "work_order.group_saved": 1,
+      "work_order.pool_claimed": 1,
+      "work_order.assignment_configured": 3
+    },
+    "groups": 1,
+    "preserved": {
+      "plans": 4,
+      "actions": 16,
+      "projects": 50,
+      "storageObjects": 252,
+      "mediaReferences": 110,
+      "workspaceEntries": 32,
+      "executionBindings": 1
+    },
+    "assignmentVersions": 4,
+    "stateRpcAnonDenied": true,
+    "allWorkOrderTablesRls": true,
+    "executionRpcSignatures": [
+      "p_action_id uuid, p_organization_id uuid, p_project_id uuid, p_plan_version_id uuid, p_expected_plan_version integer, p_expected_version integer, p_execution jsonb, p_performed_by_id uuid, p_deviation_reason text, p_request_id uuid, p_expected_assignment_version_id uuid, p_expected_assignment_version integer"
+    ],
+    "immutableHistoryNoUpdateGrant": true
+  }
 }

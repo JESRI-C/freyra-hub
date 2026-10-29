@@ -5,6 +5,7 @@ import {
   WorkOrderExecutionBindingSchema,
 } from "@/lib/work-order-execution";
 import { getWorkOrderPlanHistory } from "./work-order-plan-service";
+import { getWorkOrderAssignmentState } from "./work-order-assignments-service";
 import {
   checkActor,
   checkScope,
@@ -27,23 +28,46 @@ export async function loadWorkOrderExecutionContext(
     pageSize: 1,
   });
   const plan = history.items[0] ?? null;
-  if (!plan || !input.previousRevisionId) return { plan, binding: null };
-  const { data, error } = await client.rpc("get_work_order_execution_binding", {
-    p_action_id: input.actionId,
-    p_organization_id: input.organizationId,
-    p_project_id: input.projectId,
-    p_workspace_entry_id: input.previousRevisionId,
-  });
+  if (!plan) return { plan, binding: null, assignment: null, canClaim: false, canExecute: null };
+  const [state, { data, error }] = await Promise.all([
+    getWorkOrderAssignmentState(client, actorId, {
+      actionId: input.actionId,
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      expectedActorId: actorId,
+    }),
+    input.previousRevisionId
+      ? client.rpc("get_work_order_execution_binding", {
+          p_action_id: input.actionId,
+          p_organization_id: input.organizationId,
+          p_project_id: input.projectId,
+          p_workspace_entry_id: input.previousRevisionId,
+        })
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   if (error) workOrderRpcFailure(error);
   if (!Array.isArray(data) || data.length > 1) throw new WorkOrderRequestError("unavailable");
-  if (!data.length) return { plan, binding: null };
+  if (!data.length)
+    return {
+      plan,
+      binding: null,
+      assignment: state.assignment,
+      canClaim: state.can_claim,
+      canExecute: state.can_execute,
+    };
   const parsed = WorkOrderExecutionBindingSchema.safeParse(data[0]);
   if (!parsed.success) throw new WorkOrderRequestError("unavailable");
   const binding = parsed.data;
   checkScope(binding, input);
   if (binding.workspace_entry_id !== input.previousRevisionId)
     throw new WorkOrderRequestError("unavailable");
-  return { plan, binding };
+  return {
+    plan,
+    binding,
+    assignment: state.assignment,
+    canClaim: state.can_claim,
+    canExecute: state.can_execute,
+  };
 }
 export async function saveWorkOrderExecution(
   client: WorkOrderRequestClient,
@@ -64,6 +88,8 @@ export async function saveWorkOrderExecution(
       p_performed_by_id: input.performedById,
       p_deviation_reason: input.deviationReason,
       p_request_id: input.requestId,
+      p_expected_assignment_version_id: input.assignmentVersionId,
+      p_expected_assignment_version: input.expectedAssignmentVersion,
     }),
   );
   if (!parsed.success) throw new WorkOrderRequestError("unavailable");
@@ -75,6 +101,7 @@ export async function saveWorkOrderExecution(
     row.version !== input.expectedVersion + 1 ||
     row.plan_version_id !== input.planVersionId ||
     row.plan_version !== input.expectedPlanVersion ||
+    (row.assignment_version_id ?? null) !== input.assignmentVersionId ||
     row.performed_by_id !== input.performedById ||
     row.deviation_reason !== input.deviationReason ||
     row.actual_start !== input.execution.actualDate ||

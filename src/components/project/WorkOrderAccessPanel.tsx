@@ -8,7 +8,7 @@ import {
   saveProjectWorkOrderAccess,
 } from "@/lib/work-order-access.functions";
 import type { WorkOrderScope, WorkOrderAccessVersion } from "@/lib/work-order-access";
-import type { ProjectMember } from "@/services/project-members-service";
+import type { WorkOrderPerson } from "@/lib/work-order-assignments";
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
@@ -16,7 +16,7 @@ const button =
 type Props = {
   scope: WorkOrderScope;
   actorId: string;
-  members: ProjectMember[];
+  members: WorkOrderPerson[];
   onEditing: (value: boolean) => void;
 };
 export function WorkOrderAccessPanel(props: Props) {
@@ -74,7 +74,8 @@ function AccessPanel({ scope, actorId, members, onEditing }: Props) {
     >
       <h3 className="font-semibold">Tildeling og kontroladgang</h3>
       <p className="text-sm text-muted-foreground">
-        Udførelse og faglig kontrol tildeles hver for sig.
+        Udførelse og faglig kontrol tildeles hver for sig. Projektroller og gruppetildeling kan også
+        give adgang. En puljeopgave skal overtages, før udførelsen kan gemmes.
       </p>
       {access.isFetching && <p role="status">Kontrollerer din adgang…</p>}
       {(access.error || subjects.error || error) && (
@@ -129,7 +130,7 @@ function AccessPanel({ scope, actorId, members, onEditing }: Props) {
     </section>
   );
 }
-function memberLabel(members: ProjectMember[], id: string) {
+function memberLabel(members: WorkOrderPerson[], id: string) {
   const person = members.find((m) => m.user_id === id);
   return (
     person?.display_name ||
@@ -171,7 +172,7 @@ function PersonAccess({
     attempt = useRef<{ signature: string; id: string } | null>(null);
   const latest = history.data?.items[0];
   const person = members.find((m) => m.user_id === userId);
-  const mayExecute = !!person && person.role !== "viewer";
+  const mayExecute = !!person && person.can_execute;
   const cursor = next === undefined ? history.data?.nextBeforeVersion : next;
   function open() {
     setDraft({

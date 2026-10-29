@@ -81,20 +81,29 @@
         "src/integrations/supabase/auth-middleware.ts",
         "src/lib/work-order-access.ts",
         "src/lib/work-order-access.functions.ts",
-        "src/services/work-order-access-service.ts"
+        "src/services/work-order-access-service.ts",
+        "src/lib/work-order-assignments.ts",
+        "src/services/work-order-assignments-service.ts",
+        "src/components/project/WorkOrderAssignmentPanel.tsx",
+        "src/components/project/MyWorkOrders.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
-        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql",
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
         "supabase/tests/database/work_order_access.test.sql",
         "src/services/__tests__/work-order-access-service.test.ts",
-        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "src/services/__tests__/work-order-assignments-service.test.ts",
+        "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
+        "src/components/project/__tests__/MyWorkOrders.test.tsx",
+        "supabase/tests/database/work_order_groups_pools.test.sql"
       ],
-      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Ekstern rolle fejler aktuelt lukket. Tilføj opgavespecifik tildeling uden projektbred læse-/skriveadgang; filvejen afprøves i D03."
+      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
+      "remaining": "Person-/gruppe-/puljetildeling giver konkret planadgang og serverkapabilitet uden projektbred ekstern adgang. D03 mangler den konkrete eksterne observations-/udførelses-/filvej."
     },
     {
       "id": "ORG-04",
@@ -106,20 +115,29 @@
         "src/integrations/supabase/auth-middleware.ts",
         "src/lib/work-order-access.ts",
         "src/lib/work-order-access.functions.ts",
-        "src/services/work-order-access-service.ts"
+        "src/services/work-order-access-service.ts",
+        "src/lib/work-order-assignments.ts",
+        "src/services/work-order-assignments-service.ts",
+        "src/components/project/WorkOrderAssignmentPanel.tsx",
+        "src/components/project/MyWorkOrders.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
-        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql",
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
         "supabase/tests/database/work_order_access.test.sql",
         "src/services/__tests__/work-order-access-service.test.ts",
-        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "src/services/__tests__/work-order-assignments-service.test.ts",
+        "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
+        "src/components/project/__tests__/MyWorkOrders.test.tsx",
+        "supabase/tests/database/work_order_groups_pools.test.sql"
       ],
-      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Nye opgavedata/eksporter skal følge samme aktør- og projektnøgler. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
+      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
+      "remaining": "Mine opgaver og personlister har aktørbundet cache; fejl og kontoskift skjuler gamle kort. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
     },
     {
       "id": "JOB-01",
@@ -224,11 +242,16 @@
         "src/services/field-job-cards-service.ts",
         "src/components/project/WorkOrderAccessPanel.tsx",
         "src/lib/work-order-access.functions.ts",
-        "src/services/work-order-access-service.ts"
+        "src/services/work-order-access-service.ts",
+        "src/lib/work-order-assignments.ts",
+        "src/services/work-order-assignments-service.ts",
+        "src/components/project/WorkOrderAssignmentPanel.tsx",
+        "src/components/project/MyWorkOrders.tsx"
       ],
       "migrations": [
         "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
-        "supabase/migrations/20261029191105_work_order_access_history.sql"
+        "supabase/migrations/20261029191105_work_order_access_history.sql",
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
@@ -236,10 +259,15 @@
         "supabase/tests/database/field_job_versions.test.sql",
         "src/components/project/__tests__/WorkOrderAccessPanel.test.tsx",
         "src/services/__tests__/work-order-access-service.test.ts",
-        "supabase/tests/database/work_order_access.test.sql"
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-assignments-service.test.ts",
+        "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
+        "src/components/project/__tests__/MyWorkOrders.test.tsx",
+        "supabase/tests/database/work_order_groups_pools.test.sql",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Personers udførelses-/reviewadgang og historik findes; grupper og atomisk puljeovertagelse samt faktisk udførerbinding følger."
+      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
+      "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding er implementeret. Fysisk telefonprøve og samlet felt-/eksternt forløb mangler."
     },
     {
       "id": "JOB-05",
@@ -1251,20 +1279,29 @@
         "src/lib/__tests__/supabase-browser-client.test.ts",
         "src/lib/work-order-access.ts",
         "src/lib/work-order-access.functions.ts",
-        "src/services/work-order-access-service.ts"
+        "src/services/work-order-access-service.ts",
+        "src/lib/work-order-assignments.ts",
+        "src/services/work-order-assignments-service.ts",
+        "src/components/project/WorkOrderAssignmentPanel.tsx",
+        "src/components/project/MyWorkOrders.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
-        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql",
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
         "supabase/tests/database/work_order_access.test.sql",
         "src/services/__tests__/work-order-access-service.test.ts",
-        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "src/services/__tests__/work-order-assignments-service.test.ts",
+        "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
+        "src/components/project/__tests__/MyWorkOrders.test.tsx",
+        "supabase/tests/database/work_order_groups_pools.test.sql"
       ],
-      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Eksisterende versions-/followup-RPC genbruges. Nye operationer kræver atomisk data, audit og intern hændelse."
+      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
+      "remaining": "Plan, adgang, gruppe, tildeling, overtagelse og faktisk udførelsesbinding har atomisk audit og idempotens. Livscyklus, aflevering og eksport følger."
     },
     {
       "id": "SYS-03",
@@ -1276,20 +1313,29 @@
         "src/lib/__tests__/supabase-browser-client.test.ts",
         "src/lib/work-order-access.ts",
         "src/lib/work-order-access.functions.ts",
-        "src/services/work-order-access-service.ts"
+        "src/services/work-order-access-service.ts",
+        "src/lib/work-order-assignments.ts",
+        "src/services/work-order-assignments-service.ts",
+        "src/components/project/WorkOrderAssignmentPanel.tsx",
+        "src/components/project/MyWorkOrders.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
-        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql",
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
         "supabase/tests/database/work_order_access.test.sql",
         "src/services/__tests__/work-order-access-service.test.ts",
-        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "src/services/__tests__/work-order-assignments-service.test.ts",
+        "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
+        "src/components/project/__tests__/MyWorkOrders.test.tsx",
+        "supabase/tests/database/work_order_groups_pools.test.sql"
       ],
-      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Jobkort/upload har forventet version og request-ID; legacy action-mutationer har ikke. Tilføj operationel kontrakt."
+      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
+      "remaining": "Plan, personadgang, gruppe, pulje og faktisk udførelse har forventet version og request-ID. Status, observationsrelationer og afleverings-/eksportkontrakt følger."
     },
     {
       "id": "SYS-04",
@@ -1359,16 +1405,26 @@
       "package": "D01",
       "code": [
         "src/services/project-workspace-service.ts",
-        "src/lib/__tests__/supabase-browser-client.test.ts"
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/lib/work-order-assignments.ts",
+        "src/services/work-order-assignments-service.ts",
+        "src/components/project/WorkOrderAssignmentPanel.tsx",
+        "src/components/project/MyWorkOrders.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "src/services/__tests__/work-order-assignments-service.test.ts",
+        "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
+        "src/components/project/__tests__/MyWorkOrders.test.tsx",
+        "supabase/tests/database/work_order_groups_pools.test.sql",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Mobil navigation/kamera/offline og UI-tests findes. Tastatur, manuel mobil og samlet afleveringsforløb er åbne."
+      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
+      "remaining": "Mine opgaver, gruppe-/personvalg og puljeovertagelse har mobile kontroller og UI-prøver. Fysisk tastatur-/telefon-/kamera-/offlineprøve og samlet afleveringsforløb er fortsat åbne."
     },
     {
       "id": "SYS-08",
