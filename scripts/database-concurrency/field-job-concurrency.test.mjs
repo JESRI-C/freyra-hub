@@ -216,6 +216,56 @@ try {
     `SELECT json_build_object('jobs',(SELECT count(*) FROM public.field_job_versions WHERE action_id=${action}),'templates',(SELECT count(*) FROM public.field_job_template_versions WHERE template_id=${template}),'oldBindingPreserved',(SELECT bool_and(template_version_id=${q(templateVersion)}::uuid) FROM public.field_job_versions WHERE action_id=${action}));`,
   );
   assert.deepEqual(after, { jobs: 2, templates: 2, oldBindingPreserved: true });
+
+  // D01 uses the same disposable sessions and lock witness; no parallel harness.
+  await query(`UPDATE public.project_members SET role='project_manager' WHERE project_id=${project} AND user_id=${actor};
+    BEGIN; ${login} SELECT action_id FROM public.initialize_work_order(${action},${org},${project},0,${q(randomUUID())}); COMMIT;`);
+  const accessCall = (expected, request) =>
+    `public.save_work_order_access(${action},${org},${project},${actor},${expected},true,true,false,'Synthetic concurrency assignment',${q(request)})`;
+  const accessWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${accessCall(0, randomUUID())};`,
+    "ACCESS_HELD",
+  );
+  await accessWinner.marker("ACCESS_HELD");
+  const accessStale = await transaction(capture(accessCall(0, randomUUID())), "ACCESS_STALE");
+  await actualLock(accessStale, accessWinner);
+  await commit(accessWinner);
+  await accessStale.marker("ACCESS_STALE");
+  assert.equal(accessStale.rows().find((row) => row.result)?.result, "40001");
+  await commit(accessStale);
+  scenarios.push({
+    name: "competing_task_assignment",
+    actualLockVerified: true,
+    staleSqlstate: "40001",
+  });
+  const accessRequest = randomUUID();
+  const accessRetryWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${accessCall(1, accessRequest)};`,
+    "ACCESS_RETRY_HELD",
+  );
+  await accessRetryWinner.marker("ACCESS_RETRY_HELD");
+  const accessRetry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${accessCall(1, accessRequest)};`,
+    "ACCESS_RETRY_DONE",
+  );
+  await actualLock(accessRetry, accessRetryWinner);
+  await commit(accessRetryWinner);
+  await accessRetry.marker("ACCESS_RETRY_DONE");
+  assert.equal(
+    accessRetry.rows().find((row) => row.id)?.id,
+    accessRetryWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(accessRetry);
+  const [accessAfter] = await query(
+    `SELECT json_build_object('versions',(SELECT count(*) FROM public.work_order_access_versions WHERE action_id=${action}), 'events',(SELECT count(*) FROM public.audit_events WHERE entity_id=${action} AND event_type='work_order.access_changed'));`,
+  );
+  assert.deepEqual(accessAfter, { versions: 2, events: 2 });
+  scenarios.push({
+    name: "identical_task_assignment_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
   process.stdout.write(
     JSON.stringify({
       schema: "freyra.field-job-local-concurrency/v1",

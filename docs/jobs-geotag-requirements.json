@@ -1,0 +1,1403 @@
+{
+  "schema": "freyra.jobs-geotag-requirements/v1",
+  "baselineCommit": "9b1133496b89b329f0f2ab4a12f0685bebd894da",
+  "branch": "codex/jobs-geotag-p0",
+  "sourceRegister": "68 IDs extracted from supplied HTML; separate original JSON register not found in Gofreyra Drive folder",
+  "sources": [
+    {
+      "name": "Freyra_Jobs_Geotag_kravspecifikation_v1.html",
+      "bytes": 62800,
+      "sha256": "3c1f61cb588a14c160f3a00d0e4284975bba508e71c852e6971df36dfadef707"
+    },
+    {
+      "name": "Freyra_Codex_udviklingsplan_v1.md",
+      "bytes": 87868,
+      "sha256": "a69121d4a3f5ec889ed895e8ec657ac58121adbf5cce7634b94e20d7dd11339e"
+    },
+    {
+      "name": "Skyhost_Jobs_Geotag_funktionskortlaegning_2026-10-29.html",
+      "bytes": 34852,
+      "sha256": "ba23c8dfab5270d30824c4ba3c93b8e38dd533e38e3636d8baa8c13cb15437a1"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "ORG-01",
+      "priority": "P0",
+      "title": "Fælles projektidentitet",
+      "package": "D01",
+      "code": [
+        "src/lib/project-nature-access.server.ts",
+        "src/integrations/supabase/auth-middleware.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+      ],
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
+      "remaining": "Tilføj databasebundne relationer for operationelle opgaver; eksisterende projektidentitet genbruges."
+    },
+    {
+      "id": "ORG-02",
+      "priority": "P0",
+      "title": "Serverkontrolleret adgang",
+      "package": "D01",
+      "code": [
+        "src/lib/project-nature-access.server.ts",
+        "src/integrations/supabase/auth-middleware.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+      ],
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
+      "remaining": "Bevar eksisterende RLS/Storage. Test den nye opgaveadgang og dens API særskilt."
+    },
+    {
+      "id": "ORG-03",
+      "priority": "P0",
+      "title": "Afgrænset udføreradgang",
+      "package": "D01",
+      "code": [
+        "src/lib/project-nature-access.server.ts",
+        "src/integrations/supabase/auth-middleware.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+      ],
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
+      "remaining": "Ekstern rolle fejler aktuelt lukket. Tilføj opgavespecifik tildeling uden projektbred læse-/skriveadgang; filvejen afprøves i D03."
+    },
+    {
+      "id": "ORG-04",
+      "priority": "P0",
+      "title": "Adgang i cache og rapport",
+      "package": "D01",
+      "code": [
+        "src/lib/project-nature-access.server.ts",
+        "src/integrations/supabase/auth-middleware.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+      ],
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
+      "remaining": "Nye opgavedata/eksporter skal følge samme aktør- og projektnøgler. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
+    },
+    {
+      "id": "JOB-01",
+      "priority": "P0",
+      "title": "Opret og rediger arbejdsopgave",
+      "package": "D02",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "actions har identitet/titel/ansvarlig/due_date, men ingen samlet versionsbundet arbejdsordre med ansvarlig og udfører adskilt."
+    },
+    {
+      "id": "JOB-02",
+      "priority": "P0",
+      "title": "Vandløbets fagfelter",
+      "package": "D02",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Generiske jobkort findes; typed vandløbsprofil, stationretning og filtrerbare målefelter mangler."
+    },
+    {
+      "id": "JOB-03",
+      "priority": "P0",
+      "title": "Faktisk udførelse",
+      "package": "D02",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Genbrug immutable udførelsesnotater. Tilføj kontrolleret relation til opgaveplan og afvigelsesbilag."
+    },
+    {
+      "id": "JOB-04",
+      "priority": "P0",
+      "title": "Tildeling og grupper",
+      "package": "D02",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Fritekst-owner er ikke sikker person-/gruppetildeling. Versionsbundet tildeling og atomisk puljeovertagelse mangler."
+    },
+    {
+      "id": "JOB-05",
+      "priority": "P0",
+      "title": "Status og afslutningskrav",
+      "package": "D02",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Legacy actions-status er ikke en afleveringslivscyklus. Serverstyrede overgange, retur og kravsnapshot mangler."
+    },
+    {
+      "id": "JOB-06",
+      "priority": "P0",
+      "title": "Søgning og ens totaler",
+      "package": "D02",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Fælles filtreret snapshot, keyset-pagination og samstemmende status-/korttotaler mangler."
+    },
+    {
+      "id": "JOB-07",
+      "priority": "P1",
+      "title": "Kopi og gentagelse",
+      "package": "D09",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "JOB-08",
+      "priority": "P1",
+      "title": "Kalender med kapacitet",
+      "package": "D09",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "JOB-09",
+      "priority": "P0",
+      "title": "Logbog og bilag",
+      "package": "D02",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Eksisterende audit genbruges; operationelle mutationer skal skrive audit i samme transaktion."
+    },
+    {
+      "id": "JOB-10",
+      "priority": "P1",
+      "title": "Afhængigheder og delopgaver",
+      "package": "D09",
+      "code": [
+        "src/services/actions-service.ts",
+        "src/services/action-execution-service.ts",
+        "src/services/field-job-cards-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/action-execution.test.ts",
+        "src/services/__tests__/action-execution-service.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "LOC-01",
+      "priority": "P0",
+      "title": "Genbrug lokaliteter og geometri",
+      "package": "D02",
+      "code": [
+        "src/services/watercourse-service.ts",
+        "src/services/project-workspace-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/watercourse-geometry.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Genbrug sites/projektgeometri; tilføj versionsreference på arbejdsopgaven uden punkt-til-areal-konvertering."
+    },
+    {
+      "id": "LOC-02",
+      "priority": "P1",
+      "title": "Serviceintervaller",
+      "package": "D09",
+      "code": [
+        "src/services/watercourse-service.ts",
+        "src/services/project-workspace-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/watercourse-geometry.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "LOC-03",
+      "priority": "P1",
+      "title": "Besøgskontrol",
+      "package": "D09",
+      "code": [
+        "src/services/watercourse-service.ts",
+        "src/services/project-workspace-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/watercourse-geometry.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "OBS-01",
+      "priority": "P0",
+      "title": "Fælles observationsmodel",
+      "package": "D03",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Originalfotoer bevarer ukendt optagetid. Generiske field_observations bruger defaulttid; operationelle observationer kræver version og eksplicit tidspræcision."
+    },
+    {
+      "id": "OBS-02",
+      "priority": "P0",
+      "title": "Direkte jobrelation",
+      "package": "D03",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler."
+    },
+    {
+      "id": "OBS-03",
+      "priority": "P0",
+      "title": "Geografisk søgning er et forslag",
+      "package": "D03",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Direkte relation og geografiske forslag skal få separate serverforespørgsler og UI-lister."
+    },
+    {
+      "id": "OBS-04",
+      "priority": "P0",
+      "title": "Mobil registrering",
+      "package": "D03",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Mobil originalkø findes på projektet. Opgave-/kategoribinding og metadata/flerfoto-status mangler."
+    },
+    {
+      "id": "OBS-05",
+      "priority": "P0",
+      "title": "GPS og manuelle positioner",
+      "package": "D03",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Original GPS og 50 m-rettelser findes. Tilføj eksplicit CRS, positionskilde/nøjagtighed og begrundet GPS-undtagelse."
+    },
+    {
+      "id": "OBS-06",
+      "priority": "P0",
+      "title": "Originaler og afledte billeder",
+      "package": "D03",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret."
+    },
+    {
+      "id": "OBS-07",
+      "priority": "P0",
+      "title": "Før efter og fase",
+      "package": "D03",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Genbrug execution-bundne beskrivende sammenligninger; fase på observation og modstridende faktisk dato skal håndhæves."
+    },
+    {
+      "id": "OBS-08",
+      "priority": "P1",
+      "title": "Observationens behandling",
+      "package": "D09",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "OBS-09",
+      "priority": "P0",
+      "title": "Observation til opgave",
+      "package": "D03",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Idempotent opgaveudkast fra udvalgte observationer mangler; ingen ekstra originalkopier."
+    },
+    {
+      "id": "OBS-10",
+      "priority": "P1",
+      "title": "Offline kø og konflikter",
+      "package": "D09",
+      "code": [
+        "src/services/field-photo-upload-service.ts",
+        "src/services/field-photo-position-service.ts",
+        "src/services/field-offline-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/field_photo_positions.test.sql",
+        "supabase/tests/database/field_photo_uploads.test.sql",
+        "src/services/__tests__/field-offline-sync.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "MAP-01",
+      "priority": "P0",
+      "title": "Kort og liste deler filtre",
+      "package": "D04",
+      "code": [
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx",
+        "src/services/project-media-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/project-media-originals.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Delte serverfiltre og ens objektmængde/totaler mangler for nye opgaver og registreringer."
+    },
+    {
+      "id": "MAP-02",
+      "priority": "P0",
+      "title": "Serverbaseret geografisk afgrænsning",
+      "package": "D04",
+      "code": [
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx",
+        "src/services/project-media-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/project-media-originals.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Nuværende atlas indlæser projektets poster. Afgrænset serverudsnit/aggregering og 100.000-fixture mangler."
+    },
+    {
+      "id": "MAP-03",
+      "priority": "P1",
+      "title": "Polygonvalg og massehandling",
+      "package": "D09",
+      "code": [
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx",
+        "src/services/project-media-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/project-media-originals.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "MAP-04",
+      "priority": "P0",
+      "title": "Lag og koordinatsystemer",
+      "package": "D04",
+      "code": [
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx",
+        "src/services/project-media-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/project-media-originals.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Genbrug eksisterende kilde-/lagadaptere; afprøv fejlstatus og CRS i operationelt forløb."
+    },
+    {
+      "id": "FORM-01",
+      "priority": "P0",
+      "title": "Versionerede kategorier",
+      "package": "D05",
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/field-job-cards.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "V1-skabeloner/svar er immutable. Arkivering og operationelle kategori-/skemaversioner mangler."
+    },
+    {
+      "id": "FORM-02",
+      "priority": "P0",
+      "title": "Feltkontrakter",
+      "package": "D05",
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/field-job-cards.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "V1 har tekst/tal/dato/bool/enkelvalg. Min/max, heltal, flervalg, foto, datotid og eksplicit undersøgelsestilstand mangler."
+    },
+    {
+      "id": "FORM-03",
+      "priority": "P0",
+      "title": "Tjekliste ved aflevering",
+      "package": "D05",
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/field-job-cards.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Fælles serverkrav ved aflevering mangler; UI-komplethed er ikke tilstrækkelig."
+    },
+    {
+      "id": "FORM-04",
+      "priority": "P0",
+      "title": "Basis vandløbsskema",
+      "package": "D05",
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/field-job-cards.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Vandløbsstartskabelon findes. Tilføj krav og ikke-undersøgt/ukendt uden falsk nul."
+    },
+    {
+      "id": "FORM-05",
+      "priority": "P1",
+      "title": "Faskiner og øvrige profiler",
+      "package": "D09",
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/field-job-cards.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "FORM-06",
+      "priority": "P1",
+      "title": "Betingede felter og opfølgning",
+      "package": "D09",
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/field-job-cards.test.ts",
+        "supabase/tests/database/field_job_versions.test.sql"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "QA-01",
+      "priority": "P0",
+      "title": "Versioneret review",
+      "package": "D05",
+      "code": [
+        "src/lib/workflow-report.ts",
+        "src/lib/photo-comparison.ts",
+        "src/lib/workflow-followup.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/workflow-report.test.ts",
+        "src/lib/__tests__/workflow-followup.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Rapportreview findes. Afleveringssnapshot/review af konkrete opgave- og observationsversioner mangler."
+    },
+    {
+      "id": "QA-02",
+      "priority": "P0",
+      "title": "Afvigelser har livscyklus",
+      "package": "D05",
+      "code": [
+        "src/lib/workflow-report.ts",
+        "src/lib/photo-comparison.ts",
+        "src/lib/workflow-followup.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/workflow-report.test.ts",
+        "src/lib/__tests__/workflow-followup.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Versionsgemt opfølgning findes. Afvigelsens retur, alvor, ejer, frist og lukningsbevis mangler."
+    },
+    {
+      "id": "QA-03",
+      "priority": "P0",
+      "title": "Adskil udførelse og effekt",
+      "package": "D05",
+      "code": [
+        "src/lib/workflow-report.ts",
+        "src/lib/photo-comparison.ts",
+        "src/lib/workflow-followup.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/workflow-report.test.ts",
+        "src/lib/__tests__/workflow-followup.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Eksisterende udførelse/sammenligning lover ingen automatisk natureffekt. Bevar kontrakten i nye godkendelser."
+    },
+    {
+      "id": "QA-04",
+      "priority": "P0",
+      "title": "Sammenhængende optælling",
+      "package": "D05",
+      "code": [
+        "src/lib/workflow-report.ts",
+        "src/lib/photo-comparison.ts",
+        "src/lib/workflow-followup.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/workflow-report.test.ts",
+        "src/lib/__tests__/workflow-followup.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Rapportinput er frosset; operationelle relationer, bilag og mangler skal indgå i samme snapshot."
+    },
+    {
+      "id": "OPS-01",
+      "priority": "P1",
+      "title": "Timer og aktivitet",
+      "package": "D09",
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "OPS-02",
+      "priority": "P1",
+      "title": "Materialer og enheder",
+      "package": "D09",
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "OPS-03",
+      "priority": "P2",
+      "title": "Booking",
+      "package": "D10",
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "OPS-04",
+      "priority": "P2",
+      "title": "Besøgsrute",
+      "package": "D10",
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "OPS-05",
+      "priority": "P1",
+      "title": "Gentagelse og opfølgning",
+      "package": "D09",
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "OPS-06",
+      "priority": "P0",
+      "title": "Ingen e-mailafsendelse",
+      "package": "D08",
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Ingen udsendelse er tilladt. Nye mutationer skal kun skabe intern audit/outbox; negativ test for indirekte sendekald."
+    },
+    {
+      "id": "OPS-07",
+      "priority": "P2",
+      "title": "Faktureringsgrundlag",
+      "package": "D10",
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "REP-01",
+      "priority": "P0",
+      "title": "Samme rapportmotor",
+      "package": "D07",
+      "code": [
+        "src/services/workflow-report-service.ts",
+        "src/lib/workflow-report-package.ts",
+        "src/services/report-assets.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-report-service.test.ts",
+        "src/services/__tests__/report-assets.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Genbrug workflow- og municipal-rapportspor. Tilføj arbejdsordre-/afleveringsversioner uden ny rapportmotor."
+    },
+    {
+      "id": "REP-02",
+      "priority": "P0",
+      "title": "Komplet datapakke",
+      "package": "D07",
+      "code": [
+        "src/services/workflow-report-service.ts",
+        "src/lib/workflow-report-package.ts",
+        "src/services/report-assets.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-report-service.test.ts",
+        "src/services/__tests__/report-assets.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Genbrug eksisterende ZIP og originale filreferencer. Komplet operationel pakke/dictionary/genindlæsning mangler."
+    },
+    {
+      "id": "REP-03",
+      "priority": "P0",
+      "title": "Genoptagelig eksport",
+      "package": "D07",
+      "code": [
+        "src/services/workflow-report-service.ts",
+        "src/lib/workflow-report-package.ts",
+        "src/services/report-assets.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-report-service.test.ts",
+        "src/services/__tests__/report-assets.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Vedvarende fotojobs findes; asynkront eksportjob med snapshot, genoptagelse og adgang mangler."
+    },
+    {
+      "id": "REP-04",
+      "priority": "P1",
+      "title": "Kundeaflevering",
+      "package": "D09",
+      "code": [
+        "src/services/workflow-report-service.ts",
+        "src/lib/workflow-report-package.ts",
+        "src/services/report-assets.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-report-service.test.ts",
+        "src/services/__tests__/report-assets.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "REP-05",
+      "priority": "P0",
+      "title": "Rapportens evidens",
+      "package": "D07",
+      "code": [
+        "src/services/workflow-report-service.ts",
+        "src/lib/workflow-report-package.ts",
+        "src/services/report-assets.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-report-service.test.ts",
+        "src/services/__tests__/report-assets.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Metode-/kildebegrænsninger findes. Tilføj operationelle reviewomfang og dokumentationsmangler."
+    },
+    {
+      "id": "IMP-01",
+      "priority": "P0",
+      "title": "Import med forhåndsvisning",
+      "package": "D06",
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Eksisterende import er domænespecifik. Batchforhåndsvisning med enheder/CRS/tidszone mangler."
+    },
+    {
+      "id": "IMP-02",
+      "priority": "P0",
+      "title": "Idempotent ekstern identitet",
+      "package": "D06",
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Ny unik importidentitet pr. destinationstenant/konto/type/kilde-ID mangler."
+    },
+    {
+      "id": "IMP-03",
+      "priority": "P0",
+      "title": "Fotos er særskilt leverance",
+      "package": "D06",
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Faktisk Skyhost-filpakke mangler. Syntetiske referencer uden filer skal give eksplicit mangel."
+    },
+    {
+      "id": "IMP-04",
+      "priority": "P0",
+      "title": "Importkonflikter og lokale rettelser",
+      "package": "D06",
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Importens versions-/konfliktpolitik skal beskytte lokale rettelser."
+    },
+    {
+      "id": "IMP-05",
+      "priority": "P2",
+      "title": "Dokumenterede connectorer",
+      "package": "D10",
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    },
+    {
+      "id": "SYS-01",
+      "priority": "P0",
+      "title": "Samme stack og migrationsspor",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
+      "coverage": "baseline verified",
+      "remaining": "Eksisterende React/TanStack/Supabase, npm/lockfile genbruges. Ingen framework- eller auth-omskrivning."
+    },
+    {
+      "id": "SYS-02",
+      "priority": "P0",
+      "title": "Atomiske domænehandlinger",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+      ],
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
+      "remaining": "Eksisterende versions-/followup-RPC genbruges. Nye operationer kræver atomisk data, audit og intern hændelse."
+    },
+    {
+      "id": "SYS-03",
+      "priority": "P0",
+      "title": "Optimistisk samtidighed",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+      ],
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
+      "remaining": "Jobkort/upload har forventet version og request-ID; legacy action-mutationer har ikke. Tilføj operationel kontrakt."
+    },
+    {
+      "id": "SYS-04",
+      "priority": "P0",
+      "title": "Sporbarhed uden hemmeligheder",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/lib/work-order-access.ts",
+        "src/lib/work-order-access.functions.ts",
+        "src/services/work-order-access-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029183735_work_order_scope_and_access.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "supabase/tests/database/work_order_access.test.sql",
+        "src/services/__tests__/work-order-access-service.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+      ],
+      "coverage": "partial; D01 task capability contract verified in CI 40935274270",
+      "remaining": "Genbrug audit_events. Serveraktør, korrelation og objektversion skal fastlægges ved nye mutationer."
+    },
+    {
+      "id": "SYS-05",
+      "priority": "P0",
+      "title": "Retvisende driftstilstand",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Fejl/ukendt/manglende må ikke blive nul. Nye lister og afleveringer kræver eksplicitte tilstande."
+    },
+    {
+      "id": "SYS-06",
+      "priority": "P0",
+      "title": "Privat og kontrolleret filbehandling",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Holdbar upload og serverhash findes. Indholds-/MIME-kontrol samt operationelle bilagsbindinger afprøves i D03."
+    },
+    {
+      "id": "SYS-07",
+      "priority": "P0",
+      "title": "Tilgængelighed og mobil",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "Mobil navigation/kamera/offline og UI-tests findes. Tastatur, manuel mobil og samlet afleveringsforløb er åbne."
+    },
+    {
+      "id": "SYS-08",
+      "priority": "P0",
+      "title": "Målbar performance",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "p95 og 100.000/10.000/10-bruger benchmark er krav, ikke målte resultater. Ny query- og belastningsprøve mangler."
+    },
+    {
+      "id": "SYS-09",
+      "priority": "P0",
+      "title": "Gendannelse og datalivscyklus",
+      "package": "D01",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
+      "coverage": "partial, acceptance open",
+      "remaining": "CI-databasegenoprettelse findes. Faktiske filer, aftalt retention og samlet stagingrestore er ikke accepteret."
+    },
+    {
+      "id": "SYS-10",
+      "priority": "P1",
+      "title": "AI er forslag",
+      "package": "D09",
+      "code": [
+        "src/services/project-workspace-service.ts",
+        "src/lib/__tests__/supabase-browser-client.test.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
+      "coverage": "not fully assessed; later phase",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+    }
+  ],
+  "packageEvidence": {
+    "D00": {
+      "commit": "c74175b",
+      "baselineTests": 56,
+      "baselineTestFiles": 10
+    },
+    "D01": {
+      "codeRevision": "312e332b1fef150f4ef5f8adf8e73187162872a9",
+      "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/28",
+      "ciRun": 40935274270,
+      "applicationTests": 3108,
+      "applicationTestFiles": 230,
+      "databaseAssertions": 1102,
+      "databaseTestFiles": 18,
+      "newD01Assertions": 71,
+      "actualConcurrentAssignmentAndRetryPassed": true,
+      "hostedMigrationApplied": false,
+      "userInterfaceTested": false,
+      "pilotAccepted": false
+    }
+  }
+}
