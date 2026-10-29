@@ -1,4 +1,3 @@
-/// <reference path="../../types/field-photo-worker.d.ts" />
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import {

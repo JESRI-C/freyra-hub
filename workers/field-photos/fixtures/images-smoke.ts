@@ -1,4 +1,3 @@
-/// <reference path="../../../types/field-photo-worker.d.ts" />
 import { createHash } from "node:crypto";
 import { makeFieldPhotoPreview, type FieldPhotoWorkerClient } from "../processor";
 import type { FieldPhotoUpload } from "../../../src/lib/field-photo-upload";

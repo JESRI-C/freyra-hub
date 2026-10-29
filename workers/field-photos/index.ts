@@ -1,4 +1,3 @@
-/// <reference path="../../types/field-photo-worker.d.ts" />
 import { createClient } from "@supabase/supabase-js";
 import { runFieldPhotoBackground } from "./processor";
 

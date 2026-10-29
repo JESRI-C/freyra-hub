@@ -88,16 +88,14 @@ describe("field photo derivative", () => {
       storage_path: path,
     };
     f.rpc.mockResolvedValue({ data: binding, error: null });
-    f.client.storage.from = vi
-      .fn()
-      .mockReturnValue({
-        createSignedUrl: async () => ({
-          data: {
-            signedUrl: `https://synthetic.supabase.co/storage/v1/object/sign/field-photo-previews/${path}?token=synthetic`,
-          },
-          error: null,
-        }),
-      });
+    f.client.storage.from = vi.fn().mockReturnValue({
+      createSignedUrl: async () => ({
+        data: {
+          signedUrl: `https://synthetic.supabase.co/storage/v1/object/sign/field-photo-previews/${path}?token=synthetic`,
+        },
+        error: null,
+      }),
+    });
     f.fetcher.mockResolvedValue(new Response(f.stored.mock.calls[0][1]));
     expect(
       await verifyStoredFieldPhotoPreview(
