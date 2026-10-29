@@ -36,7 +36,9 @@ Applikationsprøver omfatter streamafbrydelse, størrelse, URL-afgrænsning, gen
 
 Der er desuden en CI-prøve med reelle samtidige PostgreSQL-forbindelser: samtidig intent, samtidig finalisering, én behandlingslease og medlemskab trukket tilbage under kvittering. Prøven kræver numerisk loopback og eksplicit disponibel lokal database; den kan ikke rettes mod hosted PostgreSQL.
 
-CI-resultater og konkret revision føres i udviklingsplanen efter afsluttet kørsel. Stagingprøver skal stadig dokumentere den faktiske Storage/TUS-API, fysisk iPhone/Android, tabt forbindelse før/efter sidste chunk, genstart, sessionudløb, filbevarelse og adgang efter kvittering. Hverken pgTAP, mocked Storage eller et stagingbuild udgør dette bevis. Der er ikke foretaget e-mailudsendelse, AI-kald eller produktionsrelease.
+På koderevision `114677a954c872f88259362945c9dbfd451947bf` bestod begge CI-kontroller i [run 40857419444](https://github.com/JESRI-C/freyra-hub/actions/runs/40857419444). Applikationsjobbet bestod 3.038 tests i 221 filer, typecheck, lint (0 fejl, 24 eksisterende advarsler), beregningskilder og build. Databasejobbet bestod frisk migrationsreplay, 981 assertions i 16 filer (49 nye uploadassertions), de fire nye samtidighedsscenarier, øvrig samtidighed, dump/restore og databasefunktionskontrol. Efterfølgende evidensopdatering ændrer kun dokumentation.
+
+Stagingprøver skal stadig dokumentere den faktiske Storage/TUS-API, fysisk iPhone/Android, tabt forbindelse før/efter sidste chunk, genstart, sessionudløb, filbevarelse og adgang efter kvittering. Hverken pgTAP, mocked Storage eller et stagingbuild udgør dette bevis. Der er ikke foretaget e-mailudsendelse, AI-kald eller produktionsrelease.
 
 ## Næste leverance i C
 
