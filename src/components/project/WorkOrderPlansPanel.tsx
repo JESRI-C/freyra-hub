@@ -22,6 +22,7 @@ import { listProjectMembers, type ProjectMember } from "@/services/project-membe
 import { fetchSitesByProject } from "@/lib/supabase/queries";
 import { getWatercourseVersions } from "@/services/watercourse-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
+import { WorkOrderAccessPanel } from "./WorkOrderAccessPanel";
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
@@ -193,6 +194,7 @@ function PlanWorkspace({
     [reason, setReason] = useState(""),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
+    [accessEditing, setAccessEditing] = useState(false),
     [busy, setBusy] = useState(false);
   const [meters, setMeters] = useState<Record<string, string>>({});
   const saving = useRef(false),
@@ -314,7 +316,11 @@ function PlanWorkspace({
             <p className="text-sm">Arbejdsgrundlaget er endnu ikke gemt som plan.</p>
           )}
           {canPlan && (
-            <button className={button} disabled={history.isFetching} onClick={open}>
+            <button
+              className={button}
+              disabled={history.isFetching || accessEditing}
+              onClick={open}
+            >
               {latest ? "Rediger plan som ny version" : "Opret arbejdsopgavens plan"}
             </button>
           )}
@@ -324,6 +330,17 @@ function PlanWorkspace({
             </p>
           )}
         </>
+      )}
+      {latest && !draft && (
+        <WorkOrderAccessPanel
+          scope={{ ...scope, actionId }}
+          actorId={actorId}
+          members={members.data ?? []}
+          onEditing={(value) => {
+            setAccessEditing(value);
+            onEditing(value);
+          }}
+        />
       )}
       {draft && (
         <form

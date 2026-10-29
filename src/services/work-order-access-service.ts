@@ -5,9 +5,12 @@ import {
   WorkOrderIdentitySchema,
   WorkOrderAccessVersionSchema,
   WorkOrderCapabilitiesSchema,
+  WorkOrderAccessHistorySchema,
+  WorkOrderAccessSubjectsSchema,
   WorkOrderRequestError,
   parseWorkOrderInput,
   type WorkOrderScope,
+  type WorkOrderAccessVersion,
 } from "@/lib/work-order-access";
 import { z } from "zod";
 
@@ -134,4 +137,69 @@ export async function getWorkOrderAccess(
   checkScope(result.data, input);
   if (result.data.user_id !== actorId) throw new WorkOrderRequestError("access");
   return result.data;
+}
+export async function getWorkOrderAccessHistory(
+  client: WorkOrderRequestClient,
+  actorId: string,
+  raw: unknown,
+) {
+  const input = parseWorkOrderInput(WorkOrderAccessHistorySchema, raw);
+  checkActor(actorId);
+  const { data, error } = await client.rpc("get_work_order_access_history", {
+    p_action_id: input.actionId,
+    p_organization_id: input.organizationId,
+    p_project_id: input.projectId,
+    p_user_id: input.userId,
+    p_before_version: input.beforeVersion,
+    p_page_size: input.pageSize,
+  });
+  if (error) workOrderRpcFailure(error);
+  if (!Array.isArray(data) || data.length > input.pageSize + 1)
+    throw new WorkOrderRequestError("unavailable");
+  let previous = input.beforeVersion ?? Infinity;
+  const rows: WorkOrderAccessVersion[] = [];
+  for (const value of data) {
+    const parsed = WorkOrderAccessVersionSchema.safeParse(value);
+    if (!parsed.success) throw new WorkOrderRequestError("unavailable");
+    const row = parsed.data;
+    checkScope(row, input);
+    if (row.user_id !== input.userId || row.version >= previous)
+      throw new WorkOrderRequestError("unavailable");
+    previous = row.version;
+    rows.push(row);
+  }
+  const items = rows.slice(0, input.pageSize);
+  return { items, nextBeforeVersion: rows.length > input.pageSize ? items.at(-1)!.version : null };
+}
+export async function getWorkOrderAccessSubjects(
+  client: WorkOrderRequestClient,
+  actorId: string,
+  raw: unknown,
+) {
+  const input = parseWorkOrderInput(WorkOrderAccessSubjectsSchema, raw);
+  checkActor(actorId);
+  const { data, error } = await client.rpc("get_work_order_access_subjects", {
+    p_action_id: input.actionId,
+    p_organization_id: input.organizationId,
+    p_project_id: input.projectId,
+    p_after_user_id: input.afterUserId,
+    p_page_size: input.pageSize,
+  });
+  if (error) workOrderRpcFailure(error);
+  if (!Array.isArray(data) || data.length > input.pageSize + 1)
+    throw new WorkOrderRequestError("unavailable");
+  let previous = input.afterUserId;
+  const rows: string[] = [];
+  for (const value of data) {
+    const parsed = z.object({ user_id: z.string().uuid() }).safeParse(value);
+    if (
+      !parsed.success ||
+      (previous && parsed.data.user_id.toLowerCase() <= previous.toLowerCase())
+    )
+      throw new WorkOrderRequestError("unavailable");
+    previous = parsed.data.user_id;
+    rows.push(previous);
+  }
+  const items = rows.slice(0, input.pageSize);
+  return { items, nextAfterUserId: rows.length > input.pageSize ? items.at(-1)! : null };
 }

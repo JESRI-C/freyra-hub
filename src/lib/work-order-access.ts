@@ -56,6 +56,15 @@ export const WorkOrderAccessVersionSchema = z.object({
   created_at: z.string().datetime({ offset: true }),
 });
 export type WorkOrderAccessVersion = z.infer<typeof WorkOrderAccessVersionSchema>;
+export const WorkOrderAccessHistorySchema = WorkOrderScopeSchema.extend({
+  userId: uuid,
+  beforeVersion: z.number().int().positive().nullable(),
+  pageSize: z.number().int().min(1).max(50),
+}).strict();
+export const WorkOrderAccessSubjectsSchema = WorkOrderScopeSchema.extend({
+  afterUserId: uuid.nullable(),
+  pageSize: z.number().int().min(1).max(50),
+}).strict();
 export const WorkOrderCapabilitiesSchema = z.object({
   ...identity,
   user_id: uuid,
