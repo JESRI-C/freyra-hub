@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useBlocker } from "@tanstack/react-router";
 import { Camera, CloudUpload, Download, LockKeyhole, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -87,15 +87,13 @@ export function FieldOfflineWorkspace({
   const pack = packs.find((p) => p.projectId === projectId);
   const pending = items.filter((i) => i.state !== "complete");
 
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  useBlocker({
+    shouldBlockFn: () => {
+      if (dirty) setError("Gem eller fortryd ændringerne, før du forlader feltsiden.");
+      return dirty;
+    },
+    enableBeforeUnload: dirty,
+  });
 
   useEffect(() => {
     alive.current = true;
@@ -423,7 +421,10 @@ export function FieldOfflineWorkspace({
             onSaved={() =>
               void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
             }
-            onBusy={setPhotoBusy}
+            onBusy={(value) => {
+              if (actorRef.current === actor && projectRef.current === projectId)
+                setPhotoBusy(value);
+            }}
           />
           <OfflineJobs
             key={actor + projectId + pack.savedAt}
@@ -433,7 +434,10 @@ export function FieldOfflineWorkspace({
             onSaved={() =>
               void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
             }
-            onDirty={setJobDirty}
+            onDirty={(value) => {
+              if (actorRef.current === actor && projectRef.current === projectId)
+                setJobDirty(value);
+            }}
           />
           <section className={card} aria-label="Telefonens feltkø">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -578,16 +582,21 @@ function OfflinePhotos({
     [description, setDescription] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
+  const [unsaved, setUnsaved] = useState<File[]>([]);
   const camera = useRef<HTMLInputElement>(null),
     library = useRef<HTMLInputElement>(null),
     captureBusy = useRef(false);
-  async function capture(event: React.ChangeEvent<HTMLInputElement>) {
-    const input = event.target;
-    const files = Array.from(input.files ?? []);
+  function capture(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    void saveFiles(files);
+  }
+  async function saveFiles(files: File[]) {
     if (!files.length || captureBusy.current) return;
     captureBusy.current = true;
     setBusy(true);
     onBusy(true);
+    setUnsaved(files);
     setMessage("");
     let count = 0;
     try {
@@ -624,10 +633,11 @@ function OfflinePhotos({
         `${count} af ${files.length} blev gemt. ${localSaveError(e)} Behold eller vælg de resterende originaler igen.`,
       );
     } finally {
-      input.value = "";
+      const remaining = files.slice(count);
+      setUnsaved(remaining);
       captureBusy.current = false;
       setBusy(false);
-      onBusy(false);
+      onBusy(remaining.length > 0);
     }
   }
   return (
@@ -643,7 +653,7 @@ function OfflinePhotos({
             className={control}
             maxLength={160}
             value={title}
-            disabled={busy}
+            disabled={busy || unsaved.length > 0}
             onChange={(e) => setTitle(e.target.value)}
           />
         </label>
@@ -653,7 +663,7 @@ function OfflinePhotos({
             className={control}
             maxLength={4000}
             value={description}
-            disabled={busy}
+            disabled={busy || unsaved.length > 0}
             onChange={(e) => setDescription(e.target.value)}
           />
         </label>
@@ -665,7 +675,8 @@ function OfflinePhotos({
         type="file"
         accept="image/*"
         capture="environment"
-        onChange={(event) => void capture(event)}
+        disabled={busy || unsaved.length > 0}
+        onChange={capture}
       />
       <input
         ref={library}
@@ -674,12 +685,13 @@ function OfflinePhotos({
         type="file"
         accept="image/*"
         multiple
-        onChange={(event) => void capture(event)}
+        disabled={busy || unsaved.length > 0}
+        onChange={capture}
       />
       <div className="grid grid-cols-2 gap-2">
         <button
           className={primary}
-          disabled={!ready || busy}
+          disabled={!ready || busy || unsaved.length > 0}
           onClick={() => camera.current?.click()}
         >
           <Camera className="h-5 w-5" />
@@ -687,7 +699,7 @@ function OfflinePhotos({
         </button>
         <button
           className={button}
-          disabled={!ready || busy}
+          disabled={!ready || busy || unsaved.length > 0}
           onClick={() => library.current?.click()}
         >
           Vælg fotos
@@ -701,6 +713,43 @@ function OfflinePhotos({
         <p role="status" className="text-sm">
           {message}
         </p>
+      )}
+      {!busy && unsaved.length > 0 && (
+        <div className="space-y-3 rounded-xl border border-destructive p-3">
+          <p role="alert" className="text-sm">
+            {unsaved.length} originaler er endnu ikke gemt. De findes kun i den åbne side. Hent dem,
+            eller prøv igen, før du lukker.
+          </p>
+          <button className={button} onClick={() => void saveFiles(unsaved)}>
+            Prøv at gemme de resterende fotos igen
+          </button>
+          <details>
+            <summary className="min-h-11 cursor-pointer py-2 text-sm">
+              Hent originaler, som endnu ikke er gemt
+            </summary>
+            <ul className="max-h-64 space-y-2 overflow-y-auto">
+              {unsaved.map((file, index) => (
+                <li key={index}>
+                  <button className={button} onClick={() => download(file, file.name)}>
+                    Hent ikke-gemt original: {file.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
+          <button
+            className={button}
+            onClick={() => {
+              setUnsaved([]);
+              onBusy(false);
+              setMessage(
+                "Det ikke-gemte valg er ryddet. Tidligere gemte registreringer ligger fortsat i køen.",
+              );
+            }}
+          >
+            Jeg har gemt originalerne andetsteds – ryd valget
+          </button>
+        </div>
       )}
     </section>
   );

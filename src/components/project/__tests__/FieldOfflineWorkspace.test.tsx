@@ -10,8 +10,11 @@ const f = vi.hoisted(() => ({
   packs: vi.fn(),
   enqueue: vi.fn(),
   prepare: vi.fn(),
+  photo: vi.fn(),
+  blocker: vi.fn(),
 }));
 vi.mock("@tanstack/react-router", () => ({
+  useBlocker: f.blocker,
   Link: ({
     children,
     to,
@@ -42,7 +45,7 @@ vi.mock("@/services/field-offline-sync", () => ({ drainFieldOfflineQueue: async 
 vi.mock("@/services/field-offline-service", () => ({
   offlineSyncDependencies: () => ({}),
   prepareOfflineJob: f.prepare,
-  prepareOfflinePhoto: vi.fn(),
+  prepareOfflinePhoto: f.photo,
   downloadFieldWorkPack: vi.fn(),
   requireOfflineOnlineActor: vi.fn(),
 }));
@@ -142,6 +145,28 @@ async function edit() {
   )!;
 }
 describe("mobile field local save feedback", () => {
+  it("retains a rejected camera file for download and retry instead of discarding the selection", async () => {
+    f.photo.mockResolvedValue({ id: "photo" });
+    f.enqueue.mockRejectedValue(new DOMException("Full", "QuotaExceededError"));
+    await act(async () => root!.render(<FieldOfflineWorkspace requestedProject={f.project} />));
+    const camera = host.querySelector<HTMLInputElement>('input[capture="environment"]')!;
+    Object.defineProperty(camera, "files", {
+      value: [new File(["raw"], "camera.png", { type: "image/png" })],
+    });
+    await act(async () => camera.dispatchEvent(new Event("change", { bubbles: true })));
+    expect(host.textContent).toContain("1 originaler er endnu ikke gemt");
+    expect(host.textContent).toContain("Hent ikke-gemt original: camera.png");
+    expect(f.blocker.mock.calls.at(-1)?.[0].enableBeforeUnload).toBe(true);
+    const retry = Array.from(host.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Prøv at gemme de resterende"),
+    )!;
+    f.enqueue.mockResolvedValue(undefined);
+    await act(async () => retry.click());
+    expect(f.enqueue.mock.calls[1][1]).toBe(f.enqueue.mock.calls[0][1]);
+    expect(host.textContent).toContain("1 af 1 originaler er gemt på telefonen.");
+    expect(host.textContent).not.toContain("1 originaler er endnu ikke gemt");
+    expect(f.blocker.mock.calls.at(-1)?.[0].enableBeforeUnload).toBe(false);
+  });
   it("acknowledges only a committed local save and preserves false, zero and field units", async () => {
     let commit!: () => void;
     f.enqueue.mockImplementation(
