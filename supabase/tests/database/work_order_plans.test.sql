@@ -53,7 +53,7 @@ SELECT is((SELECT planned_start FROM public.work_order_plan_versions),NULL::date
 SELECT is((SELECT bottom_width_m FROM public.work_order_plan_versions),0::numeric,'T07 measured zero survives the database projection');
 SELECT is((SELECT length_m FROM public.work_order_plan_versions),NULL::numeric,'unknown length does not become zero');
 SELECT throws_ok($$SELECT pg_temp.save(0,61,pg_temp.plan()||'{"title":"Changed request content"}')$$,'22023',NULL,'same request key rejects different content');
-SELECT throws_ok($$SELECT pg_temp.save(0,62)$$,'40001',NULL,'stale plan cannot overwrite current version');
+SELECT throws_ok($$SELECT pg_temp.save(0,62)$$,'PT409',NULL,'stale plan cannot overwrite current version');
 SELECT throws_ok($$SELECT pg_temp.save(1,62)$$,'22023',NULL,'later version requires a correction reason');
 SELECT lives_ok($$SELECT pg_temp.save(1,62,pg_temp.plan()||jsonb_build_object('siteId',pg_temp.k(51),'watercourseVersionId',pg_temp.k(53),'responsibleId',pg_temp.k(2),'plannedStart','2026-11-02'),'31',11,21,'Synthetic explicit plan correction')$$,'plan correction binds existing project relations without changing actual execution');
 SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions WHERE version=1 AND plan=pg_temp.plan()),1,'T10 original plan stays unchanged after correction');
@@ -68,7 +68,7 @@ SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('watercourseVersionId',pg_temp.k(54)),32)$$,'23503',NULL,'foreign centerline cannot be attached');
 SELECT is((SELECT count(*)::integer FROM public.work_orders WHERE action_id=pg_temp.k(32)),0,'foreign relation rolls back initialization too');
 SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organization_id,project_id,version,plan,request_id,created_by) VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),4,pg_temp.plan(),pg_temp.k(65),pg_temp.k(2))$$,'42501',NULL,'Data API cannot spoof plan actor');
-SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organization_id,project_id,version,plan,request_id,correction_reason) VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),99,pg_temp.plan(),pg_temp.k(65),'Synthetic raw insert')$$,'40001',NULL,'Data API cannot skip plan versions');
+SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organization_id,project_id,version,plan,request_id,correction_reason) VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),99,pg_temp.plan(),pg_temp.k(65),'Synthetic raw insert')$$,'PT409',NULL,'Data API cannot skip plan versions');
 SELECT lives_ok($$SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),0,true,true,false,'Synthetic assigned executor',pg_temp.k(70))$$,'concrete external executor is assigned without project access');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),3,'assigned external executor can read its task plan history');
@@ -103,5 +103,78 @@ SELECT lives_ok($$SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_t
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions),0,'revocation immediately removes external plan read');
 SELECT throws_ok($$SELECT * FROM pg_temp.history()$$,'42501',NULL,'revoked executor cannot mint a new history response');
+-- D02c stores actual execution in the existing workspace, with an atomic plan binding.
+CREATE FUNCTION pg_temp.execution() RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$ SELECT jsonb_build_object('schema','freyra.action-execution/v1','actionId',pg_temp.k(31),'surveyRoundId',NULL,'dataBasis','synthetic','workType','weed_cutting','stage','performed','actualDate','2026-10-08','actualEndDate',NULL,'method','Synthetic actual method','reach','Synthetic actual reach','performedBy','Synthetic colleague','sourceReference','Synthetic work log','evidenceIds','[]'::jsonb,'deviation','','correctionReason','','coverage','limited','coverageDescription','Synthetic partial execution') $$;
+CREATE FUNCTION pg_temp.execution_save(ver integer DEFAULT 0,req integer DEFAULT 81,body jsonb DEFAULT pg_temp.execution(),performer integer DEFAULT 2,reason text DEFAULT '',a integer DEFAULT 31,plan_ver integer DEFAULT 4)
+RETURNS uuid LANGUAGE sql AS $$ SELECT workspace_entry_id FROM public.save_work_order_execution(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) AND version=plan_ver),plan_ver,ver,body||jsonb_build_object('actionId',pg_temp.k(a)),pg_temp.k(performer),reason,pg_temp.k(req)) $$;
+CREATE FUNCTION pg_temp.raw_execution(revoke_reader boolean DEFAULT false) RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+ INSERT INTO public.project_workspace_entries(entry_id,organization_id,project_id,kind,version,title,payload)
+ VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),'decision_note',3,'Synthetic raw execution',jsonb_build_object('basis','Synthetic work log','source','action-execution:'||pg_temp.k(31)::text,'decision',(pg_temp.execution()||'{"correctionReason":"Synthetic raw correction"}')::text,'alternatives','','uncertainty','','owner',''));
+ IF revoke_reader THEN DELETE FROM public.project_members WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(1);END IF;
+ SET CONSTRAINTS work_order_execution_required IMMEDIATE;
+END $$;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT pg_temp.save(3,80,pg_temp.plan()||'{"plannedStart":"2026-09-21","plannedEnd":"2026-09-27","plannedMethod":"Synthetic planned method"}',31,11,21,'Synthetic plan before execution')$$,'plan week 39 is frozen independently of actual week 41');
+SELECT lives_ok($$SELECT pg_temp.execution_save()$$,'actual execution writes the existing workspace note and binding');
+SET CONSTRAINTS work_order_execution_required IMMEDIATE;
+SET CONSTRAINTS work_order_execution_required DEFERRED;
+SELECT is(pg_temp.execution_save(),(SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE request_id=pg_temp.k(81)),'lost actual-execution response reuses the same revision');
+SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(31)),1,'execution retry creates no second workspace note');
+SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(31) AND event_type='work_order.execution_saved'),1,'execution retry creates one internal event');
+SELECT is((SELECT actual_start FROM public.work_order_execution_bindings),DATE '2026-10-08','actual date stays in week 41');
+SELECT is((SELECT p.planned_start FROM public.work_order_plan_versions p JOIN public.work_order_execution_bindings b ON b.plan_version_id=p.id),DATE '2026-09-21','frozen plan stays in week 39');
+SELECT is((SELECT actual_method FROM public.work_order_execution_bindings),'Synthetic actual method','actual method is not overwritten by planned method');
+SELECT is((SELECT membership_snapshot->>'projectRole' FROM public.work_order_execution_bindings),'field','actual performer gets a historical membership assessment');
+SELECT is((SELECT created_by FROM public.work_order_execution_bindings),pg_temp.k(1),'recording actor is distinct from actual performer');
+SELECT is((SELECT performed_by_id FROM public.work_order_execution_bindings),pg_temp.k(2),'performer identity is distinct from plan responsibility and recorder');
+SELECT throws_ok($$SELECT pg_temp.execution_save(0,81,pg_temp.execution()||'{"method":"Changed retry"}')$$,'22023',NULL,'actual retry key rejects changed payload');
+SELECT throws_ok($$SELECT pg_temp.execution_save(0,82)$$,'PT409',NULL,'stale actual revision cannot overwrite');
+SELECT throws_ok($$SELECT pg_temp.execution_save(1,82,pg_temp.execution()||'{"correctionReason":"Synthetic change","deviation":"Synthetic different reach"}')$$,'22023',NULL,'deviation requires explicit reason');
+SELECT throws_ok($$SELECT pg_temp.execution_save(1,82,pg_temp.execution()||'{"correctionReason":"Synthetic change"}',3)$$,'22023',NULL,'reader cannot become a new actual performer');
+SELECT lives_ok($$SELECT pg_temp.execution_save(1,82,pg_temp.execution()||'{"correctionReason":"Synthetic correction","deviation":"Synthetic different reach"}',2,'Synthetic access restriction')$$,'actual deviation can be recorded with visible missing-attachment gap');
+SELECT ok((SELECT 'deviation_attachment_missing'=ANY(documentation_gaps) FROM public.work_order_execution_bindings WHERE version=2),'missing deviation attachment is explicit, never approval');
+SELECT throws_ok($$SELECT pg_temp.raw_execution()$$,'23514',NULL,'direct Data API cannot save a work-order execution without its plan binding');
+SELECT throws_ok($$SELECT pg_temp.raw_execution(true)$$,'23514',NULL,'membership removal before deferred validation cannot hide the required binding');
+SELECT is((SELECT count(*)::integer FROM public.project_members WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(1)),1,'failed deferred validation rolls back membership removal too');
+SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(31)),2,'failed raw execution leaves no unbound workspace revision');
+SELECT lives_ok($$SELECT pg_temp.save(4,83,pg_temp.plan(),31,11,21,'Synthetic later plan')$$,'later plan is appended after actual execution');
+SELECT is((SELECT count(*)::integer FROM public.work_order_execution_bindings WHERE plan_version=4),2,'later plan does not relink historical execution');
+SELECT throws_ok($$SELECT pg_temp.execution_save(2,84,pg_temp.execution()||'{"correctionReason":"Synthetic stale plan"}')$$,'PT409',NULL,'open old plan cannot silently acquire later plan content');
+SELECT throws_ok($$INSERT INTO public.work_order_execution_bindings(workspace_entry_id,action_id,organization_id,project_id,version,plan_version_id,plan_version,performed_by_id,deviation_reason,documentation_gaps,coverage,request_id)
+ SELECT workspace_entry_id,action_id,organization_id,project_id,version,plan_version_id,plan_version,performed_by_id,'',ARRAY[]::text[],coverage,pg_temp.k(87) FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31) AND version=1$$,'PT409','Plan changed; reopen before saving execution','raw binding cannot bypass the current plan check');
+SELECT is(pg_temp.execution_save(),(SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE request_id=pg_temp.k(81)),'committed retry stays idempotent even after a newer plan');
+-- Removing a member must not erase or rewrite who did the recorded work.
+RESET ROLE;
+DELETE FROM public.project_members WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT pg_temp.execution_save(2,84,pg_temp.execution()||'{"correctionReason":"Synthetic historical correction"}',2,'',31,5)$$,'correction may preserve the prior historical performer after removal');
+SELECT is((SELECT membership_snapshot->>'basis' FROM public.work_order_execution_bindings WHERE version=3),'historical','retained membership is explicitly historical, not current access');
+SELECT is((SELECT membership_snapshot->>'basis' FROM public.work_order_execution_bindings WHERE version=1),'current','first membership assessment is immutable');
+SELECT throws_ok($$SELECT pg_temp.execution_save(0,85,pg_temp.execution(),2,'',33,1)$$,'22023',NULL,'removed performer cannot be newly assigned to a different execution');
+SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(33)),0,'invalid performer rolls back the workspace write');
+-- Binding audit failure must roll back the otherwise valid execution note too.
+RESET ROLE;
+CREATE FUNCTION pg_temp.fail_execution_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic execution audit failure' USING ERRCODE='P0001';END $$;
+CREATE TRIGGER synthetic_execution_audit_failure BEFORE INSERT ON public.audit_events FOR EACH ROW WHEN(NEW.event_type='work_order.execution_saved') EXECUTE FUNCTION pg_temp.fail_execution_audit();
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT throws_ok($$SELECT pg_temp.execution_save(0,85,pg_temp.execution(),1,'',33,1)$$,'P0001',NULL,'audit error rejects execution note and binding atomically');
+SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(33)),0,'audit error leaves no partial workspace execution');
+SELECT is((SELECT count(*)::integer FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(33)),0,'audit error leaves no partial plan binding');
+RESET ROLE;
+DROP TRIGGER synthetic_execution_audit_failure ON public.audit_events;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT pg_temp.execution_save(0,85,pg_temp.execution(),1,'',33,1)$$,'execution retry succeeds after rollback with the original request');
+SET CONSTRAINTS work_order_execution_required IMMEDIATE;
+SET CONSTRAINTS work_order_execution_required DEFERRED;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.get_work_order_plan_history(pg_temp.k(35),pg_temp.k(11),pg_temp.k(21),NULL,1)),0,'legacy project reader retains real empty-plan read on an existing action');
+SELECT throws_ok($$SELECT pg_temp.execution_save(3,86,pg_temp.execution(),1,'',31,5)$$,'42501',NULL,'viewer cannot save work-order execution');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.work_order_execution_bindings),0,'another tenant cannot enumerate execution bindings');
+SELECT throws_ok($$SELECT * FROM public.get_work_order_execution_binding(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(81))$$,'42501',NULL,'another tenant cannot fetch by guessed execution reference');
 SELECT * FROM finish();
 ROLLBACK;

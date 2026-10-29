@@ -1,5 +1,7 @@
 # D02b: personers tildeling og kontroladgang
 
+Denne pakkehistorik suppleres af den [aktuelle samlede testlevering](JOBS_GEOTAG_TESTLEVERING.md), som dokumenterer efterfølgende staging-installation, API-prøve og deployment.
+
 Denne del gør D01's konkrete opgaverettigheder betjenelige i mobilformularen. JOB-04 og ORG-03 får personsporet, med adskilt udførelse og faglig kontrol. JOB-04 er fortsat delvist: grupper og atomisk puljeovertagelse følger. Der blev søgt efter eksisterende teams/grupper i migrationer, genererede typer og services; ingen organisatorisk gruppe-/medlemsmodel blev fundet. Billedgrupper og navigationens grupper er ikke medarbejdergrupper og genbruges ikke som sådan.
 
 ## Adfærd og genbrug
@@ -18,7 +20,7 @@ Formularens aktør, projekt, person og åbningsversion fastlåses ved redigering
 - Eksisterende `work-order-access-service.test.ts` udvides med ni prøver. Ny `WorkOrderAccessPanel.test.tsx` har seks adfærdsprøver, herunder særskilt reviewer, mistet svar, konkurrerende ændring, tidligere medlem, læser og fejl under adgangsgenkontrol.
 - Eksisterende `work_order_access.test.sql` udvides med 17 assertions om cursor, begrænset personhistorik, fjernet medlem, ukendt historik, fremmed organisation/projekt og direkte API-afslag. Eksisterende samtidighedsprøver af D01-mutationen genbruges.
 
-65 fokuserede appprøver i fem filer, app-typecheck og fokuseret lint bestod lokalt. Disponibel CI bestod på koderevision `361e633840bdb026b0e11310a32cd85c0f465f55`, [run 40938510298](https://github.com/JESRI-C/freyra-hub/actions/runs/40938510298): 3.153 appprøver i 234 filer, app-/worker-typechecks, lint (0 fejl, 24 eksisterende advarsler), lokal Images-prøve og build; databasejobbet bestod frisk migrationsreplay, 1.180 assertions i 19 filer (17 nye D02b), faktisk samtidighed, database-dump/restore og funktionskontrol. [Draft-PR 30](https://github.com/JESRI-C/freyra-hub/pull/30) er stablet på D02a. Ingen hosted migration/deployment er foretaget. Fysisk mobilprøve, ekstern brugers samlede feltindgang og faglig pilotaccept er åbne.
+65 fokuserede appprøver i fem filer, app-typecheck og fokuseret lint bestod lokalt. Disponibel CI bestod på koderevision `361e633840bdb026b0e11310a32cd85c0f465f55`, [run 40938510298](https://github.com/JESRI-C/freyra-hub/actions/runs/40938510298): 3.153 appprøver i 234 filer, app-/worker-typechecks, lint (0 fejl, 24 eksisterende advarsler), lokal Images-prøve og build; databasejobbet bestod frisk migrationsreplay, 1.180 assertions i 19 filer (17 nye D02b), faktisk samtidighed, database-dump/restore og funktionskontrol. [Draft-PR 30](https://github.com/JESRI-C/freyra-hub/pull/30) er stablet på D02a. Ved den første D02b-kodelevering var hosted migration/deployment endnu ikke foretaget. Fysisk mobilprøve, ekstern brugers samlede feltindgang og faglig pilotaccept er åbne.
 
 ## Tilbagerulning og næste del
 

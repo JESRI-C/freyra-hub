@@ -54,7 +54,7 @@ export function workOrderRpcFailure(error: { code?: string }): never {
   throw new WorkOrderRequestError(
     code === "42501"
       ? "access"
-      : code === "40001" || code === "23505"
+      : code === "PT409" || code === "40001" || code === "23505"
         ? "conflict"
         : code === "22023" || code === "23514" || code === "23503" || code === "23502"
           ? "validation"

@@ -39,7 +39,7 @@ SELECT lives_ok($$SELECT pg_temp.init()$$,'manager initializes an existing actio
 SELECT is(pg_temp.init(),pg_temp.k(31),'identical creation retry returns the same identity');
 SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(31) AND event_type='work_order.created'),1,'T09 creation retry writes one internal audit event');
 SELECT throws_ok($$SELECT pg_temp.init(32,41)$$,'22023',NULL,'request key cannot create a different action');
-SELECT throws_ok($$SELECT pg_temp.init(31,42)$$,'40001',NULL,'another initialization key cannot replace identity');
+SELECT throws_ok($$SELECT pg_temp.init(31,42)$$,'PT409',NULL,'another initialization key cannot replace identity');
 SELECT throws_ok($$SELECT pg_temp.init(35,43,12,21)$$,'23503',NULL,'organization and project binding is a database foreign key');
 SELECT throws_ok($$SELECT pg_temp.init(33,43,11,21)$$,'23503',NULL,'action and project binding is a database foreign key');
 SELECT throws_ok($$SELECT pg_temp.init(33,43,11,22)$$,'42501',NULL,'same organization does not grant another project');
@@ -67,7 +67,7 @@ SELECT is((SELECT count(*)::integer FROM public.work_order_access_versions),1,'o
 SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(31) AND event_type='work_order.access_changed'),1,'T11 assignment produces one internal event and no send action');
 SELECT is((SELECT after_data->>'requestId' FROM public.audit_events WHERE entity_id=pg_temp.k(31) AND event_type='work_order.access_changed'),pg_temp.k(61)::text,'audit carries the mutation correlation without credentials');
 SELECT is((SELECT actor FROM public.audit_events WHERE entity_id=pg_temp.k(31) AND event_type='work_order.access_changed'),pg_temp.k(1)::text,'audit actor is the authenticated manager');
-SELECT throws_ok($$SELECT pg_temp.access_write(4,0,62)$$,'40001',NULL,'stale assignment is rejected');
+SELECT throws_ok($$SELECT pg_temp.access_write(4,0,62)$$,'PT409',NULL,'stale assignment is rejected');
 SELECT throws_ok($$SELECT pg_temp.access_write(4,0,61,true,true,true)$$,'22023',NULL,'same key with changed authority is rejected');
 SELECT throws_ok($$SELECT pg_temp.access_write(6,0,63)$$,'22023',NULL,'cannot assign someone from another tenant');
 SELECT throws_ok($$SELECT pg_temp.access_write(7,0,63)$$,'22023',NULL,'organization membership alone is not task membership');

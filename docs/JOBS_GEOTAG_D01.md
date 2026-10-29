@@ -1,5 +1,7 @@
 # D01: opgavescope og rettighedskontrakter
 
+Denne pakkehistorik suppleres af den [aktuelle samlede testlevering](JOBS_GEOTAG_TESTLEVERING.md), som dokumenterer efterfølgende staging-installation, API-prøve og deployment.
+
 Arbejdsordreidentiteten er en relation med samme ID som en eksisterende `actions`-post. Organisation og projekt bindes med sammensatte fremmednøgler til de eksisterende stamdata. Ingen ny projekt-, auth-, upload- eller rapportmotor oprettes.
 
 ## Krav og genbrug
@@ -24,7 +26,7 @@ Lokalt findes ingen Docker/PostgreSQL. Den faktiske disponible CI-prøve er nu b
 
 Prøven afslørede og fik rettet en INSERT/RETURNING-fejl: eksisterende projektlæsning bruges direkte i den nye rækkes læsepolitik, mens opgavespecifik ekstern læsning stadig følger det aktuelle grant. Den samme STABLE-snapshotbegrænsning beskrives i [PostgreSQL-dokumentationen](https://www.postgresql.org/docs/current/xfunc-volatility.html). En syntetisk opfølgning oprettes gennem Freyras eksisterende kilde-/historik-RPC. Ingen eksisterende validering blev slået fra.
 
-Ingen hosted migration er udført, og ingen ny brugerflade er udgivet med D01. UI-/filforløb og fuld T01-accept for kommende operationelle data er fortsat åbne. De beståede tekniske delprøver er hverken fysisk mobilprøve eller kunde-/faglig accept.
+Ved den første D01-kodelevering var ingen hosted migration udført og ingen ny brugerflade udgivet. UI-/filforløb og fuld T01-accept for kommende operationelle data er fortsat åbne. De beståede tekniske delprøver er hverken fysisk mobilprøve eller kunde-/faglig accept.
 
 ## Rollback og næste pakke
 

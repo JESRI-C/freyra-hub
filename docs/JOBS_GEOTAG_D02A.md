@@ -1,5 +1,7 @@
 # D02a: arbejdsopgavens plan og mobilformular
 
+Denne pakkehistorik suppleres af den [aktuelle samlede testlevering](JOBS_GEOTAG_TESTLEVERING.md), som dokumenterer efterfølgende staging-installation, API-prøve og deployment.
+
 Denne del tilføjer en versionsgemt plan på samme eksisterende `actions`-/`work_orders`-identitet. JOB-01, JOB-02 og LOC-01 får en første operationel del. Hele D02 er fortsat åben: tildeling/puljer, livscyklus og kobling til faktisk udførelse følger efter denne del. Legacy-status `Lukket` er ingen afleverings- eller reviewgodkendelse.
 
 ## Adfærd
@@ -21,7 +23,7 @@ Planlagt ansvarlig er adskilt fra faktisk udfører og giver ingen rettigheder. D
 
 50 fokuserede appprøver i fire filer bestod lokalt, inklusive D01's 20 serviceprøver. De nye prøver kontrollerer blandt andet formularens bevarede kladde ved konflikt og mistet svar, fast aktør, genbrugt request-ID, historikcursor og målt nul. Appens typecheck og fokuseret lint bestod også. Disponibel CI bestod på koderevision `afbcd0a9db60bf8169aadeb578a26424ddd13d09`, [run 40937570174](https://github.com/JESRI-C/freyra-hub/actions/runs/40937570174): 3.138 appprøver i 233 filer, app-/worker-typechecks, lint (0 fejl), lokal Images-prøve og build. Databasejobbet bestod frisk migrationsreplay og 1.163 assertions i 19 filer, heraf 61 nye planassertions, de to nye samtidighedsscenarier med faktisk PostgreSQL-lockvidne, database-dump/restore og funktionskontrol. [Draft-PR 29](https://github.com/JESRI-C/freyra-hub/pull/29) er stablet på D01.
 
-Ingen hosted migration eller deployment udføres med denne levering. Browseradgang til appen er tidligere afvist af adgangskontrollen, og brugeren har valgt selv at afprøve. Derfor er fysisk mobilvisning, kamera, iPhone/Android og kundens Bykær-forløb fortsat uafprøvet. Listevalg er ikke en godkendt 10.000-opgavers ydelsesprøve; D04 skal samle serverfiltre og pagination. Tildelt ekstern bruger kan læse en konkret plan gennem den nye kontrakt, men den eksisterende projektbrugerflade åbnes ikke for projektbred adgang.
+Ved den første D02a-kodelevering var hosted migration og deployment endnu ikke udført. Browseradgang til appen er tidligere afvist af adgangskontrollen, og brugeren har valgt selv at afprøve. Derfor er fysisk mobilvisning, kamera, iPhone/Android og kundens Bykær-forløb fortsat uafprøvet. Listevalg er ikke en godkendt 10.000-opgavers ydelsesprøve; D04 skal samle serverfiltre og pagination. Tildelt ekstern bruger kan læse en konkret plan gennem den nye kontrakt, men den eksisterende projektbrugerflade åbnes ikke for projektbred adgang.
 
 ## Tilbagerulning og næste del
 
