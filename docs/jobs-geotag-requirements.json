@@ -129,18 +129,28 @@
       "code": [
         "src/services/actions-service.ts",
         "src/services/action-execution-service.ts",
-        "src/services/field-job-cards-service.ts"
+        "src/services/field-job-cards-service.ts",
+        "src/lib/work-order-plan.ts",
+        "src/lib/work-order-plan.functions.ts",
+        "src/services/work-order-plan-service.ts",
+        "src/components/project/WorkOrderPlansPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261029185238_work_order_plan_versions.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "src/lib/__tests__/work-order-plan.test.ts",
+        "src/services/__tests__/work-order-plan-service.test.ts",
+        "src/components/project/__tests__/WorkOrderPlansPanel.test.tsx",
+        "supabase/tests/database/work_order_plans.test.sql",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "actions har identitet/titel/ansvarlig/due_date, men ingen samlet versionsbundet arbejdsordre med ansvarlig og udfører adskilt."
+      "coverage": "partial; D02a plan revision and mobile form implemented, database CI pending",
+      "remaining": "Planrevision og adskilt ansvarlig findes; eksplicit tildeling, livscyklus og kobling til faktisk udfører følger i D02b."
     },
     {
       "id": "JOB-02",
@@ -150,18 +160,28 @@
       "code": [
         "src/services/actions-service.ts",
         "src/services/action-execution-service.ts",
-        "src/services/field-job-cards-service.ts"
+        "src/services/field-job-cards-service.ts",
+        "src/lib/work-order-plan.ts",
+        "src/lib/work-order-plan.functions.ts",
+        "src/services/work-order-plan-service.ts",
+        "src/components/project/WorkOrderPlansPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261029185238_work_order_plan_versions.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "src/lib/__tests__/work-order-plan.test.ts",
+        "src/services/__tests__/work-order-plan-service.test.ts",
+        "src/components/project/__tests__/WorkOrderPlansPanel.test.tsx",
+        "supabase/tests/database/work_order_plans.test.sql",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Generiske jobkort findes; typed vandløbsprofil, stationretning og filtrerbare målefelter mangler."
+      "coverage": "partial; D02a plan revision and mobile form implemented, database CI pending",
+      "remaining": "Typed vandløbsprofil og filtrerbare måleprojektioner findes; D04 fælles filtre og faktisk udførelseskobling afventer."
     },
     {
       "id": "JOB-03",
@@ -338,16 +358,26 @@
       "package": "D02",
       "code": [
         "src/services/watercourse-service.ts",
-        "src/services/project-workspace-service.ts"
+        "src/services/project-workspace-service.ts",
+        "src/lib/work-order-plan.ts",
+        "src/lib/work-order-plan.functions.ts",
+        "src/services/work-order-plan-service.ts",
+        "src/components/project/WorkOrderPlansPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261029185238_work_order_plan_versions.sql"
       ],
       "tests": [
-        "src/services/__tests__/watercourse-geometry.test.ts"
+        "src/services/__tests__/watercourse-geometry.test.ts",
+        "src/lib/__tests__/work-order-plan.test.ts",
+        "src/services/__tests__/work-order-plan-service.test.ts",
+        "src/components/project/__tests__/WorkOrderPlansPanel.test.tsx",
+        "supabase/tests/database/work_order_plans.test.sql",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Genbrug sites/projektgeometri; tilføj versionsreference på arbejdsopgaven uden punkt-til-areal-konvertering."
+      "coverage": "partial; D02a plan revision and mobile form implemented, database CI pending",
+      "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes; kortinteraktion og fysisk prøve afventer."
     },
     {
       "id": "LOC-02",
