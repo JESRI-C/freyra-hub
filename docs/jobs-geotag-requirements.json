@@ -85,12 +85,16 @@
         "src/lib/work-order-assignments.ts",
         "src/services/work-order-assignments-service.ts",
         "src/components/project/WorkOrderAssignmentPanel.tsx",
-        "src/components/project/MyWorkOrders.tsx"
+        "src/components/project/MyWorkOrders.tsx",
+        "src/lib/work-order-lifecycle.ts",
+        "src/services/work-order-lifecycle-service.ts",
+        "src/components/project/WorkOrderStatusPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
         "supabase/migrations/20261029183735_work_order_scope_and_access.sql",
-        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql",
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
@@ -100,10 +104,13 @@
         "src/services/__tests__/work-order-assignments-service.test.ts",
         "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
         "src/components/project/__tests__/MyWorkOrders.test.tsx",
-        "supabase/tests/database/work_order_groups_pools.test.sql"
+        "supabase/tests/database/work_order_groups_pools.test.sql",
+        "src/services/__tests__/work-order-lifecycle-service.test.ts",
+        "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
-      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
-      "remaining": "Person-/gruppe-/puljetildeling giver konkret planadgang og serverkapabilitet uden projektbred ekstern adgang. D03 mangler den konkrete eksterne observations-/udførelses-/filvej."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "remaining": "Konkret tildeling, status og logbog håndhæver aktuel opgaveadgang uden projektbred ekstern adgang. D03 mangler den konkrete eksterne observations-/udførelses-/filvej."
     },
     {
       "id": "ORG-04",
@@ -119,12 +126,16 @@
         "src/lib/work-order-assignments.ts",
         "src/services/work-order-assignments-service.ts",
         "src/components/project/WorkOrderAssignmentPanel.tsx",
-        "src/components/project/MyWorkOrders.tsx"
+        "src/components/project/MyWorkOrders.tsx",
+        "src/lib/work-order-lifecycle.ts",
+        "src/services/work-order-lifecycle-service.ts",
+        "src/components/project/WorkOrderStatusPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
         "supabase/migrations/20261029183735_work_order_scope_and_access.sql",
-        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql",
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
@@ -134,10 +145,13 @@
         "src/services/__tests__/work-order-assignments-service.test.ts",
         "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
         "src/components/project/__tests__/MyWorkOrders.test.tsx",
-        "supabase/tests/database/work_order_groups_pools.test.sql"
+        "supabase/tests/database/work_order_groups_pools.test.sql",
+        "src/services/__tests__/work-order-lifecycle-service.test.ts",
+        "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
-      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
-      "remaining": "Mine opgaver og personlister har aktørbundet cache; fejl og kontoskift skjuler gamle kort. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "remaining": "Aktør-/scopebundet status, logbog og noter skjules ved adgangsfejl/kontoskift. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
     },
     {
       "id": "JOB-01",
@@ -246,12 +260,16 @@
         "src/lib/work-order-assignments.ts",
         "src/services/work-order-assignments-service.ts",
         "src/components/project/WorkOrderAssignmentPanel.tsx",
-        "src/components/project/MyWorkOrders.tsx"
+        "src/components/project/MyWorkOrders.tsx",
+        "src/lib/work-order-lifecycle.ts",
+        "src/services/work-order-lifecycle-service.ts",
+        "src/components/project/WorkOrderStatusPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
         "supabase/migrations/20261029191105_work_order_access_history.sql",
-        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql",
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
@@ -264,10 +282,13 @@
         "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
         "src/components/project/__tests__/MyWorkOrders.test.tsx",
         "supabase/tests/database/work_order_groups_pools.test.sql",
-        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "src/services/__tests__/work-order-lifecycle-service.test.ts",
+        "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
-      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
-      "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding er implementeret. Fysisk telefonprøve og samlet felt-/eksternt forløb mangler."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding findes. Modtagerspecifik tildelingsnotifikation/indbakke og fysisk telefon-/feltprøve er fortsat åbne."
     },
     {
       "id": "JOB-05",
@@ -277,18 +298,26 @@
       "code": [
         "src/services/actions-service.ts",
         "src/services/action-execution-service.ts",
-        "src/services/field-job-cards-service.ts"
+        "src/services/field-job-cards-service.ts",
+        "src/lib/work-order-lifecycle.ts",
+        "src/services/work-order-lifecycle-service.ts",
+        "src/components/project/WorkOrderStatusPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "src/services/__tests__/work-order-lifecycle-service.test.ts",
+        "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Legacy actions-status er ikke en afleveringslivscyklus. Serverstyrede overgange, retur og kravsnapshot mangler."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "remaining": "Serverstyret Kladde/Planlagt/Tildelt/Påbegyndt/Udført/Annulleret og separat blokering findes. Afleveret/Godkendt/Returneret/Genåbnet kræver D05s frosne skema-/evidensgrundlag; almindelig API kan ikke omgå det."
     },
     {
       "id": "JOB-06",
@@ -361,18 +390,26 @@
       "code": [
         "src/services/actions-service.ts",
         "src/services/action-execution-service.ts",
-        "src/services/field-job-cards-service.ts"
+        "src/services/field-job-cards-service.ts",
+        "src/lib/work-order-lifecycle.ts",
+        "src/services/work-order-lifecycle-service.ts",
+        "src/components/project/WorkOrderStatusPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "src/services/__tests__/work-order-lifecycle-service.test.ts",
+        "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Eksisterende audit genbruges; operationelle mutationer skal skrive audit i samme transaktion."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "remaining": "Fælles logbog skelner kanoniske systemhændelser og versionsgemte manuelle noter med forfatter, rettelsesaktør og oprindeligt grundlag. Private bilagsrelationer følger i D03; afleverings-/reviewhændelser tilføjes i D05."
     },
     {
       "id": "JOB-10",
@@ -1283,12 +1320,16 @@
         "src/lib/work-order-assignments.ts",
         "src/services/work-order-assignments-service.ts",
         "src/components/project/WorkOrderAssignmentPanel.tsx",
-        "src/components/project/MyWorkOrders.tsx"
+        "src/components/project/MyWorkOrders.tsx",
+        "src/lib/work-order-lifecycle.ts",
+        "src/services/work-order-lifecycle-service.ts",
+        "src/components/project/WorkOrderStatusPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
         "supabase/migrations/20261029183735_work_order_scope_and_access.sql",
-        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql",
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
@@ -1298,10 +1339,13 @@
         "src/services/__tests__/work-order-assignments-service.test.ts",
         "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
         "src/components/project/__tests__/MyWorkOrders.test.tsx",
-        "supabase/tests/database/work_order_groups_pools.test.sql"
+        "supabase/tests/database/work_order_groups_pools.test.sql",
+        "src/services/__tests__/work-order-lifecycle-service.test.ts",
+        "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
-      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
-      "remaining": "Plan, adgang, gruppe, tildeling, overtagelse og faktisk udførelsesbinding har atomisk audit og idempotens. Livscyklus, aflevering og eksport følger."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "remaining": "Plan, adgang, gruppe, tildeling, overtagelse, udførelse, status og noter har atomisk audit og idempotens. Versionsbundet aflevering/review og eksport følger."
     },
     {
       "id": "SYS-03",
@@ -1317,12 +1361,16 @@
         "src/lib/work-order-assignments.ts",
         "src/services/work-order-assignments-service.ts",
         "src/components/project/WorkOrderAssignmentPanel.tsx",
-        "src/components/project/MyWorkOrders.tsx"
+        "src/components/project/MyWorkOrders.tsx",
+        "src/lib/work-order-lifecycle.ts",
+        "src/services/work-order-lifecycle-service.ts",
+        "src/components/project/WorkOrderStatusPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
         "supabase/migrations/20261029183735_work_order_scope_and_access.sql",
-        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql",
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
@@ -1332,10 +1380,13 @@
         "src/services/__tests__/work-order-assignments-service.test.ts",
         "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
         "src/components/project/__tests__/MyWorkOrders.test.tsx",
-        "supabase/tests/database/work_order_groups_pools.test.sql"
+        "supabase/tests/database/work_order_groups_pools.test.sql",
+        "src/services/__tests__/work-order-lifecycle-service.test.ts",
+        "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
-      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
-      "remaining": "Plan, personadgang, gruppe, pulje og faktisk udførelse har forventet version og request-ID. Status, observationsrelationer og afleverings-/eksportkontrakt følger."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "remaining": "Status og noter har forventet version og request-ID samt faktisk PostgreSQL-samtidighed og HTTP 409. Observationsrelationer og afleverings-/eksportkontrakt følger."
     },
     {
       "id": "SYS-04",
@@ -1409,11 +1460,15 @@
         "src/lib/work-order-assignments.ts",
         "src/services/work-order-assignments-service.ts",
         "src/components/project/WorkOrderAssignmentPanel.tsx",
-        "src/components/project/MyWorkOrders.tsx"
+        "src/components/project/MyWorkOrders.tsx",
+        "src/lib/work-order-lifecycle.ts",
+        "src/services/work-order-lifecycle-service.ts",
+        "src/components/project/WorkOrderStatusPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
-        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql"
+        "supabase/migrations/20261029195747_work_order_groups_and_pool_assignments.sql",
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
       ],
       "tests": [
         "supabase/tests/database/4dm_tenant_isolation.test.sql",
@@ -1421,10 +1476,13 @@
         "src/components/project/__tests__/WorkOrderAssignmentPanel.test.tsx",
         "src/components/project/__tests__/MyWorkOrders.test.tsx",
         "supabase/tests/database/work_order_groups_pools.test.sql",
-        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "src/services/__tests__/work-order-lifecycle-service.test.ts",
+        "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
-      "coverage": "partial; D02d staged at 6413a946e87f12c94bc09da18a521e39e3820fdb; CI 40949524564 and hosted API passed",
-      "remaining": "Mine opgaver, gruppe-/personvalg og puljeovertagelse har mobile kontroller og UI-prøver. Fysisk tastatur-/telefon-/kamera-/offlineprøve og samlet afleveringsforløb er fortsat åbne."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "remaining": "Mobil status/note, dirty-lock, starttid/kilde, bilagsmangler og fejl bevarer kladden i automatiske UI-prøver. Fysisk telefon-/kamera-/offline-/tastaturprøve og samlet aflevering er fortsat åbne."
     },
     {
       "id": "SYS-08",

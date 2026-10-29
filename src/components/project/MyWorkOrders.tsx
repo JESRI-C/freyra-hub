@@ -9,6 +9,7 @@ import {
 } from "@/lib/work-order-assignments.functions";
 import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignments";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
+import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 
@@ -39,6 +40,7 @@ export function MyWorkOrders() {
 }
 function MyTasks({ actorId }: { actorId: string }) {
   const load = useServerFn(listCurrentUserWorkOrders);
+  const [editors, setEditors] = useState<Set<string>>(() => new Set());
   const tasks = useInfiniteQuery({
     queryKey: ["my-work-orders", actorId],
     initialPageParam: null as string | null,
@@ -46,13 +48,19 @@ function MyTasks({ actorId }: { actorId: string }) {
       load({ data: { expectedActorId: actorId, afterActionId: pageParam, pageSize: 20 } }),
     getNextPageParam: (page) => page.nextAfterActionId ?? undefined,
     retry: false,
+    refetchOnWindowFocus: editors.size === 0,
+    refetchOnReconnect: editors.size === 0,
   });
   const items = tasks.isError ? [] : (tasks.data?.pages.flatMap((page) => page.items) ?? []);
   return (
     <main className="mx-auto min-h-dvh max-w-3xl space-y-4 p-3 pb-12 sm:p-6 [overflow-wrap:anywhere]">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Mine opgaver</h1>
-        <button className={button} disabled={tasks.isFetching} onClick={() => void tasks.refetch()}>
+        <button
+          className={button}
+          disabled={tasks.isFetching || editors.size > 0}
+          onClick={() => void tasks.refetch()}
+        >
           {tasks.isFetching ? "Henter…" : "Opdater opgaver"}
         </button>
       </header>
@@ -60,6 +68,11 @@ function MyTasks({ actorId }: { actorId: string }) {
         Dine tildelte arbejdsopgaver og ledige opgaver i dine puljer. Åbn arbejdsgrundlaget, og
         overtag en puljeopgave, når du skal udføre den.
       </p>
+      {!!editors.size && (
+        <p role="status" className="text-sm">
+          Gem eller fortryd din kladde, før du opdaterer listen eller overtager en anden opgave.
+        </p>
+      )}
       <Link to="/select" className="inline-flex min-h-11 items-center text-sm underline">
         Åbn projektoversigten
       </Link>
@@ -74,12 +87,25 @@ function MyTasks({ actorId }: { actorId: string }) {
         <p className="rounded-xl border p-4">Du har ingen tildelte opgaver med en gemt plan.</p>
       )}
       {items.map((task) => (
-        <TaskCard key={task.action_id} task={task} actorId={actorId} />
+        <TaskCard
+          key={task.action_id}
+          task={task}
+          actorId={actorId}
+          locked={editors.size > 0}
+          onEditing={(value) =>
+            setEditors((old) => {
+              const next = new Set(old);
+              if (value) next.add(task.action_id);
+              else next.delete(task.action_id);
+              return next;
+            })
+          }
+        />
       ))}
       {tasks.hasNextPage && !tasks.isError && (
         <button
           className={button}
-          disabled={tasks.isFetching}
+          disabled={tasks.isFetching || editors.size > 0}
           onClick={() => void tasks.fetchNextPage()}
         >
           {tasks.isFetchingNextPage ? "Henter…" : "Hent flere opgaver"}
@@ -88,16 +114,28 @@ function MyTasks({ actorId }: { actorId: string }) {
     </main>
   );
 }
-function TaskCard({ task, actorId }: { task: MyWorkOrder; actorId: string }) {
+function TaskCard({
+  task,
+  actorId,
+  locked,
+  onEditing,
+}: {
+  task: MyWorkOrder;
+  actorId: string;
+  locked: boolean;
+  onEditing: (value: boolean) => void;
+}) {
   const claim = useServerFn(claimProjectWorkOrderPool),
     cache = useQueryClient();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
+  const [statusOpened, setStatusOpened] = useState(false),
+    [editing, setEditing] = useState(false);
   const inFlight = useRef(false),
     attempt = useRef<{ signature: string; requestId: string } | null>(null);
   async function take() {
-    if (inFlight.current || !task.can_claim) return;
+    if (inFlight.current || !task.can_claim || locked) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -116,7 +154,11 @@ function TaskCard({ task, actorId }: { task: MyWorkOrder; actorId: string }) {
         attempt.current = { signature, requestId: crypto.randomUUID() };
       await claim({ data: { ...input, requestId: attempt.current.requestId } });
       setMessage("Du har overtaget opgaven.");
-      await cache.invalidateQueries({ queryKey: ["my-work-orders", actorId] });
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: ["my-work-orders", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
+      ]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Opgaven kunne ikke overtages. Prøv igen.");
     } finally {
@@ -144,12 +186,46 @@ function TaskCard({ task, actorId }: { task: MyWorkOrder; actorId: string }) {
       {task.can_claim && (
         <button
           className={button + " bg-primary text-primary-foreground"}
-          disabled={busy}
+          disabled={busy || locked}
           onClick={() => void take()}
         >
           {busy ? "Overtager…" : "Overtag opgaven"}
         </button>
       )}
+      <details
+        onToggle={(e) => {
+          if (e.currentTarget.open) setStatusOpened(true);
+        }}
+      >
+        <summary
+          className="min-h-11 cursor-pointer py-2 font-medium"
+          onClick={(e) => {
+            if (locked && !editing) e.preventDefault();
+          }}
+        >
+          Status og logbog
+        </summary>
+        {statusOpened && (
+          <fieldset
+            disabled={(locked && !editing) || busy}
+            className="min-w-0"
+            aria-label="Opgavens status og noter"
+          >
+            <WorkOrderStatusPanel
+              scope={{
+                actionId: task.action_id,
+                organizationId: task.organization_id,
+                projectId: task.project_id,
+              }}
+              actorId={actorId}
+              onEditing={(value) => {
+                setEditing(value);
+                onEditing(value);
+              }}
+            />
+          </fieldset>
+        )}
+      </details>
       {task.can_plan && (
         <Link
           to="/app/projects/$slug"

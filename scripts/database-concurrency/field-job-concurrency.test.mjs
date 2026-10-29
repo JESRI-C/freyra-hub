@@ -507,6 +507,117 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
+  // D02e: operation status and manual corrections use the same proven lock witness.
+  const [lifecycleBasis] = await query(
+    `BEGIN;${login}SELECT private.work_order_lifecycle_basis(${action});COMMIT;`,
+  );
+  const lifecycleValues = {
+    operation: "transition",
+    targetStatus: "draft",
+    planVersionId: lifecycleBasis.planVersionId,
+    assignmentVersionId: lifecycleBasis.assignmentVersionId,
+    executionRevisionId: lifecycleBasis.executionRevisionId,
+  };
+  const lifecycleCall = (version, request, confirm = false) =>
+    `public.mutate_work_order_lifecycle(${action},${org},${project},${version},${q(JSON.stringify({ ...lifecycleValues, ...(confirm ? { operation: "confirm", reason: "Synthetic basis confirmation" } : {}) }))}::jsonb,${q(request)})`;
+  const lifecycleWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${lifecycleCall(0, randomUUID())};`,
+    "LIFECYCLE_HELD",
+  );
+  await lifecycleWinner.marker("LIFECYCLE_HELD");
+  const lifecycleStale = await transaction(
+    capture(lifecycleCall(0, randomUUID())),
+    "LIFECYCLE_STALE",
+  );
+  await actualLock(lifecycleStale, lifecycleWinner);
+  await commit(lifecycleWinner);
+  await lifecycleStale.marker("LIFECYCLE_STALE");
+  assert.equal(lifecycleStale.rows().find((row) => row.result)?.result, "PT409");
+  await commit(lifecycleStale);
+  scenarios.push({
+    name: "competing_lifecycle_revision",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+  });
+  const lifecycleRetryRequest = randomUUID();
+  const lifecycleRetryWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${lifecycleCall(1, lifecycleRetryRequest, true)};`,
+    "LIFECYCLE_RETRY_HELD",
+  );
+  await lifecycleRetryWinner.marker("LIFECYCLE_RETRY_HELD");
+  const lifecycleRetry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${lifecycleCall(1, lifecycleRetryRequest, true)};`,
+    "LIFECYCLE_RETRY_DONE",
+  );
+  await actualLock(lifecycleRetry, lifecycleRetryWinner);
+  await commit(lifecycleRetryWinner);
+  await lifecycleRetry.marker("LIFECYCLE_RETRY_DONE");
+  assert.equal(
+    lifecycleRetry.rows().find((row) => row.id)?.id,
+    lifecycleRetryWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(lifecycleRetry);
+  const [lifecycleCurrent] = await query(
+    `SELECT json_build_object('id',id) FROM public.work_order_lifecycle_versions WHERE action_id=${action} ORDER BY version DESC LIMIT 1;`,
+  );
+  scenarios.push({
+    name: "identical_lifecycle_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
+  const noteId = randomUUID();
+  const noteCall = (version, request, corrected = false) =>
+    `public.save_work_order_note(${action},${org},${project},${q(noteId)},${version},'comment',${q(corrected ? "Synthetic corrected note" : "Synthetic initial note")},${q(corrected ? "Synthetic factual correction" : "")},${lifecycleBasis.planVersionId ? q(lifecycleBasis.planVersionId) : "NULL"},${lifecycleBasis.assignmentVersionId ? q(lifecycleBasis.assignmentVersionId) : "NULL"},${lifecycleBasis.executionRevisionId ? q(lifecycleBasis.executionRevisionId) : "NULL"},${q(lifecycleCurrent.id)},${q(request)})`;
+  const noteWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${noteCall(0, randomUUID())};`,
+    "NOTE_HELD",
+  );
+  await noteWinner.marker("NOTE_HELD");
+  const noteStale = await transaction(capture(noteCall(0, randomUUID())), "NOTE_STALE");
+  await actualLock(noteStale, noteWinner);
+  await commit(noteWinner);
+  await noteStale.marker("NOTE_STALE");
+  assert.equal(noteStale.rows().find((row) => row.result)?.result, "PT409");
+  await commit(noteStale);
+  scenarios.push({
+    name: "competing_manual_note_revision",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+  });
+  const noteRetryRequest = randomUUID();
+  const noteRetryWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${noteCall(1, noteRetryRequest, true)};`,
+    "NOTE_RETRY_HELD",
+  );
+  await noteRetryWinner.marker("NOTE_RETRY_HELD");
+  const noteRetry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${noteCall(1, noteRetryRequest, true)};`,
+    "NOTE_RETRY_DONE",
+  );
+  await actualLock(noteRetry, noteRetryWinner);
+  await commit(noteRetryWinner);
+  await noteRetry.marker("NOTE_RETRY_DONE");
+  assert.equal(
+    noteRetry.rows().find((row) => row.id)?.id,
+    noteRetryWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(noteRetry);
+  const [logbookAfter] = await query(
+    `SELECT json_build_object('statusVersions',(SELECT count(*) FROM public.work_order_lifecycle_versions WHERE action_id=${action}),'noteVersions',(SELECT count(*) FROM public.work_order_note_versions WHERE note_id=${q(noteId)}),'statusEvents',(SELECT count(*) FROM public.audit_events WHERE entity_id=${action} AND event_type='work_order.lifecycle_changed'),'noteEvents',(SELECT count(*) FROM public.audit_events WHERE entity_id=${action} AND event_type='work_order.note_saved'));`,
+  );
+  assert.deepEqual(logbookAfter, {
+    statusVersions: 2,
+    noteVersions: 2,
+    statusEvents: 2,
+    noteEvents: 2,
+  });
+  scenarios.push({
+    name: "identical_manual_note_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
   // SQL-only assertions missed PostgREST's 500/retry handling of SQLSTATE 40001.
   // Verify the real disposable LOCAL HTTP boundary without Auth mail or hosted access.
   const status = spawnSync("supabase", ["status", "--output", "json"], {
@@ -624,6 +735,26 @@ try {
         p_request_id: randomUUID(),
       },
     ],
+    [
+      "mutate_work_order_lifecycle",
+      { ...common, p_expected_version: 0, p_values: lifecycleValues, p_request_id: randomUUID() },
+    ],
+    [
+      "save_work_order_note",
+      {
+        ...common,
+        p_note_id: noteId,
+        p_expected_version: 0,
+        p_kind: "comment",
+        p_body: "Synthetic stale note",
+        p_correction_reason: "",
+        p_plan_version_id: lifecycleBasis.planVersionId,
+        p_assignment_version_id: lifecycleBasis.assignmentVersionId,
+        p_execution_revision_id: lifecycleBasis.executionRevisionId,
+        p_lifecycle_version_id: lifecycleCurrent.id,
+        p_request_id: randomUUID(),
+      },
+    ],
   ];
   for (const [endpoint, payload] of staleRequests) {
     const response = await fetch(`http://127.0.0.1:54321/rest/v1/rpc/${endpoint}`, {
@@ -645,8 +776,8 @@ try {
     assert.equal(body.code, "PT409");
   }
   scenarios.push({
-    name: "local_http_stale_plan_access_execution_group_assignment_claim",
-    requests: 6,
+    name: "local_http_stale_plan_access_execution_group_assignment_claim_lifecycle_note",
+    requests: 8,
     httpStatus: 409,
     sqlstate: "PT409",
     noAuthEmails: true,

@@ -4,10 +4,10 @@
   "application": {
     "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
     "testPath": "/app/projects/6b560dd2-ec96-42f2-90b5-b395ca0109af?step=udfoerelse",
-    "sourceRevision": "6413a946e87f12c94bc09da18a521e39e3820fdb",
-    "workerVersion": "827e1ec1-886c-4c92-9144-32ded6ee734e",
-    "previousWorkerVersion": "a563c7cb-4980-438b-a397-2d69d5ca392c",
-    "deploymentId": "407011de-e8d6-42dd-ac76-95ae1986dd06",
+    "sourceRevision": "28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054",
+    "workerVersion": "2e1f086a-f436-43df-aa4e-4f3e34ab8d42",
+    "previousWorkerVersion": "827e1ec1-886c-4c92-9144-32ded6ee734e",
+    "deploymentId": "f5e0feb6-9d67-4e79-9ff9-9c839041404b",
     "readbackPercent": 100,
     "stagingBuildAndIsolationPassed": true,
     "hostedBrowserChecked": false,
@@ -15,22 +15,22 @@
     "mobileTaskPath": "/opgaver"
   },
   "ci": {
-    "run": 40949524564,
-    "sourceRevision": "6413a946e87f12c94bc09da18a521e39e3820fdb",
+    "run": 40955139531,
+    "sourceRevision": "28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054",
     "applicationPassed": true,
-    "applicationTests": 3226,
-    "applicationTestFiles": 239,
+    "applicationTests": 3270,
+    "applicationTestFiles": 241,
     "databasePassed": true,
-    "databaseAssertions": 1304,
-    "databaseTestFiles": 20,
+    "databaseAssertions": 1407,
+    "databaseTestFiles": 21,
     "actualConcurrencyPassed": true,
-    "localHttpConflictRequests": 6,
+    "localHttpConflictRequests": 8,
     "localHttpConflictStatus": 409,
     "databaseDumpRestorePassed": true
   },
   "database": {
     "projectRef": "xdvqdzdpyceojbdknofi",
-    "migrationTransactions": "six ordered individual migrations",
+    "migrationTransactions": "seven ordered individual migrations",
     "migrations": [
       {
         "sourceFile": "20261029183735_work_order_scope_and_access.sql",
@@ -61,10 +61,15 @@
         "sourceFile": "20261029195747_work_order_groups_and_pool_assignments.sql",
         "version": "20261029195747",
         "normalizedMd5": "e5bb3da95907ce824a3ddd57e137de10"
+      },
+      {
+        "sourceFile": "20261029203920_work_order_lifecycle_and_logbook.sql",
+        "version": "20261029203920",
+        "normalizedMd5": "2a32e40e62d81440f872df12c0cf6e2c"
       }
     ],
     "migrationLedgerAlignedOnlyAfterExactSourceHashMatch": true,
-    "newTables": 6,
+    "newTables": 8,
     "allNewTablesRls": true,
     "browserHistoryUpdateAllowed": false,
     "deferredIntegrityFunctionDirectCallAllowed": false,
@@ -125,15 +130,15 @@
     "storageObjectReferences": 252,
     "workspaceBefore": 32,
     "workspaceAfter": 32,
-    "addedWorkspaceRecord": "none in D02d; previous labelled synthetic unperformed execution preserved",
+    "addedWorkspaceRecord": "none in D02e; previous labelled synthetic unperformed execution preserved",
     "otherUserProjectsPreserved": true,
     "storageFilesCopied": false,
     "actualStorageRestoreTested": false
   },
   "offlineProgramCache": {
-    "revision": "58eae0fe939eff1a66aa1876",
+    "revision": "d7c86ede172674ccce7b8938",
     "publicAssetCount": 196,
-    "publicAssetBytes": 6063356,
+    "publicAssetBytes": 6091467,
     "allPathsChecked": true,
     "privateApiOrStorageResponsesCached": false,
     "physicalOfflineTrial": false
@@ -148,10 +153,11 @@
     "actualMobileCamera": false,
     "professionalBykaerPilot": false,
     "productionReady": false,
-    "D02dGroupsPoolsTechnical": true
+    "D02dGroupsPoolsTechnical": true,
+    "D02eLifecycleLogTechnical": true
   },
   "remaining": [
-    "D02 server-driven lifecycle and unified logbook",
+    "D02-D05 submission/review lifecycle and private log attachments",
     "D03 task-scoped field observations and private original files",
     "D04 shared filters, totals and map/list scale",
     "D05 version-bound submission/review",
@@ -164,7 +170,8 @@
     "https://github.com/JESRI-C/freyra-hub/pull/29",
     "https://github.com/JESRI-C/freyra-hub/pull/30",
     "https://github.com/JESRI-C/freyra-hub/pull/31",
-    "https://github.com/JESRI-C/freyra-hub/pull/32"
+    "https://github.com/JESRI-C/freyra-hub/pull/32",
+    "https://github.com/JESRI-C/freyra-hub/pull/33"
   ],
   "noMail": true,
   "noSms": true,
@@ -241,5 +248,90 @@
       "p_action_id uuid, p_organization_id uuid, p_project_id uuid, p_plan_version_id uuid, p_expected_plan_version integer, p_expected_version integer, p_execution jsonb, p_performed_by_id uuid, p_deviation_reason text, p_request_id uuid, p_expected_assignment_version_id uuid, p_expected_assignment_version integer"
     ],
     "immutableHistoryNoUpdateGrant": true
+  },
+  "hostedLifecycleApi": {
+    "schema": "freyra.jobs-geotag-lifecycle-staging-api/v1",
+    "projectRef": "xdvqdzdpyceojbdknofi",
+    "sourceRevision": "28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054",
+    "syntheticOnly": true,
+    "profiles": [
+      {
+        "profile": "watercourse",
+        "status": "planned",
+        "version": 2,
+        "unknownPlanDate": true,
+        "ordinaryApprovalRejected": true
+      },
+      {
+        "profile": "nature",
+        "status": "assigned",
+        "version": 3,
+        "unknownPlanDate": true,
+        "ordinaryApprovalRejected": true
+      },
+      {
+        "profile": "construction",
+        "status": "started",
+        "version": 6,
+        "unknownPlanDate": true,
+        "ordinaryApprovalRejected": true
+      },
+      {
+        "profile": "grazing",
+        "status": "assigned",
+        "version": 3,
+        "unknownPlanDate": true,
+        "ordinaryApprovalRejected": true
+      }
+    ],
+    "identicalRetries": 14,
+    "staleHttp409": 14,
+    "noMail": true,
+    "noSms": true,
+    "noInvitations": true,
+    "noAiCalls": true,
+    "noPaidImageCalls": true,
+    "actualMobileTested": false,
+    "hostedAppBrowserTested": false,
+    "unclaimedPoolStartDenied": true,
+    "notes": {
+      "minimumTechnicalVersions": 2,
+      "idempotentRetries": true,
+      "originalAuthorPreserved": true,
+      "allAuditProofPresent": true,
+      "manualAndSystemDistinct": true,
+      "frozenLogPages": true
+    },
+    "noteHistoryOverwriteDenied": true,
+    "fakeSystemAuditDenied": true,
+    "directApprovalDenied": true,
+    "foreignProjectLogDenied": true
+  },
+  "lifecyclePostflight": {
+    "audit": {
+      "work_order.note_saved": 2,
+      "work_order.lifecycle_changed": 14
+    },
+    "preserved": {
+      "plans": 4,
+      "actions": 16,
+      "projects": 50,
+      "storageObjects": 252,
+      "mediaReferences": 110,
+      "workspaceEntries": 32,
+      "executionBindings": 1
+    },
+    "noteVersions": 2,
+    "logRpcAnonDenied": true,
+    "lifecycleVersions": 14,
+    "allWorkOrderTablesRls": true,
+    "statusMutationServiceDenied": true,
+    "immutableHistoryNoUpdateGrant": true
+  },
+  "evidenceNotes": {
+    "hostedApi": "D01-D02c historical probe at its recorded source revision",
+    "hostedGroupsApi": "D02d historical probe at its recorded source revision",
+    "groupPostflight": "D02d historical counts/permissions before lifecycle installation",
+    "hostedLifecycleApi": "Current lifecycle/note probe after this installation"
   }
 }
