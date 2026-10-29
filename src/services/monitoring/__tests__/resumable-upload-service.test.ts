@@ -208,7 +208,7 @@ describe("TUS transfer contract", () => {
           start: () => {
             start();
             runRequest = async () => {
-              await options.onBeforeRequest();
+              await options.onBeforeRequest({ setHeader: vi.fn() });
               requestSent = true;
             };
           },
