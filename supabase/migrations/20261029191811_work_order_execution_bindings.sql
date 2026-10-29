@@ -64,6 +64,7 @@ CREATE TRIGGER work_order_execution_guard BEFORE INSERT OR UPDATE OR DELETE ON p
 CREATE FUNCTION private.require_work_order_execution_binding() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 BEGIN
  IF EXISTS(SELECT 1 FROM public.work_orders w WHERE w.action_id=NEW.entry_id AND w.organization_id=NEW.organization_id AND w.project_id=NEW.project_id) THEN
+   IF auth.uid() IS NULL OR NEW.created_by IS DISTINCT FROM auth.uid() THEN RAISE EXCEPTION 'Actor is unavailable' USING ERRCODE='42501'; END IF;
    IF NEW.kind IS DISTINCT FROM 'decision_note' OR NEW.payload->>'source' IS DISTINCT FROM 'action-execution:'||NEW.entry_id::text OR NOT EXISTS(SELECT 1 FROM public.work_order_execution_bindings b WHERE b.workspace_entry_id=NEW.id AND b.action_id=NEW.entry_id AND b.organization_id=NEW.organization_id AND b.project_id=NEW.project_id AND b.version=NEW.version) THEN
      RAISE EXCEPTION 'Work-order execution requires a frozen plan binding' USING ERRCODE='23514';
    END IF;
@@ -71,7 +72,7 @@ BEGIN
  RETURN NEW;
 END
 $$;
-REVOKE ALL ON FUNCTION private.require_work_order_execution_binding() FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION private.require_work_order_execution_binding() FROM PUBLIC,anon,authenticated,service_role;
 CREATE CONSTRAINT TRIGGER work_order_execution_required AFTER INSERT ON public.project_workspace_entries DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION private.require_work_order_execution_binding();
 
 CREATE FUNCTION private.audit_work_order_execution_binding() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
