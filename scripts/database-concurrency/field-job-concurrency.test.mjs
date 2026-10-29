@@ -26,7 +26,16 @@ class Session {
     this.exit = undefined;
     this.process = spawn(
       option("--psql") ?? "psql",
-      ["--no-psqlrc", "--set", "ON_ERROR_STOP=1", "--tuples-only", "--no-align", "--quiet", "--dbname", connection.href],
+      [
+        "--no-psqlrc",
+        "--set",
+        "ON_ERROR_STOP=1",
+        "--tuples-only",
+        "--no-align",
+        "--quiet",
+        "--dbname",
+        connection.href,
+      ],
       { shell: false, stdio: ["pipe", "pipe", "pipe"], env: environment },
     );
     this.process.stdout.on("data", (data) => (this.output += data.toString()));
@@ -40,7 +49,10 @@ class Session {
     this.process.stdin.write(sql + "\n");
   }
   rows() {
-    return this.output.split(/\r?\n/).filter((line) => line.startsWith("{") && line.endsWith("}")).map((line) => JSON.parse(line));
+    return this.output
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("{") && line.endsWith("}"))
+      .map((line) => JSON.parse(line));
   }
   async marker(label) {
     const started = Date.now();
@@ -66,12 +78,25 @@ async function query(sql) {
   return s.rows();
 }
 const q = (value) => "'" + String(value).replaceAll("'", "''") + "'";
-const org = q(randomUUID()), project = q(randomUUID()), actor = q(randomUUID()), action = q(randomUUID()), template = q(randomUUID());
-const definition = q(JSON.stringify({ schema: "freyra.field-job-template/v1", title: "Synthetic concurrency template", domain: "general", fields: [{ key: "note", label: "Note", type: "text", required: true }] }));
+const org = q(randomUUID()),
+  project = q(randomUUID()),
+  actor = q(randomUUID()),
+  action = q(randomUUID()),
+  template = q(randomUUID());
+const definition = q(
+  JSON.stringify({
+    schema: "freyra.field-job-template/v1",
+    title: "Synthetic concurrency template",
+    domain: "general",
+    fields: [{ key: "note", label: "Note", type: "text", required: true }],
+  }),
+);
 const login = `SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub',${actor},true);`;
 async function transaction(sql, label) {
   const s = new Session();
-  s.write(`BEGIN; SET LOCAL statement_timeout='15s'; SELECT json_build_object('pid',pg_backend_pid()); ${login} ${sql}\nSELECT '${label}';`);
+  s.write(
+    `BEGIN; SET LOCAL statement_timeout='15s'; SELECT json_build_object('pid',pg_backend_pid()); ${login} ${sql}\nSELECT '${label}';`,
+  );
   return s;
 }
 async function commit(s) {
@@ -88,18 +113,24 @@ async function backendPid(s) {
   return Number(s.rows().find((row) => row.pid).pid);
 }
 async function actualLock(waiter, holder) {
-  const waiterPid = await backendPid(waiter), holderPid = await backendPid(holder), started = Date.now();
+  const waiterPid = await backendPid(waiter),
+    holderPid = await backendPid(holder),
+    started = Date.now();
   while (Date.now() - started < 5000) {
-    const [row] = await query(`SELECT json_build_object('waiting',wait_event_type='Lock' AND ${holderPid}=ANY(pg_blocking_pids(pid))) FROM pg_stat_activity WHERE pid=${waiterPid};`);
+    const [row] = await query(
+      `SELECT json_build_object('waiting',wait_event_type='Lock' AND ${holderPid}=ANY(pg_blocking_pids(pid))) FROM pg_stat_activity WHERE pid=${waiterPid};`,
+    );
     if (row?.waiting) return true;
     assert(waiter.exit === undefined, "Writer ended before the expected real lock wait");
     await delay(20);
   }
   assert.fail("Writer must wait on the designated transaction's real PostgreSQL lock");
 }
-const capture = (call) => `DO $capture$ BEGIN PERFORM ${call}; PERFORM set_config('field_job_test.result','saved',true); EXCEPTION WHEN OTHERS THEN PERFORM set_config('field_job_test.result',SQLSTATE,true); END $capture$; SELECT json_build_object('result',current_setting('field_job_test.result'));`;
+const capture = (call) =>
+  `DO $capture$ BEGIN PERFORM ${call}; PERFORM set_config('field_job_test.result','saved',true); EXCEPTION WHEN OTHERS THEN PERFORM set_config('field_job_test.result',SQLSTATE,true); END $capture$; SELECT json_build_object('result',current_setting('field_job_test.result'));`;
 let templateVersion;
-const saveJob = (expected, request, reason = "", values = "{}") => `public.save_field_job_version(${org},${project},${action},${q(templateVersion)},${expected},${q(values)}::jsonb,'draft',${q(reason)},${q(request)})`;
+const saveJob = (expected, request, reason = "", values = "{}") =>
+  `public.save_field_job_version(${org},${project},${action},${q(templateVersion)},${expected},${q(values)}::jsonb,'draft',${q(reason)},${q(request)})`;
 const scenarios = [];
 try {
   const initialized = await query(`
@@ -118,7 +149,10 @@ try {
   assert.match(templateVersion, /^[0-9a-f-]{36}$/);
 
   const firstRequest = randomUUID();
-  const winner = await transaction(`SELECT json_build_object('id',id) FROM ${saveJob(0, firstRequest)};`, "FIRST_HELD");
+  const winner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${saveJob(0, firstRequest)};`,
+    "FIRST_HELD",
+  );
   await winner.marker("FIRST_HELD");
   const stale = await transaction(capture(saveJob(0, randomUUID())), "STALE_DONE");
   await actualLock(stale, winner);
@@ -126,33 +160,71 @@ try {
   await stale.marker("STALE_DONE");
   assert.equal(stale.rows().find((row) => row.result)?.result, "40001");
   await commit(stale);
-  scenarios.push({ name: "competing_first_binding", actualLockVerified: true, staleSqlstate: "40001" });
+  scenarios.push({
+    name: "competing_first_binding",
+    actualLockVerified: true,
+    staleSqlstate: "40001",
+  });
 
   const retryRequest = randomUUID();
-  const retryWinner = await transaction(`SELECT json_build_object('id',id) FROM ${saveJob(1, retryRequest, "Synthetic correction")};`, "RETRY_HELD");
+  const retryWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${saveJob(1, retryRequest, "Synthetic correction")};`,
+    "RETRY_HELD",
+  );
   await retryWinner.marker("RETRY_HELD");
-  const retry = await transaction(`SELECT json_build_object('id',id) FROM ${saveJob(1, retryRequest, "Synthetic correction")};`, "RETRY_DONE");
+  const retry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${saveJob(1, retryRequest, "Synthetic correction")};`,
+    "RETRY_DONE",
+  );
   await actualLock(retry, retryWinner);
   await commit(retryWinner);
   await retry.marker("RETRY_DONE");
-  assert.equal(retry.rows().find((row) => row.id)?.id, retryWinner.rows().find((row) => row.id)?.id);
+  assert.equal(
+    retry.rows().find((row) => row.id)?.id,
+    retryWinner.rows().find((row) => row.id)?.id,
+  );
   await commit(retry);
-  scenarios.push({ name: "simultaneous_identical_retry", actualLockVerified: true, oneRevision: true });
+  scenarios.push({
+    name: "simultaneous_identical_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+  });
 
-  const templateCall = (request) => `public.save_field_job_template_version(${org},${project},${template},1,${definition}::jsonb,${q(request)})`;
-  const templateWinner = await transaction(`SELECT json_build_object('id',id) FROM ${templateCall(randomUUID())};`, "TEMPLATE_HELD");
+  const templateCall = (request) =>
+    `public.save_field_job_template_version(${org},${project},${template},1,${definition}::jsonb,${q(request)})`;
+  const templateWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${templateCall(randomUUID())};`,
+    "TEMPLATE_HELD",
+  );
   await templateWinner.marker("TEMPLATE_HELD");
-  const staleTemplate = await transaction(capture(templateCall(randomUUID())), "TEMPLATE_STALE_DONE");
+  const staleTemplate = await transaction(
+    capture(templateCall(randomUUID())),
+    "TEMPLATE_STALE_DONE",
+  );
   await actualLock(staleTemplate, templateWinner);
   await commit(templateWinner);
   await staleTemplate.marker("TEMPLATE_STALE_DONE");
   assert.equal(staleTemplate.rows().find((row) => row.result)?.result, "40001");
   await commit(staleTemplate);
-  scenarios.push({ name: "competing_template_revision", actualLockVerified: true, staleSqlstate: "40001" });
+  scenarios.push({
+    name: "competing_template_revision",
+    actualLockVerified: true,
+    staleSqlstate: "40001",
+  });
 
-  const [after] = await query(`SELECT json_build_object('jobs',(SELECT count(*) FROM public.field_job_versions WHERE action_id=${action}),'templates',(SELECT count(*) FROM public.field_job_template_versions WHERE template_id=${template}),'oldBindingPreserved',(SELECT bool_and(template_version_id=${q(templateVersion)}::uuid) FROM public.field_job_versions WHERE action_id=${action}));`);
+  const [after] = await query(
+    `SELECT json_build_object('jobs',(SELECT count(*) FROM public.field_job_versions WHERE action_id=${action}),'templates',(SELECT count(*) FROM public.field_job_template_versions WHERE template_id=${template}),'oldBindingPreserved',(SELECT bool_and(template_version_id=${q(templateVersion)}::uuid) FROM public.field_job_versions WHERE action_id=${action}));`,
+  );
   assert.deepEqual(after, { jobs: 2, templates: 2, oldBindingPreserved: true });
-  process.stdout.write(JSON.stringify({ schema: "freyra.field-job-local-concurrency/v1", result: "PASS", syntheticOnly: true, scenarios, after }) + "\n");
+  process.stdout.write(
+    JSON.stringify({
+      schema: "freyra.field-job-local-concurrency/v1",
+      result: "PASS",
+      syntheticOnly: true,
+      scenarios,
+      after,
+    }) + "\n",
+  );
 } finally {
   for (const s of sessions) if (s.exit === undefined) s.process.kill();
 }
