@@ -259,6 +259,7 @@ export const WorkOrderNoteSchema = z.object({
   ...rowIdentity,
   ...rowContext,
   note_id: uuid,
+  author_id: uuid,
   kind: NoteKindSchema,
   body: z.string().trim().min(1).max(4000),
   correction_reason: z.string().trim().max(2000),
@@ -268,6 +269,7 @@ export type WorkOrderNote = z.infer<typeof WorkOrderNoteSchema>;
 export const SaveWorkOrderNoteSchema = scope
   .extend({
     noteId: uuid,
+    authorId: uuid,
     expectedVersion: z.number().int().min(0).max(2147483646),
     kind: NoteKindSchema,
     body: z.string().trim().min(1).max(4000),
@@ -278,6 +280,8 @@ export const SaveWorkOrderNoteSchema = scope
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.expectedVersion === 0 && v.authorId !== v.expectedActorId)
+      ctx.addIssue({ code: "custom", message: "En ny note tilhører den bruger, der skriver den." });
     if (v.expectedVersion > 0 && !v.correctionReason)
       ctx.addIssue({ code: "custom", message: "Begrund rettelsen af noten." });
   });
@@ -359,6 +363,7 @@ export const WorkOrderLogEntrySchema = z
         startedSource: z.string().max(2000).nullable().optional(),
         startedBy: uuid.nullable().optional(),
         noteId: uuid.optional(),
+        authorId: uuid.optional(),
         kind: NoteKindSchema.optional(),
         body: z.string().min(1).max(4000).optional(),
         planVersionId: uuid.nullable().optional(),
@@ -391,7 +396,7 @@ export const WorkOrderLogEntrySchema = z
       });
     if (
       v.kind === "note"
-        ? !v.detail.noteId || !v.detail.kind || !v.detail.body
+        ? !v.detail.noteId || !v.detail.authorId || !v.detail.kind || !v.detail.body
         : v.detail.noteId !== undefined || v.detail.body !== undefined
     )
       ctx.addIssue({

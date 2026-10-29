@@ -131,6 +131,8 @@ function AssignmentPanel({ scope, actorId, planId, canManage, people, onEditing 
         cache.invalidateQueries({ queryKey: historyKey }),
         cache.invalidateQueries({ queryKey: ["my-work-orders"] }),
         cache.invalidateQueries({ queryKey: ["work-order-capabilities", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
       ]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Tildelingen kunne ikke gemmes.");
@@ -327,6 +329,8 @@ function AssignmentPanel({ scope, actorId, planId, canManage, people, onEditing 
               cache.invalidateQueries({ queryKey: ["work-order-group-history", actorId] }),
               cache.invalidateQueries({ queryKey: ["my-work-orders"] }),
               cache.invalidateQueries({ queryKey: ["work-order-capabilities", actorId] }),
+              cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
+              cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
             ]);
           }}
         />

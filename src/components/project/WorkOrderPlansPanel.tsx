@@ -26,6 +26,7 @@ import { getWatercourseVersions } from "@/services/watercourse-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { WorkOrderAccessPanel } from "./WorkOrderAccessPanel";
 import { WorkOrderAssignmentPanel } from "./WorkOrderAssignmentPanel";
+import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
@@ -195,6 +196,7 @@ function PlanWorkspace({
     [message, setMessage] = useState(""),
     [accessEditing, setAccessEditing] = useState(false),
     [assignmentEditing, setAssignmentEditing] = useState(false),
+    [lifecycleEditing, setLifecycleEditing] = useState(false),
     [busy, setBusy] = useState(false);
   const [meters, setMeters] = useState<Record<string, string>>({});
   const saving = useRef(false),
@@ -262,7 +264,11 @@ function PlanWorkspace({
         `Plan version ${saved.version} er gemt. Det er ikke en registrering af udført arbejde.`,
       );
       setPages([]);
-      await cache.invalidateQueries({ queryKey: key });
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: key }),
+        cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
+      ]);
       await cache.invalidateQueries({ queryKey: ["work-order-plan-actions", actorId, scope] });
     } catch (e) {
       setError(
@@ -318,7 +324,9 @@ function PlanWorkspace({
           {canPlan && (
             <button
               className={button}
-              disabled={history.isFetching || accessEditing || assignmentEditing}
+              disabled={
+                history.isFetching || accessEditing || assignmentEditing || lifecycleEditing
+              }
               onClick={open}
             >
               {latest ? "Rediger plan som ny version" : "Opret arbejdsopgavens plan"}
@@ -332,7 +340,7 @@ function PlanWorkspace({
         </>
       )}
       <MoreWorkOrderPeople query={members} />
-      {latest && !draft && !assignmentEditing && (
+      {latest && !draft && !assignmentEditing && !lifecycleEditing && (
         <WorkOrderAccessPanel
           scope={{ ...scope, actionId }}
           actorId={actorId}
@@ -343,7 +351,7 @@ function PlanWorkspace({
           }}
         />
       )}
-      {latest && !draft && !accessEditing && (
+      {latest && !draft && !accessEditing && !lifecycleEditing && (
         <WorkOrderAssignmentPanel
           scope={{ ...scope, actionId }}
           actorId={actorId}
@@ -352,6 +360,17 @@ function PlanWorkspace({
           people={members.data ?? []}
           onEditing={(value) => {
             setAssignmentEditing(value);
+            onEditing(value);
+          }}
+        />
+      )}
+      {latest && !draft && !accessEditing && !assignmentEditing && (
+        <WorkOrderStatusPanel
+          scope={{ ...scope, actionId }}
+          actorId={actorId}
+          manageNavigation={false}
+          onEditing={(value) => {
+            setLifecycleEditing(value);
             onEditing(value);
           }}
         />

@@ -219,6 +219,8 @@ function PersonAccess({
         cache.invalidateQueries({ queryKey: key }),
         cache.invalidateQueries({ queryKey: ["work-order-capabilities", actorId, scope] }),
         cache.invalidateQueries({ queryKey: ["work-order-access-subjects", actorId, scope] }),
+        cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
       ]);
     } catch (e) {
       setError(

@@ -532,7 +532,7 @@ try {
   await actualLock(lifecycleStale, lifecycleWinner);
   await commit(lifecycleWinner);
   await lifecycleStale.marker("LIFECYCLE_STALE");
-  assert.equal(lifecycleStale.rows().find((row) => row.sqlstate)?.sqlstate, "PT409");
+  assert.equal(lifecycleStale.rows().find((row) => row.result)?.result, "PT409");
   await commit(lifecycleStale);
   scenarios.push({
     name: "competing_lifecycle_revision",
@@ -578,7 +578,7 @@ try {
   await actualLock(noteStale, noteWinner);
   await commit(noteWinner);
   await noteStale.marker("NOTE_STALE");
-  assert.equal(noteStale.rows().find((row) => row.sqlstate)?.sqlstate, "PT409");
+  assert.equal(noteStale.rows().find((row) => row.result)?.result, "PT409");
   await commit(noteStale);
   scenarios.push({
     name: "competing_manual_note_revision",

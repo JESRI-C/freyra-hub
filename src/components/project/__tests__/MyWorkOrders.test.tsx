@@ -23,6 +23,14 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 import { MyWorkOrders } from "../MyWorkOrders";
+vi.mock("../WorkOrderStatusPanel", () => ({
+  WorkOrderStatusPanel: ({ onEditing }: { onEditing: (value: boolean) => void }) => (
+    <>
+      <button onClick={() => onEditing(true)}>Synthetic edit status</button>
+      <button onClick={() => onEditing(false)}>Synthetic cancel status</button>
+    </>
+  ),
+}));
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const task = {
   user_id: id(1),
@@ -80,6 +88,31 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("locks list refresh and claim while a nested status or note draft is open", async () => {
+    await render();
+    const detail = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Status og logbog",
+    )!;
+    await act(async () => {
+      detail.open = true;
+      detail.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    await click("Synthetic edit status");
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
+        ?.disabled,
+    ).toBe(true);
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Overtag opgaven")
+        ?.disabled,
+    ).toBe(true);
+    await click("Synthetic cancel status");
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
+        ?.disabled,
+    ).toBe(false);
+  });
   it("opens exact task instructions for external users without opening the project", async () => {
     await render();
     expect(host.textContent).toContain("Synthetic instructions");

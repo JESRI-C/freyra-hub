@@ -173,7 +173,11 @@ function ExecutionPanel({
             },
           })
         : await saveActionExecution(scope, execution, baseVersion);
-      await cache.invalidateQueries({ queryKey: key });
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: key }),
+        cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
+      ]);
       setDraft(null);
       setActionId("");
       setMessage(
@@ -228,6 +232,8 @@ function ExecutionPanel({
         cache.invalidateQueries({ queryKey: ["my-work-orders", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-assignment-state", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-capabilities", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
       ]);
     } catch (e) {
       setError(

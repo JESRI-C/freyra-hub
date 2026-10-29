@@ -114,6 +114,7 @@ export async function saveWorkOrderNote(
   checkScope(row, input);
   if (
     row.note_id !== input.noteId ||
+    row.author_id !== input.authorId ||
     row.version !== input.expectedVersion + 1 ||
     row.created_by !== actorId ||
     row.request_id !== input.requestId ||

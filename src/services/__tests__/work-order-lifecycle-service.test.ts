@@ -80,6 +80,7 @@ const context = {
 const noteInput = {
   ...scope,
   noteId: id(10),
+  authorId: actor,
   expectedVersion: 0,
   kind: "comment",
   body: "Synthetic work note",
@@ -93,6 +94,7 @@ const noteInput = {
 const note = {
   id: id(12),
   note_id: id(10),
+  author_id: actor,
   action_id: scope.actionId,
   organization_id: scope.organizationId,
   project_id: scope.projectId,
@@ -120,6 +122,7 @@ const event = {
   audit_recorded: true,
   detail: {
     noteId: id(10),
+    authorId: actor,
     kind: "comment",
     body: noteInput.body,
     reason: "",

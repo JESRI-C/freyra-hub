@@ -55,6 +55,7 @@ vi.mock("@/lib/supabase/queries", () => ({ fetchSitesByProject: m.sites }));
 vi.mock("@/services/watercourse-service", () => ({ getWatercourseVersions: m.centerlines }));
 vi.mock("../WorkOrderAccessPanel", () => ({ WorkOrderAccessPanel: () => null }));
 vi.mock("../WorkOrderAssignmentPanel", () => ({ WorkOrderAssignmentPanel: () => null }));
+vi.mock("../WorkOrderStatusPanel", () => ({ WorkOrderStatusPanel: () => null }));
 import { WorkOrderPlansPanel } from "../WorkOrderPlansPanel";
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 const row = () => ({

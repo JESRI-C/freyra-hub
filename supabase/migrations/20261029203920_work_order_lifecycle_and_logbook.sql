@@ -26,7 +26,7 @@ CREATE TABLE public.work_order_note_versions (
  version integer NOT NULL CHECK(version>0),kind text NOT NULL CHECK(kind IN('comment','deviation','handover')),
  body text NOT NULL CHECK(length(btrim(body)) BETWEEN 1 AND 4000),correction_reason text NOT NULL CHECK(length(correction_reason)<=2000),
  plan_version_id uuid,assignment_version_id uuid,execution_revision_id uuid,lifecycle_version_id uuid,
- request_id uuid NOT NULL,created_by uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE RESTRICT,created_at timestamptz NOT NULL DEFAULT now(),
+ author_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,request_id uuid NOT NULL,created_by uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE RESTRICT,created_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE(note_id,version),UNIQUE(project_id,request_id),
  FOREIGN KEY(action_id,organization_id,project_id) REFERENCES public.work_orders(action_id,organization_id,project_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
  FOREIGN KEY(plan_version_id,action_id,organization_id,project_id) REFERENCES public.work_order_plan_versions(id,action_id,organization_id,project_id) ON UPDATE RESTRICT ON DELETE RESTRICT,
@@ -181,10 +181,10 @@ BEGIN
  IF NEW.version IS DISTINCT FROM coalesce(previous.version,0)+1 THEN RAISE EXCEPTION 'Note changed; reopen before saving' USING ERRCODE='PT409';END IF;
  IF previous.id IS NOT NULL THEN
    IF previous.action_id IS DISTINCT FROM NEW.action_id OR previous.organization_id IS DISTINCT FROM NEW.organization_id OR previous.project_id IS DISTINCT FROM NEW.project_id OR previous.plan_version_id IS DISTINCT FROM NEW.plan_version_id OR previous.assignment_version_id IS DISTINCT FROM NEW.assignment_version_id OR previous.execution_revision_id IS DISTINCT FROM NEW.execution_revision_id OR previous.lifecycle_version_id IS DISTINCT FROM NEW.lifecycle_version_id THEN RAISE EXCEPTION 'Note scope and original context are immutable' USING ERRCODE='23503';END IF;
-   IF previous.created_by IS DISTINCT FROM auth.uid() AND NOT manager THEN RAISE EXCEPTION 'Only the author or manager may correct a note' USING ERRCODE='42501';END IF;
+   IF previous.author_id IS DISTINCT FROM auth.uid() AND NOT manager THEN RAISE EXCEPTION 'Only the original author or manager may correct a note' USING ERRCODE='42501';END IF;
    IF length(btrim(NEW.correction_reason))=0 THEN RAISE EXCEPTION 'Explain the note correction' USING ERRCODE='22023';END IF;
  END IF;
- NEW.body:=btrim(NEW.body);NEW.correction_reason:=btrim(NEW.correction_reason);NEW.created_at:=clock_timestamp();RETURN NEW;
+ NEW.author_id:=coalesce(previous.author_id,auth.uid());NEW.body:=btrim(NEW.body);NEW.correction_reason:=btrim(NEW.correction_reason);NEW.created_at:=clock_timestamp();RETURN NEW;
 END
 $$;
 REVOKE ALL ON FUNCTION private.guard_work_order_note() FROM PUBLIC,anon,authenticated,service_role;
@@ -296,7 +296,7 @@ BEGIN
    UNION ALL SELECT 'assignment:'||v.id,v.created_at,v.created_by,'assignment',CASE WHEN v.change_kind='claimed' THEN 'work_order.pool_claimed' ELSE 'work_order.assignment_configured' END,v.id,v.version,'system',v.request_id,v.action_id,jsonb_build_object('mode',v.mode,'claimedBy',v.claimed_by,'reason',v.reason) FROM public.work_order_assignment_versions v WHERE v.action_id=p_action_id
    UNION ALL SELECT 'execution:'||v.workspace_entry_id,v.created_at,v.created_by,'execution','work_order.execution_saved',v.workspace_entry_id,v.version,'system',v.request_id,v.action_id,jsonb_build_object('actualDate',v.actual_start,'method',v.actual_method,'coverage',v.coverage,'documentationGaps',v.documentation_gaps) FROM public.work_order_execution_bindings v WHERE v.action_id=p_action_id
    UNION ALL SELECT 'status:'||v.id,v.created_at,v.created_by,'status','work_order.lifecycle_changed',v.id,v.version,'system',v.request_id,v.action_id,jsonb_build_object('status',v.status,'operation',v.operation,'reason',v.reason,'blocked',v.blocked,'blockReason',v.block_reason,'blockOwnerId',v.block_owner_id,'blockNextAction',v.block_next_action,'blockDueDate',v.block_due_date,'startedAt',v.started_at,'startedSource',v.started_source,'startedBy',v.started_by_id) FROM public.work_order_lifecycle_versions v WHERE v.action_id=p_action_id
-   UNION ALL SELECT 'note:'||v.id,v.created_at,v.created_by,'note','work_order.note_saved',v.id,v.version,'manual',v.request_id,v.action_id,jsonb_build_object('noteId',v.note_id,'kind',v.kind,'body',v.body,'reason',v.correction_reason,'planVersionId',v.plan_version_id,'assignmentVersionId',v.assignment_version_id,'executionRevisionId',v.execution_revision_id,'lifecycleVersionId',v.lifecycle_version_id) FROM public.work_order_note_versions v WHERE v.action_id=p_action_id
+   UNION ALL SELECT 'note:'||v.id,v.created_at,v.created_by,'note','work_order.note_saved',v.id,v.version,'manual',v.request_id,v.action_id,jsonb_build_object('noteId',v.note_id,'authorId',v.author_id,'kind',v.kind,'body',v.body,'reason',v.correction_reason,'planVersionId',v.plan_version_id,'assignmentVersionId',v.assignment_version_id,'executionRevisionId',v.execution_revision_id,'lifecycleVersionId',v.lifecycle_version_id) FROM public.work_order_note_versions v WHERE v.action_id=p_action_id
    UNION ALL SELECT 'group:'||v.id,v.created_at,v.created_by,'group','work_order.group_saved',v.id,v.version,'system',v.request_id,v.group_id,jsonb_build_object('name',v.name,'active',v.active,'reason',v.correction_reason) FROM public.work_order_group_versions v WHERE v.project_id=p_project_id AND v.organization_id=p_organization_id AND EXISTS(SELECT 1 FROM public.work_order_assignment_versions a WHERE a.action_id=p_action_id AND a.source_group_id=v.group_id AND a.created_at<=as_of_time)
  ),page AS(
    SELECT c.*,EXISTS(SELECT 1 FROM public.audit_events a WHERE a.project_id=p_project_id AND a.entity_id=c.audit_entity_id AND a.event_type=c.event_type AND a.source='database_trigger' AND a.actor=c.created_by::text AND a.after_data->>'requestId'=c.request_id::text) audited FROM canonical c

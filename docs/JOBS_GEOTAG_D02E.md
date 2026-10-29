@@ -20,10 +20,14 @@ Migration `20261029203920_work_order_lifecycle_and_logbook.sql` er oprettet med 
 
 Nye datakontrakter/serverfunktioner ligger i `src/lib/work-order-lifecycle.ts` og `work-order-lifecycle.functions.ts`; request-klienten og fejlhåndteringen genbruges i `src/services/work-order-lifecycle-service.ts`.
 
-32 fokuserede lokale service-/kontraktprøver bestod. Den disponible SQL-prøve dækker faktiske overgange, roller, tværgående scope, direkte API-bypass, blokering, historisk grundlag, note-/auditadskillelse, fast pagination og auditrollback. Den eksisterende samtidighedsharness er udvidet med fire status-/notescenarier samt to ekstra HTTP 409-prøver. Disse nye databaseprøver afventer faktisk CI; de er ikke markeret bestået på baggrund af filernes eksistens.
+126 fokuserede lokale prøver i ni filer bestod, inklusive 32 service-/kontraktprøver og 11 nye mobilformularprøver. App-typecheck og fokuseret lint bestod. Mobilvisningen åbnes under **Status og logbog** på Mine opgaver og i projektets eksisterende planpanel. Plan, tildeling, adgang og status/note redigeres hver for sig. Åbne kladder låser listeopdatering og puljeovertagelse; kontoskift rydder den gamle formular. Starttid er tom, indtil udføreren angiver tidspunkt eller eksplicit vælger at indsætte nu.
+
+Kerne-CI 40953136344 på `9a4b3e3c92d7a87cf423b3a9ea1a8b943e368c37` bestod frisk replay og 1.398 SQL-assertions i 21 filer. Samtidighedsharnessen stoppede derefter, fordi den nye assertion læste `sqlstate` i stedet for harnessens eksisterende `result`-felt. Aflæsningen er rettet uden at svække kravet om faktisk lås og PT409. Den aktuelle UI-/forfatterudvidelse og fulde pipeline skal fortsat verificeres på ny revision før installation.
+
+SQL-prøven dækker overgange, roller, kendte tværgående referencer, direkte API-bypass, blokering, historisk grundlag, note-/auditadskillelse, fast pagination og auditrollback. Den oprindelige noteforfatter bevares særskilt fra den konkrete rettelsesaktør, også efter en projektansvarlig har rettet på vedkommendes vegne. Samtidighedsharnessen er udvidet med fire status-/notescenarier samt to ekstra HTTP 409-prøver.
 
 ## Åbent arbejde og rollback
 
-Mobilkomponenter, samlet CI og stagingprøve er endnu i gang. D05's aflevering/returnering/godkendelse implementeres på denne revisionsmodel, når skema-/evidenskrav fra D03–D04 kan fryses og kontrolleres. Logbogens private bilagsrelationer genbruger den kommende D03-vej. D02e må ikke markeres som færdig ved kun grønne serviceprøver.
+Samlet CI og stagingprøve er endnu i gang. D05's aflevering/returnering/godkendelse implementeres på denne revisionsmodel, når skema-/evidenskrav fra D03–D04 kan fryses og kontrolleres. Logbogens private bilagsrelationer genbruger den kommende D03-vej. D02e må ikke markeres som færdig ved kun grønne serviceprøver.
 
 Ingen eksisterende status, noter, faktiske udførelser eller audit slettes ved rollback. Indgangen kan deaktiveres, mens de nye tabeller bevares. Gamle plan-/tildelings-/udførelsesmutationer genbruges. Ingen e-mail, SMS, invitation, betalt provider, merge eller produktionsændring er udført. Browser-/telefon-/faglig pilotaccept og fuld faktisk filrestore er fortsat åbne.
