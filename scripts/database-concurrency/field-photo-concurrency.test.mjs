@@ -211,8 +211,12 @@ try {
   // The second transaction must complete its claim while the first is still
   // open: SKIP LOCKED must distribute work, rather than wait on the first job.
   await secondBackground.marker("HELD");
-  const firstClaim = firstBackground.rows().find((r) => r.background).background;
-  const secondClaim = secondBackground.rows().find((r) => r.background).background;
+  const firstClaim = firstBackground.rows().find((r) => r.background)?.background;
+  const secondClaim = secondBackground.rows().find((r) => r.background)?.background;
+  assert(
+    firstClaim && secondClaim,
+    "Two eligible jobs must be claimed while both transactions remain open",
+  );
   assert.notEqual(firstClaim.upload.id, secondClaim.upload.id);
   assert.deepEqual(
     new Set([firstClaim.upload.id, secondClaim.upload.id]),

@@ -53,10 +53,15 @@ CREATE POLICY field_preview_object_read ON storage.objects FOR SELECT TO authent
 CREATE FUNCTION public.claim_field_photo_background() RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
 DECLARE job public.field_photo_background_jobs; intent public.field_photo_uploads; receipt public.field_photo_receipts; scanned integer:=0;
 BEGIN
- FOR job IN SELECT * FROM public.field_photo_background_jobs
- WHERE state IN ('pending','retry_wait','running') AND next_attempt_at<=clock_timestamp() AND (lease_until IS NULL OR lease_until<=clock_timestamp())
- ORDER BY next_attempt_at,upload_id LIMIT 16 FOR UPDATE SKIP LOCKED LOOP
+ LOOP
  scanned:=scanned+1;
+ EXIT WHEN scanned>16;
+ -- A PL/pgSQL FOR cursor prefetches and can lock the whole candidate batch.
+ -- SELECT INTO ... LIMIT 1 locks only the job this claimant will examine.
+ SELECT * INTO job FROM public.field_photo_background_jobs
+ WHERE state IN ('pending','retry_wait','running') AND next_attempt_at<=clock_timestamp() AND (lease_until IS NULL OR lease_until<=clock_timestamp())
+ ORDER BY next_attempt_at,upload_id LIMIT 1 FOR UPDATE SKIP LOCKED;
+ IF job.upload_id IS NULL THEN RETURN NULL; END IF;
  IF job.attempts>=5 THEN UPDATE public.field_photo_background_jobs SET state='failed',lease_id=NULL,lease_until=NULL,last_error='processing_failed',updated_at=clock_timestamp() WHERE upload_id=job.upload_id; CONTINUE; END IF;
  SELECT * INTO intent FROM public.field_photo_uploads WHERE id=job.upload_id;
  BEGIN
