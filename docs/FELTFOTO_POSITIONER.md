@@ -40,3 +40,5 @@ Direkte tabelindsættelser gennemgår også validering. Policyversion, afstand, 
 Målrettede kontrakt-, upload-, service- og interaktive brugerfladeprøver er tilføjet. Databaseprøver dækker blandt andet oprindelig position, manglende GPS, regelændringer, direkte API-skrivning, roller, genforsøg og historikbeskyttelse. De køres i CI på en disponibel database; lokal PostgreSQL/Docker er ikke tilgængelig.
 
 Hosted filadgang, faktiske telefonfotos, Storage API-kald og brugerforløbet på telefon skal afprøves i staging efter databasekontrollen. Lokale mocks og CI's syntetiske filer erstatter ikke disse acceptprøver.
+
+På koderevision `636104f` bestod begge CI-kontroller i run `40853719560`: typecheck, lint, applikationstest og build samt frisk migrationsreplay, 932 databaseassertions, samtidighedsprøver, databasefunktionskontrol og genoprettelsesprøve. En lokal samlet kørsel på den første revision bestod 3.009 tests; den efterfølgende konfliktregression bestod også. Arbejdet er til review i [draft-PR 23](https://github.com/JESRI-C/freyra-hub/pull/23), oven på jobkortpakken. Ingen hosted migration eller deploy er udført.
