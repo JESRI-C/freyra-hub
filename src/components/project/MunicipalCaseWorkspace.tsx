@@ -21,6 +21,7 @@ import { getMyProjectRole, permissionsFor } from "@/services/project-members-ser
 import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/supabase/types";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
+import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { countCanonicalProjectOriginals } from "@/services/project-media-service";
 import { listProjectBaselines } from "@/lib/public-baseline.functions";
 import { validateProjectPolygon } from "@/services/geo-service";
@@ -443,6 +444,11 @@ export function MunicipalCaseWorkspace({
                   />
                 </details>
               </>
+            )}
+            {step === "udfoerelse" && project.organization_id && (
+              <FieldJobCardsPanel
+                scope={{ projectId: project.id, organizationId: project.organization_id }}
+              />
             )}
             {step === "udfoerelse" && project.organization_id && (
               <ActionExecutionPanel
