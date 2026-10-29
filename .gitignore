@@ -30,6 +30,7 @@ dist-ssr
 !.dev.vars.example
 
 # Supabase CLI machine-local state
+.cache/
 supabase/.temp/
 supabase/.branches/
 

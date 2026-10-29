@@ -2,6 +2,7 @@ import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
+import { FieldJobCardsPanel } from "@/components/project/FieldJobCardsPanel";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -560,6 +561,11 @@ function ProjectDetailPage() {
             {/* ── Handlinger ─────────────────────────────────────────────── */}
             {active === "handlinger" && (
               <div className="space-y-4">
+                {project.organization_id && (
+                  <FieldJobCardsPanel
+                    scope={{ projectId: project.id, organizationId: project.organization_id }}
+                  />
+                )}
                 {/* Sensor-derived action suggestions */}
                 {sensorActions.length > 0 && (
                   <Card>
