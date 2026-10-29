@@ -35,6 +35,9 @@ Ved fejl i staging slås det nye panel fra gennem en fremadrettet kodeændring; 
 
 ## Arbejdslog
 
+- Pakke A har nu bestået både applikations- og database-CI på revision `b1f09cc`, run `40836591472`. Hosted brugerforløb er fortsat ikke afprøvet for jobkortpakken.
+- Pakke B er implementeret på sin egen gren: [feltfotos og placeringshistorik](FELTFOTO_POSITIONER.md). Det omfatter bevaret original GPS, separate placeringsversioner, justerbar 50-meterregel og brugerflade i fotoatlas. Serverhash, offlinekø og hosted accept udestår som beskrevet i pakkerne.
+
 - Miljøkontrol bestod mod det kendte stagingprojekt; typecheck bestod på baseline.
 - Ny udviklingsgren oprettet fra den gennemgåede kode.
 - Første kontrakt og fire blanke domæneskabeloner implementeret; målrettede kontraktprøver bestod.

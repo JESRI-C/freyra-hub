@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { FieldPhotoPositionsPanel } from "./FieldPhotoPositionsPanel";
 import { MapEditorMap } from "@/components/maps/MapEditorMap";
 import type { DroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
@@ -56,6 +57,7 @@ export function ProjectPhotoAtlas({
   media,
 }: Props) {
   const cache = useQueryClient();
+  const [positionsOpen, setPositionsOpen] = useState(false);
   const [selected, setSelected] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PhotoAtlas | null>(null);
@@ -181,6 +183,10 @@ export function ProjectPhotoAtlas({
           reference; en delstrækning skal afgrænses særskilt.
         </p>
       </div>
+      <button type="button" className={button} onClick={() => setPositionsOpen(!positionsOpen)}>
+        {positionsOpen ? "Luk placeringshistorik" : "Feltfotos – placering og historik"}
+      </button>
+      {positionsOpen && <FieldPhotoPositionsPanel key={scope.projectId} scope={scope} />}
       {error && (
         <p role="alert" className="rounded-lg border border-destructive p-3 text-sm">
           {error}

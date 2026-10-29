@@ -70,6 +70,35 @@ beforeEach(() => {
     .mockResolvedValue({ data: { signedUrl: "private-signed-url" }, error: null });
 });
 describe("private original persistence", () => {
+  it("requires a reason before uploading a manually positioned field photo", async () => {
+    const result = await uploadProjectMedia({
+      ...input(),
+      category: "field_photo",
+      source: "field_upload",
+      coordinates: { lat: 55, lng: 10 },
+    });
+    expect(result.error).toContain("begrundelse");
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
+  it("preserves missing original GPS while retaining the proposed manual point", async () => {
+    await uploadProjectMedia({
+      ...input(),
+      category: "field_photo",
+      source: "field_upload",
+      coordinates: { lat: 55, lng: 10 },
+      positionCorrectionReason: "Manual field location",
+    });
+    expect(mocks.payload.lat).toBeNull();
+    expect(mocks.payload.lng).toBeNull();
+    expect(mocks.payload.metadata).toMatchObject({
+      field_photo_capture: {
+        originalPosition: null,
+        initialPosition: { lat: 55, lng: 10 },
+        correctionReason: "Manual field location",
+      },
+    });
+    expect(mocks.upload.mock.calls[0][1].name).toBe("photo.jpg");
+  });
   it("preserves the exact original filename and checksum for ordinary field uploads", async () => {
     const original = {
       ...input(),
@@ -78,9 +107,15 @@ describe("private original persistence", () => {
     };
     const result = await uploadProjectMedia(original);
     expect(mocks.payload.sha256).toBeUndefined();
-    expect(mocks.payload.metadata).toEqual({
+    expect(mocks.payload.metadata).toMatchObject({
       original_name: "photo.jpg",
       original_sha256: "a".repeat(64),
+      field_photo_capture: {
+        schema: "freyra.field-photo/v1",
+        originalPosition: null,
+        initialPosition: null,
+        correctionReason: "",
+      },
     });
     expect(result.data?.sha256).toBe("a".repeat(64));
     expect(result.data?.metadata?.original_name).toBe("photo.jpg");
