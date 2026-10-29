@@ -29,7 +29,7 @@ Visningslinks dannes gennem brugerens Storage/RLS-adgang og er gyldige i 60 seku
 
 Worker har egen konfiguration, entrypoint, genererede bindings-/runtimetyper og separat typecheck, så browserens DOM-typer ikke blandes med workerens typer. Den har ingen offentlig behandlingsrute. Der er kun en staging-kontrakt og lokal testkonfiguration; en runtimekontrol afviser andre hosted Supabase-adresser.
 
-`FIELD_PHOTO_PROCESSING_ENABLED=false` er det indcheckede udgangspunkt. Der er ikke udført hosted migration, deployment, aktivering eller betalte billedkald i dette arbejde. CI's dry-run bygger en worker uden at publicere den. Logning er begrænset til tick og antal; råfotos, brugeroplysninger, URL'er og credentials logges ikke.
+`FIELD_PHOTO_PROCESSING_ENABLED=false` er det indcheckede udgangspunkt. Der er ikke udført hosted migration, deployment, aktivering eller betalte billedkald i dette arbejde. CI bruger ren esbuild-bundling og indeholder ingen deploymentkommando. Der er desuden udført en lokal Wrangler dry-run uden publicering. Logning er begrænset til tick og antal; råfotos, brugeroplysninger, URL'er og credentials logges ikke.
 
 Afhængighedsordnet staging-aktivering:
 

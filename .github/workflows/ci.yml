@@ -49,8 +49,8 @@ jobs:
       - name: Typecheck isolated field photo worker
         run: npx tsc --project tsconfig.field-photos.json --noEmit
 
-      - name: Bundle field photo worker without deployment
-        run: npx wrangler deploy --config wrangler.field-photos.jsonc --env staging --dry-run --outdir tmp/field-photo-worker
+      - name: Bundle isolated field photo worker
+        run: npx esbuild workers/field-photos/index.ts --bundle --format=esm --platform=neutral --main-fields=module,main --conditions=workerd,worker,browser --external:node:* --tsconfig=tsconfig.field-photos.json --outfile=tmp/field-photo-worker/index.js
 
       - name: Decode a synthetic image through the local Images binding
         run: node scripts/test-field-photo-images.mjs
