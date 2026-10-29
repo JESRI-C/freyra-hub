@@ -21,7 +21,8 @@ import {
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { Button } from "@/components/ui/button";
 
-const control = "mt-1 block w-full rounded border bg-background p-2";
+const control =
+  "mt-1 block min-h-11 w-full min-w-0 rounded border bg-background px-3 py-2 text-base sm:text-sm";
 export function FieldJobCardsPanel({ scope }: { scope: ProjectScope }) {
   const { user } = useAuth();
   return (
@@ -59,7 +60,10 @@ function JobCards({ scope, actorId }: { scope: ProjectScope; actorId?: string })
   });
   const [actionId, setActionId] = useState("");
   return (
-    <section aria-label="Jobkort" className="space-y-4 rounded border p-4">
+    <section
+      aria-label="Jobkort"
+      className="min-w-0 space-y-4 rounded border p-3 sm:p-4 [overflow-wrap:anywhere]"
+    >
       <h2 className="text-lg font-semibold">Jobkort og feltregistrering</h2>
       <p className="text-sm text-muted-foreground">
         Tilpas en skabelon og registrér oplysninger på en eksisterende opgave. Versioner bevares.
@@ -291,7 +295,7 @@ function JobCardEditor({
       </label>
       {canConfigure && (
         <details>
-          <summary>Opret eller tilpas skabelon</summary>
+          <summary className="min-h-11 cursor-pointer py-2">Opret eller tilpas skabelon</summary>
           <div className="space-y-3 pt-3">
             <label className="block">
               Udgangspunkt
@@ -423,7 +427,11 @@ function JobCardEditor({
                 ))}
               </select>
             </label>
-            <Button disabled={busy || history.isError} onClick={() => void persistTemplate()}>
+            <Button
+              className="h-auto min-h-11 whitespace-normal"
+              disabled={busy || history.isError}
+              onClick={() => void persistTemplate()}
+            >
               Gem ny skabelonversion
             </Button>
           </div>
@@ -535,6 +543,7 @@ function JobCardEditor({
           )}
           {writable && (
             <Button
+              className="h-auto min-h-11 w-full whitespace-normal sm:w-auto"
               disabled={busy || history.isFetching || history.isError}
               onClick={() => void save()}
             >

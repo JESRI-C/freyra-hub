@@ -191,6 +191,45 @@ afterEach(() => {
 });
 
 describe("ProjectMediaUploadPanel file isolation", () => {
+  it("retains the selected camera original during a background permission refresh", async () => {
+    const image = new File(["camera-original"], "camera.jpg", { type: "image/jpeg" });
+    await select(image);
+    props = { ...props, accessPending: true };
+    expect(button("Gem foto eller bilag").props.disabled).toBe(true);
+    await submit();
+    expect(state.upload).not.toHaveBeenCalled();
+    expect(labelled("Titel").props.value).toBe("camera");
+    props = { ...props, accessPending: false };
+    await submit();
+    expect(state.upload.mock.calls[0][0].file).toBe(image);
+  });
+
+  it("keeps field-only access to photos and rejects a PDF before starting an upload", async () => {
+    props = { ...props, fieldPhotosOnly: true };
+    const html = renderToStaticMarkup(tree());
+    expect(html).not.toContain("Importer FØR-dronefotos");
+    expect(labelled("Vælg andet foto eller bilag").props.accept).toBe("image/*");
+    await select(new File(["synthetic PDF"], "test.pdf", { type: "application/pdf" }));
+    expect(button("Gem foto eller bilag").props.disabled).toBe(true);
+    expect(state.upload).not.toHaveBeenCalled();
+    expect(renderToStaticMarkup(tree())).toContain("Feltadgangen kan uploade fotos");
+  });
+
+  it("offers camera capture alongside the existing image and PDF picker", async () => {
+    const camera = labelled("Tag feltfoto med kamera");
+    expect(camera.props.accept).toBe("image/*");
+    expect(camera.props.capture).toBe("environment");
+    expect(labelled("Vælg andet foto eller bilag").props.accept).toBe("image/*,application/pdf");
+    const image = new File(["camera-original"], "camera.jpg", { type: "image/jpeg" });
+    await (camera.props.onChange as (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>)({
+      target: { files: [image] },
+    } as unknown as React.ChangeEvent<HTMLInputElement>);
+    expect(labelled("Titel").props.value).toBe("camera");
+    await submit();
+    expect(state.upload.mock.calls[0][0].file).toBe(image);
+    expect(state.upload.mock.calls[0][0].coordinates).toBeUndefined();
+  });
+
   it("preserves the same intent when a failed upload is retried", async () => {
     state.upload.mockResolvedValue({ data: null, error: "Serverkontrol mangler" });
     await select(new File(["a"], "A.jpg", { type: "image/jpeg" }));
@@ -347,16 +386,16 @@ describe("ProjectMediaUploadPanel file isolation", () => {
 });
 
 describe("ProjectMediaUploadPanel task entry", () => {
-  it("makes drone import primary, hides optional fields, and preserves the batch callback", () => {
+  it("opens field capture first, keeps optional fields folded, and preserves the drone callback", () => {
     const result = tree();
     const html = renderToStaticMarkup(result);
-    expect(html.indexOf("Importer FØR-dronefotos")).toBeLessThan(
-      html.indexOf("Andet foto eller bilag"),
+    expect(html.indexOf("Feltfoto eller bilag")).toBeLessThan(
+      html.indexOf("Importer FØR-dronefotos"),
     );
     expect(html).not.toContain("Rapportklar");
     expect(html).not.toContain("centroid");
     const detail = find(result, (element) => element.type === "details");
-    expect(detail?.props.open).toBeUndefined();
+    expect(detail?.props.open).toBe(true);
     const optional = find(
       result,
       (element) =>

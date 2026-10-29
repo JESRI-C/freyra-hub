@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from "react";
-import { UploadCloud, Info, Loader2, CheckCircle, XCircle, Images } from "lucide-react";
+import { UploadCloud, Info, Loader2, CheckCircle, XCircle, Images, Camera } from "lucide-react";
 import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
 import type { MediaCategory, ProjectMediaItem } from "@/lib/platform/media-types";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -10,6 +10,8 @@ import { useAuth } from "@/lib/auth";
 
 interface ProjectMediaUploadPanelProps {
   projectId: string;
+  fieldPhotosOnly?: boolean;
+  accessPending?: boolean;
   /** Retained for callers; a project centre is never a file's position. */
   projectCentroid?: { lat: number; lng: number };
   onUploadComplete?: (item: ProjectMediaItem) => void;
@@ -38,6 +40,8 @@ export function ProjectMediaUploadPanel({
   projectId,
   onUploadComplete,
   onDroneBatchImported,
+  fieldPhotosOnly = false,
+  accessPending = false,
 }: ProjectMediaUploadPanelProps) {
   const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -57,6 +61,7 @@ export function ProjectMediaUploadPanel({
   const [beforeBatchOpen, setBeforeBatchOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
   const selectionGeneration = useRef(0);
   const mounted = useRef(false);
@@ -97,6 +102,7 @@ export function ProjectMediaUploadPanel({
     setIsUploading(false);
     setBeforeBatchOpen(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
     return () => {
       transferController.current?.abort();
       mounted.current = false;
@@ -104,13 +110,19 @@ export function ProjectMediaUploadPanel({
       if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = null;
     };
-  }, [projectId, user?.id, resetFile, discardPendingWork]);
+  }, [projectId, user?.id, fieldPhotosOnly, resetFile, discardPendingWork]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     resetFile();
     const generation = selectionGeneration.current;
     if (!file) return;
+
+    if (fieldPhotosOnly && !file.type.startsWith("image/")) {
+      setErrorMsg("Feltadgangen kan uploade fotos. Bed en redaktør om at tilføje andre bilag.");
+      event.target.value = "";
+      return;
+    }
 
     if (file.size > MAX_MEDIA_FILE_BYTES) {
       setErrorMsg("Filen er større end 50 MB.");
@@ -153,7 +165,7 @@ export function ProjectMediaUploadPanel({
   };
 
   const handleSubmit = async () => {
-    if (uploadBusy.current || metadataPending) return;
+    if (uploadBusy.current || metadataPending || accessPending) return;
     if (!selectedFile) {
       setErrorMsg("Vælg venligst en fil før upload.");
       return;
@@ -228,6 +240,7 @@ export function ProjectMediaUploadPanel({
       } else if (result.data) {
         resetFile();
         if (fileInputRef.current) fileInputRef.current.value = "";
+        if (cameraInputRef.current) cameraInputRef.current.value = "";
         setSuccessMsg(
           result.fieldPhotoReceipt?.status === "verified"
             ? `"${result.data.title}" er modtaget. Serverens checksum matcher originalen; fotoet afventer faglig gennemgang.`
@@ -247,29 +260,15 @@ export function ProjectMediaUploadPanel({
   };
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-4">
-      <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3">
-        <div className="text-base font-semibold">Arbejd med dronefotos</div>
-        <p className="text-sm text-muted-foreground">
-          Læg originale fotos fra din FØR-flyvning ind samlet. Filerne kontrolleres og gemmes på
-          denne sag, før billederne gennemgås.
-        </p>
-        <button
-          type="button"
-          onClick={() => setBeforeBatchOpen(true)}
-          disabled={isUploading}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-        >
-          <Images className="h-4 w-4" /> Importer FØR-dronefotos
-        </button>
-      </div>
-
-      <DroneBeforeBatchWizard
-        open={beforeBatchOpen}
-        onClose={() => setBeforeBatchOpen(false)}
-        projectId={projectId}
-        onImported={onDroneBatchImported}
-      />
+    <div className="min-w-0 rounded-xl border bg-card p-3 sm:p-5 space-y-4">
+      {!fieldPhotosOnly && (
+        <DroneBeforeBatchWizard
+          open={beforeBatchOpen}
+          onClose={() => setBeforeBatchOpen(false)}
+          projectId={projectId}
+          onImported={onDroneBatchImported}
+        />
+      )}
 
       {!isSupabaseConfigured && (
         <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
@@ -280,26 +279,48 @@ export function ProjectMediaUploadPanel({
         </div>
       )}
 
-      <details className="rounded-lg border p-3">
-        <summary className="cursor-pointer text-sm font-medium">Andet foto eller bilag</summary>
+      <details open className="min-w-0 rounded-lg border p-3">
+        <summary className="min-h-11 cursor-pointer py-2 text-base font-semibold">
+          {fieldPhotosOnly ? "Feltfoto" : "Feltfoto eller bilag"}
+        </summary>
         <div className="mt-3 space-y-4">
           <p className="text-xs text-muted-foreground">
-            Til et enkelt feltfoto eller en PDF. Filen gemmes til gennemgang.
+            {fieldPhotosOnly
+              ? "Tag et foto eller vælg et fra telefonen. Filen gemmes til gennemgang."
+              : "Til et enkelt feltfoto eller en PDF. Filen gemmes til gennemgang."}
           </p>
           <input
             ref={fileInputRef}
             aria-label="Vælg andet foto eller bilag"
             type="file"
-            accept="image/*,application/pdf"
+            accept={fieldPhotosOnly ? "image/*" : "image/*,application/pdf"}
             className="hidden"
-            disabled={isUploading}
+            disabled={isUploading || accessPending}
+            onChange={handleFileChange}
+          />
+          <input
+            ref={cameraInputRef}
+            aria-label="Tag feltfoto med kamera"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            disabled={isUploading || accessPending}
             onChange={handleFileChange}
           />
           <button
             type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={isUploading || accessPending}
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-medium text-primary-foreground disabled:opacity-50"
+          >
+            <Camera className="h-5 w-5" aria-hidden="true" /> Tag foto
+          </button>
+          <button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="w-full rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/10 flex flex-col items-center gap-2 py-6 hover:bg-muted/20 transition disabled:opacity-50"
+            disabled={isUploading || accessPending}
+            className="min-h-12 w-full rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/10 flex flex-col items-center gap-2 px-2 py-4 hover:bg-muted/20 transition disabled:opacity-50"
           >
             {previewUrl ? (
               <img
@@ -311,11 +332,13 @@ export function ProjectMediaUploadPanel({
               <UploadCloud className="h-6 w-6 text-muted-foreground" />
             )}
             <span className="text-xs text-muted-foreground">
-              Vælg billede eller PDF · højst 50 MB
+              {fieldPhotosOnly
+                ? "Vælg billede · højst 50 MB"
+                : "Vælg billede eller PDF · højst 50 MB"}
             </span>
           </button>
           {selectedFile && (
-            <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+            <div className="break-all text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
               <span className="font-medium text-foreground">{selectedFile.name}</span> ·{" "}
               {formatFileSize(selectedFile.size)}
             </div>
@@ -329,23 +352,23 @@ export function ProjectMediaUploadPanel({
               aria-label="Titel"
               type="text"
               value={title}
-              disabled={isUploading}
+              disabled={isUploading || accessPending}
               onChange={(event) => setTitle(event.target.value)}
-              className="w-full rounded-lg border bg-background text-sm px-3 py-2"
+              className="min-h-11 w-full min-w-0 rounded-lg border bg-background text-base sm:text-sm px-3 py-2"
             />
           </label>
           <details className="rounded-lg border p-3">
             <summary className="cursor-pointer text-xs font-medium">
               Flere oplysninger (valgfrit)
             </summary>
-            <fieldset disabled={isUploading} className="mt-3 space-y-3">
+            <fieldset disabled={isUploading || accessPending} className="mt-3 space-y-3">
               <label className="block space-y-1 text-xs text-muted-foreground">
                 <span>Kategori</span>
                 <select
                   aria-label="Kategori"
                   value={category}
                   onChange={(event) => setCategory(event.target.value as MediaCategory)}
-                  className="w-full rounded-lg border bg-background px-3 py-2"
+                  className="min-h-11 w-full min-w-0 rounded-lg border bg-background px-3 py-2 text-base sm:text-sm"
                 >
                   {CATEGORIES.map((value) => (
                     <option key={value} value={value}>
@@ -361,7 +384,7 @@ export function ProjectMediaUploadPanel({
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border bg-background px-3 py-2"
+                  className="min-h-11 w-full min-w-0 rounded-lg border bg-background px-3 py-2 text-base sm:text-sm"
                 />
               </label>
               <label className="block space-y-1 text-xs text-muted-foreground">
@@ -370,7 +393,7 @@ export function ProjectMediaUploadPanel({
                   aria-label="Tags"
                   value={tags}
                   onChange={(event) => setTags(event.target.value)}
-                  className="w-full rounded-lg border bg-background px-3 py-2"
+                  className="min-h-11 w-full min-w-0 rounded-lg border bg-background px-3 py-2 text-base sm:text-sm"
                 />
               </label>
               <div className="space-y-2">
@@ -388,7 +411,8 @@ export function ProjectMediaUploadPanel({
                     disabled={metadataPending}
                     onChange={(event) => setManualLat(event.target.value)}
                     placeholder="Breddegrad"
-                    className="rounded-lg border bg-background text-xs px-3 py-2"
+                    inputMode="decimal"
+                    className="min-h-11 min-w-0 rounded-lg border bg-background text-base sm:text-sm px-3 py-2"
                   />
                   <input
                     aria-label="Længdegrad"
@@ -396,7 +420,8 @@ export function ProjectMediaUploadPanel({
                     disabled={metadataPending}
                     onChange={(event) => setManualLng(event.target.value)}
                     placeholder="Længdegrad"
-                    className="rounded-lg border bg-background text-xs px-3 py-2"
+                    inputMode="decimal"
+                    className="min-h-11 min-w-0 rounded-lg border bg-background text-base sm:text-sm px-3 py-2"
                   />
                 </div>
                 <label className="block">
@@ -406,7 +431,7 @@ export function ProjectMediaUploadPanel({
                     maxLength={2000}
                     value={positionReason}
                     onChange={(event) => setPositionReason(event.target.value)}
-                    className="w-full rounded border bg-background p-2"
+                    className="min-h-11 w-full min-w-0 rounded border bg-background p-2 text-base sm:text-sm"
                   />
                 </label>
               </div>
@@ -415,8 +440,8 @@ export function ProjectMediaUploadPanel({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={isUploading || metadataPending || !selectedFile}
-            className="w-full rounded-xl bg-primary text-primary-foreground text-sm font-medium py-2.5 disabled:opacity-60 flex items-center justify-center gap-2"
+            disabled={isUploading || accessPending || metadataPending || !selectedFile}
+            className="min-h-12 w-full rounded-xl bg-primary text-primary-foreground text-base font-medium px-3 py-3 disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {isUploading ? (
               <>
@@ -442,6 +467,25 @@ export function ProjectMediaUploadPanel({
           )}
         </div>
       </details>
+      {!fieldPhotosOnly && (
+        <details className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3">
+          <summary className="min-h-11 cursor-pointer py-2 text-base font-semibold">
+            Dronefotos og samlet import
+          </summary>
+          <p className="text-sm text-muted-foreground">
+            Læg originale fotos fra din FØR-flyvning ind samlet. Filerne kontrolleres og gemmes på
+            denne sag, før billederne gennemgås.
+          </p>
+          <button
+            type="button"
+            onClick={() => setBeforeBatchOpen(true)}
+            disabled={isUploading}
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+          >
+            <Images className="h-4 w-4" /> Importer FØR-dronefotos
+          </button>
+        </details>
+      )}
       {successMsg && (
         <div
           role="status"

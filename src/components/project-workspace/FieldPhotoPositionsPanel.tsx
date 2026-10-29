@@ -18,7 +18,8 @@ import {
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { Button } from "@/components/ui/button";
 import { FieldPhotoReceiptPanel } from "./FieldPhotoReceiptPanel";
-const control = "mt-1 block w-full rounded border bg-background p-2";
+const control =
+  "mt-1 block min-h-11 w-full min-w-0 rounded border bg-background px-3 py-2 text-base sm:text-sm";
 export function FieldPhotoPositionsPanel({ scope }: { scope: ProjectScope }) {
   const { user } = useAuth();
   return (
@@ -224,7 +225,7 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
   }
   return (
     <section
-      className="space-y-3 rounded border p-4"
+      className="min-w-0 space-y-3 rounded border p-3 sm:p-4 [overflow-wrap:anywhere]"
       aria-label="Feltfotoets placering og historik"
     >
       <h3 className="font-semibold">Feltfotoets placering og historik</h3>
@@ -330,7 +331,11 @@ function Positions({ scope, actorId }: { scope: ProjectScope; actorId?: string }
                 />
               </label>
               {access.data?.canContribute && (
-                <Button disabled={busy || loading || !!readError} onClick={() => void save()}>
+                <Button
+                  className="h-auto min-h-11 whitespace-normal"
+                  disabled={busy || loading || !!readError}
+                  onClick={() => void save()}
+                >
                   Gem observationssted som ny version
                 </Button>
               )}
