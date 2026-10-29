@@ -1,4 +1,7 @@
 BEGIN;
+-- Match the Storage API's transaction context, so DELETE tests exercise RLS
+-- rather than Storage's independent blanket protection against direct SQL.
+SET LOCAL storage.allow_delete_query = 'true';
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT no_plan();
 INSERT INTO auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) VALUES
@@ -39,6 +42,8 @@ SELECT is((SELECT attempts FROM public.field_photo_background_jobs),0,'each proc
 SELECT is((public.claim_field_photo_background()->'job'->>'stage'),'preview','next claim performs preview processing');
 SELECT throws_ok($$SELECT pg_temp.preview()$$,'P0002',NULL,'missing preview Storage object cannot become ready');
 INSERT INTO storage.objects(id,bucket_id,name,metadata) VALUES('fe303000-0000-4000-8000-000000000001','field-photo-previews','fe302000-0000-4000-8000-000000000001/field-previews/fe304000-0000-4000-8000-000000000001/preview-jpeg1536-v1/'||repeat('b',64)||'.jpg','{"size":24,"mimetype":"image/jpeg"}');
+SELECT is((public.prepare_field_photo_preview_commit('fe304000-0000-4000-8000-000000000001',(SELECT lease_id FROM public.field_photo_background_jobs),repeat('b',64))->>'object_id'),'fe303000-0000-4000-8000-000000000001','server captures the stored preview version before rehashing it');
+SELECT throws_ok($$SELECT * FROM public.complete_field_photo_preview('fe304000-0000-4000-8000-000000000001',(SELECT lease_id FROM public.field_photo_background_jobs),repeat('b',64),24,3,2,'fe303000-0000-4000-8000-000000000001','stale-version',now())$$,'23514',NULL,'changed stored preview version cannot receive a receipt');
 SELECT throws_ok($$SELECT pg_temp.preview(NULL,repeat('b',64),25)$$,'23514',NULL,'storage size mismatch cannot receive a preview receipt');
 SELECT is(pg_temp.preview(),repeat('b',64),'preview checksum is recorded');
 SELECT is(pg_temp.preview(),repeat('b',64),'lost completion response returns same preview receipt');
@@ -86,6 +91,7 @@ SELECT lives_ok($$SELECT pg_temp.new_photo(4)$$,'another uploader has an indepen
 RESET ROLE;
 DELETE FROM public.organization_memberships WHERE user_id='fe300000-0000-4000-8000-000000000001';
 SET LOCAL ROLE service_role;
+SELECT throws_ok($$SELECT pg_temp.preview()$$,'42501',NULL,'revocation is rechecked before preview completion or response retry');
 SELECT is((public.claim_field_photo_background()->'upload'->>'id'),'fe304000-0000-4000-8000-000000000004','claim skips blocked uploader and reaches another active job');
 SELECT is((SELECT state FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000003'),'blocked','revoked uploader does not grant automatic processing permission');
 SELECT lives_ok($$SELECT public.fail_field_photo_background('fe304000-0000-4000-8000-000000000004',(SELECT lease_id FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000004'),'unsupported_format')$$,'unsupported input ends without repeated decoder calls');
