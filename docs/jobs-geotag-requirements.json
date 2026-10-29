@@ -149,7 +149,7 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D02a plan revision and mobile form implemented, database CI pending",
+      "coverage": "partial; D02a plan/mobile contracts verified in CI 40937570174",
       "remaining": "Planrevision og adskilt ansvarlig findes; eksplicit tildeling, livscyklus og kobling til faktisk udfører følger i D02b."
     },
     {
@@ -180,7 +180,7 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D02a plan revision and mobile form implemented, database CI pending",
+      "coverage": "partial; D02a plan/mobile contracts verified in CI 40937570174",
       "remaining": "Typed vandløbsprofil og filtrerbare måleprojektioner findes; D04 fælles filtre og faktisk udførelseskobling afventer."
     },
     {
@@ -376,7 +376,7 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D02a plan revision and mobile form implemented, database CI pending",
+      "coverage": "partial; D02a plan/mobile contracts verified in CI 40937570174",
       "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes; kortinteraktion og fysisk prøve afventer."
     },
     {
@@ -1428,6 +1428,19 @@
       "hostedMigrationApplied": false,
       "userInterfaceTested": false,
       "pilotAccepted": false
+    }
+  },
+  "evidence": {
+    "D02a": {
+      "commit": "afbcd0a9db60bf8169aadeb578a26424ddd13d09",
+      "ciRun": 40937570174,
+      "appTests": 3138,
+      "databaseAssertions": 1163,
+      "planAssertions": 61,
+      "actualConcurrency": true,
+      "hostedMigration": false,
+      "hostedDeployment": false,
+      "physicalMobileAcceptance": false
     }
   }
 }
