@@ -25,6 +25,14 @@ UI findes i Handlinger og kommuneforløbets Udførelse; eksisterende udførelses
 
 ## Udvikling og release
 
+Mobilbetjeningen af A–C er udvidet på `codex/field-mobile-v1`, [draft-PR 26](https://github.com/JESRI-C/freyra-hub/pull/26). Sagen har fire genveje til jobkort, fotos, sagsforløb og rapporter. Telefonen får en vælger med alle eksisterende faner; ingen sagsværktøjer er fjernet. Feltfoto er åbent fra starten og vises før atlas og galleri på telefonen. Kamera og filvælger er adskilt, og originalen går gennem samme kontrolflow. Kameraets faktiske funktion og returnerede metadata afhænger af telefon/browser og afventer brugerprøven.
+
+Mobilrevision `90a240efff6a1a5e0580e475ea6555cde03c1f10` er udgivet i staging som worker `f9ed06f7-f785-461c-9676-c21db4db85cc`. Stagingbuild og bundle-isolation, typecheck, lint og 28 målrettede tests i fire filer bestod. Begge jobs i CI-kørsel `40922510075` bestod på den konkrete revision: 3.063 app-/worker-tests i 224 filer, øvrige appkontroller og build; 1.031 databaseassertions i 17 filer, faktisk samtidighed, dump/restore og funktionskontrol. Databasen og brugerens testlogin er ikke ændret af denne UI-udgivelse.
+
+Feltmedarbejderens eksisterende serverkontrollerede foto-adgang åbner nu også uploadformularen i sagsoverblikket; redaktørens drone-/bilagsværktøjer gives ikke med. En valgt fil bevares, når telefonen vender tilbage fra kameraet og en ny rettighedskontrol begynder. Indsendelse er låst under kontrollen; bekræftet tilbagekaldelse eller bruger-/projektskift afbryder formularen som hidtil. Danske komma-decimaler accepteres ved manuel positionsangivelse. Original GPS og rettelseshistorik er fortsat adskilt.
+
+Dette er betjening af de installerede A–C-funktioner, ikke den vedvarende offlineklient i D. Pakke D og de øvrige ufærdige pakker i tabellen står fortsat åbne. Ingen browserprøve er udført: adgangskontrollen afviste både testadressen og en særskilt lokal kodevisning. Afvisningerne omgås ikke. Brugeren udfører selv mobilprøven. Teknisk build-/udgivelsesstatus registreres i [stagingkvitteringen](field-staging-delivery.json).
+
 1. Baseline: staging-preflight og typecheck; ingen hemmeligheder i kvitteringer.
 2. Målrettede kontrakt-, service- og brugerfladeprøver samt databaseprøver for isolation, rettigheder, samtidighed og genforsøg.
 3. Typecheck, lint og build efter integration. Databasemigration skal afprøves i disponibel lokal/CI-database før hosted anvendelse.
@@ -35,7 +43,7 @@ Ved fejl i staging slås det nye panel fra gennem en fremadrettet kodeændring; 
 
 ## Arbejdslog
 
-- **Aktuel stagingstatus:** Apprevision `a3dc06bb2af30bd9dbb4357c390ab4e575f6aa28` er bygget med staging-preflight og udgivet som worker-version `1e09bf40-c7ec-4ae4-a6cc-8cf34a2e90a6` på den eksisterende testadresse. De fire migrationer for A/B/C1/C2 er installeret samlet med deres eksakte kildetekst i migrationshistorikken. Alle ni nye tabeller har RLS; preview-bucket er privat; browserrollen kan ikke claim'e baggrundsjob. Genlæsning bekræftede uændret antal eksisterende medie- og Storage-objektreferencer.
+- **Første staginginstallation af A–C:** Apprevision `a3dc06bb2af30bd9dbb4357c390ab4e575f6aa28` er bygget med staging-preflight og udgivet som worker-version `1e09bf40-c7ec-4ae4-a6cc-8cf34a2e90a6` på den eksisterende testadresse. De fire migrationer for A/B/C1/C2 er installeret samlet med deres eksakte kildetekst i migrationshistorikken. Alle ni nye tabeller har RLS; preview-bucket er privat; browserrollen kan ikke claim'e baggrundsjob. Genlæsning bekræftede uændret antal eksisterende medie- og Storage-objektreferencer.
 - Før migrationen blev 85 datasæt/definitionssamlinger bevaret som 27.235.747 bytes i et privat, RLS-beskyttet backupschema. Dette er en kopi af databaseindhold og definitioner i samme database, ikke et eksternt databasebackup eller en kopi af de ca. 3,25 GB faktiske Storage-filer. Filgendannelse er fortsat åben.
 - Den særskilte testbruger har fire tydeligt mærkede testopgaver, blanke registreringer og de fire redigerbare startskabeloner i sit eget testprojekt. De er oprettet gennem brugerens almindelige API/RPC-rettigheder. Eksisterende brugeroprettede projekter bevares. API-kontroller bekræftede projektadgang og afvisning af service-only claim. Ingen legitimationsoplysninger er gemt i repositoryet.
 - Brugeren valgte selv at udføre browserprøven efter browserens adgangskontrol afviste åbning af testadressen. Der foretages ingen alternativ browserprøve eller omgåelse. Den nye hosted brugerflade, hosted TUS/serverfunktion og fysiske telefonforløb er derfor ikke markeret bestået. Automatisk billedbehandling er fortsat slukket; separat worker og aktivering udestår. Se [teknisk kvittering](field-staging-delivery.json).
