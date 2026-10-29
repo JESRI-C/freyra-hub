@@ -9,7 +9,9 @@ const mocks = vi.hoisted(() => ({
   getCanonicalDroneMediaUrl: vi.fn(),
   fetchEvidenceFilesByProject: vi.fn(),
   fetchAllEvidenceFiles: vi.fn(),
+  fieldUpload: vi.fn(),
 }));
+vi.mock("../field-photo-upload-service", () => ({ uploadFieldPhoto: mocks.fieldUpload }));
 
 vi.mock("@/lib/supabase/client", () => ({
   isSupabaseConfigured: true,
@@ -132,6 +134,10 @@ function mediaRow(overrides: Record<string, unknown> = {}): Record<string, unkno
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.fieldUpload.mockResolvedValue({
+    upload: { id: MEDIA_ID },
+    receipt: { status: "verified" },
+  });
   mocks.storageFrom.mockReturnValue({
     upload: mocks.upload,
     remove: mocks.remove,
@@ -302,18 +308,13 @@ describe("private project media", () => {
       tags: [],
     });
 
-    expect(mocks.upload).toHaveBeenCalledWith(MEDIA_PATH, file, {
-      cacheControl: "300",
-      upsert: false,
-      contentType: "image/jpeg",
-    });
-    expect(builder.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        file_path: MEDIA_PATH,
-        url: "",
-        thumbnail_url: null,
-      }),
+    expect(mocks.fieldUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ file, projectId: PROJECT_ID }),
     );
+    expect(mocks.fieldUpload.mock.calls[0][0].payload).not.toHaveProperty("url");
+    expect(mocks.fieldUpload.mock.calls[0][0].payload).not.toHaveProperty("thumbnail_url");
+    expect(builder.insert).not.toHaveBeenCalled();
+    expect(mocks.upload).not.toHaveBeenCalled();
     expect(mocks.createSignedUrl).toHaveBeenCalledWith(MEDIA_PATH, 300);
     expect(result.data?.url).toContain("token=short-lived");
   });

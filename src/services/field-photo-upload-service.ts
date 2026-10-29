@@ -57,6 +57,12 @@ export async function uploadFieldPhoto(input: {
         file: input.file,
         projectUrl: requireSupabaseUrl(),
         accessToken: token,
+        getAccessToken: async () => {
+          const current = await supabase!.auth.getSession();
+          if (current.data.session?.user.id !== actor || !current.data.session.access_token)
+            throw new Error("Din session er ændret. Overførslen er sat på pause.");
+          return current.data.session.access_token;
+        },
         bucketName: "project-media",
         objectName: upload.storage_path,
         contentType: payload.mimeType,

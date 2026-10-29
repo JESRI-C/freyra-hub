@@ -38,6 +38,7 @@ SELECT is((SELECT name FROM storage.objects WHERE id='fd303000-0000-4000-8000-00
 SELECT lives_ok($$SELECT pg_temp.finish_upload()$$,'field employee finalizes the exact stored original');
 SELECT is(pg_temp.finish_upload(),'fd304000-0000-4000-8000-000000000001'::uuid,'lost finalization response is idempotent');
 SELECT is((SELECT count(*)::integer FROM public.project_media WHERE id='fd304000-0000-4000-8000-000000000001'),1,'one original media row is created');
+SELECT is((SELECT url FROM public.project_media WHERE id='fd304000-0000-4000-8000-000000000001'),'','signed download URL is never persisted by finalization');
 SELECT is((SELECT count(*)::integer FROM public.field_photo_processing_jobs),1,'one durable processing job is created');
 SELECT is((SELECT count(*)::integer FROM public.field_photo_position_versions WHERE media_id='fd304000-0000-4000-8000-000000000001'),1,'initial correction is committed once');
 SELECT ok((SELECT received_at IS NOT NULL AND object_id='fd303000-0000-4000-8000-000000000001' FROM public.field_photo_uploads),'receipt binds the real Storage object');

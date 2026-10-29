@@ -25,6 +25,39 @@ describe("Supabase resumable endpoint", () => {
 });
 
 describe("TUS transfer contract", () => {
+  it("refreshes credentials before each request, including resumed chunks", async () => {
+    const setHeader = vi.fn(),
+      tokens = vi.fn().mockResolvedValueOnce("fresh-one").mockResolvedValueOnce("fresh-two");
+    await uploadWithTus(
+      {
+        file,
+        projectUrl: "https://synthetic.supabase.co",
+        accessToken: "old-token",
+        getAccessToken: tokens,
+        bucketName: "project-media",
+        objectName: "project/intent/original",
+        contentType: "image/jpeg",
+      },
+      {
+        createUpload: (_file, options) => ({
+          start: () => {
+            void (async () => {
+              await options.onBeforeRequest({ setHeader });
+              await options.onBeforeRequest({ setHeader });
+              options.onSuccess();
+            })().catch(options.onError);
+          },
+          abort: vi.fn().mockResolvedValue(undefined),
+          findPreviousUploads: async () => [],
+          resumeFromPreviousUpload: vi.fn(),
+        }),
+      },
+    );
+    expect(setHeader.mock.calls).toEqual([
+      ["authorization", "Bearer fresh-one"],
+      ["authorization", "Bearer fresh-two"],
+    ]);
+  });
   it("resumes an exact immutable intent with 6 MiB chunks and no upsert", async () => {
     let capturedOptions:
       | {
