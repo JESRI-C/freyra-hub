@@ -54,7 +54,14 @@ Målrettede prøver dækker kildeændring, størrelse/format, metadatafjernelse,
 
 En separat offline-smoke-test bruger et genereret PNG og den faktiske lokale Images-binding, uden eksterne API'er eller kundemateriale. Den producerer et faktisk JPEG, hvis dimensioner og hash kontrolleres. Den lokale binding har lavere fidelity og understøtter ikke alle transformeringsparametre; denne prøve bekræfter afkodning/filflow, **ikke** hosted `scale-down`-adfærd eller HEIC-kompatibilitet. Der kræves stadig hosted billed-/telefonaccept.
 
-Samlet CI-evidens føres i udviklingsplanen efter afsluttet kørsel. Database-dump/restore er teknisk databasebevis; faktisk original- og preview-filgendannelse er endnu ikke afprøvet. Ingen e-mails, AI-artsbestemmelse eller produktionsrelease er udført.
+Begge CI-jobs bestod på `5b031d748238c8c5bb4e9790863ef3813accef0d`, [run 40884821323](https://github.com/JESRI-C/freyra-hub/actions/runs/40884821323):
+
+- 3.056 tests i 223 applikations-/worker-testfiler, app-/worker-typechecks, lint (0 fejl, 24 eksisterende advarsler), beregningskilder, ren worker-bundling, den faktiske lokale Images-prøve og appbuild.
+- Frisk migrationsreplay, 1.031 assertions i 17 databasefiler, inklusive 50 nye C2-assertions; de to nye scenarier med samtidige claims og udløbet lease samt alle eksisterende samtidighedsprøver; dump/restore og databasefunktionskontrol.
+
+To reelle PostgreSQL-transaktioner fik hver sit job, mens begge transaktioner stadig var åbne. En udløbet lease blev overtaget med et nyt token, og den gamle worker kunne ikke frigive den nye lease. Den lokale billedprøve bekræftede et 134-bytes syntetisk PNG til et 27.761-bytes JPEG; den lokale bindings lavere fidelity er fortsat en grænse som beskrevet ovenfor. Lokal stagingbuild og Wrangler dry-run bestod også. Efterfølgende evidenscommit ændrer alene dokumentation og Git-reviewmarkering af genererede typer.
+
+Database-dump/restore er teknisk databasebevis; faktisk original- og preview-filgendannelse er endnu ikke afprøvet. Ingen e-mails, AI-artsbestemmelse eller produktionsrelease er udført.
 
 ## Primærkilder
 
