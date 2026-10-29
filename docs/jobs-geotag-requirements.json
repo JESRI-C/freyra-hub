@@ -229,7 +229,7 @@
         "src/services/__tests__/work-order-access-service.test.ts",
         "supabase/tests/database/work_order_access.test.sql"
       ],
-      "coverage": "partial; D02b person assignment UI implemented, database CI pending",
+      "coverage": "partial; D02b person assignment and history verified in CI 40938510298",
       "remaining": "Personers udførelses-/reviewadgang og historik findes; grupper og atomisk puljeovertagelse samt faktisk udførerbinding følger."
     },
     {
@@ -1445,6 +1445,16 @@
       "databaseAssertions": 1163,
       "planAssertions": 61,
       "actualConcurrency": true,
+      "hostedMigration": false,
+      "hostedDeployment": false,
+      "physicalMobileAcceptance": false
+    },
+    "D02b": {
+      "commit": "361e633840bdb026b0e11310a32cd85c0f465f55",
+      "ciRun": 40938510298,
+      "appTests": 3153,
+      "databaseAssertions": 1180,
+      "newDatabaseAssertions": 17,
       "hostedMigration": false,
       "hostedDeployment": false,
       "physicalMobileAcceptance": false

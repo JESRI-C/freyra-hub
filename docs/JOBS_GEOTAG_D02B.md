@@ -18,7 +18,7 @@ Formularens aktør, projekt, person og åbningsversion fastlåses ved redigering
 - Eksisterende `work-order-access-service.test.ts` udvides med ni prøver. Ny `WorkOrderAccessPanel.test.tsx` har seks adfærdsprøver, herunder særskilt reviewer, mistet svar, konkurrerende ændring, tidligere medlem, læser og fejl under adgangsgenkontrol.
 - Eksisterende `work_order_access.test.sql` udvides med 17 assertions om cursor, begrænset personhistorik, fjernet medlem, ukendt historik, fremmed organisation/projekt og direkte API-afslag. Eksisterende samtidighedsprøver af D01-mutationen genbruges.
 
-65 fokuserede appprøver i fem filer, app-typecheck og fokuseret lint bestod lokalt. Faktisk database-CI afventer, før delens tekniske verifikation registreres som afsluttet. Ingen hosted migration/deployment er foretaget. Fysisk mobilprøve, ekstern brugers samlede feltindgang og faglig pilotaccept er åbne.
+65 fokuserede appprøver i fem filer, app-typecheck og fokuseret lint bestod lokalt. Disponibel CI bestod på koderevision `361e633840bdb026b0e11310a32cd85c0f465f55`, [run 40938510298](https://github.com/JESRI-C/freyra-hub/actions/runs/40938510298): 3.153 appprøver i 234 filer, app-/worker-typechecks, lint (0 fejl, 24 eksisterende advarsler), lokal Images-prøve og build; databasejobbet bestod frisk migrationsreplay, 1.180 assertions i 19 filer (17 nye D02b), faktisk samtidighed, database-dump/restore og funktionskontrol. [Draft-PR 30](https://github.com/JESRI-C/freyra-hub/pull/30) er stablet på D02a. Ingen hosted migration/deployment er foretaget. Fysisk mobilprøve, ekstern brugers samlede feltindgang og faglig pilotaccept er åbne.
 
 ## Tilbagerulning og næste del
 
