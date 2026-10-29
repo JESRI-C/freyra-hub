@@ -1,0 +1,96 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SELECT no_plan();
+INSERT INTO auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) VALUES
+('00000000-0000-0000-0000-000000000000','fe300000-0000-4000-8000-000000000001','authenticated','authenticated','background-field@example.test','',now(),'{"provider":"email"}','{}',now(),now()),
+('00000000-0000-0000-0000-000000000000','fe300000-0000-4000-8000-000000000002','authenticated','authenticated','background-editor@example.test','',now(),'{"provider":"email"}','{}',now(),now()),
+('00000000-0000-0000-0000-000000000000','fe300000-0000-4000-8000-000000000003','authenticated','authenticated','background-viewer@example.test','',now(),'{"provider":"email"}','{}',now(),now());
+INSERT INTO public.organizations(id,name,type,country) VALUES('fe301000-0000-4000-8000-000000000001','Synthetic background org','test','Denmark');
+INSERT INTO public.projects(id,organization_id,name) VALUES('fe302000-0000-4000-8000-000000000001','fe301000-0000-4000-8000-000000000001','Synthetic background project');
+INSERT INTO public.organization_memberships(organization_id,user_id,role) SELECT 'fe301000-0000-4000-8000-000000000001',id,'viewer' FROM auth.users WHERE id IN('fe300000-0000-4000-8000-000000000001','fe300000-0000-4000-8000-000000000002','fe300000-0000-4000-8000-000000000003');
+INSERT INTO public.project_members(project_id,user_id,role) VALUES('fe302000-0000-4000-8000-000000000001','fe300000-0000-4000-8000-000000000001','field'),('fe302000-0000-4000-8000-000000000001','fe300000-0000-4000-8000-000000000002','editor'),('fe302000-0000-4000-8000-000000000001','fe300000-0000-4000-8000-000000000003','viewer');
+INSERT INTO storage.buckets(id,name,public) VALUES('project-media','project-media',false) ON CONFLICT DO NOTHING;
+CREATE FUNCTION pg_temp.new_photo(n integer) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE upload uuid:=('fe304000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid;
+BEGIN
+ PERFORM * FROM public.begin_field_photo_upload('fe302000-0000-4000-8000-000000000001',upload,'{"title":"Synthetic background photo","description":null,"category":"field_photo","tags":[],"originalName":"photo.jpg","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sizeBytes":8,"mimeType":"image/jpeg","capturedAt":null,"capture":{"schema":"freyra.field-photo/v1","originalPosition":null,"initialPosition":null,"correctionReason":""}}');
+ INSERT INTO storage.objects(bucket_id,name,owner_id,metadata) VALUES('project-media','fe302000-0000-4000-8000-000000000001/field-uploads/'||upload::text||'/original',auth.uid()::text,'{"size":8,"mimetype":"image/jpeg"}');
+ PERFORM * FROM public.finalize_field_photo_upload('fe302000-0000-4000-8000-000000000001',upload);
+END $$;
+CREATE FUNCTION pg_temp.preview(lease uuid DEFAULT NULL,h text DEFAULT repeat('b',64),s integer DEFAULT 24) RETURNS text LANGUAGE sql AS $$
+ SELECT sha256 FROM public.complete_field_photo_preview('fe304000-0000-4000-8000-000000000001',coalesce(lease,(SELECT lease_id FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000001')),h,s,3,2,'fe303000-0000-4000-8000-000000000001',(SELECT version FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'),(SELECT updated_at FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'))
+$$;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','fe300000-0000-4000-8000-000000000001',true);
+SELECT lives_ok($$SELECT pg_temp.new_photo(1)$$,'field upload atomically creates the background job');
+SELECT is((SELECT count(*)::integer FROM public.field_photo_background_jobs),1,'one background job per received original');
+SELECT throws_ok($$SELECT public.claim_field_photo_background()$$,'42501',NULL,'browser cannot claim privileged work');
+SELECT throws_ok($$UPDATE public.field_photo_background_jobs SET state='ready'$$,'42501',NULL,'browser cannot forge processing status');
+RESET ROLE;
+SET LOCAL ROLE service_role;
+SELECT is((public.claim_field_photo_background()->'job'->>'stage'),'verify','first automatic phase verifies original bytes');
+SELECT ok(public.claim_field_photo_background() IS NULL,'leased job is not claimed twice');
+SELECT throws_ok($$SELECT pg_temp.preview()$$,'23514',NULL,'preview requires a verified original');
+SELECT lives_ok($$SELECT public.prepare_field_photo_verification('fe302000-0000-4000-8000-000000000001','fe304000-0000-4000-8000-000000000001','fe300000-0000-4000-8000-000000000001')$$,'automatic verification uses the existing original lease');
+SELECT lives_ok($$SELECT * FROM public.complete_field_photo_verification('fe302000-0000-4000-8000-000000000001','fe304000-0000-4000-8000-000000000001','fe300000-0000-4000-8000-000000000001',(SELECT lease_id FROM public.field_photo_processing_jobs),repeat('a',64),8)$$,'automatic verification commits a byte receipt');
+SELECT throws_ok($$SELECT public.advance_field_photo_background('fe304000-0000-4000-8000-000000000001',gen_random_uuid())$$,'40001',NULL,'stale worker cannot advance another lease');
+SELECT lives_ok($$SELECT public.advance_field_photo_background('fe304000-0000-4000-8000-000000000001',(SELECT lease_id FROM public.field_photo_background_jobs))$$,'verified source advances to preview without rewriting original');
+SELECT is((SELECT attempts FROM public.field_photo_background_jobs),0,'each processing phase gets its own retry budget');
+SELECT is((public.claim_field_photo_background()->'job'->>'stage'),'preview','next claim performs preview processing');
+SELECT throws_ok($$SELECT pg_temp.preview()$$,'P0002',NULL,'missing preview Storage object cannot become ready');
+INSERT INTO storage.objects(id,bucket_id,name,metadata) VALUES('fe303000-0000-4000-8000-000000000001','field-photo-previews','fe302000-0000-4000-8000-000000000001/field-previews/fe304000-0000-4000-8000-000000000001/preview-jpeg1536-v1/'||repeat('b',64)||'.jpg','{"size":24,"mimetype":"image/jpeg"}');
+SELECT throws_ok($$SELECT pg_temp.preview(NULL,repeat('b',64),25)$$,'23514',NULL,'storage size mismatch cannot receive a preview receipt');
+SELECT is(pg_temp.preview(),repeat('b',64),'preview checksum is recorded');
+SELECT is(pg_temp.preview(),repeat('b',64),'lost completion response returns same preview receipt');
+SELECT is((SELECT source_sha256 FROM public.field_photo_previews),repeat('a',64),'preview binds the verified original checksum');
+SELECT is((SELECT state FROM public.field_photo_background_jobs),'ready','completed job stops polling for work');
+SELECT throws_ok($$SELECT pg_temp.preview(NULL,repeat('c',64))$$,'23514',NULL,'terminal preview cannot change checksum');
+SELECT is((SELECT metadata->>'original_sha256' FROM public.project_media WHERE id='fe304000-0000-4000-8000-000000000001'),repeat('a',64),'original declaration is untouched');
+RESET ROLE;
+SELECT throws_ok($$UPDATE public.field_photo_previews SET sha256=repeat('c',64)$$,'23514',NULL,'preview receipt is immutable through owner connection');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','fe300000-0000-4000-8000-000000000003',true);
+SELECT is((SELECT count(*)::integer FROM public.field_photo_previews),1,'project reader sees preview metadata');
+SELECT is((SELECT count(*)::integer FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'),1,'reader can sign only the bound private preview object');
+SELECT throws_ok($$INSERT INTO storage.objects(bucket_id,name,metadata) VALUES('field-photo-previews','client.jpg','{"size":1,"mimetype":"image/jpeg"}')$$,'42501',NULL,'browser cannot create preview objects');
+SELECT lives_ok($$DELETE FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'$$,'RLS filters ordinary preview delete');
+SELECT is((SELECT count(*)::integer FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'),1,'preview remains after attempted delete');
+RESET ROLE;
+UPDATE storage.objects SET version='synthetic-changed' WHERE id='fe303000-0000-4000-8000-000000000001';
+SET LOCAL ROLE authenticated;
+SELECT is((SELECT count(*)::integer FROM storage.objects WHERE id='fe303000-0000-4000-8000-000000000001'),0,'privileged replacement is not signable through the old preview binding');
+RESET ROLE;
+DELETE FROM public.organization_memberships WHERE user_id='fe300000-0000-4000-8000-000000000003';
+SET LOCAL ROLE authenticated;
+SELECT is((SELECT count(*)::integer FROM public.field_photo_previews),0,'revoked project reader cannot see preview receipts');
+SELECT set_config('request.jwt.claim.sub','fe300000-0000-4000-8000-000000000001',true);
+SELECT lives_ok($$SELECT pg_temp.new_photo(2)$$,'second upload remains independent');
+RESET ROLE;
+SET LOCAL ROLE service_role;
+SELECT lives_ok($$SELECT public.claim_field_photo_background()$$,'second original is claimed');
+SELECT lives_ok($$SELECT public.fail_field_photo_background('fe304000-0000-4000-8000-000000000002',(SELECT lease_id FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000002'),'processing_failed')$$,'transient processing error is retained for retry');
+SELECT is((SELECT state FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000002'),'retry_wait','transient error waits before retry');
+SELECT ok(public.claim_field_photo_background() IS NULL,'backoff prevents an immediate hot retry');
+SELECT lives_ok($$DO $test$ BEGIN FOR n IN 2..5 LOOP
+ UPDATE public.field_photo_background_jobs SET next_attempt_at=clock_timestamp()-interval '1 second' WHERE upload_id='fe304000-0000-4000-8000-000000000002';
+ PERFORM public.claim_field_photo_background();
+ PERFORM public.fail_field_photo_background('fe304000-0000-4000-8000-000000000002',(SELECT lease_id FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000002'),'processing_failed');
+ END LOOP; END $test$;$$,'repeated failures stop after five attempts');
+SELECT is((SELECT attempts FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000002'),5,'attempt budget is recorded');
+SELECT is((SELECT state FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000002'),'failed','failed job does not block unrelated work');
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+SELECT lives_ok($$SELECT pg_temp.new_photo(3)$$,'third job can wait for its uploader access');
+SELECT set_config('request.jwt.claim.sub','fe300000-0000-4000-8000-000000000002',true);
+SELECT lives_ok($$SELECT pg_temp.new_photo(4)$$,'another uploader has an independent job');
+RESET ROLE;
+DELETE FROM public.organization_memberships WHERE user_id='fe300000-0000-4000-8000-000000000001';
+SET LOCAL ROLE service_role;
+SELECT is((public.claim_field_photo_background()->'upload'->>'id'),'fe304000-0000-4000-8000-000000000004','claim skips blocked uploader and reaches another active job');
+SELECT is((SELECT state FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000003'),'blocked','revoked uploader does not grant automatic processing permission');
+SELECT lives_ok($$SELECT public.fail_field_photo_background('fe304000-0000-4000-8000-000000000004',(SELECT lease_id FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000004'),'unsupported_format')$$,'unsupported input ends without repeated decoder calls');
+SELECT is((SELECT state FROM public.field_photo_background_jobs WHERE upload_id='fe304000-0000-4000-8000-000000000004'),'unsupported','unsupported format is explicit');
+SELECT ok(public.claim_field_photo_background() IS NULL,'terminal jobs are not automatically retried');
+RESET ROLE;
+SELECT * FROM finish();
+ROLLBACK;

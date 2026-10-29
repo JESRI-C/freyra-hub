@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import { FieldPhotoReceiptSchema, FieldPhotoUuid } from "@/lib/field-photo-upload";
 import { verifyFieldPhoto } from "@/lib/field-photo-verification.functions";
 import { Button } from "@/components/ui/button";
+import { FieldPhotoPreviewPanel } from "./FieldPhotoPreviewPanel";
 
 /** Remounted by actor/photo, so an old verification cannot update a new selection. */
 export function FieldPhotoReceiptPanel({
@@ -107,6 +108,12 @@ export function FieldPhotoReceiptPanel({
         </>
       )}
       {error && <p role="alert">{error}</p>}
+      <FieldPhotoPreviewPanel
+        key={`${projectId}:${uploadId}:${actorId}`}
+        projectId={projectId}
+        uploadId={uploadId}
+        actorId={actorId}
+      />
     </div>
   );
 }

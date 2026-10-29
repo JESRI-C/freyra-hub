@@ -46,6 +46,15 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Typecheck isolated field photo worker
+        run: npx tsc --project tsconfig.field-photos.json --noEmit
+
+      - name: Bundle field photo worker without deployment
+        run: npx wrangler deploy --config wrangler.field-photos.jsonc --env staging --dry-run --outdir tmp/field-photo-worker
+
+      - name: Decode a synthetic image through the local Images binding
+        run: node scripts/test-field-photo-images.mjs
+
       - name: Lint
         run: npm run lint
 
