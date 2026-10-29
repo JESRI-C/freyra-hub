@@ -18,11 +18,14 @@ import {
   type WorkOrderPlanVersion,
 } from "@/lib/work-order-plan";
 import { listFieldJobActions } from "@/services/field-job-cards-service";
-import { listProjectMembers, type ProjectMember } from "@/services/project-members-service";
+import { useWorkOrderPeople } from "./useWorkOrderPeople";
+import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
+import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
 import { getWatercourseVersions } from "@/services/watercourse-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { WorkOrderAccessPanel } from "./WorkOrderAccessPanel";
+import { WorkOrderAssignmentPanel } from "./WorkOrderAssignmentPanel";
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
@@ -172,11 +175,7 @@ function PlanWorkspace({
     queryFn: () => load({ data: { ...scope, actionId, beforeVersion: null, pageSize: 20 } }),
     retry: false,
   });
-  const members = useQuery({
-    queryKey: ["work-order-plan-members", actorId, scope],
-    queryFn: () => listProjectMembers(scope.projectId),
-    retry: false,
-  });
+  const members = useWorkOrderPeople(scope, actorId);
   const sites = useQuery({
     queryKey: ["work-order-plan-sites", actorId, scope],
     queryFn: () => fetchSitesByProject(scope.projectId),
@@ -195,6 +194,7 @@ function PlanWorkspace({
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [accessEditing, setAccessEditing] = useState(false),
+    [assignmentEditing, setAssignmentEditing] = useState(false),
     [busy, setBusy] = useState(false);
   const [meters, setMeters] = useState<Record<string, string>>({});
   const saving = useRef(false),
@@ -311,14 +311,14 @@ function PlanWorkspace({
       {!draft && history.data && !history.error && (
         <>
           {latest ? (
-            <PlanSummary row={latest} members={members.data ?? []} />
+            <WorkOrderPlanSummary row={latest} members={members.data ?? []} />
           ) : (
             <p className="text-sm">Arbejdsgrundlaget er endnu ikke gemt som plan.</p>
           )}
           {canPlan && (
             <button
               className={button}
-              disabled={history.isFetching || accessEditing}
+              disabled={history.isFetching || accessEditing || assignmentEditing}
               onClick={open}
             >
               {latest ? "Rediger plan som ny version" : "Opret arbejdsopgavens plan"}
@@ -331,13 +331,27 @@ function PlanWorkspace({
           )}
         </>
       )}
-      {latest && !draft && (
+      <MoreWorkOrderPeople query={members} />
+      {latest && !draft && !assignmentEditing && (
         <WorkOrderAccessPanel
           scope={{ ...scope, actionId }}
           actorId={actorId}
           members={members.data ?? []}
           onEditing={(value) => {
             setAccessEditing(value);
+            onEditing(value);
+          }}
+        />
+      )}
+      {latest && !draft && !accessEditing && (
+        <WorkOrderAssignmentPanel
+          scope={{ ...scope, actionId }}
+          actorId={actorId}
+          planId={latest.id}
+          canManage={canPlan && !history.isError && !history.isFetching}
+          people={members.data ?? []}
+          onEditing={(value) => {
+            setAssignmentEditing(value);
             onEditing(value);
           }}
         />
@@ -668,7 +682,7 @@ function PlanWorkspace({
                   <summary className="min-h-11 cursor-pointer py-2 text-sm">
                     Version {row.version} · {new Date(row.created_at).toLocaleString("da-DK")}
                   </summary>
-                  <PlanSummary row={row} members={members.data ?? []} />
+                  <WorkOrderPlanSummary row={row} members={members.data ?? []} />
                   <p className="text-sm">{row.correction_reason || "Første registrering"}</p>
                 </details>
               </li>
@@ -680,71 +694,6 @@ function PlanWorkspace({
             </button>
           )}
         </details>
-      )}
-    </div>
-  );
-}
-function PlanSummary({ row, members }: { row: WorkOrderPlanVersion; members: ProjectMember[] }) {
-  const plan = row.plan;
-  return (
-    <div className="space-y-2 text-sm [overflow-wrap:anywhere]">
-      <p className="font-semibold">
-        {plan.title} · plan version {row.version}
-      </p>
-      <p>
-        {plan.profile ? profiles[plan.profile] : "Metodeprofil uafklaret"} ·{" "}
-        {plan.plannedStart ?? "Start uafklaret"}
-        {plan.plannedEnd ? ` til ${plan.plannedEnd}` : ""}
-      </p>
-      <p>
-        Ansvarlig:{" "}
-        {plan.responsibleId
-          ? members.find((m) => m.user_id === plan.responsibleId)?.display_name ||
-            members.find((m) => m.user_id === plan.responsibleId)?.email ||
-            "Registreret person"
-          : "Uafklaret"}
-        . Planlagt metode: {plan.plannedMethod ?? "Uafklaret"}.
-      </p>
-      {plan.locationNote && <p>Sted: {plan.locationNote}</p>}
-      {plan.description && <p>{plan.description}</p>}
-      {plan.instructions && <p>Instruktion: {plan.instructions}</p>}
-      {plan.watercourse && (
-        <dl className="grid grid-cols-2 gap-2">
-          {Object.entries(plan.watercourse).map(([key, value]) => (
-            <div key={key}>
-              <dt>
-                {
-                  (
-                    {
-                      name: "Vandløb",
-                      externalId: "Vandløbs-ID",
-                      regulationReference: "Regulativ",
-                      regulationVersion: "Dokumentversion",
-                      stationFromM: "Station fra (m)",
-                      stationToM: "Station til (m)",
-                      stationDirection: "Stationeringsretning",
-                      lengthM: "Oplyst længde (m)",
-                      bottomWidthM: "Oplyst bundbredde (m)",
-                      measurementSource: "Målkilde",
-                      term: "Termin",
-                    } as Record<string, string>
-                  )[key]
-                }
-              </dt>
-              <dd>
-                {value === null
-                  ? "Uafklaret"
-                  : key === "stationDirection"
-                    ? ({
-                        unknown: "Uafklaret",
-                        upstream: "Mod strømretningen",
-                        downstream: "Med strømretningen",
-                      }[String(value)] ?? String(value))
-                    : String(value)}
-              </dd>
-            </div>
-          ))}
-        </dl>
       )}
     </div>
   );

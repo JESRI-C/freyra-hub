@@ -13,6 +13,8 @@ import {
   WorkOrderAssignmentHistorySchema,
   MyWorkOrdersInputSchema,
   MyWorkOrderSchema,
+  WorkOrderAssignmentStateInputSchema,
+  WorkOrderAssignmentStateSchema,
 } from "@/lib/work-order-assignments";
 import {
   checkActor,
@@ -287,4 +289,33 @@ export async function listMyWorkOrders(
   });
   const page = ascending(data, input.afterActionId, input.pageSize, (row) => row.action_id);
   return { items: page.items, nextAfterActionId: page.next };
+}
+export async function getWorkOrderAssignmentState(
+  client: WorkOrderRequestClient,
+  actorId: string,
+  raw: unknown,
+) {
+  const input = parseWorkOrderInput(WorkOrderAssignmentStateInputSchema, raw);
+  checkActor(actorId, input.expectedActorId);
+  const parsed = WorkOrderAssignmentStateSchema.safeParse(
+    await request(client, "get_work_order_assignment_state", {
+      p_action_id: input.actionId,
+      p_organization_id: input.organizationId,
+      p_project_id: input.projectId,
+    }),
+  );
+  if (!parsed.success) throw new WorkOrderRequestError("unavailable");
+  const row = parsed.data;
+  checkScope(row, input);
+  if (row.user_id !== actorId) throw new WorkOrderRequestError("access");
+  if (row.assignment) checkScope(row.assignment, input);
+  if (
+    row.can_claim &&
+    (!row.assignment ||
+      row.assignment.mode !== "pool" ||
+      row.assignment.claimed_by !== null ||
+      row.can_execute)
+  )
+    throw new WorkOrderRequestError("unavailable");
+  return row;
 }

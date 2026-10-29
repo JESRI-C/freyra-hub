@@ -14,6 +14,7 @@ const m = vi.hoisted(() => ({
   saveBound: vi.fn(),
   members: vi.fn(),
   blocker: vi.fn(),
+  claim: vi.fn(),
 }));
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({ user: { id: "00000000-0000-4000-8000-000000000001" } }),
@@ -32,7 +33,11 @@ vi.mock("@/lib/work-order-execution.functions", () => ({
   loadProjectWorkOrderExecutionContext: m.loadContext,
   saveProjectWorkOrderExecution: m.saveBound,
 }));
-vi.mock("@/services/project-members-service", () => ({ listProjectMembers: m.members }));
+vi.mock("@/lib/work-order-assignments.functions", () => ({ claimProjectWorkOrderPool: m.claim }));
+vi.mock("../useWorkOrderPeople", () => ({
+  useWorkOrderPeople: () => ({ data: [], isError: false }),
+  MoreWorkOrderPeople: () => null,
+}));
 import { ActionExecutionPanel } from "../ActionExecutionPanel";
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const actor = id(1),
@@ -143,7 +148,13 @@ beforeEach(() => {
   });
   m.history.mockResolvedValue([entry]);
   m.members.mockResolvedValue([]);
-  m.loadContext.mockResolvedValue({ plan, binding: null });
+  m.loadContext.mockResolvedValue({
+    plan,
+    binding: null,
+    assignment: null,
+    canClaim: false,
+    canExecute: true,
+  });
   m.saveBound.mockRejectedValue(new Error("Plan changed; reopen before saving"));
 });
 afterEach(async () => {
@@ -152,6 +163,56 @@ afterEach(async () => {
   host.remove();
 });
 describe("existing actual-execution editor bound to work-order plan", () => {
+  it("requires pool takeover, preserves typed corrections on retry and saves the claimed assignment version", async () => {
+    const assignment = { id: id(20), version: 3, mode: "pool", claimed_by: null };
+    m.loadContext.mockResolvedValue({
+      plan,
+      binding: null,
+      assignment,
+      canClaim: true,
+      canExecute: false,
+    });
+    m.claim
+      .mockRejectedValueOnce(new Error("Synthetic lost claim reply"))
+      .mockResolvedValueOnce({ ...assignment, id: id(21), version: 4, claimed_by: actor });
+    await render();
+    await open();
+    await correction("Synthetic correction retained through takeover");
+    const saveButton = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent === "Gem udførelsesversion",
+    )!;
+    expect(saveButton.disabled).toBe(true);
+    await save();
+    expect(m.saveBound).not.toHaveBeenCalled();
+    async function claim() {
+      await act(async () =>
+        [...host.querySelectorAll("button")]
+          .find((b) => b.textContent === "Overtag puljeopgaven")!
+          .click(),
+      );
+      await flush();
+    }
+    await claim();
+    await claim();
+    expect(m.claim.mock.calls[1][0].data).toEqual(m.claim.mock.calls[0][0].data);
+    expect(m.claim.mock.calls[0][0].data).toMatchObject({
+      expectedVersion: 3,
+      planVersionId: plan.id,
+      expectedActorId: actor,
+    });
+    expect(
+      [...host.querySelectorAll("input")].some(
+        (el) => el.value === "Synthetic correction retained through takeover",
+      ),
+    ).toBe(true);
+    await save();
+    expect(m.saveBound.mock.calls[0][0].data).toMatchObject({
+      assignmentVersionId: id(21),
+      expectedAssignmentVersion: 4,
+      planVersionId: plan.id,
+      expectedPlanVersion: 2,
+    });
+  });
   it("shows planned week 39 beside actual week 41 and saves through the existing workspace binding", async () => {
     await render();
     await open();
@@ -195,7 +256,13 @@ describe("existing actual-execution editor bound to work-order plan", () => {
     expect(m.blocker.mock.calls.at(-1)?.[0].enableBeforeUnload).toBe(true);
   });
   it("keeps legacy actions on their existing service without creating an invented work-order plan", async () => {
-    m.loadContext.mockResolvedValue({ plan: null, binding: null });
+    m.loadContext.mockResolvedValue({
+      plan: null,
+      binding: null,
+      assignment: null,
+      canClaim: false,
+      canExecute: null,
+    });
     m.legacySave.mockRejectedValue(new Error("Synthetic legacy error"));
     await render();
     await open();

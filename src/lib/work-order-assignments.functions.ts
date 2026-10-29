@@ -10,6 +10,7 @@ import {
   ClaimWorkOrderPoolSchema,
   WorkOrderAssignmentHistorySchema,
   MyWorkOrdersInputSchema,
+  WorkOrderAssignmentStateInputSchema,
 } from "./work-order-assignments";
 import {
   saveWorkOrderGroup,
@@ -20,6 +21,7 @@ import {
   claimWorkOrderPool,
   getWorkOrderAssignmentHistory,
   listMyWorkOrders,
+  getWorkOrderAssignmentState,
 } from "@/services/work-order-assignments-service";
 import type { WorkOrderRequestClient } from "@/services/work-order-access-service";
 export const saveProjectWorkOrderGroup = createServerFn({ method: "POST" })
@@ -89,4 +91,14 @@ export const listCurrentUserWorkOrders = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => parseWorkOrderInput(MyWorkOrdersInputSchema, raw))
   .handler(({ data, context }) =>
     listMyWorkOrders(context.supabase as unknown as WorkOrderRequestClient, context.userId, data),
+  );
+export const getProjectWorkOrderAssignmentState = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => parseWorkOrderInput(WorkOrderAssignmentStateInputSchema, raw))
+  .handler(({ data, context }) =>
+    getWorkOrderAssignmentState(
+      context.supabase as unknown as WorkOrderRequestClient,
+      context.userId,
+      data,
+    ),
   );

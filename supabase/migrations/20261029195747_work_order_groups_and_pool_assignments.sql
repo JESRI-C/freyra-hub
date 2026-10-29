@@ -316,12 +316,12 @@ BEGIN
 END
 $$;
 CREATE FUNCTION public.list_my_work_orders(p_after_action_id uuid,p_page_size integer)
-RETURNS TABLE(user_id uuid,action_id uuid,organization_id uuid,project_id uuid,plan_version_id uuid,plan_version integer,plan jsonb,assignment_id uuid,assignment_version integer,assignment_mode text,claimed_by uuid,can_claim boolean,can_execute boolean,can_review boolean)
+RETURNS TABLE(user_id uuid,action_id uuid,organization_id uuid,project_id uuid,plan_version_id uuid,plan_version integer,plan jsonb,assignment_id uuid,assignment_version integer,assignment_mode text,claimed_by uuid,can_claim boolean,can_execute boolean,can_review boolean,can_plan boolean)
 LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path='' AS $$
 BEGIN
  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Work orders are unavailable' USING ERRCODE='42501';END IF;
  IF p_page_size IS NULL OR p_page_size NOT BETWEEN 1 AND 20 THEN RAISE EXCEPTION 'Invalid work-order page' USING ERRCODE='22023';END IF;
- RETURN QUERY SELECT auth.uid(),w.action_id,w.organization_id,w.project_id,p.id,p.version,p.plan,a.id,coalesce(a.version,0),a.mode,a.claimed_by,coalesce(assignment_access.can_claim,false),private.can_execute_work_order(w.action_id),private.can_review_work_order(w.action_id)
+ RETURN QUERY SELECT auth.uid(),w.action_id,w.organization_id,w.project_id,p.id,p.version,p.plan,a.id,coalesce(a.version,0),a.mode,a.claimed_by,coalesce(assignment_access.can_claim,false),private.can_execute_work_order(w.action_id),private.can_review_work_order(w.action_id),private.can_write_project(w.project_id)
  FROM public.work_orders w JOIN LATERAL(SELECT v.id,v.version,v.plan FROM public.work_order_plan_versions v WHERE v.action_id=w.action_id AND v.organization_id=w.organization_id AND v.project_id=w.project_id ORDER BY v.version DESC LIMIT 1)p ON true
  LEFT JOIN LATERAL(SELECT v.id,v.version,v.mode,v.claimed_by FROM public.work_order_assignment_versions v WHERE v.action_id=w.action_id ORDER BY v.version DESC LIMIT 1)a ON true
  LEFT JOIN LATERAL private.work_order_assignment_access(w.action_id) assignment_access ON true
@@ -330,6 +330,19 @@ BEGIN
  ORDER BY w.action_id LIMIT p_page_size+1;
 END
 $$;
+CREATE FUNCTION public.get_work_order_assignment_state(p_action_id uuid,p_organization_id uuid,p_project_id uuid)
+RETURNS TABLE(action_id uuid,organization_id uuid,project_id uuid,user_id uuid,assignment jsonb,can_claim boolean,can_execute boolean)
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path='' AS $$
+DECLARE current_assignment public.work_order_assignment_versions;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Work order is unavailable' USING ERRCODE='42501';END IF;
+ SELECT * INTO current_assignment FROM public.work_order_assignment_versions v WHERE v.action_id=p_action_id AND v.organization_id=p_organization_id AND v.project_id=p_project_id ORDER BY v.version DESC LIMIT 1;
+ IF current_assignment.id IS NULL AND NOT EXISTS(SELECT 1 FROM public.work_orders w WHERE w.action_id=p_action_id AND w.organization_id=p_organization_id AND w.project_id=p_project_id AND private.can_read_work_order(w.action_id)) THEN RAISE EXCEPTION 'Work order is unavailable' USING ERRCODE='42501';END IF;
+ RETURN QUERY SELECT p_action_id,p_organization_id,p_project_id,auth.uid(),CASE WHEN current_assignment.id IS NULL THEN NULL::jsonb ELSE to_jsonb(current_assignment) END,coalesce((SELECT a.can_claim FROM private.work_order_assignment_access(p_action_id)a),false),private.can_execute_work_order(p_action_id);
+END
+$$;
+REVOKE ALL ON FUNCTION public.get_work_order_assignment_state(uuid,uuid,uuid) FROM PUBLIC,anon,service_role;
+GRANT EXECUTE ON FUNCTION public.get_work_order_assignment_state(uuid,uuid,uuid) TO authenticated;
 
 REVOKE ALL ON FUNCTION public.save_work_order_group(uuid,uuid,uuid,integer,text,boolean,uuid[],text,uuid),public.list_work_order_groups(uuid,uuid,uuid,integer),public.get_work_order_group_history(uuid,uuid,uuid,integer,integer),public.list_work_order_people(uuid,uuid,uuid,integer),public.configure_work_order_assignment(uuid,uuid,uuid,integer,uuid,text,uuid[],uuid,text,uuid),public.claim_work_order_pool(uuid,uuid,uuid,integer,uuid,uuid),public.get_work_order_assignment_history(uuid,uuid,uuid,integer,integer),public.list_my_work_orders(uuid,integer) FROM PUBLIC,anon,service_role;
 GRANT EXECUTE ON FUNCTION public.save_work_order_group(uuid,uuid,uuid,integer,text,boolean,uuid[],text,uuid),public.list_work_order_groups(uuid,uuid,uuid,integer),public.get_work_order_group_history(uuid,uuid,uuid,integer,integer),public.list_work_order_people(uuid,uuid,uuid,integer),public.configure_work_order_assignment(uuid,uuid,uuid,integer,uuid,text,uuid[],uuid,text,uuid),public.claim_work_order_pool(uuid,uuid,uuid,integer,uuid,uuid),public.get_work_order_assignment_history(uuid,uuid,uuid,integer,integer),public.list_my_work_orders(uuid,integer) TO authenticated;

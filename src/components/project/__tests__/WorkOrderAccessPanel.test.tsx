@@ -3,7 +3,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
-import type { ProjectMember } from "@/services/project-members-service";
+import type { WorkOrderPerson } from "@/lib/work-order-assignments";
 const m = vi.hoisted(() => ({
   access: vi.fn(),
   history: vi.fn(),
@@ -24,11 +24,15 @@ const actor = id(1),
   person = id(2),
   removed = id(3),
   scope = { actionId: id(4), organizationId: id(5), projectId: id(6) };
-const member = (user_id: string, role: ProjectMember["role"] = "field") => ({
+const member = (user_id: string, role: WorkOrderPerson["project_role"] = "field") => ({
   id: id(8),
   project_id: scope.projectId,
   user_id,
-  role,
+  organization_id: scope.organizationId,
+  project_role: role,
+  organization_role: "viewer",
+  can_execute: role !== "viewer",
+  email: null,
   invited_by: null,
   created_at: "2026-10-29T19:00:00Z",
   updated_at: "2026-10-29T19:00:00Z",

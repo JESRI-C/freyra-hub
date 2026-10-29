@@ -76,12 +76,43 @@ const plan = {
   created_by: actor,
   created_at: "2026-10-29T19:00:00Z",
 };
+const state = {
+  action_id: scope.actionId,
+  organization_id: scope.organizationId,
+  project_id: scope.projectId,
+  user_id: actor,
+  assignment: null,
+  can_claim: false,
+  can_execute: true,
+};
 describe("atomic execution/plan request boundary", () => {
   const rpc = vi.fn(),
     client = { rpc };
   beforeEach(() => {
     vi.clearAllMocks();
     rpc.mockResolvedValue({ data: [row], error: null });
+  });
+  it("pins the opened assignment context and rejects a receipt for another assignment", async () => {
+    const assigned = { ...input, assignmentVersionId: id(20), expectedAssignmentVersion: 3 };
+    rpc.mockResolvedValue({ data: [{ ...row, assignment_version_id: id(20) }], error: null });
+    expect(await saveWorkOrderExecution(client, actor, assigned)).toMatchObject({
+      assignment_version_id: id(20),
+    });
+    expect(rpc.mock.calls[0][1]).toMatchObject({
+      p_expected_assignment_version_id: id(20),
+      p_expected_assignment_version: 3,
+    });
+    rpc.mockResolvedValue({ data: [{ ...row, assignment_version_id: id(21) }], error: null });
+    await expect(saveWorkOrderExecution(client, actor, assigned)).rejects.toMatchObject({
+      statusCode: 503,
+    });
+    expect(
+      SaveWorkOrderExecutionSchema.safeParse({
+        ...input,
+        assignmentVersionId: id(20),
+        expectedAssignmentVersion: 0,
+      }).success,
+    ).toBe(false);
   });
   it("sends the frozen plan and actual execution separately through the authenticated RPC", async () => {
     expect(await saveWorkOrderExecution(client, actor, input)).toEqual(row);
@@ -96,6 +127,8 @@ describe("atomic execution/plan request boundary", () => {
       p_performed_by_id: input.performedById,
       p_deviation_reason: "",
       p_request_id: input.requestId,
+      p_expected_assignment_version_id: null,
+      p_expected_assignment_version: 0,
     });
   });
   it("rejects changed accounts and undeclared fields before writing", async () => {
@@ -163,6 +196,7 @@ describe("atomic execution/plan request boundary", () => {
   it("loads exact prior binding while keeping the newer plan separate", async () => {
     rpc
       .mockResolvedValueOnce({ data: [{ ...plan, id: id(12), version: 2 }], error: null })
+      .mockResolvedValueOnce({ data: [state], error: null })
       .mockResolvedValueOnce({ data: [row], error: null });
     const result = await loadWorkOrderExecutionContext(client, actor, {
       ...scope,
@@ -181,12 +215,13 @@ describe("atomic execution/plan request boundary", () => {
         expectedActorId: actor,
         previousRevisionId: null,
       }),
-    ).toEqual({ plan: null, binding: null });
+    ).toEqual({ plan: null, binding: null, assignment: null, canClaim: false, canExecute: null });
     expect(rpc).toHaveBeenCalledTimes(1);
   });
   it("rejects foreign revision binding and malformed history", async () => {
     rpc
       .mockResolvedValueOnce({ data: [plan], error: null })
+      .mockResolvedValueOnce({ data: [state], error: null })
       .mockResolvedValueOnce({ data: [{ ...row, workspace_entry_id: id(99) }], error: null });
     await expect(
       loadWorkOrderExecutionContext(client, actor, {

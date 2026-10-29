@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SelectRouteImport } from './routes/select'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as OpgaverRouteImport } from './routes/opgaver'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FeltRouteImport } from './routes/felt'
@@ -114,6 +115,11 @@ const SelectRoute = SelectRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpgaverRoute = OpgaverRouteImport.update({
+  id: '/opgaver',
+  path: '/opgaver',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpRoute = McpRouteImport.update({
@@ -575,6 +581,7 @@ export interface FileRoutesByFullPath {
   '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/opgaver': typeof OpgaverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select': typeof SelectRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -668,6 +675,7 @@ export interface FileRoutesByTo {
   '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/opgaver': typeof OpgaverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select': typeof SelectRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -755,6 +763,7 @@ export interface FileRoutesById {
   '/felt': typeof FeltRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
+  '/opgaver': typeof OpgaverRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select': typeof SelectRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -850,6 +859,7 @@ export interface FileRouteTypes {
     | '/felt'
     | '/login'
     | '/mcp'
+    | '/opgaver'
     | '/reset-password'
     | '/select'
     | '/sitemap.xml'
@@ -943,6 +953,7 @@ export interface FileRouteTypes {
     | '/felt'
     | '/login'
     | '/mcp'
+    | '/opgaver'
     | '/reset-password'
     | '/select'
     | '/sitemap.xml'
@@ -1029,6 +1040,7 @@ export interface FileRouteTypes {
     | '/felt'
     | '/login'
     | '/mcp'
+    | '/opgaver'
     | '/reset-password'
     | '/select'
     | '/sitemap.xml'
@@ -1123,6 +1135,7 @@ export interface RootRouteChildren {
   FeltRoute: typeof FeltRoute
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
+  OpgaverRoute: typeof OpgaverRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SelectRoute: typeof SelectRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -1156,6 +1169,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/opgaver': {
+      id: '/opgaver'
+      path: '/opgaver'
+      fullPath: '/opgaver'
+      preLoaderRoute: typeof OpgaverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -2022,6 +2042,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeltRoute: FeltRoute,
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
+  OpgaverRoute: OpgaverRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SelectRoute: SelectRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -2040,11 +2061,15 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
+
 import type { startInstance } from './start.ts'
+
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
+
     router: Awaited<ReturnType<typeof getRouter>>
+
     config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

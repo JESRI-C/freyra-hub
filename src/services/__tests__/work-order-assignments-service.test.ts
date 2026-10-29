@@ -15,6 +15,7 @@ import {
   claimWorkOrderPool,
   getWorkOrderAssignmentHistory,
   listMyWorkOrders,
+  getWorkOrderAssignmentState,
 } from "../work-order-assignments-service";
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const actor = id(1),
@@ -112,6 +113,34 @@ describe("groups and pool request boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     rpc.mockResolvedValue({ data: [], error: null });
+  });
+  it("pins the actor, envelope and nested task on assignment state reads", async () => {
+    const input = { ...task, expectedActorId: actor };
+    const state = {
+      action_id: task.actionId,
+      organization_id: scope.organizationId,
+      project_id: scope.projectId,
+      user_id: actor,
+      assignment: assignmentRow,
+      can_claim: true,
+      can_execute: false,
+    };
+    rpc.mockResolvedValue({ data: [state], error: null });
+    expect(await getWorkOrderAssignmentState(client, actor, input)).toEqual(state);
+    for (const change of [
+      { user_id: member },
+      { project_id: id(88) },
+      { assignment: { ...assignmentRow, action_id: id(89) } },
+    ]) {
+      rpc.mockResolvedValue({ data: [{ ...state, ...change }], error: null });
+      await expect(getWorkOrderAssignmentState(client, actor, input)).rejects.toMatchObject({
+        statusCode: 403,
+      });
+    }
+    rpc.mockResolvedValue({ data: [{ ...state, can_execute: true }], error: null });
+    await expect(getWorkOrderAssignmentState(client, actor, input)).rejects.toMatchObject({
+      statusCode: 503,
+    });
   });
   it("pins group identity, scope, actor and canonical member IDs without inviting users", async () => {
     rpc.mockResolvedValue({ data: [groupRow], error: null });
@@ -348,6 +377,7 @@ describe("groups and pool request boundary", () => {
       can_claim: true,
       can_execute: false,
       can_review: false,
+      can_plan: false,
     };
     rpc.mockResolvedValue({ data: [taskRow], error: null });
     expect(

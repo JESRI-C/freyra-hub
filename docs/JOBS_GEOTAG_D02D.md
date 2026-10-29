@@ -1,6 +1,6 @@
 # D02d: arbejdsgrupper og atomiske puljeopgaver
 
-Arbejdet er i gang på `codex/work-order-groups-pools-v1`, stablet på D02c. JOB-04 og ORG-03/04 samt SYS-02/03 er hovedkravene. Den eksisterende kravpakke viste ingen organisatorisk gruppe-/medlemsmodel, som kunne genbruges. Nye projektbundne grupper er derfor operationelle medlemslister; de erstatter hverken organisation, projekt, auth eller projektmedlemskab.
+Implementeret på `codex/work-order-groups-pools-v1`, stablet på D02c, i draft-PR #32. JOB-04 og ORG-03/04 samt SYS-02/03 er hovedkravene. Den eksisterende kravpakke viste ingen organisatorisk gruppe-/medlemsmodel, som kunne genbruges. Nye projektbundne grupper er derfor operationelle medlemslister; de erstatter hverken organisation, projekt, auth eller projektmedlemskab.
 
 ## Fastlagt adfærd
 
@@ -16,13 +16,15 @@ Arbejdet er i gang på `codex/work-order-groups-pools-v1`, stablet på D02c. JOB
 
 Migration `20261029195747_work_order_groups_and_pool_assignments.sql` er oprettet med Supabase CLI. Den tilføjer to tabeller med RLS og sammensatte FK'er, afgrænsede private medlemsopslag, versionsstyret gruppe/tildeling/pulje, intern atomisk audit og læse-RPCer. Udførelsens eksisterende lagring genbruges med en valgfri historisk FK og en kompatibel RPC-signatur, hvis der ikke findes en tildeling.
 
-`src/lib/work-order-assignments.ts`, tilhørende serverfunktioner og `src/services/work-order-assignments-service.ts` bruger eksisterende autentificeret request-klient og fejlgrænse. 35 fokuserede service-/kontraktprøver, app-typecheck og fokuseret lint er bestået lokalt.
+`src/lib/work-order-assignments.ts`, tilhørende serverfunktioner og `src/services/work-order-assignments-service.ts` bruger eksisterende autentificeret request-klient og fejlgrænse. Aktuel lokal prøve: 82 tests i syv filer bestod, inklusive mobil opgaveliste, gruppearkivering, uændret genforsøg, ændret request-ID ved ændret kladde, fastlåst plan/gruppeversion og overtagelse uden tab af indtastninger.
 
-`work_order_groups_pools.test.sql` afprøver faktisk adgang, rolleændring, grupper, arkiv/historik, én puljeejer, aktør, idempotens, scope og auditrollback i disponibel database. Den eksisterende PostgreSQL-samtidighedsprøve er udvidet med fire gruppe-/puljescenarier og tre yderligere HTTP-konfliktprøver; forbindelser og lockvidne genbruges. Faktisk CI afventer.
+`work_order_groups_pools.test.sql` afprøver faktisk adgang, rolleændring, grupper, arkiv/historik, én puljeejer, aktør, idempotens, scope og auditrollback i disponibel database. Den eksisterende PostgreSQL-samtidighedsprøve er udvidet med fire gruppe-/puljescenarier og tre yderligere HTTP-konfliktprøver; forbindelser og lockvidne genbruges. Første kerne-CI 40946944161 på `5f1e9324d667a4739121fd49b87536ac9fda4719` bestod app-jobbet, 1.300 databaseassertions i 20 filer, faktisk samtidighed, seks HTTP 409-prøver og dump/restore. Den senere UI-/state-udvidelse skal have sin egen grønne CI før installation.
+
+`/opgaver` er en selvstændig mobilindgang med højst 20 opgaver pr. side, aktørbundet cache, planinstruktioner og konkret puljeovertagelse. Eksterne får ikke en projektbred rute. “Mine opgaver” er også tilføjet hovedmenuen. `WorkOrderAssignmentPanel` giver person-/gruppe-/puljevalg og gruppehistorik ved siden af den eksisterende plan. Plan, adgang og arbejdsfordeling kan ikke redigeres samtidigt. Den faktiske udførelsesformular tilbyder overtagelse og bevarer kladden ved fejl. Fælles, pagineret personliste viser organisationsejere uden opdigtet projektrolle.
 
 ## Resterende arbejde i denne del
 
-Mobilbetjening, gruppe-/personvælger, “Mine opgaver”, udførelsens kontekstindlæsning og deres UI-prøver er endnu i gang. D02d er ikke færdig og er ikke deployet. D02's livscyklus/logbog samt D03's konkrete felt-/eksterne fil- og observationsvej følger. Eksisterende workspace/Storage åbnes ikke projektbredt. Ingen e-mail, SMS, invitation, betalt provider, merge eller produktion er udført.
+Aktuel UI-kode afventer fuld CI, staginginstallation og brugerens fysiske telefonprøve. Browserkontrol er fortsat ikke gennemført efter den tidligere adgangsafvisning; Jesper afprøver selv. D02's livscyklus/logbog samt D03's konkrete felt-/eksterne fil- og observationsvej følger. Den nye opgaveliste har endnu ikke offline-snapshots; den eksisterende `/felt`-fotokø genbruges i D03. Eksisterende workspace/Storage åbnes ikke projektbredt. Ingen e-mail, SMS, invitation, betalt provider, merge eller produktion er udført.
 
 ## Rollback
 

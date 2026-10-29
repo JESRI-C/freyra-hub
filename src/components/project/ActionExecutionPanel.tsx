@@ -8,11 +8,14 @@ import {
   saveProjectWorkOrderExecution,
 } from "@/lib/work-order-execution.functions";
 import type { WorkOrderPlanVersion } from "@/lib/work-order-plan";
+import { assignmentModeLabels, type WorkOrderAssignment } from "@/lib/work-order-assignments";
+import { claimProjectWorkOrderPool } from "@/lib/work-order-assignments.functions";
 import {
   workOrderExecutionGapLabels,
   type WorkOrderExecutionBinding,
 } from "@/lib/work-order-execution";
-import { listProjectMembers } from "@/services/project-members-service";
+import { useWorkOrderPeople } from "./useWorkOrderPeople";
+import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { Button } from "@/components/ui/button";
 import type { WorkspaceEntry } from "@/lib/project-workspace";
 import {
@@ -48,7 +51,8 @@ function ExecutionPanel({
 }: ExecutionPanelProps & { actorId?: string }) {
   const cache = useQueryClient();
   const loadContext = useServerFn(loadProjectWorkOrderExecutionContext),
-    saveBound = useServerFn(saveProjectWorkOrderExecution);
+    saveBound = useServerFn(saveProjectWorkOrderExecution),
+    claimPool = useServerFn(claimProjectWorkOrderPool);
   const workspace = useQuery({
     queryKey: ["project-workspace", scope.organizationId, scope.projectId, actorId],
     queryFn: () => loadProjectWorkspace(scope),
@@ -70,17 +74,16 @@ function ExecutionPanel({
   const [context, setContext] = useState<{
     plan: WorkOrderPlanVersion | null;
     binding: WorkOrderExecutionBinding | null;
+    assignment: WorkOrderAssignment | null;
+    canClaim: boolean;
+    canExecute: boolean | null;
   } | null>(null);
   const [performedById, setPerformedById] = useState<string | null>(null),
     [deviationReason, setDeviationReason] = useState("");
   const attempt = useRef<{ signature: string; id: string } | null>(null),
     saving = useRef(false);
-  const members = useQuery({
-    queryKey: ["execution-members", actorId, scope],
-    queryFn: () => listProjectMembers(scope.projectId),
-    enabled: !!actorId && canEdit,
-    retry: false,
-  });
+  const claimAttempt = useRef<{ signature: string; id: string } | null>(null);
+  const members = useWorkOrderPeople(scope, actorId, canEdit);
   useBlocker({ shouldBlockFn: () => !!draft && canEdit, enableBeforeUnload: !!draft && canEdit });
   useEffect(() => {
     setActionId("");
@@ -111,6 +114,7 @@ function ExecutionPanel({
       setBaseVersion(existing?.entry);
       setContext(loaded);
       attempt.current = null;
+      claimAttempt.current = null;
       setPerformedById(loaded.binding?.performed_by_id ?? null);
       setDeviationReason(loaded.binding?.deviation_reason ?? "");
       setDraft(
@@ -125,7 +129,15 @@ function ExecutionPanel({
     }
   }
   async function save() {
-    if (!draft || !canEdit || !actorId || !context || saving.current) return;
+    if (
+      !draft ||
+      !canEdit ||
+      !actorId ||
+      !context ||
+      saving.current ||
+      (context.plan && context.canExecute !== true)
+    )
+      return;
     saving.current = true;
     setBusy(true);
     setError("");
@@ -136,6 +148,8 @@ function ExecutionPanel({
         execution,
         base: baseVersion?.version ?? 0,
         planId: context.plan?.id,
+        assignmentId: context.assignment?.id ?? null,
+        assignmentVersion: context.assignment?.version ?? 0,
         performedById,
         deviationReason: deviationReason.trim(),
       });
@@ -150,6 +164,8 @@ function ExecutionPanel({
               planVersionId: context.plan.id,
               expectedPlanVersion: context.plan.version,
               expectedVersion: baseVersion?.version ?? 0,
+              assignmentVersionId: context.assignment?.id ?? null,
+              expectedAssignmentVersion: context.assignment?.version ?? 0,
               requestId: attempt.current.id,
               execution,
               performedById,
@@ -167,6 +183,58 @@ function ExecutionPanel({
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Kunne ikke gemme. Prøv igen.");
+    } finally {
+      saving.current = false;
+      setBusy(false);
+    }
+  }
+  async function takePool() {
+    if (
+      !actorId ||
+      !draft ||
+      !canEdit ||
+      !context?.plan ||
+      !context.assignment ||
+      !context.canClaim ||
+      saving.current
+    )
+      return;
+    const issued = context;
+    saving.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const signature = JSON.stringify({
+        planId: issued.plan!.id,
+        assignmentId: issued.assignment!.id,
+        version: issued.assignment!.version,
+      });
+      if (claimAttempt.current?.signature !== signature)
+        claimAttempt.current = { signature, id: crypto.randomUUID() };
+      const claimed = await claimPool({
+        data: {
+          ...scope,
+          actionId: draft.actionId,
+          expectedActorId: actorId,
+          expectedVersion: issued.assignment!.version,
+          planVersionId: issued.plan!.id,
+          requestId: claimAttempt.current.id,
+        },
+      });
+      setContext({ ...issued, assignment: claimed, canClaim: false, canExecute: true });
+      attempt.current = null;
+      setMessage("Puljeopgaven er overtaget. Dine indtastninger er bevaret.");
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: ["my-work-orders", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-assignment-state", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-capabilities", actorId] }),
+      ]);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Opgaven kunne ikke overtages. Dine indtastninger er bevaret.",
+      );
     } finally {
       saving.current = false;
       setBusy(false);
@@ -291,6 +359,20 @@ function ExecutionPanel({
                     . Denne rettelse knyttes til det viste arbejdsgrundlag.
                   </p>
                 )}
+                {context.assignment && (
+                  <p>
+                    Tildeling: {assignmentModeLabels[context.assignment.mode]} · version{" "}
+                    {context.assignment.version}.
+                  </p>
+                )}
+                {context.assignment?.mode === "pool" && !context.assignment.claimed_by && (
+                  <p>Puljeopgaven skal overtages, før udførelsen kan gemmes.</p>
+                )}
+                {canEdit && context.canClaim && (
+                  <Button type="button" className="mt-2 min-h-11" onClick={() => void takePool()}>
+                    Overtag puljeopgaven
+                  </Button>
+                )}
               </div>
             )}
             {context?.plan && (
@@ -316,11 +398,11 @@ function ExecutionPanel({
                   >
                     <option value="">Udførerens identitet er uafklaret</option>
                     {performedById &&
-                      !members.data?.some(
-                        (m) => m.user_id === performedById && m.role !== "viewer",
-                      ) && <option value={performedById}>Tidligere registreret udfører</option>}
+                      !members.data?.some((m) => m.user_id === performedById && m.can_execute) && (
+                        <option value={performedById}>Tidligere registreret udfører</option>
+                      )}
                     {members.data
-                      ?.filter((m) => m.role !== "viewer")
+                      ?.filter((m) => m.can_execute)
                       .map((m) => (
                         <option key={m.user_id} value={m.user_id}>
                           {m.display_name || m.email || "Projektmedlem · " + m.user_id.slice(-8)}
@@ -328,6 +410,7 @@ function ExecutionPanel({
                       ))}
                   </select>
                 </label>
+                <MoreWorkOrderPeople query={members} />
                 {members.isError && (
                   <p role="alert">
                     Medlemslisten kunne ikke hentes. Den tidligere udfører bevares.
@@ -465,7 +548,12 @@ function ExecutionPanel({
           </ul>
           <div className="flex flex-wrap gap-2">
             {canEdit && (
-              <Button className="min-h-11" disabled={busy || !history.isSuccess}>
+              <Button
+                className="min-h-11"
+                disabled={
+                  busy || !history.isSuccess || (!!context?.plan && context.canExecute !== true)
+                }
+              >
                 Gem udførelsesversion
               </Button>
             )}

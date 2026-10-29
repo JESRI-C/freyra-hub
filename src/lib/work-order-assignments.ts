@@ -191,6 +191,16 @@ export const WorkOrderAssignmentSchema = z
       });
   });
 export type WorkOrderAssignment = z.infer<typeof WorkOrderAssignmentSchema>;
+export const WorkOrderAssignmentStateInputSchema = taskScope.strict();
+export const WorkOrderAssignmentStateSchema = z.object({
+  action_id: uuid,
+  organization_id: uuid,
+  project_id: uuid,
+  user_id: uuid,
+  assignment: WorkOrderAssignmentSchema.nullable(),
+  can_claim: z.boolean(),
+  can_execute: z.boolean(),
+});
 export const ConfigureWorkOrderAssignmentSchema = taskScope
   .extend({
     expectedVersion: version,
@@ -259,6 +269,7 @@ export const MyWorkOrderSchema = z
     can_claim: z.boolean(),
     can_execute: z.boolean(),
     can_review: z.boolean(),
+    can_plan: z.boolean(),
   })
   .superRefine((row, ctx) => {
     if (

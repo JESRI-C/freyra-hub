@@ -79,6 +79,8 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
 SELECT ok(private.can_execute_work_order(pg_temp.k(31)),'assigned external member gets execution capability for its group task');
 SELECT ok(private.can_read_work_order(pg_temp.k(32)),'pool candidate can read necessary plan before claiming');
 SELECT ok(NOT private.can_execute_work_order(pg_temp.k(32)),'pool candidacy alone is not execution');
+SELECT ok((SELECT can_claim AND NOT can_execute AND user_id=pg_temp.k(3) FROM public.get_work_order_assignment_state(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21))),'assignment state pins the current candidate and claim capability');
+SELECT ok(NOT (SELECT can_plan FROM public.list_my_work_orders(NULL,20) WHERE action_id=pg_temp.k(32)),'external task list does not offer a project manager route');
 SELECT is((SELECT count(*)::integer FROM public.list_my_work_orders(NULL,20)),2,'My tasks lists only group task and candidate pool');
 SELECT is((SELECT count(*)::integer FROM public.projects),0,'task assignment does not open whole projects');
 SELECT throws_ok($$SELECT pg_temp.group_save(1,65,ARRAY[2,3],51,true,'Synthetic self promotion')$$,'42501',NULL,'external executor cannot edit groups');
@@ -104,6 +106,7 @@ SELECT ok(NOT private.can_review_work_order(pg_temp.k(32)),'claim does not assig
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT throws_ok($$SELECT * FROM public.claim_work_order_pool(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),1,(SELECT plan_id FROM pg_temp.plan_refs WHERE action_id=pg_temp.k(32)),pg_temp.k(82))$$,'PT409',NULL,'second candidate gets conflict instead of another owner');
 SELECT ok(NOT private.can_execute_work_order(pg_temp.k(32)),'losing candidate has no execution capability');
+SELECT ok((SELECT NOT can_claim AND NOT can_execute AND assignment->>'claimed_by'=pg_temp.k(3)::text FROM public.get_work_order_assignment_state(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21))),'losing claimant sees fresh claim bookkeeping without execution access');
 SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(32)),0,'losing candidate cannot freshly download the claimed plan');
 SELECT is((SELECT count(*)::integer FROM public.get_work_order_assignment_history(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),NULL,20)),2,'candidate can see claim bookkeeping without wider project access');
 
@@ -143,5 +146,6 @@ SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
 SELECT is((SELECT count(*)::integer FROM public.work_order_assignment_versions),0,'other tenant cannot enumerate assignments');
 SELECT throws_ok($$SELECT * FROM public.get_work_order_assignment_history(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,1)$$,'42501',NULL,'other tenant guessed assignment history is denied');
+SELECT throws_ok($$SELECT * FROM public.get_work_order_assignment_state(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21))$$,'42501',NULL,'other tenant cannot read the assignment-state envelope');
 SELECT * FROM finish();
 ROLLBACK;

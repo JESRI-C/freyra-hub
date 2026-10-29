@@ -47,10 +47,14 @@ vi.mock("@/lib/work-order-plan.functions", () => ({
   saveProjectWorkOrderPlan: m.save,
 }));
 vi.mock("@/services/field-job-cards-service", () => ({ listFieldJobActions: m.actions }));
-vi.mock("@/services/project-members-service", () => ({ listProjectMembers: m.members }));
+vi.mock("../useWorkOrderPeople", () => ({
+  useWorkOrderPeople: () => ({ data: [], isError: false }),
+  MoreWorkOrderPeople: () => null,
+}));
 vi.mock("@/lib/supabase/queries", () => ({ fetchSitesByProject: m.sites }));
 vi.mock("@/services/watercourse-service", () => ({ getWatercourseVersions: m.centerlines }));
 vi.mock("../WorkOrderAccessPanel", () => ({ WorkOrderAccessPanel: () => null }));
+vi.mock("../WorkOrderAssignmentPanel", () => ({ WorkOrderAssignmentPanel: () => null }));
 import { WorkOrderPlansPanel } from "../WorkOrderPlansPanel";
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 const row = () => ({
