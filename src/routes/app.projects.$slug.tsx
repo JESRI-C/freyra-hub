@@ -23,7 +23,9 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
-import { ProjectHeader } from "@/components/project/ProjectHeader";
+import { ProjectHeader, EditProjectDialog } from "@/components/project/ProjectHeader";
+import { ProjectJourneyOverview } from "@/components/project/ProjectJourneyOverview";
+import { projectJourneySearch } from "@/lib/project-journey";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
 import { ProjectWorkspaceShell } from "@/components/project/ProjectWorkspaceShell";
 import {
@@ -221,6 +223,7 @@ function MunicipalProjectPage({ step }: { step: MunicipalStep }) {
   );
 }
 function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
+  const [editingPurpose, setEditingPurpose] = useState(false);
   const { slug } = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -436,12 +439,28 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
   return (
     <main className="min-w-0 p-3 sm:p-6 max-w-[1200px] w-full mx-auto space-y-4 sm:space-y-5 pb-16">
       <ProjectHeader
+        showDescription={activeTab !== "overblik"}
         canEdit={canEdit}
         project={project}
         sitesCount={sites.length}
         activeDataSourcesCount={activeDataSourcesCount}
         openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
       />
+      {editingPurpose && hasPhotoEditorAccess && (
+        <EditProjectDialog
+          project={project}
+          onClose={() => setEditingPurpose(false)}
+          onSaved={async () => {
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ["project-by-slug", slug] }),
+              queryClient.invalidateQueries({ queryKey: ["nature-project-summaries"] }),
+              queryClient.invalidateQueries({ queryKey: ["municipal-project-list"] }),
+              queryClient.invalidateQueries({ queryKey: ["audit", project.id] }),
+            ]);
+            setEditingPurpose(false);
+          }}
+        />
+      )}
 
       <ProjectTabs tabs={TABS} activeTab={activeTab} showNavigation={false} retainVisitedPanels>
         {(active) => (
@@ -478,82 +497,94 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
             )}
             {active === "overblik" && (
               <div className="space-y-5">
-                {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
-                <DroneBeforeIntakeCard
-                  slug={slug}
-                  projectId={projectId}
-                  organizationId={project.organization_id}
-                  hasRealGeometry={hasRealGeometry}
+                <ProjectJourneyOverview
+                  description={project.description}
+                  onEditPurpose={canEdit ? () => setEditingPurpose(true) : undefined}
+                  onChoose={(id) => void navigate({ search: projectJourneySearch(id, search) })}
                 />
-                {/* Recommended next action */}
-                <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
-                  <Activity className="h-5 w-5 text-primary shrink-0" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">Anbefalet næste skridt</div>
-                    <div className="text-sm font-medium">{nextAction}</div>
-                  </div>
-                </Card>
-
-                {/* KPI cards */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {indicators.slice(0, 6).map((ind) => (
-                    <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
-                  ))}
-                </div>
-
-                {/* Recent observations */}
-                {observations.length > 0 && (
-                  <Card>
-                    <CardHeader
-                      title="Seneste observationer"
-                      subtitle={`${observations.length} observationer hentet`}
-                      action={<Pill tone="info">{observations.length}</Pill>}
+                <details className="rounded-xl border bg-card p-4">
+                  <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                    Flere projektoplysninger, målinger og aktivitet
+                  </summary>
+                  <div className="mt-4 space-y-5">
+                    {!hasRealGeometry && <GeometryRequiredBanner slug={slug} />}
+                    <DroneBeforeIntakeCard
+                      slug={slug}
+                      projectId={projectId}
+                      organizationId={project.organization_id}
+                      hasRealGeometry={hasRealGeometry}
                     />
-                    <div className="px-5 pb-4 divide-y">
-                      {observations.slice(0, 5).map((obs) => (
-                        <div key={obs.id} className="py-2.5 flex items-center gap-3 text-sm">
-                          <span className="text-xs bg-muted rounded px-1.5 py-0.5">
-                            {observationTypeLabel(obs.observation_type)}
-                          </span>
-                          <span className="font-medium">{obs.indicator_key}</span>
-                          <span className="tabular-nums">
-                            {obs.value !== null ? `${obs.value} ${obs.unit ?? ""}`.trim() : "—"}
-                          </span>
-                          <span className="text-muted-foreground ml-auto text-xs">
-                            {obs.observed_at
-                              ? new Date(obs.observed_at).toLocaleDateString("da-DK")
-                              : "—"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                )}
+                    {/* Recommended next action */}
+                    <Card className="p-4 flex items-center gap-4 bg-primary/5 border-primary/20">
+                      <Activity className="h-5 w-5 text-primary shrink-0" />
+                      <div>
+                        <div className="text-xs text-muted-foreground">Anbefalet næste skridt</div>
+                        <div className="text-sm font-medium">{nextAction}</div>
+                      </div>
+                    </Card>
 
-                {/* Recent audit */}
-                {auditEvents.length > 0 && (
-                  <Card>
-                    <CardHeader title="Seneste hændelser" />
-                    <div className="px-5 pb-4 divide-y">
-                      {auditEvents.slice(0, 5).map((ev) => (
-                        <div key={ev.id} className="py-2.5 flex items-start gap-3 text-sm">
-                          <span className="text-muted-foreground mt-0.5">
-                            <AuditIcon name={auditEventIcon(ev.event_type)} />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">{ev.title}</div>
-                            {ev.actor && (
-                              <div className="text-xs text-muted-foreground">{ev.actor}</div>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {new Date(ev.created_at).toLocaleDateString("da-DK")}
-                          </span>
-                        </div>
+                    {/* KPI cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {indicators.slice(0, 6).map((ind) => (
+                        <IndicatorCard key={ind.id} indicator={ind} onClick={openIndicator} />
                       ))}
                     </div>
-                  </Card>
-                )}
+
+                    {/* Recent observations */}
+                    {observations.length > 0 && (
+                      <Card>
+                        <CardHeader
+                          title="Seneste observationer"
+                          subtitle={`${observations.length} observationer hentet`}
+                          action={<Pill tone="info">{observations.length}</Pill>}
+                        />
+                        <div className="px-5 pb-4 divide-y">
+                          {observations.slice(0, 5).map((obs) => (
+                            <div key={obs.id} className="py-2.5 flex items-center gap-3 text-sm">
+                              <span className="text-xs bg-muted rounded px-1.5 py-0.5">
+                                {observationTypeLabel(obs.observation_type)}
+                              </span>
+                              <span className="font-medium">{obs.indicator_key}</span>
+                              <span className="tabular-nums">
+                                {obs.value !== null ? `${obs.value} ${obs.unit ?? ""}`.trim() : "—"}
+                              </span>
+                              <span className="text-muted-foreground ml-auto text-xs">
+                                {obs.observed_at
+                                  ? new Date(obs.observed_at).toLocaleDateString("da-DK")
+                                  : "—"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Recent audit */}
+                    {auditEvents.length > 0 && (
+                      <Card>
+                        <CardHeader title="Seneste hændelser" />
+                        <div className="px-5 pb-4 divide-y">
+                          {auditEvents.slice(0, 5).map((ev) => (
+                            <div key={ev.id} className="py-2.5 flex items-start gap-3 text-sm">
+                              <span className="text-muted-foreground mt-0.5">
+                                <AuditIcon name={auditEventIcon(ev.event_type)} />
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{ev.title}</div>
+                                {ev.actor && (
+                                  <div className="text-xs text-muted-foreground">{ev.actor}</div>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {new Date(ev.created_at).toLocaleDateString("da-DK")}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                </details>
               </div>
             )}
 
@@ -646,117 +677,125 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                 )}
 
                 {/* Project actions from Supabase / seed */}
-                <Card>
-                  <CardHeader
-                    title="Handlinger"
-                    subtitle="Åbne og igangværende handlinger"
-                    action={
-                      <Pill
-                        tone={
-                          localActions.filter((a) => a.status !== "Lukket").length > 0
-                            ? "warning"
-                            : "success"
-                        }
-                      >
-                        {localActions.filter((a) => a.status !== "Lukket").length} åbne
-                      </Pill>
-                    }
-                  />
-
-                  {/* Filters */}
-                  <div className="px-5 pb-3 flex flex-wrap gap-2 border-b">
-                    <select
-                      value={actionFilterSite}
-                      onChange={(e) => setActionFilterSite(e.target.value)}
-                      className="text-xs border rounded-lg px-2 py-1 bg-background"
-                    >
-                      <option value="">Alle sites</option>
-                      {sites.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={actionFilterStatus}
-                      onChange={(e) => setActionFilterStatus(e.target.value)}
-                      className="text-xs border rounded-lg px-2 py-1 bg-background"
-                    >
-                      <option value="">Alle statuser</option>
-                      <option value="Åben">Åben</option>
-                      <option value="I gang">I gang</option>
-                      <option value="Lukket">Lukket</option>
-                    </select>
-                    <select
-                      value={actionFilterPriority}
-                      onChange={(e) => setActionFilterPriority(e.target.value)}
-                      className="text-xs border rounded-lg px-2 py-1 bg-background"
-                    >
-                      <option value="">Alle prioriteter</option>
-                      <option value="Høj">Høj</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Lav">Lav</option>
-                    </select>
-                    {(actionFilterSite || actionFilterStatus || actionFilterPriority) && (
-                      <button
-                        onClick={() => {
-                          setActionFilterSite("");
-                          setActionFilterStatus("");
-                          setActionFilterPriority("");
-                        }}
-                        className="text-xs text-muted-foreground hover:text-foreground underline"
-                      >
-                        Nulstil
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="px-5 pb-3">
-                    {filteredActions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">
-                        Ingen handlinger matcher filter
-                      </p>
-                    ) : (
-                      filteredActions.map((action) => (
-                        <ActionItem
-                          key={action.id}
-                          action={action}
-                          siteName={sites.find((s) => s.id === action.site_id)?.name}
-                          indicatorLabel={
-                            indicators.find((i) => i.id === action.linked_indicator_id)?.label
+                <details className="rounded-xl border bg-card p-4">
+                  <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
+                    Opgaveliste med filtre og status
+                  </summary>
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    De samme projektopgaver i en liste med filtre og statusændringer.
+                  </p>
+                  <Card>
+                    <CardHeader
+                      title="Handlinger"
+                      subtitle="Åbne og igangværende handlinger"
+                      action={
+                        <Pill
+                          tone={
+                            localActions.filter((a) => a.status !== "Lukket").length > 0
+                              ? "warning"
+                              : "success"
                           }
-                          onStart={(id) => syncActions([id], "I gang")}
-                          onComplete={async (id, actualImpact) => {
-                            if (actualImpact) {
-                              try {
-                                await completeAction(id, projectId, actualImpact);
-                                await queryClient.invalidateQueries({
-                                  queryKey: ["actions", projectId],
-                                });
-                                toast.success("Handling afsluttet");
-                              } catch (e) {
-                                toast.error((e as Error).message);
-                              }
-                            } else {
-                              await syncActions([id], "Lukket");
-                            }
-                          }}
-                        />
-                      ))
-                    )}
-                  </div>
-                  <div className="px-5 pb-5 pt-2 border-t">
-                    <CreateActionForm
-                      projectId={projectId}
-                      sites={sites}
-                      indicators={indicators}
-                      onCreated={async () => {
-                        await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
-                        await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
-                      }}
+                        >
+                          {localActions.filter((a) => a.status !== "Lukket").length} åbne
+                        </Pill>
+                      }
                     />
-                  </div>
-                </Card>
+
+                    {/* Filters */}
+                    <div className="px-5 pb-3 flex flex-wrap gap-2 border-b">
+                      <select
+                        value={actionFilterSite}
+                        onChange={(e) => setActionFilterSite(e.target.value)}
+                        className="text-xs border rounded-lg px-2 py-1 bg-background"
+                      >
+                        <option value="">Alle sites</option>
+                        {sites.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={actionFilterStatus}
+                        onChange={(e) => setActionFilterStatus(e.target.value)}
+                        className="text-xs border rounded-lg px-2 py-1 bg-background"
+                      >
+                        <option value="">Alle statuser</option>
+                        <option value="Åben">Åben</option>
+                        <option value="I gang">I gang</option>
+                        <option value="Lukket">Lukket</option>
+                      </select>
+                      <select
+                        value={actionFilterPriority}
+                        onChange={(e) => setActionFilterPriority(e.target.value)}
+                        className="text-xs border rounded-lg px-2 py-1 bg-background"
+                      >
+                        <option value="">Alle prioriteter</option>
+                        <option value="Høj">Høj</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Lav">Lav</option>
+                      </select>
+                      {(actionFilterSite || actionFilterStatus || actionFilterPriority) && (
+                        <button
+                          onClick={() => {
+                            setActionFilterSite("");
+                            setActionFilterStatus("");
+                            setActionFilterPriority("");
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground underline"
+                        >
+                          Nulstil
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="px-5 pb-3">
+                      {filteredActions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4">
+                          Ingen handlinger matcher filter
+                        </p>
+                      ) : (
+                        filteredActions.map((action) => (
+                          <ActionItem
+                            key={action.id}
+                            action={action}
+                            siteName={sites.find((s) => s.id === action.site_id)?.name}
+                            indicatorLabel={
+                              indicators.find((i) => i.id === action.linked_indicator_id)?.label
+                            }
+                            onStart={(id) => syncActions([id], "I gang")}
+                            onComplete={async (id, actualImpact) => {
+                              if (actualImpact) {
+                                try {
+                                  await completeAction(id, projectId, actualImpact);
+                                  await queryClient.invalidateQueries({
+                                    queryKey: ["actions", projectId],
+                                  });
+                                  toast.success("Handling afsluttet");
+                                } catch (e) {
+                                  toast.error((e as Error).message);
+                                }
+                              } else {
+                                await syncActions([id], "Lukket");
+                              }
+                            }}
+                          />
+                        ))
+                      )}
+                    </div>
+                    <div className="px-5 pb-5 pt-2 border-t">
+                      <CreateActionForm
+                        projectId={projectId}
+                        sites={sites}
+                        indicators={indicators}
+                        onCreated={async () => {
+                          await queryClient.invalidateQueries({ queryKey: ["actions", projectId] });
+                          await queryClient.invalidateQueries({ queryKey: ["audit", projectId] });
+                        }}
+                      />
+                    </div>
+                  </Card>
+                </details>
               </div>
             )}
 

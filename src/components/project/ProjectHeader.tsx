@@ -28,6 +28,7 @@ interface ProjectHeaderProps {
   sitesCount: number;
   activeDataSourcesCount: number;
   openActionsCount: number;
+  showDescription?: boolean;
 }
 
 export function ProjectHeader({
@@ -36,6 +37,7 @@ export function ProjectHeader({
   sitesCount,
   activeDataSourcesCount,
   openActionsCount,
+  showDescription = true,
 }: ProjectHeaderProps) {
   const queryClient = useQueryClient();
   const [statusOpen, setStatusOpen] = useState(false);
@@ -156,7 +158,7 @@ export function ProjectHeader({
         </div>
       </div>
 
-      {project.description && (
+      {showDescription && project.description && (
         <p className="text-sm text-muted-foreground">{project.description}</p>
       )}
 
@@ -210,7 +212,7 @@ const PROJECT_TYPES = [
   "Vådområde",
 ];
 
-function EditProjectDialog({
+export function EditProjectDialog({
   project,
   onClose,
   onSaved,
@@ -283,11 +285,12 @@ function EditProjectDialog({
               className="input-base"
             />
           </Field>
-          <Field label="Beskrivelse">
+          <Field label="Problem og mål">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+              placeholder="Hvad er problemet, hvad vil I opnå, og hvordan vil I følge op?"
+              rows={4}
               className="input-base resize-none"
             />
           </Field>

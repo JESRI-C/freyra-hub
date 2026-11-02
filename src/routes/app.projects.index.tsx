@@ -1,7 +1,11 @@
 import { StartActions } from "@/components/redesign/StartActions";
 import { WorkspaceTools } from "@/components/redesign/WorkspaceTools";
 import { AdvancedSettings } from "@/components/redesign/AdvancedSettings";
-import type { MunicipalStep } from "@/components/project/MunicipalCaseWorkspace";
+import {
+  PROJECT_JOURNEY,
+  projectJourneySearch,
+  type ProjectJourneyId,
+} from "@/lib/project-journey";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
@@ -70,7 +74,7 @@ function ProjectsIndexPage() {
   const canCreate = canCreateProject(currentOrg?.role);
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const [startStep, setStartStep] = useState<MunicipalStep | null>(null);
+  const [startStep, setStartStep] = useState<ProjectJourneyId | null>(null);
   const caseList = useRef<HTMLElement>(null);
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -306,14 +310,8 @@ function ProjectsIndexPage() {
             className="rounded-lg border border-primary/30 bg-secondary p-4 text-sm"
           >
             <strong>Vælg den sag, du vil arbejde med.</strong> Genvejen åbner{" "}
-            {startStep === "baseline"
-              ? "baseline"
-              : startStep === "rapport"
-                ? "rapporten"
-                : startStep === "beplantning"
-                  ? "beplantning"
-                  : "billederne"}{" "}
-            i den valgte sag.{" "}
+            {PROJECT_JOURNEY.find((item) => item.id === startStep)?.title.toLowerCase()} i den
+            valgte sag.{" "}
             <button className="ml-2 underline" onClick={() => setStartStep(null)}>
               Vis hele sagsforløbet
             </button>
@@ -321,7 +319,7 @@ function ProjectsIndexPage() {
         )}
         <PageHeader
           title={MUNICIPAL_WORKFLOW ? "Sager" : "Projektoversigt"}
-          description="Fra de første dronebilleder til en samlet, sporbar aflevering"
+          description="Åbn et projekt for at se formålet, planlægge indsatsen og følge dokumentationen."
           actions={
             <div className="flex items-center gap-2">
               <Pill tone="info">{summaries.length} sager</Pill>
@@ -452,7 +450,7 @@ function ProjectsIndexPage() {
                   key={s.project.id}
                   to="/app/projects/$slug"
                   params={{ slug: s.project.slug ?? s.project.id }}
-                  search={{ step: startStep ?? "billeder" }}
+                  search={projectJourneySearch(startStep ?? undefined)}
                   className="group flex min-h-48 flex-col rounded-xl border bg-card p-6 transition hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
                 >
                   <span className="text-xs text-muted-foreground">
@@ -460,7 +458,8 @@ function ProjectsIndexPage() {
                   </span>
                   <h2 className="mt-3 text-xl font-semibold">{s.project.name}</h2>
                   <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                    {s.project.description ?? "Åbn sagen for at se billeder, kilder og rapporter."}
+                    {s.project.description ??
+                      "Beskriv problemet og målet, og saml planen og dokumentationen her."}
                   </p>
                   <span className="mt-auto pt-6 text-sm font-medium text-primary">
                     Åbn sagsforløb →
@@ -532,26 +531,32 @@ function ProjectsIndexPage() {
                 />
               </div>
 
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label htmlFor="case-description" className="text-sm font-medium">
+                  Hvilket problem vil I løse, og hvad er målet?
+                </label>
+                <textarea
+                  id="case-description"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Fx: Engen gror til. Vi vil skabe mere lysåben natur og følge udviklingen før og efter plejen."
+                  rows={4}
+                  className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+                />
+              </div>
+
               <AdvancedSettings
-                description="Beskriv og klassificér sagen. Standard: Naturgenopretning og Planlægning; beskrivelse og placering er tomme. Gemmes først, når du opretter sagen."
-                onReset={() => setForm((current) => ({ ...FORM_DEFAULTS, name: current.name }))}
+                description="Projekttype, placering og status."
+                onReset={() =>
+                  setForm((current) => ({
+                    ...FORM_DEFAULTS,
+                    name: current.name,
+                    description: current.description,
+                  }))
+                }
                 disabled={submitting || !!storedProjectId}
               >
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <label htmlFor="case-description" className="text-sm font-medium">
-                    Beskrivelse
-                  </label>
-                  <textarea
-                    id="case-description"
-                    value={form.description}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    placeholder="Kort beskrivelse af projektet…"
-                    rows={3}
-                    className="w-full rounded-xl border bg-muted/30 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-                  />
-                </div>
-
                 {/* Type + Location */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
