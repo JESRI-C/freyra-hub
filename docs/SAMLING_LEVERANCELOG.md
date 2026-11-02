@@ -226,3 +226,58 @@ afgrænsningen. Udførelsesbinding i UI er nu implementeret. S02/D03 er
 fortsat delvis, og frosne afleveringer/review/rapportkilder i S04/D05 og
 S05/D07 er ikke lukket. PR36 er fortsat kladde; ingen merge, hosted
 migration eller deploy. Brugerens to dokumentændringer er bevaret.
+
+### Autoriseret staging-forløb og klargjort telefonprøve
+
+2. november 2026: brugerens mandat er udvidet til hosted testmiljø og
+telefonklargøring. Begge allerede afprøvede additive migrationer er anvendt
+på staging `xdvqdzdpyceojbdknofi`; deres præcise SQL er sammenholdt før og
+efter. Kun de to nye værktøjsgenererede migrationsversioner blev afstemt med
+kildeversionsnumrene. Historiske migrationsrækker er uændrede.
+
+Applikationskilde `46bf6dfc96b72866fafc1c1b0333e9ecc8aa2b4e` kører på
+`gofreyra-p0-staging`, Worker-version
+`e5bdd8e0-e004-475f-9133-e1fcfd0f06c2`. Dashboardvariabler/secrets er bevaret,
+og offentlig buildmetadata matcher den præcise kilde. Produktionsappen og
+den separate baggrundsbehandling er uændrede.
+
+Den reelle browserprøve fandt og fik rettet en dobbelt Authorization-header
+i eksisterende TUS-upload: XHR tilføjede gammelt og nyt token, hvilket Storage
+afviste. En appendende transportregression fejlede før rettelsen. Kun ét
+aktuelt token sættes nu i hooken. 34 målrettede tests i fire filer, typecheck,
+ændrede filers lint og staging-build bestod lokalt.
+[CI 41428951155](https://github.com/JESRI-C/freyra-hub/actions/runs/41428951155)
+bestod begge jobs med **3.368 app-tests og 1.471 databasekontroller**, inklusive
+frisk migration, samtidighed, HTTP-konflikt, restore, lint og build.
+
+Hosted Chrome bestod login → plan → gemt jobkort med 0/Nej → separat faktisk
+udførelse → lokal fotoqueue uden net → luk/genåbn feltside offline → virkelig
+TUS-upload → serverkvittering → eksplicit kobling → historisk udførelse og
+signeret original. Et bevidst mistet succesfuldt gemmesvar kunne genforsøges
+uden dublet. Rettelser bevarede tidligere snapshots; forkert opgave og
+originalåbning efter tilbagetrækning blev afvist. En afgrænset ekstern
+testkonto kunne læse dokumentation og original, men ikke kildekatalog,
+projektmedier eller anden opgave. Efter tilbagekaldelse afviste UI og RPC nye
+original-links. Ingen mail/invitation blev sendt, og testtildelingen er lukket.
+
+Den klargjorte prøvesag bevarer alle testversioner. Version 3 bruger et
+synligt 160 × 96 PNG; bytehash, størrelse og faktisk billeddekodning er
+kontrolleret. Den første lille tekniske PNG havde en ugyldig chunk-CRC og
+blev bevaret; en ny original og koblingsversion blev oprettet. Identiske
+filbytes er ikke i sig selv bevis på gyldig billedkodning.
+
+Før/efter-ID/hash-kontrol bevarede alle 50 projekter, 16 opgaver, 32
+workspaceversioner, 110 mediereferencer og 252 Storage-objektmetadata uden
+ændringer eller sletninger. Kun nye, mærkede testdata er tilføjet. Kontrollen
+er ikke en restore eller fuld genhashning af gamle originalbytes. De to
+brugerændrede dokumenters SHA-256 er uændrede. Supabase-advisories har ingen
+ny/ændret gruppe; eksisterende fund er stadig åbne.
+
+[Telefonvejledning](TELEFONPROEVE_OPGAVER_2026-11-02.md) og
+[hosted-kvittering](opgave-dokumentation-staging-2026-11-02.json) er afleveret.
+`scripts/test-work-order-evidence-staging.mjs` fastholder den afgrænsede
+prøve med private credentials i ignoreret tmp, uden secrets i leverancen.
+Telefonbredde 390 pixels bestod; fysisk telefon/kamera/HEIC og faktisk
+telefonbrowserlukning afventer Jespers prøve. S02/D03 er delvis. Frosne
+afleveringer/review/rapportkilder er næste integration. PR36 er fortsat
+kladde; ingen merge, produktionsændring, AI-kald eller betalt billedbehandling.

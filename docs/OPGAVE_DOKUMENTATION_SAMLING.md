@@ -2,6 +2,56 @@
 
 S02 / afgrænset D03-leverance · 2. november 2026.
 
+## Seneste leverance: staging og telefonprøve
+
+Efter udtrykkeligt mandat er kandidaten migreret og deployet til **staging**.
+Aktuel appkilde er `46bf6dfc96b72866fafc1c1b0333e9ecc8aa2b4e`; offentlig
+buildmetadata matcher. Cloudflare-versionen er
+`e5bdd8e0-e004-475f-9133-e1fcfd0f06c2`. Produktionsappen er uændret.
+
+[Telefonvejledningen](TELEFONPROEVE_OPGAVER_2026-11-02.md) åbner den klargjorte,
+tydeligt mærkede testsag. [Hosted-kvitteringen](opgave-dokumentation-staging-2026-11-02.json)
+registrerer miljø, migrationer, CI og begrænsninger. Kildekandidater og
+tidligere kontroltrin nedenfor er bevaret som historik.
+
+I hosted Chrome bestod det faktiske forløb med login, plan, jobkort,
+udførelse, lokal offlinekø, luk/genåbn af feltsiden uden net, TUS-upload,
+serverens checksumkontrol, dokumentationskobling og signeret originalåbning.
+Mistet gemmesvar kunne genforsøges uden dublet. Rettelse bevarede tidligere
+snapshots, og forkert opgave samt originalåbning efter tilbagetrækning blev
+afvist. En afgrænset ekstern testkonto læste dokumentationen og originalen;
+kildekatalog, projektmedier og anden opgave var utilgængelige. Efter
+tilbagekaldelse blev nye original-links afvist i både UI og RPC.
+
+Prøven fandt en konkret fejl i den genbrugte uploadmotor: TUS satte
+Authorization både ved oprettelse og i hooken. Browserens XHR tilføjede de
+to værdier, og Storage afviste tokenet. Nu sættes kun ét aktuelt token i
+hooken; fallback, afbrydelse, chunks og genforsøg er bevaret. En regression
+med appendende transport fejlede før rettelsen og består nu. Reel hosted
+upload viste ét Bearer-token uden komma. CI 41428951155 bestod begge jobs:
+**3.368 app-tests i 249 filer og 1.471 databasekontroller i 22 filer** samt
+typecheck, lint, migrationsreplay, samtidighed, restore, billeddekodning og build.
+
+Den nyeste testkobling er version 3. Den fastholder et synligt syntetisk
+PNG på 160 × 96 pixels, 469 bytes. Downloadens SHA-256 og browserens faktiske
+billeddekodning er kontrolleret. Den tidligere meget lille tekniske testfil
+havde en ugyldig PNG-chunk-CRC; den blev bevaret som historik og erstattet
+gennem en ny koblingsversion. Checksumkvittering betyder identiske bytes,
+ikke at en fil er et fagligt brugbart eller korrekt kodet billede.
+
+Før/efter-kontrol af eksisterende rækker fandt **ingen slettede eller ændrede**
+projekter (50), opgaver (16), workspaceversioner (32), mediereferencer (110)
+eller Storage-objektmetadata (252). Tilføjelserne er afgrænsede testdata.
+Dette er en metadata-/referencekontrol, ikke en ny restore af alle gamle
+originalbytes. Brugerens to dokumentændringer er hashkontrolleret uændrede.
+Supabase-advisories har samme seks grupper før/efter; ingen ny eller ændret
+gruppe. De eksisterende fund er fortsat åbne.
+
+En telefonbredde på 390 pixels er kontrolleret uden vandret overløb.
+**Fysisk telefon, kamera, HEIC og faktisk lukning af telefonbrowseren er
+fortsat brugeraccept**. Der er ikke sendt invitationer/mail eller aktiveret
+AI, betalt billedbehandling eller baggrundssweeper. PR36 er fortsat kladde.
+
 ## Det, som er samlet
 
 Projektets **Plan og opgaver → vælg opgave → Dokumentation** genbruger de
@@ -165,12 +215,11 @@ ekstern læseadgang, tilbagetrækning og audit-rollback.
 
 ## Næste acceptpunkter og afgrænsning
 
-1. Den automatiske kandidatkontrol er bestået og registreret. PR36 forbliver
-   kladde; migrationerne er ikke anvendt på hosted staging.
-2. Prøv den migrerede kandidat i et aftalt testmiljø: intern og ekstern
-   bruger, to projekter, tilbagekaldt opgaveadgang, manglende/ændret original,
-   mistet gemmesvar og manuel konfliktbehandling. Bekræft, at signerens
-   eksisterende serveropsætning er tilgængelig.
+1. Automatisk kandidatkontrol og det ovenstående hosted forløb er bestået.
+   Begge additive migrationer er anvendt på staging; PR36 forbliver kladde.
+2. Udvid hosted-prøven med to samtidige projekter og manuel
+   konfliktbehandling. Manglende/ændret original er dækket i automatiske
+   DB-/serviceprøver; eksisterende originaler er ikke manipuleret i staging.
 3. Prøv computer og fysisk telefon: læsning, valg, historik, originalåbning,
    visningsskift med kladde og konto-/projektskift. En automatiseret DOM-prøve
    er ikke fysisk mobil-/kamera-/offline-acceptance.
@@ -184,7 +233,8 @@ ekstern læseadgang, tilbagetrækning og audit-rollback.
    koblingen til en færdig aflevering.
 
 **S02/D03 er fortsat delvis.** Ekstern nyregistrering/upload, hele D03,
-S04/D05, S05/D07 og salgs-/produktionsacceptance er ikke lukket. Der er ikke
-merget, deployet, sendt mail eller kaldt betalte datakilder. Ingen original
+S04/D05, S05/D07 og salgs-/produktionsacceptance er ikke lukket. Staging er
+migreret og deployet; der er ikke merget, ændret produktion, sendt mail eller
+kaldt betalte datakilder. Ingen original
 eller tidligere udviklet funktion er slettet. Brugerens to eksisterende
 Jobs/Geotag-dokumentændringer er hashkontrolleret uændrede.
