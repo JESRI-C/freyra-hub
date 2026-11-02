@@ -25,6 +25,43 @@ describe("Supabase resumable endpoint", () => {
 });
 
 describe("TUS transfer contract", () => {
+  it("sends one credential on transports that append repeated headers, including resumed requests", async () => {
+    const tokens = vi
+      .fn()
+      .mockResolvedValueOnce("fresh-create")
+      .mockResolvedValueOnce("fresh-resume");
+    await uploadWithTus(
+      {
+        file,
+        projectUrl: "https://synthetic.supabase.co",
+        accessToken: "old-token",
+        getAccessToken: tokens,
+        bucketName: "project-media",
+        objectName: "project/intent/original",
+        contentType: "image/jpeg",
+      },
+      {
+        createUpload: (_file, options) => ({
+          start: () => {
+            void (async () => {
+              for (const token of ["fresh-create", "fresh-resume"]) {
+                // XMLHttpRequest appends repeated setRequestHeader calls; it does not replace them.
+                const headers = new Headers(options.headers);
+                await options.onBeforeRequest({
+                  setHeader: (name, value) => headers.append(name, value),
+                });
+                expect(headers.get("authorization")).toBe(`Bearer ${token}`);
+              }
+              options.onSuccess();
+            })().catch(options.onError);
+          },
+          abort: vi.fn().mockResolvedValue(undefined),
+          findPreviousUploads: async () => [],
+          resumeFromPreviousUpload: vi.fn(),
+        }),
+      },
+    );
+  });
   it("refreshes credentials before each request, including resumed chunks", async () => {
     const setHeader = vi.fn(),
       tokens = vi.fn().mockResolvedValueOnce("fresh-one").mockResolvedValueOnce("fresh-two");
@@ -69,6 +106,9 @@ describe("TUS transfer contract", () => {
           fingerprint: (file: File) => Promise<string>;
           onProgress: (sent: number, total: number) => void;
           onSuccess: () => void;
+          onBeforeRequest: (request: {
+            setHeader(name: string, value: string): void;
+          }) => void | Promise<void>;
         }
       | undefined;
     const resumeFromPreviousUpload = vi.fn();
@@ -106,7 +146,12 @@ describe("TUS transfer contract", () => {
     expect(capturedOptions?.endpoint).toBe(
       "https://xdvqdzdpyceojbdknofi.storage.supabase.co/storage/v1/upload/resumable",
     );
-    expect(capturedOptions?.headers).toEqual({ authorization: "Bearer jwt-token" });
+    expect(capturedOptions?.headers).toEqual({});
+    const fallbackHeaders = new Headers(capturedOptions?.headers);
+    await capturedOptions?.onBeforeRequest({
+      setHeader: (name, value) => fallbackHeaders.append(name, value),
+    });
+    expect(fallbackHeaders.get("authorization")).toBe("Bearer jwt-token");
     expect(capturedOptions?.headers).not.toHaveProperty("x-upsert");
     expect(capturedOptions?.chunkSize).toBe(TUS_CHUNK_SIZE_BYTES);
     expect(capturedOptions?.retryDelays).toEqual([...TUS_RETRY_DELAYS_MS]);
