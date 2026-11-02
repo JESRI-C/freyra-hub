@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { askDecisionsAssistant } from "@/lib/decisions-assistant.functions";
@@ -62,6 +62,7 @@ const entryPage: Partial<Record<WorkspacePage, EntryKind>> = {
 };
 
 export function ProjectWorkspacePage({ page }: { page: WorkspacePage }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const auth = useAuth();
   const { projectId } = useConnectContext();
   const organizationId = auth.orgId;
@@ -82,7 +83,7 @@ export function ProjectWorkspacePage({ page }: { page: WorkspacePage }) {
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5" data-workspace-page={page}>
       <header>
         <h1 className="text-2xl font-semibold">
-          {programPageGuide(`/app/${page.replace(/\/index$/, "")}`)?.title ?? workspacePages[page]}
+          {programPageGuide(pathname)?.title ?? workspacePages[page]}
         </h1>
         <p className="text-muted-foreground">
           {query.data?.project.name ?? "Vælg et projekt"} · {auth.currentOrg?.name}

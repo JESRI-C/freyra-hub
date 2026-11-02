@@ -1,8 +1,8 @@
 {
   "schema": "freyra.program-map/v1",
   "date": "2026-11-02",
-  "baselineCommit": "1a43472f2e2ec3c98f0f92d21d530f31c126a80c",
-  "sourceTreeSha256": "a902b8ebb8eb95a4f757a67729bb92c96a72ca03109c98b7c671eab2e46fa433",
+  "baselineCommit": "b6ebd8f60e3848eaf7efcc9f231eb94642d925a4",
+  "sourceTreeSha256": "6daaf2f2e5755dcc8e5b815bc8611aae879764367036012ea79cde8b21a99469",
   "method": "All current src JS/TS files, route declarations, local static imports, project destinations and 68 existing requirement IDs. Static mapping is not functional, hosted, security or customer acceptance. A route-unreachable file is a review candidate, never a deletion recommendation.",
   "source": {
     "name": "Skyhost_Jobs_Geotag_funktionskortlaegning_2026-10-29.html",
@@ -8462,7 +8462,7 @@
     },
     {
       "file": "src/components/ui-bits.tsx",
-      "sha256": "7a40a8aabc4f72708502fe566a9c3d6f4a9d60dc14c945b3b061c962772b4a2b",
+      "sha256": "f63c9359beefbe087d64f80a4daa905c340af738a1f682e76d880c2cd883ccd2",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/add",
@@ -8560,7 +8560,7 @@
     },
     {
       "file": "src/components/workspace/ProjectWorkspacePage.tsx",
-      "sha256": "c07488d9922eeb050fcbae103c8b6c97f44ad428530f2a0f459395d9a1bc8d7c",
+      "sha256": "2c34bc7c94c87e73ce28101dcca2fb5af13f84ca2a6c0ff1a161a496302d8793",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/add",
@@ -12357,7 +12357,7 @@
     },
     {
       "file": "src/routes/app.lavbund.index.tsx",
-      "sha256": "f6c94a50c429bc1a01556d5f62bb4dd43fe4c163acc4204a9584ee4a76260c47",
+      "sha256": "d4044402fd4fc56410203b4eeefe41ed7c3df5789a0cca968746462752d7393a",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/lavbund/"

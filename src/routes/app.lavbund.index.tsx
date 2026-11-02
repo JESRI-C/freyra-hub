@@ -73,6 +73,7 @@ function LavbundIndexPage() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
       <PageHeader
+        stackOnMobile
         title="Lavbundsprojekter"
         description="Målt verifikation af CO₂- og fosforeffekt. Statens faktorer (v12 + DCE 263) anvendes uændret."
         actions={

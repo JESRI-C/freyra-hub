@@ -246,6 +246,7 @@ try {
         });
         item.viewports.push(metrics);
         for (const name of [
+          "Nyt lavbundsprojekt",
           "Ny datakilde",
           "Ny alarmregel",
           "Ny kvalitetsregel",
