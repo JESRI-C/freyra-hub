@@ -1,3 +1,4 @@
+import { isWorkOrderView } from "@/lib/work-order-navigation";
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -144,9 +145,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.task)
       ? { task: search.task.toLowerCase() }
       : {}),
-    ...(typeof search.work === "string" && ["plan", "field", "execution"].includes(search.work)
-      ? { work: search.work as WorkOrderView }
-      : {}),
+    ...(isWorkOrderView(search.work) ? { work: search.work as WorkOrderView } : {}),
   }),
   head: () => ({ meta: [{ title: "Projekt — Freyra" }] }),
   // Project reads depend on the browser-persisted Supabase session. Rendering

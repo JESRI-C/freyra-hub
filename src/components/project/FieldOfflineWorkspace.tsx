@@ -1,3 +1,5 @@
+import { WorkspaceGuide } from "@/components/WorkspaceGuide";
+import { programPageGuide } from "@/lib/program-map";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { Camera, CloudUpload, Download, LockKeyhole, Wifi, WifiOff } from "lucide-react";
@@ -284,6 +286,7 @@ export function FieldOfflineWorkspace({
   }
   return (
     <main className="mx-auto min-h-dvh max-w-3xl space-y-4 bg-background p-3 pb-10 text-foreground sm:p-6">
+      <WorkspaceGuide {...programPageGuide("/felt")!} />
       <header className={card}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-semibold">Freyra i felten</h1>

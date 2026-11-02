@@ -1,3 +1,5 @@
+import { WorkspaceGuide } from "@/components/WorkspaceGuide";
+import { programPageGuide } from "@/lib/program-map";
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -67,9 +69,7 @@ function MyTasks({ actorId }: { actorId: string }) {
           {tasks.isFetching ? "Henter…" : "Opdater opgaver"}
         </button>
       </header>
-      <p className="text-sm text-muted-foreground">
-        Åbn en opgave for at se instruktionen og registrere dit arbejde.
-      </p>
+      <WorkspaceGuide {...programPageGuide("/opgaver")!} />
       {activeTaskId && (
         <button
           type="button"

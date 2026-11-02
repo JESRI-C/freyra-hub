@@ -1,3 +1,5 @@
+import { WORK_ORDER_PARTS, type WorkOrderView } from "@/lib/work-order-navigation";
+import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useBlocker } from "@tanstack/react-router";
@@ -20,45 +22,9 @@ type Props = {
   onSelectAction?: (id: string | undefined) => void;
   initialView?: WorkOrderView;
 };
-export type WorkOrderView = "plan" | "field" | "execution";
-type Part = WorkOrderView | "evidence" | "submission";
-const parts: { id: Part; label: string; question: string; purpose: string }[] = [
-  {
-    id: "plan",
-    label: "Arbejdsgrundlag",
-    question: "Hvad skal der gøres, og hvem har ansvaret?",
-    purpose:
-      "Beskriv den planlagte indsats, metoden og de forhold, medarbejderen skal kende. Her aftaler I arbejdet, før det udføres.",
-  },
-  {
-    id: "field",
-    label: "Feltregistrering",
-    question: "Hvad observerer I på stedet?",
-    purpose:
-      "Gem de forhold, der er relevante for opgaven. Et foto kan underbygge registreringen; foto og registrering tilknyttes udtrykkeligt under Dokumentation.",
-  },
-  {
-    id: "execution",
-    label: "Udført arbejde",
-    question: "Hvad blev faktisk gjort?",
-    purpose:
-      "Registrér, hvornår og hvordan indsatsen blev udført, og beskriv det, der mangler. Den oprindelige plan bevares som grundlag.",
-  },
-  {
-    id: "evidence",
-    label: "Dokumentation",
-    question: "Hvilket materiale underbygger arbejdet?",
-    purpose:
-      "Knyt den relevante registrering og et verificeret originalfoto til opgaven. Vælg eventuelt den konkrete udførelsesversion. Det giver et sporbart grundlag for gennemgang og opfølgning.",
-  },
-  {
-    id: "submission",
-    label: "Aflevering",
-    question: "Hvilket grundlag afleverer vi til gennemgang?",
-    purpose:
-      "Kontrollér mangler, og fasthold præcise versioner af plan, udførelse, registreringer og originalfotos. En afleveringsversion bevarer grundlaget, når projektet senere ændres.",
-  },
-];
+export type { WorkOrderView } from "@/lib/work-order-navigation";
+type Part = WorkOrderView;
+const parts = WORK_ORDER_PARTS;
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background p-3 text-base";
@@ -400,10 +366,11 @@ function TaskWorkspace({
           </button>
         ))}
       </nav>
-      <div className="rounded-xl border bg-primary/5 p-4">
-        <h3 className="font-semibold">{current.question}</h3>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{current.purpose}</p>
-      </div>
+      <WorkspaceGuide
+        question={current.question}
+        purpose={current.purpose}
+        output={current.output}
+      />
       {opened.has("plan") && (
         <div hidden={part !== "plan"}>
           <WorkOrderPlansPanel

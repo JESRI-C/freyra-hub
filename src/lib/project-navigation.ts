@@ -1,3 +1,4 @@
+import type { WorkOrderView } from "./work-order-navigation";
 /** Presentation metadata only. Access is still checked by the existing server and database. */
 export const PROJECT_TABS = [
   { id: "arbejde", label: "Undersøgelse" },
@@ -32,7 +33,7 @@ export type ProjectNavigationSearch = {
   step?: ProjectStep;
   round?: string;
   task?: string;
-  work?: "plan" | "field" | "execution";
+  work?: WorkOrderView;
 };
 type Destination = { label: string; view: ProjectView };
 export const PROJECT_AREAS: { id: string; label: string; destinations: Destination[] }[] = [

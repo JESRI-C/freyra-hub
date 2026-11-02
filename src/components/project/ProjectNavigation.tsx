@@ -1,4 +1,6 @@
 import { PROJECT_AREAS, sameProjectView, type ProjectView } from "@/lib/project-navigation";
+import { projectToolGuide } from "@/lib/program-map";
+import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 
 export function ProjectNavigation({
   view,
@@ -11,6 +13,7 @@ export function ProjectNavigation({
     item.destinations.some((d) => sameProjectView(d.view, view)),
   )!;
   const isOverview = view.kind === "tab" && view.id === "overblik";
+  const guide = projectToolGuide(view);
   return (
     <div className="space-y-3">
       {!isOverview && (
@@ -75,6 +78,9 @@ export function ProjectNavigation({
           ))}
         </nav>
       </details>
+      {!isOverview && (
+        <WorkspaceGuide question={guide.question} purpose={guide.purpose} output={guide.output} />
+      )}
     </div>
   );
 }
