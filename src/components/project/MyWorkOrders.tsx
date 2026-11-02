@@ -11,6 +11,7 @@ import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignm
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
+import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 
@@ -152,6 +153,8 @@ function TaskCard({
     [editing, setEditing] = useState(false);
   const [evidenceOpened, setEvidenceOpened] = useState(false),
     [evidenceEditing, setEvidenceEditing] = useState(false);
+  const [submissionOpened, setSubmissionOpened] = useState(false),
+    [submissionEditing, setSubmissionEditing] = useState(false);
   const nestedLocks = useRef(new Set<string>());
   function reportEditing(part: string, value: boolean) {
     if (value) nestedLocks.current.add(part);
@@ -292,6 +295,32 @@ function TaskCard({
               onEditing={(value) => {
                 setEvidenceEditing(value);
                 reportEditing("evidence", value);
+              }}
+            />
+          )}
+        </details>
+        <details
+          onToggle={(event) => {
+            if (event.currentTarget.open) setSubmissionOpened(true);
+          }}
+        >
+          <summary
+            className="min-h-11 cursor-pointer py-2 font-medium"
+            onClick={(event) => {
+              if (locked && !submissionEditing) event.preventDefault();
+            }}
+          >
+            Se afleveringsversioner
+          </summary>
+          {submissionOpened && (
+            <WorkOrderSubmissionPanel
+              scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+              actorId={actorId}
+              actionId={task.action_id}
+              readOnly
+              onEditing={(value) => {
+                setSubmissionEditing(value);
+                reportEditing("submission", value);
               }}
             />
           )}
