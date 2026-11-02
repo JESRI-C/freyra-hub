@@ -145,6 +145,32 @@ async function edit() {
   )!;
 }
 describe("mobile field local save feedback", () => {
+  it("opens the requested jobcard only when it belongs to the saved project pack", async () => {
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    expect(
+      (host.querySelector('section[aria-label="Jobkort på telefonen"] select') as HTMLSelectElement)
+        .value,
+    ).toBe(f.action);
+    expect(host.textContent).toContain("Skabelonversion 1");
+    expect(host.textContent).toContain("ikke automatisk opgavedokumentation");
+  });
+  it("does not replace an unavailable requested task with another saved task", async () => {
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace
+          requestedProject={f.project}
+          requestedActionId="44444444-4444-4444-8444-444444444444"
+        />,
+      ),
+    );
+    expect(host.textContent).toContain("Der er ikke valgt en erstatningsopgave");
+    expect(host.textContent).not.toContain("Skabelonversion 1");
+    expect(f.prepare).not.toHaveBeenCalled();
+  });
   it("retains a rejected camera file for download and retry instead of discarding the selection", async () => {
     f.photo.mockResolvedValue({ id: "photo" });
     f.enqueue.mockRejectedValue(new DOMException("Full", "QuotaExceededError"));

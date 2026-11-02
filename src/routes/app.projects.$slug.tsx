@@ -25,7 +25,15 @@ import {
 import { Card, CardHeader, Pill } from "@/components/ui-bits";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectTabs } from "@/components/project/ProjectTabs";
-import { ProjectFieldShortcuts } from "@/components/project/ProjectFieldShortcuts";
+import { ProjectWorkspaceShell } from "@/components/project/ProjectWorkspaceShell";
+import {
+  PROJECT_TABS,
+  projectViewSearch,
+  resolveProjectView,
+  type ProjectTab,
+} from "@/lib/project-navigation";
+import { WorkflowReportPanel } from "@/components/reports/WorkflowReportPanel";
+import { WorkflowFollowupPanel } from "@/components/project/WorkflowFollowupPanel";
 import {
   MunicipalCaseWorkspace,
   MUNICIPAL_STEPS,
@@ -161,29 +169,25 @@ export const Route = createFileRoute("/app/projects/$slug")({
     </div>
   ),
 });
-const TABS = [
-  { id: "arbejde", label: "Undersøgelse" },
-  { id: "rapporter", label: "Rapport og levering" },
-  { id: "grundlag", label: "Grundlag" },
-  { id: "overblik", label: "Overblik" },
-  { id: "sites", label: "Fotopunkter" },
-  { id: "datakilder", label: "Datakilder" },
-  { id: "indikatorer", label: "Indikatorer" },
-  { id: "handlinger", label: "Handlinger" },
-  { id: "audit", label: "Revisionsspor" },
-  { id: "roller", label: "Roller" },
-  { id: "dokumentation", label: "Dokumentation" },
-  { id: "medier", label: "Fotoatlas" },
-  { id: "miljodata", label: "Miljødata" },
-  { id: "livekort", label: "Livekort" },
-];
+const TABS = PROJECT_TABS.map((tab) => ({ ...tab }));
 // ─── Page ─────────────────────────────────────────────────────────────────────
 function ProjectPage() {
+  const { user } = useAuth();
+  const { slug } = Route.useParams();
   const search = Route.useSearch();
-  // The complete dashboard is the default. Explicit step links retain the working case flow.
-  return search.step ? <MunicipalProjectPage /> : <ProjectDetailPage />;
+  const navigate = Route.useNavigate();
+  const view = resolveProjectView(search);
+  return (
+    <ProjectWorkspaceShell
+      key={`${user?.id ?? "anonymous"}:${slug}`}
+      view={view}
+      onNavigate={(next) => void navigate({ search: projectViewSearch(search, next) })}
+      renderTab={(tab) => <ProjectDetailPage activeTab={tab} />}
+      renderStep={(step) => <MunicipalProjectPage step={step} />}
+    />
+  );
 }
-function MunicipalProjectPage() {
+function MunicipalProjectPage({ step }: { step: MunicipalStep }) {
   const initialProject = Route.useLoaderData();
   const { slug } = Route.useParams();
   const cache = useQueryClient();
@@ -194,25 +198,20 @@ function MunicipalProjectPage() {
   });
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const step =
-    search.step ??
-    (search.tab === "rapporter"
-      ? "rapport"
-      : search.tab === "grundlag"
-        ? "datagrundlag"
-        : "billeder");
   if (isError || !project)
     return <p className="p-6">Sagen kunne ikke åbnes. Kontrollér din adgang, og prøv igen.</p>;
   return (
     <MunicipalCaseWorkspace
+      embedded
       project={project}
       step={step}
       selectedRoundId={search.round}
       selectedActionId={search.task}
       initialWorkOrderView={search.work}
       onSelectAction={(task) => void navigate({ search: { ...search, task }, replace: true })}
-      utility={search.tab === "audit" || search.tab === "roller" ? search.tab : undefined}
-      onStep={(next) => void navigate({ search: { ...search, tab: undefined, step: next } })}
+      onStep={(next) =>
+        void navigate({ search: projectViewSearch(search, { kind: "step", id: next }) })
+      }
       onRound={(round) => {
         void cache.invalidateQueries({ queryKey: ["project-by-slug", slug] });
         void cache.invalidateQueries({ queryKey: ["public-baselines", project.id] });
@@ -221,7 +220,7 @@ function MunicipalProjectPage() {
     />
   );
 }
-function ProjectDetailPage() {
+function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
   const { slug } = Route.useParams();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -246,7 +245,7 @@ function ProjectDetailPage() {
   const fieldAccess = useQuery({
     queryKey: ["field-photo-upload-access", accessUser?.id, project?.id],
     queryFn: () => loadFieldAccess({ data: { projectId: project!.id } }),
-    enabled: !!project && !!accessUser && search.tab === "medier",
+    enabled: !!project && !!accessUser && activeTab === "medier",
     retry: false,
   });
   // Keep an existing form mounted while a focus-triggered permission check runs.
@@ -422,14 +421,6 @@ function ProjectDetailPage() {
   const sensorActions = suggestSensorActions(sensors);
   return (
     <main className="min-w-0 p-3 sm:p-6 max-w-[1200px] w-full mx-auto space-y-4 sm:space-y-5 pb-16">
-      <Link
-        to="/app/projects/$slug"
-        params={{ slug }}
-        search={{ step: "billeder", round: search.round, task: search.task }}
-        className="inline-block text-sm text-primary underline underline-offset-4"
-      >
-        Til det guidede sagsforløb
-      </Link>
       <ProjectHeader
         canEdit={canEdit}
         project={project}
@@ -438,13 +429,7 @@ function ProjectDetailPage() {
         openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
       />
 
-      <ProjectFieldShortcuts projectId={projectId} round={search.round} task={search.task} />
-
-      <ProjectTabs
-        tabs={TABS}
-        activeTab={search.tab ?? "overblik"}
-        onTabChange={(tab) => void navigate({ search: { ...search, tab }, replace: true })}
-      >
+      <ProjectTabs tabs={TABS} activeTab={activeTab} showNavigation={false} retainVisitedPanels>
         {(active) => (
           <>
             {active === "arbejde" && (
@@ -802,63 +787,96 @@ function ProjectDetailPage() {
 
             {/* ── Medier ─────────────────────────────────────────────────── */}
             {active === "medier" && (
-              <div
-                className={`grid min-w-0 gap-5 ${canUploadFieldPhoto ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
-              >
-                {canUploadFieldPhoto && (
-                  <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-3">
-                    <ProjectMediaUploadPanel
-                      projectId={projectId}
-                      fieldPhotosOnly={!hasPhotoEditorAccess}
-                      accessPending={actualAccess.isFetching || fieldAccess.isFetching}
-                      projectCentroid={geometry.centroid ?? undefined}
-                      onUploadComplete={() =>
-                        void queryClient.invalidateQueries({
-                          queryKey: ["project-media", projectId],
-                        })
-                      }
-                      onDroneBatchImported={() => void droneUploadsQuery.refetch()}
-                    />
-                  </div>
-                )}
-                <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-                  {project.organization_id ? (
-                    <ProjectPhotoAtlas
-                      key={projectId}
-                      scope={{ organizationId: project.organization_id, projectId }}
-                      projectName={project.name}
-                      organizationName={currentOrg?.name ?? "Organisation ikke valgt"}
-                      purpose={project.description ?? ""}
-                      canEdit={canEdit}
-                      media={mediaItems}
-                    />
-                  ) : (
-                    <p className="rounded-lg border p-4">
-                      Projektet skal tilknyttes en organisation, før fotoatlas kan indlæses og
-                      gemmes.
-                    </p>
+              <>
+                <Link
+                  to="/felt"
+                  search={{ project: projectId, round: search.round, task: search.task }}
+                  className="inline-flex min-h-11 items-center rounded-lg border bg-card px-4 py-2 text-sm font-medium text-primary"
+                >
+                  Gem projektets feltarbejde på telefonen til offlinebrug
+                </Link>
+                <div
+                  className={`grid min-w-0 gap-5 ${canUploadFieldPhoto ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}
+                >
+                  {canUploadFieldPhoto && (
+                    <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-3">
+                      <ProjectMediaUploadPanel
+                        projectId={projectId}
+                        fieldPhotosOnly={!hasPhotoEditorAccess}
+                        accessPending={actualAccess.isFetching || fieldAccess.isFetching}
+                        projectCentroid={geometry.centroid ?? undefined}
+                        onUploadComplete={() =>
+                          void queryClient.invalidateQueries({
+                            queryKey: ["project-media", projectId],
+                          })
+                        }
+                        onDroneBatchImported={() => void droneUploadsQuery.refetch()}
+                      />
+                    </div>
                   )}
-                </div>
-                {geometry.hasValidGeometry && (
-                  <div className="min-w-0 rounded-xl overflow-hidden border lg:col-start-1">
-                    <ProjectGeometryMap
-                      geometry={geometry}
-                      projectName={project.name}
-                      height={280}
-                      mediaItems={mediaItems.filter((m) => !!m.coordinates)}
-                    />
+                  <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+                    {project.organization_id ? (
+                      <ProjectPhotoAtlas
+                        key={projectId}
+                        scope={{ organizationId: project.organization_id, projectId }}
+                        projectName={project.name}
+                        organizationName={currentOrg?.name ?? "Organisation ikke valgt"}
+                        purpose={project.description ?? ""}
+                        canEdit={canEdit}
+                        media={mediaItems}
+                      />
+                    ) : (
+                      <p className="rounded-lg border p-4">
+                        Projektet skal tilknyttes en organisation, før fotoatlas kan indlæses og
+                        gemmes.
+                      </p>
+                    )}
                   </div>
-                )}
-                <div className="min-w-0 lg:col-start-1">
-                  <ProjectMediaGallery items={mediaItems} isLoading={mediaLoading} />
+                  {geometry.hasValidGeometry && (
+                    <div className="min-w-0 rounded-xl overflow-hidden border lg:col-start-1">
+                      <ProjectGeometryMap
+                        geometry={geometry}
+                        projectName={project.name}
+                        height={280}
+                        mediaItems={mediaItems.filter((m) => !!m.coordinates)}
+                      />
+                    </div>
+                  )}
+                  <div className="min-w-0 lg:col-start-1">
+                    <ProjectMediaGallery items={mediaItems} isLoading={mediaLoading} />
+                  </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* ── Rapporter ──────────────────────────────────────────────── */}
             {active === "rapporter" && (
               <div className="space-y-4">
-                <MunicipalReportPanel projectId={projectId} />
+                {project.organization_id && (
+                  <>
+                    <WorkflowReportPanel
+                      scope={{ projectId: project.id, organizationId: project.organization_id }}
+                      selectedRoundId={search.round}
+                      canEdit={canEdit}
+                    />
+                    <WorkflowFollowupPanel
+                      scope={{ projectId: project.id, organizationId: project.organization_id }}
+                      canEdit={canEdit}
+                    />
+                  </>
+                )}
+                <MunicipalReportPanel
+                  projectId={projectId}
+                  selectedRoundId={search.round}
+                  onSelectRound={(round) =>
+                    void navigate({
+                      search: projectViewSearch(
+                        { ...search, round },
+                        { kind: "tab", id: "rapporter" },
+                      ),
+                    })
+                  }
+                />
                 <DroneImageInspectionPanel projectId={projectId} />
                 <details>
                   <summary className="cursor-pointer text-sm text-muted-foreground">

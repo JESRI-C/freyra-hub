@@ -271,7 +271,11 @@ function TaskCard({
             >
               Registrér udført arbejde
             </Link>
-            <Link to="/felt" search={{ project: task.project_id }} className={button}>
+            <Link
+              to="/felt"
+              search={{ project: task.project_id, task: task.action_id }}
+              className={button}
+            >
               Tag fotos på projektet
             </Link>
           </div>

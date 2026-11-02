@@ -53,6 +53,12 @@ vi.mock("@/lib/supabase/client", () => ({ isSupabaseConfigured: false, supabase:
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/components/project/ProjectHeader", () => ({ ProjectHeader: () => null }));
 vi.mock("@/components/project/ProjectTabs", () => ({ ProjectTabs: () => null }));
+// Test the route's evidence guards directly; the shell's Suspense/retention behavior
+// is exercised in ProjectWorkspaceShell.test.tsx, not through server-render fallbacks.
+vi.mock("@/components/project/ProjectWorkspaceShell", () => ({
+  ProjectWorkspaceShell: ({ renderTab }: { renderTab: (tab: string) => React.ReactNode }) =>
+    renderTab("overblik"),
+}));
 // This test exercises the route's data guards. Atlas behavior has its own tests.
 vi.mock("@/components/project-workspace/ProjectPhotoAtlas", () => ({
   ProjectPhotoAtlas: () => null,

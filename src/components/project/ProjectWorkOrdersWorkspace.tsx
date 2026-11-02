@@ -319,6 +319,11 @@ function TaskWorkspace({
 }) {
   const [part, setPart] = useState<Part>(initialView ?? "plan");
   const [opened, setOpened] = useState<Set<Part>>(() => new Set([initialView ?? "plan"]));
+  useEffect(() => {
+    if (!initialView) return;
+    setOpened((old) => (old.has(initialView) ? old : new Set([...old, initialView])));
+    setPart(initialView);
+  }, [initialView]);
   const planEditing = useCallback((value: boolean) => onEditing("plan", value), [onEditing]);
   const fieldEditing = useCallback((value: boolean) => onEditing("field", value), [onEditing]);
   const executionEditing = useCallback(
@@ -379,7 +384,11 @@ function TaskWorkspace({
       >
         Fotos på projektet
       </Link>
-      <Link to="/felt" search={{ project: scope.projectId, round }} className={button}>
+      <Link
+        to="/felt"
+        search={{ project: scope.projectId, round, task: actionId }}
+        className={button}
+      >
         Tag fotos på projektet
       </Link>
     </div>

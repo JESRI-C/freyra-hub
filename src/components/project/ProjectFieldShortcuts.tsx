@@ -60,7 +60,7 @@ export function ProjectFieldShortcuts({
       </nav>
       <Link
         to="/felt"
-        search={{ project: projectId, round }}
+        search={{ project: projectId, round, task }}
         className="inline-flex min-h-11 items-center rounded-xl border bg-card px-4 py-2 text-sm font-medium text-primary"
       >
         Gem feltarbejdet på telefonen til offlinebrug

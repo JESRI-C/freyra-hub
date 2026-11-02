@@ -1,0 +1,108 @@
+{
+  "method": "All configured test files, each exactly once in bounded sequential batches; forks, one worker, file parallelism disabled. CLI timeout 30 seconds; source assertions and per-test limits unchanged.",
+  "files": 246,
+  "tests": 3301,
+  "passed": 3301,
+  "results": [
+    {
+      "batch": 1,
+      "files": 1,
+      "observedFiles": 1,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 16,
+      "passed": 16,
+      "failed": 0
+    },
+    {
+      "batch": 2,
+      "files": 30,
+      "observedFiles": 30,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 315,
+      "passed": 315,
+      "failed": 0
+    },
+    {
+      "batch": 3,
+      "files": 30,
+      "observedFiles": 30,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 371,
+      "passed": 371,
+      "failed": 0
+    },
+    {
+      "batch": 4,
+      "files": 30,
+      "observedFiles": 30,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 376,
+      "passed": 376,
+      "failed": 0
+    },
+    {
+      "batch": 5,
+      "files": 30,
+      "observedFiles": 30,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 306,
+      "passed": 306,
+      "failed": 0
+    },
+    {
+      "batch": 6,
+      "files": 30,
+      "observedFiles": 30,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 341,
+      "passed": 341,
+      "failed": 0
+    },
+    {
+      "batch": 7,
+      "files": 30,
+      "observedFiles": 30,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 337,
+      "passed": 337,
+      "failed": 0
+    },
+    {
+      "batch": 8,
+      "files": 30,
+      "observedFiles": 30,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 714,
+      "passed": 714,
+      "failed": 0
+    },
+    {
+      "batch": 9,
+      "files": 30,
+      "observedFiles": 30,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 466,
+      "passed": 466,
+      "failed": 0
+    },
+    {
+      "batch": 10,
+      "files": 5,
+      "observedFiles": 5,
+      "complete": true,
+      "exitCode": 0,
+      "tests": 59,
+      "passed": 59,
+      "failed": 0
+    }
+  ]
+}

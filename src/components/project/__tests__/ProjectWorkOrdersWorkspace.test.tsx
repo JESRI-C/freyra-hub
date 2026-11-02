@@ -154,6 +154,35 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("one task across the project workspaces", () => {
+  it("follows a field return link on the mounted task without discarding an opened editor", async () => {
+    const show = async (initialView: WorkOrderView) => {
+      await act(async () =>
+        root.render(
+          <QueryClientProvider client={cache}>
+            <ProjectWorkOrdersWorkspace
+              scope={scope}
+              selectedActionId="second"
+              canEdit
+              initialView={initialView}
+            />
+          </QueryClientProvider>,
+        ),
+      );
+      await settle();
+      await settle();
+    };
+    await show("plan");
+    await fill("Plan kladde", "Bevar planen");
+    await show("field");
+    expect(
+      [...host.querySelectorAll("button")]
+        .find((b) => b.textContent === "Feltregistrering")
+        ?.getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(host.querySelector<HTMLInputElement>('[aria-label="Plan"] input')!.value).toBe(
+      "Bevar planen",
+    );
+  });
   it("opens an execution entry link directly in the execution view without mounting the planning editor", async () => {
     await render("second", true, false, "execution");
     expect(host.querySelector('[aria-label="Plan"]')).toBeNull();

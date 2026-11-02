@@ -114,6 +114,7 @@ export function MunicipalCaseWorkspace({
   selectedActionId,
   onSelectAction,
   initialWorkOrderView,
+  embedded = false,
 }: {
   project: Project;
   step: MunicipalStep;
@@ -124,6 +125,7 @@ export function MunicipalCaseWorkspace({
   selectedActionId?: string;
   onSelectAction?: (id: string | undefined) => void;
   initialWorkOrderView?: WorkOrderView;
+  embedded?: boolean;
 }) {
   const { user, selectProject, projectId: selectedProjectId } = useAuth();
   useEffect(() => {
@@ -238,38 +240,40 @@ export function MunicipalCaseWorkspace({
   ];
   return (
     <main className="municipal-case mx-auto max-w-[1500px] space-y-6 p-4 pb-24 sm:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-        <Link
-          to="/app/projects"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Alle sager
-        </Link>
-        <div className="flex items-center gap-4">
+      {!embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <Link
-            to="/app/projects/$slug"
-            params={{ slug: project.slug ?? project.id }}
-            search={{ tab: "overblik", round: selectedRoundId }}
+            to="/app/projects"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
           >
-            Flere sagsværktøjer
+            <ArrowLeft className="size-4" />
+            Alle sager
           </Link>
-          <Link
-            to="/app/projects/$slug"
-            params={{ slug: project.slug ?? project.id }}
-            search={{ tab: "audit", step, round: selectedRoundId }}
-          >
-            Revisionsspor
-          </Link>
-          <Link
-            to="/app/projects/$slug"
-            params={{ slug: project.slug ?? project.id }}
-            search={{ tab: "roller", step, round: selectedRoundId }}
-          >
-            Adgang til sagen
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/app/projects/$slug"
+              params={{ slug: project.slug ?? project.id }}
+              search={{ tab: "overblik", round: selectedRoundId }}
+            >
+              Flere sagsværktøjer
+            </Link>
+            <Link
+              to="/app/projects/$slug"
+              params={{ slug: project.slug ?? project.id }}
+              search={{ tab: "audit", step, round: selectedRoundId }}
+            >
+              Revisionsspor
+            </Link>
+            <Link
+              to="/app/projects/$slug"
+              params={{ slug: project.slug ?? project.id }}
+              search={{ tab: "roller", step, round: selectedRoundId }}
+            >
+              Adgang til sagen
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
       <header className="rounded-2xl border bg-card p-5 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -288,37 +292,39 @@ export function MunicipalCaseWorkspace({
             {readOnly ? "Kommunal læseadgang" : "Sagens dokumentation"}
           </span>
         </div>
-        <nav
-          aria-label="Sagens seks trin"
-          className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6"
-        >
-          {MUNICIPAL_STEPS.map((item, i) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                aria-label={`${i + 1}. ${item.label} · ${status(item.id)}`}
-                title={item.label}
-                aria-current={!utility && step === item.id ? "step" : undefined}
-                onClick={() => onStep(item.id)}
-                className={`flex min-h-20 items-start gap-2 rounded-lg border px-3 py-3 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${step === item.id && !utility ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background/60 hover:border-primary"}`}
-              >
-                {done[item.id] ? (
-                  <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                ) : (
-                  <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                )}
-                <span className="min-w-0">
-                  <span className="block font-medium">
-                    {i + 1}. {item.label}
+        {!embedded && (
+          <nav
+            aria-label="Sagens trin"
+            className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6"
+          >
+            {MUNICIPAL_STEPS.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={`${i + 1}. ${item.label} · ${status(item.id)}`}
+                  title={item.label}
+                  aria-current={!utility && step === item.id ? "step" : undefined}
+                  onClick={() => onStep(item.id)}
+                  className={`flex min-h-20 items-start gap-2 rounded-lg border px-3 py-3 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${step === item.id && !utility ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background/60 hover:border-primary"}`}
+                >
+                  {done[item.id] ? (
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  )}
+                  <span className="min-w-0">
+                    <span className="block font-medium">
+                      {i + 1}. {item.label}
+                    </span>
+                    <span className="mt-1 block text-xs opacity-80">{status(item.id)}</span>
                   </span>
-                  <span className="mt-1 block text-xs opacity-80">{status(item.id)}</span>
-                </span>
-              </button>
-            );
-          })}
-        </nav>
+                </button>
+              );
+            })}
+          </nav>
+        )}
       </header>
       {utility ? (
         <section className="space-y-4">
