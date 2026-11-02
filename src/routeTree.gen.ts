@@ -23,6 +23,7 @@ import { Route as AppSourcesRouteImport } from './routes/app.sources'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppPublicImpactRouteImport } from './routes/app.public-impact'
+import { Route as AppProgramRouteImport } from './routes/app.program'
 import { Route as AppOverviewRouteImport } from './routes/app.overview'
 import { Route as AppLedgerRouteImport } from './routes/app.ledger'
 import { Route as AppLavbundRouteImport } from './routes/app.lavbund'
@@ -170,6 +171,11 @@ const AppReportsRoute = AppReportsRouteImport.update({
 const AppPublicImpactRoute = AppPublicImpactRouteImport.update({
   id: '/public-impact',
   path: '/public-impact',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProgramRoute = AppProgramRouteImport.update({
+  id: '/program',
+  path: '/program',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOverviewRoute = AppOverviewRouteImport.update({
@@ -594,6 +600,7 @@ export interface FileRoutesByFullPath {
   '/app/lavbund': typeof AppLavbundRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
+  '/app/program': typeof AppProgramRoute
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
@@ -683,6 +690,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/app/data': typeof AppDataRoute
   '/app/overview': typeof AppOverviewRoute
+  '/app/program': typeof AppProgramRoute
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/sources': typeof AppSourcesRoute
   '/app/system-test': typeof AppSystemTestRoute
@@ -776,6 +784,7 @@ export interface FileRoutesById {
   '/app/lavbund': typeof AppLavbundRouteWithChildren
   '/app/ledger': typeof AppLedgerRouteWithChildren
   '/app/overview': typeof AppOverviewRoute
+  '/app/program': typeof AppProgramRoute
   '/app/public-impact': typeof AppPublicImpactRoute
   '/app/reports': typeof AppReportsRouteWithChildren
   '/app/settings': typeof AppSettingsRouteWithChildren
@@ -872,6 +881,7 @@ export interface FileRouteTypes {
     | '/app/lavbund'
     | '/app/ledger'
     | '/app/overview'
+    | '/app/program'
     | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
@@ -961,6 +971,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/app/data'
     | '/app/overview'
+    | '/app/program'
     | '/app/public-impact'
     | '/app/sources'
     | '/app/system-test'
@@ -1053,6 +1064,7 @@ export interface FileRouteTypes {
     | '/app/lavbund'
     | '/app/ledger'
     | '/app/overview'
+    | '/app/program'
     | '/app/public-impact'
     | '/app/reports'
     | '/app/settings'
@@ -1246,6 +1258,13 @@ declare module '@tanstack/react-router' {
       path: '/public-impact'
       fullPath: '/app/public-impact'
       preLoaderRoute: typeof AppPublicImpactRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/program': {
+      id: '/app/program'
+      path: '/program'
+      fullPath: '/app/program'
+      preLoaderRoute: typeof AppProgramRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/overview': {
@@ -2000,6 +2019,7 @@ interface AppRouteChildren {
   AppLavbundRoute: typeof AppLavbundRouteWithChildren
   AppLedgerRoute: typeof AppLedgerRouteWithChildren
   AppOverviewRoute: typeof AppOverviewRoute
+  AppProgramRoute: typeof AppProgramRoute
   AppPublicImpactRoute: typeof AppPublicImpactRoute
   AppReportsRoute: typeof AppReportsRouteWithChildren
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
@@ -2021,6 +2041,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLavbundRoute: AppLavbundRouteWithChildren,
   AppLedgerRoute: AppLedgerRouteWithChildren,
   AppOverviewRoute: AppOverviewRoute,
+  AppProgramRoute: AppProgramRoute,
   AppPublicImpactRoute: AppPublicImpactRoute,
   AppReportsRoute: AppReportsRouteWithChildren,
   AppSettingsRoute: AppSettingsRouteWithChildren,

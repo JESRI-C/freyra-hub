@@ -18,6 +18,7 @@ import {
   FlaskConical,
   Droplets,
   Menu,
+  Network,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import logoMark from "@/assets/gofreyra-logo.png";
@@ -31,6 +32,7 @@ const GROUPS: SidebarGroup[] = [
     label: "Arbejdsflow",
     items: [
       { to: "/app/overview", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/app/program", label: "Programoverblik", icon: Network },
       { to: "/opgaver", label: "Mine opgaver", icon: BookCheck },
       { to: "/app/projects", label: "Naturprojekter", icon: FolderOpen },
       { to: "/app/reports", label: "Rapporter", icon: FileText },

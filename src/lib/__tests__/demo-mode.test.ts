@@ -102,7 +102,30 @@ describe("kommunens arbejdsflade", () => {
     const { AppSidebar } = await import("@/components/AppSidebar");
     const html = renderToStaticMarkup(createElement(AppSidebar));
     const navigation = html.match(/<nav\b[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? "";
-    expect(navigation.match(/href="[^"]+"/g)).toHaveLength(17);
+    const links = [...navigation.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+    expect(links.sort()).toEqual(
+      [
+        "/app/overview",
+        "/app/program",
+        "/opgaver",
+        "/app/projects",
+        "/app/reports",
+        "/app/connect/map",
+        "/app/construction",
+        "/app/connect",
+        "/app/lavbund",
+        "/app/decisions",
+        "/app/ledger",
+        "/app/sources",
+        "/app/connect/registry",
+        "/app/impact",
+        "/app/public-impact",
+        "/app/settings",
+        "/app/settings/users",
+        "/app/system-test",
+      ].sort(),
+    );
+    expect(navigation).toContain("Programoverblik");
     expect(navigation).toContain('href="/opgaver"');
     expect(navigation).toContain("Mine opgaver");
     expect(navigation).toContain('href="/app/overview"');

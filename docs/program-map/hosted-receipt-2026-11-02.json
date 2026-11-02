@@ -1,0 +1,41 @@
+{
+  "schema": "freyra.program-map-hosted/v1",
+  "sourceRevision": "92c638baa0cdabd8d09b12569b86afd35268a327",
+  "syntheticReadOnlyFixture": true,
+  "submissionDeepLink": true,
+  "sharedTaskGuide": true,
+  "plannedHasNoAction": true,
+  "emptyFilterRecovery": true,
+  "accessibleFilters": true,
+  "skyhostSearchFindsExistingTools": true,
+  "selectedProjectLinks": true,
+  "skyhostTenAreas": true,
+  "mobileWidths": [
+    390,
+    320
+  ],
+  "sharedGlobalGuide": true,
+  "evidenceDeepLink": true,
+  "sharedProjectGuide": true,
+  "result": "PASS",
+  "staging": {
+    "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/program",
+    "workerVersion": "4acbcaaa-83bb-4372-a13c-ed4286c0d667",
+    "schemaChanged": false
+  },
+  "ci": {
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41510845863",
+    "result": "PASS",
+    "applicationTests": 3404,
+    "applicationFiles": 254,
+    "databaseTests": 1516,
+    "databaseFiles": 23
+  },
+  "limits": {
+    "physicalPhoneAcceptance": "pending",
+    "allFeatureAcceptance": "pending",
+    "customerAcceptance": "pending",
+    "fullSkyhostParity": "pending",
+    "productionChanged": false
+  }
+}

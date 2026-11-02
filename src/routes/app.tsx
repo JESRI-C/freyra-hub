@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/AppSidebar";
+import { AppWorkspaceGuide } from "@/components/AppWorkspaceGuide";
 import { GlobalContextBar } from "@/components/GlobalContextBar";
 import { ProjectContextBoundary } from "@/components/ProjectContextBoundary";
 import { useAuth } from "@/lib/auth";
@@ -28,6 +29,7 @@ function AppLayout() {
           {orgId ? (
             <>
               <GlobalContextBar />
+              <AppWorkspaceGuide />
               <Outlet />
             </>
           ) : (
