@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.3 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.4 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Mål:** Freyra skal dække den fulde kortlagte funktionalitet i Skyhost Jobs og Geotag og samle den med Freyras eksisterende fagmoduler. Kunden kan planlægge, fordele, udføre, kontrollere og dokumentere et naturprojekt i ét sammenhængende program, inklusive de kortlagte driftsfunktioner. Eksisterende kode genbruges med samme projekt-, opgave-, fil- og versionsidentitet på computer og telefon. Alle eksisterende fagområder bevares og får en tydelig plads; funktioner åbnes i takt med dokumenteret anvendelighed.
 
@@ -16,6 +16,16 @@ brugbarhedsvurdering er fortsat åben. Kilde `06c438b…` er nu på staging med
 [frosne afleveringsgrundlag](OPGAVE_AFLEVERING_SAMLING.md), bestået gennem
 app, database, genforsøg og afgrænset ekstern læsning. S04/D05 er delvis;
 review, versionsbundne fagkrav og rapportkilder er næste integrationsarbejde.
+
+**Kortlægning og fælles præsentation:** Kilde `92c638b…` er nu på staging
+med [Programoverblik og ensartede forklaringer](PROGRAMKORT_OG_ENSARTET_VISNING_2026-11-02.md).
+Alle 71 kanoniske produktsidevisninger, 20 projektværktøjer, fem opgavedele
+og 68 eksisterende krav er placeret. Skyhosts ti jobområder, fem konkrete
+integrationskandidater og 14 planlagte områder er synlige med deres faktiske
+afgrænsning. 867 kilde-/testfiler og tre ældre TypeScript-træer er sammenholdt.
+CI og faktisk læsende browserprøve bestod. Eksisterende kode, menuindgange,
+projekt-/opgaveidentitet og originaler bevares. Fuld funktionel paritet og
+Jespers brugbarhedsaccept er fortsat åbne.
 
 **Teknisk del fra den tidligere leverance:** Navigationen og den afgrænsede S02-kobling er i det
 autoriserede testmiljø på appkilde `46bf6df…`. Login → plan → registrering →

@@ -361,3 +361,45 @@ original, gammel funktion, produktion eller ekstern besked er ændret.
 rapportbinding mangler. Hele Skyhost-målet, fysisk telefon og Jespers
 brugbarhedsaccept er fortsat åbne. Ingen merge, produktionsrelease,
 mail/invitation eller aktivering af betalt udbyder er udført.
+
+## Hele programkortet og samme præsentation
+
+Jespers opfølgning om at kortlægge det hele og vise det på samme måde er
+omsat til [Programoverblik](PROGRAMKORT_OG_ENSARTET_VISNING_2026-11-02.md)
+i appen. Samme præsentationsregister forbinder 71 kanoniske sidevisninger,
+20 projektværktøjer, fem opgavedele, de ti Skyhost-jobområder og alle 68
+eksisterende krav. 115 kortpunkter skelner mellem eksisterende visning,
+under udbygning, afventer samling og planlagt. De er ikke 115
+færdigaccepterede funktioner. Fælles WorkspaceGuide beskriver formål,
+arbejde og resultat i de eksisterende arbejdsrum. Søgning på jobkort,
+Geotag og tjeklister finder de tilsvarende eksisterende opgavedele.
+
+867 JS-/TS-filer, 93 routedefinitioner og lokale importrelationer er
+inventeret. Ingen fundne produktsider er uden mapping. Tidligere
+TypeScript-træer med 599/650/656 filer har ingen særskilte filstier, der
+mangler i nyeste kode; indholdsforskelle er bevaret til review. Den gamle
+JSX-prototype og alle tidligere træer er bevaret. 97 ikke-nåede
+produktionsfiler er klassificeret som undersøgelseskandidater, aldrig
+automatisk slettet eller erklæret færdige funktioner.
+
+Kilde `92c638baa0cdabd8d09b12569b86afd35268a327`, kladde
+[PR39](https://github.com/JESRI-C/freyra-hub/pull/39) oven på PR38,
+bestod [CI 41510845863](https://github.com/JESRI-C/freyra-hub/actions/runs/41510845863):
+3.404 app-tests/254 filer, 1.516 databasekontroller/23 filer og de fulde
+type-/lint-/build-/samtidigheds-/restorekontroller. Den eksisterende
+menutest er udvidet til at kontrollere alle 17 oprindelige links plus
+Programoverblik. Ingen gamle indgange er fjernet.
+
+Staging-Worker `4acbcaaa-83bb-4372-a13c-ed4286c0d667` og offentlig
+buildmetadata matcher kilden. Hosted browser bestod de navngivne filtre,
+tom søgning/nulstilling, Skyhost-søgning, korrekt naturprojekt, alle ti
+jobområder, inaktive planlagte funktioner, 320/390-pixel-visning, direkte
+Dokumentation/Aflevering-links og samme formål/resultat på repræsentative
+projekt-/opgave-/globalsider. Browseren gav ingen JavaScript-sidefejl.
+Skærmbilleder er gennemgået. Testscript og maskinkvittering er bevaret.
+
+Der er ingen hosted databaseændring, merge, produktionsændring, besked,
+AI-/Images-kald eller aktivering af betalt udbyder. Læseprøven genbrugte
+den eksisterende syntetiske sag uden at skrive projektdata eller filer.
+Begge brugerændrede Jobs/Geotag-dokumenters SHA-256 er uændret. Fysisk
+telefon, brugbarhedsaccept og fuld Skyhost-paritet er fortsat åbne.
