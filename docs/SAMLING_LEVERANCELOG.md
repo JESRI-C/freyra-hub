@@ -125,3 +125,22 @@ Ingen hosted migration, deployment, merge, mail eller betalt providerkald.
 - Standardkørslernes tidsoverskridelser står ovenfor; de erklæres ikke bestået.
   Ingen assertions eller testkildefiler er svækket af opdelingen.
 - Bygning og dens præcise kilde-SHA registreres i en efterfølgende kvittering.
+
+### Efterfølgende afgrænset S03-forbedring
+
+Integrationskoden ovenfor er gemt i `1accaab`. En afsluttende gennemgang
+viste, at den gamle detaljeside indlæste eksternt miljøgrundlag med Suspense
+for alle faner, også rapporter og opgaver. Det blev en unødvendig afhængighed
+for de nu samlede indgange.
+
+Miljøkilder indlæses nu særskilt, når en indlogget bruger åbner Miljødata
+eller Projektkort. Cacheidentiteten indeholder aktør, organisation, projekt
+og de sted-/geometriinput, som forespørgslen faktisk bruger. Kildefejl viser
+ukendt og genforsøg frem for gamle miljøværdier. Projekt-/foto-/rapportdata
+og deres eksisterende fejlstop er bevaret.
+
+Den afgrænsede opfølgning består 20/20 relevante route-/datagrundlagsprøver
+i tre filer. Den nye prøve verificerer, at rapporter og opgaver ikke starter
+miljøkald, og at miljøvisningen aktiverer dem i den rette aktør-/projektkontekst.
+Den fulde opdelte 3.301-testkørsel ovenfor gælder `1accaab`; denne lille
+opfølgning har sin egen målrettede genprøve og efterfølgende type-/byggekontrol.

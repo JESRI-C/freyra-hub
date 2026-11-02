@@ -287,9 +287,22 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
     queryKey: ["observations", projectId],
     queryFn: () => getObservationsByProject(projectId, 10),
   });
-  // Environmental context query
-  const { data: environmentalCtx } = useSuspenseQuery({
-    queryKey: ["environmental-context", slug],
+  // Optional external sources must not delay opening tasks or a saved report.
+  const environmentalQuery = useQuery({
+    queryKey: [
+      "environmental-context",
+      accessUser?.id,
+      project?.organization_id,
+      projectId,
+      project?.geometry_polygon,
+      project?.geometry_centroid_lat,
+      project?.geometry_centroid_lng,
+      project?.municipality,
+      project?.name,
+      project?.location_name,
+    ],
+    enabled: !!project && !!accessUser && (activeTab === "miljodata" || activeTab === "livekort"),
+    retry: false,
     queryFn: () => {
       const geometry = resolveProjectGeometry(project);
       return buildProjectEnvironmentalContext(
@@ -301,6 +314,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
       );
     },
   });
+  const environmentalCtx = environmentalQuery.isError ? undefined : environmentalQuery.data;
   // Sites and data sources — DB-backed via suspense query
   const { data: sites } = useSuspenseQuery({
     queryKey: ["sites", projectId],
@@ -908,7 +922,21 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                     subtitle="Åbne datakilder fra Danmark og EU — preview-analyse baseret på projektlokation"
                   />
                   <div className="px-5 pb-5">
-                    {environmentalCtx ? (
+                    {environmentalQuery.isError ? (
+                      <div role="alert" className="space-y-2">
+                        <p>Miljøkilderne kunne ikke hentes. Status er ukendt.</p>
+                        <button
+                          type="button"
+                          className="min-h-11 underline"
+                          disabled={environmentalQuery.isFetching}
+                          onClick={() => void environmentalQuery.refetch()}
+                        >
+                          Hent miljøkilder igen
+                        </button>
+                      </div>
+                    ) : environmentalQuery.isPending ? (
+                      <p role="status">Henter miljøkilder…</p>
+                    ) : environmentalCtx ? (
                       <ProjectEnvironmentalDashboard ctx={environmentalCtx} />
                     ) : (
                       <p className="text-sm text-muted-foreground py-4">
@@ -923,6 +951,22 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
             {/* ── Livekort ────────────────────────────────────────────────── */}
             {active === "livekort" && (
               <div className="space-y-4">
+                {environmentalQuery.isError && (
+                  <div role="alert" className="space-y-2">
+                    <p>
+                      Miljøkilderne kunne ikke hentes. Kortets projekt- og fotopositioner vises uden
+                      nye miljømålinger.
+                    </p>
+                    <button
+                      type="button"
+                      className="min-h-11 underline"
+                      disabled={environmentalQuery.isFetching}
+                      onClick={() => void environmentalQuery.refetch()}
+                    >
+                      Hent miljøkilder igen
+                    </button>
+                  </div>
+                )}
                 <div className="flex justify-end">
                   <Link
                     to="/app/projects/map/$slug"
