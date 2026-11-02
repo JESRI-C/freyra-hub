@@ -1,0 +1,95 @@
+{
+  "schema": "freyra.submission-staging-receipt/v1",
+  "observedDate": "2026-11-02",
+  "sourceRevision": "06c438b8f78fb4827a5f29a0b63173ac309847ce",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/38",
+  "staging": {
+    "baseUrl": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+    "workerVersion": "bb911f1c-186f-4bc6-8641-d075d5f8c80d",
+    "supabaseRef": "xdvqdzdpyceojbdknofi",
+    "migrationVersion": "20261102180652",
+    "migrationCount": 45,
+    "migrationSha256": "c5579a893cccadc204f2a930eedd3d98a6231fb9d41ffc5399f3fd665b233b2f",
+    "sqlNormalizedMd5": "b9c7430c8916ac21c3aacfa1405d17d7"
+  },
+  "ci": {
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41500655142",
+    "result": "PASS",
+    "applicationTests": 3394,
+    "applicationFiles": 252,
+    "databaseTests": 1516,
+    "databaseFiles": 23
+  },
+  "hosted": {
+    "fixtureRun": "697f6f13",
+    "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+    "actionId": "f5ef08af-ecc9-40ac-a7c1-bfbe632280a8",
+    "latestSubmissionVersion": 3,
+    "syntheticOnly": true,
+    "lostResponseSameRequestOneRevision": true,
+    "frozenFirstPacketUnchanged": true,
+    "zeroFalseUnknownPreserved": true,
+    "originalSha256": "8343c81af5a4d07b716cf60482c91c5422e7721554eed642f1102e8c2c3be23e",
+    "uiOriginalDownloadHashMatched": true,
+    "withdrawnEvidenceDeniedNewOriginalUrl": true,
+    "externalReadOnlyBrowser390": true,
+    "externalApiWriteDenied": "42501",
+    "externalRevocationApiAndBrowser": true,
+    "testOnlyExternalGrantClosed": true,
+    "desktopAnd390NoHorizontalOverflow": true
+  },
+  "preservation": {
+    "media": {
+      "before": 117,
+      "after": 117,
+      "missing": 0,
+      "changed": 0,
+      "added": 0
+    },
+    "actions": {
+      "before": 22,
+      "after": 23,
+      "missing": 0,
+      "changed": 0,
+      "added": 1
+    },
+    "projects": {
+      "before": 52,
+      "after": 52,
+      "missing": 0,
+      "changed": 0,
+      "added": 0
+    },
+    "workspace": {
+      "before": 36,
+      "after": 37,
+      "missing": 0,
+      "changed": 0,
+      "added": 1
+    },
+    "storageObjects": {
+      "before": 260,
+      "after": 260,
+      "missing": 0,
+      "changed": 0,
+      "added": 0
+    }
+  },
+  "securityAdvisors": {
+    "before": 21,
+    "after": 21,
+    "added": [],
+    "removed": []
+  },
+  "status": {
+    "S04": "partial",
+    "D05": "partial",
+    "physicalPhoneAcceptance": "pending",
+    "customerAcceptance": "pending",
+    "skyhostParity": "pending",
+    "productionChanged": false,
+    "merged": false,
+    "emailsSent": false,
+    "paidProvidersActivated": false
+  }
+}
