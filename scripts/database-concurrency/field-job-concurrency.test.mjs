@@ -827,6 +827,89 @@ try {
     actualLockVerified: true,
     originalPreservedByRollback: true,
   });
+  // D05b uses the same task, immutable sources and real PostgreSQL lock witnesses.
+  const reviewLogin = `SELECT set_config('request.jwt.claim.sub',${poolActor},true);`;
+  const reviewOperation = (expected, operation, target, packetVersion, request) =>
+    `public.mutate_work_order_lifecycle(${submissionAction},${org},${project},${expected},
+     jsonb_build_object('operation',${q(operation)},'targetStatus',${q(target)},
+      'submissionVersionId',(SELECT id FROM public.work_order_submission_versions WHERE action_id=${submissionAction} AND version=${packetVersion}),
+      'planVersionId',(SELECT plan_version_id FROM public.work_order_submission_versions WHERE action_id=${submissionAction} AND version=${packetVersion}),
+      'assignmentVersionId',(SELECT assignment_version_id FROM public.work_order_submission_versions WHERE action_id=${submissionAction} AND version=${packetVersion}),
+      'executionRevisionId',(SELECT execution_revision_id FROM public.work_order_submission_versions WHERE action_id=${submissionAction} AND version=${packetVersion}),
+      'reviewScope',${operation === "review" ? "'execution_and_documentation'" : "NULL"},'reason','Synthetic explicit scope and findings'),${q(request)})`;
+  await query(`BEGIN;${login}
+    SELECT id FROM public.save_work_order_access(${submissionAction},${org},${project},${poolActor},0,true,false,true,'Synthetic independent reviewer',${q(randomUUID())});
+    SELECT id FROM ${reviewOperation(5, "submit", "submitted", 3, randomUUID())};COMMIT;`);
+  const reviewStorage = new Session();
+  reviewStorage.write(
+    `BEGIN;SELECT json_build_object('pid',pg_backend_pid());UPDATE storage.objects SET version='Synthetic uncommitted review source' WHERE id=(SELECT object_id FROM public.field_photo_receipts WHERE upload_id=${q(upload)});SELECT 'REVIEW_STORAGE_HELD';`,
+  );
+  await reviewStorage.marker("REVIEW_STORAGE_HELD");
+  const reviewRequest = randomUUID();
+  const reviewWinner = await transaction(
+    `${reviewLogin} SELECT json_build_object('id',id) FROM ${reviewOperation(6, "review", "approved", 3, reviewRequest)};`,
+    "REVIEW_HELD",
+  );
+  await actualLock(reviewWinner, reviewStorage);
+  reviewStorage.write("ROLLBACK;SELECT 'REVIEW_STORAGE_ROLLED_BACK';");
+  await reviewStorage.marker("REVIEW_STORAGE_ROLLED_BACK");
+  await reviewStorage.close();
+  await reviewWinner.marker("REVIEW_HELD");
+  scenarios.push({
+    name: "review_waits_for_exact_original_metadata",
+    actualLockVerified: true,
+    originalPreservedByRollback: true,
+  });
+  const reviewStale = await transaction(
+    `${reviewLogin}${capture(reviewOperation(6, "review", "returned", 3, randomUUID()))}`,
+    "REVIEW_STALE",
+  );
+  await actualLock(reviewStale, reviewWinner);
+  await commit(reviewWinner);
+  await reviewStale.marker("REVIEW_STALE");
+  assert.equal(reviewStale.rows().find((row) => row.result)?.result, "PT409");
+  await commit(reviewStale);
+  scenarios.push({
+    name: "competing_review_decision",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+  });
+  const reviewRetryWinner = await transaction(
+    `${reviewLogin}SELECT json_build_object('id',id) FROM ${reviewOperation(6, "review", "approved", 3, reviewRequest)};`,
+    "REVIEW_RETRY_HELD",
+  );
+  await reviewRetryWinner.marker("REVIEW_RETRY_HELD");
+  const reviewRetry = await transaction(
+    `${reviewLogin}SELECT json_build_object('id',id) FROM ${reviewOperation(6, "review", "approved", 3, reviewRequest)};`,
+    "REVIEW_RETRY_DONE",
+  );
+  await actualLock(reviewRetry, reviewRetryWinner);
+  await commit(reviewRetryWinner);
+  await reviewRetry.marker("REVIEW_RETRY_DONE");
+  assert.equal(
+    reviewRetry.rows().find((row) => row.id)?.id,
+    reviewWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(reviewRetry);
+  const [reviewAfter] = await query(
+    `SELECT json_build_object('versions',(SELECT count(*) FROM public.work_order_lifecycle_versions WHERE action_id=${submissionAction} AND operation='review'),'events',(SELECT count(*) FROM public.audit_events WHERE entity_id=${submissionAction} AND event_type='work_order.lifecycle_changed' AND after_data->>'operation'='review'));`,
+  );
+  assert.deepEqual(reviewAfter, { versions: 1, events: 1 });
+  scenarios.push({
+    name: "identical_review_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
+  const pendingReviews = await query(`BEGIN;${login}
+    SELECT id FROM ${reviewOperation(7, "reopen", "reopened", 3, randomUUID())};
+    SELECT id FROM ${submissionLifecycle(8, "performed")};
+    SELECT id FROM public.save_work_order_submission(${submissionAction},${org},${project},3,public.get_work_order_submission_context(${submissionAction},${org},${project})->>'basis_hash','Synthetic new review cycle',${q(randomUUID())});
+    SELECT id FROM ${reviewOperation(9, "submit", "submitted", 4, randomUUID())};
+    SELECT json_build_object('packet',jsonb_build_object('id',id,'planVersionId',plan_version_id,'assignmentVersionId',assignment_version_id,'executionRevisionId',execution_revision_id)) FROM public.work_order_submission_versions WHERE action_id=${submissionAction} AND version=4;
+    COMMIT;`);
+  const pendingReviewPacket = pendingReviews.find((row) => row.packet)?.packet;
+  assert(pendingReviewPacket?.id, "A fresh pending review packet must exist");
   // SQL-only assertions missed PostgREST's 500/retry handling of SQLSTATE 40001.
   // Verify the real disposable LOCAL HTTP boundary without Auth mail or hosted access.
   const status = spawnSync("supabase", ["status", "--output", "json"], {
@@ -991,6 +1074,25 @@ try {
       p_request_id: randomUUID(),
     },
   ]);
+  staleRequests.push([
+    "mutate_work_order_lifecycle",
+    {
+      p_action_id: submissionAction.slice(1, -1),
+      p_organization_id: org.slice(1, -1),
+      p_project_id: project.slice(1, -1),
+      p_expected_version: 0,
+      p_request_id: randomUUID(),
+      p_values: {
+        operation: "submit",
+        targetStatus: "submitted",
+        submissionVersionId: pendingReviewPacket.id,
+        planVersionId: pendingReviewPacket.planVersionId,
+        assignmentVersionId: pendingReviewPacket.assignmentVersionId,
+        executionRevisionId: pendingReviewPacket.executionRevisionId,
+        reason: "Synthetic stale submission operation",
+      },
+    },
+  ]);
   for (const [endpoint, payload] of staleRequests) {
     const response = await fetch(`http://127.0.0.1:54321/rest/v1/rpc/${endpoint}`, {
       method: "POST",
@@ -1012,10 +1114,34 @@ try {
   }
   scenarios.push({
     name: "local_http_stale_plan_access_execution_group_assignment_claim_lifecycle_note_evidence",
-    requests: 10,
+    requests: 11,
     httpStatus: 409,
     sqlstate: "PT409",
     noAuthEmails: true,
+  });
+  const reviewRevoke = new Session();
+  reviewRevoke.write(
+    `BEGIN;SELECT json_build_object('pid',pg_backend_pid());DELETE FROM public.organization_memberships WHERE organization_id=${org} AND user_id=${poolActor};SELECT 'REVIEW_REVOKE_HELD';`,
+  );
+  await reviewRevoke.marker("REVIEW_REVOKE_HELD");
+  const reviewRevoked = await transaction(
+    `${reviewLogin}${capture(reviewOperation(10, "review", "approved", 4, randomUUID()))}`,
+    "REVIEW_REVOKED_DONE",
+  );
+  await actualLock(reviewRevoked, reviewRevoke);
+  await commit(reviewRevoke);
+  await reviewRevoked.marker("REVIEW_REVOKED_DONE");
+  assert.equal(reviewRevoked.rows().find((row) => row.result)?.result, "42501");
+  await commit(reviewRevoked);
+  const [reviewUnchanged] = await query(
+    `SELECT json_build_object('version',(SELECT max(version) FROM public.work_order_lifecycle_versions WHERE action_id=${submissionAction}),'reviews',(SELECT count(*) FROM public.work_order_lifecycle_versions WHERE action_id=${submissionAction} AND submission_version_id=${q(pendingReviewPacket.id)} AND operation='review'));`,
+  );
+  assert.deepEqual(reviewUnchanged, { version: 10, reviews: 0 });
+  scenarios.push({
+    name: "membership_revocation_before_review_commit",
+    actualLockVerified: true,
+    deniedSqlstate: "42501",
+    noReviewCommitted: true,
   });
   const revoke = new Session();
   revoke.write(
