@@ -245,6 +245,22 @@ try {
           };
         });
         item.viewports.push(metrics);
+        for (const name of [
+          "Ny datakilde",
+          "Ny alarmregel",
+          "Ny kvalitetsregel",
+          "Kør alarmregler nu",
+          "Kør regler nu",
+        ]) {
+          for (const control of await page.getByRole("button", { name, exact: true }).all()) {
+            if (!(await control.isVisible())) continue;
+            const box = await control.boundingBox();
+            assert(
+              box && box.x >= -1 && box.x + box.width <= width + 1,
+              `${name} is clipped at ${width}px`,
+            );
+          }
+        }
         await page.screenshot({
           path: `${dir}/${filename}-${width}.png`,
           fullPage: true,
@@ -254,6 +270,8 @@ try {
       item.guideVisible = selectionOnly ? null : await guide.first().isVisible();
       item.actualPath = new URL(page.url()).pathname;
       const text = await page.locator("body").innerText();
+      if (f.id === "/app/decisions/notes")
+        assert(!text.includes('"schema"'), "Structured records are rendered as raw JSON");
       await fs.writeFile(`${dir}/${filename}.private.txt`, text);
       item.states = text
         .split("\n")

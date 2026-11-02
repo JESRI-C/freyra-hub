@@ -1,8 +1,8 @@
 {
   "schema": "freyra.program-map/v1",
   "date": "2026-11-02",
-  "baselineCommit": "7ce55c5cf5273b9df225d1e4f4452909d624af09",
-  "sourceTreeSha256": "6a8cee4657d4aae5163de430524433133c4d29e983217e67c2eef954d385af9b",
+  "baselineCommit": "1a43472f2e2ec3c98f0f92d21d530f31c126a80c",
+  "sourceTreeSha256": "a902b8ebb8eb95a4f757a67729bb92c96a72ca03109c98b7c671eab2e46fa433",
   "method": "All current src JS/TS files, route declarations, local static imports, project destinations and 68 existing requirement IDs. Static mapping is not functional, hosted, security or customer acceptance. A route-unreachable file is a review candidate, never a deletion recommendation.",
   "source": {
     "name": "Skyhost_Jobs_Geotag_funktionskortlaegning_2026-10-29.html",
@@ -10,9 +10,9 @@
     "url": "https://drive.google.com/file/d/1hDgbtkI4Zh7fHE4FLqfUQFuvH3bcjlBx/view"
   },
   "counts": {
-    "sourceFiles": 875,
+    "sourceFiles": 876,
     "productionFiles": 600,
-    "tests": 274,
+    "tests": 275,
     "routeDeclarations": 93,
     "canonicalProductPages": 71,
     "projectDestinations": 20,
@@ -6929,7 +6929,7 @@
     },
     {
       "file": "src/components/project/DataSourcesPanel.tsx",
-      "sha256": "7f16217e4476f24f0ae1b39ced635aa6c5b31c50ad12be250711e99f6cd4013d",
+      "sha256": "70d8ec4582170cd158936fd1e3a30b858bcc5b914ee0488dd370cd6d387a0e53",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/add",
@@ -8462,7 +8462,7 @@
     },
     {
       "file": "src/components/ui-bits.tsx",
-      "sha256": "e015ff8f1c791375a8fae1b5a474d759fb3e8e440b604259e7c82455e944f0b6",
+      "sha256": "7a40a8aabc4f72708502fe566a9c3d6f4a9d60dc14c945b3b061c962772b4a2b",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/add",
@@ -8532,7 +8532,7 @@
     },
     {
       "file": "src/components/workspace/AccountSettingsPage.tsx",
-      "sha256": "303f903fe439e0a4e4a9cdc5cd7577bac9a910f5c83fabd26c34842bf4ff8f09",
+      "sha256": "1cc1aa8ff671793d899ef6bffe3cf8daebf8c1f5cb160ce30c690bcc88dc04f1",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/settings/billing",
@@ -8597,8 +8597,14 @@
       ]
     },
     {
+      "file": "src/components/workspace/WorkspaceEntries.test.tsx",
+      "sha256": "65c535f8087133221c07900382bd2c6d0671acf89ba30e7b0c204525e68df131",
+      "kind": "test",
+      "reachedFromRoutes": []
+    },
+    {
       "file": "src/components/workspace/WorkspaceEntries.tsx",
-      "sha256": "6aea600c19a64b53d5cc50310eaa572ccb0eb14d51087e4a9e09d0776d652f6b",
+      "sha256": "df1becc18fa773b2289f5b8595a3bcf74f6dcba581bb3e152c7cd8d1d7cfb916",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/add",
@@ -12055,7 +12061,7 @@
     },
     {
       "file": "src/routes/app.connect.alerts.tsx",
-      "sha256": "d2e92eb7d5b55afaccdff730dc44f8088b65317364a39cc6b66ae94d15b5cb66",
+      "sha256": "e8dad2741a275f7215e1e6db1747d2098803bf7aee9b8dcc1a73c55aa259bb6e",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/alerts"
@@ -12103,7 +12109,7 @@
     },
     {
       "file": "src/routes/app.connect.quality.tsx",
-      "sha256": "398ebdae0426de58fd788899dae99ae6e64ea249090d614b676645070182ff7f",
+      "sha256": "e0c51a7ac6c4d85038934b02f4b89f2f9387daaec4764449057e1784bcf0aed7",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/quality"

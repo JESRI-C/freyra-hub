@@ -9,14 +9,18 @@ export function CardHeader({
   title,
   subtitle,
   action,
+  stackOnMobile = false,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
+  stackOnMobile?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between p-5 pb-3">
-      <div>
+    <div
+      className={`flex items-start justify-between p-5 pb-3 ${stackOnMobile ? "flex-col gap-3 sm:flex-row" : ""}`}
+    >
+      <div className={stackOnMobile ? "min-w-0" : undefined}>
         <div className="text-sm font-semibold">{title}</div>
         {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
       </div>
