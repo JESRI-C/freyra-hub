@@ -1,8 +1,8 @@
 {
   "schema": "freyra.program-map/v1",
   "date": "2026-11-02",
-  "baselineCommit": "b6ebd8f60e3848eaf7efcc9f231eb94642d925a4",
-  "sourceTreeSha256": "6daaf2f2e5755dcc8e5b815bc8611aae879764367036012ea79cde8b21a99469",
+  "baselineCommit": "e4d71ece56a9fbe333f7ad5d06c85aa14a504c9a",
+  "sourceTreeSha256": "0ed117058c462d880f7f55b37391e12c1b45d238feb9e3656fdd76c904608d9a",
   "method": "All current src JS/TS files, route declarations, local static imports, project destinations and 68 existing requirement IDs. Static mapping is not functional, hosted, security or customer acceptance. A route-unreachable file is a review candidate, never a deletion recommendation.",
   "source": {
     "name": "Skyhost_Jobs_Geotag_funktionskortlaegning_2026-10-29.html",
@@ -11615,7 +11615,7 @@
     },
     {
       "file": "src/lib/__tests__/customer-connect-route-integrity.test.ts",
-      "sha256": "59650503a88e85b45e7f3492b32101f40a01e1caeacc9baf9e2407b6f4a627c8",
+      "sha256": "028b54b3a5bc15d33b036bfe16c647c74250cdbb634450363c43355f1586e023",
       "kind": "test",
       "reachedFromRoutes": []
     },
