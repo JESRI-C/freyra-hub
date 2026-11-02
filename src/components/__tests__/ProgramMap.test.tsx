@@ -35,9 +35,7 @@ async function render(projectId?: string) {
   return host;
 }
 async function choose(host: HTMLElement, label: string, value: string) {
-  const el = [...host.querySelectorAll("label")]
-    .find((l) => l.textContent?.startsWith(label))!
-    .querySelector("select")!;
+  const el = host.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;
   await act(async () => {
     el.value = value;
     el.dispatchEvent(new Event("change", { bubbles: true }));

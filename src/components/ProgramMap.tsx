@@ -99,7 +99,12 @@ export function ProgramMap({
             </label>
             <label className="grid gap-1 text-sm font-medium">
               Arbejdsområde
-              <select className={control} value={area} onChange={(e) => setArea(e.target.value)}>
+              <select
+                aria-label="Arbejdsområde"
+                className={control}
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+              >
                 <option value="all">Alle arbejdsområder</option>
                 {PROGRAM_AREAS.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -111,6 +116,7 @@ export function ProgramMap({
             <label className="grid gap-1 text-sm font-medium">
               Vis funktioner
               <select
+                aria-label="Vis funktioner"
                 className={control}
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
@@ -125,7 +131,7 @@ export function ProgramMap({
             </label>
           </div>
           <p role="status" className="text-sm">
-            {visible.length} funktioner matcher valget.
+            Fundne punkter: {visible.length}.
           </p>
           {!visible.length && (
             <div className="space-y-3">
