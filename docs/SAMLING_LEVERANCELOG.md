@@ -144,3 +144,24 @@ i tre filer. Den nye prøve verificerer, at rapporter og opgaver ikke starter
 miljøkald, og at miljøvisningen aktiverer dem i den rette aktør-/projektkontekst.
 Den fulde opdelte 3.301-testkørsel ovenfor gælder `1accaab`; denne lille
 opfølgning har sin egen målrettede genprøve og efterfølgende type-/byggekontrol.
+
+### Bygget kandidat og afgrænsning
+
+- Applikationskilde: `2a16edd9ea1a0c749dc81ef0be83afae4aa247ec`.
+- Typecheck og lint af opfølgningens ændrede filer bestod.
+- `FREYRA_BUILD_REVISION` sat til den præcise applikationscommit og
+  `CLOUDFLARE_ENV=staging`; `npm run build:staging` bestod inklusive
+  efterfølgende bundle-/miljøkontrol. Den genererede buildmetadata er læst
+  tilbage og matcher SHA, staging, kundedata og kommunalt workflow.
+- [Kandidatkvittering](samling-kandidat-2026-11-02.json) angiver
+  testomfang, kilderevision, build og de fortsat åbne acceptpunkter.
+- Bygningen gav kendte GeoTIFF-/chunk-/Nitro-/use-client-advarsler, men
+  ingen buildfejl. Den nye feltroutetest flyttes til `lib/__tests__`, så den
+  ikke bliver opfattet som en mulig applikationsroute. En eksisterende
+  login-routetest giver fortsat en separat discovery-advarsel.
+- Generatorens rent kosmetiske ændring af fire blanklinjer i routeTree.gen.ts
+  er tilbageført efter diffkontrol; ingen route eller brugerændring er fjernet.
+
+S01's kode og lokale automatiske kontroller er leveret. Fysisk/hosted
+brugerprøve er åben. De efterfølgende dokumentations-/testplaceringsændringer
+ændrer ikke den byggede applikationskode. Onlineappen er ikke opdateret.

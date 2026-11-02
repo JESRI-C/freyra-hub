@@ -9,7 +9,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/components/project/FieldOfflineWorkspace", () => ({
   FieldOfflineWorkspace: () => null,
 }));
-import { Route } from "../felt";
+import { Route } from "@/routes/felt";
 
 const project = "22222222-2222-4222-8222-222222222222";
 const task = "a3333333-3333-4333-8333-333333333333";
