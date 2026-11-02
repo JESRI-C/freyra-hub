@@ -188,11 +188,11 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
       : mode === "list"
         ? "Rapportbibliotek"
         : mode === "readiness"
-          ? "Rapportklarhed"
+          ? "Rapportens mangler"
           : mode === "approval"
             ? "Godkendelse og eksport"
             : mode === "preview"
-              ? "Rapportpreview"
+              ? "Rapportvisning"
               : mode === "templates"
                 ? "Rapportskabelon"
                 : "Rapportbygger";

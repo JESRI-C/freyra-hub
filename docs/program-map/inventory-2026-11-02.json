@@ -1,8 +1,8 @@
 {
   "schema": "freyra.program-map/v1",
   "date": "2026-11-02",
-  "baselineCommit": "2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3",
-  "sourceTreeSha256": "88929096d457abc8f06a180828b49e0695a834182e5cbb8288baf539f07dda23",
+  "baselineCommit": "85415c5bf9992d8fde36e92e780cdb69b9cc02ae",
+  "sourceTreeSha256": "9c3d5533e2fb03a421c809350f17d1d838cd415c62f6f484155d2d7617c3caf9",
   "method": "All current src JS/TS files, route declarations, local static imports, project destinations and 68 existing requirement IDs. Static mapping is not functional, hosted, security or customer acceptance. A route-unreachable file is a review candidate, never a deletion recommendation.",
   "source": {
     "name": "Skyhost_Jobs_Geotag_funktionskortlaegning_2026-10-29.html",
@@ -10,9 +10,9 @@
     "url": "https://drive.google.com/file/d/1hDgbtkI4Zh7fHE4FLqfUQFuvH3bcjlBx/view"
   },
   "counts": {
-    "sourceFiles": 873,
+    "sourceFiles": 874,
     "productionFiles": 600,
-    "tests": 272,
+    "tests": 273,
     "routeDeclarations": 93,
     "canonicalProductPages": 71,
     "projectDestinations": 20,
@@ -2426,6 +2426,7 @@
         "components/reports/ReportWorkspaceNotice.tsx",
         "components/reports/__tests__/municipal-report-evidence-ui.test.tsx",
         "components/reports/__tests__/municipal-report-routes.test.tsx",
+        "components/reports/__tests__/MunicipalReportPanel.test.tsx",
         "components/settings/Primitives.tsx",
         "components/ui/accordion.tsx",
         "components/ui/alert-dialog.tsx",
@@ -3009,6 +3010,7 @@
         "components/project-workspace/ProjectMediaUploadPanel.tsx",
         "components/project-workspace/__tests__/ProjectMediaUploadPanel.test.tsx",
         "components/redesign/StartActions.tsx",
+        "components/reports/MunicipalReportPanel.tsx",
         "components/reports/Primitives.tsx",
         "components/reports/ProjectReportRecords.tsx",
         "components/reports/ReportDoc.tsx",
@@ -6083,7 +6085,7 @@
     },
     {
       "file": "src/components/AppSidebar.tsx",
-      "sha256": "267090bb416819ee9cc508a6e4c91ca848a9975b27adad4282ae7e30a107750e",
+      "sha256": "c555a65a29d1d5244d03615f1fb688f8d620f7b75966a8afaa64b73638808ebe",
       "kind": "source",
       "reachedFromRoutes": [
         "/app"
@@ -6769,7 +6771,7 @@
     },
     {
       "file": "src/components/monitoring/UploadWizard.tsx",
-      "sha256": "837363b5ef38a109f5db3e64356d7d041f74969bcd49e0743b344cdfb210c5c6",
+      "sha256": "f1d05f1bc75717d04f2ab83aeb8a842d97841e004dc65aac61842dbe83c059e4",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/upload"
@@ -7192,7 +7194,7 @@
     },
     {
       "file": "src/components/project/ProjectHeader.tsx",
-      "sha256": "923a54dd2593af502af353768d1bde8b9542677a60ae7ec34d4d7c3a32c61316",
+      "sha256": "804b0c0d906c4e40eb58f00ad5e067298ad7209d41e9cd7994fc9fe9601da53a",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/projects/$slug"
@@ -7857,7 +7859,7 @@
     },
     {
       "file": "src/components/reports/MunicipalReportPanel.tsx",
-      "sha256": "e98b09e566f29846c329c90e0485a726c330d54da583cd41d3fa43041e6d7171",
+      "sha256": "64c39f82c6440b7ad123c6248d84dbfd40aaa95685d1dbc18b489ef1ed1fdd51",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/projects/$slug"
@@ -7893,7 +7895,7 @@
     },
     {
       "file": "src/components/reports/ReportWorkspace.tsx",
-      "sha256": "6cece0d3c08b45d5cadb954faa2ea17e86d569d934c0078efc377d64696d592c",
+      "sha256": "a77767a954acc9d48f5f82b26b96fc74b45e6bd2c73e57c6627b6c3e94fb3a8c",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/reports/approval",
@@ -7934,7 +7936,7 @@
     },
     {
       "file": "src/components/reports/__tests__/MunicipalReportPanel.test.tsx",
-      "sha256": "e295935f312b048e95118f054982b49398d121dab3157790fa95885c5cc05e7a",
+      "sha256": "6edc3ce16418eb0f944edd56fb169e933a6bc02f1f6318f08b575bd02e96d272",
       "kind": "test",
       "reachedFromRoutes": []
     },
@@ -8530,7 +8532,7 @@
     },
     {
       "file": "src/components/workspace/AccountSettingsPage.tsx",
-      "sha256": "a0df2ad69a6d2ffdc5e212b1ec899edc7be8cd25f20322433a546475cfa679d3",
+      "sha256": "303f903fe439e0a4e4a9cdc5cd7577bac9a910f5c83fabd26c34842bf4ff8f09",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/settings/billing",
@@ -8558,7 +8560,7 @@
     },
     {
       "file": "src/components/workspace/ProjectWorkspacePage.tsx",
-      "sha256": "e549ec80b5a088a4fecc9405131c98f61651a1421a0431c29ecdc3f6bf61944f",
+      "sha256": "c07488d9922eeb050fcbae103c8b6c97f44ad428530f2a0f459395d9a1bc8d7c",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/add",
@@ -8948,6 +8950,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -9040,6 +9043,7 @@
         "/app/connect/live",
         "/app/connect/map",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -9126,6 +9130,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -9277,6 +9282,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -9357,6 +9363,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -9437,6 +9444,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -9517,6 +9525,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -9873,6 +9882,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -9954,6 +9964,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -10035,6 +10046,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -10125,6 +10137,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -10459,8 +10472,39 @@
       "sha256": "6c265fbfa0d58c621d4606017e05fb14009713acc090cbc3f485bc795daddf0c",
       "kind": "source",
       "reachedFromRoutes": [
+        "/app/connect/add",
+        "/app/connect/integrations",
+        "/app/connect/live",
+        "/app/connect/sources",
+        "/app/data",
+        "/app/decisions/assistant",
+        "/app/decisions/data-quality",
+        "/app/decisions/",
+        "/app/decisions/notes",
+        "/app/decisions/recommendations",
+        "/app/decisions/risk",
+        "/app/decisions/scenarios",
+        "/app/impact/credits",
+        "/app/impact/",
+        "/app/impact/organizations",
+        "/app/impact/portfolio",
+        "/app/impact/project",
+        "/app/impact/projects",
+        "/app/impact/reports",
+        "/app/impact/verification",
+        "/app/ledger/audit",
+        "/app/ledger/co2",
+        "/app/ledger/csrd",
+        "/app/ledger/documents",
+        "/app/ledger/",
+        "/app/ledger/metrics",
+        "/app/ledger/reporting",
+        "/app/ledger/sources",
         "/app/program",
         "/app/projects/$slug",
+        "/app/public-impact",
+        "/app/settings/frameworks",
+        "/app/settings/projects",
         "/app",
         "/felt",
         "/opgaver"
@@ -10598,9 +10642,40 @@
       "sha256": "b5c94c8541ea797f82e8ab68278595c22952f807b88f395e16f2b67fc64306d4",
       "kind": "source",
       "reachedFromRoutes": [
+        "/app/connect/add",
+        "/app/connect/integrations",
+        "/app/connect/live",
+        "/app/connect/sources",
+        "/app/data",
+        "/app/decisions/assistant",
+        "/app/decisions/data-quality",
+        "/app/decisions/",
+        "/app/decisions/notes",
+        "/app/decisions/recommendations",
+        "/app/decisions/risk",
+        "/app/decisions/scenarios",
+        "/app/impact/credits",
+        "/app/impact/",
+        "/app/impact/organizations",
+        "/app/impact/portfolio",
+        "/app/impact/project",
+        "/app/impact/projects",
+        "/app/impact/reports",
+        "/app/impact/verification",
+        "/app/ledger/audit",
+        "/app/ledger/co2",
+        "/app/ledger/csrd",
+        "/app/ledger/documents",
+        "/app/ledger/",
+        "/app/ledger/metrics",
+        "/app/ledger/reporting",
+        "/app/ledger/sources",
         "/app/program",
         "/app/projects/$slug",
         "/app/projects/",
+        "/app/public-impact",
+        "/app/settings/frameworks",
+        "/app/settings/projects",
         "/app",
         "/felt",
         "/opgaver"
@@ -10675,6 +10750,7 @@
         "/app/connect/integrations",
         "/app/connect/live",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -10899,6 +10975,7 @@
         "/app/connect/live",
         "/app/connect/map",
         "/app/connect/quality",
+        "/app/connect/registry",
         "/app/connect/sources",
         "/app/connect",
         "/app/connect/upload",
@@ -11333,9 +11410,40 @@
       "sha256": "e967e095cd73207f1624ae16f2fe1602b98eab563f2213fb465905802ed7a800",
       "kind": "source",
       "reachedFromRoutes": [
+        "/app/connect/add",
+        "/app/connect/integrations",
+        "/app/connect/live",
+        "/app/connect/sources",
+        "/app/data",
+        "/app/decisions/assistant",
+        "/app/decisions/data-quality",
+        "/app/decisions/",
+        "/app/decisions/notes",
+        "/app/decisions/recommendations",
+        "/app/decisions/risk",
+        "/app/decisions/scenarios",
+        "/app/impact/credits",
+        "/app/impact/",
+        "/app/impact/organizations",
+        "/app/impact/portfolio",
+        "/app/impact/project",
+        "/app/impact/projects",
+        "/app/impact/reports",
+        "/app/impact/verification",
+        "/app/ledger/audit",
+        "/app/ledger/co2",
+        "/app/ledger/csrd",
+        "/app/ledger/documents",
+        "/app/ledger/",
+        "/app/ledger/metrics",
+        "/app/ledger/reporting",
+        "/app/ledger/sources",
         "/app/program",
         "/app/projects/$slug",
         "/app/projects/",
+        "/app/public-impact",
+        "/app/settings/frameworks",
+        "/app/settings/projects",
         "/app",
         "/felt",
         "/opgaver"
@@ -11531,7 +11639,7 @@
     },
     {
       "file": "src/lib/__tests__/demo-mode.test.ts",
-      "sha256": "1d8cb7fe7f596842588c00e5921b150a6fde5d444357f163326301e2a9a9c6cf",
+      "sha256": "451b471806610a9891d3fc628f1655f5d92dcd7f16995e6da14d18de8012784c",
       "kind": "test",
       "reachedFromRoutes": []
     },
@@ -11941,7 +12049,7 @@
     },
     {
       "file": "src/routes/app.connect.alerts.tsx",
-      "sha256": "02d4a9a426f9ee164fd9cf0b7ff57ff02b51b46e6f8e6ddd94e97602a4ea55d4",
+      "sha256": "d2e92eb7d5b55afaccdff730dc44f8088b65317364a39cc6b66ae94d15b5cb66",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/alerts"
@@ -11957,7 +12065,7 @@
     },
     {
       "file": "src/routes/app.connect.index.tsx",
-      "sha256": "93ef5d5eedbdfc57027c8c79ffc8063f9fe3f7a52342f2cdd7669dc35b24c651",
+      "sha256": "41e36210cb66211f91b545f836ada480a9955d3a65c5f9b5867398d7f2402cdd",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/"
@@ -11997,7 +12105,7 @@
     },
     {
       "file": "src/routes/app.connect.registry.tsx",
-      "sha256": "3f30769f69a4820f5a3024356a1619ff907ee6ff4b8d77a04b6c27281273b41c",
+      "sha256": "d4ca889f543f97e2099d6c0fa62b61ee80362000217b6dd0823735a24d918558",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/registry"
@@ -12013,7 +12121,7 @@
     },
     {
       "file": "src/routes/app.connect.tsx",
-      "sha256": "126d2bc67cd1e51612944ee14f13bbae511e56500cdd847325079e4d066b7605",
+      "sha256": "edde098952af231521960ea43a07ad2abbeb05c9f51cb57508620f0c22e48368",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect"
@@ -12021,7 +12129,7 @@
     },
     {
       "file": "src/routes/app.connect.upload.tsx",
-      "sha256": "a7f95be5acf1c4d646783e599db4880462f67a28ac37feb4a0f170ed5c9cc0cd",
+      "sha256": "ce4325188215d3e31dd186427cf38e370c0a935af05fa31a2a787e264fee60e6",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/connect/upload"
@@ -12037,7 +12145,7 @@
     },
     {
       "file": "src/routes/app.construction.projects.$slug.tsx",
-      "sha256": "ddeaa3f5a815fdf615b731e618343a92a6749d411c981487fb42514a3cf095fb",
+      "sha256": "d0410e47178d3c0535b646747080af40f508134cabdb624df7fbb83a4b981d65",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/construction/projects/$slug"
@@ -12109,7 +12217,7 @@
     },
     {
       "file": "src/routes/app.decisions.tsx",
-      "sha256": "2ca3b7ad85db455ca04eafdb9117416607a6cfa700256ef61e96165ced3e510e",
+      "sha256": "17cb5c6940c5dce77cdbb699e89bdbbe5391548b0cda0de7a14a757c0b1535d4",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/decisions"
@@ -12173,7 +12281,7 @@
     },
     {
       "file": "src/routes/app.impact.tsx",
-      "sha256": "986c6c47df8407e94a11fb16a15ac4e212aa6f7e03bd4bdf598044153ef73868",
+      "sha256": "84990fe38f414fb64194454f303db624a68e9b27c7c38e3affca1e379726a2b5",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/impact"
@@ -12317,7 +12425,7 @@
     },
     {
       "file": "src/routes/app.ledger.tsx",
-      "sha256": "c6c95d86f18208d20fb8e78c0fd6b91b9703702f8e92f7140575e8573c5aa56e",
+      "sha256": "a764312638be6b10072b668eea210b9026bfb4c4658fe073265193de7fee406e",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/ledger"
@@ -12325,7 +12433,7 @@
     },
     {
       "file": "src/routes/app.overview.tsx",
-      "sha256": "bc912c3d57ea38f0400e6007161ec96c4141f3c0e5dccded2257f775005a59d5",
+      "sha256": "20004e8072dcd4e5b2149989b413eacd7958ff36237cd2e597e63fefc51ccf28",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/overview"
@@ -12341,7 +12449,7 @@
     },
     {
       "file": "src/routes/app.projects.$slug.tsx",
-      "sha256": "d2199193823bee4afe02a2ccd9f38f53221f85c0b70005bd3b75684ec188be75",
+      "sha256": "bea57e1370aaaebeee26ad67fcee8fd18ef8cb3fd63a61a04b94bd7610029544",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/projects/$slug"
@@ -12445,7 +12553,7 @@
     },
     {
       "file": "src/routes/app.reports.tsx",
-      "sha256": "5becf0c717f62e364e8b481c9edeb6b1dc7677432a706f519e63ff1b5a63412b",
+      "sha256": "ba64eb8d03048ffeb0098fb6d03d004e26274ea5111c5d56700b95f30742cd47",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/reports"
@@ -12541,7 +12649,7 @@
     },
     {
       "file": "src/routes/app.system-test.tsx",
-      "sha256": "d009abf72ae77f3b7fe41946361aabf30897c8176dd585c6e4f1bf293aa866e9",
+      "sha256": "e922859f815fc6c6b5c02ace9abba7ac0510e82783ca115f5e8c0cb082d9b4b2",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/system-test"
@@ -12655,6 +12763,12 @@
       "file": "src/routes/__root.tsx",
       "sha256": "fb1c92ee69581c4d138beeb31db2619fc66d524365da787cb01e2a540bc334d0",
       "kind": "source",
+      "reachedFromRoutes": []
+    },
+    {
+      "file": "src/routes/__tests__/connector-registry-context.test.tsx",
+      "sha256": "6d4cc0a39049861672a21bca58dba16a25b5e8c0f649a440c8dadb4284e32f83",
+      "kind": "test",
       "reachedFromRoutes": []
     },
     {

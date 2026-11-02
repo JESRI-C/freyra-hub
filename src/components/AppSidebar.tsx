@@ -76,6 +76,9 @@ const GROUPS: SidebarGroup[] = [
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { currentOrg: org, currentProject: project } = useAuth();
+  const activeItem = GROUPS.flatMap((group) => group.items)
+    .filter((item) => path === item.to || path.startsWith(item.to + "/"))
+    .sort((a, b) => b.to.length - a.to.length)[0];
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -114,10 +117,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             </div>
             <div className="space-y-0.5">
               {group.items.map((item) => {
-                const active =
-                  path === item.to ||
-                  (item.to !== "/app/settings" && path.startsWith(item.to + "/")) ||
-                  (item.to === "/app/settings" && path === "/app/settings");
+                const active = item === activeItem;
                 const Icon = item.icon;
                 return (
                   <Link

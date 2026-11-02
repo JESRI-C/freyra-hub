@@ -3,10 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isMunicipalRoute, MUNICIPAL_PROJECT_TABS } from "../demo-mode";
 
+const navigationState = vi.hoisted(() => ({ path: "/app/projects" }));
 vi.mock("@tanstack/react-router", () => ({
-  useRouterState: () => "/app/projects",
-  Link: ({ children, to }: { children?: ReactNode; to: string }) =>
-    createElement("a", { href: to }, children),
+  useRouterState: () => navigationState.path,
+  Link: ({ children, to, ...props }: { children?: ReactNode; to: string }) =>
+    createElement("a", { href: to, ...props }, children),
 }));
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({
@@ -14,9 +15,28 @@ vi.mock("@/lib/auth", () => ({
     currentProject: { name: "Bykær Bæk" },
   }),
 }));
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  navigationState.path = "/app/projects";
+});
 
 describe("kommunens arbejdsflade", () => {
+  it.each([
+    ["/app/connect/map", "/app/connect/map"],
+    ["/app/connect/registry", "/app/connect/registry"],
+    ["/app/connect/live", "/app/connect"],
+    ["/app/settings/users", "/app/settings/users"],
+    ["/app/settings/security", "/app/settings"],
+    ["/app/projects/project-id", "/app/projects"],
+  ])("marks exactly one main menu entry for %s", async (path, expected) => {
+    navigationState.path = path;
+    const { AppSidebar } = await import("@/components/AppSidebar");
+    const html = renderToStaticMarkup(createElement(AppSidebar));
+    const navigation = html.match(/<nav\b[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? "";
+    const active = [...navigation.matchAll(/<a\b[^>]*aria-current="page"[^>]*>/g)];
+    expect(active).toHaveLength(1);
+    expect(active[0][0]).toContain(`href="${expected}"`);
+  });
   it.each([
     "/app/projects",
     "/app/projects/",

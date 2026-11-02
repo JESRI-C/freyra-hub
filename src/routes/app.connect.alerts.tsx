@@ -125,8 +125,8 @@ function Page() {
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
-          title="Alerts"
-          description="Aktive alerts, hændelser og data-operations issues."
+          title="Alarmer og hændelser"
+          description="Aktive alarmer og hændelser fra projektets datakilder."
         />
         <div className="flex items-center gap-2 shrink-0 mt-1">
           <button

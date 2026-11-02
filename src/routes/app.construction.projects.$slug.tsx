@@ -28,7 +28,7 @@ const TABS = [
   { id: "afvaerge", label: "Afværge" },
   { id: "dokumentation", label: "Dokumentation" },
   { id: "rapport", label: "Myndighedsrapport" },
-  { id: "audit", label: "Audit trail" },
+  { id: "audit", label: "Revisionsspor" },
 ];
 
 // ─── Route ────────────────────────────────────────────────────────────────────

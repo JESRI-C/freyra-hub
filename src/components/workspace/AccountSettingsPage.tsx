@@ -56,10 +56,10 @@ export function AccountSettingsPage({ page }: { page: keyof typeof titles }) {
           <p>Åbn projektets tilgængelige værktøjer. Datastatus er knyttet til den valgte sag.</p>
           <div className="grid md:grid-cols-2 gap-3">
             {[
-              ["/app/connect", "Monitoring & feltdata", "sources"],
-              ["/app/decisions", "Project Intelligence", "actions"],
+              ["/app/connect", "Overvågning og feltdata", "sources"],
+              ["/app/decisions", "Projektindsigt", "actions"],
               ["/app/ledger", "Dokumentation & audit", "indicators"],
-              ["/app/impact", "Funding & impact", "units"],
+              ["/app/impact", "Finansiering og effekt", "units"],
             ].map(([to, label, resource]) => (
               <section className="border rounded p-4" key={to}>
                 <Link to={to as never}>{label}</Link>

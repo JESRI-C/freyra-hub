@@ -17,7 +17,7 @@ type UntypedSupabase = ReturnType<typeof createClient>;
 const untypedSupabase = supabase as unknown as UntypedSupabase | null;
 
 export const Route = createFileRoute("/app/system-test")({
-  head: () => ({ meta: [{ title: "System Test — Freyra" }] }),
+  head: () => ({ meta: [{ title: "Systemtest — Freyra" }] }),
   component: SystemTestPage,
 });
 
@@ -227,14 +227,14 @@ function SystemTestPage() {
 
   return (
     <>
-      <AppTopbar title="System Test" subtitle="Diagnostik og konfigurationsstatus" />
+      <AppTopbar title="Systemtest" subtitle="Diagnostik og konfigurationsstatus" />
       <main className="p-6 max-w-[960px] w-full mx-auto space-y-5">
-        {/* ── Section 1: Live Data Readiness ──────────────────────────────── */}
+        {/* ── Section 1: Datakildernes tilgængelighed ──────────────────────────────── */}
         <Card>
           <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-4 border-b">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-base font-semibold">Live Data Readiness</h2>
+                <h2 className="text-base font-semibold">Datakildernes tilgængelighed</h2>
                 <ModeBadge mode={config.mode} />
               </div>
               <p className="text-sm text-muted-foreground">
@@ -365,7 +365,10 @@ function SystemTestPage() {
 
         {/* ── Section 3: Connector status table ───────────────────────────── */}
         <Card>
-          <CardHeader title="Connector Status" subtitle="Detaljeret status for hver datakilde" />
+          <CardHeader
+            title="Datakildernes status"
+            subtitle="Detaljeret status for hver datakilde"
+          />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-muted-foreground border-y bg-muted/30">

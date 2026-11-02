@@ -342,10 +342,14 @@ function ReportPanel({
   return (
     <Card className="space-y-4 p-5">
       <div>
-        <h3 className="text-lg font-semibold">Samlet rapport til Haderslev Kommune</h3>
+        <h3 className="text-lg font-semibold">Kommunerapport · Haderslev-skabelon</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Gem én version med datagrundlag, fotos, egne svar og prioriteret opfølgning. Den gemte
           version ændres ikke, når nye billeder eller svar kommer til.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Denne rapporttype har Haderslev Kommune som fast modtager. Kontrollér, at skabelonen
+          passer til din aflevering. Rapporten gemmes som et udkast til gennemgang.
         </p>
       </div>
       {current && (

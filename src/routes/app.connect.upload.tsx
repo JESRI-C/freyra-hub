@@ -156,7 +156,7 @@ function Page() {
   return (
     <main className="mx-auto w-full max-w-[1500px] space-y-4 p-6">
       <PageHeader
-        title="Upload center"
+        title="Upload og droneoriginaler"
         description="Modtag originale dronefiler, kortlag, feltdata og dokumentation i projektets valideringskø."
       />
 
@@ -171,7 +171,7 @@ function Page() {
               <div className="mt-0.5 text-sm text-muted-foreground">
                 {project
                   ? `Valgt projekt: ${project.name}. Filer aktiveres ikke automatisk, men afventer dokumenteret servervalidering.`
-                  : "Vælg et projekt i Monitoring & Field Data, før du starter en samlet FØR-runde."}
+                  : "Vælg et projekt i Overvågning og feltdata, før du starter en samlet FØR-runde."}
               </div>
             </div>
           </div>

@@ -6,7 +6,7 @@ import { ConnectTopbar } from "@/components/connect/ConnectTopbar";
 export const Route = createFileRoute("/app/connect")({
   head: () => ({
     meta: [
-      { title: "Monitoring & Field Data — Freyra" },
+      { title: "Overvågning og feltdata — Freyra" },
       {
         name: "description",
         content:
@@ -32,7 +32,7 @@ function ConnectLayout() {
   return (
     <div className="min-w-0 overflow-x-hidden">
       <AppTopbar
-        title="Monitoring & Field Data"
+        title="Overvågning og feltdata"
         subtitle="Data fra sensorer, satellit, drone, felt og offentlige API'er"
       />
       <ConnectTopbar />

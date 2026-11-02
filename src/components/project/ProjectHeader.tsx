@@ -27,7 +27,7 @@ interface ProjectHeaderProps {
   canEdit?: boolean;
   sitesCount: number;
   activeDataSourcesCount: number;
-  openActionsCount: number;
+  actionsCount: number;
   showDescription?: boolean;
 }
 
@@ -36,7 +36,7 @@ export function ProjectHeader({
   canEdit = false,
   sitesCount,
   activeDataSourcesCount,
-  openActionsCount,
+  actionsCount,
   showDescription = true,
 }: ProjectHeaderProps) {
   const queryClient = useQueryClient();
@@ -183,9 +183,7 @@ export function ProjectHeader({
         )}
         <span>{sitesCount} fotopunkter</span>
         <span>{activeDataSourcesCount} aktive datakilder</span>
-        {openActionsCount > 0 && (
-          <span className="text-amber-600 font-medium">{openActionsCount} åbne handlinger</span>
-        )}
+        {actionsCount > 0 && <span>{actionsCount} arbejdsopgaver</span>}
       </div>
 
       {editOpen && (

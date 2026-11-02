@@ -443,7 +443,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
         project={project}
         sitesCount={sites.length}
         activeDataSourcesCount={activeDataSourcesCount}
-        openActionsCount={localActions.filter((a) => a.status !== "Lukket").length}
+        actionsCount={localActions.length}
       />
       {editingPurpose && hasPhotoEditorAccess && (
         <EditProjectDialog
@@ -802,7 +802,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
             {active === "audit" && (
               <Card>
                 <CardHeader
-                  title="Audit trail"
+                  title="Revisionsspor"
                   subtitle="Filtrer, søg og eksportér alle projekthændelser"
                   action={<Pill tone="info">{auditEvents.length}</Pill>}
                 />
