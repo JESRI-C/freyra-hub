@@ -301,11 +301,17 @@
         "src/services/field-job-cards-service.ts",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/lib/work-order-review.ts",
+        "src/services/work-order-review-service.ts",
+        "src/components/project/WorkOrderReviewControls.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
-        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql",
+        "supabase/migrations/20261102180652_work_order_submission_packets.sql",
+        "supabase/migrations/20261102213116_work_order_submission_review.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
@@ -314,10 +320,14 @@
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
-        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "src/services/__tests__/work-order-review-service.test.ts",
+        "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
+        "scripts/test-work-order-review-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Serverstyret Kladde/Planlagt/Tildelt/Påbegyndt/Udført/Annulleret og separat blokering findes. Afleveret/Godkendt/Returneret/Genåbnet kræver D05s frosne skema-/evidensgrundlag; almindelig API kan ikke omgå det."
+      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
+      "remaining": "Afleveret/Godkendt/Returneret/Genåbnet er nu prøvet på frosne afleveringsversioner i staging. Profilspecifikke, versionsbundne dokumentationskrav og samlet brugeraccept mangler."
     },
     {
       "id": "JOB-06",
@@ -393,11 +403,17 @@
         "src/services/field-job-cards-service.ts",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/lib/work-order-review.ts",
+        "src/services/work-order-review-service.ts",
+        "src/components/project/WorkOrderReviewControls.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
-        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql"
+        "supabase/migrations/20261029203920_work_order_lifecycle_and_logbook.sql",
+        "supabase/migrations/20261102180652_work_order_submission_packets.sql",
+        "supabase/migrations/20261102213116_work_order_submission_review.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
@@ -406,10 +422,14 @@
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
-        "scripts/database-concurrency/field-job-concurrency.test.mjs"
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "src/services/__tests__/work-order-review-service.test.ts",
+        "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
+        "scripts/test-work-order-review-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Fælles logbog skelner kanoniske systemhændelser og versionsgemte manuelle noter med forfatter, rettelsesaktør og oprindeligt grundlag. Private bilagsrelationer følger i D03; afleverings-/reviewhændelser tilføjes i D05."
+      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
+      "remaining": "Eksisterende logbog viser nu afleveringsversion, reviewomfang, forfatter og returnering/godkendelse med bevaret historik. Samlet visning af øvrige bilag og hele D03s restarbejde er fortsat åbent."
     },
     {
       "id": "JOB-10",
@@ -900,17 +920,28 @@
       "code": [
         "src/lib/workflow-report.ts",
         "src/lib/photo-comparison.ts",
-        "src/lib/workflow-followup.ts"
+        "src/lib/workflow-followup.ts",
+        "src/lib/work-order-review.ts",
+        "src/services/work-order-review-service.ts",
+        "src/components/project/WorkOrderReviewControls.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261102180652_work_order_submission_packets.sql",
+        "supabase/migrations/20261102213116_work_order_submission_review.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
-        "src/lib/__tests__/workflow-followup.test.ts"
+        "src/lib/__tests__/workflow-followup.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "src/services/__tests__/work-order-review-service.test.ts",
+        "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "scripts/test-work-order-review-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Rapportreview findes. Afleveringssnapshot/review af konkrete opgave- og observationsversioner mangler."
+      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
+      "remaining": "Versionsbundet opgaveaflevering, uafhængigt review, returnering, genåbning og genaflevering er prøvet i staging. Profilspecifikke kravversioner, rapportens binding til samme review og faglig/kundeaccept mangler."
     },
     {
       "id": "QA-02",
@@ -920,17 +951,28 @@
       "code": [
         "src/lib/workflow-report.ts",
         "src/lib/photo-comparison.ts",
-        "src/lib/workflow-followup.ts"
+        "src/lib/workflow-followup.ts",
+        "src/lib/work-order-review.ts",
+        "src/services/work-order-review-service.ts",
+        "src/components/project/WorkOrderReviewControls.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261102180652_work_order_submission_packets.sql",
+        "supabase/migrations/20261102213116_work_order_submission_review.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
-        "src/lib/__tests__/workflow-followup.test.ts"
+        "src/lib/__tests__/workflow-followup.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "src/services/__tests__/work-order-review-service.test.ts",
+        "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "scripts/test-work-order-review-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Versionsgemt opfølgning findes. Afvigelsens retur, alvor, ejer, frist og lukningsbevis mangler."
+      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
+      "remaining": "Returnering med konkret mangel, begrundet genåbning, rettelse og ny aflevering bevarer historikken. Selvstændige afvigelsers alvor, ejer, frist og lukningsbevis mangler stadig."
     },
     {
       "id": "QA-03",
@@ -940,17 +982,28 @@
       "code": [
         "src/lib/workflow-report.ts",
         "src/lib/photo-comparison.ts",
-        "src/lib/workflow-followup.ts"
+        "src/lib/workflow-followup.ts",
+        "src/lib/work-order-review.ts",
+        "src/services/work-order-review-service.ts",
+        "src/components/project/WorkOrderReviewControls.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261102180652_work_order_submission_packets.sql",
+        "supabase/migrations/20261102213116_work_order_submission_review.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
-        "src/lib/__tests__/workflow-followup.test.ts"
+        "src/lib/__tests__/workflow-followup.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "src/services/__tests__/work-order-review-service.test.ts",
+        "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "scripts/test-work-order-review-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Eksisterende udførelse/sammenligning lover ingen automatisk natureffekt. Bevar kontrakten i nye godkendelser."
+      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
+      "remaining": "Ny godkendelse er afgrænset til registreret udførelse og vedlagt dokumentation; naturvirkning afvises som reviewScope. Metode-/effektvurdering og samlet faglig accept er fortsat særskilt arbejde."
     },
     {
       "id": "QA-04",
@@ -960,17 +1013,28 @@
       "code": [
         "src/lib/workflow-report.ts",
         "src/lib/photo-comparison.ts",
-        "src/lib/workflow-followup.ts"
+        "src/lib/workflow-followup.ts",
+        "src/lib/work-order-review.ts",
+        "src/services/work-order-review-service.ts",
+        "src/components/project/WorkOrderReviewControls.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261102180652_work_order_submission_packets.sql",
+        "supabase/migrations/20261102213116_work_order_submission_review.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
-        "src/lib/__tests__/workflow-followup.test.ts"
+        "src/lib/__tests__/workflow-followup.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "src/services/__tests__/work-order-review-service.test.ts",
+        "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs",
+        "scripts/test-work-order-review-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Rapportinput er frosset; operationelle relationer, bilag og mangler skal indgå i samme snapshot."
+      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
+      "remaining": "Afleveringen fastholder plan, tildeling, udførelse, registreringer/skabeloner og originalreferencer på samme opgave. Filtrering, rapportbinding og sammenhængende totaler på tværs af alle visninger mangler."
     },
     {
       "id": "OPS-01",

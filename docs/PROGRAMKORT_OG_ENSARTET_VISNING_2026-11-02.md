@@ -4,7 +4,7 @@
 
 ## Hvad er kortlagt?
 
-Alle 867 aktuelle JS-/TS-filer i `src`, deres statiske lokale imports og
+Alle 873 aktuelle JS-/TS-filer i `src`, deres statiske lokale imports og
 93 routedefinitioner er inventeret. De 71 kanoniske produktsidevisninger,
 20 projektværktøjer og fem opgavedele har en navngiven destination. Ingen
 fundne produktsider mangler en mapping. Tekniske endpoints, layouts og
@@ -12,8 +12,12 @@ login/valg er klassificeret særskilt; de tælles ikke som naturfaglige funktion
 
 Programoverblik indeholder **115 punkter**, ikke 115 færdigaccepterede
 funktioner. Nogle er forskellige indgange til samme eksisterende arbejdsrum.
-Fem punkter er eksisterende integrationskandidater, og 14 er planlagt
-restarbejde. Alle 68 eksisterende Jobs/Geotag-krav har sporbar placering.
+Fem punkter er eksisterende integrationskandidater, 13 er planlagt
+restarbejde, og det tidligere planlagte review er nu delvist leveret via
+[S04/D05b](OPGAVE_GENNEMGANG_SAMLING.md). Dets eksisterende kort-ID er bevaret,
+og indgangen åbner samme opgaves Aflevering. Alle 68 eksisterende
+Jobs/Geotag-krav har sporbar placering. JOB-05/JOB-09 og QA-01–04 har nu
+konkrete kode-, migrations-, test- og resthenvisninger for denne leverance.
 Opsætning fra Skyhost-kilden, som mangler selvstændige krav-ID'er, er
 registreret som supplerende scope.
 
@@ -125,6 +129,12 @@ filstier og bevares som selvstændigt historisk spor. Ingen automatisk
 merge, sletning eller omklassificering er udført.
 
 ## Kontrol og afgrænsning
+
+Det aktuelle inventar er genskabt efter S04/D05b: 600 produktionsfiler og
+272 test-/supportfiler samt genereret routetræ. Der er fortsat nul
+umappede produktsider og 97 undersøgelseskandidater. Den oprindelige
+præsentationsleverances bevis nedenfor er historisk; nyeste stagingkode,
+CI og browserprøve fremgår af [gennemgangsleverancen](OPGAVE_GENNEMGANG_SAMLING.md).
 
 De målrettede prøver bestod, herunder alle produktsiders mapping,
 eksakte opgave-/rundelinks, fremmede fagdomæners projektvalg, ukendt URL,

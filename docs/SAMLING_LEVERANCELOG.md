@@ -403,3 +403,48 @@ AI-/Images-kald eller aktivering af betalt udbyder. Læseprøven genbrugte
 den eksisterende syntetiske sag uden at skrive projektdata eller filer.
 Begge brugerændrede Jobs/Geotag-dokumenters SHA-256 er uændret. Fysisk
 telefon, brugbarhedsaccept og fuld Skyhost-paritet er fortsat åbne.
+
+## Aflevering og uafhængig gennemgang — S04/D05b
+
+Kilde `2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3`, kladde
+[PR40](https://github.com/JESRI-C/freyra-hub/pull/40) oven på PR39, forbinder
+frosne afleveringer med samme opgaves eksisterende status og logbog.
+Aflevering, uafhængig godkendelse/returnering, begrundet genåbning og ny
+aflevering bevarer tidligere versioner. Review gælder registreret udførelse
+og dokumentation; der erklæres ingen automatisk natureffekt. Selvreview,
+ændrede kilder, forkert scope og tilbagekaldt adgang afvises i databasen.
+
+[CI 41535229142](https://github.com/JESRI-C/freyra-hub/actions/runs/41535229142)
+bestod 3.418 app-tests/256 filer og 1.568 databasekontroller/24 filer samt
+typecheck, lint, build, frisk replay, reelle samtidigheds-/HTTP-prøver og
+dump/restore. Samtidighed dækker nu reviewbeslutninger, genforsøg, præcist
+originalobjekt og medlemskabstilbagekaldelse før commit. Additiv migration
+`20261102213116` er anvendt/hashafstemt i staging, der nu har 46 migrationer.
+Offentlig buildmetadata matcher kilden og Worker
+`ade3d174-87f1-4d64-8f5f-bf668c88a93c`.
+
+Hosted browser/API bestod aflevering → returnering → genåbning → udført →
+ny aflevering → godkendelse. Et afbrudt succesfuldt svar blev genfundet med
+samme request-ID: én godkendelsesversion og én audithændelse. Den første
+aflevering er uændret, og originaldownload matcher SHA-256. Reviewerens
+Mine opgaver virker uden udførelsesret. Tilbagekaldelse skjuler cache og
+historik ved opdatering og afviser gammel kvittering. Midlertidige
+reviewrettigheder er lukket. 1280/390/320 pixels og eksisterende logbog er
+prøvet; skærmbilleder er gennemgået.
+
+Ingen gamle rækker er ændret eller mistet i de kontrollerede projekter,
+opgaver, medier, workspace, Storage, status-, afleverings- og adgangsversioner.
+Én mærket testopgave og dens nye historik er tilføjet. Brugerens to
+Jobs/Geotag-dokumenter har uændrede hashes og er ikke med i committen.
+Sikkerhed har samme 21 advisorfund; performance har ét nyt ubrugt indeks,
+der bevares som støtte for den nye FK. Ingen ny uindekseret FK.
+
+[Leverance](OPGAVE_GENNEMGANG_SAMLING.md),
+[maskinkvittering](review-staging-receipt-2026-11-02.json) og
+[telefonprøve](TELEFONPROEVE_OPGAVER_2026-11-02.md) er opdateret.
+Programkortet er genskabt med 873 filer, 68 krav, 13 planlagte områder og
+ét delvist reviewområde. JOB-05/JOB-09 og QA-01–04 har konkrete henvisninger.
+**S04/D05 er delvis:** næste mangel er versionsbundne profil-/kategorikrav,
+derefter S05s rapportbinding. Fuld Skyhost-paritet, fysisk telefon, faglig
+accept og Jespers brugbarhedsaccept er fortsat åbne. Ingen merge,
+produktionsændring, besked eller aktivering af betalt udbyder er udført.

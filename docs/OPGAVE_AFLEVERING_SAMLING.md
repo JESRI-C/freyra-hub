@@ -2,6 +2,11 @@
 
 2. november 2026 · S04 / første del af D05 · Kun testmiljøet.
 
+**Efterfølgende leverance:** [S04/D05b](OPGAVE_GENNEMGANG_SAMLING.md) er nu
+prøvet på staging og forbinder disse frosne grundlag med aflevering,
+uafhængig godkendelse/returnering og genåbning. Beskrivelsen nedenfor
+fastholder afgrænsningen og beviset for den første del, D05a.
+
 ## Leveret adfærd
 
 Arbejdsopgaven har fået **Aflevering** efter Dokumentation. Brugeren kan

@@ -3,6 +3,16 @@
 2. november 2026 · Kun Freyras testmiljø. Testsagen indeholder syntetiske
 oplysninger og dokumenterer ingen faktisk naturindsats.
 
+**Ny prøve: aflevering og faglig gennemgang.** Åbn
+[TEST · Gennemgang af aflevering 3ebd6f50](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce&work=submission).
+Under **Aflevering** vises **Godkendt · afleveringsversion 2** samt den
+tidligere returnering af version 1. Læs begrundelser og omfang, og åbn det
+fastholdte grundlag/originalfoto. Hele historikken findes under
+**Arbejdsgrundlag → Status og logbog**. Godkendelsen er syntetisk test af
+udførelse og dokumentation; den erklærer ingen faktisk naturvirkning.
+Du kan ikke godkende eget arbejde. De midlertidige testrettigheder til den
+anden reviewer er lukket igen. [Leverance og restarbejde](OPGAVE_GENNEMGANG_SAMLING.md).
+
 Åbn [den klargjorte arbejdsopgave](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=382bbfe4-812a-4a67-99a6-921220806941)
 i Safari eller Chrome på telefonen. Brug dit eksisterende testlogin.
 Loginoplysningerne er bevaret; de er ikke ændret eller skrevet i denne guide.
