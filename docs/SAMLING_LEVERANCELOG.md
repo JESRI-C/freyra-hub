@@ -281,3 +281,45 @@ Telefonbredde 390 pixels bestod; fysisk telefon/kamera/HEIC og faktisk
 telefonbrowserlukning afventer Jespers prøve. S02/D03 er delvis. Frosne
 afleveringer/review/rapportkilder er næste integration. PR36 er fortsat
 kladde; ingen merge, produktionsændring, AI-kald eller betalt billedbehandling.
+
+## Projektlederforløb og præciseret Skyhost-mål
+
+2. november 2026: Jespers faktiske brugerprøve fandt fortsat formål og
+betjening forvirrende. S01/S11's brugeraccept er genåbnet. Projektlederen
+er valgt som primær bruger. Projektlisten åbner overblik frem for billeder,
+formålet er flyttet frem ved oprettelse, og et fælles forløb forbinder
+problem/mål, grundlag, plan, udførelse, vurdering og dokumentation.
+Eksisterende beskrivelsestekst, værktøjer, opgaver og historik er bevaret.
+Opgavens Videre-knapper genbruger de monterede editorer og bevarer kladder.
+
+Kilde `c93ad0309da4a6b5fa1d43c9d7a278ae8945c510`, kladde
+[PR37](https://github.com/JESRI-C/freyra-hub/pull/37) oven på PR36, bestod
+[CI 41441077355](https://github.com/JESRI-C/freyra-hub/actions/runs/41441077355):
+3.373 app-tests/250 filer, 1.471 databasekontroller/22 filer samt de fulde
+type-/lint-/samtidigheds-/restore-/buildkontroller. Lokal fuld typecheck
+ramte maskinens hukommelsesgrænse; den er kun markeret bestået via CI.
+Lokal staging-build bestod med præcis kilde i buildmetadata. Den kosmetiske
+routegenerators fire blanklinjeændringer er tilbageført efter diffkontrol.
+
+Staging er deployet som Worker `081e2eeb-b7df-473e-80f7-19a83c0ffa02`, med
+bevarede dashboardvariabler/secrets. Offentlig buildmetadata matcher.
+Hosted browserprøve bestod formålsfelt ved oprettelse, gemt plan,
+kladdebevarelse, opgaveidentitet gennem genveje og 320/390-pixel-visning.
+Skærmbilleder er gennemgået. Ny mærket eksempelsag og tom
+registreringsskabelon er klargjort; ingen virkelig udførelse eller
+natureffekt er registreret. Se [forløb og brugeraccept](PROJEKTLEDER_FORLOEB_2026-11-02.md).
+Tidligere testsager og originaler er bevaret. Ingen skemaændring, merge,
+produktionsændring, ekstern besked eller betalt provideraktivering.
+
+Jesper præciserede dernæst, at målet er at kunne det samme som Skyhost.
+Den oprindelige kortlægning er genfundet i Drive og genlæst; dens 34.852 bytes
+matcher det allerede registrerede SHA-256. Den eksisterende 68-kravsmatrix
+genbruges. [Paritet og konkret restarbejde](SKYHOST_PARITET_OG_RESTARBEJDE_2026-11-02.md)
+gør kalender, gentagne jobs, timer, materialer, booking, ruter og opsætning
+til obligatoriske dele af den samlede leverance. S13–S16 er føjet til planen.
+De områder er planlagt, ikke leveret af denne UI-ændring. Det gamle samlede
+tidsestimat kan ikke bruges som løfte for det udvidede paritetsmål.
+
+De to brugerændrede Jobs/Geotag-dokumenter bevares uændrede. Jespers nye
+brugbarhedsaccept, fysisk telefon, fuld D03–D08 og Skyhost-paritet er fortsat
+åbne. Ingen af disse lukkes af grøn CI eller en fungerende genvej.

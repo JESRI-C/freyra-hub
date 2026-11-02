@@ -162,6 +162,17 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("one task across the project workspaces", () => {
+  it("moves to the next step without discarding the current plan draft", async () => {
+    await render("first");
+    await fill("Plan kladde", "Bevar formålet med indsatsen");
+    await click("Videre til feltregistrering →");
+    expect(host.querySelector('section[aria-label="Plan"]')?.closest("[hidden]")).not.toBeNull();
+    await click("Arbejdsgrundlag");
+    expect(host.querySelector<HTMLInputElement>('section[aria-label="Plan"] input')?.value).toBe(
+      "Bevar formålet med indsatsen",
+    );
+    expect(host.querySelector("select")!.disabled).toBe(true);
+  });
   it("retains documentation drafts while switching views and does not release another editor's lock", async () => {
     await render("first");
     await fill("Plan kladde", "Planen bevares");

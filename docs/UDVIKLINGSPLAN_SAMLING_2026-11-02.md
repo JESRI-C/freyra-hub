@@ -1,12 +1,22 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.0 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.2 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
-**Mål:** Kunden kan planlægge, udføre, dokumentere og følge et naturprojekt i ét sammenhængende program. Eksisterende kode genbruges med samme projekt-, opgave-, fil- og versionsidentitet på computer og telefon. Alle eksisterende fagområder bevares og får en tydelig plads; funktioner åbnes i takt med dokumenteret anvendelighed.
+**Mål:** Freyra skal dække den fulde kortlagte funktionalitet i Skyhost Jobs og Geotag og samle den med Freyras eksisterende fagmoduler. Kunden kan planlægge, fordele, udføre, kontrollere og dokumentere et naturprojekt i ét sammenhængende program, inklusive de kortlagte driftsfunktioner. Eksisterende kode genbruges med samme projekt-, opgave-, fil- og versionsidentitet på computer og telefon. Alle eksisterende fagområder bevares og får en tydelig plads; funktioner åbnes i takt med dokumenteret anvendelighed.
 
-Dette er den samlende leveranceplan. Den erstatter ikke fagkravene i F01–F29 eller Jobs/Geotags D00–D08 og 68 krav. De eksisterende kravregistre er acceptgrundlag; planen her styrer rækkefølge, integration, navigation, genbrug og oprydning. Den starter ikke en ny implementering af allerede løste krav.
+Dette er den samlende leveranceplan. Den erstatter ikke fagkravene i F01–F29 eller Jobs/Geotags D00–D10 og 68 eksisterende krav. [Skyhost-paritet og restarbejde](SKYHOST_PARITET_OG_RESTARBEJDE_2026-11-02.md) præciserer det fulde mål efter Jespers korrektion: kalender, gentagelser, timer, materialer, booking, ruter og opsætning indgår i den samlede leverance. De eksisterende kravregistre er acceptgrundlag; planen her styrer rækkefølge, integration, navigation, genbrug og oprydning. Den starter ikke en ny implementering af allerede løste krav.
 
-**Aktuel leverance:** Navigationen og den afgrænsede S02-kobling er nu i det
+**Aktuel prioritet efter brugerprøve:** Jesper fandt fortsat formål og
+betjening forvirrende. Projektlederens forløb er valgt som hovedindgang, og
+S01/S11's brugeraccept er genåbnet. [Forløb og acceptkriterier](PROJEKTLEDER_FORLOEB_2026-11-02.md)
+styrer næste prøve. Kilde `c93ad03…` er nu på staging med problem og mål,
+grundlag, plan, udførelse, vurdering og dokumentation som samlet indgang.
+Automatiske kontroller og browserprøve er tekniske beviser; Jespers
+brugbarhedsvurdering er fortsat åben. Frosne afleveringer, review og
+rapportkilder er fortsat næste integrationsarbejde efter rettelse af
+observerede brugerbrud.
+
+**Teknisk del fra den tidligere leverance:** Navigationen og den afgrænsede S02-kobling er i det
 autoriserede testmiljø på appkilde `46bf6df…`. Login → plan → registrering →
 udførelse → offlinefoto → verificeret original → versionsbundet dokumentation
 er prøvet med rigtig hosted UI og database. Afgrænset ekstern læsning og
@@ -243,6 +253,39 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 
 **Færdig:** Releasekvittering har SHA, miljø, migrationsfingeraftryk, checks, faktisk bruger-/faglig accept, mangler, ansvarlig og rollback. Ingen kendte fejl, som kan miste data, åbne fremmed adgang eller forfalske en godkendelse. Uafprøvet er uafprøvet; pilotaccept erstattes ikke af grønt CI.
 
+### S13 — Kalender, kapacitet og gentagne jobs
+
+Afhænger af D02's planer/tildeling og D05's statuskontrakt. Genbrug den samme
+opgave, plan, gruppe, pulje og ansvarlige. Lever kalender og omplanlægning,
+kapacitet, gentagelse og afhængigheder. JOB-07/08/10 og OPS-05 er påkrævede
+for fuld Skyhost-paritet. Datoinddata alene opfylder ikke denne pakke.
+Eget estimat følger efter konkret genbrugskontrol.
+
+### S14 — Timer, aktiviteter, materialer og faktureringsgrundlag
+
+Genbrug projekt/opgave, roller, audit og forventet version. Lever aktiviteter,
+estimat/forbrug/rest, registreringshistorik, materialer og enheder samt et
+kontrollerbart faktureringsgrundlag. OPS-01/02/07 er en del af det samlede
+mål. Bogføring/løn kræver den konkrete integration fra S16 og egen kvittering.
+Eget estimat følger efter konkret genbrugskontrol.
+
+### S15 — Lokationer, besøg, booking og ruter
+
+Genbrug steder/geometri og samme job. Lever besøgskrav, serviceintervaller,
+maskin-/værktøjsreservationer, bookingkonflikter, stoprækkefølge og kørsel.
+LOC-02/03 og OPS-03/04 er påkrævede for fuld paritet. Ruteudbyder,
+nøjagtighed og pris afprøves før aktivering. Eget estimat følger.
+
+### S16 — Kundestamdata, opsætning og dokumenterede integrationer
+
+Kortlæg kunder/leverandører, kontakter, sagsopgaver, jobtyper, ekstra felter,
+nummerserier, materialer, aktivitets-/løntyper, kategoriarkivering/deling og
+beskedopsætning til de eksisterende modeller. Suppler 68-kravsregisteret,
+hvor den fulde Skyhost-kortlægning viser udækkede funktioner. Import,
+økonomi/løn og planlagte rapporter får konkrete adaptere og prøver. De
+kortlagte funktioner er i scope; udsendelser og betalte integrationer er
+ikke aktiveret af denne planændring. Eget estimat følger.
+
 ## 5. Rækkefølge og leverancer
 
 | Leverance | Pakker | Observerbart resultat |
@@ -254,7 +297,7 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 
 **Kritisk vej:** S00 → S02 → S04 → S05 → S11/S12. S01 skal være færdig før samlet brugeraccept. D06-import er et tilvalgsspor, som ikke blokerer egne originaler. S08's AI og ny fotogrammetri må ikke blokere manuel faglig dokumentation. S06–S09 leveres hver med egen accept; ingen brede moduler erklæres færdige samlet.
 
-De foreløbige pakkeskøn svarer samlet til cirka **26–50 udviklerdage**, hvis alle beskrevne samlingspakker udføres af én udvikler, uden ny stor fagmodel, betalingsintegration eller fotogrammetrileverandør. Det er et planlægningsinterval med betydelig usikkerhed; faktisk kundedeltagelse, provideradgang, miljøafklaring og fund kan forlænge kalenderen. Efter S00 og første ende-til-ende-prøve reestimeres den kritiske vej. Planen giver ikke et troværdigt løfte om hele platformen i morgen.
+Det tidligere skøn på **26–50 udviklerdage** gjaldt de tidligere beskrevne samlingspakker uden S13–S16, ny stor fagmodel, betalingsintegration eller fotogrammetrileverandør. Det er historisk planlægningsgrundlag med betydelig usikkerhed og må ikke bruges som tidsløfte for fuld Skyhost-paritet. Drifts-/opsætningsområderne skal have konkret genbrugskontrol og egne estimater, hvorefter samlet rækkefølge og omfang reestimeres. En første pilot er én etape og lukker ikke resten af målet.
 
 ### Første arbejdsdag
 

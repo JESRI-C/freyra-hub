@@ -21,11 +21,35 @@ type Props = {
 };
 export type WorkOrderView = "plan" | "field" | "execution";
 type Part = WorkOrderView | "evidence";
-const parts: { id: Part; label: string }[] = [
-  { id: "plan", label: "Arbejdsgrundlag" },
-  { id: "field", label: "Feltregistrering" },
-  { id: "execution", label: "Udført arbejde" },
-  { id: "evidence", label: "Dokumentation" },
+const parts: { id: Part; label: string; question: string; purpose: string }[] = [
+  {
+    id: "plan",
+    label: "Arbejdsgrundlag",
+    question: "Hvad skal der gøres, og hvem har ansvaret?",
+    purpose:
+      "Beskriv den planlagte indsats, metoden og de forhold, medarbejderen skal kende. Her aftaler I arbejdet, før det udføres.",
+  },
+  {
+    id: "field",
+    label: "Feltregistrering",
+    question: "Hvad observerer I på stedet?",
+    purpose:
+      "Gem de forhold, der er relevante for opgaven. Et foto kan underbygge registreringen; foto og registrering tilknyttes udtrykkeligt under Dokumentation.",
+  },
+  {
+    id: "execution",
+    label: "Udført arbejde",
+    question: "Hvad blev faktisk gjort?",
+    purpose:
+      "Registrér, hvornår og hvordan indsatsen blev udført, og beskriv det, der mangler. Den oprindelige plan bevares som grundlag.",
+  },
+  {
+    id: "evidence",
+    label: "Dokumentation",
+    question: "Hvilket materiale underbygger arbejdet?",
+    purpose:
+      "Knyt den relevante registrering og et verificeret originalfoto til opgaven. Vælg eventuelt den konkrete udførelsesversion. Det giver et sporbart grundlag for gennemgang og opfølgning.",
+  },
 ];
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -154,7 +178,8 @@ function WorkOrders({
         <div>
           <h2 className="text-xl font-semibold">Arbejdsopgaver</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vælg en opgave, og saml arbejdsgrundlag og registreringer her.
+            Planlæg en konkret indsats, følg det udførte arbejde, og saml den dokumentation, der
+            hører til opgaven.
           </p>
         </div>
         <Link to="/opgaver" className={button}>
@@ -340,6 +365,12 @@ function TaskWorkspace({
     (value: boolean) => onEditing("evidence", value),
     [onEditing],
   );
+  const current = parts.find((item) => item.id === part)!;
+  const next = parts[parts.indexOf(current) + 1];
+  function openPart(id: Part) {
+    setOpened((old) => new Set([...old, id]));
+    setPart(id);
+  }
   return (
     <div className="min-w-0 space-y-4">
       <nav aria-label="Arbejd med opgaven" className="grid grid-cols-1 gap-2 sm:grid-cols-4">
@@ -348,10 +379,7 @@ function TaskWorkspace({
             key={item.id}
             type="button"
             aria-pressed={part === item.id}
-            onClick={() => {
-              setOpened((old) => new Set([...old, item.id]));
-              setPart(item.id);
-            }}
+            onClick={() => openPart(item.id)}
             className={
               button + (part === item.id ? " bg-primary text-primary-foreground" : " bg-card")
             }
@@ -360,6 +388,10 @@ function TaskWorkspace({
           </button>
         ))}
       </nav>
+      <div className="rounded-xl border bg-primary/5 p-4">
+        <h3 className="font-semibold">{current.question}</h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{current.purpose}</p>
+      </div>
       {opened.has("plan") && (
         <div hidden={part !== "plan"}>
           <WorkOrderPlansPanel
@@ -396,6 +428,15 @@ function TaskWorkspace({
             onEditing={evidenceEditing}
           />
         </div>
+      )}
+      {next && (
+        <button
+          type="button"
+          className={button + " bg-primary text-primary-foreground"}
+          onClick={() => openPart(next.id)}
+        >
+          Videre til {next.label.toLowerCase()} →
+        </button>
       )}
       <Link
         to="/app/projects/$slug"

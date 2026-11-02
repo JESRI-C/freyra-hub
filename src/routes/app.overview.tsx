@@ -186,10 +186,11 @@ function DashboardPage() {
         <div className="max-w-3xl space-y-3">
           <Pill tone="success">Dit projektarbejde</Pill>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            Hvad skal du arbejde med?
+            Fra naturproblem til dokumenteret indsats
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Start med billeder og en undersøgelse, eller fortsæt med projektets rapport og mangler.
+            Beskriv problemet, planlæg arbejdet og følg udførelsen. Saml registreringer og
+            originalfotos, så I kan vurdere ændringerne og forklare indsatsen.
           </p>
           <div className="flex flex-wrap gap-2 pt-2">
             {currentProject ? (
@@ -197,11 +198,11 @@ function DashboardPage() {
                 <Link
                   to="/app/projects/$slug"
                   params={{ slug: currentProject.slug || currentProject.id }}
-                  search={{ tab: "arbejde" }}
+                  search={{ tab: "overblik" }}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
                 >
                   <ArrowRight className="h-4 w-4" />
-                  Arbejd med dronebilleder
+                  Fortsæt projektets forløb
                 </Link>
                 <Link
                   to="/app/projects/$slug"
@@ -219,7 +220,7 @@ function DashboardPage() {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium"
               >
                 <ArrowRight className="h-4 w-4" />
-                Vælg projekt og begynd undersøgelsen
+                Vælg et naturprojekt
               </Link>
             )}
             <Link
