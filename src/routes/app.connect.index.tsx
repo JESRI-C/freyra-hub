@@ -108,7 +108,7 @@ function Page() {
   return (
     <main className="p-4 sm:p-6 w-full min-w-0 space-y-4">
       <ModuleHeader
-        eyebrow="Monitoring & Field Data"
+        eyebrow="Overvågning og feltdata"
         title="Overblik"
         subtitle="Kontroltårn for feltdata — enheder, datakilder og observationer."
         freshness="—"

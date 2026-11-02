@@ -11,7 +11,7 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/decisions")({
-  head: () => ({ meta: [{ title: "Project Intelligence — Freyra" }] }),
+  head: () => ({ meta: [{ title: "Projektindsigt — Freyra" }] }),
   component: DecisionsLayout,
 });
 
@@ -31,8 +31,8 @@ function DecisionsLayout() {
   return (
     <>
       <AppTopbar
-        title="Project Intelligence"
-        subtitle="AI-drevet beslutningsgrundlag for naturprojektets implementering"
+        title="Projektindsigt"
+        subtitle="Projektets registreringer, anbefalinger, scenarier og beslutningsgrundlag"
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">
         <div className="max-w-[1400px] mx-auto px-6">

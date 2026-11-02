@@ -9,14 +9,18 @@ export function CardHeader({
   title,
   subtitle,
   action,
+  stackOnMobile = false,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
+  stackOnMobile?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between p-5 pb-3">
-      <div>
+    <div
+      className={`flex items-start justify-between p-5 pb-3 ${stackOnMobile ? "flex-col gap-3 sm:flex-row" : ""}`}
+    >
+      <div className={stackOnMobile ? "min-w-0" : undefined}>
         <div className="text-sm font-semibold">{title}</div>
         {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
       </div>
@@ -168,13 +172,17 @@ export function PageHeader({
   title,
   description,
   actions,
+  stackOnMobile = false,
 }: {
   title: string;
   description?: string;
   actions?: ReactNode;
+  stackOnMobile?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-6">
+    <div
+      className={`flex items-start justify-between gap-4 mb-6 ${stackOnMobile ? "flex-col sm:flex-row" : ""}`}
+    >
       <div>
         <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
         {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}

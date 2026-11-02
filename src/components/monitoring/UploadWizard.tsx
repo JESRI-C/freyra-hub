@@ -2,7 +2,7 @@
 // Wires the client-side parsers in `upload-import-service` to the
 // storage + row insert in `uploads-service`. Renders a compact 4-step
 // flow inside the shared Drawer primitive so it can be triggered from
-// the Upload center, the Live-data toolbar, or the topbar.
+// the Upload og droneoriginaler, the Live-data toolbar, or the topbar.
 import { useCallback, useMemo, useState } from "react";
 import {
   UploadCloud,
@@ -521,8 +521,8 @@ export function UploadWizard({ open, onClose, projectId, onImported }: Props) {
           <div>
             <div className="font-semibold">Fil uploadet</div>
             <div className="text-xs text-muted-foreground mt-1">
-              Filen ligger nu i upload-køen med status "Afventer validering". Åbn Upload center for
-              at godkende og route til map/Ledger/DecisionsIQ.
+              Filen ligger nu i upload-køen med status "Afventer validering". Åbn Upload og
+              droneoriginaler for at godkende og route til map/Ledger/DecisionsIQ.
             </div>
           </div>
         </div>

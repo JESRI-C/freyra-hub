@@ -21,6 +21,7 @@ import {
   Network,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { programPageGuide } from "@/lib/program-map";
 import logoMark from "@/assets/gofreyra-logo.png";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
@@ -76,6 +77,9 @@ const GROUPS: SidebarGroup[] = [
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { currentOrg: org, currentProject: project } = useAuth();
+  const activeItem = GROUPS.flatMap((group) => group.items)
+    .filter((item) => path === item.to || path.startsWith(item.to + "/"))
+    .sort((a, b) => b.to.length - a.to.length)[0];
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -114,15 +118,13 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             </div>
             <div className="space-y-0.5">
               {group.items.map((item) => {
-                const active =
-                  path === item.to ||
-                  (item.to !== "/app/settings" && path.startsWith(item.to + "/")) ||
-                  (item.to === "/app/settings" && path === "/app/settings");
+                const active = item === activeItem;
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.to}
                     to={item.to}
+                    activeOptions={{ exact: !active, includeSearch: false }}
                     aria-current={active ? "page" : undefined}
                     onClick={onNavigate}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${
@@ -132,7 +134,9 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate">
+                      {programPageGuide(item.to)?.title ?? item.label}
+                    </span>
                   </Link>
                 );
               })}

@@ -448,3 +448,38 @@ Programkortet er genskabt med 873 filer, 68 krav, 13 planlagte områder og
 derefter S05s rapportbinding. Fuld Skyhost-paritet, fysisk telefon, faglig
 accept og Jespers brugbarhedsaccept er fortsat åbne. Ingen merge,
 produktionsændring, besked eller aktivering af betalt udbyder er udført.
+
+## Visningskontrol af hele programkortet — 3. november 2026
+
+Kilde `e4d71ece56a9fbe333f7ad5d06c85aa14a504c9a`, kladde
+[PR41](https://github.com/JESRI-C/freyra-hub/pull/41) oven på PR40, retter
+fund fra en faktisk browsergennemgang af alle aktive destinationer.
+Hovedmenuen bruger nu ét aktuelt punkt gennem den rigtige router og fælles
+navne fra programkortet. Kildekatalogets kortlink følger det valgte projekt
+frem for et fast pilotprojekt. Danske modulnavne, en samlet opgavetotal og
+den særlige Haderslev-rapportskabelons faste modtager er synlige. Rapportens
+historiske generator og gamle statusfelter ændres ikke. Strukturerede notater
+åbnes i deres oprindelige arbejdsrum med bevaret historik. Datakilder,
+regler og lavbundsprojektvalg har synlige knapper på telefon, og genbrugte
+visninger bruger den aktuelle sides overskrift.
+
+[CI 41548292311](https://github.com/JESRI-C/freyra-hub/actions/runs/41548292311)
+bestod 3.441 app-tests/259 filer, 1.568 databasekontroller/24 filer og de
+eksisterende type-/lint-/build-/replay-/samtidigheds-/restorekontroller.
+Staging-Worker `c2afe922-81fe-446e-9823-056e1ae1511d` og offentlig
+buildmetadata matcher kilden. Der er ingen databaseændring.
+
+[Visningskontrollen](VISNINGSKONTROL_2026-11-03.md) og
+[maskinkvitteringen](display-staging-receipt-2026-11-03.json) skelner mellem
+115 kortpunkter, 97 aktive destinationer, 90 direkte kontrollerede
+visninger og syv fagprojektafhængige indgange, som kontrolleres frem til
+projektvalg. Testkontoen har ingen bygge-/lavbundsprojekter, så deres fulde
+datavisning er fortsat åben. Målingerne dækker 1280, 390 og 320 pixels.
+Tilbagekaldt opgaveadgang og anonyme visninger er prøvet uden rettighedsændring.
+
+Programkortet er genskabt med 876 kilde-/testfiler og nul umappede
+produktsider. Brugerens to Jobs/Geotag-dokumenter er uændrede og holdes
+uden for committen. Fagmoduler, data, originaler og gamle links bevares.
+S04s fagkrav, S05s generelle rapport-/reviewbinding, fuld Skyhost-paritet,
+fysisk telefon og faglig/brugeraccept er fortsat åbne. Ingen merge,
+produktion, besked eller betalt udbyder er aktiveret.

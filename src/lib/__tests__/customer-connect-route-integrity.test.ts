@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   demo: false,
+  pathname: "/app/connect/integrations",
   projectId: "project-a" as string | null,
   alerts: [] as Array<Record<string, unknown>>,
   alertError: false,
@@ -25,6 +26,11 @@ vi.mock("@/lib/auth", () => ({
   }),
 }));
 vi.mock("@tanstack/react-router", () => ({
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { pathname: string } }) => unknown;
+  }) => select({ location: { pathname: state.pathname } }),
   createFileRoute: () => (options: unknown) => ({ options }),
   Link: ({ children }: { children: React.ReactNode }) => React.createElement("a", null, children),
 }));
@@ -108,6 +114,7 @@ import { Route as AlertRoute } from "@/routes/app.connect.alerts";
 import { Route as MapRoute } from "@/routes/app.connect.map";
 import { Route as IntegrationRoute } from "@/routes/app.connect.integrations";
 import { Route as LiveRoute } from "@/routes/app.connect.live";
+import { Route as ProjectSettingsRoute } from "@/routes/app.settings.projects";
 
 function renderRoute(route: { options: { component?: unknown } }): string {
   return renderToStaticMarkup(React.createElement(route.options.component as React.ComponentType));
@@ -122,11 +129,20 @@ describe("customer source availability", () => {
     expect(html).not.toContain("Mikkel Holm");
   });
   it("does not present fixed example observations as a real live feed", () => {
+    state.pathname = "/app/connect/live";
     state.projectId = null;
     const html = renderRoute(LiveRoute);
     expect(html).toContain("Vælg en sag");
     expect(html).not.toContain("1.284");
     expect(html).not.toContain("91%");
+  });
+  it.each([
+    [LiveRoute, "/app/connect/live", "Målinger og indikatorer"],
+    [ProjectSettingsRoute, "/app/settings/projects", "Projektopsætning"],
+  ])("uses the destination's title when a workspace is reused", (route, path, title) => {
+    state.pathname = path;
+    state.projectId = null;
+    expect(renderRoute(route)).toContain(title);
   });
 });
 
@@ -150,6 +166,7 @@ function alert(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
+  state.pathname = "/app/connect/integrations";
   state.demo = false;
   state.projectId = "project-a";
   state.alerts = [];

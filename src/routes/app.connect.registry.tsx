@@ -5,9 +5,10 @@ import { PageHeader } from "@/components/ui-bits";
 import { ConnectorRegistryTable } from "@/components/data-foundation/ConnectorRegistryTable";
 import { CONNECTOR_REGISTRY, getActiveConnectors } from "@/data/connectors-registry";
 import type { ConnectorCategory } from "@/lib/supabase/types";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/app/connect/registry")({
-  head: () => ({ meta: [{ title: "Connector Registry — Freyra" }] }),
+  head: () => ({ meta: [{ title: "Data og metoder — Freyra" }] }),
   component: RegistryPage,
 });
 
@@ -26,6 +27,7 @@ const FILTER_LABELS: { id: FilterCategory; label: string }[] = [
 ];
 
 function RegistryPage() {
+  const { currentProject } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterCategory>("all");
 
   const filtered =
@@ -39,17 +41,26 @@ function RegistryPage() {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5">
       <PageHeader
-        title="Data Connector Registry"
+        title="Data og metoder"
         description="Oversigt over alle tilgængelige datakilder og API-forbindelser i Freyra-platformen."
         actions={
-          <Link
-            to="/app/projects/map/$slug"
-            params={{ slug: "skallebaek-biodiversity-pilot" }}
-            className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/40 transition"
-          >
-            <Map className="h-4 w-4 text-primary" />
-            Åbn geodata-kort
-          </Link>
+          currentProject ? (
+            <Link
+              to="/app/projects/map/$slug"
+              params={{ slug: currentProject.slug ?? currentProject.id }}
+              className="inline-flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm font-medium hover:bg-muted/40 transition"
+            >
+              <Map className="h-4 w-4 text-primary" />
+              Åbn projektets geodatakort
+            </Link>
+          ) : (
+            <Link
+              to="/app/projects"
+              className="inline-flex min-h-11 items-center rounded-xl border px-4 py-2 text-sm font-medium"
+            >
+              Vælg projekt til kortet
+            </Link>
+          )
         }
       />
 
@@ -97,12 +108,11 @@ function RegistryPage() {
 
       {/* Info note */}
       <div className="rounded-xl border bg-muted/20 p-4 text-xs text-muted-foreground space-y-1.5">
-        <div className="font-medium text-foreground">Om Data Foundation</div>
+        <div className="font-medium text-foreground">Om datakilderne</div>
         <p>
-          Data Foundation er Freyras dataorkestreringslaag der forbinder projektområder med danske
-          og europæiske åbne miljødatakilder. Connectorer med status "Aktiv" returnerer live-data.
-          Connectorer med "Klar" kræver API-konfiguration via miljøvariable i <code>.env</code>
-          -filen.
+          Her er danske og europæiske miljødatakilder, som Freyra kan arbejde med. Status i
+          kataloget beskriver tilslutningen. Den beviser ikke, at der er hentet data eller
+          dokumenteret dækning for dit projekt. Kilder, der kræver opsætning, skal tilsluttes først.
         </p>
         <p>
           Kilder uden konfiguration eller dokumenteret dækning returnerer ingen projektresultater.

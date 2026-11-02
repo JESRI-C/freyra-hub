@@ -12,15 +12,15 @@ import {
 } from "lucide-react";
 import { AppTopbar } from "@/components/AppTopbar";
 export const Route = createFileRoute("/app/reports")({
-  head: () => ({ meta: [{ title: "Report Engine — Freyra" }] }),
+  head: () => ({ meta: [{ title: "Rapporter — Freyra" }] }),
   component: ReportsLayout,
 });
 const TABS = [
   { to: "/app/reports", label: "Rapportcenter", icon: LayoutDashboard, exact: true },
   { to: "/app/reports/new", label: "Opret rapport", icon: FilePlus },
   { to: "/app/reports/builder", label: "Rapportbygger", icon: Wrench },
-  { to: "/app/reports/preview", label: "Rapportpreview", icon: Eye },
-  { to: "/app/reports/readiness", label: "Rapportklarhed", icon: ShieldCheck },
+  { to: "/app/reports/preview", label: "Rapportvisning", icon: Eye },
+  { to: "/app/reports/readiness", label: "Rapportens mangler", icon: ShieldCheck },
   { to: "/app/reports/templates", label: "Skabeloner", icon: LayoutTemplate },
   { to: "/app/reports/library", label: "Rapportbibliotek", icon: Library },
   { to: "/app/reports/approval", label: "Godkendelse & eksport", icon: Send },

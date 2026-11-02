@@ -3,6 +3,12 @@
 2. november 2026 · Kun Freyras testmiljø. Testsagen indeholder syntetiske
 oplysninger og dokumenterer ingen faktisk naturindsats.
 
+**Visningskontrol 3. november:** [Programoverblik](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/program)
+viser alle 115 kortpunkter med aktuel status. Mobilmenuen har 18 indgange.
+Modulnavne følger programkortet, og kortlinket i Data og metoder bruger det
+valgte projekt. Kommunerapporten er tydeligt mærket som en Haderslev-skabelon
+med fast modtager. [Kontrol og begrænsninger](VISNINGSKONTROL_2026-11-03.md).
+
 **Ny prøve: aflevering og faglig gennemgang.** Åbn
 [TEST · Gennemgang af aflevering 3ebd6f50](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce&work=submission).
 Under **Aflevering** vises **Godkendt · afleveringsversion 2** samt den

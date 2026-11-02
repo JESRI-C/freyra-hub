@@ -74,10 +74,11 @@ export function DataSourcesPanel({
   return (
     <Card>
       <CardHeader
+        stackOnMobile
         title="Datakilder"
         subtitle="Tilknyttede datafeeds og integrationer — én pr. site eller på projekt-niveau"
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <select
               value={siteFilter}
               onChange={(e) => setSiteFilter(e.target.value as typeof siteFilter)}

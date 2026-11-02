@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { askDecisionsAssistant } from "@/lib/decisions-assistant.functions";
@@ -22,6 +22,7 @@ import { AuditTrailPanel } from "@/components/audit/AuditTrailPanel";
 import { IndicatorDetail } from "@/components/indicators/IndicatorDetail";
 import { EnvironmentalRiskTable } from "@/components/construction/EnvironmentalRiskTable";
 import { Button } from "@/components/ui/button";
+import { programPageGuide } from "@/lib/program-map";
 
 const workspacePages = {
   "decisions/index": "AI-overblik",
@@ -32,7 +33,7 @@ const workspacePages = {
   "decisions/notes": "Beslutningsnotater",
   "decisions/assistant": "AI-assistent",
   "ledger/index": "ESG-overblik",
-  "ledger/metrics": "Metrics & indikatorer",
+  "ledger/metrics": "Indikatorer",
   "ledger/csrd": "CSRD/ESRS",
   "ledger/co2": "CO₂-regnskab",
   "ledger/sources": "Datakilder",
@@ -47,7 +48,7 @@ const workspacePages = {
   "impact/verification": "Verifikation",
   "impact/organizations": "Partnere & fonde",
   "impact/reports": "Impact-rapporter",
-  "public-impact": "Public impact",
+  "public-impact": "Offentlig formidling",
 } as const;
 export type WorkspacePage = keyof typeof workspacePages;
 const entryPage: Partial<Record<WorkspacePage, EntryKind>> = {
@@ -61,6 +62,7 @@ const entryPage: Partial<Record<WorkspacePage, EntryKind>> = {
 };
 
 export function ProjectWorkspacePage({ page }: { page: WorkspacePage }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const auth = useAuth();
   const { projectId } = useConnectContext();
   const organizationId = auth.orgId;
@@ -80,7 +82,9 @@ export function ProjectWorkspacePage({ page }: { page: WorkspacePage }) {
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-5" data-workspace-page={page}>
       <header>
-        <h1 className="text-2xl font-semibold">{workspacePages[page]}</h1>
+        <h1 className="text-2xl font-semibold">
+          {programPageGuide(pathname)?.title ?? workspacePages[page]}
+        </h1>
         <p className="text-muted-foreground">
           {query.data?.project.name ?? "Vælg et projekt"} · {auth.currentOrg?.name}
         </p>
@@ -303,8 +307,8 @@ function WorkspaceContent({
               </article>
             ))}
             <p>
-              Effektmål for det valgte projekt findes under Metrics & indikatorer. Forskellige
-              enheder summeres ikke.
+              Effektmål for det valgte projekt findes under Indikatorer. Forskellige enheder
+              summeres ikke.
             </p>
           </Resource>
         </Panel>

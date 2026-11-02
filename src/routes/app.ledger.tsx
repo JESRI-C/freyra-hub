@@ -12,17 +12,17 @@ import {
 import { AppTopbar } from "@/components/AppTopbar";
 
 export const Route = createFileRoute("/app/ledger")({
-  head: () => ({ meta: [{ title: "Documentation & Audit Trail — Freyra" }] }),
+  head: () => ({ meta: [{ title: "Dokumentation og audit — Freyra" }] }),
   component: LedgerLayout,
 });
 
 const TABS: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
   { to: "/app/ledger", label: "Overblik", icon: LayoutDashboard, exact: true },
-  { to: "/app/ledger/metrics", label: "Metrics & indikatorer", icon: BarChart3 },
+  { to: "/app/ledger/metrics", label: "Indikatorer", icon: BarChart3 },
   { to: "/app/ledger/csrd", label: "CSRD/ESRS", icon: ClipboardList },
   { to: "/app/ledger/co2", label: "CO₂-regnskab", icon: Cloud },
   { to: "/app/ledger/sources", label: "Datakilder", icon: Plug },
-  { to: "/app/ledger/audit", label: "Audit trail", icon: ScrollText },
+  { to: "/app/ledger/audit", label: "Revisionsspor", icon: ScrollText },
   { to: "/app/ledger/documents", label: "Dokumenter & bilag", icon: FileText },
   { to: "/app/ledger/reporting", label: "Rapportering", icon: FileBarChart },
 ];
@@ -32,7 +32,7 @@ function LedgerLayout() {
   return (
     <>
       <AppTopbar
-        title="Documentation & Audit Trail"
+        title="Dokumentation og audit"
         subtitle="Sporbar dokumentation, metode og bilag — klar til myndigheder, revisor og fonde"
       />
       <div className="border-b bg-card/60 sticky top-[57px] z-10 backdrop-blur">

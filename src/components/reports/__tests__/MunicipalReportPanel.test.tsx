@@ -172,6 +172,12 @@ beforeEach(async () => {
 });
 
 describe("municipal report actor and investigation boundaries", () => {
+  it("identifies the fixed recipient as a template rather than the current customer", () => {
+    const html = renderToStaticMarkup(tree());
+    expect(html).toContain("Kommunerapport · Haderslev-skabelon");
+    expect(html).toContain("Haderslev Kommune som fast modtager");
+    expect(html).not.toContain("Samlet rapport til Haderslev Kommune");
+  });
   it.each([
     "municipal-report-rounds",
     "municipal-report-access",

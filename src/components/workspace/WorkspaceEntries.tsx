@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +9,24 @@ import {
   type WorkspaceEntry,
 } from "@/lib/project-workspace";
 import { saveWorkspaceEntry, type ProjectScope } from "@/services/project-workspace-service";
+import type { ProjectNavigationSearch } from "@/lib/project-navigation";
+
+function entryWorkspace(
+  entry: WorkspaceEntry,
+): { label: string; search: ProjectNavigationSearch } | undefined {
+  if (entry.kind !== "decision_note") return;
+  const source = entry.payload.source ?? "";
+  if (source === `action-execution:${entry.entry_id}`)
+    return {
+      label: "Udført arbejde",
+      search: { tab: "handlinger", task: entry.entry_id, work: "execution" },
+    };
+  if (source === `workflow-followup:${entry.entry_id}`)
+    return { label: "Rapport og opfølgning", search: { tab: "rapporter" } };
+  if (source.startsWith("photo-comparison:"))
+    return { label: "Før og efter", search: { step: "sammenligning" } };
+  if (source.startsWith("photo-atlas:")) return { label: "Fotoatlas", search: { tab: "medier" } };
+}
 
 export function WorkspaceEntries({
   kind,
@@ -29,21 +48,44 @@ export function WorkspaceEntries({
   const versions = entries.filter((e) => e.kind === kind);
   const current = latestEntries(versions);
   const mutation = useMutation({
-    mutationFn: () =>
-      saveWorkspaceEntry(scope, { kind, title, payload, previous: editing ?? undefined }),
+    mutationFn: () => {
+      if (editing && entryWorkspace(editing))
+        throw new Error("Åbn registreringens eget arbejdsrum for at rette den.");
+      return saveWorkspaceEntry(scope, { kind, title, payload, previous: editing ?? undefined });
+    },
     onSuccess: async () => {
       setEditing(undefined);
       await qc.invalidateQueries({ queryKey: ["project-workspace"] });
     },
   });
   function edit(entry: WorkspaceEntry | null) {
+    if (entry && entryWorkspace(entry)) return;
     mutation.reset();
     setEditing(entry);
     setTitle(entry?.title ?? "");
     setPayload(entry?.payload ?? {});
   }
+  function value(entry: WorkspaceEntry, key: string) {
+    const workspace = entryWorkspace(entry);
+    return key === "decision" && workspace ? (
+      <span>
+        Se registreringens oplysninger og historik under{" "}
+        <Link
+          to="/app/projects/$slug"
+          params={{ slug: scope.projectId }}
+          search={workspace.search}
+          className="underline underline-offset-4"
+        >
+          {workspace.label}
+        </Link>
+        .
+      </span>
+    ) : (
+      entry.payload[key] || "Ikke oplyst"
+    );
+  }
   return (
-    <section className="space-y-4" aria-label={definition.label}>
+    <section className="min-w-0 space-y-4 [overflow-wrap:anywhere]" aria-label={definition.label}>
       <p className="text-sm text-muted-foreground">{definition.description}</p>
       {canEdit && editing === undefined && (
         <Button onClick={() => edit(null)}>Opret {definition.label.toLowerCase()}</Button>
@@ -138,12 +180,12 @@ export function WorkspaceEntries({
             {definition.fields.map((field) => (
               <div key={field.key}>
                 <dt className="text-muted-foreground">{field.label}</dt>
-                <dd className="whitespace-pre-wrap">{entry.payload[field.key] || "Ikke oplyst"}</dd>
+                <dd className="whitespace-pre-wrap">{value(entry, field.key)}</dd>
               </div>
             ))}
           </dl>
           <div className="flex gap-2">
-            {canEdit && (
+            {canEdit && !entryWorkspace(entry) && (
               <Button variant="outline" onClick={() => edit(entry)}>
                 Redigér
               </Button>
@@ -171,9 +213,7 @@ export function WorkspaceEntries({
                         {definition.fields.map((f) => (
                           <div key={f.key}>
                             <dt>{f.label}</dt>
-                            <dd className="whitespace-pre-wrap">
-                              {v.payload[f.key] || "Ikke oplyst"}
-                            </dd>
+                            <dd className="whitespace-pre-wrap">{value(v, f.key)}</dd>
                           </div>
                         ))}
                       </dl>

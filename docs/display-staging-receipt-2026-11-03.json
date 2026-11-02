@@ -1,0 +1,3193 @@
+{
+  "schema": "freyra.display-staging-receipt/v1",
+  "observedLocalDate": "2026-11-03",
+  "sourceRevision": "e4d71ece56a9fbe333f7ad5d06c85aa14a504c9a",
+  "verificationRevision": "29d36f561729af472fe5a28ca8077575c6a82955",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/41",
+  "staging": {
+    "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+    "workerVersion": "c2afe922-81fe-446e-9823-056e1ae1511d",
+    "supabaseRef": "xdvqdzdpyceojbdknofi",
+    "databaseChanged": false
+  },
+  "ci": {
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41548292311",
+    "result": "PASS",
+    "applicationTests": 3441,
+    "applicationFiles": 259,
+    "databaseTests": 1568,
+    "databaseFiles": 24,
+    "typecheckLintBuild": true,
+    "freshReplayConcurrencyRestore": true
+  },
+  "catalog": {
+    "points": 115,
+    "allTitlesPresent": true,
+    "inactiveWithoutLinks": 18,
+    "planned": 13,
+    "unlinked": 5
+  },
+  "coverage": {
+    "activeDestinations": 97,
+    "directlyRendered": 90,
+    "projectSelectionOnly": 7,
+    "viewportChecks": 291,
+    "widths": [
+      1280,
+      390,
+      320
+    ],
+    "pageErrors": 0,
+    "appResponseErrors": 0,
+    "horizontalOverflows": 0,
+    "brokenVisibleImages": 0,
+    "competingMainMenuSelections": 0,
+    "checkedDataRuleAndLavbundActionsNotClipped": true
+  },
+  "limitedDestinations": [
+    {
+      "id": "/app/construction/projects/$slug",
+      "title": "Byggeprojektets værktøjer",
+      "reason": "No accessible construction/lowland project in the test account; project selector only."
+    },
+    {
+      "id": "/app/lavbund/$projektId",
+      "title": "Lavbundsprojektets forløb",
+      "reason": "No accessible construction/lowland project in the test account; project selector only."
+    },
+    {
+      "id": "/app/lavbund/$projektId/kort",
+      "title": "Feltkort og beplantning",
+      "reason": "No accessible construction/lowland project in the test account; project selector only."
+    },
+    {
+      "id": "/app/lavbund/$projektId/klima",
+      "title": "Lavbundens klima",
+      "reason": "No accessible construction/lowland project in the test account; project selector only."
+    },
+    {
+      "id": "/app/lavbund/$projektId/fosfor",
+      "title": "Fosfor og brinkerosion",
+      "reason": "No accessible construction/lowland project in the test account; project selector only."
+    },
+    {
+      "id": "/app/lavbund/$projektId/rapport",
+      "title": "Lavbundsrapport",
+      "reason": "No accessible construction/lowland project in the test account; project selector only."
+    },
+    {
+      "id": "/app/lavbund/$projektId/revisionsspor",
+      "title": "Lavbundens revisionsspor",
+      "reason": "No accessible construction/lowland project in the test account; project selector only."
+    }
+  ],
+  "flow": {
+    "result": "PASS",
+    "sameTaskAndApprovedVersion": true,
+    "headerShowsTaskTotal": true,
+    "originalDownloadSha256": "8343c81af5a4d07b716cf60482c91c5422e7721554eed642f1102e8c2c3be23e",
+    "registryOpensSameProject": true,
+    "reportFixedRecipientExplicit": true
+  },
+  "access": {
+    "result": "PASS",
+    "revokedTaskRpc": "42501",
+    "revokedAccountTaskListEmpty": true,
+    "anonymousTaskLogin": true,
+    "anonymousProjectLogin": true,
+    "noRoleChanges": true
+  },
+  "structuredNotes": {
+    "result": "PASS",
+    "rawStructuredTextAbsent": true,
+    "structuredGenericEditHidden": true,
+    "historyPreservedReadable": true,
+    "executionLinkSameTask": true
+  },
+  "navigation": [
+    {
+      "path": "/app/connect/map",
+      "links": [
+        {
+          "text": "Kort og zoner",
+          "href": "/app/connect/map"
+        }
+      ],
+      "headings": [
+        "Overvågning og feltdata",
+        "Kort & zoner"
+      ]
+    },
+    {
+      "path": "/app/connect/registry",
+      "links": [
+        {
+          "text": "Data og metoder",
+          "href": "/app/connect/registry"
+        }
+      ],
+      "headings": [
+        "Overvågning og feltdata",
+        "Data og metoder"
+      ]
+    },
+    {
+      "path": "/app/settings/users",
+      "links": [
+        {
+          "text": "Brugere og roller",
+          "href": "/app/settings/users"
+        }
+      ],
+      "headings": [
+        "Indstillinger",
+        "Brugere & roller"
+      ]
+    },
+    {
+      "path": "/app/settings/security",
+      "links": [
+        {
+          "text": "Indstillinger",
+          "href": "/app/settings"
+        }
+      ],
+      "headings": [
+        "Indstillinger",
+        "API & sikkerhed"
+      ]
+    },
+    {
+      "mobileMenuLinks": 18,
+      "active": [
+        "Indstillinger"
+      ]
+    }
+  ],
+  "sourceTreeSha256": "0ed117058c462d880f7f55b37391e12c1b45d238feb9e3656fdd76c904608d9a",
+  "userModifiedDocumentsSha256": {
+    "docs/JOBS_GEOTAG_KRAVMATRIX.md": "6e202f61953640b9cb19965ed46d10bfddcf196f265e7e1b3e7b421704c843ac",
+    "docs/JOBS_GEOTAG_TESTLEVERING.md": "aea1e7ac5766a150bbe926c8e1bb5bc4c99bd8fb4358b070cd95f0dd366276bf"
+  },
+  "noBusinessDataWrites": true,
+  "noNewOriginals": true,
+  "noRoleChanges": true,
+  "noMessages": true,
+  "noPaidProviderActivation": true,
+  "productionChanged": false,
+  "merged": false,
+  "remaining": [
+    "Seven domain pages need representative accessible project data",
+    "Fixed Haderslev recipient remains part of the specialized report generator",
+    "Full Skyhost functionality and professional/user/physical-phone acceptance remain open"
+  ],
+  "destinations": [
+    {
+      "id": "tab:overblik",
+      "title": "Projektoversigt",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=overblik&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:audit",
+      "title": "Revisionsspor",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=audit&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:roller",
+      "title": "Roller og adgang",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=roller&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:handlinger",
+      "title": "Arbejdsopgaver og udførelse",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:grundlag",
+      "title": "Offentligt datagrundlag",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=grundlag&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:livekort",
+      "title": "Projektkort",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=livekort&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:sites",
+      "title": "Fotopunkter",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=sites&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:datakilder",
+      "title": "Datakilder",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=datakilder&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:miljodata",
+      "title": "Miljødata",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=miljodata&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "step:baseline",
+      "title": "Gemte baselineversioner",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?step=baseline&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:medier",
+      "title": "Fotoatlas og upload",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=medier&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "step:billeder",
+      "title": "Originalbilleder",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?step=billeder&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "step:datagrundlag",
+      "title": "Opret undersøgelse",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?step=datagrundlag&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:arbejde",
+      "title": "Undersøgelser",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=arbejde&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:dokumentation",
+      "title": "Dokumenter og bilag",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=dokumentation&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "step:gennemgang",
+      "title": "Faglig gennemgang",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?step=gennemgang&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "step:sammenligning",
+      "title": "Før og efter",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?step=sammenligning&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:indikatorer",
+      "title": "Indikatorer",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=indikatorer&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "step:beplantning",
+      "title": "Beplantning (valgfri)",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?step=beplantning&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "tab:rapporter",
+      "title": "Rapporter og opfølgning",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=rapporter&task=f2df70e2-c60c-46f2-b824-a7ec818422ce",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "work:plan",
+      "title": "Arbejdsgrundlag",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce&work=plan",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "work:field",
+      "title": "Feltregistrering",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce&work=field",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "work:execution",
+      "title": "Udført arbejde",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce&work=execution",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "work:evidence",
+      "title": "Dokumentation",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce&work=evidence",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "work:submission",
+      "title": "Aflevering",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce&work=submission",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/overview",
+      "title": "Dashboard",
+      "path": "/app/overview",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dashboard"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/projects",
+      "title": "Naturprojekter",
+      "path": "/app/projects",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/projects/$slug",
+      "title": "Projektets forløb",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/opgaver",
+      "title": "Mine opgaver",
+      "path": "/opgaver",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/map",
+      "title": "Kort og zoner",
+      "path": "/app/connect/map",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Kort og zoner"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/projects/geometry/$slug",
+      "title": "Projektområde",
+      "path": "/app/projects/geometry/342591a9-5e90-4e34-8777-934a8d2a68dd",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/projects/map/$slug",
+      "title": "Projektets geodatakort",
+      "path": "/app/projects/map/342591a9-5e90-4e34-8777-934a8d2a68dd",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": [
+            "Naturregistreringer er ikke tilgængelige\n\nGem en gyldig projektpolygon for at se offentlige naturkandidater.\n\nEn kildefejl dokumenterer ikke fravær af beskyttet natur eller vandløb."
+          ]
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": [
+            "Naturregistreringer er ikke tilgængelige\n\nGem en gyldig projektpolygon for at se offentlige naturkandidater.\n\nEn kildefejl dokumenterer ikke fravær af beskyttet natur eller vandløb."
+          ]
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": [
+            "Naturregistreringer er ikke tilgængelige\n\nGem en gyldig projektpolygon for at se offentlige naturkandidater.\n\nEn kildefejl dokumenterer ikke fravær af beskyttet natur eller vandløb."
+          ]
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/sources",
+      "title": "Kilder",
+      "path": "/app/sources",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Kilder"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/data",
+      "title": "Projektets datakilder",
+      "path": "/app/data",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/registry",
+      "title": "Data og metoder",
+      "path": "/app/connect/registry",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Data og metoder"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/sources",
+      "title": "Overvågningens kilder",
+      "path": "/app/connect/sources",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/add",
+      "title": "Tilføj datagrundlag",
+      "path": "/app/connect/add",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/integrations",
+      "title": "Dataforbindelser",
+      "path": "/app/connect/integrations",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/felt",
+      "title": "Feltarbejde og offlinekø",
+      "path": "/felt?projectId=342591a9-5e90-4e34-8777-934a8d2a68dd",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect",
+      "title": "Overvågning og feltdata",
+      "path": "/app/connect",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/upload",
+      "title": "Upload og droneoriginaler",
+      "path": "/app/connect/upload",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/devices",
+      "title": "Sensorer og enheder",
+      "path": "/app/connect/devices",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/live",
+      "title": "Målinger og indikatorer",
+      "path": "/app/connect/live",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/alerts",
+      "title": "Hændelser og alarmer",
+      "path": "/app/connect/alerts",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/connect/quality",
+      "title": "Feltdataenes kvalitet",
+      "path": "/app/connect/quality",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Overvågning og feltdata"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/decisions",
+      "title": "Projektindsigt",
+      "path": "/app/decisions",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Projektindsigt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/decisions/recommendations",
+      "title": "Anbefalinger",
+      "path": "/app/decisions/recommendations",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Projektindsigt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/decisions/risk",
+      "title": "Risiko og interessenter",
+      "path": "/app/decisions/risk",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Projektindsigt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/decisions/scenarios",
+      "title": "Scenarier",
+      "path": "/app/decisions/scenarios",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Projektindsigt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/decisions/data-quality",
+      "title": "Metode og datakvalitet",
+      "path": "/app/decisions/data-quality",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Projektindsigt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/decisions/notes",
+      "title": "Beslutningsnotater",
+      "path": "/app/decisions/notes",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Projektindsigt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/decisions/assistant",
+      "title": "AI-assistent",
+      "path": "/app/decisions/assistant",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Projektindsigt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/ledger/metrics",
+      "title": "Indikatorer",
+      "path": "/app/ledger/metrics",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dokumentation og audit"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/ledger/co2",
+      "title": "CO₂-oplysninger",
+      "path": "/app/ledger/co2",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dokumentation og audit"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/ledger/csrd",
+      "title": "CSRD og ESRS",
+      "path": "/app/ledger/csrd",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dokumentation og audit"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/reports",
+      "title": "Rapporter",
+      "path": "/app/reports",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Rapporter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/reports/new",
+      "title": "Ny rapport",
+      "path": "/app/reports/new",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Rapporter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/reports/builder",
+      "title": "Rapportindhold",
+      "path": "/app/reports/builder",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Rapporter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/reports/preview",
+      "title": "Rapportvisning",
+      "path": "/app/reports/preview",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Rapporter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/reports/readiness",
+      "title": "Rapportens mangler",
+      "path": "/app/reports/readiness",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Rapporter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/reports/approval",
+      "title": "Rapportgennemgang",
+      "path": "/app/reports/approval",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Rapporter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/reports/templates",
+      "title": "Rapportskabeloner",
+      "path": "/app/reports/templates",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Rapporter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/reports/library",
+      "title": "Rapportarkiv",
+      "path": "/app/reports/library",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Rapporter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/ledger",
+      "title": "Dokumentation og audit",
+      "path": "/app/ledger",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dokumentation og audit"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/ledger/audit",
+      "title": "Auditspor",
+      "path": "/app/ledger/audit",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dokumentation og audit"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/ledger/documents",
+      "title": "Dokumenter og bilag",
+      "path": "/app/ledger/documents",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dokumentation og audit"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/ledger/sources",
+      "title": "Dokumentationens kilder",
+      "path": "/app/ledger/sources",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dokumentation og audit"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/ledger/reporting",
+      "title": "Projektets rapportering",
+      "path": "/app/ledger/reporting",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Dokumentation og audit"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/construction",
+      "title": "Byggeri og natur",
+      "path": "/app/construction",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Byggeri og natur"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/construction/projects/$slug",
+      "title": "Byggeprojektets værktøjer",
+      "path": "/app/construction",
+      "selectionOnly": true,
+      "httpStatus": 200,
+      "guideVisible": null,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Byggeri og natur"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/lavbund",
+      "title": "Lavbund og beplantning",
+      "path": "/app/lavbund",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Lavbund og beplantning"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/lavbund/$projektId",
+      "title": "Lavbundsprojektets forløb",
+      "path": "/app/lavbund",
+      "selectionOnly": true,
+      "httpStatus": 200,
+      "guideVisible": null,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Lavbund og beplantning"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/lavbund/$projektId/kort",
+      "title": "Feltkort og beplantning",
+      "path": "/app/lavbund",
+      "selectionOnly": true,
+      "httpStatus": 200,
+      "guideVisible": null,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Lavbund og beplantning"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/lavbund/$projektId/klima",
+      "title": "Lavbundens klima",
+      "path": "/app/lavbund",
+      "selectionOnly": true,
+      "httpStatus": 200,
+      "guideVisible": null,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Lavbund og beplantning"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/lavbund/$projektId/fosfor",
+      "title": "Fosfor og brinkerosion",
+      "path": "/app/lavbund",
+      "selectionOnly": true,
+      "httpStatus": 200,
+      "guideVisible": null,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Lavbund og beplantning"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/lavbund/$projektId/rapport",
+      "title": "Lavbundsrapport",
+      "path": "/app/lavbund",
+      "selectionOnly": true,
+      "httpStatus": 200,
+      "guideVisible": null,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Lavbund og beplantning"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/lavbund/$projektId/revisionsspor",
+      "title": "Lavbundens revisionsspor",
+      "path": "/app/lavbund",
+      "selectionOnly": true,
+      "httpStatus": 200,
+      "guideVisible": null,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Lavbund og beplantning"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/impact",
+      "title": "Finansiering og effekt",
+      "path": "/app/impact",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Finansiering og effekt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/impact/projects",
+      "title": "Finansieringsprojekter",
+      "path": "/app/impact/projects",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Finansiering og effekt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/impact/project",
+      "title": "Finansieringsprofil",
+      "path": "/app/impact/project",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Finansiering og effekt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/impact/portfolio",
+      "title": "Portefølje",
+      "path": "/app/impact/portfolio",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Finansiering og effekt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/impact/credits",
+      "title": "Finansiering og midler",
+      "path": "/app/impact/credits",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Finansiering og effekt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/impact/verification",
+      "title": "Verifikationsgrundlag",
+      "path": "/app/impact/verification",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Finansiering og effekt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/impact/organizations",
+      "title": "Partnere og fonde",
+      "path": "/app/impact/organizations",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Finansiering og effekt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/impact/reports",
+      "title": "Finansieringsrapporter",
+      "path": "/app/impact/reports",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Finansiering og effekt"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/public-impact",
+      "title": "Offentlig formidling",
+      "path": "/app/public-impact",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Offentlig formidling"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings",
+      "title": "Indstillinger",
+      "path": "/app/settings",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Indstillinger"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings/users",
+      "title": "Brugere og roller",
+      "path": "/app/settings/users",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Brugere og roller"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings/access",
+      "title": "Adgangsopsætning",
+      "path": "/app/settings/access",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Indstillinger"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings/billing",
+      "title": "Abonnementsoplysninger",
+      "path": "/app/settings/billing",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Indstillinger"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings/frameworks",
+      "title": "Rammer og standarder",
+      "path": "/app/settings/frameworks",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Indstillinger"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings/modules",
+      "title": "Moduloversigt",
+      "path": "/app/settings/modules",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Indstillinger"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings/notifications",
+      "title": "Beskedindstillinger",
+      "path": "/app/settings/notifications",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Indstillinger"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings/projects",
+      "title": "Projektopsætning",
+      "path": "/app/settings/projects",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Indstillinger"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/settings/security",
+      "title": "Sikkerhedsindstillinger",
+      "path": "/app/settings/security",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Indstillinger"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "/app/system-test",
+      "title": "Systemtest",
+      "path": "/app/system-test",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Systemtest"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": "planned:review",
+      "title": "Returnering og faglig godkendelse",
+      "path": "/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f2df70e2-c60c-46f2-b824-a7ec818422ce&work=submission",
+      "selectionOnly": false,
+      "httpStatus": 200,
+      "guideVisible": true,
+      "viewports": [
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "mainMenu": [
+            "Naturprojekter"
+          ],
+          "alerts": []
+        },
+        {
+          "width": 390,
+          "scrollWidth": 390,
+          "mainMenu": [],
+          "alerts": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "mainMenu": [],
+          "alerts": []
+        }
+      ],
+      "result": "PASS"
+    }
+  ]
+}

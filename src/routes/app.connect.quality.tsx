@@ -79,12 +79,12 @@ function Page() {
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
         <PageHeader
           title="Datakvalitet"
           description="Er data pålideligt nok til analyse, dokumentation og rapportering?"
         />
-        <div className="flex items-center gap-2 shrink-0 mt-1">
+        <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
           <button
             onClick={handleRunNow}
             disabled={running}

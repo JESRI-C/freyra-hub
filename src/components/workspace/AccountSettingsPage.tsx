@@ -56,10 +56,10 @@ export function AccountSettingsPage({ page }: { page: keyof typeof titles }) {
           <p>Åbn projektets tilgængelige værktøjer. Datastatus er knyttet til den valgte sag.</p>
           <div className="grid md:grid-cols-2 gap-3">
             {[
-              ["/app/connect", "Monitoring & feltdata", "sources"],
-              ["/app/decisions", "Project Intelligence", "actions"],
+              ["/app/connect", "Overvågning og feltdata", "sources"],
+              ["/app/decisions", "Projektindsigt", "actions"],
               ["/app/ledger", "Dokumentation & audit", "indicators"],
-              ["/app/impact", "Funding & impact", "units"],
+              ["/app/impact", "Finansiering og effekt", "units"],
             ].map(([to, label, resource]) => (
               <section className="border rounded p-4" key={to}>
                 <Link to={to as never}>{label}</Link>
@@ -77,9 +77,17 @@ export function AccountSettingsPage({ page }: { page: keyof typeof titles }) {
               </section>
             ))}
           </div>
-          <Link to="/app/reports">Rapporter og skabeloner</Link>
-          <Link to="/app/construction">Byggeri & natur</Link>
-          <Link to="/app/lavbund">LavbundsMRV</Link>
+          <nav aria-label="Flere fagmoduler" className="flex flex-wrap gap-x-4 gap-y-2">
+            <Link className="inline-flex min-h-11 items-center underline" to="/app/reports">
+              Rapporter og skabeloner
+            </Link>
+            <Link className="inline-flex min-h-11 items-center underline" to="/app/construction">
+              Byggeri og natur
+            </Link>
+            <Link className="inline-flex min-h-11 items-center underline" to="/app/lavbund">
+              Lavbund og beplantning
+            </Link>
+          </nav>
         </>
       )}
       {page === "notifications" && (
