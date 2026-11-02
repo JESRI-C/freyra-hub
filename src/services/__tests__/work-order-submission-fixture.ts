@@ -77,7 +77,7 @@ export function submission(version = 1): SubmissionVersion {
           dataBasis: "synthetic",
           stage: "performed",
           actualDate: "2026-11-02",
-          method: "Visuel kontrol",
+          method: binding.actual_method,
           reach: "Prøveareal",
           performedBy: "Testperson",
           sourceReference: "Testlog",

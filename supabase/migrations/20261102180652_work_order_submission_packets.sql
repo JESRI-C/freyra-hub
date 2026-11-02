@@ -193,7 +193,7 @@ RETURNS SETOF public.work_order_submission_versions LANGUAGE plpgsql STABLE SECU
 BEGIN
   IF auth.uid() IS NULL OR NOT EXISTS(SELECT 1 FROM public.work_orders w WHERE w.action_id=p_action_id AND w.organization_id=p_organization_id
     AND w.project_id=p_project_id AND private.can_read_work_order(w.action_id)) THEN RAISE EXCEPTION 'Submission unavailable' USING ERRCODE='42501'; END IF;
-  IF p_page_size IS NULL OR p_page_size NOT BETWEEN 1 AND 20 OR (p_before_version IS NOT NULL AND p_before_version<1)
+  IF p_page_size IS NULL OR p_page_size NOT BETWEEN 1 AND 5 OR (p_before_version IS NOT NULL AND p_before_version<1)
     THEN RAISE EXCEPTION 'Invalid submission page' USING ERRCODE='22023'; END IF;
   RETURN QUERY SELECT * FROM public.work_order_submission_versions v WHERE v.action_id=p_action_id
     AND v.organization_id=p_organization_id AND v.project_id=p_project_id AND (p_before_version IS NULL OR v.version<p_before_version)

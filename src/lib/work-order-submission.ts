@@ -37,7 +37,7 @@ export const SaveSubmissionSchema = WorkOrderScopeSchema.extend({
 }).strict();
 export const SubmissionPageSchema = WorkOrderScopeSchema.extend({
   beforeVersion: z.number().int().positive().nullable(),
-  pageSize: z.number().int().min(1).max(20),
+  pageSize: z.number().int().min(1).max(5),
 }).strict();
 export const SubmissionSnapshotSchema = WorkOrderScopeSchema.extend({
   schema: z.literal("freyra.work-order-submission/v1"),
@@ -69,6 +69,10 @@ export const SubmissionSnapshotSchema = WorkOrderScopeSchema.extend({
     e.binding.assignment_version_id !== s.assignment.id ||
     e.values.actionId !== s.actionId ||
     e.values.stage !== "performed" ||
+    e.values.actualDate !== e.binding.actual_start ||
+    e.values.actualEndDate !== e.binding.actual_end ||
+    e.values.method !== e.binding.actual_method ||
+    e.values.coverage !== e.binding.coverage ||
     e.binding.documentation_gaps.length ||
     !s.plan.plan.responsibleId ||
     !s.plan.plan.profile ||
@@ -150,6 +154,15 @@ export const SubmissionContextSchema = z
       ctx.addIssue({
         code: "custom",
         message: "Afleveringens adgang og kontrolgrundlag stemmer ikke.",
+      });
+    if (
+      value.can_prepare &&
+      value.gaps?.length === 0 &&
+      (!value.plan_version || !value.execution_version || !value.evidence_count)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Et klart grundlag skal indeholde plan, udførelse og dokumentation.",
       });
   });
 export type SubmissionVersion = z.infer<typeof SubmissionVersionSchema>;

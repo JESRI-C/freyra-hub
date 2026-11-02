@@ -32,8 +32,10 @@ SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.
 SELECT pg_temp.change(0,'draft'); SELECT pg_temp.change(1,'planned'); SELECT pg_temp.change(2,'assigned');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT pg_temp.change(3,'started','{"startedAt":"2026-10-08T08:00:00Z","startedSource":"Synthetic work log"}');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT * FROM public.save_work_order_execution(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(31)),1,0,
  jsonb_build_object('schema','freyra.action-execution/v1','actionId',pg_temp.k(31),'surveyRoundId',NULL,'dataBasis','synthetic','workType','other','stage','performed','actualDate','2026-10-08','actualEndDate',NULL,'method','Synthetic method','reach','Synthetic reach','performedBy','Synthetic field worker','sourceReference','Synthetic work log','evidenceIds','[]'::jsonb,'deviation','','correctionReason','','coverage','limited','coverageDescription','Synthetic limited coverage'),pg_temp.k(2),'',pg_temp.k(46),(SELECT id FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(31)),1);
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT pg_temp.change(4,'performed');
 SELECT ok((pg_temp.ctx()->'gaps') ? 'evidence_missing','performed alone does not supply photos and observations');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
@@ -71,7 +73,7 @@ SELECT throws_ok($$SELECT pg_temp.save(0,81,NULL,'Different note')$$,'22023',NUL
 SELECT throws_ok($$SELECT pg_temp.save(0,82)$$,'PT409',NULL,'old expected version is a conflict');
 SELECT throws_ok($$UPDATE public.work_order_submission_versions SET note='Overwrite'$$,'42501',NULL,'no update through the API');
 SELECT throws_ok($$DELETE FROM public.work_order_submission_versions$$,'42501',NULL,'no delete through the API');
-SELECT throws_ok($$SELECT * FROM public.list_work_order_submissions(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,21)$$,'22023',NULL,'page size is bounded');
+SELECT throws_ok($$SELECT * FROM public.list_work_order_submissions(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,6)$$,'22023',NULL,'full snapshot page size is bounded');
 SELECT throws_ok($$SELECT * FROM public.save_work_order_submission(pg_temp.k(31),pg_temp.k(12),pg_temp.k(21),1,pg_temp.hash(),'Wrong organization',pg_temp.k(83))$$,'42501',NULL,'scope mismatch is denied before reading history');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((pg_temp.ctx()->>'can_prepare')::boolean,false,'external assigned reader cannot prepare packets');
