@@ -33,6 +33,7 @@ vi.mock("../WorkOrderExecutionReference", () => ({
   WorkOrderExecutionReference: () => <p>Valgt historisk udførelse</p>,
 }));
 import { WorkOrderSubmissionPanel } from "../WorkOrderSubmissionPanel";
+vi.mock("../WorkOrderReviewControls", () => ({ WorkOrderReviewControls: () => null }));
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function settle() {
   await act(async () => {
@@ -145,7 +146,7 @@ describe("submission preparation on the existing task", () => {
     await render(true);
     expect(host.querySelector("textarea")).toBeNull();
     expect(host.textContent).toContain("Afleveringsversion 1");
-    expect(host.textContent).toContain("Ikke fagligt godkendt");
+    expect(host.textContent).toContain("Fastholdt grundlag");
   });
   it("preserves zero, false and unknown dates in the frozen version", async () => {
     m.list.mockResolvedValue({ items: [submission()], nextBeforeVersion: null });

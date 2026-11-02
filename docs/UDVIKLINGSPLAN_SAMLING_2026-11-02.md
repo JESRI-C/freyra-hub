@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.4 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.5 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Mål:** Freyra skal dække den fulde kortlagte funktionalitet i Skyhost Jobs og Geotag og samle den med Freyras eksisterende fagmoduler. Kunden kan planlægge, fordele, udføre, kontrollere og dokumentere et naturprojekt i ét sammenhængende program, inklusive de kortlagte driftsfunktioner. Eksisterende kode genbruges med samme projekt-, opgave-, fil- og versionsidentitet på computer og telefon. Alle eksisterende fagområder bevares og får en tydelig plads; funktioner åbnes i takt med dokumenteret anvendelighed.
 
@@ -14,15 +14,18 @@ grundlag, plan, udførelse, vurdering og dokumentation som samlet indgang.
 Automatiske kontroller og browserprøve er tekniske beviser; Jespers
 brugbarhedsvurdering er fortsat åben. Kilde `06c438b…` er nu på staging med
 [frosne afleveringsgrundlag](OPGAVE_AFLEVERING_SAMLING.md), bestået gennem
-app, database, genforsøg og afgrænset ekstern læsning. S04/D05 er delvis;
-review, versionsbundne fagkrav og rapportkilder er næste integrationsarbejde.
+app, database, genforsøg og afgrænset ekstern læsning. S04/D05 er delvis.
+Kilde `2e04787…` tilføjer nu [versionsbundet faglig gennemgang](OPGAVE_GENNEMGANG_SAMLING.md)
+på staging: aflevering, uafhængig godkendelse/returnering og genåbning på samme
+opgave. Versionsbundne fagkrav og rapportkilder er næste integrationsarbejde.
 
 **Kortlægning og fælles præsentation:** Kilde `92c638b…` er nu på staging
 med [Programoverblik og ensartede forklaringer](PROGRAMKORT_OG_ENSARTET_VISNING_2026-11-02.md).
 Alle 71 kanoniske produktsidevisninger, 20 projektværktøjer, fem opgavedele
 og 68 eksisterende krav er placeret. Skyhosts ti jobområder, fem konkrete
-integrationskandidater og 14 planlagte områder er synlige med deres faktiske
-afgrænsning. 867 kilde-/testfiler og tre ældre TypeScript-træer er sammenholdt.
+integrationskandidater, 13 planlagte områder og én delvis gennemgangsfunktion
+er synlige med deres faktiske afgrænsning. Det aktuelle inventar indeholder
+873 kilde-/testfiler; tre ældre TypeScript-træer er fortsat bevaret og sammenholdt.
 CI og faktisk læsende browserprøve bestod. Eksisterende kode, menuindgange,
 projekt-/opgaveidentitet og originaler bevares. Fuld funktionel paritet og
 Jespers brugbarhedsaccept er fortsat åbne.
@@ -170,8 +173,21 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 
 **Udført del:** [Fastholdt afleveringsgrundlag](OPGAVE_AFLEVERING_SAMLING.md)
 er implementeret og prøvet på staging. Præcis plan/tildeling/udførelse,
-registreringer og originaler fastholdes. Returnering, faglig godkendelse,
-profilspecifikke krav og samlet brugeraccept mangler; pakken er delvis.
+registreringer og originaler fastholdes. [D05b-gennemgangen](OPGAVE_GENNEMGANG_SAMLING.md)
+er også på staging: særskilt aflevering, uafhængig godkendelse/returnering,
+begrundet genåbning og ny aflevering bevarer tidligere versioner. Ændrede
+kilder afviser godkendelse; tilbagekaldt adgang afviser også gamle genforsøg.
+CI 41535229142 og faktisk hosted browser/API bestod. Profilspecifikke krav
+og samlet faglig-/brugeraccept mangler; S04/D05 er fortsat delvis.
+
+**Næste sammenhængende pakke: S04/D05c.** Kortlæg og genbrug eksisterende
+opgaveskabeloners obligatoriske felter, planprofil og kategoriopsætning til
+versionsbundne dokumentationskrav. En afleveringsversion skal fastholde den
+regelversion, den er kontrolleret imod. Prøv skift af profil/krav, manglende
+bilag, gamle afleveringer og ny aflevering efter rettelse. Naturfaglige
+metoderegler, som kilderne ikke definerer, må ikke opfindes. Derefter S05:
+bind eksisterende rapportrevision til præcis aflevering og review. Samlet
+accept gennem rapport/ZIP er fortsat åben.
 
 - Genbrug eksisterende operationel status. Tilføj den manglende aflevering med frosset krav-/evidenssnapshot.
 - Lad reviewer returnere med konkrete mangler eller godkende det eksplicitte omfang. Rettelse og genaflevering bevarer gammel historik.

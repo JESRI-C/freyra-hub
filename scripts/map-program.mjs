@@ -205,7 +205,10 @@ const result = {
     canonicalProductPages: PROGRAM_PAGES.length,
     projectDestinations: catalog.PROJECT_FEATURES.length,
     taskParts: catalog.TASK_FEATURES.length,
-    plannedCapabilities: catalog.PLANNED_FEATURES.length,
+    plannedCapabilities: catalog.PLANNED_FEATURES.filter((f) => f.status === "planned").length,
+    partiallyDeliveredRoadmapCapabilities: catalog.PLANNED_FEATURES.filter(
+      (f) => f.status === "partial",
+    ).length,
     requirementIds: requirements.length,
     unmappedProductRoutes: unmapped.length,
     staticUnreachedProductionFiles: code.filter((f) => !reachedFrom.get(f)?.length).length,

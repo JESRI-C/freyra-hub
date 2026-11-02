@@ -8,6 +8,18 @@ import {
   saveWorkOrderSubmission,
 } from "@/services/work-order-submission-service";
 import type { WorkOrderRequestClient } from "@/services/work-order-access-service";
+import { getWorkOrderReviewContext } from "@/services/work-order-review-service";
+
+export const getProjectWorkOrderReviewContext = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => parseWorkOrderInput(WorkOrderScopeSchema, raw))
+  .handler(({ data, context }) =>
+    getWorkOrderReviewContext(
+      context.supabase as unknown as WorkOrderRequestClient,
+      context.userId,
+      data,
+    ),
+  );
 
 export const getProjectWorkOrderSubmissionContext = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

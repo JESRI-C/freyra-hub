@@ -1,0 +1,183 @@
+{
+  "schema": "freyra.work-order-review-staging-receipt/v1",
+  "observedDate": "2026-11-02",
+  "sourceRevision": "2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/40",
+  "staging": {
+    "baseUrl": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+    "workerVersion": "ade3d174-87f1-4d64-8f5f-bf668c88a93c",
+    "supabaseRef": "xdvqdzdpyceojbdknofi",
+    "migrationVersion": "20261102213116",
+    "migrationCount": 46,
+    "migrationSha256": "7c71a2259a72e1795dcdae0b503dede74513dc1f2c5d55e1d1708f100be13884",
+    "sqlNormalizedMd5": "17f869a2290abd3164f8b88fcb635752"
+  },
+  "ci": {
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41535229142",
+    "result": "PASS",
+    "applicationTests": 3418,
+    "applicationFiles": 256,
+    "databaseTests": 1568,
+    "databaseFiles": 24,
+    "freshReplay": true,
+    "realConcurrentReviewAndOriginalLocks": true,
+    "revocationBeforeCommit": true,
+    "http409": true,
+    "dumpRestore": true,
+    "typecheckLintBuild": true
+  },
+  "hosted": {
+    "fixtureRun": "3ebd6f50",
+    "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+    "actionId": "f2df70e2-c60c-46f2-b824-a7ec818422ce",
+    "syntheticOnly": true,
+    "flow": [
+      "performed",
+      "submitted:1",
+      "returned:1",
+      "reopened",
+      "performed",
+      "submitted:2",
+      "approved:2"
+    ],
+    "lifecycleVersion": 11,
+    "latestSubmissionVersion": 2,
+    "selfReviewDenied": "42501",
+    "staleApprovalDenied": "PT409",
+    "reviewOnlyMyTasksEntry": true,
+    "reviewOnlyPreparationDeniedByRole": true,
+    "lostSuccessfulResponseSameRequestOneRevision": true,
+    "approvalRows": 1,
+    "approvalAuditEvents": 1,
+    "firstPacketUnchanged": true,
+    "zeroAndFalsePreserved": true,
+    "originalSha256": "8343c81af5a4d07b716cf60482c91c5422e7721554eed642f1102e8c2c3be23e",
+    "originalDownloadHashMatched": true,
+    "revokedContextAndOldReceiptDenied": "42501",
+    "revokedBrowserCacheQuarantined": true,
+    "revokedTaskRemoved": true,
+    "temporaryReviewGrantsClosed": true,
+    "viewportsWithoutHorizontalOverflow": [
+      1280,
+      390,
+      320
+    ],
+    "existingPaginatedLogbookIncludesReviewScope": true,
+    "pageErrorsInFinalReadOnlyVisualCheck": 0,
+    "screenshotsInspected": true
+  },
+  "preservation": {
+    "media": {
+      "before": 117,
+      "after": 117,
+      "missing": 0,
+      "changed": 0,
+      "added": 0
+    },
+    "access": {
+      "before": 16,
+      "after": 28,
+      "missing": 0,
+      "changed": 0,
+      "added": 12
+    },
+    "actions": {
+      "before": 23,
+      "after": 24,
+      "missing": 0,
+      "changed": 0,
+      "added": 1
+    },
+    "projects": {
+      "before": 52,
+      "after": 52,
+      "missing": 0,
+      "changed": 0,
+      "added": 0
+    },
+    "lifecycle": {
+      "before": 19,
+      "after": 30,
+      "missing": 0,
+      "changed": 0,
+      "added": 11
+    },
+    "workspace": {
+      "before": 37,
+      "after": 38,
+      "missing": 0,
+      "changed": 0,
+      "added": 1
+    },
+    "submissions": {
+      "before": 3,
+      "after": 5,
+      "missing": 0,
+      "changed": 0,
+      "added": 2
+    },
+    "storageObjects": {
+      "before": 260,
+      "after": 260,
+      "missing": 0,
+      "changed": 0,
+      "added": 0
+    }
+  },
+  "preservationHashExclusions": {
+    "lifecycle": [
+      "submission_version_id",
+      "review_scope"
+    ],
+    "storageObjects": [
+      "last_accessed_at"
+    ]
+  },
+  "userModifiedDocumentsSha256": {
+    "docs/JOBS_GEOTAG_KRAVMATRIX.md": "6e202f61953640b9cb19965ed46d10bfddcf196f265e7e1b3e7b421704c843ac",
+    "docs/JOBS_GEOTAG_TESTLEVERING.md": "aea1e7ac5766a150bbe926c8e1bb5bc4c99bd8fb4358b070cd95f0dd366276bf"
+  },
+  "advisors": {
+    "security": {
+      "before": 21,
+      "after": 21,
+      "newFindings": 0
+    },
+    "performance": {
+      "before": 260,
+      "after": 261,
+      "newFindings": [
+        {
+          "name": "unused_index",
+          "index": "work_order_lifecycle_submission_reference",
+          "reason": "New composite FK supporting index retained."
+        }
+      ],
+      "newUnindexedForeignKeys": 0
+    },
+    "remediation": "https://supabase.com/docs/guides/database/database-linter"
+  },
+  "programMap": {
+    "points": 115,
+    "sourceFiles": 873,
+    "canonicalProductPages": 71,
+    "projectTools": 20,
+    "taskParts": 5,
+    "planned": 13,
+    "partialRoadmap": 1,
+    "requirements": 68,
+    "unmappedProductRoutes": 0,
+    "sourceTreeSha256": "88929096d457abc8f06a180828b49e0695a834182e5cbb8288baf539f07dda23"
+  },
+  "remaining": [
+    "S04/D05c version-bound profile and category documentation requirements",
+    "S05 report revision bound to exact submission and review",
+    "Full deviation lifecycle",
+    "Physical-phone, professional and user acceptance",
+    "S13-S16 and full mapped Skyhost parity"
+  ],
+  "productionChanged": false,
+  "merged": false,
+  "messagesSent": false,
+  "paidProvidersActivated": false
+}

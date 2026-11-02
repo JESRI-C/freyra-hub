@@ -318,6 +318,7 @@ function TaskCard({
               actorId={actorId}
               actionId={task.action_id}
               readOnly
+              allowReviewInReadOnly
               onEditing={(value) => {
                 setSubmissionEditing(value);
                 reportEditing("submission", value);
