@@ -116,6 +116,8 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 
 **Afhænger af:** S00; fælles navigation fra S01 bruges ved integration. **Genbrug:** D03, F05/F13, eksisterende field-photo/offline/canonical-media. **Skøn:** 3–5 dage.
 
+**Udført del, 2. november:** [Opgave, gemt jobkortversion og verificeret feltoriginal](OPGAVE_DOKUMENTATION_SAMLING.md) er implementeret i kladde PR36 med lokalt bestået typecheck, 69 målrettede tests og staging-build. Databaseprøver står i CI-kø og er ikke dokumenteret bestået; ingen hosted migration. Pakken er fortsat delvis, især ekstern nyregistrering/upload, øvrige originaltyper og fysisk mobil/offline.
+
 - Map opgave, faktisk udførelse, observation og originalrevision med databasehåndhævet scope. En fototitel, et tag eller URL er ikke relationen.
 - Giv en konkret tildelt ekstern udfører læse-/skriveadgang til tilladte observationer og filer uden projektbred adgang.
 - Bind lokal kø til bruger, projekt, opgave, kilde-/skema-/udførelsesversion og samme upload-ID ved genforsøg. Synliggør hvis gamle køposter kræver manuel tilknytning; ingen automatisk gætning.

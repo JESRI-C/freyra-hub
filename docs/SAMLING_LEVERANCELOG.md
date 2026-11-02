@@ -165,3 +165,31 @@ opfølgning har sin egen målrettede genprøve og efterfølgende type-/byggekont
 S01's kode og lokale automatiske kontroller er leveret. Fysisk/hosted
 brugerprøve er åben. De efterfølgende dokumentations-/testplaceringsændringer
 ændrer ikke den byggede applikationskode. Onlineappen er ikke opdateret.
+
+## S02/D03 — opgave, gemt feltregistrering og verificeret original
+
+2. november 2026: `codex/work-order-evidence-v1`, applikationscommit
+`5739c85b59376478d2ff39770808d3942eb487df`.
+[PR36](https://github.com/JESRI-C/freyra-hub/pull/36) er kladde oven på
+[PR35](https://github.com/JESRI-C/freyra-hub/pull/35), der nu også er afleveret
+som navigationskladde. Ingen merge eller deploy.
+
+Dokumentation er samlet under projektets arbejdsopgave og som læseindgang i
+Mine opgaver. Immutable jobkortversioner og eksisterende serverkvitteringer
+genbruges. En ny koblingshistorik fastholder skema, observation, filidentitet,
+checksum, begrundelse og audit. Rettelser overskriver ikke historik. Præcis
+serverkontrolleret originaladgang udløber efter 60 sekunder; projektets
+Storage-adgang åbnes ikke for eksterne.
+
+Typecheck, ændrede filers lint, 69 målrettede tests i fem filer og
+staging-build med korrekt SHA i metadata bestod. Det udvidede eksisterende
+samtidighedsscripts JavaScript-syntaks er kontrolleret. Browserbundlen er
+kontrolleret uden signer/admin-markører. Databasemigration og nye pgTAP- og
+samtidighedsprøver er endnu **ikke kørt**: lokal database mangler, og de to
+CI-jobs står i kø. Migrationen er ikke anvendt på hosted staging.
+
+[Detaljer, diagram og næste acceptpunkter](OPGAVE_DOKUMENTATION_SAMLING.md).
+S02/D03 er delvis; generiske observationer, droneoriginaler, ekstern
+nyregistrering/upload, fysisk mobil/offline, udførelsesbinding i UI og
+frosne afleverings-/rapportsnapshots er fortsat åbne. De to brugerændrede
+Jobs/Geotag-dokumenters hashes er uændrede.
