@@ -39,6 +39,15 @@ export const WorkOrderStatusSchema = z.enum([
   "cancelled",
 ]);
 export type WorkOrderStatus = z.infer<typeof WorkOrderStatusSchema>;
+export const LifecycleOperationSchema = z.enum([
+  "transition",
+  "confirm",
+  "block",
+  "unblock",
+  "submit",
+  "review",
+  "reopen",
+]);
 const editableStatus = z.enum([
   "draft",
   "planned",
@@ -76,8 +85,10 @@ const references = {
 };
 export const LifecycleRequestSchema = z
   .object({
-    operation: z.enum(["transition", "confirm", "block", "unblock"]),
-    targetStatus: editableStatus.nullable(),
+    operation: LifecycleOperationSchema,
+    targetStatus: WorkOrderStatusSchema.nullable(),
+    submissionVersionId: uuid.nullable().optional(),
+    reviewScope: z.literal("execution_and_documentation").nullable().optional(),
     ...references,
     reason: z.string().trim().max(2000).default(""),
     startedAt: WorkOrderInstantSchema.nullable().default(null),
@@ -90,7 +101,32 @@ export const LifecycleRequestSchema = z
   .strict()
   .superRefine((v, ctx) => {
     const issue = (message: string) => ctx.addIssue({ code: "custom", message });
-    if ((v.operation === "transition" || v.operation === "confirm") !== (v.targetStatus !== null))
+    const extended = ["submit", "review", "reopen"].includes(v.operation);
+    if (extended) {
+      if (
+        !v.submissionVersionId ||
+        !v.reason ||
+        (v.operation === "review" &&
+          (v.reviewScope !== "execution_and_documentation" || v.reason.length < 10)) ||
+        (v.operation !== "review" && v.reviewScope != null)
+      )
+        issue("Angiv afleveringsversion, omfang og en konkret begrundelse.");
+      if (
+        (v.operation === "submit" && v.targetStatus !== "submitted") ||
+        (v.operation === "review" && !["approved", "returned"].includes(v.targetStatus ?? "")) ||
+        (v.operation === "reopen" && v.targetStatus !== "reopened")
+      )
+        issue("Vælg den status, der hører til afleveringshandlingen.");
+    } else if (
+      v.submissionVersionId != null ||
+      v.reviewScope != null ||
+      (v.targetStatus !== null && !editableStatus.safeParse(v.targetStatus).success)
+    )
+      issue("Aflevering og review skal bruge deres særskilte handling.");
+    if (
+      !extended &&
+      (v.operation === "transition" || v.operation === "confirm") !== (v.targetStatus !== null)
+    )
       issue("Vælg status ved en statusændring.");
     if (v.operation === "confirm" && v.targetStatus === "cancelled")
       issue("En annulleret opgave kan ikke bekræftes som aktiv igen.");
@@ -141,7 +177,7 @@ export const WorkOrderLifecycleSchema = z
   .object({
     ...rowIdentity,
     ...rowContext,
-    operation: z.enum(["transition", "confirm", "block", "unblock"]),
+    operation: LifecycleOperationSchema,
     status: WorkOrderStatusSchema,
     started_at: WorkOrderInstantSchema.nullable(),
     started_source: z.string().trim().min(1).max(2000).nullable(),
@@ -153,9 +189,22 @@ export const WorkOrderLifecycleSchema = z
     block_due_date: CalendarDate.nullable(),
     reason: z.string().trim().max(2000),
     request_values: LifecycleRequestSchema,
+    submission_version_id: uuid.nullable().optional().default(null),
+    review_scope: z.literal("execution_and_documentation").nullable().optional().default(null),
   })
   .superRefine((v, ctx) => {
     const r = v.request_values;
+    if (
+      ["submit", "review", "reopen"].includes(v.operation) &&
+      (v.submission_version_id !== r.submissionVersionId ||
+        v.review_scope !== (r.reviewScope ?? null))
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Reviewkvitteringen peger på en anden afleveringsversion.",
+      });
+    if (v.operation !== "review" && v.review_scope !== null)
+      ctx.addIssue({ code: "custom", message: "Reviewomfang hører til en konkret gennemgang." });
     if (
       v.operation !== r.operation ||
       v.reason !== r.reason ||
@@ -353,7 +402,10 @@ export const WorkOrderLogEntrySchema = z
         coverage: z.enum(["unknown", "limited", "documented"]).optional(),
         documentationGaps: z.array(z.string().max(120)).max(30).optional(),
         status: WorkOrderStatusSchema.optional(),
-        operation: z.enum(["transition", "confirm", "block", "unblock"]).optional(),
+        operation: LifecycleOperationSchema.optional(),
+        submissionVersionId: uuid.nullable().optional(),
+        submissionVersion: z.number().int().positive().nullable().optional(),
+        reviewScope: z.literal("execution_and_documentation").nullable().optional(),
         blocked: z.boolean().optional(),
         blockReason: z.string().max(2000).nullable().optional(),
         blockOwnerId: uuid.nullable().optional(),

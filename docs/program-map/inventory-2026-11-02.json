@@ -1,8 +1,8 @@
 {
   "schema": "freyra.program-map/v1",
   "date": "2026-11-02",
-  "baselineCommit": "c3eaed89918c5769e15a23de731f6a2f51f7007a",
-  "sourceTreeSha256": "8117a597d6bfd0680569b9612e8614713ce27d985fab876e2876d9b7dbf5be91",
+  "baselineCommit": "1dbd4991d7a8e6743daf2776c4bbe7ef1c57b4f6",
+  "sourceTreeSha256": "88929096d457abc8f06a180828b49e0695a834182e5cbb8288baf539f07dda23",
   "method": "All current src JS/TS files, route declarations, local static imports, project destinations and 68 existing requirement IDs. Static mapping is not functional, hosted, security or customer acceptance. A route-unreachable file is a review candidate, never a deletion recommendation.",
   "source": {
     "name": "Skyhost_Jobs_Geotag_funktionskortlaegning_2026-10-29.html",
@@ -10,14 +10,15 @@
     "url": "https://drive.google.com/file/d/1hDgbtkI4Zh7fHE4FLqfUQFuvH3bcjlBx/view"
   },
   "counts": {
-    "sourceFiles": 867,
-    "productionFiles": 597,
-    "tests": 269,
+    "sourceFiles": 873,
+    "productionFiles": 600,
+    "tests": 272,
     "routeDeclarations": 93,
     "canonicalProductPages": 71,
     "projectDestinations": 20,
     "taskParts": 5,
-    "plannedCapabilities": 14,
+    "plannedCapabilities": 13,
+    "partiallyDeliveredRoadmapCapabilities": 1,
     "requirementIds": 68,
     "unmappedProductRoutes": 0,
     "staticUnreachedProductionFiles": 97
@@ -458,7 +459,7 @@
       "label": "Aflevering",
       "question": "Hvilket grundlag afleverer vi til gennemgang?",
       "purpose": "Kontrollér mangler, og fasthold præcise versioner af plan, udførelse, registreringer og originalfotos. En afleveringsversion bevarer grundlaget, når projektet senere ændres.",
-      "output": "Et fastholdt afleveringsgrundlag. Faglig godkendelse er en særskilt, kommende funktion.",
+      "output": "Et fastholdt afleveringsgrundlag med særskilt, versionsbundet gennemgang af udførelse og dokumentation.",
       "title": "Aflevering",
       "areaId": "tasks",
       "status": "partial",
@@ -1508,9 +1509,17 @@
       "title": "Returnering og faglig godkendelse",
       "purpose": "Vurdér en bestemt afleveringsversion, og returnér med konkrete mangler.",
       "output": "En versionsbundet beslutning med begrundelse.",
-      "question": "Hvad skal denne del understøtte?",
+      "question": "Hvilken afleveringsversion er gennemgået?",
       "areaId": "delivery",
-      "status": "planned"
+      "status": "partial",
+      "destination": {
+        "kind": "project",
+        "view": {
+          "kind": "tab",
+          "id": "handlinger"
+        },
+        "work": "submission"
+      }
     },
     {
       "id": "planned:requirements",
@@ -1677,7 +1686,7 @@
       "id": "checklists",
       "title": "Tjeklister",
       "purpose": "Skabeloner og dokumentationskrav ved et bestemt statusskift.",
-      "remaining": "Grundskema og afleveringskontrol findes; konfigurerede kategori-/statuskrav og fagligt review mangler.",
+      "remaining": "Grundskema, afleveringskontrol og versionsbundet gennemgang findes; konfigurerede kategori-/statuskrav og flere felttyper mangler.",
       "featureIds": [
         "work:field",
         "work:submission",
@@ -7080,7 +7089,7 @@
     },
     {
       "file": "src/components/project/MyWorkOrders.tsx",
-      "sha256": "d838eaf1ea74493fcb89165ab0a0eccf42fef2cee06abf0827ae881a487b1261",
+      "sha256": "797248d036beb7971f198d743997329e75367dfcef7d7798b662582f234f9ff6",
       "kind": "source",
       "reachedFromRoutes": [
         "/opgaver"
@@ -7373,8 +7382,17 @@
       ]
     },
     {
+      "file": "src/components/project/WorkOrderReviewControls.tsx",
+      "sha256": "fb7f494e4539d33dbc67f08f1c68a2905ff2c4f46f897c94be8a6ab77547819d",
+      "kind": "source",
+      "reachedFromRoutes": [
+        "/app/projects/$slug",
+        "/opgaver"
+      ]
+    },
+    {
       "file": "src/components/project/WorkOrderStatusPanel.tsx",
-      "sha256": "f05f2ec50838a9800b2918d4db6e08e96ad6717588bc183b15e66635ecaf7ae9",
+      "sha256": "217e414a3b8df0686628af627d118ce1d1fdd0c58f680c4858590bb72cff7376",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/projects/$slug",
@@ -7383,7 +7401,7 @@
     },
     {
       "file": "src/components/project/WorkOrderSubmissionPanel.tsx",
-      "sha256": "0a03bfa0e0ca210807f7fae0659e7323a3bf3e4aa9bf62b037a01def15ad9385",
+      "sha256": "64e22133c39630579a8a4e98ea6b3c1675146de63fddcfd5158f2b927569068f",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/projects/$slug",
@@ -7595,6 +7613,12 @@
       "reachedFromRoutes": []
     },
     {
+      "file": "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
+      "sha256": "54882b9bce6630cc132fb4553c442ade3eb79a0afbaa506c94319fd4b3bc72c5",
+      "kind": "test",
+      "reachedFromRoutes": []
+    },
+    {
       "file": "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
       "sha256": "6382eab04e412a61b57a8fcf5ecbd4d848654e92af19cd58dfe9ea997968c0ad",
       "kind": "test",
@@ -7602,7 +7626,7 @@
     },
     {
       "file": "src/components/project/__tests__/WorkOrderSubmissionPanel.test.tsx",
-      "sha256": "b9676edc867ac7321f0d8e48ca6f0dd288c51dca7889ad638166020557ecb407",
+      "sha256": "c8680f15ed9fa09ec6a264d932de57292bc01390a35d66132b4a947f53c897e8",
       "kind": "test",
       "reachedFromRoutes": []
     },
@@ -10368,7 +10392,7 @@
     },
     {
       "file": "src/lib/program-map.ts",
-      "sha256": "a3a590a7dfcddd22d364a7b07d92b6e6d7bec9e9c25b879262773e4242d11dae",
+      "sha256": "6c265fbfa0d58c621d4606017e05fb14009713acc090cbc3f485bc795daddf0c",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/program",
@@ -11233,7 +11257,7 @@
     },
     {
       "file": "src/lib/work-order-lifecycle.ts",
-      "sha256": "d2d4b56913d24ce1b90181b97e0121bb9c82c088fce42500f076bef02cc9a141",
+      "sha256": "aa0f5ec2ec6f73fc30b2acb64c4d193c4d37ce1e4d2293ea0d380efa4cbdfad6",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/projects/$slug",
@@ -11242,7 +11266,7 @@
     },
     {
       "file": "src/lib/work-order-navigation.ts",
-      "sha256": "66f12d2807b0658f04f6967ade5278548aa092357332e2a6a77bb76fac95dec4",
+      "sha256": "e967e095cd73207f1624ae16f2fe1602b98eab563f2213fb465905802ed7a800",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/program",
@@ -11271,8 +11295,17 @@
       ]
     },
     {
+      "file": "src/lib/work-order-review.ts",
+      "sha256": "ac471193874a36fb2d39a2bd83fe249d22fd9722b1c06e63f4ba064923467c7b",
+      "kind": "source",
+      "reachedFromRoutes": [
+        "/app/projects/$slug",
+        "/opgaver"
+      ]
+    },
+    {
       "file": "src/lib/work-order-submission.functions.ts",
-      "sha256": "6fa6f30b591cd2e1f0510c85d35726aeead741c52648a57bbed2fe57db9d7d67",
+      "sha256": "4f140f1ac0fa09bd1f66e12ebd7f2afb76d81edfe6cde11fd9498a9f40dda9bb",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/projects/$slug",
@@ -14815,6 +14848,15 @@
       ]
     },
     {
+      "file": "src/services/work-order-review-service.ts",
+      "sha256": "e26046187d43774187c26a38f9c83a3aea8f111de04cba10712d9ec1369d6b0c",
+      "kind": "source",
+      "reachedFromRoutes": [
+        "/app/projects/$slug",
+        "/opgaver"
+      ]
+    },
+    {
       "file": "src/services/work-order-submission-service.ts",
       "sha256": "ed5a0aebcd367df3d1ac9eb14d844cfa3f3303c1918d8cefbd0c75a11f1d9d00",
       "kind": "source",
@@ -15171,13 +15213,25 @@
     },
     {
       "file": "src/services/__tests__/work-order-lifecycle-service.test.ts",
-      "sha256": "c8b64403e13c1031ea6ae969b277fae3a8ebeb8d99a304a375730ef4630a9122",
+      "sha256": "25950c9e2a38967865508a5e01d2f2332ace8a5895411e64ebeeae10c89e1d4b",
       "kind": "test",
       "reachedFromRoutes": []
     },
     {
       "file": "src/services/__tests__/work-order-plan-service.test.ts",
       "sha256": "9627e3a5d11514d6cf08d140b9248d04e4c7b822afa3c17cc41a7545d1ee7049",
+      "kind": "test",
+      "reachedFromRoutes": []
+    },
+    {
+      "file": "src/services/__tests__/work-order-review-fixture.ts",
+      "sha256": "01e5288ab94de8a77698f0131a37f62970d6f62f635055a937fd600d37648580",
+      "kind": "test",
+      "reachedFromRoutes": []
+    },
+    {
+      "file": "src/services/__tests__/work-order-review-service.test.ts",
+      "sha256": "0ac4573bc72c7940500549210f3de0469994922fab96eaa9e845212de8882c80",
       "kind": "test",
       "reachedFromRoutes": []
     },

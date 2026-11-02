@@ -712,13 +712,25 @@ export const PLANNED_FEATURES: ProgramFeature[] = [
   title,
   purpose,
   output,
-  question: "Hvad skal denne del understøtte?",
+  question:
+    id === "review"
+      ? "Hvilken afleveringsversion er gennemgået?"
+      : "Hvad skal denne del understøtte?",
   areaId: ["review", "requirements"].includes(id)
     ? "delivery"
     : ["migration", "billing"].includes(id)
       ? "administration"
       : "tasks",
-  status: "planned",
+  status: id === "review" ? "partial" : "planned",
+  ...(id === "review"
+    ? {
+        destination: {
+          kind: "project" as const,
+          view: { kind: "tab" as const, id: "handlinger" as const },
+          work: "submission" as const,
+        },
+      }
+    : {}),
 }));
 
 /** Exact ten-tab structure from the supplied Skyhost mapping; no claim of full parity. */
@@ -806,7 +818,7 @@ export const SKYHOST_JOB_AREAS = [
     title: "Tjeklister",
     purpose: "Skabeloner og dokumentationskrav ved et bestemt statusskift.",
     remaining:
-      "Grundskema og afleveringskontrol findes; konfigurerede kategori-/statuskrav og fagligt review mangler.",
+      "Grundskema, afleveringskontrol og versionsbundet gennemgang findes; konfigurerede kategori-/statuskrav og flere felttyper mangler.",
     featureIds: ["work:field", "work:submission", "planned:requirements"],
     planned: false,
   },

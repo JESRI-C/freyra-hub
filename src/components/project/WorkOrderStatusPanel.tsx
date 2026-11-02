@@ -288,6 +288,7 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
           planned: "assigned",
           assigned: "started",
           started: "performed",
+          reopened: "performed",
         } as Record<string, Target>
       )[s.status] ?? null);
   const canNext =
@@ -770,6 +771,12 @@ function LogItem({
         </p>
       )}
       {d.reason && <p>Begrundelse: {d.reason}</p>}
+      {d.submissionVersion && (
+        <p>
+          Afleveringsversion {d.submissionVersion}
+          {d.reviewScope ? " · Gennemgang af registreret udførelse og vedlagt dokumentation" : ""}
+        </p>
+      )}
       {d.blockReason && (
         <p>
           Afventer: {d.blockReason}. Næste handling: {d.blockNextAction}

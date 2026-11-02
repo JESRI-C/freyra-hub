@@ -33,6 +33,8 @@ const state = {
   plan_version_id: id(5),
   assignment_version_id: null,
   execution_revision_id: null,
+  submission_version_id: null,
+  review_scope: null,
   started_at: null,
   started_source: null,
   started_by_id: null,

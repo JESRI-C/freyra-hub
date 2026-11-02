@@ -39,7 +39,7 @@ export const WORK_ORDER_PARTS = [
     purpose:
       "Kontrollér mangler, og fasthold præcise versioner af plan, udførelse, registreringer og originalfotos. En afleveringsversion bevarer grundlaget, når projektet senere ændres.",
     output:
-      "Et fastholdt afleveringsgrundlag. Faglig godkendelse er en særskilt, kommende funktion.",
+      "Et fastholdt afleveringsgrundlag med særskilt, versionsbundet gennemgang af udførelse og dokumentation.",
   },
 ] as const;
 export type WorkOrderView = (typeof WORK_ORDER_PARTS)[number]["id"];

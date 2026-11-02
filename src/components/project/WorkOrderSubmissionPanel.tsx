@@ -13,6 +13,8 @@ import { WorkOrderRequestError } from "@/lib/work-order-access";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { WorkOrderExecutionReference } from "./WorkOrderExecutionReference";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
+import { WorkOrderReviewControls } from "./WorkOrderReviewControls";
+import type { WorkOrderStatus } from "@/lib/work-order-lifecycle";
 
 const button = "min-h-11 rounded-xl border px-4 py-2 text-sm disabled:opacity-50";
 export function WorkOrderSubmissionPanel({
@@ -20,6 +22,7 @@ export function WorkOrderSubmissionPanel({
   actorId,
   actionId,
   readOnly = false,
+  allowReviewInReadOnly = false,
   active = true,
   onEditing,
 }: {
@@ -27,6 +30,7 @@ export function WorkOrderSubmissionPanel({
   actorId: string;
   actionId: string;
   readOnly?: boolean;
+  allowReviewInReadOnly?: boolean;
   active?: boolean;
   onEditing?: (value: boolean) => void;
 }) {
@@ -41,6 +45,11 @@ export function WorkOrderSubmissionPanel({
   const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [uncertain, setUncertain] = useState(false);
+  const [reviewEditing, setReviewEditing] = useState(false);
+  const [reviewPhase, setReviewPhase] = useState<WorkOrderStatus | undefined>(undefined);
+  const reviewClosed = ["submitted", "approved", "returned", "cancelled"].includes(
+    reviewPhase ?? "",
+  );
   const inFlight = useRef(false),
     alive = useRef(true);
   const attempt = useRef<{ signature: string; requestId: string } | undefined>(undefined);
@@ -55,7 +64,7 @@ export function WorkOrderSubmissionPanel({
     () => ["work-order-submission", actorId, scope.organizationId, scope.projectId, actionId],
     [actorId, scope.organizationId, scope.projectId, actionId],
   );
-  const locked = !!note || busy || opening || uncertain;
+  const locked = !!note || busy || opening || uncertain || reviewEditing;
   const wasActive = useRef(active);
   useEffect(() => {
     if (active && !wasActive.current && !locked) void cache.invalidateQueries({ queryKey: key });
@@ -90,7 +99,16 @@ export function WorkOrderSubmissionPanel({
     refetchOnReconnect: !locked,
   });
   async function save() {
-    if (!writable || !c?.basis_hash || !note.trim() || c.gaps?.length || inFlight.current) return;
+    if (
+      !writable ||
+      reviewClosed ||
+      reviewEditing ||
+      !c?.basis_hash ||
+      !note.trim() ||
+      c.gaps?.length ||
+      inFlight.current
+    )
+      return;
     const input = {
       ...task,
       expectedActorId: actorId,
@@ -132,7 +150,7 @@ export function WorkOrderSubmissionPanel({
     }
   }
   async function openOriginal(id: string) {
-    if (!authorized || inFlight.current) return;
+    if (!authorized || reviewEditing || inFlight.current) return;
     inFlight.current = true;
     setOpening(true);
     setError("");
@@ -173,14 +191,25 @@ export function WorkOrderSubmissionPanel({
       <button
         type="button"
         className={button}
-        disabled={busy || opening || uncertain || context.isFetching}
-        onClick={() => void Promise.all([context.refetch(), history.refetch()])}
+        disabled={busy || opening || uncertain || reviewEditing || context.isFetching}
+        onClick={() => void cache.invalidateQueries({ queryKey: key })}
       >
         Hent aktuelt grundlag
       </button>
+      <WorkOrderReviewControls
+        scope={task}
+        actorId={actorId}
+        active={active}
+        readOnly={readOnly}
+        allowReview={!readOnly || allowReviewInReadOnly}
+        parentAuthorized={authorized}
+        disabledByParent={!authorized || !!note || busy || opening || uncertain}
+        onEditing={setReviewEditing}
+        onPhase={setReviewPhase}
+      />
       {authorized && (
         <>
-          {writable && (
+          {writable && (!reviewClosed || !!note) && (
             <div className="space-y-3 rounded-xl border p-4">
               <p className="text-sm">
                 Kontrollen kræver en udført og ublokeret opgave med aktuel plan og tildeling, en
@@ -215,7 +244,7 @@ export function WorkOrderSubmissionPanel({
                   className="mt-1 block min-h-24 w-full rounded-xl border bg-background p-3 text-base"
                   maxLength={2000}
                   value={note}
-                  disabled={busy || uncertain}
+                  disabled={busy || uncertain || reviewEditing || reviewClosed}
                   onChange={(event) => setNote(event.target.value)}
                 />
               </label>
@@ -230,7 +259,13 @@ export function WorkOrderSubmissionPanel({
                   type="button"
                   className={button + " bg-primary text-primary-foreground"}
                   disabled={
-                    busy || opening || context.isFetching || !!c?.gaps?.length || !note.trim()
+                    busy ||
+                    opening ||
+                    reviewEditing ||
+                    reviewClosed ||
+                    context.isFetching ||
+                    !!c?.gaps?.length ||
+                    !note.trim()
                   }
                   onClick={() => void save()}
                 >
@@ -243,13 +278,13 @@ export function WorkOrderSubmissionPanel({
                 <button
                   type="button"
                   className={button}
-                  disabled={busy || opening}
+                  disabled={busy || opening || reviewEditing}
                   onClick={() => {
                     setNote("");
                     setError("");
                     setUncertain(false);
                     attempt.current = undefined;
-                    void Promise.all([context.refetch(), history.refetch()]);
+                    void cache.invalidateQueries({ queryKey: key });
                   }}
                 >
                   Fortryd kladde og genindlæs
@@ -272,7 +307,7 @@ export function WorkOrderSubmissionPanel({
                 <article key={row.id} className="space-y-3 rounded-xl border p-4">
                   <h4 className="font-semibold">Afleveringsversion {row.version}</h4>
                   <p className="text-sm text-muted-foreground">
-                    Gemt {new Date(row.created_at).toLocaleString("da-DK")} · Ikke fagligt godkendt
+                    Gemt {new Date(row.created_at).toLocaleString("da-DK")} · Fastholdt grundlag
                   </p>
                   <p className="whitespace-pre-wrap text-sm">{row.note}</p>
                   <p className="text-sm">
@@ -324,7 +359,7 @@ export function WorkOrderSubmissionPanel({
                           <button
                             type="button"
                             className={button}
-                            disabled={busy || opening}
+                            disabled={busy || opening || reviewEditing}
                             onClick={() => void openOriginal(ev.id)}
                           >
                             Åbn fastholdt originalfoto
