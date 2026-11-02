@@ -193,3 +193,36 @@ S02/D03 er delvis; generiske observationer, droneoriginaler, ekstern
 nyregistrering/upload, fysisk mobil/offline, udførelsesbinding i UI og
 frosne afleverings-/rapportsnapshots er fortsat åbne. De to brugerændrede
 Jobs/Geotag-dokumenters hashes er uændrede.
+
+### Verificeret opfølgning og kobling til udført arbejde
+
+CI-køen ovenfor blev afviklet. På `e716533` bestod hele kørsel
+41421195287 med 3.353 app-tests og 1.458 databasekontroller. Ingen hosted
+database blev ændret.
+
+Applikationscommit `72d4c8486295848740d384c58006f545fb82f3f6` tilføjer et
+udtrykkeligt valg af eksisterende faktisk udførelsesversion. Referencen er
+immutable og opgave-/projekt-/organisationsafgrænset; planlagt arbejde kan
+ikke ved direkte API-insert fremstilles som faktisk udførelse. Den valgte
+historiske version indlæses først ved åbning. Udførelsesgemning opdaterer
+kildelisten, og genforsøg bevarer den valgte versionsidentitet.
+
+[CI 41423470242](https://github.com/JESRI-C/freyra-hub/actions/runs/41423470242)
+bestod begge jobs: 3.367 tests i 249 app-filer, 1.471 databasekontroller i
+22 filer, tom migration, 29 generelle + 21 job-/opgave- + seks foto-
+samtidighedsscenarier, HTTP-konflikt, restore, databaselint, oprydning,
+typecheck, lint, billeddekodning og build. Tests eller grænser blev ikke
+svækket for at få grønt.
+
+Lokalt bestod 108 målrettede tests i syv filer, typecheck, ændrede filers
+lint og staging-build. Buildmetadata matcher præcis applikations-SHA.
+Chrome-layout med syntetiske serverfunktioner og virkelig komponent/CSS
+bestod i 320/390/1280 pixels; skærmbilleder er gennemgået. Dette er ikke
+hosted end-to-end eller fysisk telefon-/offlineacceptance.
+
+[Kandidatkvittering](opgave-dokumentation-kandidat-2026-11-02.json) og
+[opdateret diagram/acceptplan](OPGAVE_DOKUMENTATION_SAMLING.md) fastholder
+afgrænsningen. Udførelsesbinding i UI er nu implementeret. S02/D03 er
+fortsat delvis, og frosne afleveringer/review/rapportkilder i S04/D05 og
+S05/D07 er ikke lukket. PR36 er fortsat kladde; ingen merge, hosted
+migration eller deploy. Brugerens to dokumentændringer er bevaret.
