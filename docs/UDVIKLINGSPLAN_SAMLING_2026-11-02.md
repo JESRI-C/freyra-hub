@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.2 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.3 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Mål:** Freyra skal dække den fulde kortlagte funktionalitet i Skyhost Jobs og Geotag og samle den med Freyras eksisterende fagmoduler. Kunden kan planlægge, fordele, udføre, kontrollere og dokumentere et naturprojekt i ét sammenhængende program, inklusive de kortlagte driftsfunktioner. Eksisterende kode genbruges med samme projekt-, opgave-, fil- og versionsidentitet på computer og telefon. Alle eksisterende fagområder bevares og får en tydelig plads; funktioner åbnes i takt med dokumenteret anvendelighed.
 
@@ -9,12 +9,13 @@ Dette er den samlende leveranceplan. Den erstatter ikke fagkravene i F01–F29 e
 **Aktuel prioritet efter brugerprøve:** Jesper fandt fortsat formål og
 betjening forvirrende. Projektlederens forløb er valgt som hovedindgang, og
 S01/S11's brugeraccept er genåbnet. [Forløb og acceptkriterier](PROJEKTLEDER_FORLOEB_2026-11-02.md)
-styrer næste prøve. Kilde `c93ad03…` er nu på staging med problem og mål,
+styrer næste prøve. Kilde `c93ad03…` introducerede problem og mål,
 grundlag, plan, udførelse, vurdering og dokumentation som samlet indgang.
 Automatiske kontroller og browserprøve er tekniske beviser; Jespers
-brugbarhedsvurdering er fortsat åben. Frosne afleveringer, review og
-rapportkilder er fortsat næste integrationsarbejde efter rettelse af
-observerede brugerbrud.
+brugbarhedsvurdering er fortsat åben. Kilde `06c438b…` er nu på staging med
+[frosne afleveringsgrundlag](OPGAVE_AFLEVERING_SAMLING.md), bestået gennem
+app, database, genforsøg og afgrænset ekstern læsning. S04/D05 er delvis;
+review, versionsbundne fagkrav og rapportkilder er næste integrationsarbejde.
 
 **Teknisk del fra den tidligere leverance:** Navigationen og den afgrænsede S02-kobling er i det
 autoriserede testmiljø på appkilde `46bf6df…`. Login → plan → registrering →
@@ -156,6 +157,11 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 ### S04 — Versionsbundet aflevering og faglig kontrol
 
 **Afhænger af:** S02. **Genbrug:** D05, F07/F08/F10, work-order lifecycle, checks og audit. **Skøn:** 3–5 dage.
+
+**Udført del:** [Fastholdt afleveringsgrundlag](OPGAVE_AFLEVERING_SAMLING.md)
+er implementeret og prøvet på staging. Præcis plan/tildeling/udførelse,
+registreringer og originaler fastholdes. Returnering, faglig godkendelse,
+profilspecifikke krav og samlet brugeraccept mangler; pakken er delvis.
 
 - Genbrug eksisterende operationel status. Tilføj den manglende aflevering med frosset krav-/evidenssnapshot.
 - Lad reviewer returnere med konkrete mangler eller godkende det eksplicitte omfang. Rettelse og genaflevering bevarer gammel historik.

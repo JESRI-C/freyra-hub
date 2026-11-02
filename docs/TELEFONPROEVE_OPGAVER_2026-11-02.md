@@ -48,6 +48,21 @@ Sagen hedder **Telefonprøve – samlet forløb (TEST 4e5de449)**. Opgaven hedde
 Fotos i feltkøen tilhører projektet. De bliver først opgavedokumentation,
 når du foretager den udtrykkelige tilknytning i Dokumentation.
 
+## Ny prøve: fastholdt afleveringsgrundlag
+
+Åbn [opgaven med tre afleveringsversioner](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/342591a9-5e90-4e34-8777-934a8d2a68dd?tab=handlinger&task=f5ef08af-ecc9-40ac-a7c1-bfbe632280a8)
+og vælg **Aflevering**. Den hedder **TEST · Fastholdt afleveringsgrundlag
+697f6f13** og bruger kun syntetiske oplysninger.
+
+1. Se version 3, og fold **Se det fastholdte grundlag** ud.
+2. Læs instruktion, ukendt planlagt dato, testudførelse og registreringssvar.
+   Antal skal være 0 og Testkontrol Nej.
+3. Åbn det fastholdte originalfoto. Det skal være prøvebilledet med farvefelter.
+4. Sammenlign version 1 og 3. De gamle oplysninger er bevaret.
+
+Gemning af en afleveringsversion fastholder dokumentationen til gennemgang.
+Faglig godkendelse og returnering er næste udviklingsdel.
+
 ## Det, der stadig skal prøves på en rigtig telefon
 
 - Kamera og billedvælger, herunder telefonens faktiske filformat/HEIC.

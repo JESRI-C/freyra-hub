@@ -323,3 +323,41 @@ tidsestimat kan ikke bruges som løfte for det udvidede paritetsmål.
 De to brugerændrede Jobs/Geotag-dokumenter bevares uændrede. Jespers nye
 brugbarhedsaccept, fysisk telefon, fuld D03–D08 og Skyhost-paritet er fortsat
 åbne. Ingen af disse lukkes af grøn CI eller en fungerende genvej.
+
+## Afleveringsgrundlag — første implementering i S04/D05
+
+Kilde `06c438b8f78fb4827a5f29a0b63173ac309847ce`, kladde
+[PR38](https://github.com/JESRI-C/freyra-hub/pull/38), tilføjer Aflevering på
+samme opgave og læsning i Mine opgaver. Præcis plan, tildeling, udførelse,
+status, registreringer/skabeloner og originalreferencer fastholdes uden
+filkopier eller ændring af tidligere versioner. Eksisterende roller,
+operationel status, editorlåse, signer og audit genbruges.
+
+[CI 41500655142](https://github.com/JESRI-C/freyra-hub/actions/runs/41500655142)
+bestod 3.394 app-tests/252 filer og 1.516 databasekontroller/23 filer, fuld
+type-/lint-/buildkontrol, frisk replay, reelle samtidigheds-/HTTP-prøver og
+dump/restore. Lokal fuld typecheck og staging-build bestod. Additiv migration
+`20261102180652` er anvendt og hashafstemt i staging, som nu har 45 migrationer.
+RLS/grants er aflæst. Sikkerhedsadvisors har samme 21 enkeltfund før/efter.
+
+Worker `bb911f1c-186f-4bc6-8641-d075d5f8c80d` har verificeret buildmetadata.
+Hosted browser/API bestod afbrudt svar med idempotent genforsøg, bevaret
+første aflevering efter rettelse, 0/Nej/ukendt, faktisk originaldownload
+med SHA-256, tilbagetrækning, tre versioner og 390-pixel-visning. Syntetisk
+ekstern konto læste gennem Mine opgaver og API; gemning blev afvist,
+tilbagekaldelse fjernede browserhistorikken ved opdatering, og testadgangen
+er lukket igen. Skærmbilleder er gennemgået.
+
+Bevaringskontrol fandt nul ændrede/manglende gamle rækker blandt 52
+projekter, 22 opgaver, 117 mediereferencer, 36 workspaceposter og 260
+Storage-objekter. Én mærket testopgave og dens udførelsespost blev tilføjet.
+Begge brugerændrede Jobs/Geotag-dokumenters SHA-256 er uændret. Ingen
+original, gammel funktion, produktion eller ekstern besked er ændret.
+
+[Leverance og restarbejde](OPGAVE_AFLEVERING_SAMLING.md),
+[maskinlæsbar kvittering](submission-staging-receipt-2026-11-02.json) og
+[telefonprøve](TELEFONPROEVE_OPGAVER_2026-11-02.md) fastholder beviserne.
+**S04/D05 er delvis:** review/returnering, versionsbundne fagkrav og
+rapportbinding mangler. Hele Skyhost-målet, fysisk telefon og Jespers
+brugbarhedsaccept er fortsat åbne. Ingen merge, produktionsrelease,
+mail/invitation eller aktivering af betalt udbyder er udført.

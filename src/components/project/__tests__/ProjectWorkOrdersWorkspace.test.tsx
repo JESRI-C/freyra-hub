@@ -85,6 +85,14 @@ vi.mock("../WorkOrderEvidencePanel", () => ({
   ),
 }));
 import { ProjectWorkOrdersWorkspace, type WorkOrderView } from "../ProjectWorkOrdersWorkspace";
+vi.mock("../WorkOrderSubmissionPanel", () => ({
+  WorkOrderSubmissionPanel: ({
+    actionId,
+    ...props
+  }: { actionId: string } & Omit<Parameters<typeof Editor>[0], "selectedActionId">) => (
+    <Editor {...props} selectedActionId={actionId} label="Aflevering" />
+  ),
+}));
 const scope = { organizationId: "org", projectId: "project" };
 const tasks = [
   { id: "first", title: "Første opgave", status: "Åben" },

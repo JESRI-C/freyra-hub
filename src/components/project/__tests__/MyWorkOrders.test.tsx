@@ -25,6 +25,13 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 import { MyWorkOrders } from "../MyWorkOrders";
+vi.mock("../WorkOrderSubmissionPanel", () => ({
+  WorkOrderSubmissionPanel: ({ actionId, readOnly }: { actionId: string; readOnly: boolean }) => (
+    <div data-submission-task={actionId} data-read-only={readOnly}>
+      Afleveringsgrundlag
+    </div>
+  ),
+}));
 vi.mock("../WorkOrderEvidencePanel", () => ({
   WorkOrderEvidencePanel: ({
     actionId,

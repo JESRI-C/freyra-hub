@@ -695,6 +695,138 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
+  // D05a reuses the same disposable sessions and original; no second upload pipeline.
+  const submissionAction = q(randomUUID());
+  const submissionPlan = q(
+    JSON.stringify({
+      schema: "freyra.work-order-plan/v1",
+      title: "Synthetic submission task",
+      description: "",
+      instructions: "Synthetic work instruction",
+      profile: "nature",
+      responsibleId: actor.slice(1, -1),
+      siteId: null,
+      watercourseVersionId: null,
+      locationNote: "Synthetic place",
+      plannedStart: null,
+      plannedEnd: null,
+      priority: null,
+      plannedMethod: null,
+      watercourse: null,
+    }),
+  );
+  const submissionExecution = q(
+    JSON.stringify({
+      schema: "freyra.action-execution/v1",
+      actionId: submissionAction.slice(1, -1),
+      surveyRoundId: null,
+      dataBasis: "synthetic",
+      workType: "other",
+      stage: "performed",
+      actualDate: "2026-10-08",
+      actualEndDate: null,
+      method: "Synthetic method",
+      reach: "Synthetic place",
+      performedBy: "Synthetic member",
+      sourceReference: "Synthetic log",
+      evidenceIds: [],
+      deviation: "",
+      correctionReason: "",
+      coverage: "limited",
+      coverageDescription: "Synthetic coverage",
+    }),
+  );
+  const submissionLifecycle = (version, target, extra = {}) =>
+    `public.mutate_work_order_lifecycle(${submissionAction},${org},${project},${version},jsonb_build_object('operation','transition','targetStatus',${q(target)},'planVersionId',(SELECT id FROM public.work_order_plan_versions WHERE action_id=${submissionAction}),'assignmentVersionId',(SELECT id FROM public.work_order_assignment_versions WHERE action_id=${submissionAction}),'executionRevisionId',(SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=${submissionAction}))||${q(JSON.stringify(extra))}::jsonb,${q(randomUUID())})`;
+  const submissionSetup =
+    await query(`INSERT INTO public.actions(id,project_id,title) VALUES(${submissionAction},${project},'Synthetic frozen submission');
+    BEGIN;${login}
+    SELECT action_id FROM public.initialize_work_order(${submissionAction},${org},${project},0,${q(randomUUID())});
+    SELECT id FROM public.save_work_order_plan(${submissionAction},${org},${project},0,${submissionPlan}::jsonb,'',${q(randomUUID())});
+    SELECT id FROM public.configure_work_order_assignment(${submissionAction},${org},${project},0,(SELECT id FROM public.work_order_plan_versions WHERE action_id=${submissionAction}),'person',ARRAY[${actor}::uuid],NULL,'Synthetic assignment',${q(randomUUID())});
+    SELECT id FROM public.save_field_job_version(${org},${project},${submissionAction},${q(templateVersion)},0,'{"note":"Synthetic recorded submission observation"}','recorded','',${q(randomUUID())});
+    SELECT workspace_entry_id FROM public.save_work_order_execution(${submissionAction},${org},${project},(SELECT id FROM public.work_order_plan_versions WHERE action_id=${submissionAction}),1,0,${submissionExecution}::jsonb,${actor},'',${q(randomUUID())},(SELECT id FROM public.work_order_assignment_versions WHERE action_id=${submissionAction}),1);
+    SELECT id FROM ${submissionLifecycle(0, "draft")}; SELECT id FROM ${submissionLifecycle(1, "planned")}; SELECT id FROM ${submissionLifecycle(2, "assigned")};
+    SELECT id FROM ${submissionLifecycle(3, "started", { startedAt: "2026-10-08T08:00:00Z", startedSource: "Synthetic work log" })};
+    SELECT id FROM ${submissionLifecycle(4, "performed")};
+    SELECT id FROM public.save_work_order_evidence(${submissionAction},${org},${project},${q(randomUUID())},0,(SELECT id FROM public.field_job_versions WHERE action_id=${submissionAction}),${q(upload)},NULL,'attached','Synthetic submission evidence',${q(randomUUID())});
+    SELECT json_build_object('context',public.get_work_order_submission_context(${submissionAction},${org},${project})); COMMIT;`);
+  const submissionContext = submissionSetup.find((row) => row.context)?.context;
+  assert.deepEqual(
+    submissionContext?.gaps,
+    [],
+    "Synthetic submission fixture must be genuinely ready",
+  );
+  const submissionCall = (expected, request) =>
+    `public.save_work_order_submission(${submissionAction},${org},${project},${expected},${q(submissionContext.basis_hash)},'Synthetic frozen handover',${q(request)})`;
+  const submissionWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${submissionCall(0, randomUUID())};`,
+    "SUBMISSION_HELD",
+  );
+  await submissionWinner.marker("SUBMISSION_HELD");
+  const submissionStale = await transaction(
+    capture(submissionCall(0, randomUUID())),
+    "SUBMISSION_STALE",
+  );
+  await actualLock(submissionStale, submissionWinner);
+  await commit(submissionWinner);
+  await submissionStale.marker("SUBMISSION_STALE");
+  assert.equal(submissionStale.rows().find((row) => row.result)?.result, "PT409");
+  await commit(submissionStale);
+  scenarios.push({
+    name: "competing_submission_revision",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+  });
+  const submissionRequest = randomUUID();
+  const submissionRetryWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${submissionCall(1, submissionRequest)};`,
+    "SUBMISSION_RETRY_HELD",
+  );
+  await submissionRetryWinner.marker("SUBMISSION_RETRY_HELD");
+  const submissionRetry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${submissionCall(1, submissionRequest)};`,
+    "SUBMISSION_RETRY_DONE",
+  );
+  await actualLock(submissionRetry, submissionRetryWinner);
+  await commit(submissionRetryWinner);
+  await submissionRetry.marker("SUBMISSION_RETRY_DONE");
+  assert.equal(
+    submissionRetry.rows().find((row) => row.id)?.id,
+    submissionRetryWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(submissionRetry);
+  const [submissionAfter] = await query(
+    `SELECT json_build_object('versions',(SELECT count(*) FROM public.work_order_submission_versions WHERE action_id=${submissionAction}),'events',(SELECT count(*) FROM public.audit_events WHERE entity_id=${submissionAction} AND event_type='work_order.submission_saved'));`,
+  );
+  assert.deepEqual(submissionAfter, { versions: 2, events: 2 });
+  scenarios.push({
+    name: "identical_submission_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
+  const storageHeld = new Session();
+  storageHeld.write(
+    `BEGIN; SELECT json_build_object('pid',pg_backend_pid()); UPDATE storage.objects SET version='Synthetic uncommitted object change' WHERE id=(SELECT object_id FROM public.field_photo_receipts WHERE upload_id=${q(upload)}); SELECT 'SUBMISSION_STORAGE_HELD';`,
+  );
+  await storageHeld.marker("SUBMISSION_STORAGE_HELD");
+  const submissionStorageWaiter = await transaction(
+    `SELECT json_build_object('id',id) FROM ${submissionCall(2, randomUUID())};`,
+    "SUBMISSION_STORAGE_DONE",
+  );
+  await actualLock(submissionStorageWaiter, storageHeld);
+  storageHeld.write("ROLLBACK; SELECT 'SUBMISSION_STORAGE_ROLLED_BACK';");
+  await storageHeld.marker("SUBMISSION_STORAGE_ROLLED_BACK");
+  await storageHeld.close();
+  await submissionStorageWaiter.marker("SUBMISSION_STORAGE_DONE");
+  assert(submissionStorageWaiter.rows().some((row) => row.id));
+  await commit(submissionStorageWaiter);
+  scenarios.push({
+    name: "submission_waits_for_exact_original_metadata",
+    actualLockVerified: true,
+    originalPreservedByRollback: true,
+  });
   // SQL-only assertions missed PostgREST's 500/retry handling of SQLSTATE 40001.
   // Verify the real disposable LOCAL HTTP boundary without Auth mail or hosted access.
   const status = spawnSync("supabase", ["status", "--output", "json"], {
@@ -847,6 +979,18 @@ try {
       },
     ],
   ];
+  staleRequests.push([
+    "save_work_order_submission",
+    {
+      p_action_id: submissionAction.slice(1, -1),
+      p_organization_id: org.slice(1, -1),
+      p_project_id: project.slice(1, -1),
+      p_expected_version: 0,
+      p_basis_hash: submissionContext.basis_hash,
+      p_note: "Synthetic stale submission",
+      p_request_id: randomUUID(),
+    },
+  ]);
   for (const [endpoint, payload] of staleRequests) {
     const response = await fetch(`http://127.0.0.1:54321/rest/v1/rpc/${endpoint}`, {
       method: "POST",
@@ -868,7 +1012,7 @@ try {
   }
   scenarios.push({
     name: "local_http_stale_plan_access_execution_group_assignment_claim_lifecycle_note_evidence",
-    requests: 9,
+    requests: 10,
     httpStatus: 409,
     sqlstate: "PT409",
     noAuthEmails: true,
@@ -883,10 +1027,23 @@ try {
     "EVIDENCE_REVOKED_DONE",
   );
   await actualLock(revokedWrite, revoke);
+  const revokedSubmission = await transaction(
+    capture(submissionCall(3, randomUUID())),
+    "SUBMISSION_REVOKED_DONE",
+  );
+  await actualLock(revokedSubmission, revoke);
   await commit(revoke);
   await revokedWrite.marker("EVIDENCE_REVOKED_DONE");
   assert.equal(revokedWrite.rows().find((row) => row.result)?.result, "42501");
   await commit(revokedWrite);
+  await revokedSubmission.marker("SUBMISSION_REVOKED_DONE");
+  assert.equal(revokedSubmission.rows().find((row) => row.result)?.result, "42501");
+  await commit(revokedSubmission);
+  scenarios.push({
+    name: "membership_revocation_before_submission_commit",
+    actualLockVerified: true,
+    deniedSqlstate: "42501",
+  });
   scenarios.push({
     name: "membership_revocation_before_evidence_commit",
     actualLockVerified: true,

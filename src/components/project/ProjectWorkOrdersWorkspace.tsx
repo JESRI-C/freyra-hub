@@ -10,6 +10,7 @@ import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
+import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
 
 type Props = {
   scope: ProjectScope;
@@ -20,7 +21,7 @@ type Props = {
   initialView?: WorkOrderView;
 };
 export type WorkOrderView = "plan" | "field" | "execution";
-type Part = WorkOrderView | "evidence";
+type Part = WorkOrderView | "evidence" | "submission";
 const parts: { id: Part; label: string; question: string; purpose: string }[] = [
   {
     id: "plan",
@@ -49,6 +50,13 @@ const parts: { id: Part; label: string; question: string; purpose: string }[] = 
     question: "Hvilket materiale underbygger arbejdet?",
     purpose:
       "Knyt den relevante registrering og et verificeret originalfoto til opgaven. Vælg eventuelt den konkrete udførelsesversion. Det giver et sporbart grundlag for gennemgang og opfølgning.",
+  },
+  {
+    id: "submission",
+    label: "Aflevering",
+    question: "Hvilket grundlag afleverer vi til gennemgang?",
+    purpose:
+      "Kontrollér mangler, og fasthold præcise versioner af plan, udførelse, registreringer og originalfotos. En afleveringsversion bevarer grundlaget, når projektet senere ændres.",
   },
 ];
 const button =
@@ -365,6 +373,10 @@ function TaskWorkspace({
     (value: boolean) => onEditing("evidence", value),
     [onEditing],
   );
+  const submissionEditing = useCallback(
+    (value: boolean) => onEditing("submission", value),
+    [onEditing],
+  );
   const current = parts.find((item) => item.id === part)!;
   const next = parts[parts.indexOf(current) + 1];
   function openPart(id: Part) {
@@ -373,7 +385,7 @@ function TaskWorkspace({
   }
   return (
     <div className="min-w-0 space-y-4">
-      <nav aria-label="Arbejd med opgaven" className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+      <nav aria-label="Arbejd med opgaven" className="grid grid-cols-1 gap-2 sm:grid-cols-5">
         {parts.map((item) => (
           <button
             key={item.id}
@@ -426,6 +438,17 @@ function TaskWorkspace({
             actionId={actionId}
             canContribute={canContribute}
             onEditing={evidenceEditing}
+          />
+        </div>
+      )}
+      {opened.has("submission") && (
+        <div hidden={part !== "submission"}>
+          <WorkOrderSubmissionPanel
+            active={part === "submission"}
+            scope={scope}
+            actorId={actorId}
+            actionId={actionId}
+            onEditing={submissionEditing}
           />
         </div>
       )}
