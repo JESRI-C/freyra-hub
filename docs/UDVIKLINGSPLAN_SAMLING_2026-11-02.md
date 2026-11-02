@@ -1,6 +1,14 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.5 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.6 · 3. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+
+**Seneste visningsleverance:** [Kontrol af hele programkortet](VISNINGSKONTROL_2026-11-03.md)
+retter menumarkering, et pilotbundet kortlink, fælles danske betegnelser,
+opgavetotal og afgrænsningen af den faste Haderslev-rapportskabelon. Kilde
+`e4d71ec…` er på staging. Alle 97 aktive destinationer kontrolleres på
+computer og telefonbredder; syv indgange har kun bevis frem til projektvalg,
+fordi den anvendte konto mangler bygge-/lavbundsprojekter. Der opfindes ingen
+fagdata. Fuld faglig datavisning, fysisk telefon og brugeraccept er fortsat åbne.
 
 **Mål:** Freyra skal dække den fulde kortlagte funktionalitet i Skyhost Jobs og Geotag og samle den med Freyras eksisterende fagmoduler. Kunden kan planlægge, fordele, udføre, kontrollere og dokumentere et naturprojekt i ét sammenhængende program, inklusive de kortlagte driftsfunktioner. Eksisterende kode genbruges med samme projekt-, opgave-, fil- og versionsidentitet på computer og telefon. Alle eksisterende fagområder bevares og får en tydelig plads; funktioner åbnes i takt med dokumenteret anvendelighed.
 
@@ -25,7 +33,7 @@ Alle 71 kanoniske produktsidevisninger, 20 projektværktøjer, fem opgavedele
 og 68 eksisterende krav er placeret. Skyhosts ti jobområder, fem konkrete
 integrationskandidater, 13 planlagte områder og én delvis gennemgangsfunktion
 er synlige med deres faktiske afgrænsning. Det aktuelle inventar indeholder
-873 kilde-/testfiler; tre ældre TypeScript-træer er fortsat bevaret og sammenholdt.
+876 kilde-/testfiler; tre ældre TypeScript-træer er fortsat bevaret og sammenholdt.
 CI og faktisk læsende browserprøve bestod. Eksisterende kode, menuindgange,
 projekt-/opgaveidentitet og originaler bevares. Fuld funktionel paritet og
 Jespers brugbarhedsaccept er fortsat åbne.
