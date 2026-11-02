@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WorkOrderExecutionBindingSchema } from "@/lib/work-order-execution";
 import {
   EvidencePageSchema,
   EvidenceSourcesSchema,
@@ -123,6 +124,33 @@ export async function listWorkOrderEvidenceSources(
     i.pageSize,
     (r) => {
       if (i.kind === "photo" ? !r.sha256 || r.version !== null : !r.version || r.sha256 !== null)
+        throw new WorkOrderRequestError("unavailable");
+    },
+  );
+}
+export async function listWorkOrderEvidenceExecutions(
+  client: WorkOrderRequestClient,
+  actorId: string,
+  raw: unknown,
+) {
+  const i = parseWorkOrderInput(EvidencePageSchema, raw);
+  checkActor(actorId);
+  return page(
+    client,
+    "list_work_order_evidence_executions",
+    {
+      p_action_id: i.actionId,
+      p_organization_id: i.organizationId,
+      p_project_id: i.projectId,
+      p_after_id: i.afterId,
+      p_page_size: i.pageSize,
+    },
+    WorkOrderExecutionBindingSchema.transform((row) => ({ ...row, id: row.workspace_entry_id })),
+    i.afterId,
+    i.pageSize,
+    (row) => {
+      checkScope(row, i);
+      if (row.documentation_gaps.includes("execution_not_performed"))
         throw new WorkOrderRequestError("unavailable");
     },
   );

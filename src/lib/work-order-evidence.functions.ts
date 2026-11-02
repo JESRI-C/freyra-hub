@@ -11,8 +11,19 @@ import {
   saveWorkOrderEvidence,
   listWorkOrderEvidence,
   listWorkOrderEvidenceSources,
+  listWorkOrderEvidenceExecutions,
 } from "@/services/work-order-evidence-service";
 import type { WorkOrderRequestClient } from "@/services/work-order-access-service";
+export const listProjectWorkOrderEvidenceExecutions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => parseWorkOrderInput(EvidencePageSchema, raw))
+  .handler(({ data, context }) =>
+    listWorkOrderEvidenceExecutions(
+      context.supabase as unknown as WorkOrderRequestClient,
+      context.userId,
+      data,
+    ),
+  );
 export const saveProjectWorkOrderEvidence = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => parseWorkOrderInput(SaveEvidenceSchema, raw))

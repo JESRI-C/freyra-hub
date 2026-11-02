@@ -1,4 +1,5 @@
 import type { EvidenceVersion } from "@/lib/work-order-evidence";
+import type { WorkOrderExecutionBinding } from "@/lib/work-order-execution";
 export const id = (n: number) => `dd020000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 export const scope = { actionId: id(31), organizationId: id(11), projectId: id(21) };
 export const actor = id(1);
@@ -14,6 +15,29 @@ export const input = {
   reason: "Dokumenterer observationen",
   requestId: id(81),
 };
+export function execution(n = 201, v = 2): WorkOrderExecutionBinding {
+  return {
+    workspace_entry_id: id(n),
+    action_id: scope.actionId,
+    organization_id: scope.organizationId,
+    project_id: scope.projectId,
+    version: v,
+    plan_version_id: id(101),
+    plan_version: 1,
+    assignment_version_id: null,
+    performed_by_id: null,
+    membership_snapshot: null,
+    deviation_reason: "",
+    documentation_gaps: ["performer_identity_unknown"],
+    actual_start: "2026-11-02",
+    actual_end: null,
+    actual_method: "Håndskæring",
+    coverage: "limited",
+    request_id: id(104),
+    created_by: actor,
+    created_at: "2026-11-02T09:00:00+00:00",
+  };
+}
 export function version(n = 91): EvidenceVersion {
   return {
     id: id(n),

@@ -3,11 +3,19 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { actor, id, scope, version } from "@/services/__tests__/work-order-evidence-fixture";
+import {
+  actor,
+  id,
+  scope,
+  version,
+  execution,
+} from "@/services/__tests__/work-order-evidence-fixture";
 const m = vi.hoisted(() => ({
   access: vi.fn(),
   list: vi.fn(),
   sources: vi.fn(),
+  executions: vi.fn(),
+  readExecution: vi.fn(),
   save: vi.fn(),
   original: vi.fn(),
   editing: vi.fn(),
@@ -19,8 +27,12 @@ vi.mock("@/lib/work-order-access.functions", () => ({ getProjectWorkOrderAccess:
 vi.mock("@/lib/work-order-evidence.functions", () => ({
   listProjectWorkOrderEvidence: m.list,
   listProjectWorkOrderEvidenceSources: m.sources,
+  listProjectWorkOrderEvidenceExecutions: m.executions,
   saveProjectWorkOrderEvidence: m.save,
   getProjectWorkOrderEvidenceOriginal: m.original,
+}));
+vi.mock("@/lib/work-order-execution.functions", () => ({
+  readProjectWorkOrderExecutionBinding: m.readExecution,
 }));
 import { WorkOrderEvidencePanel } from "../WorkOrderEvidencePanel";
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
@@ -85,6 +97,11 @@ beforeEach(() => {
     can_execute: true,
   });
   m.list.mockResolvedValue({ items: [version()], nextAfterId: null });
+  m.executions.mockResolvedValue({
+    items: [{ ...execution(), id: execution().workspace_entry_id }],
+    nextAfterId: null,
+  });
+  m.readExecution.mockResolvedValue(execution());
   m.sources.mockImplementation(async ({ data }) => ({
     items: [
       data.kind === "photo"
@@ -106,6 +123,71 @@ afterEach(async () => {
   host.remove();
 });
 describe("task documentation UI", () => {
+  it("lets the user pin a performed version explicitly and preserves it across retries", async () => {
+    m.save.mockRejectedValueOnce(new Error("Mistet svar"));
+    await render();
+    expect(m.executions).not.toHaveBeenCalled();
+    await click("Ret kobling");
+    const select = [...host.querySelectorAll("select")].find((s) =>
+      s.closest("label")?.textContent?.startsWith("Udført arbejde"),
+    )!;
+    expect(select.value).toBe("");
+    await fill("Udført arbejde", execution().workspace_entry_id);
+    await fill("Begrundelse", "Dokumenterer denne udførelse");
+    await submit();
+    await submit();
+    expect(m.save.mock.calls[0][0].data.executionRevisionId).toBe(execution().workspace_entry_id);
+    expect(m.save.mock.calls[1]).toEqual(m.save.mock.calls[0]);
+  });
+  it("reads the selected historical execution lazily without substituting a newer version", async () => {
+    m.list.mockResolvedValue({
+      items: [{ ...version(), execution_revision_id: execution().workspace_entry_id }],
+      nextAfterId: null,
+    });
+    await render(false);
+    expect(m.readExecution).not.toHaveBeenCalled();
+    const detail = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Se tilknyttet udførelse",
+    )!;
+    await act(async () => {
+      detail.open = true;
+      detail.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    expect(m.readExecution).toHaveBeenCalledWith({
+      data: {
+        ...scope,
+        expectedActorId: actor,
+        previousRevisionId: execution().workspace_entry_id,
+      },
+    });
+    expect(host.textContent).toContain("Udførelse version 2");
+    expect(host.textContent).toContain("Håndskæring");
+    expect(host.textContent).toContain("Udføreren er ikke knyttet");
+    expect(m.executions).not.toHaveBeenCalled();
+  });
+  it("hides cached execution details after failed reauthorization", async () => {
+    m.list.mockResolvedValue({
+      items: [{ ...version(), execution_revision_id: execution().workspace_entry_id }],
+      nextAfterId: null,
+    });
+    await render(false);
+    const detail = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Se tilknyttet udførelse",
+    )!;
+    await act(async () => {
+      detail.open = true;
+      detail.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    m.readExecution.mockRejectedValue(new Error("Udførelsen er ikke tilgængelig"));
+    await act(async () =>
+      cache.invalidateQueries({ queryKey: ["work-order-execution-reference"] }),
+    );
+    await flush();
+    expect(host.textContent).not.toContain("Håndskæring");
+    expect(host.textContent).toContain("Udførelsen er ikke tilgængelig");
+  });
   it("shows zero, false, unknown date and history without querying all project sources", async () => {
     await render();
     expect(host.textContent).toContain("Ukendt");

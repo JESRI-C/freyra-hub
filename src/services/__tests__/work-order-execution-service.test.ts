@@ -5,6 +5,7 @@ import { SaveWorkOrderExecutionSchema } from "@/lib/work-order-execution";
 import {
   loadWorkOrderExecutionContext,
   saveWorkOrderExecution,
+  readWorkOrderExecutionBinding,
 } from "../work-order-execution-service";
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const actor = id(1),
@@ -91,6 +92,62 @@ describe("atomic execution/plan request boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     rpc.mockResolvedValue({ data: [row], error: null });
+  });
+  it("reads only the exact historical execution without loading the current plan", async () => {
+    const result = await readWorkOrderExecutionBinding(client, actor, {
+      ...scope,
+      expectedActorId: actor,
+      previousRevisionId: row.workspace_entry_id,
+    });
+    expect(result).toEqual(row);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("get_work_order_execution_binding", {
+      p_action_id: scope.actionId,
+      p_organization_id: scope.organizationId,
+      p_project_id: scope.projectId,
+      p_workspace_entry_id: row.workspace_entry_id,
+    });
+  });
+  it.each([
+    { ...row, action_id: id(99) },
+    { ...row, workspace_entry_id: id(99) },
+    { ...row, project_id: id(99) },
+  ])("rejects mismatched historical bindings", async (response) => {
+    rpc.mockResolvedValue({ data: [response], error: null });
+    await expect(
+      readWorkOrderExecutionBinding(client, actor, {
+        ...scope,
+        expectedActorId: actor,
+        previousRevisionId: row.workspace_entry_id,
+      }),
+    ).rejects.toBeInstanceOf(Error);
+  });
+  it("checks actor before reading a historical binding", async () => {
+    await expect(
+      readWorkOrderExecutionBinding(client, id(99), {
+        ...scope,
+        expectedActorId: actor,
+        previousRevisionId: row.workspace_entry_id,
+      }),
+    ).rejects.toHaveProperty("code", "access");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+  it("hides a missing historical revision and sanitizes revoked access", async () => {
+    rpc
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({ data: null, error: { code: "42501", message: "secret" } });
+    const request = {
+      ...scope,
+      expectedActorId: actor,
+      previousRevisionId: row.workspace_entry_id,
+    };
+    await expect(readWorkOrderExecutionBinding(client, actor, request)).rejects.toHaveProperty(
+      "code",
+      "unavailable",
+    );
+    const error = await readWorkOrderExecutionBinding(client, actor, request).catch((e) => e);
+    expect(error.code).toBe("access");
+    expect(error.message).not.toContain("secret");
   });
   it("pins the opened assignment context and rejects a receipt for another assignment", async () => {
     const assigned = { ...input, assignmentVersionId: id(20), expectedAssignmentVersion: 3 };

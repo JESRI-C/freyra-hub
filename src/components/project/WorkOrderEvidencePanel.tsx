@@ -7,11 +7,13 @@ import {
   getProjectWorkOrderEvidenceOriginal,
   listProjectWorkOrderEvidence,
   listProjectWorkOrderEvidenceSources,
+  listProjectWorkOrderEvidenceExecutions,
   saveProjectWorkOrderEvidence,
 } from "@/lib/work-order-evidence.functions";
 import type { EvidenceVersion } from "@/lib/work-order-evidence";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
+import { WorkOrderExecutionReference } from "./WorkOrderExecutionReference";
 
 const button = "min-h-11 rounded-xl border px-4 py-2 text-sm disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background p-3 text-base";
@@ -44,6 +46,7 @@ export function WorkOrderEvidencePanel({
   const accessFn = useServerFn(getProjectWorkOrderAccess);
   const listFn = useServerFn(listProjectWorkOrderEvidence);
   const sourcesFn = useServerFn(listProjectWorkOrderEvidenceSources);
+  const executionsFn = useServerFn(listProjectWorkOrderEvidenceExecutions);
   const saveFn = useServerFn(saveProjectWorkOrderEvidence);
   const originalFn = useServerFn(getProjectWorkOrderEvidenceOriginal);
   const task = { ...scope, actionId };
@@ -104,6 +107,17 @@ export function WorkOrderEvidencePanel({
   }
   const observations = useSources("observation"),
     photos = useSources("photo");
+  const executions = useInfiniteQuery({
+    queryKey: ["work-order-evidence-executions", actorId, task],
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      executionsFn({ data: { ...task, afterId: pageParam, pageSize: 20 } }),
+    getNextPageParam: (page) => page.nextAfterId ?? undefined,
+    enabled: writable && !!draft && draft.state === "attached",
+    retry: false,
+    refetchOnWindowFocus: !locked,
+    refetchOnReconnect: !locked,
+  });
   const rows = history.data?.pages.flatMap((page) => page.items) ?? [];
   const latest = new Map<string, number>();
   rows.forEach((row) =>
@@ -337,6 +351,72 @@ export function WorkOrderEvidencePanel({
                       </button>
                     </div>
                   )}
+                  <label className="block">
+                    Udført arbejde (valgfrit)
+                    <select
+                      className={control}
+                      value={draft.executionRevisionId ?? ""}
+                      disabled={busy || !writable || executions.isPending || executions.isError}
+                      onChange={(event) =>
+                        setDraft({ ...draft, executionRevisionId: event.target.value || null })
+                      }
+                    >
+                      <option value="">Ikke knyttet til en udførelse</option>
+                      {draft.executionRevisionId &&
+                        !executions.data?.pages.some((p) =>
+                          p.items.some((r) => r.workspace_entry_id === draft.executionRevisionId),
+                        ) && (
+                          <option value={draft.executionRevisionId}>
+                            Tidligere valgt udførelsesversion
+                          </option>
+                        )}
+                      {executions.data?.pages
+                        .flatMap((p) => p.items)
+                        .map((row) => (
+                          <option key={row.workspace_entry_id} value={row.workspace_entry_id}>
+                            Version {row.version} ·{" "}
+                            {row.actual_start
+                              ? row.actual_start.split("-").reverse().join(".")
+                              : "Ukendt dato"}{" "}
+                            · {row.actual_method ?? "Ukendt metode"}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <p className="text-sm text-muted-foreground">
+                    Vælg den gemte udførelse, som registreringen og fotoet dokumenterer. Valget
+                    følger denne version, selv om arbejdet senere rettes.
+                  </p>
+                  {executions.isPending && <p role="status">Henter udførelsesversioner…</p>}
+                  {executions.isSuccess && !executions.data.pages[0].items.length && (
+                    <p>
+                      Der er endnu ingen gemt faktisk udførelse på opgaven. Dokumentationen kan
+                      gemmes uden denne kobling.
+                    </p>
+                  )}
+                  {executions.isError && (
+                    <div>
+                      <p role="alert">{executions.error.message}</p>
+                      <button
+                        type="button"
+                        className={button}
+                        disabled={busy || executions.isFetching}
+                        onClick={() => void executions.refetch()}
+                      >
+                        Hent udførelsesversioner igen
+                      </button>
+                    </div>
+                  )}
+                  {executions.hasNextPage && (
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={busy || executions.isFetching}
+                      onClick={() => void executions.fetchNextPage()}
+                    >
+                      Flere udførelsesversioner
+                    </button>
+                  )}
                 </>
               )}
               <label className="block">
@@ -359,7 +439,10 @@ export function WorkOrderEvidencePanel({
                     !draft.reason.trim() ||
                     !draft.observationVersionId ||
                     !draft.uploadId ||
-                    (draft.state === "attached" && (observations.isError || photos.isError))
+                    (draft.state === "attached" &&
+                      (observations.isError ||
+                        photos.isError ||
+                        (!!draft.executionRevisionId && executions.isError)))
                   }
                 >
                   {busy ? "Gemmer…" : "Gem dokumentation"}
@@ -404,6 +487,18 @@ export function WorkOrderEvidencePanel({
                   : "Ukendt"}
               </p>
               <p className="text-sm">{row.reason}</p>
+              {row.execution_revision_id ? (
+                <WorkOrderExecutionReference
+                  key={`${actorId}:${row.execution_revision_id}`}
+                  scope={task}
+                  actorId={actorId}
+                  revisionId={row.execution_revision_id}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Ikke knyttet til en bestemt udførelse.
+                </p>
+              )}
               <details>
                 <summary className="min-h-11 cursor-pointer py-2 text-sm">
                   Filens kontroloplysninger

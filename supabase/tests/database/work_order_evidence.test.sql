@@ -17,6 +17,10 @@ CREATE FUNCTION pg_temp.observation(a integer DEFAULT 31,v integer DEFAULT 1) RE
 CREATE FUNCTION pg_temp.save_evidence(e integer DEFAULT 71,v integer DEFAULT 0,req integer DEFAULT 81,a integer DEFAULT 31,obs uuid DEFAULT NULL,u integer DEFAULT 51,s text DEFAULT 'attached',reason text DEFAULT 'Synthetic observation/photo relationship',execution uuid DEFAULT NULL)
 RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.save_work_order_evidence(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),pg_temp.k(e),v,coalesce(obs,pg_temp.observation()),pg_temp.k(u),execution,s,reason,pg_temp.k(req)) $$;
 CREATE FUNCTION pg_temp.original(e integer DEFAULT 71,v integer DEFAULT 1,a integer DEFAULT 31) RETURNS jsonb LANGUAGE sql AS $$ SELECT public.get_work_order_evidence_original((SELECT id FROM public.work_order_evidence_versions WHERE evidence_id=pg_temp.k(e) AND version=v),pg_temp.k(a),pg_temp.k(11),pg_temp.k(21)) $$;
+CREATE FUNCTION pg_temp.plan() RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$ SELECT '{"schema":"freyra.work-order-plan/v1","title":"Synthetic evidence execution plan","description":"","instructions":"","profile":null,"responsibleId":null,"siteId":null,"watercourseVersionId":null,"locationNote":"","plannedStart":null,"plannedEnd":null,"priority":null,"plannedMethod":null,"watercourse":null}'::jsonb $$;
+CREATE FUNCTION pg_temp.execution(a integer DEFAULT 31) RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('schema','freyra.action-execution/v1','actionId',pg_temp.k(a),'surveyRoundId',NULL,'dataBasis','synthetic','workType','other','stage','performed','actualDate','2026-11-02','actualEndDate',NULL,'method','Synthetic recorded method','reach','Synthetic reach','performedBy','Synthetic manager','sourceReference','Synthetic execution log','evidenceIds','[]'::jsonb,'deviation','','correctionReason','','coverage','limited','coverageDescription','Synthetic partial coverage') $$;
+CREATE FUNCTION pg_temp.execution_save(a integer,expected integer,req integer,body jsonb) RETURNS uuid LANGUAGE sql AS $$ SELECT workspace_entry_id FROM public.save_work_order_execution(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) AND version=1),1,expected,body,pg_temp.k(1),'',pg_temp.k(req)) $$;
+CREATE FUNCTION pg_temp.execution_id(a integer,v integer) RETURNS uuid LANGUAGE sql AS $$ SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(a) AND version=v $$;
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
@@ -29,6 +33,12 @@ SELECT * FROM public.save_field_job_template_version(pg_temp.k(11),pg_temp.k(21)
 SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(45)),0,'{"count":0,"checked":false}','recorded','',pg_temp.k(47));
 SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(32),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(45)),0,'{"count":1,"checked":true}','recorded','',pg_temp.k(48));
 SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(45)),1,'{"count":2,"checked":null}','draft','Synthetic draft correction',pg_temp.k(49));
+SELECT * FROM public.save_work_order_plan(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(101));
+SELECT * FROM public.save_work_order_plan(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(102));
+SELECT pg_temp.execution_save(31,0,103,pg_temp.execution()||'{"stage":"planned","actualDate":null}');
+SELECT pg_temp.execution_save(31,1,104,pg_temp.execution()||'{"correctionReason":"Synthetic actual execution"}');
+SELECT pg_temp.execution_save(31,2,105,pg_temp.execution()||'{"method":null,"correctionReason":"Synthetic unknown method"}');
+SELECT pg_temp.execution_save(32,0,106,pg_temp.execution(32));
 SELECT * FROM public.begin_field_photo_upload(pg_temp.k(21),pg_temp.k(51),pg_temp.payload());
 SELECT * FROM public.begin_field_photo_upload(pg_temp.k(21),pg_temp.k(52),pg_temp.payload());
 SELECT * FROM public.begin_field_photo_upload(pg_temp.k(21),pg_temp.k(53),pg_temp.payload());
@@ -92,6 +102,22 @@ SELECT throws_ok($$SELECT pg_temp.save_evidence(74,0,84)$$,'42501',NULL,'externa
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(5)::text,true);
 SELECT is((SELECT count(*)::integer FROM public.work_order_evidence_versions),0,'other tenant sees no snapshots');
 SELECT throws_ok($$SELECT pg_temp.original()$$,'42501',NULL,'other tenant cannot authorize original');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.list_work_order_evidence_executions(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,20)),2,'execution choices include exact task performed versions, excluding planned-only and other task');
+SELECT is((SELECT count(*)::integer FROM public.list_work_order_evidence_executions(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,1)),2,'execution choices use a bounded page plus lookahead');
+SELECT throws_ok($$SELECT * FROM public.list_work_order_evidence_executions(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,51)$$,'22023',NULL,'execution source page size is bounded');
+SELECT throws_ok($$SELECT pg_temp.save_evidence(75,0,89,31,NULL,51,'attached','Synthetic planned evidence',pg_temp.execution_id(31,1))$$,'22023',NULL,'planned-only execution cannot become actual execution evidence');
+SELECT throws_ok($q$INSERT INTO public.work_order_evidence_versions(evidence_id,action_id,organization_id,project_id,version,observation_version_id,upload_id,execution_revision_id,state,reason,observation_snapshot,original_snapshot,request_id)
+VALUES(pg_temp.k(75),pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),1,pg_temp.observation(),pg_temp.k(51),pg_temp.execution_id(31,1),'attached','Synthetic raw planned bypass','{}','{}',pg_temp.k(89))$q$,'22023',NULL,'direct API insert cannot bypass actual execution check');
+SELECT throws_ok($$SELECT pg_temp.save_evidence(75,0,89,31,NULL,51,'attached','Synthetic foreign execution',pg_temp.execution_id(32,1))$$,'23503',NULL,'other task execution cannot be attached');
+SELECT lives_ok($$SELECT pg_temp.save_evidence(75,0,89,31,NULL,51,'attached','Synthetic exact historical execution',pg_temp.execution_id(31,2))$$,'attach exact older performed revision without choosing latest automatically');
+SELECT is((SELECT execution_revision_id FROM public.work_order_evidence_versions WHERE evidence_id=pg_temp.k(75)),pg_temp.execution_id(31,2),'evidence pins selected performed revision');
+SELECT is((SELECT actual_method FROM public.get_work_order_execution_binding(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.execution_id(31,2))),'Synthetic recorded method','historical binding retains method despite newer unknown method');
+SELECT lives_ok($$SELECT pg_temp.save_evidence(75,1,90,31,NULL,51,'withdrawn','Synthetic withdrawal retains execution',pg_temp.execution_id(31,2))$$,'withdrawal preserves exact execution reference');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
+SELECT throws_ok($$SELECT * FROM public.list_work_order_evidence_executions(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,20)$$,'42501',NULL,'external cannot enumerate execution source choices');
+SELECT is((SELECT version FROM public.get_work_order_execution_binding(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.execution_id(31,2))),2,'external uses existing exact task binding read');
+SELECT throws_ok($$SELECT * FROM public.get_work_order_execution_binding(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),pg_temp.execution_id(32,1))$$,'42501',NULL,'external cannot fetch another task binding');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT lives_ok($$SELECT pg_temp.save_evidence(71,1,84,31,NULL,51,'attached','Synthetic corrected relationship')$$,'correction appends version');
 SELECT is((SELECT reason FROM public.work_order_evidence_versions WHERE evidence_id=pg_temp.k(71) AND version=1),'Synthetic observation/photo relationship','correction preserves original relationship');

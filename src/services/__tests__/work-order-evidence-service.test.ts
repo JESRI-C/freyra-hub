@@ -2,14 +2,46 @@ import { describe, expect, it, vi } from "vitest";
 import {
   listWorkOrderEvidence,
   listWorkOrderEvidenceSources,
+  listWorkOrderEvidenceExecutions,
   saveWorkOrderEvidence,
 } from "../work-order-evidence-service";
-import { actor, id, input, scope, version } from "./work-order-evidence-fixture";
+import { actor, id, input, scope, version, execution } from "./work-order-evidence-fixture";
 const client = (data: unknown, error: { code: string; message?: string } | null = null) => ({
   rpc: vi.fn().mockResolvedValue({ data, error }),
 });
 const page = { ...scope, afterId: null, pageSize: 1 };
 describe("task evidence boundary", () => {
+  it("paginates exact immutable execution bindings with a checked lookahead", async () => {
+    const c = client([execution(201), execution(202, 3)]);
+    expect(await listWorkOrderEvidenceExecutions(c, actor, page)).toEqual({
+      items: [{ ...execution(201), id: id(201) }],
+      nextAfterId: id(201),
+    });
+    expect(c.rpc).toHaveBeenCalledWith("list_work_order_evidence_executions", {
+      p_action_id: scope.actionId,
+      p_organization_id: scope.organizationId,
+      p_project_id: scope.projectId,
+      p_after_id: null,
+      p_page_size: 1,
+    });
+    await expect(
+      listWorkOrderEvidenceExecutions(
+        client([execution(201), { ...execution(202), action_id: id(32) }]),
+        actor,
+        page,
+      ),
+    ).rejects.toHaveProperty("code", "access");
+  });
+  it.each([
+    { ...execution(), documentation_gaps: ["execution_not_performed"] },
+    { ...execution(), actual_start: "2026-02-30" },
+    { ...execution(), version: 0 },
+    { ...execution(), workspace_entry_id: "invalid" },
+  ])("rejects invalid or planned-only execution sources", async (row) => {
+    await expect(
+      listWorkOrderEvidenceExecutions(client([row]), actor, page),
+    ).rejects.toHaveProperty("code", "unavailable");
+  });
   it("reuses the exact request identity and immutable references", async () => {
     const c = client([version()]);
     expect(await saveWorkOrderEvidence(c, actor, input)).toEqual(version());

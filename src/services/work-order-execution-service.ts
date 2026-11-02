@@ -1,6 +1,7 @@
 import { parseWorkOrderInput, WorkOrderRequestError } from "@/lib/work-order-access";
 import {
   LoadWorkOrderExecutionSchema,
+  ReadWorkOrderExecutionBindingSchema,
   SaveWorkOrderExecutionSchema,
   WorkOrderExecutionBindingSchema,
 } from "@/lib/work-order-execution";
@@ -13,6 +14,29 @@ import {
   workOrderRpcFailure,
   type WorkOrderRequestClient,
 } from "./work-order-access-service";
+/** Read one historical binding through its existing task-scoped RPC, without loading current plans. */
+export async function readWorkOrderExecutionBinding(
+  client: WorkOrderRequestClient,
+  actorId: string,
+  raw: unknown,
+) {
+  const input = parseWorkOrderInput(ReadWorkOrderExecutionBindingSchema, raw);
+  checkActor(actorId, input.expectedActorId);
+  const { data, error } = await client.rpc("get_work_order_execution_binding", {
+    p_action_id: input.actionId,
+    p_organization_id: input.organizationId,
+    p_project_id: input.projectId,
+    p_workspace_entry_id: input.previousRevisionId,
+  });
+  if (error) workOrderRpcFailure(error);
+  if (!Array.isArray(data) || data.length !== 1) throw new WorkOrderRequestError("unavailable");
+  const result = WorkOrderExecutionBindingSchema.safeParse(data[0]);
+  if (!result.success) throw new WorkOrderRequestError("unavailable");
+  checkScope(result.data, input);
+  if (result.data.workspace_entry_id !== input.previousRevisionId)
+    throw new WorkOrderRequestError("unavailable");
+  return result.data;
+}
 export async function loadWorkOrderExecutionContext(
   client: WorkOrderRequestClient,
   actorId: string,
