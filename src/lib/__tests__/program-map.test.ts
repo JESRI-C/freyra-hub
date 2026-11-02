@@ -6,6 +6,7 @@ import {
   PROGRAM_PAGES,
   SKYHOST_JOB_AREAS,
   programFeatureLink,
+  programFeatureMatches,
   programPageGuide,
   projectToolGuide,
 } from "../program-map";
@@ -18,6 +19,13 @@ function walk(dir: string): string[] {
     .flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
 }
 describe("program map destinations", () => {
+  it("finds the real workspaces using Skyhost terms without advertising a planned feature as active", () => {
+    const field = PROGRAM_FEATURES.find((f) => f.id === "work:field")!;
+    const submission = PROGRAM_FEATURES.find((f) => f.id === "work:submission")!;
+    expect(programFeatureMatches(field, "job Geotag")).toBe(true);
+    expect(programFeatureMatches(submission, "tjeklister")).toBe(true);
+    expect(programFeatureMatches(field, "booking")).toBe(false);
+  });
   it("covers every existing user-facing app route, including nested index aliases", () => {
     const routes = walk("src/routes").flatMap((file) => {
       const source = fs.readFileSync(file, "utf8");

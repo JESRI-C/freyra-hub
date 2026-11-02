@@ -4,6 +4,7 @@ import {
   PROGRAM_AREAS,
   PROGRAM_FEATURES,
   programFeatureLink,
+  programFeatureMatches,
   type ProgramFeature,
   SKYHOST_JOB_AREAS,
 } from "@/lib/program-map";
@@ -34,10 +35,7 @@ export function ProgramMap({
     (item) =>
       (area === "all" || item.areaId === area) &&
       (status === "all" || item.status === status) &&
-      (!term ||
-        `${item.title} ${item.question} ${item.purpose} ${item.output}`
-          .toLocaleLowerCase("da-DK")
-          .includes(term)),
+      programFeatureMatches(item, term),
   );
   return (
     <main className="mx-auto w-full max-w-[1200px] min-w-0 space-y-6 p-3 pb-12 sm:p-6 [overflow-wrap:anywhere]">

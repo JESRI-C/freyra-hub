@@ -867,6 +867,26 @@ export const PROGRAM_FEATURES = [
   ...INTEGRATION_FEATURES,
   ...PLANNED_FEATURES,
 ];
+export function programFeatureMatches(feature: ProgramFeature, query: string) {
+  const skyhostNames = SKYHOST_JOB_AREAS.filter((area) =>
+    (area.featureIds as readonly string[]).includes(feature.id),
+  ).map((area) => area.title);
+  const text = [
+    feature.title,
+    feature.question,
+    feature.purpose,
+    feature.output,
+    ...skyhostNames,
+    feature.areaId === "tasks" ? "job jobs jobkort arbejdsopgave" : "",
+  ]
+    .join(" ")
+    .toLocaleLowerCase("da-DK");
+  return query
+    .trim()
+    .toLocaleLowerCase("da-DK")
+    .split(/\s+/)
+    .every((term) => text.includes(term));
+}
 export function projectToolGuide(view: ProjectView) {
   return PROJECT_FEATURES.find((item) => item.id === `${view.kind}:${view.id}`)!;
 }
