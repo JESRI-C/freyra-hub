@@ -21,6 +21,7 @@ import {
   Network,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { programPageGuide } from "@/lib/program-map";
 import logoMark from "@/assets/gofreyra-logo.png";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
@@ -123,6 +124,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                   <Link
                     key={item.to}
                     to={item.to}
+                    activeOptions={{ exact: !active, includeSearch: false }}
                     aria-current={active ? "page" : undefined}
                     onClick={onNavigate}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${
@@ -132,7 +134,9 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate">
+                      {programPageGuide(item.to)?.title ?? item.label}
+                    </span>
                   </Link>
                 );
               })}

@@ -1,8 +1,8 @@
 {
   "schema": "freyra.program-map/v1",
   "date": "2026-11-02",
-  "baselineCommit": "85415c5bf9992d8fde36e92e780cdb69b9cc02ae",
-  "sourceTreeSha256": "9c3d5533e2fb03a421c809350f17d1d838cd415c62f6f484155d2d7617c3caf9",
+  "baselineCommit": "7ce55c5cf5273b9df225d1e4f4452909d624af09",
+  "sourceTreeSha256": "6a8cee4657d4aae5163de430524433133c4d29e983217e67c2eef954d385af9b",
   "method": "All current src JS/TS files, route declarations, local static imports, project destinations and 68 existing requirement IDs. Static mapping is not functional, hosted, security or customer acceptance. A route-unreachable file is a review candidate, never a deletion recommendation.",
   "source": {
     "name": "Skyhost_Jobs_Geotag_funktionskortlaegning_2026-10-29.html",
@@ -10,9 +10,9 @@
     "url": "https://drive.google.com/file/d/1hDgbtkI4Zh7fHE4FLqfUQFuvH3bcjlBx/view"
   },
   "counts": {
-    "sourceFiles": 874,
+    "sourceFiles": 875,
     "productionFiles": 600,
-    "tests": 273,
+    "tests": 274,
     "routeDeclarations": 93,
     "canonicalProductPages": 71,
     "projectDestinations": 20,
@@ -6085,7 +6085,7 @@
     },
     {
       "file": "src/components/AppSidebar.tsx",
-      "sha256": "c555a65a29d1d5244d03615f1fb688f8d620f7b75966a8afaa64b73638808ebe",
+      "sha256": "eb41bfe2be3595857e805da84c11cab23b0bc5d2a78e78a2eb2fae55a98d025d",
       "kind": "source",
       "reachedFromRoutes": [
         "/app"
@@ -8655,6 +8655,12 @@
     {
       "file": "src/components/__tests__/ProgramMap.test.tsx",
       "sha256": "8f60cc28102b1d1e9cb25de659a45d26b4b24c6f3ed43304c5e02e8ff5989f56",
+      "kind": "test",
+      "reachedFromRoutes": []
+    },
+    {
+      "file": "src/components/__tests__/sidebar-current-page.test.tsx",
+      "sha256": "ba32266c3071fa59fb0f7793f79176e5c4d4bcc4014807cf7eca1ce2c98e2bb3",
       "kind": "test",
       "reachedFromRoutes": []
     },
@@ -11639,7 +11645,7 @@
     },
     {
       "file": "src/lib/__tests__/demo-mode.test.ts",
-      "sha256": "451b471806610a9891d3fc628f1655f5d92dcd7f16995e6da14d18de8012784c",
+      "sha256": "d2e2dddfbe86524c9c02818a305415150021f8b845030981eb0d16623042cb9a",
       "kind": "test",
       "reachedFromRoutes": []
     },

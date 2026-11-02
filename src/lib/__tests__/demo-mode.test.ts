@@ -6,8 +6,16 @@ import { isMunicipalRoute, MUNICIPAL_PROJECT_TABS } from "../demo-mode";
 const navigationState = vi.hoisted(() => ({ path: "/app/projects" }));
 vi.mock("@tanstack/react-router", () => ({
   useRouterState: () => navigationState.path,
-  Link: ({ children, to, ...props }: { children?: ReactNode; to: string }) =>
-    createElement("a", { href: to, ...props }, children),
+  Link: ({
+    children,
+    to,
+    activeOptions: _activeOptions,
+    ...props
+  }: {
+    children?: ReactNode;
+    to: string;
+    activeOptions?: unknown;
+  }) => createElement("a", { href: to, ...props }, children),
 }));
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({
