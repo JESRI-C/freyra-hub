@@ -56,9 +56,11 @@ function download(blob: Blob, name: string) {
 export function FieldOfflineWorkspace({
   requestedProject,
   requestedRound,
+  requestedActionId,
 }: {
   requestedProject?: string;
   requestedRound?: string;
+  requestedActionId?: string;
 }) {
   const [store, setStore] = useState<FieldOfflineStore>();
   const [actor, setActor] = useState<string | null>(null);
@@ -319,8 +321,10 @@ export function FieldOfflineWorkspace({
             to="/app/projects/$slug"
             params={{ slug: projectId }}
             search={{
-              tab: "medier",
+              tab: projectId === requestedProject && requestedActionId ? "handlinger" : "medier",
               round: projectId === requestedProject ? requestedRound : undefined,
+              task: projectId === requestedProject ? requestedActionId : undefined,
+              work: projectId === requestedProject && requestedActionId ? "field" : undefined,
             }}
             className="inline-block min-h-11 py-2 text-sm underline"
             onClick={(event) => {
@@ -431,6 +435,7 @@ export function FieldOfflineWorkspace({
             pack={pack}
             store={store}
             items={items}
+            requestedActionId={projectId === requestedProject ? requestedActionId : undefined}
             onSaved={() =>
               void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
             }
@@ -760,14 +765,16 @@ function OfflineJobs({
   items,
   onSaved,
   onDirty,
+  requestedActionId,
 }: {
   pack: FieldWorkPack;
   store: FieldOfflineStore;
   items: OfflineItem[];
   onSaved: () => void;
   onDirty: (dirty: boolean) => void;
+  requestedActionId?: string;
 }) {
-  const [actionId, setAction] = useState(""),
+  const [actionId, setAction] = useState(requestedActionId ?? ""),
     [dirty, setDirty] = useState(false),
     [reset, setReset] = useState(0);
   const changeDirty = (value: boolean) => {
@@ -777,6 +784,18 @@ function OfflineJobs({
   return (
     <section className={card} aria-label="Jobkort på telefonen">
       <h2 className="font-semibold">Jobkort i felten</h2>
+      {actionId && !pack.jobs.some((job) => job.actionId === actionId) && (
+        <p role="alert">
+          Den valgte opgave findes ikke i projektets gemte arbejdspakke. Opdatér pakken med net,
+          eller vælg en tilgængelig opgave. Der er ikke valgt en erstatningsopgave.
+        </p>
+      )}
+      {requestedActionId && (
+        <p className="text-sm text-muted-foreground">
+          Opgavevalget gælder jobkortet. Fotos i feltkøen er fortsat knyttet til projektet; de er
+          ikke automatisk opgavedokumentation.
+        </p>
+      )}
       <label className="block space-y-2 text-sm">
         Opgave
         <select
@@ -804,7 +823,7 @@ function OfflineJobs({
           Fortryd ikke-gemte ændringer
         </button>
       )}
-      {actionId && (
+      {actionId && pack.jobs.some((job) => job.actionId === actionId) && (
         <OfflineJobEditor
           key={actionId + reset}
           pack={pack}

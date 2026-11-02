@@ -1,0 +1,52 @@
+{
+  "schema": "freyra.integration-baseline/v1",
+  "observedDate": "2026-11-02",
+  "integrationBranch": "codex/project-navigation-integration-v1",
+  "baseRevision": "2b122fe4518fc3673a6c8db0450b2073c5a166d3",
+  "remote": {
+    "repository": "JESRI-C/freyra-hub",
+    "pr": 34,
+    "prState": "open draft",
+    "headMatchesLocalBase": true,
+    "mainRevision": "7dc33f4c75e431d7ceba47d16d54cd1f5cdbb30e",
+    "verifiedAncestors": [
+      "7dc33f4c75e431d7ceba47d16d54cd1f5cdbb30e",
+      "1ed21d7a7296110031884e90551245e5448b8c66",
+      "aa2b285365aa29c59fc3eb2455b2a426bac82251"
+    ],
+    "baseCiRun": 40960050035,
+    "baseCiConclusion": "success",
+    "baseCiIsAcceptanceOfNewChanges": false
+  },
+  "toolchain": { "node": "22.14.0", "npm": "10.9.2" },
+  "staging": {
+    "projectRef": "xdvqdzdpyceojbdknofi",
+    "preflightPassed": true,
+    "migrationCount": 42,
+    "latestMigration": "20261029203920",
+    "workOrderMigrationVerification": {
+      "method": "Read-only migration history fingerprints; local CRLF normalized to LF. First source compared line by line after line-ending normalization; no content difference.",
+      "normalizedMd5": {
+        "20261029183735": "7a8fb3ce728f4aa4242e8a5f1854aae9",
+        "20261029185238": "8111f9e8eb9869635717789042bc6a2a",
+        "20261029191105": "d090bfc3dfa028369948fb823e012068",
+        "20261029191811": "f0ea9bacbae8af7f512b47ec3016dfd2",
+        "20261029194025": "ad3771c527c0f40ef4ab3f02718c8fe9",
+        "20261029195747": "e5bb3da95907ce824a3ddd57e137de10",
+        "20261029203920": "2a32e40e62d81440f872df12c0cf6e2c"
+      },
+      "isFullSchemaParityProof": false
+    },
+    "currentHostedAppRevision": null,
+    "hostedAppMetadataRead": "Unavailable through web reader; direct public metadata request failed DNS. No browser access rejection was bypassed.",
+    "historicalDeploymentSource": "docs/jobs-geotag-staging-delivery.json"
+  },
+  "production": { "currentRevision": null, "changed": false },
+  "preservedUserFiles": {
+    "docs/JOBS_GEOTAG_KRAVMATRIX.md": "6e202f61953640b9cb19965ed46d10bfddcf196f265e7e1b3e7b421704c843ac",
+    "docs/JOBS_GEOTAG_TESTLEVERING.md": "aea1e7ac5766a150bbe926c8e1bb5bc4c99bd8fb4358b070cd95f0dd366276bf"
+  },
+  "userPatchBackup": "ignored tmp/samling-2026-11-02/eksisterende-brugeraendringer.patch",
+  "hostedWritesPerformed": false,
+  "releaseApproved": false
+}

@@ -7,6 +7,9 @@ const state = vi.hoisted(() => ({
   mediaError: null as Error | null,
   mediaServiceError: null as string | null,
   mediaQuery: null as (() => Promise<unknown>) | null,
+  tab: "overblik",
+  actorId: null as string | null,
+  environmental: null as { queryKey: unknown[]; enabled?: boolean } | null,
   preview: vi.fn(() => ({})),
   sensors: vi.fn(() => [{ id: "demo-sensor" }]),
 }));
@@ -25,7 +28,7 @@ vi.mock("@tanstack/react-router", () => ({
     useParams: () => ({ slug: "pilot" }),
     // The retained full-app overview is now opened through Flere sagsværktøjer.
     // Exercise the same evidence guards on that explicit tab.
-    useSearch: () => ({ tab: "overblik" }),
+    useSearch: () => ({ tab: state.tab }),
     useNavigate: () => vi.fn(),
   }),
   notFound: () => new Error("not found"),
@@ -41,7 +44,13 @@ vi.mock("@tanstack/react-query", () => ({
     }
     return { data: [] };
   },
-  useQuery: () => ({ data: { points: [] } }),
+  useQuery: (options: { queryKey: unknown[]; enabled?: boolean }) => {
+    if (options.queryKey[0] === "environmental-context") {
+      state.environmental = options;
+      return { data: undefined, isPending: true, isError: false };
+    }
+    return { data: { points: [] } };
+  },
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 vi.mock("@/lib/data-mode", () => ({
@@ -50,9 +59,17 @@ vi.mock("@/lib/data-mode", () => ({
   },
 }));
 vi.mock("@/lib/supabase/client", () => ({ isSupabaseConfigured: false, supabase: null }));
-vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: null }) }));
+vi.mock("@/lib/auth", () => ({
+  useAuth: () => ({ user: state.actorId ? { id: state.actorId } : null }),
+}));
 vi.mock("@/components/project/ProjectHeader", () => ({ ProjectHeader: () => null }));
 vi.mock("@/components/project/ProjectTabs", () => ({ ProjectTabs: () => null }));
+// Test the route's evidence guards directly; the shell's Suspense/retention behavior
+// is exercised in ProjectWorkspaceShell.test.tsx, not through server-render fallbacks.
+vi.mock("@/components/project/ProjectWorkspaceShell", () => ({
+  ProjectWorkspaceShell: ({ renderTab }: { renderTab: (tab: string) => React.ReactNode }) =>
+    renderTab(state.tab),
+}));
 // This test exercises the route's data guards. Atlas behavior has its own tests.
 vi.mock("@/components/project-workspace/ProjectPhotoAtlas", () => ({
   ProjectPhotoAtlas: () => null,
@@ -81,11 +98,27 @@ beforeEach(() => {
   state.mediaError = null;
   state.mediaServiceError = null;
   state.mediaQuery = null;
+  state.tab = "overblik";
+  state.actorId = null;
+  state.environmental = null;
   state.preview.mockClear();
   state.sensors.mockClear();
 });
 
 describe("customer project evidence guards", () => {
+  it("does not make reports and tasks wait for optional external environmental sources", () => {
+    state.actorId = "actor-a";
+    for (const tab of ["rapporter", "handlinger", "overblik"]) {
+      state.tab = tab;
+      renderProject();
+      expect(state.environmental?.enabled).toBe(false);
+    }
+    state.tab = "miljodata";
+    renderProject();
+    expect(state.environmental?.enabled).toBe(true);
+    expect(state.environmental?.queryKey).toContain("actor-a");
+    expect(state.environmental?.queryKey).toContain(project.id);
+  });
   it("retains only supported task links and normalizes the exact copied round ID", () => {
     const validate = Route.options.validateSearch as (value: Record<string, unknown>) => {
       tab?: string;

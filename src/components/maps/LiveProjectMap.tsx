@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useMapContainerResize } from "@/hooks/use-map-container-resize";
 import type { GeoJSON as LeafletGeoJSON, Map as LeafletMap, PathOptions } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { ProjectGeometry } from "@/lib/supabase/types";
@@ -206,6 +207,7 @@ export function LiveProjectMap({
 }: LiveProjectMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<LeafletMap | null>(null);
+  useMapContainerResize(mapRef, mapInstance);
   const bufferDataRef = useRef<BufferZonesGeoJSON | null>(null);
   const bufferLayerRef = useRef<LeafletGeoJSON | null>(null);
   const mediaLayerRef = useRef<import("leaflet").LayerGroup | null>(null);

@@ -1,5 +1,11 @@
 # Freyra: fra kundeleverance til fungerende platform
 
+> Historisk analyse. Brug [samlingsplanen af 2. november 2026](UDVIKLINGSPLAN_SAMLING_2026-11-02.md)
+> til aktuel prioritering. Kategoritabellen nedenfor beskriver en tidligere revision:
+> den nuværende kode har `Outlet` i decisions/ledger/impact og projektbundne
+> arbejdsrum i undersiderne. Tabellen er ikke en aktuel liste over manglende kode.
+> Genbrugssporene for rapportværktøjer bevares som historisk undersøgelsesgrundlag.
+
 ## Kundemål og status
 
 Kommuner og private bygherrer/lodsejere er de første kundegrupper. Byggeri skal kunne begynde med en dokumenteret naturbaseline og fortsætte gennem indsats, kontrol og opfølgning. Vandløbsrapporten er et konkret eksempel på en leverance, ikke hele produktets afgrænsning. Alle eksisterende kategorier bevares.

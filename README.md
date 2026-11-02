@@ -1,5 +1,12 @@
 # Freyra
 
+## Samling og færdiggørelse
+
+[Udviklingsplan, 2. november 2026](docs/UDVIKLINGSPLAN_SAMLING_2026-11-02.md)
+samler det eksisterende projekt-, opgave-, felt-, review- og rapportarbejde.
+Planen angiver genbrug, afhængigheder, konkrete acceptprøver og oprydning
+og kobler til de eksisterende F-/D-krav. Den er en plan, ikke en releasekvittering.
+
 Aktuel udviklingsreference: [afstemning og pakkestatus](docs/F00_AFSTEMNING.md).
 Første sammenhængende brugeropgave er projekt, originalmateriale, baseline,
 faktisk udført indsats, sammenlignelig før/efter, rapport og næste opfølgning.

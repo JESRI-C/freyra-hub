@@ -228,7 +228,7 @@ describe("mobile personal tasks", () => {
       JSON.parse(host.querySelector('a[href="/app/projects/$slug"]')!.getAttribute("data-search")!),
     ).toEqual({ step: "udfoerelse", task: id(2), work: "execution" });
     expect(JSON.parse(host.querySelector('a[href="/felt"]')!.getAttribute("data-search")!)).toEqual(
-      { project: id(4) },
+      { project: id(4), task: id(2) },
     );
     await click("← Alle mine opgaver");
     expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(

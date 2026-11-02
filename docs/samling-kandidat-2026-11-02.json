@@ -1,0 +1,56 @@
+{
+  "schema": "freyra.integration-candidate/v1",
+  "date": "2026-11-02",
+  "branch": "codex/project-navigation-integration-v1",
+  "applicationSourceRevision": "2a16edd9ea1a0c749dc81ef0be83afae4aa247ec",
+  "navigationIntegrationCommit": "1accaab",
+  "status": "implemented locally; desktop/mobile and hosted acceptance open",
+  "validation": {
+    "typecheck": "passed",
+    "fullLint": { "errors": 0, "existingWarnings": 24 },
+    "followupChangedFileLint": "passed",
+    "integrationRegression": {
+      "sourceCommit": "1accaab",
+      "files": 246,
+      "testsPassed": 3301,
+      "method": "ten sequential coverage-checked batches; see samling-regression-2026-11-02.json",
+      "standardSingleRunPassed": false
+    },
+    "optionalEnvironmentalLoadingFollowup": {
+      "testFiles": 3,
+      "testsPassed": 20,
+      "isAdditionalDisjointTestCount": false
+    },
+    "stagingBuild": "passed including bundle isolation preflight",
+    "buildMetadata": {
+      "schema": "freyra.build/v1",
+      "viteMode": "staging",
+      "municipalDemo": false,
+      "customerDataOnly": true,
+      "municipalWorkflow": true,
+      "release": "1.0",
+      "sourceRevision": "2a16edd9ea1a0c749dc81ef0be83afae4aa247ec"
+    },
+    "newDatabaseTestsRequired": false,
+    "reasonNoDatabaseReplay": "No migration, database policy, server authorization or storage mutation implementation changed.",
+    "hostedBrowserTest": "not performed",
+    "physicalPhoneTest": "not performed",
+    "professionalOrCustomerAcceptance": "not performed"
+  },
+  "buildWarnings": [
+    "Existing non-route login test discovery warning; the new field task test was moved out of routes after build.",
+    "GeoTIFF Node module externalization, mixed dynamic/static imports and chunk size notices.",
+    "Nitro/Rollup platform and use-client directive warnings; generated Worker entry overrides the source Wrangler main setting."
+  ],
+  "remaining": [
+    "Confirm currently hosted application revision before any deployment.",
+    "Exercise navigation, back/forward, refresh and editing on actual desktop and phone.",
+    "S02/D03 database-enforced task/observation/original relationship and scoped external file access.",
+    "S04/D05 version-frozen handover/review and S05/D07 complete task-bound report package."
+  ],
+  "hostedWrites": false,
+  "deploymentPerformed": false,
+  "productionChanged": false,
+  "customerDataChanged": false,
+  "preservedUserFilesVerified": true
+}
