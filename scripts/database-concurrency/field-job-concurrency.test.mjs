@@ -618,6 +618,83 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
+  // S02/D03 uses these same disposable sessions, receipts and lock witnesses.
+  const upload = randomUUID(),
+    evidence = randomUUID();
+  const photoPayload = JSON.stringify({
+    title: "Synthetic evidence original",
+    description: null,
+    category: "field_photo",
+    tags: [],
+    originalName: "synthetic.jpg",
+    sha256: "a".repeat(64),
+    sizeBytes: 8,
+    mimeType: "image/jpeg",
+    capturedAt: null,
+    capture: {
+      schema: "freyra.field-photo/v1",
+      originalPosition: null,
+      initialPosition: { lat: 55, lng: 10 },
+      correctionReason: "Synthetic manual position",
+    },
+  });
+  const evidenceSetup = await query(`BEGIN; ${login}
+    SELECT json_build_object('observationId',id) FROM public.save_field_job_version(${org},${project},${action},${q(templateVersion)},2,'{"note":"Synthetic recorded observation"}','recorded','Synthetic recorded correction',${q(randomUUID())});
+    SELECT id FROM public.begin_field_photo_upload(${project},${q(upload)},${q(photoPayload)}::jsonb);
+    INSERT INTO storage.objects(id,bucket_id,name,owner_id,metadata) VALUES(${q(randomUUID())},'project-media',${project}||'/field-uploads/'||${q(upload)}||'/original',${actor},'{"size":8,"mimetype":"image/jpeg"}');
+    SELECT id FROM public.finalize_field_photo_upload(${project},${q(upload)});
+    RESET ROLE; SET LOCAL ROLE service_role;
+    SELECT public.prepare_field_photo_verification(${project},${q(upload)},${actor});
+    SELECT status FROM public.complete_field_photo_verification(${project},${q(upload)},${actor},(SELECT lease_id FROM public.field_photo_processing_jobs WHERE upload_id=${q(upload)}),repeat('a',64),8);
+    COMMIT;`);
+  const observationId = evidenceSetup.find((row) => row.observationId)?.observationId;
+  assert.match(observationId, /^[0-9a-f-]{36}$/);
+  const evidenceCall = (expected, request, evidenceId = evidence) =>
+    `public.save_work_order_evidence(${action},${org},${project},${q(evidenceId)},${expected},${q(observationId)},${q(upload)},NULL,'attached','Synthetic evidence relationship',${q(request)})`;
+  const evidenceWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${evidenceCall(0, randomUUID())};`,
+    "EVIDENCE_HELD",
+  );
+  await evidenceWinner.marker("EVIDENCE_HELD");
+  const evidenceStale = await transaction(capture(evidenceCall(0, randomUUID())), "EVIDENCE_STALE");
+  await actualLock(evidenceStale, evidenceWinner);
+  await commit(evidenceWinner);
+  await evidenceStale.marker("EVIDENCE_STALE");
+  assert.equal(evidenceStale.rows().find((row) => row.result)?.result, "PT409");
+  await commit(evidenceStale);
+  scenarios.push({
+    name: "competing_evidence_revision",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+  });
+  const evidenceRequest = randomUUID();
+  const evidenceRetryWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${evidenceCall(1, evidenceRequest)};`,
+    "EVIDENCE_RETRY_HELD",
+  );
+  await evidenceRetryWinner.marker("EVIDENCE_RETRY_HELD");
+  const evidenceRetry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${evidenceCall(1, evidenceRequest)};`,
+    "EVIDENCE_RETRY_DONE",
+  );
+  await actualLock(evidenceRetry, evidenceRetryWinner);
+  await commit(evidenceRetryWinner);
+  await evidenceRetry.marker("EVIDENCE_RETRY_DONE");
+  assert.equal(
+    evidenceRetry.rows().find((row) => row.id)?.id,
+    evidenceRetryWinner.rows().find((row) => row.id)?.id,
+  );
+  await commit(evidenceRetry);
+  const [evidenceAfter] = await query(
+    `SELECT json_build_object('versions',(SELECT count(*) FROM public.work_order_evidence_versions WHERE evidence_id=${q(evidence)}),'events',(SELECT count(*) FROM public.audit_events WHERE entity_id=${action} AND event_type='work_order.evidence_saved'));`,
+  );
+  assert.deepEqual(evidenceAfter, { versions: 2, events: 2 });
+  scenarios.push({
+    name: "identical_evidence_retry",
+    actualLockVerified: true,
+    oneRevision: true,
+    oneInternalEvent: true,
+  });
   // SQL-only assertions missed PostgREST's 500/retry handling of SQLSTATE 40001.
   // Verify the real disposable LOCAL HTTP boundary without Auth mail or hosted access.
   const status = spawnSync("supabase", ["status", "--output", "json"], {
@@ -659,6 +736,20 @@ try {
     p_project_id: project.slice(1, -1),
   };
   const staleRequests = [
+    [
+      "save_work_order_evidence",
+      {
+        ...common,
+        p_evidence_id: evidence,
+        p_expected_version: 0,
+        p_observation_version_id: observationId,
+        p_upload_id: upload,
+        p_execution_revision_id: null,
+        p_state: "attached",
+        p_reason: "Synthetic evidence relationship",
+        p_request_id: randomUUID(),
+      },
+    ],
     [
       "save_work_order_plan",
       {
@@ -776,11 +867,30 @@ try {
     assert.equal(body.code, "PT409");
   }
   scenarios.push({
-    name: "local_http_stale_plan_access_execution_group_assignment_claim_lifecycle_note",
-    requests: 8,
+    name: "local_http_stale_plan_access_execution_group_assignment_claim_lifecycle_note_evidence",
+    requests: 9,
     httpStatus: 409,
     sqlstate: "PT409",
     noAuthEmails: true,
+  });
+  const revoke = new Session();
+  revoke.write(
+    `BEGIN; SELECT json_build_object('pid',pg_backend_pid()); DELETE FROM public.organization_memberships WHERE organization_id=${org} AND user_id=${actor}; SELECT 'EVIDENCE_REVOKE_HELD';`,
+  );
+  await revoke.marker("EVIDENCE_REVOKE_HELD");
+  const revokedWrite = await transaction(
+    capture(evidenceCall(0, randomUUID(), randomUUID())),
+    "EVIDENCE_REVOKED_DONE",
+  );
+  await actualLock(revokedWrite, revoke);
+  await commit(revoke);
+  await revokedWrite.marker("EVIDENCE_REVOKED_DONE");
+  assert.equal(revokedWrite.rows().find((row) => row.result)?.result, "42501");
+  await commit(revokedWrite);
+  scenarios.push({
+    name: "membership_revocation_before_evidence_commit",
+    actualLockVerified: true,
+    deniedSqlstate: "42501",
   });
   process.stdout.write(
     JSON.stringify({

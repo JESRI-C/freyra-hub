@@ -25,6 +25,22 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 import { MyWorkOrders } from "../MyWorkOrders";
+vi.mock("../WorkOrderEvidencePanel", () => ({
+  WorkOrderEvidencePanel: ({
+    actionId,
+    canContribute,
+    onEditing,
+  }: {
+    actionId: string;
+    canContribute: boolean;
+    onEditing: (value: boolean) => void;
+  }) => (
+    <div data-evidence-task={actionId} data-can-contribute={canContribute}>
+      <button onClick={() => onEditing(true)}>Synthetic open original</button>
+      <button onClick={() => onEditing(false)}>Synthetic original complete</button>
+    </div>
+  ),
+}));
 vi.mock("../WorkOrderStatusPanel", () => ({
   WorkOrderStatusPanel: ({ onEditing }: { onEditing: (value: boolean) => void }) => (
     <>
@@ -93,6 +109,43 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("opens exact-task documentation as read-only and retains the status editor lock", async () => {
+    await render();
+    await openTask();
+    const details = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Se dokumentation",
+    )!;
+    await act(async () => {
+      details.open = true;
+      details.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    expect(host.querySelector("[data-evidence-task]")?.getAttribute("data-evidence-task")).toBe(
+      task.action_id,
+    );
+    expect(host.querySelector("[data-evidence-task]")?.getAttribute("data-can-contribute")).toBe(
+      "false",
+    );
+    const status = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Status og logbog",
+    )!;
+    await act(async () => {
+      status.open = true;
+      status.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    await click("Synthetic edit status");
+    await click("Synthetic original complete");
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
+        ?.disabled,
+    ).toBe(true);
+    await click("Synthetic cancel status");
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent === "Opdater opgaver")
+        ?.disabled,
+    ).toBe(false);
+  });
   it("locks list refresh and claim while a nested status or note draft is open", async () => {
     await render();
     await openTask();
