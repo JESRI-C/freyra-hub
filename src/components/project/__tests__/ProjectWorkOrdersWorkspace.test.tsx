@@ -76,6 +76,14 @@ vi.mock("../ActionExecutionPanel", () => ({
     <Editor {...props} label="Udførelse" />
   ),
 }));
+vi.mock("../WorkOrderEvidencePanel", () => ({
+  WorkOrderEvidencePanel: ({
+    actionId,
+    ...props
+  }: { actionId: string } & Omit<Parameters<typeof Editor>[0], "selectedActionId">) => (
+    <Editor {...props} selectedActionId={actionId} label="Dokumentation" />
+  ),
+}));
 import { ProjectWorkOrdersWorkspace, type WorkOrderView } from "../ProjectWorkOrdersWorkspace";
 const scope = { organizationId: "org", projectId: "project" };
 const tasks = [
@@ -154,6 +162,21 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("one task across the project workspaces", () => {
+  it("retains documentation drafts while switching views and does not release another editor's lock", async () => {
+    await render("first");
+    await fill("Plan kladde", "Planen bevares");
+    await click("Dokumentation");
+    await fill("Dokumentation kladde", "Koblingen bevares");
+    await click("Arbejdsgrundlag");
+    await click("Fortryd Plan");
+    expect(host.querySelector("select")!.disabled).toBe(true);
+    await click("Dokumentation");
+    expect(host.querySelector<HTMLInputElement>('[aria-label="Dokumentation"] input')!.value).toBe(
+      "Koblingen bevares",
+    );
+    await click("Fortryd Dokumentation");
+    expect(host.querySelector("select")!.disabled).toBe(false);
+  });
   it("follows a field return link on the mounted task without discarding an opened editor", async () => {
     const show = async (initialView: WorkOrderView) => {
       await act(async () =>

@@ -187,6 +187,13 @@ function ExecutionPanel({
         cache.invalidateQueries({ queryKey: key }),
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
+        cache.invalidateQueries({
+          queryKey: [
+            "work-order-evidence-executions",
+            actorId,
+            { ...scope, actionId: draft.actionId },
+          ],
+        }),
       ]);
       setDraft(null);
       setActionId("");

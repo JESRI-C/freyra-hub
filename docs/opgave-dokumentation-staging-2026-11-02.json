@@ -1,0 +1,146 @@
+{
+  "schema": "freyra.work-order-evidence-staging/v1",
+  "date": "2026-11-02",
+  "sourceRevision": "46bf6dfc96b72866fafc1c1b0333e9ecc8aa2b4e",
+  "branch": "codex/work-order-evidence-v1",
+  "draftPullRequest": "https://github.com/JESRI-C/freyra-hub/pull/36",
+  "environment": {
+    "name": "staging",
+    "origin": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+    "supabaseProjectRef": "xdvqdzdpyceojbdknofi",
+    "workerName": "gofreyra-p0-staging",
+    "workerVersionId": "e5bdd8e0-e004-475f-9133-e1fcfd0f06c2",
+    "previousWorkerVersionId": "2835c408-d4a4-4c40-87f8-11f07fb86a10",
+    "publicBuildMetadataRevisionMatches": true,
+    "dashboardVariablesAndSecretsPreserved": true,
+    "productionChanged": false
+  },
+  "ci": {
+    "runId": 41428951155,
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41428951155",
+    "applicationJob": { "id": 125222370001, "conclusion": "success", "testFiles": 249, "testsPassed": 3368 },
+    "databaseJob": { "id": 125222370267, "conclusion": "success", "testFiles": 22, "testsPassed": 1471 },
+    "typecheck": "passed",
+    "lint": "passed",
+    "emptyMigrationReplay": "passed",
+    "concurrencyAndHttpConflict": "passed",
+    "disposableRestore": "passed",
+    "databaseLint": "passed",
+    "disposableCleanup": "passed",
+    "imagesBindingSyntheticDecode": "passed",
+    "build": "passed"
+  },
+  "localUploadFixValidation": {
+    "testsPassed": 34,
+    "testFiles": 4,
+    "typecheck": "passed",
+    "changedFilesLint": "passed",
+    "stagingBuild": "passed",
+    "appendTransportRegressionFailedBeforeFix": true,
+    "singleFreshAuthorizationHeaderAfterFix": true
+  },
+  "migrations": [
+    {
+      "file": "20261102090158_work_order_evidence_bindings.sql",
+      "sha256Lf": "60c2348abb8655f6a892a6bb1a1b640c907879ad6d2608145d42e094341a20e9",
+      "appliedToStaging": true
+    },
+    {
+      "file": "20261102094049_work_order_evidence_execution_sources.sql",
+      "sha256Lf": "11c4c46340759da00fee87412b3f2dc9faa3fb1e945659c5d449a285f19eac9a",
+      "appliedToStaging": true
+    }
+  ],
+  "migrationLedger": {
+    "beforeCount": 42,
+    "afterCount": 44,
+    "testedSourceMatchedBeforeApply": true,
+    "storedStatementsMatchedAfterApply": true,
+    "onlyNewToolGeneratedVersionsAlignedToSourceVersions": true,
+    "historicalRowsChanged": false
+  },
+  "hostedJourney": {
+    "browser": "system Chrome via Playwright",
+    "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+    "actionId": "382bbfe4-812a-4a67-99a6-921220806941",
+    "dataBasis": "labelled synthetic TEST fixture",
+    "realUiAndServer": true,
+    "passwordLogin": "passed",
+    "planAndUnknownPlannedDate": "passed",
+    "recordedObservationPreservesZeroAndFalse": "passed",
+    "separateActualExecutionRevision": "passed",
+    "offlineQueueAndPageCloseReopen": "passed",
+    "realTusUploadAndServerHashReceipt": "passed",
+    "oneBearerHeaderWithoutComma": "passed",
+    "explicitEvidenceSelection": "passed",
+    "lostSuccessfulResponseRetryWithoutDuplicate": "passed",
+    "correctionPreservesPriorSnapshots": "passed",
+    "exactSignedOriginalDownloadHash": "passed",
+    "latestOriginalBrowserImageDecode": "passed",
+    "historicalExecutionRead": "passed",
+    "crossTaskObservationDenied": "passed",
+    "withdrawnEvidenceOriginalDenied": "passed",
+    "externalAssignedTaskReadAndOriginal": "passed",
+    "externalSourceEnumerationAndOtherTaskDenied": "passed",
+    "externalProjectMediaReadDenied": "passed",
+    "newOriginalLinksDeniedAfterGrantRevocationUiAndRpc": "passed",
+    "temporaryExternalTaskGrantLeftActive": false,
+    "phoneViewportWidth": 390,
+    "horizontalOverflow": false,
+    "physicalPhone": false,
+    "nativeCameraOrHeic": false,
+    "script": "scripts/test-work-order-evidence-staging.mjs",
+    "privateEvidenceDirectory": "tmp/samling-hosted"
+  },
+  "phoneFixture": {
+    "latestEvidenceVersion": 3,
+    "latestEvidenceVersionId": "d8e7d5c9-bdcf-40f9-ad0b-bb09084b77d7",
+    "uploadId": "725f6233-169b-4881-a662-6a611489cbe3",
+    "sha256": "8343c81af5a4d07b716cf60482c91c5422e7721554eed642f1102e8c2c3be23e",
+    "bytes": 469,
+    "decodedWidth": 160,
+    "decodedHeight": 96,
+    "originalsAndEarlierVersionsPreserved": true,
+    "earlierTechnicalFixturePngCrcInvalid": true,
+    "hashVerificationDoesNotAssertImageValidity": true,
+    "guide": "docs/TELEFONPROEVE_OPGAVER_2026-11-02.md"
+  },
+  "preservation": {
+    "method": "IDs and MD5 of full row JSON before/after; Storage excludes last_accessed_at",
+    "originalBytesAllRestoredOrRehashed": false,
+    "media": { "before": 110, "after": 112, "preserved": 110, "missing": 0, "changed": 0, "addedTestRows": 2 },
+    "actions": { "before": 16, "after": 18, "preserved": 16, "missing": 0, "changed": 0, "addedTestRows": 2 },
+    "projects": { "before": 50, "after": 51, "preserved": 50, "missing": 0, "changed": 0, "addedTestRows": 1 },
+    "workspace": { "before": 32, "after": 34, "preserved": 32, "missing": 0, "changed": 0, "addedTestRows": 2 },
+    "storageObjects": { "before": 252, "after": 254, "preserved": 252, "missing": 0, "changed": 0, "addedTestRows": 2 }
+  },
+  "securityAdvisories": {
+    "beforeGroups": 6,
+    "afterGroups": 6,
+    "newOrChangedGroups": 0,
+    "existingFindingsResolved": false
+  },
+  "preservedUserDocumentSha256": {
+    "JOBS_GEOTAG_KRAVMATRIX.md": "6e202f61953640b9cb19965ed46d10bfddcf196f265e7e1b3e7b421704c843ac",
+    "JOBS_GEOTAG_TESTLEVERING.md": "aea1e7ac5766a150bbe926c8e1bb5bc4c99bd8fb4358b070cd95f0dd366276bf"
+  },
+  "limits": {
+    "signedUrlTtlSeconds": 60,
+    "alreadyIssuedUrlsLiveUntilExpiry": true,
+    "storagePoliciesWidened": false,
+    "emailOrInvitationSent": false,
+    "paidAiOrImagesCalled": false,
+    "backgroundSweeperActivated": false,
+    "merged": false,
+    "s02D03Complete": false,
+    "productionAcceptance": false
+  },
+  "remainingAcceptance": [
+    "physical phone camera, HEIC, keyboard, original opening and real browser shutdown/offline",
+    "hosted two-project switching and manual conflict handling",
+    "external new observation/upload workflow",
+    "generic observation and canonical drone-original integration",
+    "frozen submission/review/report snapshots",
+    "release operations, existing security findings and commercial production acceptance"
+  ]
+}

@@ -5,6 +5,9 @@ export const LoadWorkOrderExecutionSchema = WorkOrderScopeSchema.extend({
   expectedActorId: z.string().uuid(),
   previousRevisionId: z.string().uuid().nullable(),
 }).strict();
+export const ReadWorkOrderExecutionBindingSchema = LoadWorkOrderExecutionSchema.extend({
+  previousRevisionId: z.string().uuid(),
+}).strict();
 export const SaveWorkOrderExecutionSchema = WorkOrderScopeSchema.extend({
   expectedActorId: z.string().uuid(),
   planVersionId: z.string().uuid(),

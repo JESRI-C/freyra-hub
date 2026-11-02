@@ -84,7 +84,9 @@ export async function uploadWithTus(
     const upload = createUpload(params.file, {
       endpoint: resolveResumableUploadEndpoint(params.projectUrl),
       retryDelays: [...TUS_RETRY_DELAYS_MS],
-      headers: { authorization: `Bearer ${params.accessToken}` },
+      // XHR appends repeated header writes. Set the credential only in the request hook,
+      // after any refresh, rather than combining an old and a fresh bearer token.
+      headers: {},
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true,
       chunkSize: TUS_CHUNK_SIZE_BYTES,
@@ -110,12 +112,10 @@ export async function uploadWithTus(
       },
       onBeforeRequest: async (request) => {
         if (params.signal?.aborted) throw abortError();
-        if (params.getAccessToken) {
-          const token = await params.getAccessToken();
-          if (!token) throw new Error("Upload kræver en aktiv session.");
-          if (params.signal?.aborted) throw abortError();
-          request.setHeader("authorization", `Bearer ${token}`);
-        }
+        const token = params.getAccessToken ? await params.getAccessToken() : params.accessToken;
+        if (!token) throw new Error("Upload kræver en aktiv session.");
+        if (params.signal?.aborted) throw abortError();
+        request.setHeader("authorization", `Bearer ${token}`);
       },
       onError: (error) => finish(() => reject(error)),
       onSuccess: () => finish(resolve),

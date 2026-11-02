@@ -10,6 +10,7 @@ import {
 import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignments";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
+import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 
@@ -149,6 +150,14 @@ function TaskCard({
     [message, setMessage] = useState("");
   const [statusOpened, setStatusOpened] = useState(false),
     [editing, setEditing] = useState(false);
+  const [evidenceOpened, setEvidenceOpened] = useState(false),
+    [evidenceEditing, setEvidenceEditing] = useState(false);
+  const nestedLocks = useRef(new Set<string>());
+  function reportEditing(part: string, value: boolean) {
+    if (value) nestedLocks.current.add(part);
+    else nestedLocks.current.delete(part);
+    onEditing(nestedLocks.current.size > 0);
+  }
   const inFlight = useRef(false),
     attempt = useRef<{ signature: string; requestId: string } | null>(null);
   async function take() {
@@ -255,10 +264,36 @@ function TaskCard({
                 actorId={actorId}
                 onEditing={(value) => {
                   setEditing(value);
-                  onEditing(value);
+                  reportEditing("status", value);
                 }}
               />
             </fieldset>
+          )}
+        </details>
+        <details
+          onToggle={(event) => {
+            if (event.currentTarget.open) setEvidenceOpened(true);
+          }}
+        >
+          <summary
+            className="min-h-11 cursor-pointer py-2 font-medium"
+            onClick={(event) => {
+              if (locked && !evidenceEditing) event.preventDefault();
+            }}
+          >
+            Se dokumentation
+          </summary>
+          {evidenceOpened && (
+            <WorkOrderEvidencePanel
+              scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+              actorId={actorId}
+              actionId={task.action_id}
+              canContribute={false}
+              onEditing={(value) => {
+                setEvidenceEditing(value);
+                reportEditing("evidence", value);
+              }}
+            />
           )}
         </details>
         {task.can_plan && (

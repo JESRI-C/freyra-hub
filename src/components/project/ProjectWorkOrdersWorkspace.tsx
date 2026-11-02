@@ -9,6 +9,7 @@ import { createProjectAction, type ProjectScope } from "@/services/project-works
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
+import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 
 type Props = {
   scope: ProjectScope;
@@ -19,11 +20,12 @@ type Props = {
   initialView?: WorkOrderView;
 };
 export type WorkOrderView = "plan" | "field" | "execution";
-type Part = WorkOrderView;
+type Part = WorkOrderView | "evidence";
 const parts: { id: Part; label: string }[] = [
   { id: "plan", label: "Arbejdsgrundlag" },
   { id: "field", label: "Feltregistrering" },
   { id: "execution", label: "Udført arbejde" },
+  { id: "evidence", label: "Dokumentation" },
 ];
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -292,6 +294,7 @@ function WorkOrders({
               actionId={actionId}
               round={round}
               canEdit={canEdit}
+              canContribute={!!access.data?.canContribute}
               onEditing={onEditing}
               initialView={initialView}
             />
@@ -303,9 +306,11 @@ function WorkOrders({
 }
 function TaskWorkspace({
   scope,
+  actorId,
   actionId,
   round,
   canEdit,
+  canContribute,
   onEditing,
   initialView,
 }: {
@@ -314,6 +319,7 @@ function TaskWorkspace({
   actionId: string;
   round?: string;
   canEdit: boolean;
+  canContribute: boolean;
   onEditing: (part: Part, value: boolean) => void;
   initialView?: WorkOrderView;
 }) {
@@ -330,9 +336,13 @@ function TaskWorkspace({
     (value: boolean) => onEditing("execution", value),
     [onEditing],
   );
+  const evidenceEditing = useCallback(
+    (value: boolean) => onEditing("evidence", value),
+    [onEditing],
+  );
   return (
     <div className="min-w-0 space-y-4">
-      <nav aria-label="Arbejd med opgaven" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <nav aria-label="Arbejd med opgaven" className="grid grid-cols-1 gap-2 sm:grid-cols-4">
         {parts.map((item) => (
           <button
             key={item.id}
@@ -373,6 +383,17 @@ function TaskWorkspace({
             selectedRoundId={round}
             selectedActionId={actionId}
             onEditing={executionEditing}
+          />
+        </div>
+      )}
+      {opened.has("evidence") && (
+        <div hidden={part !== "evidence"}>
+          <WorkOrderEvidencePanel
+            scope={scope}
+            actorId={actorId}
+            actionId={actionId}
+            canContribute={canContribute}
+            onEditing={evidenceEditing}
           />
         </div>
       )}

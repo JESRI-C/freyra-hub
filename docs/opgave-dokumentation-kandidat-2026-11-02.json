@@ -1,0 +1,68 @@
+{
+  "schema": "freyra.work-order-evidence-candidate/v1",
+  "date": "2026-11-02",
+  "sourceRevision": "72d4c8486295848740d384c58006f545fb82f3f6",
+  "branch": "codex/work-order-evidence-v1",
+  "draftPullRequest": "https://github.com/JESRI-C/freyra-hub/pull/36",
+  "basePullRequest": "https://github.com/JESRI-C/freyra-hub/pull/35",
+  "ci": {
+    "runId": 41423470242,
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41423470242",
+    "applicationJob": { "id": 125204331649, "conclusion": "success", "testFiles": 249, "testsPassed": 3367 },
+    "databaseJob": { "id": 125204332132, "conclusion": "success", "testFiles": 22, "testsPassed": 1471 },
+    "emptyMigrationReplay": "passed",
+    "generalConcurrencyScenarios": 29,
+    "fieldJobConcurrencyScenarios": 21,
+    "fieldPhotoConcurrencyScenarios": 6,
+    "httpDomainConflict": "passed",
+    "disposableRestore": "passed",
+    "databaseLint": "passed",
+    "disposableCleanup": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "fieldPhotoImagesBindingDecode": "passed",
+    "build": "passed"
+  },
+  "local": {
+    "typecheck": "passed",
+    "changedFilesLint": "passed",
+    "targetedTestFiles": 7,
+    "targetedTestsPassed": 108,
+    "stagingBuild": "passed",
+    "buildMetadataRevision": "72d4c8486295848740d384c58006f545fb82f3f6",
+    "buildMetadataMode": "staging",
+    "browserJavaScriptFilesChecked": 191,
+    "privilegedSignerMarkersInBrowserBundle": 0,
+    "syntheticChromeLayout": {
+      "result": "passed",
+      "widths": [320, 390, 1280],
+      "horizontalOverflow": false,
+      "visibleButtonsUnder44Pixels": 0,
+      "realComponentsAndBuiltCss": true,
+      "serverFunctions": "synthetic-memory-fixtures",
+      "evidenceDirectory": "tmp/evidence-execution-browser",
+      "hostedEndToEnd": false,
+      "physicalPhone": false
+    }
+  },
+  "migrations": [
+    "20261102090158_work_order_evidence_bindings.sql",
+    "20261102094049_work_order_evidence_execution_sources.sql"
+  ],
+  "originalAccess": { "signedUrlTtlSeconds": 60, "storagePoliciesWidened": false, "accessRecheckedAfterSigning": true },
+  "preservedUserDocumentSha256": {
+    "JOBS_GEOTAG_KRAVMATRIX.md": "6e202f61953640b9cb19965ed46d10bfddcf196f265e7e1b3e7b421704c843ac",
+    "JOBS_GEOTAG_TESTLEVERING.md": "aea1e7ac5766a150bbe926c8e1bb5bc4c99bd8fb4358b070cd95f0dd366276bf"
+  },
+  "remainingAcceptance": [
+    "hosted internal/external user and original-signing acceptance",
+    "physical phone/camera/offline acceptance",
+    "external new observation/upload workflow",
+    "generic observation and canonical drone-original integration",
+    "frozen submission/review/report snapshots"
+  ],
+  "hostedMigrationApplied": false,
+  "deployed": false,
+  "merged": false,
+  "s02D03Complete": false
+}

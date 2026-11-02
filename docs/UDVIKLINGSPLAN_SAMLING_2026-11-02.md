@@ -6,6 +6,14 @@ Version 1.0 · 2. november 2026 · Produktejer: Jesper Riel · Teknisk udførels
 
 Dette er den samlende leveranceplan. Den erstatter ikke fagkravene i F01–F29 eller Jobs/Geotags D00–D08 og 68 krav. De eksisterende kravregistre er acceptgrundlag; planen her styrer rækkefølge, integration, navigation, genbrug og oprydning. Den starter ikke en ny implementering af allerede løste krav.
 
+**Aktuel leverance:** Navigationen og den afgrænsede S02-kobling er nu i det
+autoriserede testmiljø på appkilde `46bf6df…`. Login → plan → registrering →
+udførelse → offlinefoto → verificeret original → versionsbundet dokumentation
+er prøvet med rigtig hosted UI og database. Afgrænset ekstern læsning og
+tilbagekaldelse bestod. [Telefonprøven er klargjort](TELEFONPROEVE_OPGAVER_2026-11-02.md).
+Fysisk telefonaccept er næste trin; S02/D03 er fortsat delvis. Produktionsappen
+er uændret. [Leverance og bevis](OPGAVE_DOKUMENTATION_SAMLING.md).
+
 ## 1. Udgangspunkt og bevis
 
 Lokal reference: `codex/work-order-ux-v1`, `2b122fe4518fc3673a6c8db0450b2073c5a166d3` i dette checkout. Ved start var der eksisterende ændringer i `JOBS_GEOTAG_KRAVMATRIX.md` og `JOBS_GEOTAG_TESTLEVERING.md`; de bevares.
@@ -115,6 +123,8 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 ### S02 — Bind feltdata og originaler til arbejdsopgaven
 
 **Afhænger af:** S00; fælles navigation fra S01 bruges ved integration. **Genbrug:** D03, F05/F13, eksisterende field-photo/offline/canonical-media. **Skøn:** 3–5 dage.
+
+**Udført del, 2. november:** [Opgave, gemt jobkortversion, verificeret feltoriginal og valgfri præcis udførelsesversion](OPGAVE_DOKUMENTATION_SAMLING.md) er implementeret i kladde PR36 og deployet til staging med begge additive migrationer. På `46bf6df…` bestod 3.368 applikationstests, 1.471 databasekontroller, migration fra tom database, reelle samtidighedsprøver, restore, databaselint og build i CI. Hosted-forløbet bestod også offlinekø/luk/genåbn, reel upload, mistet gemmesvar, historik, originalåbning, ekstern læsning og tilbagekaldelse. En konkret dobbelt Authorization-header i den eksisterende TUS-upload blev rettet med regression. Eksisterende data og brugerændringer er bevaret. Pakken er fortsat delvis, især ekstern nyregistrering/upload, øvrige originaltyper og fysisk telefon/kamera/HEIC.
 
 - Map opgave, faktisk udførelse, observation og originalrevision med databasehåndhævet scope. En fototitel, et tag eller URL er ikke relationen.
 - Giv en konkret tildelt ekstern udfører læse-/skriveadgang til tilladte observationer og filer uden projektbred adgang.
