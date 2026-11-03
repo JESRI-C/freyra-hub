@@ -756,6 +756,8 @@ function WorkOrders({
               {usesTaskList &&
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
+                  const plan = dates?.[a.id];
+                  const dateAction = plan?.start ? "Omplanlæg datoer" : "Angiv startdato";
                   const estimate = estimates.get(a.id);
                   const prerequisiteIds = dates?.[a.id]?.waitingForActionIds ?? [];
                   const prerequisites = prerequisiteIds.flatMap((id) => {
@@ -822,20 +824,21 @@ function WorkOrders({
                           </button>
                         ))}
                       {showSchedule &&
-                        dates?.[a.id]?.start &&
+                        plan?.planVersionId &&
+                        !plan.cancelled &&
                         canEdit &&
                         access.data?.canConfigure && (
                           <button
                             type="button"
                             className={button}
-                            aria-label={"Omplanlæg datoer for " + a.title}
+                            aria-label={dateAction + " for " + a.title}
                             disabled={locked}
                             onClick={() => {
                               select(a.id, "plan");
                               setRescheduleActionId(a.id);
                             }}
                           >
-                            Omplanlæg datoer
+                            {dateAction}
                           </button>
                         )}
                     </div>

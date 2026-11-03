@@ -95,12 +95,17 @@ vi.mock("../ProjectEquipmentBookings", () => ({
 }));
 vi.mock("../WorkOrderPlansPanel", () => ({
   WorkOrderPlansPanel: (
-    props: Parameters<typeof Editor>[0] & { openBooking?: boolean; suggestedStart?: string },
+    props: Parameters<typeof Editor>[0] & {
+      openBooking?: boolean;
+      openReschedule?: boolean;
+      suggestedStart?: string;
+    },
   ) => (
     <>
       <Editor {...props} label="Plan" />
       {props.suggestedStart && <p>Forslag: {props.suggestedStart}</p>}
       {props.openBooking && <p>Bookingpanelet er åbent</p>}
+      {props.openReschedule && <p>Datoformularen er åben</p>}
     </>
   ),
 }));
@@ -223,7 +228,10 @@ it("shows dated work ahead of undated work and opens its existing plan", async (
 });
 
 it("finds undated work from the planning prompt and excludes cancelled tasks", async () => {
-  m.schedule.mockResolvedValue({ second: { start: null, cancelled: true } });
+  m.schedule.mockResolvedValue({
+    first: { start: null, planVersionId: "existing-plan" },
+    second: { start: null, cancelled: true },
+  });
   await render();
   await click("Planoversigt");
   expect(host.textContent).toContain("1 opgave mangler en startdato");
@@ -233,6 +241,9 @@ it("finds undated work from the planning prompt and excludes cancelled tasks", a
   );
   expect(rows).toHaveLength(1);
   expect(rows[0].textContent).toContain(tasks[0].title);
+  await click("Angiv startdato");
+  expect(m.navigate).toHaveBeenCalledWith(tasks[0].id);
+  expect(host.textContent).toContain("Datoformularen er åben");
 });
 
 it("finds waiting tasks across the project from the calendar and clears the filter", async () => {
