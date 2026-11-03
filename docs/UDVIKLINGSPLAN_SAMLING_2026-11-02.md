@@ -346,6 +346,18 @@ ikke aktiveret af denne planændring. Eget estimat følger.
 
 ### Freyra hjælper kunden undervejs
 
+**Produktkrav for alle arbejdsgange.** Kunden skal kunne se, hvad Freyra har opdaget, hvad det betyder for arbejdet, og hvad næste skridt er. Hjælpen vises ved opgaven, kalenderen, registreringen eller afleveringen på både computer og telefon. Projektlederen får et samlet overblik over forhold, der kræver handling, med genvej til den berørte opgave. Feltmedarbejderen får den hjælp, vedkommendes rolle og tildeling giver adgang til.
+
+| Trin | Første forløb i arbejdsplanlægningen | Status |
+|---|---|---|
+| Opdag og forklar | Find opgaver uden startdato og opgaver med uafklarede forudsætninger. Forklar konsekvensen og åbn arbejdsgrundlaget. | Findes i Planoversigt |
+| Forbered | Foreslå en startdato ud fra gemte forudsætninger. Vis dato, grundlag og hvad der stadig skal afklares. | Afgrænset datokladde findes. Kapacitet og udstyr mangler i forslaget |
+| Arbejd autonomt | Genkontrollér planen i baggrunden ved relevante ændringer. Registrér ét internt opfølgningspunkt for en bekræftet konflikt, og luk punktet, når konflikten er løst. | Planlagt som første afgrænsede mandat |
+
+**Genbrug og grænser.** Start med Planoversigts regler og projektets eksisterende læsninger. Bind hvert fund til organisation, projekt, opgave-ID og grundlagets version. Brug projektassistenten til kildebundne forklaringer, hvor det giver værdi. Eksisterende tjenester afgør dato-, forudsætnings- og adgangsregler. Projektlederen godkender ændringer af datoer, tildeling og reservationer. Faglig godkendelse følger den eksisterende gennemgang. En agent bruger Freyras serverhandlinger og versionskontroller inden for et mandat med en ejer og en stopmulighed.
+
+**Accept for første baggrundsagent.** En ændret forudsætning opretter ét internt opfølgningspunkt på den rigtige opgave. Samtidige kørsler og genforsøg giver samme resultat. En ændret plan genlæses før handling. Fjernet adgang eller stoppet mandat blokerer handlingen. Når grundlaget er rettet, lukkes punktet med bevaret historik. Prøv med to organisationer, en projektleder og en tildelt feltmedarbejder. Kontrollér visning og genveje på mobil og computer. Kilde, tidspunkt og udfald skal kunne gennemgås.
+
 Afleveringskontrollen grupperer nu de konkrete mangler efter arbejdsområde i opgavens rækkefølge. Projektlederen får én genvej pr. område og kan stadig se hver mangel, som serveren fandt. En komponentprøve viser flere mangler i arbejdsgrundlaget før dokumentation, kontrollerer genvejene og bekræfter, at en ufuldstændig aflevering ikke kan gemmes.
 
 Når brugeren vender tilbage efter en rettelse, viser Aflevering, at grundlaget kontrolleres igen. Genveje og gemmehandling afventer kontrollen. Når serverens aktuelle mangelliste er tom, viser Freyra, at grundlaget kan gemmes som en afleveringsversion. Komponentprøven dækker opdateringen fra manglende dokumentation til klar til at gemme.
@@ -555,7 +567,7 @@ Stagingprøven i Chrome ved 390 px gemte et samlet grundlag med godkendte timer 
 
 ### S15 - flere besøg på arbejdsopgaven
 
-Stoplisten på besøgskortet viser gemte koordinater og lader brugeren kopiere dem til egen navigation. Hvis browseren afviser adgang til udklipsholderen, kan koordinaterne markeres og kopieres manuelt. Stop uden position har ingen kopihandling. Komponentprøven dækker den gemte position, en afvist kopiering og et stop uden position. Stagingprøve af udklipsholderen og fysisk telefon afventes.
+Stoplisten på besøgskortet viser gemte koordinater og lader brugeren kopiere dem til egen navigation. Hvis browseren afviser adgang til udklipsholderen, kan koordinaterne markeres og kopieres manuelt. Stop uden position har ingen kopihandling. Komponentprøven dækker den gemte position, en afvist kopiering og et stop uden position. Stagingprøven på kilde 7d300dd og Worker 76c07f51-7c9a-4ef8-b81c-814ad992c115 bestod i Chrome ved 390 og 1280 px. Enter kopierede den viste testposition ved mobilbredde, og udklipsholderens værdi blev læst tilbage. Ved afvist adgang på computer viste Freyra den manuelle vej, og koordinaterne forblev synlige. Stop uden position viste ingen kopihandling. Ingen vandret overflow eller JavaScript-sidefejl i de prøvede visninger. Fysisk telefon afventes.
 
 Besøgsstatus viser næste stop uden udfald på den aktuelle plan, både fra arbejdsgrundlaget og Mine opgaver. Genvejen flytter fokus til det nummererede stop med den eksisterende registreringshandling. Registrerede gennemførte og oversprungne stop tæller som afklarede, og historiske planversioner får ingen genvej. Komponentprøve dækker fokus på stop 2 med bevaret nummer og filtrering. Stagingprøve af genvejen afventes.
 
