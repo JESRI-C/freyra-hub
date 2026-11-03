@@ -245,6 +245,22 @@ describe("submission preparation on the existing task", () => {
     expect(host.querySelector("textarea")).toBeNull();
     expect(host.textContent).toContain("Afleveringsversion 1");
     expect(host.textContent).toContain("Fastholdt grundlag");
+    expect(host.textContent).not.toContain("Mål ved aflevering");
+  });
+  it("shows the frozen target, including a maximum of zero", async () => {
+    const row = submission();
+    row.snapshot.indicatorTarget = {
+      indicatorId: id(96),
+      label: "Fund af invasiv art",
+      value: 0,
+      direction: "at_most",
+      unit: "stk.",
+    };
+    m.list.mockResolvedValue({ items: [row], nextBeforeVersion: null });
+    await render(true);
+    expect(host.textContent).toContain("Mål ved aflevering");
+    expect(host.textContent).toContain("Fund af invasiv art");
+    expect(host.textContent).toContain("Højst 0 stk.");
   });
   it("preserves zero, false and unknown dates in the frozen version", async () => {
     m.list.mockResolvedValue({ items: [submission()], nextBeforeVersion: null });

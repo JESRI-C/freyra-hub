@@ -42,6 +42,15 @@ export const SubmissionPageSchema = WorkOrderScopeSchema.extend({
 export const SubmissionSnapshotSchema = WorkOrderScopeSchema.extend({
   schema: z.literal("freyra.work-order-submission/v1"),
   ruleSet: z.literal("freyra.submission-core/v1"),
+  indicatorTarget: z
+    .object({
+      indicatorId: uuid,
+      label: z.string(),
+      value: z.number().finite(),
+      direction: z.enum(["at_least", "at_most"]),
+      unit: z.string(),
+    })
+    .optional(),
   plan: z.object({ id: uuid, version: z.number().int().positive(), plan: WorkOrderPlanSchema }),
   assignment: z.object({
     id: uuid,

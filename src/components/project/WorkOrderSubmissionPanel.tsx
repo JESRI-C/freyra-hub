@@ -441,6 +441,18 @@ export function WorkOrderSubmissionPanel({
                   <div className="space-y-3 text-sm">
                     <h5 className="font-medium">{row.snapshot.plan.plan.title}</h5>
                     <p className="whitespace-pre-wrap">{row.snapshot.plan.plan.instructions}</p>
+                    {row.snapshot.indicatorTarget && (
+                      <div>
+                        <h5 className="font-medium">Mål ved aflevering</h5>
+                        <p>{row.snapshot.indicatorTarget.label}</p>
+                        <p>
+                          {row.snapshot.indicatorTarget.direction === "at_most"
+                            ? "Højst"
+                            : "Mindst"}{" "}
+                          {row.snapshot.indicatorTarget.value} {row.snapshot.indicatorTarget.unit}
+                        </p>
+                      </div>
+                    )}
                     <p>Planlagt fra: {row.snapshot.plan.plan.plannedStart ?? "Ukendt"}</p>
                     <p>
                       Udført: {row.snapshot.execution.values.actualDate} ·{" "}
