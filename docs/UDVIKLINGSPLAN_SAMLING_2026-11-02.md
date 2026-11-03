@@ -715,6 +715,8 @@ RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kla
 
 ### Ældre opgaver i planoversigt og kalender
 
+I staging blev den ældre syntetiske opgaves planversion 2 tildelt en pulje med testkontoen som kandidat. Ved 390 px viste Mine opgaver den som ledig. Testkontoen overtog opgaven og så den gemte instruktion. Databasen viste samme opgave-id, planbinding og tildelingsversion 2 med testkontoen som udfører. Prøven genoptog den gemte tildeling efter en ventefejl i browserprøven. Kilde 7ec3b38. Offline synkronisering og aflevering på denne opgave afventes.
+
 På staging gemte projektlederen en tydeligt mærket instruktionsrettelse som planversion 2 på den eksisterende syntetiske gentagelse. Chrome ved 390 px viste den rettede instruktion og logbogens planversion 2 efter genindlæsning. Databasens planhistorik returnerede samme opgave-id, den indtastede begrundelse og en uændret version 1. Kilde 7ec3b38, Worker a6ec7958-2ff6-4db3-9506-41d93ef79482. Prøven dækker planredigering. Tildeling, offline synkronisering og aflevering på denne opgave afventes.
 
 Stagingprøve på kilde 7ec3b38 og Worker a6ec7958-2ff6-4db3-9506-41d93ef79482. Planoversigt og kalender åbnede på det syntetiske projekt. Direkte link til den ældre gentagne opgave viste gemt instruktion, planversion 1 og oprettelseshændelsen i logbogen. Chrome ved 1280, 390 og 320 px viste arbejdsgrundlaget uden vandret overflow eller JavaScript-sidefejl. Første prøve fandt teksten i skærmbilledet, men testens tekstmatch krævede en tekst uden den viste etiket. Efter rettelse af tekstmatchet bestod prøven. Der blev ikke ændret opgavedata. Redigering, feltsynkronisering og aflevering på selve den ældre opgave afventes.
