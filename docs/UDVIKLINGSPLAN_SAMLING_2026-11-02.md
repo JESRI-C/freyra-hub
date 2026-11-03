@@ -638,3 +638,5 @@ Månedlig serie er verificeret i Chrome ved 390 px på staging. Fra kildeplanen 
 ### S13 – Serier i opfølgningslisten
 
 Nye serier får en gemt identitet og rækkefølge. Kildeopgaven samler de tilhørende opgaver under interval og antal og viser de aktuelle datoer. Opgaver uden registreret serietilhørsforhold vises enkeltvis. Tilhørsforholdet gemmes i samme transaktion som planerne og læses under samme adgang som den første planversion. Samlet ændring og aflysning af en serie afventer særskilt udvikling.
+
+På staging oprettede projektlederen to serier fra samme kildeplan. Efter genindlæsning viste Chrome ved 390 px den ugentlige og månedlige serie hver for sig, med to nummererede opgaver og hver sin aktuelle dato. Ældre opfølgninger blev vist enkeltvis. Typekontrol, lint, staging-build, 15 målrettede app-tests og CI-trinnet for databaseisolation bestod. Kilde bb3b0d3, Worker 98b5b069-8186-4b7b-a6e0-dc2ff88e991b og stagingmigration 20261103133127.
