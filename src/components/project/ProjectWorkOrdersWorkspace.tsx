@@ -22,6 +22,7 @@ import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
+import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
@@ -660,6 +661,7 @@ function WorkOrders({
               round={round}
               canEdit={canEdit}
               canContribute={!!access.data?.canContribute}
+              canManageTime={!!access.data?.canManageAvailability}
               onEditing={onEditing}
               initialView={scheduleActionId === actionId ? "plan" : initialView}
             />
@@ -676,6 +678,7 @@ function TaskWorkspace({
   round,
   canEdit,
   canContribute,
+  canManageTime,
   onEditing,
   initialView,
 }: {
@@ -685,6 +688,7 @@ function TaskWorkspace({
   round?: string;
   canEdit: boolean;
   canContribute: boolean;
+  canManageTime: boolean;
   onEditing: (part: Part, value: boolean) => void;
   initialView?: WorkOrderView;
 }) {
@@ -754,6 +758,9 @@ function TaskWorkspace({
       )}
       {opened.has("execution") && (
         <div hidden={part !== "execution"}>
+          {canManageTime && (
+            <WorkOrderTimeSummary scope={scope} actionId={actionId} actorId={actorId} />
+          )}
           <ActionExecutionPanel
             scope={scope}
             canEdit={canEdit}

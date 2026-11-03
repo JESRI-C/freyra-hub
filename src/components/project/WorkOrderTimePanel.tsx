@@ -119,6 +119,9 @@ export function WorkOrderTimePanel({
         [row.data, ...(old ?? []).filter((item) => item.id !== id)].slice(0, 21),
       );
       void cache.invalidateQueries({ queryKey: key });
+      void cache.invalidateQueries({
+        queryKey: ["work-order-time-summary", actorId, scope, actionId],
+      });
       setDraft(undefined);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Tiden kunne ikke gemmes.");

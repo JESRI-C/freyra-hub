@@ -313,6 +313,9 @@ function PlanWorkspace({
         cache.invalidateQueries({ queryKey: key }),
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
+        cache.invalidateQueries({
+          queryKey: ["work-order-time-summary", actorId, scope, actionId],
+        }),
       ]);
       await Promise.all([
         cache.invalidateQueries({ queryKey: ["field-job-actions", actorId, scope] }),
