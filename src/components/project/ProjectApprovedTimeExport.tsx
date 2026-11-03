@@ -37,6 +37,7 @@ const draftSnapshotSchema = draftSchema.extend({
   time_ids: z.array(uuid).min(1).max(5000),
 });
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
+const previewPageSize = 20;
 const control = "mt-1 block min-h-11 w-full rounded-xl border bg-background px-2 text-base";
 
 export function ProjectApprovedTimeExport({
@@ -52,6 +53,7 @@ export function ProjectApprovedTimeExport({
   const [through, setThrough] = useState(() => format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [rate, setRate] = useState("");
   const [rows, setRows] = useState<z.infer<typeof rowSchema>[]>();
+  const [previewPage, setPreviewPage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const inFlight = useRef(false);
@@ -108,6 +110,7 @@ export function ProjectApprovedTimeExport({
       const snapshot = z.array(rowSchema).max(5000).parse(data);
       if (snapshot.some((row) => row.work_date < from || row.work_date > through))
         throw new Error("Udtrækket stemmer ikke med den valgte periode.");
+      setPreviewPage(0);
       setRows(snapshot);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Udtrækket kunne ikke hentes.");
@@ -210,6 +213,7 @@ export function ProjectApprovedTimeExport({
       setFrom(saved.date_from);
       setThrough(saved.date_through);
       setRate(billingDecimal(saved.rate_ore));
+      setPreviewPage(0);
       setRows(saved.snapshot);
       setSavedId(id);
     } catch (failure) {
@@ -267,8 +271,8 @@ export function ProjectApprovedTimeExport({
         Udtræk godkendte timer
       </summary>
       <p>
-        Hent et faktureringsgrundlag for op til 31 dage. Udtrækket indeholder timer og godkendelser.
-        CSV-filen afspejler godkendelserne på beregningstidspunktet.
+        Vælg op til 31 dage, og kontrollér hvilke godkendte timer der kommer med. Angiv en timesats,
+        hvis du vil gemme grundlaget og kunne hente det igen senere.
       </p>
       <form
         className="mt-2 space-y-2"
@@ -355,32 +359,89 @@ export function ProjectApprovedTimeExport({
         </div>
       )}
       {!!rows?.length && (
-        <button
-          type="button"
-          className={button + " mt-2"}
-          disabled={rateInvalid || !active}
-          onClick={download}
-        >
-          Hent CSV
-        </button>
-      )}
-      {!!rows?.length && hourlyRateOre !== null && !savedId && (
-        <button
-          type="button"
-          className={button + " mt-2"}
-          disabled={busy || !active}
-          onClick={() => void saveDraft()}
-        >
-          Gem faktureringsgrundlag
-        </button>
-      )}
-      {savedId && (
-        <p role="status" className="mt-2 font-medium">
-          Gemt faktureringsgrundlag
-        </p>
+        <div className="mt-3 space-y-3">
+          <details className="rounded-xl border px-3">
+            <summary className="min-h-11 cursor-pointer py-3 font-medium">
+              Kontrollér timer pr. opgave og dato
+            </summary>
+            <ul className="divide-y border-t">
+              {rows
+                .slice(previewPage * previewPageSize, (previewPage + 1) * previewPageSize)
+                .map((row) => (
+                  <li key={row.time_id} className="flex flex-wrap justify-between gap-x-4 py-2">
+                    <div className="min-w-0 break-words">
+                      <p className="font-medium">{row.title}</p>
+                      <p className="text-muted-foreground">
+                        {row.work_date} · Tidsversion {row.version}
+                      </p>
+                    </div>
+                    <div>
+                      <p>{formatWorkOrderHours(row.minutes / 60)}</p>
+                      {hourlyRateOre !== null && (
+                        <p>{billingDecimal(billedLineOre(row.minutes, hourlyRateOre))} DKK</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+            </ul>
+            {rows.length > previewPageSize && (
+              <nav
+                aria-label="Sider med godkendte timer"
+                className="flex flex-wrap items-center gap-2 py-2"
+              >
+                <button
+                  type="button"
+                  className={button}
+                  disabled={previewPage === 0 || busy}
+                  onClick={() => setPreviewPage(previewPage - 1)}
+                >
+                  Forrige
+                </button>
+                <span role="status">
+                  Side {previewPage + 1} af {Math.ceil(rows.length / previewPageSize)}
+                </span>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={(previewPage + 1) * previewPageSize >= rows.length || busy}
+                  onClick={() => setPreviewPage(previewPage + 1)}
+                >
+                  Næste
+                </button>
+              </nav>
+            )}
+          </details>
+          {savedId && (
+            <p role="status" className="font-medium">
+              Gemt faktureringsgrundlag. Du kan hente CSV-filen nu eller åbne grundlaget igen
+              nedenfor.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {hourlyRateOre !== null && !savedId && (
+              <button
+                type="button"
+                className={button + " bg-primary text-primary-foreground"}
+                disabled={busy || !active}
+                onClick={() => void saveDraft()}
+              >
+                Gem faktureringsgrundlag
+              </button>
+            )}
+            <button
+              type="button"
+              className={button}
+              disabled={busy || rateInvalid || !active}
+              onClick={download}
+            >
+              Hent CSV
+            </button>
+          </div>
+        </div>
       )}
       <div className="mt-3 space-y-2 border-t pt-3">
         <h4 className="font-semibold">Seneste 20 gemte grundlag</h4>
+        {drafts.isLoading && <p role="status">Henter gemte grundlag…</p>}
         {drafts.isError && (
           <button
             type="button"
