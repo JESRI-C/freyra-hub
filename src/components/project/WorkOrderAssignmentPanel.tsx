@@ -146,7 +146,7 @@ function AssignmentPanel({ scope, actorId, planId, canManage, people, onEditing 
       <h3 className="font-semibold">Arbejdsfordeling</h3>
       <p className="text-sm text-muted-foreground">
         Vælg en person, en arbejdsgruppe eller en pulje, hvor én udfører overtager opgaven.
-        Tildelingen gemmer det valgte hold og arbejdsgrundlag.
+        Arbejdsfordelingen afgør, hvem der kan udføre opgaven. Planens ansvarlige vælges i planen.
       </p>
       {history.isPending && <p role="status">Henter tildeling…</p>}
       {history.isError && (
@@ -159,13 +159,31 @@ function AssignmentPanel({ scope, actorId, planId, canManage, people, onEditing 
       )}
       {!draft && history.isSuccess && (
         <>
-          <p className="text-sm">
-            {current
-              ? `${assignmentModeLabels[current.mode]} · version ${current.version} · ${current.candidate_user_ids.length} udførere`
-              : "Ingen opgavefordeling gemt."}
-          </p>
-          {current?.claimed_by && (
-            <p className="text-sm">Overtaget af {personLabel(people, current.claimed_by)}.</p>
+          {current && current.mode !== "unassigned" ? (
+            <div className="space-y-1 break-words text-sm">
+              <p className="text-muted-foreground">
+                {assignmentModeLabels[current.mode]} · tildeling version {current.version}
+              </p>
+              {current.claimed_by ? (
+                <p>Overtaget af {personLabel(people, current.claimed_by)}.</p>
+              ) : (
+                <>
+                  {current.mode === "pool" && <p>Afventer, at en udfører overtager opgaven.</p>}
+                  <p>
+                    {current.mode === "pool" ? "Kan overtage: " : "Tildelt til: "}
+                    {current.candidate_user_ids.map((id) => personLabel(people, id)).join(", ")}.
+                  </p>
+                </>
+              )}
+              {current.plan_version_id !== planId && (
+                <p>Tildelingen henviser til en tidligere planversion.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm">
+              Ingen udfører er tildelt.
+              {current && ` Seneste tildeling er version ${current.version}.`}
+            </p>
           )}
           {canManage && (
             <button className={button} disabled={history.isFetching || groupEditing} onClick={open}>

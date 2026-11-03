@@ -125,6 +125,28 @@ afterEach(async () => {
   host.remove();
 });
 describe("group and assignment editor", () => {
+  it("shows who can take a pooled task and flags its earlier plan version", async () => {
+    m.history.mockResolvedValue({
+      items: [
+        {
+          id: id(10),
+          mode: "pool",
+          version: 1,
+          plan_version_id: id(6),
+          candidate_user_ids: [actor],
+          claimed_by: null,
+          created_at: "2026-10-29T20:00:00Z",
+        },
+      ],
+      nextBeforeVersion: null,
+    });
+    await render();
+    const summary = host.querySelector('section[aria-label="Arbejdsfordeling"]')!;
+    expect(summary.textContent).toContain("Afventer, at en udfører overtager opgaven.");
+    expect(summary.textContent).toContain("Kan overtage: Synthetic owner.");
+    expect(summary.textContent).toContain("Tildelingen henviser til en tidligere planversion.");
+  });
+
   it("selects an organization owner with no invented project role and retains the opened plan on conflict", async () => {
     await render();
     await click("Rediger arbejdsfordeling");

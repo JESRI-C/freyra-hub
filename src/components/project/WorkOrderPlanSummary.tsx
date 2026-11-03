@@ -26,7 +26,7 @@ export function WorkOrderPlanSummary({
         {plan.plannedEnd ? ` til ${plan.plannedEnd}` : ""}
       </p>
       <p>
-        Ansvarlig:{" "}
+        Planens ansvarlige:{" "}
         {plan.responsibleId
           ? members.find((m) => m.user_id === plan.responsibleId)?.display_name ||
             members.find((m) => m.user_id === plan.responsibleId)?.email ||
