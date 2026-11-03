@@ -17,6 +17,7 @@ import {
   WorkOrderPlanSchema,
   workOrderPlanGaps,
   workOrderPlanOverlaps,
+  workOrderProfileLabels,
   type WorkOrderPlan,
   type WorkOrderPlanVersion,
   type WorkOrderFollowUpSource,
@@ -42,13 +43,6 @@ const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50";
-const profiles = {
-  general: "Generel opgave",
-  watercourse: "Vandløb",
-  nature: "Natur",
-  construction: "Byggeri og natur",
-  grazing: "Græsningspleje",
-};
 const nullable = (value: string) => (value.trim() ? value : null);
 type Page = { items: WorkOrderPlanVersion[]; nextBeforeVersion: number | null };
 export type PlanDateEditorRequest = boolean | { planVersionId: string; start: string };
@@ -970,7 +964,7 @@ function PlanWorkspace({
                       }}
                     >
                       <option value="">Uafklaret</option>
-                      {Object.entries(profiles).map(([v, label]) => (
+                      {Object.entries(workOrderProfileLabels).map(([v, label]) => (
                         <option key={v} value={v}>
                           {label}
                         </option>

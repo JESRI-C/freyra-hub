@@ -9,6 +9,7 @@ import {
 } from "@/lib/work-order-submission.functions";
 import { getProjectWorkOrderEvidenceOriginal } from "@/lib/work-order-evidence.functions";
 import { submissionGapLabels } from "@/lib/work-order-submission";
+import { workOrderProfileLabels } from "@/lib/work-order-plan";
 import { WorkOrderRequestError } from "@/lib/work-order-access";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { WorkOrderExecutionReference } from "./WorkOrderExecutionReference";
@@ -443,6 +444,15 @@ export function WorkOrderSubmissionPanel({
                   </summary>
                   <div className="space-y-3 text-sm">
                     <h5 className="font-medium">{row.snapshot.plan.plan.title}</h5>
+                    {row.snapshot.plan.plan.profile && (
+                      <p>
+                        Metodeprofil ved aflevering ·{" "}
+                        {workOrderProfileLabels[row.snapshot.plan.plan.profile]}
+                      </p>
+                    )}
+                    {row.snapshot.plan.plan.plannedMethod && (
+                      <p>Planlagt metode ved aflevering · {row.snapshot.plan.plan.plannedMethod}</p>
+                    )}
                     <p className="whitespace-pre-wrap">{row.snapshot.plan.plan.instructions}</p>
                     {row.snapshot.indicatorTarget && (
                       <div>

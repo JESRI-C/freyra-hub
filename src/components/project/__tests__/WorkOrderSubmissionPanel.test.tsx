@@ -167,10 +167,20 @@ describe("submission preparation on the existing task", () => {
   it("shows required fields and units from each saved submission's own job card", async () => {
     const previous = submission();
     const current = submission(2);
+    previous.snapshot.plan.plan.plannedMethod = "Manuel optælling";
+    current.snapshot.plan.plan.profile = "grazing";
+    current.snapshot.plan.plan.plannedMethod = "Optælling langs transekt";
     const fields = current.snapshot.evidence[0].observation_snapshot.template.fields;
     fields[0] = { ...fields[0], label: "Optalte planter", unit: "stk.", required: false };
     m.list.mockResolvedValue({ items: [current, previous], nextBeforeVersion: null });
     await render();
+    const [latest, original] = host.querySelectorAll("article");
+    expect(latest.textContent).toContain("Metodeprofil ved aflevering · Græsningspleje");
+    expect(latest.textContent).toContain(
+      "Planlagt metode ved aflevering · Optælling langs transekt",
+    );
+    expect(original.textContent).toContain("Metodeprofil ved aflevering · Natur");
+    expect(original.textContent).toContain("Planlagt metode ved aflevering · Manuel optælling");
     const labels = [...host.querySelectorAll("dt")].map((label) => label.textContent);
     expect(labels).toContain("Optalte planter (stk.)");
     expect(labels).toContain("Antal · Nødvendigt felt");

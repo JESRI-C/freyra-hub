@@ -215,6 +215,8 @@ accept gennem rapport/ZIP er fortsat åben.
 
 Første del af D05c viser nødvendige felter og enheder i en gemt afleverings fastholdte registreringer. Visningen bruger jobkortdefinitionen fra hver registrerings snapshot. En komponentprøve viser to afleveringer med forskellige feltkrav og kontrollerer, at den tidligere aflevering stadig viser sit oprindelige krav, og at 0 og Nej bevares. Stagingprøven bestod på kilde b7fd929 og Worker 7b6f1637-132d-4536-91de-64d4b953f571. Enter åbnede den eksisterende afleveringsversion 1 ved 390 og 1280 px. Begge bredder viste de samme tre nødvendige felter og handlingen til originalfotoet uden vandret overflow eller JavaScript-sidefejl. Prøven ændrede ingen opgavedata. Krav for den samlede metodeprofil afventes.
 
+Afleveringshistorikken viser også metodeprofil og planlagt metode fra den fastholdte planversion. Profilnavnene genbruges fra arbejdsgrundlaget. En komponentprøve sammenligner to afleveringer med forskellige profiler, metoder og feltkrav. 51 lokale prøver for plan og aflevering bestod. Stagingprøve og servervaliderede, profilspecifikke dokumentationskrav afventes.
+
 - Genbrug eksisterende operationel status. Tilføj den manglende aflevering med frosset krav-/evidenssnapshot.
 - Lad reviewer returnere med konkrete mangler eller godkende det eksplicitte omfang. Rettelse og genaflevering bevarer gammel historik.
 - Håndhæv roller, version, manglende bilag og selvreviewregler server-/databasenært; knapvisning er kun vejledning.

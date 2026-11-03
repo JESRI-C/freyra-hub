@@ -160,6 +160,14 @@ export const WorkOrderPlanSchema = z
       });
   });
 export type WorkOrderPlan = z.infer<typeof WorkOrderPlanSchema>;
+
+export const workOrderProfileLabels = {
+  general: "Generel opgave",
+  watercourse: "Vandløb",
+  nature: "Natur",
+  construction: "Byggeri og natur",
+  grazing: "Græsningspleje",
+} satisfies Record<NonNullable<WorkOrderPlan["profile"]>, string>;
 export function emptyWorkOrderPlan(title: string): WorkOrderPlan {
   return {
     schema: "freyra.work-order-plan/v1",
