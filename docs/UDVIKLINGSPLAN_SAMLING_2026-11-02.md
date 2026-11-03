@@ -344,6 +344,14 @@ ikke aktiveret af denne planændring. Eget estimat følger.
 
 ## 5. Rækkefølge og leverancer
 
+### Freyra hjælper kunden undervejs
+
+Hjælp placeres dér, hvor kunden arbejder. Første regel i Planoversigt finder opgaver uden startdato ud fra den adgangsafgrænsede planlæsning, forklarer hvorfor de ikke er i kalenderen og åbner det relevante udsnit. Samme princip bruges senere til kapacitet, manglende feltdokumentation og afleveringsklarhed.
+
+Agenter indføres i tre trin. Først opdager de forhold og viser kilden og næste handling. Derefter kan de forberede en kladde med de konkrete ændringer. Til sidst kan de udføre særskilt aktiverede handlinger inden for et afgrænset mandat for organisation og projekt. Planændringer, tildelinger og faglig godkendelse bruger de eksisterende roller og versionskontroller. Afsendelse, betalte udbydere og produktion følger de aftalte godkendelsesgrænser.
+
+Før en baggrundsagent aktiveres, skal der være ejer, tilladte handlinger, mulighed for at stoppe den, sporbar beslutning og kildegrundlag samt sikre genforsøg. Prøver skal dække tilbagekaldt adgang, ændret plan under kørsel, dubletter og mulighed for at gennemgå resultatet. Første leverance er hjælp i Planoversigt. Baggrundskørsel og autonome ændringer er planlagt.
+
 | Leverance | Pakker | Observerbart resultat |
 |---|---|---|
 | A: Fælles retning og arbejdsrum | S00, S01 samt lille S10 | Én kandidat, alle værktøjer placeret, én stabil projekt-/opgaveidentitet |

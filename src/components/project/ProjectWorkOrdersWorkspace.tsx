@@ -193,10 +193,17 @@ function WorkOrders({
   const from = calendarKey(day ?? startOfMonth(month));
   const createDate = listView === "calendar" && day ? from : undefined;
   const through = calendarKey(day ?? endOfMonth(month));
-  const undatedCount = (orderedActions ?? []).filter(({ id }) => !dates?.[id]?.start).length;
+  const undatedCount = (orderedActions ?? []).filter(
+    ({ id }) => !dates?.[id]?.cancelled && !dates?.[id]?.start,
+  ).length;
   const waitingCount = (actions.data ?? []).filter(
     ({ id }) => dates?.[id]?.waitingForActionIds?.length,
   ).length;
+  const undatedTaskCount =
+    listView === "schedule" && schedule.isSuccess
+      ? (actions.data ?? []).filter(({ id }) => !dates?.[id]?.cancelled && !dates?.[id]?.start)
+          .length
+      : 0;
   const calendarActions =
     listView === "calendar"
       ? orderedActions?.filter(({ id }) => {
@@ -212,7 +219,9 @@ function WorkOrders({
   const searchTerm = taskSearch.trim().toLocaleLowerCase("da");
   const visibleActions = (listView === "calendar" ? calendarActions : orderedActions)?.filter(
     (task) =>
-      (listView !== "schedule" || !onlyUndated || !dates?.[task.id]?.start) &&
+      (listView !== "schedule" ||
+        !onlyUndated ||
+        (!dates?.[task.id]?.cancelled && !dates?.[task.id]?.start)) &&
       (!showSchedule || !onlyWaiting || !!dates?.[task.id]?.waitingForActionIds?.length) &&
       task.title.toLocaleLowerCase("da").includes(searchTerm),
   );
@@ -463,6 +472,30 @@ function WorkOrders({
                     }}
                   />
                 </label>
+              )}
+              {listView === "schedule" && canEdit && undatedTaskCount > 0 && (
+                <div className="space-y-2 rounded-xl border bg-primary/5 p-3">
+                  <h3 className="font-medium">Freyra hjælper med planen</h3>
+                  <p className="text-sm">
+                    {undatedTaskCount === 1
+                      ? "1 opgave mangler en startdato og vises derfor ikke i kalenderen."
+                      : `${undatedTaskCount} opgaver mangler en startdato og vises derfor ikke i kalenderen.`}
+                  </p>
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={locked}
+                    onClick={() => {
+                      setOnlyUndated(true);
+                      setOnlyWaiting(false);
+                      setResponsible("");
+                      setTaskSearch("");
+                      setTaskLimit(taskPageSize);
+                    }}
+                  >
+                    Se opgaver uden startdato i hele projektet
+                  </button>
+                </div>
               )}
               {showSchedule && (
                 <div className="space-y-2">

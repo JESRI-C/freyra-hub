@@ -222,6 +222,19 @@ it("shows dated work ahead of undated work and opens its existing plan", async (
   expect(m.navigate).toHaveBeenCalledWith("second");
 });
 
+it("finds undated work from the planning prompt and excludes cancelled tasks", async () => {
+  m.schedule.mockResolvedValue({ second: { start: null, cancelled: true } });
+  await render();
+  await click("Planoversigt");
+  expect(host.textContent).toContain("1 opgave mangler en startdato");
+  await click("Se opgaver uden startdato i hele projektet");
+  const rows = [...host.querySelectorAll("button")].filter((button) =>
+    button.textContent?.includes("Åbn →"),
+  );
+  expect(rows).toHaveLength(1);
+  expect(rows[0].textContent).toContain(tasks[0].title);
+});
+
 it("finds waiting tasks across the project from the calendar and clears the filter", async () => {
   m.schedule.mockResolvedValue({
     first: { start: null, end: null, waitingForActionIds: ["second"] },
