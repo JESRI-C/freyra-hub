@@ -217,6 +217,11 @@ function TaskCard({
               : " · Ledig"
           : ""}
       </p>
+      {task.waiting_for_prerequisites && (
+        <p className="rounded-xl border border-amber-600/40 bg-amber-50 px-3 py-2 text-sm font-medium dark:bg-amber-950">
+          Afventer forudsætninger. Arbejdet kan startes, når de er udført.
+        </p>
+      )}
       {!active && (
         <button
           type="button"

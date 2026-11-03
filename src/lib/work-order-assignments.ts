@@ -270,6 +270,7 @@ export const MyWorkOrderSchema = z
     can_execute: z.boolean(),
     can_review: z.boolean(),
     can_plan: z.boolean(),
+    waiting_for_prerequisites: z.boolean(),
   })
   .superRefine((row, ctx) => {
     if (

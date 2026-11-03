@@ -73,6 +73,7 @@ const task = {
   can_execute: false,
   can_review: false,
   can_plan: false,
+  waiting_for_prerequisites: false,
 };
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function flush() {
@@ -116,6 +117,19 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("shows waiting status before opening a task and keeps its instructions accessible", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, waiting_for_prerequisites: true }],
+      nextAfterActionId: null,
+    });
+    await render();
+    expect(host.textContent).toContain("Afventer forudsætninger");
+    await openTask();
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.textContent).toContain(
+      "Synthetic instructions",
+    );
+  });
+
   it("opens exact-task documentation as read-only and retains the status editor lock", async () => {
     await render();
     await openTask();

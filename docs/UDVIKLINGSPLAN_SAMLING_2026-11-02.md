@@ -682,3 +682,5 @@ I Chrome ved 390 px tilføjede projektlederen en ekstra forudsætning til en eks
 RES-opfølgning på planlægningen. Kalenderen viste før de afventende opgaver i det valgte udsnit. Genvejen Se afventende opgaver i hele projektet åbner Planoversigt med et filter, som også finder udaterede opgaver. Filteret kan slås fra og kombineres med titel, ansvarlig og dato. Kalenderens markeringer viser stadig alt planlagt arbejde i kalenderudsnittet. Den målrettede app-test kontrollerer projektgenvejen, en udateret opgave og nulstilling.
 
 Browserprøve på staging i Chrome ved 390 px. Genvejen åbnede Planoversigt med filteret valgt og viste den afventende opgave med begge forudsætninger. Da filteret blev slået fra, kom de øvrige opgaver tilbage. Login og staging-build bestod. Kilde 56457d6, Worker cfdae410-1d8f-450e-843d-dd708702c16f.
+
+RES-opfølgning fra feltmedarbejderens side. Mine opgaver viser Afventer forudsætninger på opgavekortet før åbning. Opgavens instruktion kan fortsat læses. Ventestatus beregnes fra samme kontrol som Registrer start og tilføjes til den eksisterende adgangsafgrænsede side. Svaret indeholder ingen identiteter for de forudgående opgaver.

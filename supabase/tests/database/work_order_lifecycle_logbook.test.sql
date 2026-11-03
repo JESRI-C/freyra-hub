@@ -63,6 +63,12 @@ SELECT is(public.save_work_order_prerequisite(pg_temp.k(31),pg_temp.k(11),pg_tem
 SELECT is(public.save_work_order_prerequisite(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),0,pg_temp.k(34),pg_temp.k(640)),1,
  'identical prerequisite retry returns the same version');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT (task->>'waiting_for_prerequisites')::boolean
+ FROM public.list_my_work_orders_with_readiness(NULL,20) task WHERE task->>'action_id'=pg_temp.k(31)::text),
+ true,'the assigned field worker sees waiting status before opening the task');
+SELECT ok((SELECT NOT (task ? 'prerequisites') AND NOT (task ? 'prerequisiteActionId')
+ FROM public.list_my_work_orders_with_readiness(NULL,20) task WHERE task->>'action_id'=pg_temp.k(31)::text),
+ 'the personal task page exposes no predecessor identifiers');
 SELECT is((public.get_work_order_prerequisite(pg_temp.k(31))->>'ready')::boolean,false,'worker sees prerequisite is incomplete');
 SELECT throws_ok($$SELECT pg_temp.change(31,3,204,'transition','started',
  '{"startedAt":"2026-10-08T08:00:00+02:00","startedSource":"Synthetic original work log"}')$$,

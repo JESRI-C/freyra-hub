@@ -66,6 +66,7 @@ export function WorkOrderPrerequisite({
       setDraft(undefined);
       await Promise.all([
         cache.invalidateQueries({ queryKey: key }),
+        cache.invalidateQueries({ queryKey: ["my-work-orders", actorId] }),
         cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId, scope] }),
       ]);
       setSaved(true);

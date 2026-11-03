@@ -279,7 +279,7 @@ export async function listMyWorkOrders(
   checkActor(actorId, input.expectedActorId);
   const data = await rows(
     client,
-    "list_my_work_orders",
+    "list_my_work_orders_with_readiness",
     { p_after_action_id: input.afterActionId, p_page_size: input.pageSize },
     MyWorkOrderSchema,
     input.pageSize,
