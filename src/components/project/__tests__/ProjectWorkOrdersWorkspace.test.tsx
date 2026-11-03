@@ -268,6 +268,27 @@ it("shows a task spanning the month boundary and filters it by a planned day", a
   expect(host.textContent).not.toContain(tasks[1].title);
 });
 
+it("filters the calendar task list by title without hiding planned day markers", async () => {
+  const today = new Date();
+  const day = [today.getFullYear(), today.getMonth() + 1, today.getDate()]
+    .map((part) => String(part).padStart(2, "0"))
+    .join("-");
+  m.schedule.mockResolvedValue({
+    first: { start: day, end: day, estimatedHours: 3 },
+    second: { start: day, end: day, estimatedHours: 5 },
+  });
+  await render();
+  await click("Kalender");
+  await click("I dag");
+  await fill("Find opgave", "anden");
+  expect(host.textContent).toContain(tasks[1].title);
+  expect(host.textContent).not.toContain(tasks[0].title);
+  expect(host.textContent).toContain("Estimeret tid i udsnittet · 5 timer");
+  await fill("Find opgave", "ukendt titel");
+  expect(host.textContent).toContain("0 planlagte opgaver på den valgte dato");
+  expect(host.querySelector('button[aria-label*="planlagt arbejde"]')).not.toBeNull();
+});
+
 it("returns to today's date and tasks after browsing another month", async () => {
   const today = new Date();
   const day = [today.getFullYear(), today.getMonth() + 1, today.getDate()]

@@ -193,21 +193,23 @@ function WorkOrders({
   const createDate = listView === "calendar" && day ? from : undefined;
   const through = calendarKey(day ?? endOfMonth(month));
   const undatedCount = (orderedActions ?? []).filter(({ id }) => !dates?.[id]?.start).length;
-  const visibleActions =
+  const calendarActions =
     listView === "calendar"
       ? orderedActions?.filter(({ id }) => {
           const plan = dates?.[id];
           return plan?.start && plan.start <= through && (plan.end ?? plan.start) >= from;
         })
-      : orderedActions?.filter(
-          (task) =>
-            (listView !== "schedule" || !onlyUndated || !dates?.[task.id]?.start) &&
-            task.title.toLocaleLowerCase("da").includes(taskSearch.trim().toLocaleLowerCase("da")),
-        );
+      : undefined;
+  const searchTerm = taskSearch.trim().toLocaleLowerCase("da");
+  const visibleActions = (listView === "calendar" ? calendarActions : orderedActions)?.filter(
+    (task) =>
+      (listView !== "schedule" || !onlyUndated || !dates?.[task.id]?.start) &&
+      task.title.toLocaleLowerCase("da").includes(searchTerm),
+  );
   const usesTaskList = listView !== "time" && listView !== "bookings";
   const visibleCount = usesTaskList ? (visibleActions?.length ?? 0) : 0;
   const estimates = new Map(
-    (visibleActions ?? []).map(({ id }) => {
+    (calendarActions ?? visibleActions ?? []).map(({ id }) => {
       const plan = dates?.[id];
       const hours =
         listView === "calendar" && plan
@@ -216,7 +218,10 @@ function WorkOrders({
       return [id, hours];
     }),
   );
-  const knownEstimates = [...estimates.values()].filter((hours) => hours !== null);
+  const knownEstimates = (visibleActions ?? [])
+    .map(({ id }) => estimates.get(id) ?? null)
+    .filter((hours) => hours !== null);
+  const calendarEstimates = [...estimates.values()].filter((hours) => hours !== null);
   const totalEstimatedHours = knownEstimates.reduce((total, hours) => total + hours, 0);
   const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
   const daySummaries = new Map<string, { total: number; overlap: Set<string> }>();
@@ -415,7 +420,7 @@ function WorkOrders({
               {listView === "bookings" && !access.data?.canManageAvailability && (
                 <p>Projektets bookingoversigt kræver projektlederadgang.</p>
               )}
-              {listView !== "calendar" && usesTaskList && !!actions.data.length && (
+              {usesTaskList && !!actions.data.length && (
                 <label className="block text-sm font-medium">
                   Find opgave
                   <input
@@ -569,8 +574,8 @@ function WorkOrders({
                       actorId={actorId}
                       personId={filter}
                       date={from}
-                      estimated={totalEstimatedHours}
-                      unknown={visibleCount - knownEstimates.length}
+                      estimated={calendarEstimates.reduce((total, hours) => total + hours, 0)}
+                      unknown={(calendarActions?.length ?? 0) - calendarEstimates.length}
                       onEditing={setAvailabilityEditing}
                     />
                   )}
@@ -583,6 +588,8 @@ function WorkOrders({
                   <p role="status" className="text-sm">
                     {visibleCount} {visibleCount === 1 ? "planlagt opgave" : "planlagte opgaver"}{" "}
                     {day ? "på den valgte dato" : "i måneden"}.
+                    {searchTerm &&
+                      " Søgningen filtrerer listen. Kalenderens markeringer viser stadig planlagt arbejde."}
                     {day && <> Valgt dato: {scheduleDate.format(new Date(from))}.</>}
                   </p>
                   {schedule.isSuccess && undatedCount > 0 && (
