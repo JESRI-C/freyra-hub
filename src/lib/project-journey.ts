@@ -93,5 +93,6 @@ export function projectJourneySearch(
     ...context,
     ...(item.view.kind === "tab" ? { tab: item.view.id } : { step: item.view.id }),
     ...("work" in item ? { work: item.work } : {}),
+    ...(item.id === "submission" && !context.task ? { taskList: "tasks" as const } : {}),
   };
 }

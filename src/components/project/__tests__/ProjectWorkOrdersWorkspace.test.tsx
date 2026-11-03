@@ -494,6 +494,17 @@ it("keeps the time search and overrun filter when returning from an opened task"
   expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
 });
 describe("one task across the project workspaces", () => {
+  it("guides an unselected delivery link to the chosen task's submission", async () => {
+    await render(undefined, true, true, "submission");
+    expect(host.textContent).toContain("Vælg en arbejdsopgave for at åbne dens aflevering");
+    const task = [...host.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Første opgave"),
+    );
+    expect(task).toBeTruthy();
+    await act(async () => task!.click());
+    await settle();
+    expect(host.querySelector('section[aria-label="Aflevering"]')?.textContent).toContain("first");
+  });
   it("moves to the next step without discarding the current plan draft", async () => {
     await render("first");
     await fill("Plan kladde", "Bevar formålet med indsatsen");

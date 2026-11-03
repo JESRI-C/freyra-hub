@@ -400,6 +400,11 @@ function WorkOrders({
             </div>
           ) : (
             <div className="space-y-3">
+              {initialView === "submission" && listView === "tasks" && !!actions.data.length && (
+                <p className="rounded-xl border bg-primary/5 p-3 text-sm">
+                  Vælg en arbejdsopgave for at åbne dens aflevering og faglige gennemgang.
+                </p>
+              )}
               {!actions.data.length && <p>Der er endnu ingen arbejdsopgaver i projektet.</p>}
               {!!actions.data.length && (
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Vis arbejdsopgaver">

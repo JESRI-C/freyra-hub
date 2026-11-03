@@ -81,6 +81,11 @@ describe("project leader journey using existing workspaces", () => {
       tab: "handlinger",
       work: "submission",
     });
+    expect(projectJourneySearch("submission", { taskList: "calendar" })).toEqual({
+      tab: "handlinger",
+      work: "submission",
+      taskList: "tasks",
+    });
   });
   it("starts an empty project with its purpose and preserves an existing description verbatim", async () => {
     const empty = await mount(null);
