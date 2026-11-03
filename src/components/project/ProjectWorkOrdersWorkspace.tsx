@@ -1027,8 +1027,8 @@ function WorkOrders({
               )}
               {createDate && !followUpSource && (
                 <p className="text-sm text-muted-foreground">
-                  {scheduleDate.format(new Date(createDate))} foreslås som startdato, når du åbner
-                  arbejdsgrundlaget.
+                  Arbejdsgrundlaget åbner som kladde med {scheduleDate.format(new Date(createDate))}{" "}
+                  som foreslået startdato.
                 </p>
               )}
               <div className="flex flex-wrap gap-2">

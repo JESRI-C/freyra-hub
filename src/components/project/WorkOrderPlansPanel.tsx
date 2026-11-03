@@ -362,20 +362,24 @@ function PlanWorkspace({
     },
     [latest, onEditing, openReschedule, followUpSource, suggestedStart, title],
   );
-  const openedReschedule = useRef(false);
+  const openedRequestedEditor = useRef(false);
   useEffect(() => {
-    if (
-      !openReschedule ||
-      openedReschedule.current ||
-      !canPlan ||
-      !latest ||
-      history.isFetching ||
-      history.isError
-    )
+    if (openedRequestedEditor.current || !canPlan || !history.isSuccess || history.isFetching)
       return;
-    openedReschedule.current = true;
-    open(true);
-  }, [openReschedule, canPlan, latest, history.isFetching, history.isError, open]);
+    const datesOnly = !!openReschedule && !!latest;
+    if (!datesOnly && (!suggestedStart || latest)) return;
+    openedRequestedEditor.current = true;
+    if (!draft) open(datesOnly);
+  }, [
+    openReschedule,
+    suggestedStart,
+    canPlan,
+    latest,
+    history.isSuccess,
+    history.isFetching,
+    draft,
+    open,
+  ]);
   async function submit() {
     if (!draft || !canPlan || saving.current) return;
     saving.current = true;

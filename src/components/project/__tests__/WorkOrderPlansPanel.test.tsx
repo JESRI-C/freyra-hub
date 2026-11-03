@@ -143,6 +143,7 @@ async function open(
   edit = true,
   openReschedule: React.ComponentProps<typeof WorkOrderPlansPanel>["openReschedule"] = false,
   planSource?: ReturnType<typeof row>,
+  suggestedStart?: string,
 ) {
   await act(async () =>
     root.render(
@@ -151,6 +152,7 @@ async function open(
           scope={scope}
           openReschedule={openReschedule}
           planSource={planSource}
+          suggestedStart={suggestedStart}
         />
       </QueryClientProvider>,
     ),
@@ -632,6 +634,22 @@ describe("work-order plan editor", () => {
       }),
     });
     expect(readFollowUpSource(actor, { ...scope, actionId })).toBeUndefined();
+  });
+  it("opens the first calendar plan as an unsaved draft with the suggested date", async () => {
+    m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
+    await open(false, false, undefined, "2026-11-12");
+    expect(host.querySelector("form")?.textContent).toContain("Ny plan");
+    expect(host.querySelector<HTMLInputElement>('input[type="date"]')?.value).toBe("2026-11-12");
+    expect(m.save).not.toHaveBeenCalled();
+    const cancel = [...host.querySelectorAll("button")].find(
+      (button) => button.textContent === "Fortryd ændringer",
+    );
+    await act(async () => cancel!.click());
+    expect(host.querySelector("form")).toBeNull();
+  });
+  it("keeps a saved plan closed when the original calendar suggestion is still present", async () => {
+    await open(false, false, undefined, "2026-11-12");
+    expect(host.querySelector("form")).toBeNull();
   });
   it("warns about other scheduled work for the responsible person before rescheduling", async () => {
     const plan = {
