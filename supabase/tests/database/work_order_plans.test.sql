@@ -331,10 +331,16 @@ SELECT results_eq(
 SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-28')$$,'22023',NULL,'retry cannot change the start date');
 SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-27',4)$$,'22023',NULL,'retry cannot extend the series');
 SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-22',3,385)$$,'22023',NULL,'series must start after source period');
-INSERT INTO public.actions(id,project_id,title)
- VALUES(md5('work-order-series:'||pg_temp.k(385)::text||':1')::uuid,pg_temp.k(21),'Synthetic collision');
+CREATE FUNCTION pg_temp.weekly_id(key_id integer, slot integer) RETURNS uuid
+LANGUAGE sql IMMUTABLE AS $$
+ SELECT overlay(overlay(md5('work-order-series:'||pg_temp.k(key_id)::text||':'||slot::text)
+  placing '8' from 13 for 1) placing '8' from 17 for 1)::uuid
+$$;
+SELECT ok((SELECT bool_and(id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
+ FROM unnest(pg_temp.weekly()) AS occurrence(id)),'series ids use the UUID version and variant accepted by the app');
+INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.weekly_id(385,1),pg_temp.k(21),'Synthetic collision');
 SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-27',3,385)$$,'22023',NULL,'an occupied id cannot be reused');
-SELECT is((SELECT count(*) FROM public.actions WHERE id=md5('work-order-series:'||pg_temp.k(385)::text||':0')::uuid),
+SELECT is((SELECT count(*) FROM public.actions WHERE id=pg_temp.weekly_id(385,0)),
  0::bigint,'failure on the second task rolls back the first task');
 SELECT throws_ok($$SELECT public.create_work_order_weekly_series(pg_temp.k(11),pg_temp.k(21),
  current_setting('test.foreign_plan')::uuid,'2026-03-27',3,pg_temp.k(386),pg_temp.k(1))
