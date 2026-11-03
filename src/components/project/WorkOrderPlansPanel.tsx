@@ -388,6 +388,7 @@ function PlanWorkspace({
           current && {
             ...current,
             [actionId]: {
+              planVersionId: saved.id,
               start: saved.plan.plannedStart,
               end: saved.plan.plannedEnd,
               responsibleId: saved.plan.responsibleId,
