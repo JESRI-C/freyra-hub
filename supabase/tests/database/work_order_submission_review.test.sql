@@ -11,6 +11,9 @@ INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES
 INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_temp.k(11),'Synthetic submission project'),(pg_temp.k(22),pg_temp.k(12),'Synthetic foreign project');
 INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'viewer'),(pg_temp.k(21),pg_temp.k(4),'external');
 INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(31),pg_temp.k(21),'Synthetic task'),(pg_temp.k(32),pg_temp.k(21),'Synthetic other task');
+INSERT INTO public.indicators(id,project_id,key,label,unit,target_value,target_direction,target_unit)
+ VALUES(pg_temp.k(33),pg_temp.k(21),'synthetic_target','Synthetic indicator','stk.',0,'at_most','stk.');
+UPDATE public.actions SET linked_indicator_id=pg_temp.k(33) WHERE id=pg_temp.k(31);
 CREATE FUNCTION pg_temp.plan() RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('schema','freyra.work-order-plan/v1','title','Synthetic submission plan','description','','instructions','Synthetic instruction','profile','nature','responsibleId',pg_temp.k(1),'siteId',NULL,'watercourseVersionId',NULL,'locationNote','Synthetic location','plannedStart',NULL,'plannedEnd',NULL,'priority',NULL,'plannedMethod',NULL,'watercourse',NULL) $$;
 CREATE FUNCTION pg_temp.ctx() RETURNS jsonb LANGUAGE sql AS $$ SELECT public.get_work_order_submission_context(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21)) $$;
 CREATE FUNCTION pg_temp.hash() RETURNS text LANGUAGE sql AS $$ SELECT pg_temp.ctx()->>'basis_hash' $$;
@@ -142,6 +145,9 @@ SELECT throws_ok($$SELECT pg_temp.review(14,'review','returned',3,218)$$,'PT409'
 SELECT throws_ok($$UPDATE public.work_order_lifecycle_versions SET reason='Overwrite' WHERE operation='review'$$,'42501',NULL,'review history cannot be overwritten');
 SELECT throws_ok($$DELETE FROM public.work_order_lifecycle_versions WHERE operation='review'$$,'42501',NULL,'review history cannot be deleted');
 SELECT is(pg_temp.review(14,'review','approved',3,217),(pg_temp.rc()->'state'->>'id')::uuid,'lost approval response can recover same exact receipt');
+RESET ROLE;
+UPDATE public.indicators SET target_value=5 WHERE id=pg_temp.k(33);
+SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 CREATE FUNCTION pg_temp.work_order_report() RETURNS jsonb LANGUAGE sql AS $$
  SELECT public.save_approved_work_order_report(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
@@ -154,6 +160,11 @@ SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'submissionVers
   FROM pg_temp.saved WHERE name='work-order-report'),'3','report is bound to approved submission version 3');
 SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'reviewId'
   FROM pg_temp.saved WHERE name='work-order-report'),pg_temp.rc()->'state'->>'id','report pins exact review');
+SELECT ok((SELECT value::jsonb->'content'->'sections'->0->>'text'
+  FROM pg_temp.saved WHERE name='work-order-report') LIKE '%Mål ved aflevering: Synthetic indicator · højst 0 stk.',
+  'report shows the approved target even when the current target was changed before report creation');
+SELECT is((SELECT value::jsonb->'content'->'sections'->0->>'basis'
+  FROM pg_temp.saved WHERE name='work-order-report'),'not_measured','a target is not presented as a measurement');
 SELECT throws_ok($$SELECT public.save_approved_work_order_report(pg_temp.k(12),pg_temp.k(21),pg_temp.k(31),
   (pg_temp.rc()->'packet'->>'id')::uuid,(pg_temp.rc()->'state'->>'id')::uuid)$$,
   '42501',NULL,'foreign organization cannot reuse an approval');
