@@ -145,6 +145,17 @@ describe("group and assignment editor", () => {
     expect(summary.textContent).toContain("Afventer, at en udfører overtager opgaven.");
     expect(summary.textContent).toContain("Kan overtage: Synthetic owner.");
     expect(summary.textContent).toContain("Tildelingen henviser til en tidligere planversion.");
+    await click("Gennemgå tildeling til ny plan");
+    await fill("Begrundelse", "Synthetic review of the new plan");
+    await submit();
+    expect(m.configure).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        expectedVersion: 1,
+        planVersionId: id(5),
+        mode: "pool",
+        candidateUserIds: [actor],
+      }),
+    });
   });
 
   it("selects an organization owner with no invented project role and retains the opened plan on conflict", async () => {
