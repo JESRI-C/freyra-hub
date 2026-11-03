@@ -413,6 +413,7 @@ function TaskWorkspace({
         <div hidden={part !== "submission"}>
           <WorkOrderSubmissionPanel
             active={part === "submission"}
+            canCreateReport={canEdit}
             scope={scope}
             actorId={actorId}
             actionId={actionId}

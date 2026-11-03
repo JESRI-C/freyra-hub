@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useBlocker } from "@tanstack/react-router";
+import { saveApprovedWorkOrderReport } from "@/services/report-document-service";
+import type { ReportRevision } from "@/lib/report-document";
+import { Link, useBlocker } from "@tanstack/react-router";
 import { getProjectWorkOrderReviewContext } from "@/lib/work-order-submission.functions";
 import { mutateProjectWorkOrderLifecycle } from "@/lib/work-order-lifecycle.functions";
 import {
@@ -37,6 +39,7 @@ export function WorkOrderReviewControls({
   parentAuthorized,
   readOnly,
   allowReview,
+  canCreateReport = false,
   active,
   onEditing,
   onPhase,
@@ -47,6 +50,7 @@ export function WorkOrderReviewControls({
   parentAuthorized: boolean;
   readOnly: boolean;
   allowReview: boolean;
+  canCreateReport?: boolean;
   active: boolean;
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
@@ -75,6 +79,7 @@ export function WorkOrderReviewControls({
       alive.current = false;
     };
   }, []);
+  const [report, setReport] = useState<ReportRevision | null>(null);
   const locked = !!draft || busy || uncertain;
   useWorkOrderEditorLock(locked, onEditing);
   useBlocker({ shouldBlockFn: () => locked, enableBeforeUnload: locked });
@@ -103,6 +108,37 @@ export function WorkOrderReviewControls({
   useEffect(() => {
     if (authorized) onPhase(phase);
   }, [authorized, phase, onPhase]);
+  async function openReport() {
+    if (
+      !authorized ||
+      !canCreateReport ||
+      !c?.packet ||
+      c.state?.status !== "approved" ||
+      c.state.operation !== "review" ||
+      disabledByParent ||
+      locked ||
+      inFlight.current
+    )
+      return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await saveApprovedWorkOrderReport({
+        ...scope,
+        submissionId: c.packet.id,
+        reviewId: c.state.id,
+      });
+      if (alive.current) setReport(result);
+      await cache.invalidateQueries({ queryKey: ["report-documents"] });
+    } catch (e) {
+      if (alive.current)
+        setError(e instanceof Error ? e.message : "Rapporten kunne ikke oprettes.");
+    } finally {
+      inFlight.current = false;
+      if (alive.current) setBusy(false);
+    }
+  }
   function start(action: WorkOrderReviewAction) {
     if (!authorized || !c?.packet || disabledByParent || locked) return;
     const permitted =
@@ -297,6 +333,32 @@ export function WorkOrderReviewControls({
               )}
             </div>
           )}
+          {canCreateReport &&
+            !draft &&
+            c?.state?.status === "approved" &&
+            c.state.operation === "review" && (
+              <div className="space-y-2">
+                <p className="text-sm">
+                  Brug den godkendte aflevering som grundlag for en projektrapport.
+                </p>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={locked || disabledByParent || query.isFetching}
+                  onClick={() => void openReport()}
+                >
+                  Hent rapport for afleveringsversion {c.packet?.version}
+                </button>
+                {report && report.content.workOrderApproval?.reviewId === c.state.id && (
+                  <Link
+                    to="/app/reports/preview"
+                    search={{ report: report.report_id, version: report.version }}
+                  >
+                    Åbn den gemte rapport
+                  </Link>
+                )}
+              </div>
+            )}
           {!!c?.recent_reviews.length && (
             <div className="space-y-2">
               <h4 className="font-medium">Seneste faglige gennemgange</h4>

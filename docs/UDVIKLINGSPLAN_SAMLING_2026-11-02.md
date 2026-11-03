@@ -420,3 +420,9 @@ Kilder er læst/søgt 2. november 2026. De er metodegrundlag, ikke bevis for at 
 - [Datatilsynet: rollefordeling](https://www.datatilsynet.dk/regler-og-vejledning/grundlaeggende-begreber/rollefordeling-dataansvarlig-og-databehandler): aftaler og ansvar skal følge den konkrete databehandling.
 
 Internt grundlag: README, F00_AFSTEMNING, PAKKESTATUS, JOBS_GEOTAG_ARBEJDSFLOW, JOBS_GEOTAG_KRAVMATRIX, JOBS_GEOTAG_TESTLEVERING, eksisterende CI samt kodeinventaret fra denne samtale. Ældre statusnotater bruges med dato; nyere kode og faktisk afprøvning afgør aktuel status.
+
+### S05 - opfølgning på 50-brugerprøven
+
+På grenen `codex/saas-report-followup` kan projektredaktøren danne og genåbne en rapport fra den konkrete faglige godkendelse under opgavens aflevering. Rapporten gemmer afleveringsversion, kontrolsum og gennemgangens id. Databasen henter det frosne grundlag med eksisterende opgaveadgang. Originalerne bevares i afleveringen og refereres med kontrolsummer. Rapporten gemmes som kladde i biblioteket, mens opgavens faglige godkendelse vises særskilt.
+
+Målrettede app-tests er bestået lokalt. S05 afventer databaseprøve og staging-gennemgang med projektleder, genforsøg og kontrol af eksporten. De øvrige frigivelseskriterier i 50-brugerrapporten er fortsat åbne.

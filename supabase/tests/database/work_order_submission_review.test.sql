@@ -143,6 +143,31 @@ SELECT throws_ok($$UPDATE public.work_order_lifecycle_versions SET reason='Overw
 SELECT throws_ok($$DELETE FROM public.work_order_lifecycle_versions WHERE operation='review'$$,'42501',NULL,'review history cannot be deleted');
 SELECT is(pg_temp.review(14,'review','approved',3,217),(pg_temp.rc()->'state'->>'id')::uuid,'lost approval response can recover same exact receipt');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.work_order_report() RETURNS jsonb LANGUAGE sql AS $$
+ SELECT public.save_approved_work_order_report(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
+   (pg_temp.rc()->'packet'->>'id')::uuid,(pg_temp.rc()->'state'->>'id')::uuid)
+$$;
+INSERT INTO pg_temp.saved VALUES ('work-order-report', pg_temp.work_order_report()::text);
+SELECT is(pg_temp.work_order_report(),(SELECT value::jsonb FROM pg_temp.saved WHERE name='work-order-report'),
+  'retry returns exactly the same stored report');
+SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'submissionVersion'
+  FROM pg_temp.saved WHERE name='work-order-report'),'3','report is bound to approved submission version 3');
+SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'reviewId'
+  FROM pg_temp.saved WHERE name='work-order-report'),pg_temp.rc()->'state'->>'id','report pins exact review');
+SELECT throws_ok($$SELECT public.save_approved_work_order_report(pg_temp.k(12),pg_temp.k(21),pg_temp.k(31),
+  (pg_temp.rc()->'packet'->>'id')::uuid,(pg_temp.rc()->'state'->>'id')::uuid)$$,
+  '42501',NULL,'foreign organization cannot reuse an approval');
+SELECT throws_ok($$SELECT public.save_approved_work_order_report(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
+  (pg_temp.rc()->'packet'->>'id')::uuid,pg_temp.k(199))$$,
+  '42501',NULL,'unverified review cannot produce a report');
+SELECT throws_ok($$SELECT public.save_report_revision(
+  (value::jsonb->>'report_id')::uuid,pg_temp.k(11),pg_temp.k(21),1,'draft',
+  value::jsonb->'content' - 'workOrderApproval' - 'sources' || '{"sources":[]}'::jsonb)
+  FROM pg_temp.saved WHERE name='work-order-report'$$,
+  'P0001','The approved work order report is immutable','cannot strip provenance from a saved report');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT pg_temp.work_order_report()$$,'42501',NULL,'field staff cannot create a project report');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT ok(EXISTS(SELECT 1 FROM jsonb_array_elements((SELECT log->'items' FROM public.get_work_order_log(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,NULL,NULL,50))) item WHERE item->'detail'->>'reviewScope'='execution_and_documentation'),'existing logbook includes the pinned review scope');
 SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),2,false,false,false,'Synthetic revoke reviewer',pg_temp.k(219));
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);

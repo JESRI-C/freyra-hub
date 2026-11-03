@@ -27,6 +27,15 @@ export const SectionSchema = z.object({
   basis: z.enum(["documented", "observed", "screening", "not_measured"]),
 });
 export const ReportContentSchema = z.object({
+  workOrderApproval: z
+    .object({
+      actionId: z.string().uuid(),
+      submissionId: z.string().uuid(),
+      submissionVersion: z.number().int().positive(),
+      reviewId: z.string().uuid(),
+      basisHash: z.string().regex(/^[a-f0-9]{64}$/),
+    })
+    .optional(),
   workflowSnapshot: WorkflowReportSnapshotSchema.optional(),
   templateId: z.enum(REPORT_TEMPLATE_IDS).optional(),
   title: z.string().min(1),

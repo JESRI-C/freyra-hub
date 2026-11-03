@@ -23,6 +23,7 @@ export function WorkOrderSubmissionPanel({
   actionId,
   readOnly = false,
   allowReviewInReadOnly = false,
+  canCreateReport = false,
   active = true,
   onEditing,
 }: {
@@ -31,6 +32,7 @@ export function WorkOrderSubmissionPanel({
   actionId: string;
   readOnly?: boolean;
   allowReviewInReadOnly?: boolean;
+  canCreateReport?: boolean;
   active?: boolean;
   onEditing?: (value: boolean) => void;
 }) {
@@ -203,6 +205,7 @@ export function WorkOrderSubmissionPanel({
         readOnly={readOnly}
         allowReview={!readOnly || allowReviewInReadOnly}
         parentAuthorized={authorized}
+        canCreateReport={canCreateReport}
         disabledByParent={!authorized || !!note || busy || opening || uncertain}
         onEditing={setReviewEditing}
         onPhase={setReviewPhase}

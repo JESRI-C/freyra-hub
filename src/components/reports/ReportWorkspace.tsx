@@ -306,7 +306,15 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
           </p>
         </Card>
       )}
-      {canEdit && content && (mode === "new" || mode === "builder") && (
+      {content?.workOrderApproval && mode === "builder" && revision && (
+        <Link
+          to="/app/reports/preview"
+          search={{ report: revision.report_id, version: revision.version }}
+        >
+          Åbn rapporten for den godkendte aflevering
+        </Link>
+      )}
+      {canEdit && content && !content.workOrderApproval && (mode === "new" || mode === "builder") && (
         <>
           <Card className="p-5 space-y-3">
             <label className="block">
@@ -655,7 +663,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               </p>
             </div>
           )}
-          {canEdit && mode === "approval" && (
+          {canEdit && mode === "approval" && !content.workOrderApproval && (
             <div className="flex gap-2">
               <button
                 className={button}
