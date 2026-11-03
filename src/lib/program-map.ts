@@ -628,6 +628,16 @@ export const TASK_FEATURES: ProgramFeature[] = WORK_ORDER_PARTS.map((part) => ({
 }));
 const planningFeatures: ProgramFeature[] = [
   {
+    id: "work:time",
+    areaId: "tasks",
+    title: "Registrér arbejdstid",
+    question: "Hvor meget tid blev brugt på opgaven?",
+    purpose: "Registrér egen arbejdstid på en dato under Mine opgaver.",
+    output: "En gemt tidsregistrering med versionshistorik ved rettelser.",
+    status: "existing",
+    destination: { kind: "route", path: "/opgaver" },
+  },
+  {
     id: "work:calendar",
     areaId: "tasks",
     title: "Projektkalender",
@@ -812,9 +822,9 @@ export const SKYHOST_JOB_AREAS = [
     id: "time",
     title: "Timer",
     purpose: "Aktiviteter, estimat, forbrug, rest og registreringshistorik.",
-    remaining: "Et samlet tids- og aktivitetsforløb på jobbet skal udvikles.",
-    featureIds: ["planned:time"],
-    planned: true,
+    remaining: "Samlet timeforbrug, aktiviteter, restestimat og faktureringsgrundlag afventer.",
+    featureIds: ["work:time", "planned:time"],
+    planned: false,
   },
   {
     id: "materials",

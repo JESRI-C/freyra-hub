@@ -13,6 +13,7 @@ import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignm
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
+import { WorkOrderTimePanel } from "./WorkOrderTimePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -154,7 +155,9 @@ function TaskCard({
   const [evidenceOpened, setEvidenceOpened] = useState(false),
     [evidenceEditing, setEvidenceEditing] = useState(false);
   const [submissionOpened, setSubmissionOpened] = useState(false),
-    [submissionEditing, setSubmissionEditing] = useState(false);
+    [submissionEditing, setSubmissionEditing] = useState(false),
+    [timeOpened, setTimeOpened] = useState(false),
+    [timeEditing, setTimeEditing] = useState(false);
   const nestedLocks = useRef(new Set<string>());
   function reportEditing(part: string, value: boolean) {
     if (value) nestedLocks.current.add(part);
@@ -326,6 +329,36 @@ function TaskCard({
             />
           )}
         </details>
+        {(task.can_execute || timeOpened) && (
+          <details
+            onToggle={(event) => {
+              if (event.currentTarget.open) setTimeOpened(true);
+            }}
+          >
+            <summary
+              className="min-h-11 cursor-pointer py-2 font-medium"
+              onClick={(event) => {
+                if (locked && !timeEditing) event.preventDefault();
+              }}
+            >
+              Registrér arbejdstid
+            </summary>
+            {timeOpened && (
+              <fieldset disabled={(locked && !timeEditing) || busy} className="min-w-0">
+                <WorkOrderTimePanel
+                  scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+                  actorId={actorId}
+                  actionId={task.action_id}
+                  canWrite={task.can_execute}
+                  onEditing={(value) => {
+                    setTimeEditing(value);
+                    reportEditing("time", value);
+                  }}
+                />
+              </fieldset>
+            )}
+          </details>
+        )}
         {task.can_plan && (
           <div className="grid gap-2 sm:grid-cols-2">
             <Link

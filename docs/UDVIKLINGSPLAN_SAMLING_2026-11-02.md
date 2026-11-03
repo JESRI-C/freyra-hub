@@ -454,3 +454,7 @@ Kalenderens dags- og månedsudsnit viser nu den andel af estimatet, der falder i
 Projektledere kan angive tilgængelige timer for en projektperson på en bestemt dato. Vælg den ansvarlige og dagen i kalenderen. Freyra sammenholder den projektbundne tid med kalenderens beregnede estimat, viser eventuelt overskud af planlagte timer og viser kun ledig estimeret tid, når alle viste opgaver har estimat. Nul timer kan gemmes. Ændringer danner nye versioner, og samtidige ændringer afvises. Planer på andre projekter, arbejdstidsaftaler, fravær og registreret tid indgår endnu ikke.
 
 Stagingprøven gemte nul timer, viste 0,92 timers overskridelse, gemte derefter to timer i en ny version og viste 1,08 timer ledig estimeret tid. Den seneste version var bevaret efter genindlæsning ved 390 px. Appbuild `a4fe3f4`, Worker `af8507bc-e2f5-47c0-8bab-0f001f26907b`, migration `20261103074620`. 51 målrettede tests, typekontrol og CI-databasejobbet bestod.
+
+### S14 - faktisk arbejdstid på opgaven
+
+Under Mine opgaver kan en udfører registrere dagens samlede arbejdstid i minutter på sin tildelte opgave. Rettelser med årsag danner en ny version. En rettelse til nul kan bruges til at tilbageføre en fejl. Opgavens id, bruger, dato og organisation er fastholdt, og samtidige rettelser kontrolleres. De seneste 20 tidligere versioner kan læses i visningen. Samlet forbrug for projektlederen, aktiviteter og faktureringsgrundlag afventer.

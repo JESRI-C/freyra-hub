@@ -176,6 +176,26 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT lives_ok($$SELECT public.save_work_order_plan(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(191))$$,'planner saves the assigned field test plan');
 SELECT lives_ok($$SELECT pg_temp.assign(0,192,37,'person',ARRAY[2],NULL)$$,'manager assigns execution to field role');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(300),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',1,90)$$,
+ 'assigned field staff can log their own time');
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(301),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',2,75,'Synthetic correction')$$,
+ 'time corrections retain the original version');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(302),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',2,60,'Stale correction')$$,
+ '40001',NULL,'a stale time correction is rejected');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,actor_id,work_date,version,minutes)
+ VALUES(pg_temp.k(303),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),pg_temp.k(3),'2026-11-03',1,60)$$,
+ '42501',NULL,'field staff cannot record another user’s time');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(304),pg_temp.k(36),pg_temp.k(11),pg_temp.k(21),'2026-11-03',1,60)$$,
+ '42501',NULL,'field staff cannot record time on unassigned work');
 SELECT ok(NOT private.can_write_project(pg_temp.k(21)),'field remains unable to edit the project');
 SELECT throws_ok($$SELECT pg_temp.field_execution(36)$$,'42501',NULL,'field cannot execute an unassigned task');
 SELECT throws_ok($$SELECT pg_temp.field_execution(37,3)$$,'42501',NULL,'field cannot record execution as another user');
@@ -188,6 +208,7 @@ SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct wor
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
 SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.work_order_time_versions),2,'the manager can read both immutable time versions');
 SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(37) AND event_type='work_order.execution_saved'),1,'field revision and retry emit one scoped execution audit event');
 RESET ROLE;
 UPDATE public.project_members SET role='viewer' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
