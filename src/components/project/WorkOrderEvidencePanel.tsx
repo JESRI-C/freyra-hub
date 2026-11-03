@@ -493,6 +493,7 @@ export function WorkOrderEvidencePanel({
               {row.state === "attached" && latest.get(row.evidence_id) === row.version && (
                 <EvidenceObservationGaps
                   observation={row.observation_snapshot}
+                  writable={writable}
                   onOpenField={writable ? onOpenField : undefined}
                   locked={locked}
                   correction={
@@ -601,6 +602,7 @@ export function WorkOrderEvidencePanel({
 }
 function EvidenceObservationGaps({
   observation,
+  writable,
   onOpenField,
   locked,
   correction,
@@ -608,6 +610,7 @@ function EvidenceObservationGaps({
   correction?: { version: number; open: () => void };
   onOpenField?: () => void;
   locked: boolean;
+  writable: boolean;
   observation: EvidenceVersion["observation_snapshot"];
 }) {
   let gaps: string[];
@@ -626,7 +629,13 @@ function EvidenceObservationGaps({
           <li key={index}>{gap}</li>
         ))}
       </ul>
-      <p>Gem en rettelse under Feltregistrering, og vælg den nye version via Ret kobling.</p>
+      <p>
+        {correction
+          ? "Der er gemt en nyere registrering. Vælg den, og gem koblingen som en ny version."
+          : writable
+            ? "Gem en rettelse under Feltregistrering, og vælg den nye version via Ret kobling."
+            : "Bed en person med adgang til at rette registreringen og opdatere koblingen."}
+      </p>
       {correction && (
         <button type="button" className={button} disabled={locked} onClick={correction.open}>
           Vælg gemt registrering version {correction.version}

@@ -230,6 +230,11 @@ describe("task documentation UI", () => {
     expect(button("Åbn Feltregistrering").disabled).toBe(true);
     await click("Åbn Feltregistrering");
     expect(m.openField).toHaveBeenCalledTimes(1);
+    await render(false);
+    expect(host.textContent).toContain(
+      "Bed en person med adgang til at rette registreringen og opdatere koblingen.",
+    );
+    expect(host.textContent).not.toContain("Åbn Feltregistrering");
   });
   it("prefills a correction with the saved observation and keeps the original selected", async () => {
     const linked = version();
@@ -253,6 +258,9 @@ describe("task documentation UI", () => {
       values: { count: 0, checked: false },
     };
     await render(true, actor, saved);
+    expect(host.textContent).toContain(
+      "Der er gemt en nyere registrering. Vælg den, og gem koblingen som en ny version.",
+    );
     await click("Vælg gemt registrering version 2");
     const selects = Array.from(host.querySelectorAll("select"));
     expect(selects[0].value).toBe(savedId);

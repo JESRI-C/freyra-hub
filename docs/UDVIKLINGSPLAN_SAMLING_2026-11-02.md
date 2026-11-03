@@ -221,6 +221,8 @@ Første del af D05c viser nødvendige felter og enheder i en gemt afleverings fa
 
 **Færdig:** Manglende obligatorisk dokumentation afviser aflevering med handlingsrettede fejl. Ændret udførelse efter aflevering opdaterer ikke snapshot eller gammel godkendelse. Parallelle reviewers får kontrolleret konflikt, og direkte API/tabelkald kan ikke omgå kontrakten.
 
+Dokumentation viser næste trin ved manglende svar på en aktiv kobling. En læser får besked om, hvem der skal tage over. Hvis brugeren allerede har gemt en nyere registrering, forklarer Freyra, at den skal vælges og koblingen gemmes som ny version. Den eksisterende koblingsformular bevarer det valgte originalfoto. Komponentprøven dækker de to forløb og kladdelåsen. Stagingprøve af vejledningen afventes.
+
 ### S05 — Samlet rapport fra samme grundlag
 
 **Afhænger af:** S04; S03 for filtreret eksport. **Genbrug:** D07, F10/F11, report_document/revisions, workflowrapport og eksportadaptere. **Skøn:** 2–4 dage.
