@@ -59,6 +59,20 @@ export function emptyWorkOrderWatercourse(): WorkOrderWatercourse {
     term: null,
   };
 }
+const workOrderHours = new Intl.NumberFormat("da-DK", { maximumFractionDigits: 2 });
+export function formatWorkOrderHours(hours: number) {
+  return workOrderHours.format(hours) + (hours === 1 ? " time" : " timer");
+}
+
+export const WorkOrderEstimatedHoursSchema = z
+  .number()
+  .min(0)
+  .max(10000)
+  .refine(
+    (hours) => Number(hours.toFixed(2)) === hours,
+    "Timeestimatet kan have op til to decimaler.",
+  );
+
 export const WorkOrderPlanSchema = z
   .object({
     schema: z.literal("freyra.work-order-plan/v1"),
@@ -72,6 +86,7 @@ export const WorkOrderPlanSchema = z
     locationNote: z.string().trim().max(2000),
     plannedStart: CalendarDate.nullable(),
     plannedEnd: CalendarDate.nullable(),
+    estimatedHours: WorkOrderEstimatedHoursSchema.nullable().optional(),
     priority: z.enum(["high", "medium", "low"]).nullable(),
     plannedMethod: optionalText(2000),
     watercourse: WorkOrderWatercourseSchema.nullable(),

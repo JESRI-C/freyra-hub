@@ -1,4 +1,4 @@
-import type { WorkOrderPlanVersion } from "@/lib/work-order-plan";
+import { formatWorkOrderHours, type WorkOrderPlanVersion } from "@/lib/work-order-plan";
 import type { WorkOrderPerson } from "@/lib/work-order-assignments";
 const profiles = {
   general: "Generel opgave",
@@ -34,6 +34,9 @@ export function WorkOrderPlanSummary({
           : "Uafklaret"}
         . Planlagt metode: {plan.plannedMethod ?? "Uafklaret"}.
       </p>
+      {plan.estimatedHours != null && (
+        <p>Estimeret arbejdstid · {formatWorkOrderHours(plan.estimatedHours)}</p>
+      )}
       {plan.locationNote && <p>Sted: {plan.locationNote}</p>}
       {plan.description && <p>{plan.description}</p>}
       {plan.instructions && <p>Instruktion: {plan.instructions}</p>}

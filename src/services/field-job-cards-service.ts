@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WorkOrderEstimatedHoursSchema } from "@/lib/work-order-plan";
 import { CalendarDate } from "@/lib/action-execution";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
@@ -69,6 +70,7 @@ const scheduleRow = z.object({
         planned_start: CalendarDate.nullable(),
         planned_end: CalendarDate.nullable(),
         responsible_id: uuid.nullable(),
+        estimated_hours: WorkOrderEstimatedHoursSchema.nullable(),
       }),
     )
     .max(1),
@@ -78,14 +80,21 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
   const db = await client(scope);
   const dates: Record<
     string,
-    { start: string | null; end: string | null; responsibleId: string | null }
+    {
+      start: string | null;
+      end: string | null;
+      responsibleId: string | null;
+      estimatedHours: number | null;
+    }
   > = {};
   const pageSize = 200;
   let afterId: string | undefined;
   for (;;) {
     let query = db
       .from("work_orders")
-      .select("action_id,work_order_plan_versions(planned_start,planned_end,responsible_id)")
+      .select(
+        "action_id,work_order_plan_versions(planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours)",
+      )
       .eq("organization_id", scope.organizationId)
       .eq("project_id", scope.projectId)
       .order("action_id")
@@ -103,6 +112,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
           start: plan.planned_start,
           end: plan.planned_end,
           responsibleId: plan.responsible_id,
+          estimatedHours: plan.estimated_hours,
         };
     }
     if (rows.length < pageSize) return dates;

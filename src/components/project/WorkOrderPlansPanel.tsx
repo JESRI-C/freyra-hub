@@ -215,6 +215,7 @@ function PlanWorkspace({
     [lifecycleEditing, setLifecycleEditing] = useState(false),
     [busy, setBusy] = useState(false);
   const [datesOnly, setDatesOnly] = useState(false);
+  const [hoursText, setHoursText] = useState("");
   const [meters, setMeters] = useState<Record<string, string>>({});
   const saving = useRef(false),
     attempt = useRef<{ signature: string; id: string } | null>(null);
@@ -229,6 +230,7 @@ function PlanWorkspace({
     setDatesOnly(onlyDates);
     const plan = latest?.plan ?? emptyWorkOrderPlan(title);
     setDraft(plan);
+    setHoursText(plan.estimatedHours?.toString().replace(".", ",") ?? "");
     setBase(latest?.version ?? 0);
     setReason("");
     setError("");
@@ -251,8 +253,19 @@ function PlanWorkspace({
     setError("");
     setMessage("");
     try {
+      const hours = hoursText.trim();
+      if (!datesOnly && hours && !/^\d+(?:[.,]\d{1,2})?$/.test(hours))
+        throw new Error("Angiv estimeret tid i timer med højst to decimaler.");
+      const estimatedHours = datesOnly
+        ? draft.estimatedHours
+        : hours
+          ? Number(hours.replace(",", "."))
+          : draft.estimatedHours === undefined
+            ? undefined
+            : null;
       const plan = WorkOrderPlanSchema.parse({
         ...draft,
+        ...(estimatedHours === undefined ? {} : { estimatedHours }),
         watercourse:
           !datesOnly && draft.watercourse
             ? {
@@ -286,6 +299,7 @@ function PlanWorkspace({
               start: saved.plan.plannedStart,
               end: saved.plan.plannedEnd,
               responsibleId: saved.plan.responsibleId,
+              estimatedHours: saved.plan.estimatedHours ?? null,
             },
           },
       );
@@ -530,6 +544,18 @@ function PlanWorkspace({
                     </select>
                   </label>
                   {dateFields}
+                  <label className="block text-sm">
+                    Estimeret arbejdstid (timer)
+                    <input
+                      className={control}
+                      inputMode="decimal"
+                      maxLength={8}
+                      value={hoursText}
+                      onChange={(event) => setHoursText(event.target.value)}
+                      placeholder="Fx 2,5"
+                    />
+                    <span className="text-xs text-muted-foreground">Estimat for hele opgaven.</span>
+                  </label>
                 </div>
                 <label className="block text-sm">
                   Ansvarlig

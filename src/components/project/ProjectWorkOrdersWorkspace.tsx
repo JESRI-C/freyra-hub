@@ -3,6 +3,7 @@ import {
   type WorkOrderView,
   type WorkOrderListView,
 } from "@/lib/work-order-navigation";
+import { formatWorkOrderHours } from "@/lib/work-order-plan";
 import { Calendar } from "@/components/ui/calendar";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { da } from "react-day-picker/locale";
@@ -186,6 +187,8 @@ function WorkOrders({
           task.title.toLocaleLowerCase("da").includes(taskSearch.trim().toLocaleLowerCase("da")),
         );
   const visibleCount = visibleActions?.length ?? 0;
+  const estimates = (visibleActions ?? []).flatMap(({ id }) => dates?.[id]?.estimatedHours ?? []);
+  const totalEstimatedHours = estimates.reduce((total, hours) => total + hours, 0);
   const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
   const daySummaries = new Map<string, { total: number; overlap: Set<string> }>();
   function daySummary(key: string) {
@@ -478,6 +481,16 @@ function WorkOrders({
                 (!showSchedule || schedule.isSuccess) &&
                 !!actions.data.length &&
                 !visibleCount && <p role="status">Ingen opgaver matcher dit udvalg.</p>}
+              {showSchedule && schedule.isSuccess && visibleCount > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Estimat for de viste opgaver ·{" "}
+                  {estimates.length
+                    ? formatWorkOrderHours(totalEstimatedHours)
+                    : "Ingen estimeret tid"}
+                  {estimates.length < visibleCount &&
+                    ` · ${visibleCount - estimates.length} uden estimat`}
+                </p>
+              )}
               {(!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => (
                   <button
@@ -492,6 +505,11 @@ function WorkOrders({
                       {showSchedule && (
                         <span className="block text-sm text-muted-foreground">
                           {scheduleLabel(dates?.[a.id])}
+                          {dates?.[a.id]?.estimatedHours != null && (
+                            <span className="block">
+                              Estimat · {formatWorkOrderHours(dates[a.id].estimatedHours!)}
+                            </span>
+                          )}
                           {canEdit && (
                             <span className="block">
                               {dates?.[a.id]?.responsibleId

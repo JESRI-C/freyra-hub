@@ -154,6 +154,23 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("saves a Danish decimal time estimate on the exact plan version", async () => {
+    await open();
+    await fill("Estimeret arbejdstid", "2,75");
+    await fill("Årsag til planændring", "Arbejdstid estimeret");
+    m.save.mockResolvedValue({
+      ...row(),
+      plan: { ...row().plan, estimatedHours: 2.75 },
+      version: 2,
+    });
+    await save();
+    expect(m.save).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        expectedVersion: 1,
+        plan: { ...row().plan, estimatedHours: 2.75 },
+      }),
+    });
+  });
   it("reschedules a saved plan without changing the work instructions or measurements", async () => {
     await open(false);
     await act(async () =>

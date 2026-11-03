@@ -36,6 +36,11 @@ SELECT is((SELECT count(*)::integer FROM pg_temp.history()),0,'authorized existi
 SELECT throws_ok($$SELECT * FROM pg_temp.history(36)$$,'42501',NULL,'same organization does not expose another project history');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(31,NULL,0)$$,'22023',NULL,'zero page size is rejected');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(31,0)$$,'22023',NULL,'invalid history cursor is rejected');
+SELECT lives_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":0}')$$,'zero estimated hours are explicit');
+SELECT lives_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":2.75}')$$,'decimal estimated hours are valid');
+SELECT throws_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":2.751}')$$,'22023',NULL,'more than two decimals is rejected');
+SELECT throws_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":"2.75"}')$$,'22023',NULL,'text cannot masquerade as estimated hours');
+SELECT throws_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":-1}')$$,'22023',NULL,'negative estimated hours are rejected');
 SELECT throws_ok($$SELECT pg_temp.save(0,60,pg_temp.plan()||'{"plannedStart":"2026-02-30"}')$$,'22023',NULL,'impossible date is not coerced into another date');
 SELECT throws_ok($$SELECT pg_temp.save(0,60,pg_temp.plan()||'{"plannedEnd":"2026-11-02"}')$$,'22023',NULL,'end date cannot invent an unknown start');
 SELECT throws_ok($$SELECT pg_temp.save(0,60,jsonb_set(pg_temp.plan(),'{watercourse,measurementSource}','null'))$$,'22023',NULL,'measured zero requires a source');
