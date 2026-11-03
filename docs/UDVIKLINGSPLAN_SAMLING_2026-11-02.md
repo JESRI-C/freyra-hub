@@ -632,3 +632,5 @@ Stagingprøve på kilde 29d77db og Worker 981a3710-c83b-40e0-943c-921cc7db0d6e. 
 ### S13 – Gentagelsesintervaller
 
 Projektlederen kan vælge hver dag, hver uge, hver anden uge eller hver måned under Opret gentagne opgaver. Datoerne vises som i kalenderen før oprettelse. Ved månedlig gentagelse bruges den valgte dag eller månedens sidste dag. Den oprindelige dag genbruges i efterfølgende måneder. Planens varighed og kildeversion bevares. Eksisterende ugentlige klientkald bruger fortsat samme identiteter ved genforsøg. Ændring og aflysning af en hel serie er stadig åben.
+
+Månedlig serie er verificeret i Chrome ved 390 px på staging. Fra kildeplanen oprettede projektlederen 31. januar, 28. februar og 31. marts 2027. Alle tre datoer stod i forhåndsvisningen og kunne efter genindlæsning åbnes som separate opgaver fra kildelisten. Staging-login, build, typekontrol, lint og 38 målrettede app-tests bestod. CI kontrollerede månedsskifte, varighed, dagligt interval, hver anden uge, genforsøg og rollback. Kilde 793655c, Worker 952731a9-2d42-4c9a-aec8-0ab5d113b983 og stagingmigration 20261103132540.
