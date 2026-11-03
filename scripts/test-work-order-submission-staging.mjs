@@ -10,7 +10,8 @@ const url = "https://xdvqdzdpyceojbdknofi.supabase.co";
 const revision = process.env.FREYRA_TEST_REVISION ?? "06c438b8f78fb4827a5f29a0b63173ac309847ce";
 const env = loadEnv("staging", process.cwd(), "");
 assert.equal(env.SUPABASE_URL, url);
-const dir = "tmp/submission-hosted";
+const checkIndicatorTarget = process.argv.includes("--indicator-target");
+const dir = checkIndicatorTarget ? "tmp/submission-target-hosted" : "tmp/submission-hosted";
 await fs.mkdir(dir, { recursive: true });
 const credentials = JSON.parse(
   await fs.readFile("tmp/private-release/jesper-test-short-login.private.json", "utf8"),
@@ -30,6 +31,7 @@ try {
     requests: {},
   };
 }
+if (checkIndicatorTarget) state.indicatorId ??= randomUUID();
 const task = {
   actionId: state.actionId,
   projectId: source.projectId,
@@ -95,8 +97,32 @@ try {
   assert.equal(receipt.status, "verified");
   assert.equal(receipt.sha256, source.originalSha256);
   const title = `TEST · Fastholdt afleveringsgrundlag ${state.run}`;
+  const indicatorLabel = `TEST · Indikatormål ${state.run}`;
+  if (checkIndicatorTarget) {
+    await save();
+    ok(
+      await client.from("indicators").upsert(
+        {
+          id: state.indicatorId,
+          project_id: task.projectId,
+          key: `submission_target_${state.run}`,
+          label: indicatorLabel,
+          unit: "stk.",
+          target_value: 0,
+          target_direction: "at_most",
+          target_unit: "stk.",
+        },
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "Create test indicator",
+    );
+  }
   let action = ok(
-    await client.from("actions").select("id,title").eq("id", task.actionId).maybeSingle(),
+    await client
+      .from("actions")
+      .select("id,title,linked_indicator_id")
+      .eq("id", task.actionId)
+      .maybeSingle(),
     "Read fixture task",
   );
   if (!action) {
@@ -107,10 +133,14 @@ try {
         title,
         description: "TEST · Syntetisk afleveringsprøve. Ingen faktisk naturindsats.",
         status: "Åben",
+        ...(checkIndicatorTarget ? { linked_indicator_id: state.indicatorId } : {}),
       }),
       "Create fixture task",
     );
-  } else assert.equal(action.title, title);
+  } else {
+    assert.equal(action.title, title);
+    if (checkIndicatorTarget) assert.equal(action.linked_indicator_id, state.indicatorId);
+  }
   if (
     !ok(
       await client
@@ -386,8 +416,31 @@ try {
   assert.equal(rows.at(-1).snapshot.evidence[0].observation_snapshot.values.count, 0);
   assert.equal(rows.at(-1).snapshot.evidence[0].observation_snapshot.values.checked, false);
   assert.equal(rows.at(-1).snapshot.plan.plan.plannedStart, null);
+  if (checkIndicatorTarget) {
+    assert.deepEqual(rows.at(-1).snapshot.indicatorTarget, {
+      indicatorId: state.indicatorId,
+      label: indicatorLabel,
+      value: 0,
+      direction: "at_most",
+      unit: "stk.",
+    });
+  }
   if (rows.length === 1) {
-    if ((await rpc("get_work_order_submission_context", scope)).basis_hash === rows[0].basis_hash)
+    if (checkIndicatorTarget) {
+      ok(
+        await client
+          .from("indicators")
+          .update({ target_value: 5 })
+          .eq("project_id", task.projectId)
+          .eq("id", state.indicatorId)
+          .eq("label", indicatorLabel)
+          .select("id")
+          .single(),
+        "Change the test indicator target",
+      );
+    } else if (
+      (await rpc("get_work_order_submission_context", scope)).basis_hash === rows[0].basis_hash
+    ) {
       evidence = [
         await attach(
           evidence[0].version,
@@ -396,6 +449,7 @@ try {
           await req("correction"),
         ),
       ];
+    }
     await panel.getByRole("button", { name: "Hent aktuelt grundlag", exact: true }).click();
     await panel.getByText(/Grundlaget er ændret siden/).waitFor();
     await panel
@@ -413,6 +467,20 @@ try {
   state.historyPreserved = true;
   const article = panel.locator("article").first();
   await article.getByText("Se det fastholdte grundlag", { exact: true }).click();
+  if (checkIndicatorTarget) {
+    assert.equal(rows[0].snapshot.indicatorTarget.value, 5);
+    const oldest = panel.locator("article").last();
+    await oldest.getByText("Se det fastholdte grundlag", { exact: true }).click();
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await article.getByText("Højst 5 stk.", { exact: true }).waitFor();
+      await oldest.getByText("Højst 0 stk.", { exact: true }).waitFor();
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    }
+    await page.setViewportSize({ width: 1280, height: 844 });
+    state.indicatorTargetsVerified = [1280, 390];
+    await save();
+  }
   const [popup] = await Promise.all([
     page.waitForEvent("popup"),
     article.getByRole("button", { name: "Åbn fastholdt originalfoto", exact: true }).click(),
