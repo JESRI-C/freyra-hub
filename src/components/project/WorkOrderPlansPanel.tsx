@@ -371,12 +371,13 @@ function PlanWorkspace({
     if (openedRequestedEditor.current || !canPlan || !history.isSuccess || history.isFetching)
       return;
     const datesOnly = !!openReschedule && !!latest;
-    if (!datesOnly && (!suggestedStart || latest)) return;
+    if (!datesOnly && (latest || (!suggestedStart && !planSource))) return;
     openedRequestedEditor.current = true;
     if (!draft) open(datesOnly);
   }, [
     openReschedule,
     suggestedStart,
+    planSource,
     canPlan,
     latest,
     history.isSuccess,
@@ -808,7 +809,11 @@ function PlanWorkspace({
                 }
                 onClick={() => open()}
               >
-                {latest ? "Rediger plan som ny version" : "Opret arbejdsopgavens plan"}
+                {latest
+                  ? "Rediger plan som ny version"
+                  : followUpSource
+                    ? "Fortsæt med opfølgningsplanen"
+                    : "Opret arbejdsopgavens plan"}
               </button>
             </div>
           )}
@@ -915,6 +920,12 @@ function PlanWorkspace({
             <legend ref={planDraftHeading} tabIndex={-1} className="font-medium">
               {datesOnly ? "Omplanlæg datoer" : base ? `Rediger plan version ${base}` : "Ny plan"}
             </legend>
+            {base === 0 && followUpSource && (
+              <p className="text-sm">
+                Arbejdsgrundlaget er hentet fra {followUpSource.plan.title}, planversion{" "}
+                {followUpSource.version}. Vælg datoer og ansvarlig for opfølgningen.
+              </p>
+            )}
             {datesOnly ? (
               <div className="grid gap-3 sm:grid-cols-2">{dateFields}</div>
             ) : (

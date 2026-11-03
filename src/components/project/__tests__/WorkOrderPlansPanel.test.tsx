@@ -591,11 +591,8 @@ describe("work-order plan editor", () => {
     });
     m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
     await open(false, false, source);
-    await act(async () =>
-      [...host.querySelectorAll("button")]
-        .find((button) => button.textContent === "Opret arbejdsopgavens plan")!
-        .click(),
-    );
+    expect(host.querySelector("form")?.textContent).toContain("Vælg datoer og ansvarlig");
+    expect(m.save).not.toHaveBeenCalled();
     m.save.mockResolvedValue(row());
     await save();
     expect(m.save).toHaveBeenCalledWith({
@@ -626,7 +623,7 @@ describe("work-order plan editor", () => {
     await open(false);
     await act(async () =>
       [...host.querySelectorAll("button")]
-        .find((button) => button.textContent === "Opret arbejdsopgavens plan")!
+        .find((button) => button.textContent === "Fortsæt med opfølgningsplanen")!
         .click(),
     );
     m.save.mockResolvedValue(row());
