@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WorkOrderActionIdSchema } from "./work-order-access";
 import { getReportTemplate, REPORT_TEMPLATE_IDS, type ReportTemplateId } from "./report-templates";
 import { WorkflowReportSnapshotSchema } from "./workflow-report";
 
@@ -29,7 +30,7 @@ export const SectionSchema = z.object({
 export const ReportContentSchema = z.object({
   workOrderApproval: z
     .object({
-      actionId: z.string().uuid(),
+      actionId: WorkOrderActionIdSchema,
       submissionId: z.string().uuid(),
       submissionVersion: z.number().int().positive(),
       reviewId: z.string().uuid(),

@@ -12,8 +12,16 @@ const client = (data: unknown, code?: string) => ({
     .mockResolvedValue({ data, error: code ? { code, message: "private detail" } : null }),
 });
 describe("immutable work order submission service", () => {
-  it("validates complete frozen sources while preserving zero, false and an unknown planned date", () => {
-    const row = SubmissionVersionSchema.parse(submission());
+  it("validates frozen sources for an older task while preserving zero, false and an unknown date", () => {
+    const actionId = "11111111-1111-c111-5111-111111111111";
+    const legacy = submission();
+    legacy.action_id = actionId;
+    legacy.snapshot.actionId = actionId;
+    legacy.snapshot.execution.binding.action_id = actionId;
+    legacy.snapshot.execution.values.actionId = actionId;
+    legacy.snapshot.evidence[0].action_id = actionId;
+    const row = SubmissionVersionSchema.parse(legacy);
+    expect(row.snapshot.actionId).toBe(actionId);
     expect(row.snapshot.evidence[0].observation_snapshot.values).toMatchObject({
       count: 0,
       checked: false,

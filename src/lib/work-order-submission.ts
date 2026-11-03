@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { WorkOrderScopeSchema } from "./work-order-access";
+import { WorkOrderActionIdSchema, WorkOrderScopeSchema } from "./work-order-access";
 import { WorkOrderPlanSchema } from "./work-order-plan";
 import { WorkOrderExecutionBindingSchema } from "./work-order-execution";
 import { ActionExecutionSchema } from "./action-execution";
@@ -97,7 +97,7 @@ export const SubmissionSnapshotSchema = WorkOrderScopeSchema.extend({
 export const SubmissionVersionSchema = z
   .object({
     id: uuid,
-    action_id: uuid,
+    action_id: WorkOrderActionIdSchema,
     organization_id: uuid,
     project_id: uuid,
     version: z.number().int().positive(),
@@ -127,7 +127,7 @@ export const SubmissionVersionSchema = z
   });
 export const SubmissionContextSchema = z
   .object({
-    action_id: uuid,
+    action_id: WorkOrderActionIdSchema,
     organization_id: uuid,
     project_id: uuid,
     user_id: uuid,

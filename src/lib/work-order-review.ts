@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { WorkOrderActionIdSchema } from "./work-order-access";
 import { WorkOrderLifecycleSchema, WorkOrderLifecycleBasisSchema } from "./work-order-lifecycle";
 const uuid = z.string().uuid();
 export const WorkOrderReviewContextSchema = z
   .object({
-    action_id: uuid,
+    action_id: WorkOrderActionIdSchema,
     organization_id: uuid,
     project_id: uuid,
     user_id: uuid,

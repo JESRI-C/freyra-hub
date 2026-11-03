@@ -143,7 +143,8 @@ export const entryDefinitions: Record<
 };
 export const WorkspaceEntrySchema = z.object({
   id: z.string().uuid(),
-  entry_id: z.string().uuid(),
+  // The logical entry ID can be inherited from an existing task.
+  entry_id: z.guid(),
   organization_id: z.string().uuid(),
   project_id: z.string().uuid(),
   kind: z.enum(entryKinds),
