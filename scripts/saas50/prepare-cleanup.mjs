@@ -14,6 +14,13 @@ const users = fixture.users.map((user) => `'${user.id}'::uuid`).join(",");
 const projects = fixture.tenants.map((tenant) => `'${tenant.projectId}'::uuid`).join(",");
 const organizations = fixture.tenants.map((tenant) => `'${tenant.organizationId}'::uuid`).join(",");
 const accounts = fixture.users.map((user) => `('${user.id}'::uuid,'${user.email}')`).join(",");
+// Auth provisioning creates a personal organization before the test tenants exist.
+const allowedOrganization = `(m.organization_id IN (${organizations}) OR EXISTS (
+  SELECT 1 FROM public.organizations o
+  JOIN (VALUES ${accounts}) AS expected(id,email) ON expected.id=m.user_id
+  WHERE o.id=m.organization_id AND o.type='personal'
+    AND o.name='TEST 50 ${fixture.run} U'||right(split_part(expected.email,'@',1),2)||' – organisation'
+))`;
 const tag = `raw_app_meta_data->>'qa_tag'='${fixture.qaTag}' AND email LIKE 'qa50-${fixture.run}-%@example.test'`;
 const sql = `-- ONLY xdvqdzdpyceojbdknofi. Scoped, additive history retained.
 BEGIN;
@@ -30,7 +37,7 @@ DO $$ BEGIN
  THEN RAISE EXCEPTION 'Expected exactly fifty matching synthetic accounts'; END IF;
  IF EXISTS(SELECT 1 FROM public.project_members WHERE user_id IN (${users}) AND project_id NOT IN (${projects}))
  THEN RAISE EXCEPTION 'Unexpected project membership; stop cleanup'; END IF;
- IF EXISTS(SELECT 1 FROM public.organization_memberships WHERE user_id IN (${users}) AND organization_id NOT IN (${organizations}))
+ IF EXISTS(SELECT 1 FROM public.organization_memberships m WHERE m.user_id IN (${users}) AND NOT ${allowedOrganization})
  THEN RAISE EXCEPTION 'Unexpected organization membership; stop cleanup'; END IF;
 END $$;
 UPDATE auth.users SET banned_until='2099-01-01T00:00:00Z', updated_at=now()
@@ -38,7 +45,7 @@ UPDATE auth.users SET banned_until='2099-01-01T00:00:00Z', updated_at=now()
 UPDATE auth.refresh_tokens SET revoked=true WHERE session_id IN (SELECT id FROM auth.sessions WHERE user_id IN (${users})) AND NOT revoked;
 UPDATE auth.sessions SET not_after=now() WHERE user_id IN (${users}) AND (not_after IS NULL OR not_after>now());
 UPDATE public.project_members SET role='external' WHERE user_id IN (${users}) AND project_id IN (${projects});
-UPDATE public.organization_memberships SET role='viewer' WHERE user_id IN (${users}) AND organization_id IN (${organizations});
+UPDATE public.organization_memberships m SET role='viewer' WHERE m.user_id IN (${users}) AND ${allowedOrganization};
 SELECT jsonb_build_object(
  'accounts_present',(SELECT count(*) FROM auth.users WHERE id IN (${users}) AND ${tag}),
  'banned_accounts',(SELECT count(*) FROM auth.users WHERE id IN (${users}) AND ${tag} AND banned_until>now()),
