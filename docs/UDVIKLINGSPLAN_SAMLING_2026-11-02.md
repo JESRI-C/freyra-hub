@@ -775,6 +775,8 @@ Planoversigt og kalender bruger nu samme validering af gemte opgave-id'er som op
 
 ### Fra aflevering til næste handling
 
+Rapporthandlingen på en godkendt aflevering angiver nu, at den klargør en rapportkladde for den viste afleveringsversion. Status vises under klargøringen og efter kvittering. Den gemte rapport åbnes på sin konkrete version, hvor PDF kan hentes. Komponentprøven dækker kvittering, versionslink og eksisterende rollekrav. Browserprøve af de nye tekster afventes.
+
 Uden en valgt opgave åbner genvejen fra Overblik nu opgavelisten, også hvis projektet sidst viste kalenderen. Listen forklarer, hvad brugeren skal vælge. En lokal prøve vælger en opgave og kontrollerer, at dens aflevering åbner. Browserprøve af denne ændring afventes.
 
 Stagingprøven bestod på kilde b07885a og Worker 260ad86e-3ac4-48f3-987d-dbc317db56b7. Ved 390 og 1280 px åbnede genvejen opgavelisten trods den tidligere kalendervisning. Brugeren kunne søge efter en konkret testopgave og åbne dens aflevering med rapporthandlingen. En på forhånd valgt opgave blev bevaret ved tastaturaktivering. Ingen JavaScript-sidefejl. Første forsøg på at vælge et søgeresultat brugte en ufuldstændig knaptekst. Prøven bestod med knappens fulde navn.

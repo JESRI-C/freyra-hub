@@ -109,17 +109,29 @@ export function WorkOrderReviewControls({
     if (authorized) onPhase(phase);
   }, [authorized, phase, onPhase]);
   async function openReport(reviewId: string, submissionId: string) {
-    if (!authorized || !canCreateReport || disabledByParent || locked || inFlight.current) return;
+    if (
+      !authorized ||
+      !canCreateReport ||
+      disabledByParent ||
+      locked ||
+      query.isFetching ||
+      inFlight.current
+    )
+      return;
     inFlight.current = true;
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const result = await saveApprovedWorkOrderReport({
         ...scope,
         submissionId,
         reviewId,
       });
-      if (alive.current) setReport(result);
+      if (alive.current) {
+        setReport(result);
+        setNotice("Rapportkladden er klar. Åbn den gemte rapport for at se den og hente PDF.");
+      }
       await cache.invalidateQueries({ queryKey: ["report-documents"] });
     } catch (e) {
       if (alive.current)
@@ -151,7 +163,7 @@ export function WorkOrderReviewControls({
         disabled={locked || disabledByParent || query.isFetching}
         onClick={() => void openReport(reviewId, submissionId)}
       >
-        Hent rapport for afleveringsversion {version}
+        Klargør rapportkladde for afleveringsversion {version}
       </button>
     );
   }
@@ -272,6 +284,7 @@ export function WorkOrderReviewControls({
       {query.isPending && <p role="status">Henter afleveringsstatus…</p>}
       {(query.error || error) && <p role="alert">{query.error?.message || error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {busy && !draft && <p role="status">Klargør rapportkladden…</p>}
       {authorized && (
         <>
           <p className="text-sm font-medium">
@@ -366,8 +379,9 @@ export function WorkOrderReviewControls({
             <div className="space-y-2 rounded-lg border p-3">
               <h4 className="font-medium">Næste skridt · Projektrapport</h4>
               <p className="text-sm">
-                Åbn en rapportkladde med den godkendte udførelse og dokumentation. Du kan derefter
-                hente PDF fra den gemte rapport.
+                Klargør rapporten med den godkendte udførelse og dokumentation fra
+                afleveringsversion {c.packet.version}. Åbn derefter rapporten for at se den og hente
+                PDF.
               </p>
               {reportAction(currentApproval.id, c.packet.id, c.packet.version)}
             </div>

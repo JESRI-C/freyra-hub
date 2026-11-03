@@ -26,7 +26,7 @@ try {
       try {
         const target = taskUrl(tenant, "submission");
         const create = page
-          .getByRole("button", { name: /^Hent rapport for afleveringsversion / })
+          .getByRole("button", { name: /^Klargør rapportkladde for afleveringsversion / })
           .first();
         const open = page.getByRole("link", { name: "Åbn den gemte rapport", exact: true }).first();
         await page.goto(target);

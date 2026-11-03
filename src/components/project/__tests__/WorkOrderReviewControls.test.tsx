@@ -209,9 +209,10 @@ it("opens the saved report on exactly the approved packet and review", async () 
     content: { workOrderApproval: { reviewId: id(20) } },
   });
   await render();
-  expect(button("Hent rapport for afleveringsversion 1")).toBeUndefined();
+  expect(button("Klargør rapportkladde for afleveringsversion 1")).toBeUndefined();
   await render({ canCreateReport: true });
-  await click(`Hent rapport for afleveringsversion ${c.packet!.version}`);
+  await click(`Klargør rapportkladde for afleveringsversion ${c.packet!.version}`);
+  expect(host.textContent).toContain("Rapportkladden er klar");
   expect(m.saveReport).toHaveBeenCalledWith({
     ...scope,
     submissionId: c.packet!.id,
@@ -246,7 +247,7 @@ it("opens the historical approval after the task has been reopened", async () =>
     content: { workOrderApproval: { reviewId: id(22) } },
   });
   await render({ canCreateReport: true });
-  await click("Hent rapport for afleveringsversion 1");
+  await click("Klargør rapportkladde for afleveringsversion 1");
   expect(m.saveReport).toHaveBeenCalledWith({
     ...scope,
     submissionId: id(23),
