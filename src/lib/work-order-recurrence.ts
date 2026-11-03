@@ -44,3 +44,10 @@ export function workOrderSeriesDates(
   }
   return dates;
 }
+
+export const recurrenceLabels: Record<RecurrenceInterval, string> = {
+  daily: "Hver dag",
+  weekly: "Hver uge",
+  fortnightly: "Hver anden uge",
+  monthly: "Hver måned",
+};

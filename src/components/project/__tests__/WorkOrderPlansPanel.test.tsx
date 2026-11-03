@@ -229,10 +229,14 @@ describe("work-order plan editor", () => {
 
   it("distinguishes follow-ups with the same title using their current calendar dates", async () => {
     m.followUps.mockResolvedValue({
-      data: [41, 42].map((n) => ({
+      data: [42, 41, 43].map((n) => ({
         id: id(n + 10),
         action_id: id(n),
         title: "Gentaget tilsyn",
+        series:
+          n === 43
+            ? null
+            : { series_id: id(80), cadence: "weekly", position: n - 40, member_count: 2 },
         source_plan_version: 1,
       })),
     });
@@ -248,7 +252,10 @@ describe("work-order plan editor", () => {
     await settle();
     await settle();
     const links = [...summary.parentElement!.querySelectorAll("a")];
-    expect(links).toHaveLength(2);
+    expect(links).toHaveLength(3);
+    expect(summary.parentElement!.textContent).toContain("Hver uge · 2 opgaver");
+    expect(links[0].textContent).toContain("1. Gentaget tilsyn");
+    expect(links[2].textContent).toContain("Ingen planlagt dato");
     expect(links[0].textContent).toContain("8. nov. 2026");
     expect(links[1].textContent).toContain("15. nov. 2026 – 16. nov. 2026");
     expect(links[1].textContent).toContain("Bygger på planversion 1");

@@ -387,5 +387,18 @@ SELECT is((SELECT count(*) FROM public.actions WHERE id=pg_temp.weekly_id(393,0)
  'out of range recurrence leaves no partial series');
 SELECT ok(NOT has_function_privilege('anon','public.create_work_order_series(uuid,uuid,uuid,date,integer,uuid,uuid,text)','EXECUTE'),
  'anonymous callers cannot invoke configurable recurrence');
+SELECT is((SELECT count(*) FROM public.work_order_series_members WHERE series_id=pg_temp.k(390)),3::bigint,
+ 'series retry records exactly three immutable members');
+SELECT is((SELECT array_agg(position ORDER BY position) FROM public.work_order_series_members WHERE series_id=pg_temp.k(390)),
+ ARRAY[1,2,3],'series positions are stable');
+SELECT is((SELECT count(*) FROM public.work_order_series_members WHERE series_id=pg_temp.k(393)),0::bigint,
+ 'a rejected series leaves no membership');
+SELECT ok(NOT has_table_privilege('authenticated','public.work_order_series_members','UPDATE'),
+ 'membership cannot be reassigned');
+SELECT throws_ok($$INSERT INTO public.work_order_series_members(plan_version_id,series_id,position,member_count,cadence)
+ SELECT id,pg_temp.k(399),1,2,'weekly' FROM pg_temp.history(37) WHERE version=1$$,'42501',NULL,
+ 'a manual follow-up cannot be assigned fabricated membership');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT is((SELECT count(*) FROM public.work_order_series_members),0::bigint,'another organization cannot see series membership');
 SELECT * FROM finish();
 ROLLBACK;

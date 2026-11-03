@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import { listFieldJobSchedule } from "@/services/field-job-cards-service";
+import { RecurrenceInterval, recurrenceLabels } from "@/lib/work-order-recurrence";
 import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import type { ProjectScope } from "@/services/project-workspace-service";
 
@@ -16,6 +17,14 @@ const rows = z
       action_id: z.string().uuid(),
       title: z.string().min(1).max(160),
       source_plan_version: z.number().int().positive(),
+      series: z
+        .object({
+          series_id: z.string().uuid(),
+          position: z.number().int().min(1).max(12),
+          member_count: z.number().int().min(2).max(12),
+          cadence: RecurrenceInterval,
+        })
+        .nullish(),
     }),
   )
   .max(pageSize + 1);
@@ -39,7 +48,9 @@ export function WorkOrderFollowUps({
       const client = createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
       let query = client
         .from("work_order_plan_versions")
-        .select("id,action_id,title:plan->>title,source_plan_version")
+        .select(
+          "id,action_id,title:plan->>title,source_plan_version,series:work_order_series_members(series_id,position,member_count,cadence)",
+        )
         .eq("organization_id", scope.organizationId)
         .eq("project_id", scope.projectId)
         .eq("source_action_id", actionId)
@@ -55,6 +66,13 @@ export function WorkOrderFollowUps({
     getNextPageParam: (page) => (page.length > pageSize ? page[pageSize - 1].id : undefined),
   });
   const items = followUps.data?.pages.flatMap((page) => page.slice(0, pageSize)) ?? [];
+  const groups = new Map<string, typeof items>();
+  for (const row of items) {
+    const key = row.series ? "series:" + row.series.series_id : "plan:" + row.id;
+    const group = groups.get(key);
+    if (group) group.push(row);
+    else groups.set(key, [row]);
+  }
   const schedule = useQuery({
     queryKey: ["field-job-schedule", actorId, scope],
     queryFn: () => listFieldJobSchedule(scope),
@@ -82,23 +100,46 @@ export function WorkOrderFollowUps({
         (items.length === 0 ? (
           <p className="text-sm">Ingen opfølgende opgaver med gemt plan.</p>
         ) : (
-          <ul className="space-y-1">
-            {items.map((row) => (
-              <li key={row.id}>
-                <Link
-                  to="/app/projects/$slug"
-                  params={{ slug: scope.projectId }}
-                  search={{ tab: "handlinger", task: row.action_id, work: "plan" }}
-                  className="block min-h-11 rounded-lg border px-3 py-2 text-sm [overflow-wrap:anywhere]"
-                >
-                  <span className="block font-medium text-primary">{row.title}</span>
-                  <span className="block text-muted-foreground">
-                    {schedule.isSuccess && <>{scheduleLabel(schedule.data[row.action_id])} · </>}
-                    Bygger på planversion {row.source_plan_version}
-                  </span>
-                </Link>
-              </li>
-            ))}
+          <ul className="space-y-2">
+            {[...groups].map(([key, group]) => {
+              const series = group[0].series;
+              const ordered = group.sort(
+                (a, b) => (a.series?.position ?? 0) - (b.series?.position ?? 0),
+              );
+              return (
+                <li key={key} className={series ? "rounded-xl border p-2" : undefined}>
+                  {series && (
+                    <p className="mb-2 px-1 text-sm font-medium">
+                      {recurrenceLabels[series.cadence]} · {series.member_count} opgaver
+                      {group.length < series.member_count && " · " + group.length + " vist"}
+                    </p>
+                  )}
+                  <ul className="space-y-1">
+                    {ordered.map((row) => (
+                      <li key={row.id}>
+                        <Link
+                          to="/app/projects/$slug"
+                          params={{ slug: scope.projectId }}
+                          search={{ tab: "handlinger", task: row.action_id, work: "plan" }}
+                          className="block min-h-11 rounded-lg border px-3 py-2 text-sm [overflow-wrap:anywhere]"
+                        >
+                          <span className="block font-medium text-primary">
+                            {row.series && `${row.series.position}. `}
+                            {row.title}
+                          </span>
+                          <span className="block text-muted-foreground">
+                            {schedule.isSuccess && (
+                              <>{scheduleLabel(schedule.data[row.action_id])} · </>
+                            )}
+                            Bygger på planversion {row.source_plan_version}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
           </ul>
         ))}
       {open && items.length > 0 && schedule.isError && (
