@@ -35,20 +35,31 @@ function scopeRow<T extends { project_id: string; organization_id: string }>(
     throw new Error("Jobkortet tilhører en anden sag.");
   return row;
 }
-export async function listFieldJobActions(scope: ProjectScope) {
+const fieldJobAction = z.object({ id: uuid, title: z.string(), status: z.string().nullable() });
+
+export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSignal) {
   const db = await client(scope);
-  const { data, error } = await db
-    .from("actions")
-    .select("id,title,status,action_type")
-    .eq("project_id", scope.projectId)
-    .order("id")
-    .limit(501);
-  if (error) failure(error);
-  if ((data ?? []).length > 500)
-    throw new Error("Projektet har over 500 opgaver. Jobkort kræver et afgrænset opgaveudvalg.");
-  return (data ?? [])
-    .filter((r) => r.action_type !== "workflow_followup")
-    .map((r) => z.object({ id: uuid, title: z.string(), status: z.string().nullable() }).parse(r));
+  const actions: z.infer<typeof fieldJobAction>[] = [];
+  const pageSize = 200;
+  let afterId: string | undefined;
+  for (;;) {
+    signal?.throwIfAborted();
+    let query = db
+      .from("actions")
+      .select("id,title,status,action_type")
+      .eq("project_id", scope.projectId)
+      .order("id")
+      .limit(pageSize);
+    if (afterId) query = query.gt("id", afterId);
+    if (signal) query = query.abortSignal(signal);
+    const { data, error } = await query;
+    if (error) failure(error);
+    for (const row of data ?? []) {
+      if (row.action_type !== "workflow_followup") actions.push(fieldJobAction.parse(row));
+    }
+    if (!data || data.length < pageSize) return actions;
+    afterId = uuid.parse(data[data.length - 1].id);
+  }
 }
 const scheduleRow = z.object({
   action_id: uuid,

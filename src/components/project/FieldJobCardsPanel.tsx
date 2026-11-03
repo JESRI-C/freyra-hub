@@ -59,7 +59,7 @@ function JobCards({
   const enabled = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
-    queryFn: () => listFieldJobActions(scope),
+    queryFn: ({ signal }) => listFieldJobActions(scope, signal),
     enabled,
     retry: false,
   });

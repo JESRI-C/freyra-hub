@@ -4,6 +4,7 @@ const state = vi.hoisted(() => ({
   rpc: vi.fn(),
   filters: [] as unknown[][],
   rows: [] as unknown[],
+  pages: [] as unknown[][],
   template: null as unknown,
   error: null as null | { code: string },
 }));
@@ -19,7 +20,15 @@ vi.mock("@/lib/supabase/client", () => ({
           return q;
         },
         order: () => q,
-        limit: async () => ({ data: state.rows, error: state.error }),
+        limit: () => q,
+        gt: (...args: unknown[]) => {
+          state.filters.push(args);
+          return q;
+        },
+        then: (resolve: (result: unknown) => void) =>
+          Promise.resolve({ data: state.pages.shift() ?? state.rows, error: state.error }).then(
+            resolve,
+          ),
         single: async () => ({ data: state.template, error: state.error }),
       };
       return q;
@@ -27,6 +36,7 @@ vi.mock("@/lib/supabase/client", () => ({
   },
 }));
 import {
+  listFieldJobActions,
   listFieldJobTemplates,
   listFieldJobVersions,
   saveFieldJobTemplate,
@@ -65,9 +75,25 @@ describe("project scoped job card persistence", () => {
     vi.clearAllMocks();
     state.filters = [];
     state.rows = [];
+    state.pages = [];
     state.template = template;
     state.error = null;
     state.rpc.mockResolvedValue({ data: [record], error: null });
+  });
+  it("reads a project with 1001 tasks across stable cursors and omits workflow followups", async () => {
+    const rows = Array.from({ length: 1002 }, (_, index) => ({
+      id: id(index + 100),
+      title: "Opgave " + index,
+      status: null,
+      action_type: index === 199 ? "workflow_followup" : null,
+    }));
+    state.pages = Array.from({ length: 6 }, (_, page) => rows.slice(page * 200, (page + 1) * 200));
+    const actions = await listFieldJobActions(scope);
+    expect(actions).toHaveLength(1001);
+    expect(actions.at(-1)?.id).toBe(rows.at(-1)?.id);
+    expect(state.filters).toContainEqual(["id", rows[199].id]);
+    expect(state.filters).toContainEqual(["id", rows[999].id]);
+    expect(actions.some((row) => row.id === rows[199].id)).toBe(false);
   });
   it("scopes template and history reads to project and organisation", async () => {
     state.rows = [template];

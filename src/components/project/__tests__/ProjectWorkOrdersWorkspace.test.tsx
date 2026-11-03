@@ -270,6 +270,33 @@ it("marks only overlapping days for the same responsible person", async () => {
   expect(host.querySelector('button[aria-label*="flere opgaver for samme ansvarlige"]')).toBeNull();
 });
 
+it("searches the full project while limiting the rendered task list", async () => {
+  m.actions.mockResolvedValue(
+    Array.from({ length: 1001 }, (_, n) => ({
+      id: "task-" + n,
+      title: "Arbejdsopgave " + n,
+      status: null,
+    })),
+  );
+  await render();
+  expect(host.textContent).toContain("40 af 1001");
+  const field = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
+      field,
+      "ARBEJDSOPGAVE 1000",
+    );
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  const card = [...host.querySelectorAll("button")].find((button) =>
+    button.textContent?.includes("Arbejdsopgave 1000"),
+  );
+  expect(card).toBeDefined();
+  expect(host.textContent).not.toContain("Arbejdsopgave 999");
+  await act(async () => card!.click());
+  expect(m.navigate).toHaveBeenCalledWith("task-1000");
+});
+
 describe("one task across the project workspaces", () => {
   it("moves to the next step without discarding the current plan draft", async () => {
     await render("first");

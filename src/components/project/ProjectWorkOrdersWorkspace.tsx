@@ -31,6 +31,7 @@ type Props = {
 export type { WorkOrderView } from "@/lib/work-order-navigation";
 type Part = WorkOrderView;
 const parts = WORK_ORDER_PARTS;
+const taskPageSize = 40;
 const scheduleDate = new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeZone: "UTC" });
 function scheduleLabel(plan?: { start: string | null; end: string | null }) {
   if (!plan?.start) return "Ingen planlagt dato";
@@ -70,6 +71,8 @@ function WorkOrders({
   const [month, setMonth] = useState(() => new Date());
   const [day, setDay] = useState<Date>();
   const [responsible, setResponsible] = useState("");
+  const [taskSearch, setTaskSearch] = useState("");
+  const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView !== "tasks";
   const [scheduleActionId, setScheduleActionId] = useState<string>();
   const actionId = selectedActionId ?? localActionId;
@@ -118,7 +121,7 @@ function WorkOrders({
   const authorized = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
-    queryFn: () => listFieldJobActions(scope),
+    queryFn: ({ signal }) => listFieldJobActions(scope, signal),
     enabled: authorized,
     retry: false,
     refetchOnWindowFocus: !locked,
@@ -166,7 +169,9 @@ function WorkOrders({
           const plan = dates?.[id];
           return plan?.start && plan.start <= through && (plan.end ?? plan.start) >= from;
         })
-      : orderedActions;
+      : orderedActions?.filter((task) =>
+          task.title.toLocaleLowerCase("da").includes(taskSearch.trim().toLocaleLowerCase("da")),
+        );
   const visibleCount = visibleActions?.length ?? 0;
   const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
   const daySummaries = new Map<string, { total: number; overlap: Set<string> }>();
@@ -323,12 +328,30 @@ function WorkOrders({
                       }
                       aria-pressed={listView === view}
                       disabled={locked}
-                      onClick={() => setListView(view)}
+                      onClick={() => {
+                        setListView(view);
+                        setTaskLimit(taskPageSize);
+                      }}
                     >
                       {label}
                     </button>
                   ))}
                 </div>
+              )}
+              {listView !== "calendar" && !!actions.data.length && (
+                <label className="block text-sm font-medium">
+                  Find opgave
+                  <input
+                    type="search"
+                    className={control}
+                    placeholder="Søg efter opgavens titel"
+                    value={taskSearch}
+                    onChange={(event) => {
+                      setTaskSearch(event.target.value);
+                      setTaskLimit(taskPageSize);
+                    }}
+                  />
+                </label>
               )}
               {showSchedule && (
                 <div className="space-y-2">
@@ -430,11 +453,12 @@ function WorkOrders({
                   </button>
                 </div>
               )}
-              {listView === "schedule" && schedule.isSuccess && !visibleCount && (
-                <p role="status">Ingen opgaver matcher den valgte ansvarlige.</p>
-              )}
+              {listView !== "calendar" &&
+                (!showSchedule || schedule.isSuccess) &&
+                !!actions.data.length &&
+                !visibleCount && <p role="status">Ingen opgaver matcher dit udvalg.</p>}
               {(!showSchedule || schedule.isSuccess) &&
-                visibleActions?.map((a) => (
+                visibleActions?.slice(0, taskLimit).map((a) => (
                   <button
                     type="button"
                     key={a.id}
@@ -467,6 +491,15 @@ function WorkOrders({
                     <span className="shrink-0 text-sm text-primary">Åbn →</span>
                   </button>
                 ))}
+              {(!showSchedule || schedule.isSuccess) && visibleCount > taskLimit && (
+                <button
+                  type="button"
+                  className={button}
+                  onClick={() => setTaskLimit(taskLimit + taskPageSize)}
+                >
+                  Vis flere opgaver · {taskLimit} af {visibleCount}
+                </button>
+              )}
             </div>
           )}
           {!creating && canEdit && access.data?.canConfigure && (
