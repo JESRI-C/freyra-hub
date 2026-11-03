@@ -169,6 +169,26 @@ function WorkOrders({
       : orderedActions;
   const visibleCount = visibleActions?.length ?? 0;
   const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
+  const daySummaries = new Map<string, { total: number; overlap: Set<string> }>();
+  function daySummary(key: string) {
+    const cached = daySummaries.get(key);
+    if (cached) return cached;
+    let total = 0;
+    const assigned = new Set<string>();
+    const overlap = new Set<string>();
+    for (const plan of scheduledPeriods) {
+      if (!plan.start || plan.start > key || (plan.end ?? plan.start) < key) continue;
+      total++;
+      if (canEdit && plan.responsibleId) {
+        if (assigned.has(plan.responsibleId)) overlap.add(plan.responsibleId);
+        assigned.add(plan.responsibleId);
+      }
+    }
+    const summary = { total, overlap };
+    daySummaries.set(key, summary);
+    return summary;
+  }
+  const dayOverlap = day ? daySummary(from).overlap : undefined;
   const selected = actions.data?.find((a) => a.id === actionId);
   function select(id: string, view?: WorkOrderView) {
     if (locked) return;
@@ -373,26 +393,29 @@ function WorkOrders({
                     showOutsideDays={false}
                     className="max-w-full p-1 [--cell-size:clamp(1.5rem,8vw,2.75rem)]"
                     modifiers={{
-                      planned: (date) => {
-                        const key = calendarKey(date);
-                        return scheduledPeriods.some(
-                          (plan) =>
-                            plan.start && plan.start <= key && (plan.end ?? plan.start) >= key,
-                        );
-                      },
+                      planned: (date) => daySummary(calendarKey(date)).total > 0,
+                      overlap: (date) => daySummary(calendarKey(date)).overlap.size > 0,
                     }}
                     modifiersClassNames={{
                       planned:
                         "[&_button]:font-semibold [&_button]:underline [&_button]:underline-offset-4",
+                      overlap: "[&_button]:ring-2 [&_button]:ring-inset [&_button]:ring-amber-600",
                     }}
                     labels={{
                       labelPrevious: () => "Forrige måned",
                       labelNext: () => "Næste måned",
                       labelDayButton: (date, modifiers, options, lib) =>
                         labelDayButton(date, modifiers, options, lib) +
-                        (modifiers.planned ? ", planlagt arbejde" : ""),
+                        (modifiers.planned ? ", planlagt arbejde" : "") +
+                        (modifiers.overlap ? ", flere opgaver for samme ansvarlige" : ""),
                     }}
                   />
+                  {canEdit && (
+                    <p className="text-sm text-muted-foreground">
+                      En ring markerer, at samme ansvarlige har flere opgaver på datoen. Vælg dagen
+                      for at se opgaverne.
+                    </p>
+                  )}
                   {day && (
                     <button type="button" className={button} onClick={() => setDay(undefined)}>
                       Vis hele måneden
@@ -432,6 +455,12 @@ function WorkOrders({
                                 : "Ingen ansvarlig i planen"}
                             </span>
                           )}
+                          {listView === "calendar" &&
+                            dayOverlap?.has(dates?.[a.id]?.responsibleId ?? "") && (
+                              <span className="block font-medium text-foreground">
+                                Flere opgaver samme dag
+                              </span>
+                            )}
                         </span>
                       )}
                     </span>

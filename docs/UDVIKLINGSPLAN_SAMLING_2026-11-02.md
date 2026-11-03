@@ -436,3 +436,5 @@ Under Arbejdsopgaver kan projektlederen skifte mellem Opgaveliste og Planoversig
 Kalendervisningen bruger de samme gemte planer som Planoversigt. Projektlederen kan bladre mellem måneder, finde dage med planlagt arbejde og filtrere listen til en dag. Perioder vises på alle dage i perioden, også på tværs af måneder. Opgaver åbner i Arbejdsgrundlag. Kapacitet, gentagelser og opgaveafhængigheder står fortsat åbne.
 
 Projektredaktører kan filtrere Planoversigt og Kalender efter den ansvarlige i den seneste plan eller finde opgaver uden ansvarlig. Den eksisterende projektpersonliste bruges til navne. Det valgte filter gælder både kalenderens markeringer og listen, og Planoversigt viser også de ansvarliges udaterede opgaver. Filteret viser arbejdsfordelingen. Målt kapacitet, gentagelser og opgaveafhængigheder er fortsat åbne.
+
+Kalenderen markerer dage, hvor mindst to opgaver med overlappende planperioder har samme ansvarlige. Markeringen kan læses med skærmlæser. Vælg dagen for at finde de berørte opgaver. Beregningen følger det valgte ansvarligfilter og bruger planlagte datoer. Arbejdstimer, tilgængelighed og faktisk kapacitet afventer.
