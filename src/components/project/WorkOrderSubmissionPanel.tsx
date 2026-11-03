@@ -240,29 +240,34 @@ export function WorkOrderSubmissionPanel({
               {!!c?.gaps?.length && (
                 <div>
                   <h4 className="font-medium">Dette mangler før grundlaget kan fastholdes</h4>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                    {c.gaps.map((gap) => (
-                      <li key={gap}>
-                        {submissionGapLabels[gap]}
-                        {onOpenPart && (
-                          <button
-                            type="button"
-                            className="block min-h-11 text-left font-medium text-primary underline underline-offset-2 disabled:opacity-50"
-                            disabled={locked}
-                            onClick={() => {
-                              if (!locked) onOpenPart(gapDestination[gap]);
-                            }}
-                          >
-                            Åbn{" "}
-                            {
-                              WORK_ORDER_PARTS.find((part) => part.id === gapDestination[gap])
-                                ?.label
-                            }
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                  <ol className="mt-2 space-y-2 text-sm">
+                    {WORK_ORDER_PARTS.map((part) => {
+                      const gaps = c.gaps?.filter((gap) => gapDestination[gap] === part.id);
+                      if (!gaps?.length) return null;
+                      return (
+                        <li key={part.id} className="rounded-lg border p-3">
+                          <h5 className="font-medium">{part.label}</h5>
+                          <ul className="mt-1 list-disc space-y-1 pl-5">
+                            {gaps.map((gap) => (
+                              <li key={gap}>{submissionGapLabels[gap]}</li>
+                            ))}
+                          </ul>
+                          {onOpenPart && (
+                            <button
+                              type="button"
+                              className="block min-h-11 text-left font-medium text-primary underline underline-offset-2 disabled:opacity-50"
+                              disabled={locked}
+                              onClick={() => {
+                                if (!locked) onOpenPart(part.id);
+                              }}
+                            >
+                              Åbn {part.label}
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
                   {(c.gaps.includes("observation_incomplete") ||
                     c.gaps.includes("observation_needs_review")) && (
                     <p className="mt-2 text-sm">

@@ -99,8 +99,15 @@ afterEach(async () => {
 });
 describe("submission preparation on the existing task", () => {
   it("shows concrete gaps and cannot save an incomplete task", async () => {
-    m.context.mockResolvedValue({ ...context(), gaps: ["task_blocked", "evidence_missing"] });
+    m.context.mockResolvedValue({
+      ...context(),
+      gaps: ["evidence_missing", "task_blocked", "plan_incomplete"],
+    });
     await render();
+    const shortcuts = [...host.querySelectorAll("button")]
+      .map((button) => button.textContent)
+      .filter((label) => label === "Åbn Arbejdsgrundlag" || label === "Åbn Dokumentation");
+    expect(shortcuts).toEqual(["Åbn Arbejdsgrundlag", "Åbn Dokumentation"]);
     await click("Åbn Arbejdsgrundlag");
     await click("Åbn Dokumentation");
     expect(m.openPart.mock.calls).toEqual([["plan"], ["evidence"]]);
