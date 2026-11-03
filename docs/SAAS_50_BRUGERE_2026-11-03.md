@@ -58,6 +58,6 @@ Der er ikke ændret produktion, merget kode, sendt invitationer eller aktiveret 
 
 S05 er teknisk verificeret på staging for den godkendte arbejdsopgave. Projektlederen kan danne og genåbne en rapport fra den konkrete godkendelse, eksportere PDF og følge forbindelsen tilbage til opgaven og originalerne. Browserprøven dækkede 320, 390 og 1280 px. Se udviklingsplanens S05-afsnit for revisioner og testbevis.
 
-Projektets arbejdsopgaver har desuden fået plan- og kalenderoversigt, registrering af timer og materialer, kortlagte besøg med udførelseshistorik og udstyrsbooking. Se udviklingsplanen for de enkelte leverancer og deres teststatus. Ledighed inden reservation er implementeret i `6c3ddbb`. Databasetest og browserprøve på staging afventer.
+Projektets arbejdsopgaver har desuden fået plan- og kalenderoversigt, registrering af timer og materialer, kortlagte besøg med udførelseshistorik og udstyrsbooking. Se udviklingsplanen for de enkelte leverancer og deres teststatus. Ledighed inden reservation er implementeret i `6c3ddbb`. Databasetesten bestod, og Chrome-prøven på staging ved 390 px bekræftede, at en optaget periode blokerer gemning, og at aflysning frigiver perioden og bevarer historikken.
 
 Tallene i rapporten gælder den oprindelige 50-brugerprøve. Der er stadig åbne frigivelseskriterier for fysisk telefon, uassisteret brug, fuld Skyhost-dækning og fagvisninger, længere belastning, kundens onboarding, betaling og produktionsdrift.
