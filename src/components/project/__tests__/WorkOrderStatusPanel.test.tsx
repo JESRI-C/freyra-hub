@@ -120,7 +120,7 @@ async function render(
   actorId = actor,
   actions?: Pick<
     React.ComponentProps<typeof WorkOrderStatusPanel>,
-    "onOpenPlan" | "onOpenAssignment"
+    "onOpenPlan" | "onOpenAssignment" | "onOpenExecution"
   >,
 ) {
   await act(async () =>
@@ -334,13 +334,16 @@ describe("mobile operation status and canonical logbook", () => {
       },
       basis: { ...basis, executionGaps: ["actual_method_unknown", "actual_coverage_unknown"] },
     });
-    await render();
+    const onOpenExecution = vi.fn();
+    await render(actor, { onOpenExecution });
     expect(
       [...host.querySelectorAll("button")].find((b) => b.textContent === "Bekræft udført")
         ?.disabled,
     ).toBe(true);
     expect(host.textContent).toContain("Faktisk metode mangler");
     expect(host.textContent).toContain("Faktisk dækning mangler");
+    await click("Åbn udførelsesregistreringen");
+    expect(onOpenExecution).toHaveBeenCalledOnce();
     expect(m.change).not.toHaveBeenCalled();
   });
   it("records an independent block with explicit owner, next action and unknown deadline", async () => {

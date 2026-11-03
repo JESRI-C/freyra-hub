@@ -1237,6 +1237,7 @@ function TaskWorkspace({
             onFollowUp={onFollowUp}
             suggestedStart={suggestedStart}
             onEditing={planEditing}
+            onOpenExecution={() => openPartWithFocus("execution")}
           />
         </div>
       )}

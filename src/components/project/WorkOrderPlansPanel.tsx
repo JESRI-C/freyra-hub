@@ -60,6 +60,7 @@ type PlanPanelProps = {
   openReschedule?: PlanDateEditorRequest;
   planSource?: WorkOrderFollowUpSource;
   onFollowUp?: (source: WorkOrderFollowUpSource) => void;
+  onOpenExecution?: () => void;
   suggestedStart?: string;
   onEditing?: (value: boolean) => void;
 };
@@ -83,6 +84,7 @@ function WorkOrderPlans({
   openReschedule,
   planSource,
   onFollowUp,
+  onOpenExecution,
   suggestedStart,
   onEditing,
 }: PlanPanelProps & {
@@ -176,6 +178,7 @@ function WorkOrderPlans({
               openReschedule={openReschedule}
               planSource={planSource}
               onFollowUp={onFollowUp}
+              onOpenExecution={onOpenExecution}
               suggestedStart={suggestedStart}
               canBook={access.data?.canManageAvailability === true}
               onEditing={setEditing}
@@ -208,6 +211,7 @@ function PlanWorkspace({
   openReschedule,
   planSource,
   onFollowUp,
+  onOpenExecution,
   suggestedStart,
   onEditing,
 }: {
@@ -222,6 +226,7 @@ function PlanWorkspace({
   openReschedule?: PlanDateEditorRequest;
   planSource?: WorkOrderFollowUpSource;
   onFollowUp?: (source: WorkOrderFollowUpSource) => void;
+  onOpenExecution?: () => void;
   suggestedStart?: string;
   onEditing: (value: boolean) => void;
 }) {
@@ -877,6 +882,7 @@ function PlanWorkspace({
               scope={{ ...scope, actionId }}
               actorId={actorId}
               manageNavigation={false}
+              onOpenExecution={onOpenExecution}
               onOpenPlan={
                 canPlan && history.isSuccess && !history.isFetching
                   ? () => {

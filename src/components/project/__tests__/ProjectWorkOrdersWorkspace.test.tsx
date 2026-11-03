@@ -101,6 +101,7 @@ vi.mock("../WorkOrderPlansPanel", () => ({
       openBooking?: boolean;
       openReschedule?: boolean;
       suggestedStart?: string;
+      onOpenExecution?: () => void;
     },
   ) => (
     <>
@@ -108,6 +109,9 @@ vi.mock("../WorkOrderPlansPanel", () => ({
       {props.suggestedStart && <p>Forslag: {props.suggestedStart}</p>}
       {props.openBooking && <p>Bookingpanelet er åbent</p>}
       {props.openReschedule && <p>Datoformularen er åben</p>}
+      <button type="button" onClick={props.onOpenExecution}>
+        Åbn udførelsesregistreringen
+      </button>
     </>
   ),
 }));
@@ -667,7 +671,9 @@ describe("one task across the project workspaces", () => {
     expect(host.querySelectorAll("select")).toHaveLength(1);
     expect(host.querySelector('[aria-label="Felt"]')).toBeNull();
     await click("Feltregistrering");
-    await click("Udført arbejde");
+    await click("Arbejdsgrundlag");
+    await click("Åbn udførelsesregistreringen");
+    expect(document.activeElement?.textContent).toBe("Udført arbejde");
     expect(host.querySelector('[aria-label="Felt"]')?.textContent).toContain("second");
     expect(host.querySelector('[aria-label="Udførelse"]')?.textContent).toContain("second");
     expect(host.querySelector('a[href*="tab=medier"]')?.getAttribute("href")).toContain(

@@ -36,6 +36,7 @@ type Props = {
   manageNavigation?: boolean;
   onOpenPlan?: () => void;
   onOpenAssignment?: () => void;
+  onOpenExecution?: () => void;
 };
 type Target = NonNullable<LifecycleRequest["targetStatus"]>;
 type StatusDraft = {
@@ -86,6 +87,7 @@ function StatusPanel({
   manageNavigation = true,
   onOpenPlan,
   onOpenAssignment,
+  onOpenExecution,
 }: Props) {
   const load = useServerFn(getProjectWorkOrderLifecycleContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
@@ -504,6 +506,11 @@ function StatusPanel({
                     </button>
                   )}
                 </div>
+              )}
+              {next === "performed" && !!current.basis.executionGaps.length && onOpenExecution && (
+                <button type="button" className={button} disabled={busy} onClick={onOpenExecution}>
+                  Åbn udførelsesregistreringen
+                </button>
               )}
             </div>
           )}
