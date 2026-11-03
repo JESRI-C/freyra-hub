@@ -63,6 +63,9 @@ export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSig
   }
 }
 const scheduleRow = z.object({
+  work_order_prerequisite_versions: z
+    .array(z.object({ prerequisite_action_id: uuid.nullable() }))
+    .max(1),
   action_id: uuid,
   work_order_lifecycle_versions: z.array(z.object({ status: z.string() })).max(1),
   work_order_plan_versions: z
@@ -85,19 +88,22 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     {
       planVersionId: string;
       cancelled: boolean;
+      waitingForActionId: string | null;
       start: string | null;
       end: string | null;
       responsibleId: string | null;
       estimatedHours: number | null;
     }
   > = {};
+  const prerequisites = new Map<string, string>();
+  const completed = new Set<string>();
   const pageSize = 200;
   let afterId: string | undefined;
   for (;;) {
     let query = db
       .from("work_orders")
       .select(
-        "action_id,work_order_plan_versions(id,planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours),work_order_lifecycle_versions(status)",
+        "action_id,work_order_plan_versions(id,planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours),work_order_lifecycle_versions(status),work_order_prerequisite_versions(prerequisite_action_id)",
       )
       .eq("organization_id", scope.organizationId)
       .eq("project_id", scope.projectId)
@@ -106,26 +112,42 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
       .limit(1, { referencedTable: "work_order_plan_versions" })
       .order("version", { referencedTable: "work_order_lifecycle_versions", ascending: false })
       .limit(1, { referencedTable: "work_order_lifecycle_versions" })
+      .order("version", { referencedTable: "work_order_prerequisite_versions", ascending: false })
+      .limit(1, { referencedTable: "work_order_prerequisite_versions" })
       .limit(pageSize);
     if (afterId) query = query.gt("action_id", afterId);
     const { data, error } = await query;
     if (error) throw new Error("Planoversigten kunne ikke hentes. Prøv igen.");
     const rows = z.array(scheduleRow).parse(data);
     for (const row of rows) {
+      const status = row.work_order_lifecycle_versions[0]?.status;
+      if (status === "performed" || status === "submitted" || status === "approved") {
+        completed.add(row.action_id);
+      }
+      const prerequisite = row.work_order_prerequisite_versions[0]?.prerequisite_action_id;
+      if (prerequisite && (!status || ["draft", "planned", "assigned"].includes(status))) {
+        prerequisites.set(row.action_id, prerequisite);
+      }
       const plan = row.work_order_plan_versions[0];
       if (plan)
         dates[row.action_id] = {
           planVersionId: plan.id,
-          cancelled: row.work_order_lifecycle_versions[0]?.status === "cancelled",
+          cancelled: status === "cancelled",
+          waitingForActionId: null,
           start: plan.planned_start,
           end: plan.planned_end,
           responsibleId: plan.responsible_id,
           estimatedHours: plan.estimated_hours,
         };
     }
-    if (rows.length < pageSize) return dates;
+    if (rows.length < pageSize) break;
     afterId = rows[rows.length - 1].action_id;
   }
+  for (const [actionId, prerequisiteId] of prerequisites) {
+    const plan = dates[actionId];
+    if (plan && !completed.has(prerequisiteId)) plan.waitingForActionId = prerequisiteId;
+  }
+  return dates;
 }
 export async function listFieldJobTemplates(scope: ProjectScope) {
   const db = await client(scope);

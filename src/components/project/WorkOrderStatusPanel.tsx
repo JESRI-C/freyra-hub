@@ -277,6 +277,7 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
         cache.invalidateQueries({ queryKey: contextKey }),
         cache.invalidateQueries({ queryKey: logKey }),
         cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId] }),
+        cache.invalidateQueries({ queryKey: ["work-order-prerequisite", actorId] }),
         cache.invalidateQueries({ queryKey: ["my-work-orders", actorId] }),
       ]);
     } catch (e) {

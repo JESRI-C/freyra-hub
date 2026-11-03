@@ -230,23 +230,25 @@ function WorkOrders({
   const calendarEstimates = [...estimates.values()].filter((hours) => hours !== null);
   const totalEstimatedHours = knownEstimates.reduce((total, hours) => total + hours, 0);
   const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
-  const daySummaries = new Map<string, { total: number; overlap: Set<string> }>();
+  const daySummaries = new Map<string, { total: number; waiting: number; overlap: Set<string> }>();
   function daySummary(key: string) {
     const cached = daySummaries.get(key);
     if (cached) return cached;
     let total = 0;
+    let waiting = 0;
     const assigned = new Set<string>();
     const overlap = new Set<string>();
     for (const plan of scheduledPeriods) {
       if (plan.cancelled || !plan.start || plan.start > key || (plan.end ?? plan.start) < key)
         continue;
       total++;
+      if (plan.waitingForActionId) waiting++;
       if (canEdit && plan.responsibleId) {
         if (assigned.has(plan.responsibleId)) overlap.add(plan.responsibleId);
         assigned.add(plan.responsibleId);
       }
     }
-    const summary = { total, overlap };
+    const summary = { total, waiting, overlap };
     daySummaries.set(key, summary);
     return summary;
   }
@@ -563,10 +565,12 @@ function WorkOrders({
                     modifiers={{
                       planned: (date) => daySummary(calendarKey(date)).total > 0,
                       overlap: (date) => daySummary(calendarKey(date)).overlap.size > 0,
+                      waiting: (date) => daySummary(calendarKey(date)).waiting > 0,
                     }}
                     modifiersClassNames={{
                       planned:
                         "[&_button]:font-semibold [&_button]:underline [&_button]:underline-offset-4",
+                      waiting: "[&_button]:bg-amber-100 dark:[&_button]:bg-amber-950",
                       overlap: "[&_button]:ring-2 [&_button]:ring-inset [&_button]:ring-amber-600",
                     }}
                     labels={{
@@ -575,9 +579,15 @@ function WorkOrders({
                       labelDayButton: (date, modifiers, options, lib) =>
                         labelDayButton(date, modifiers, options, lib) +
                         (modifiers.planned ? ", planlagt arbejde" : "") +
+                        (modifiers.waiting ? ", opgaver afventer forudsætning" : "") +
                         (modifiers.overlap ? ", flere opgaver for samme ansvarlige" : ""),
                     }}
                   />
+                  {scheduledPeriods.some((plan) => plan.waitingForActionId) && (
+                    <p className="text-sm text-muted-foreground">
+                      En gul baggrund markerer opgaver, der afventer en forudsætning.
+                    </p>
+                  )}
                   {canEdit && (
                     <p className="text-sm text-muted-foreground">
                       En ring markerer, at samme ansvarlige har flere opgaver på datoen. Vælg dagen
@@ -653,6 +663,7 @@ function WorkOrders({
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const estimate = estimates.get(a.id);
+                  const prerequisiteId = dates?.[a.id]?.waitingForActionId;
                   return (
                     <div key={a.id} className="space-y-1">
                       <button
@@ -666,6 +677,13 @@ function WorkOrders({
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
                               {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
+                              {prerequisiteId && (
+                                <span className="block font-medium text-foreground">
+                                  Afventer ·{" "}
+                                  {actions.data.find((task) => task.id === prerequisiteId)?.title ??
+                                    "Forudsætning for opstart"}
+                                </span>
+                              )}
                               {estimate != null && (
                                 <span className="block">
                                   {listView === "calendar" ? "Estimat i udsnittet" : "Estimat"} ·{" "}

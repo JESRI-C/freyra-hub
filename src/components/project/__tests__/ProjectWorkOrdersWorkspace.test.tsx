@@ -233,6 +233,7 @@ it("shows a task spanning the month boundary and filters it by a planned day", a
       start: key(new Date(now.getFullYear(), now.getMonth(), 0)),
       end: key(new Date(now.getFullYear(), now.getMonth(), 4)),
       estimatedHours: 10,
+      waitingForActionId: "first",
     },
   });
   await render();
@@ -240,13 +241,18 @@ it("shows a task spanning the month boundary and filters it by a planned day", a
   const plannedDays = [
     ...host.querySelectorAll<HTMLButtonElement>('button[aria-label*="planlagt arbejde"]'),
   ];
+  expect(
+    plannedDays.every((day) =>
+      day.getAttribute("aria-label")?.includes("opgaver afventer forudsætning"),
+    ),
+  ).toBe(true);
   expect(plannedDays).toHaveLength(4);
   expect(host.textContent).toContain("Estimeret tid i udsnittet · 8 timer");
   await act(async () => plannedDays[2].click());
   expect(host.textContent).toContain("1 planlagt opgave på den valgte dato");
   expect(host.textContent).toContain("Estimeret tid i udsnittet · 2 timer");
   expect(host.textContent).toContain(tasks[1].title);
-  expect(host.textContent).not.toContain(tasks[0].title);
+  expect(host.textContent).toContain("Afventer · " + tasks[0].title);
   const task = [...host.querySelectorAll("button")].find((button) =>
     button.textContent?.includes(tasks[1].title),
   )!;

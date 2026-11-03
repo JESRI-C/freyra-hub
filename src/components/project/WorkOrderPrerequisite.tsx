@@ -63,7 +63,10 @@ export function WorkOrderPrerequisite({
         },
       });
       setDraft(undefined);
-      await cache.invalidateQueries({ queryKey: key });
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: key }),
+        cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId, scope] }),
+      ]);
       setSaved(true);
     } catch {
       setError(

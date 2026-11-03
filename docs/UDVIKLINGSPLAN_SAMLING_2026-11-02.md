@@ -658,3 +658,7 @@ I Chrome ved 390 px aflyste projektlederen to månedlige opgaver fra samme serie
 Under Arbejdsgrundlag kan projektlederen vælge én forudgående opgave i samme projekt. Ændring og fjernelse tilføjer en version. En uafsluttet forudsætning vises ved Registrer start, og den normale statusovergang afvises i databasen, indtil den forudgående opgave er udført, afleveret eller godkendt. En ekstern udfører får kun adgang til oplysninger om en forudgående opgave, som vedkommende allerede må se. Cirkulære afhængigheder afvises.
 
 I Chrome ved 390 px valgte projektlederen en anden opgave som forudsætning. Efter genindlæsning viste arbejdsgrundlaget Afventer og et link til den valgte opgave. Databaseprøven bekræftede, at den normale startregistrering blev afvist, at et genforsøg genbrugte versionsnummeret, og at forbindelser på tværs af projekter samt en cirkel med tre opgaver blev afvist. 26 målrettede app-tests, typekontrol, lint og staging-build bestod. Kilde ce82afe, Worker 3ff2576c-6105-4e99-af2d-1fc0c0760446 og migration 20261103135520.
+
+### S13 – Forudsætninger i planoversigt og kalender
+
+Planoversigt og kalender viser opgaver, der afventer en forudsætning. Opgaverækken viser den forudgående opgaves navn, når det er tilgængeligt i projektlisten. Kalenderens datoer får en synlig markering og en tilgængelig beskrivelse. En ændring i forudsætning eller status opdaterer de eksisterende planlæsninger.
