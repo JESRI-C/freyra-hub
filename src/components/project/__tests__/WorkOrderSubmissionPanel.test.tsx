@@ -139,6 +139,13 @@ describe("submission preparation on the existing task", () => {
     });
   });
   it("loads the report's exact submission directly and lets users return to full history", async () => {
+    m.approvedPacket = {
+      id: id(88),
+      version: 8,
+      plan_version_id: id(3),
+      assignment_version_id: id(4),
+      execution_revision_id: id(5),
+    };
     m.list.mockImplementation(({ data }) =>
       Promise.resolve({
         items: data.beforeVersion === 2 ? [submission(1)] : [submission(8)],
@@ -150,8 +157,11 @@ describe("submission preparation on the existing task", () => {
       data: expect.objectContaining({ actionId: scope.actionId, beforeVersion: 2, pageSize: 1 }),
     });
     expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 1");
+    expect(host.textContent).not.toContain("Forbered opfølgning");
+    expect(host.querySelector("textarea")).toBeNull();
     await click("Vis alle afleveringsversioner");
     expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 8");
+    expect(host.textContent).toContain("Forbered opfølgning");
   });
 
   it("shows required fields and units from each saved submission's own job card", async () => {

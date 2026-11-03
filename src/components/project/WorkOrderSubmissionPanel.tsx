@@ -113,9 +113,9 @@ export function WorkOrderSubmissionPanel({
     c.action_id === actionId &&
     c.project_id === scope.projectId &&
     c.organization_id === scope.organizationId;
-  const writable = authorized && !!c?.can_prepare && !readOnly;
   const [showAllForVersion, setShowAllForVersion] = useState<number>();
   const selectedVersion = showAllForVersion === requestedVersion ? undefined : requestedVersion;
+  const writable = authorized && !!c?.can_prepare && !readOnly && !selectedVersion;
   const history = useInfiniteQuery({
     queryKey: [...key, "history", selectedVersion],
     initialPageParam: selectedVersion && selectedVersion < 2147483647 ? selectedVersion + 1 : null,
@@ -244,8 +244,9 @@ export function WorkOrderSubmissionPanel({
       <header>
         <h3 className="text-lg font-semibold">Afleveringsgrundlag</h3>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Fasthold den plan, udførelse og dokumentation, der skal gennemgås. Senere rettelser ændrer
-          ikke de gemte afleveringsversioner.
+          {selectedVersion
+            ? `Du ser den gemte afleveringsversion ${selectedVersion}. Vis alle afleveringsversioner for at arbejde videre med opgaven.`
+            : "Fasthold den plan, udførelse og dokumentation, der skal gennemgås. Senere rettelser ændrer ikke de gemte afleveringsversioner."}
         </p>
       </header>
       {(context.isPending || context.isFetching) && (
@@ -261,26 +262,28 @@ export function WorkOrderSubmissionPanel({
         disabled={busy || opening || uncertain || reviewEditing || context.isFetching}
         onClick={() => void cache.invalidateQueries({ queryKey: key })}
       >
-        Hent aktuelt grundlag
+        {selectedVersion ? "Genindlæs afleveringsversion" : "Hent aktuelt grundlag"}
       </button>
-      <WorkOrderReviewControls
-        scope={task}
-        actorId={actorId}
-        active={active}
-        readOnly={readOnly}
-        allowReview={!readOnly || allowReviewInReadOnly}
-        parentAuthorized={authorized}
-        canCreateReport={canCreateReport}
-        disabledByParent={!authorized || !!note || busy || opening || uncertain}
-        onEditing={setReviewEditing}
-        onPhase={setReviewPhase}
-        onOpenFollowUpPlan={
-          canCreateReport && !readOnly && onOpenPart ? () => onOpenPart("plan") : undefined
-        }
-        onCreateApprovedFollowUp={
-          canCreateReport && !readOnly && onFollowUp ? prepareFollowUp : undefined
-        }
-      />
+      {!selectedVersion && (
+        <WorkOrderReviewControls
+          scope={task}
+          actorId={actorId}
+          active={active}
+          readOnly={readOnly}
+          allowReview={!readOnly || allowReviewInReadOnly}
+          parentAuthorized={authorized}
+          canCreateReport={canCreateReport}
+          disabledByParent={!authorized || !!note || busy || opening || uncertain}
+          onEditing={setReviewEditing}
+          onPhase={setReviewPhase}
+          onOpenFollowUpPlan={
+            canCreateReport && !readOnly && onOpenPart ? () => onOpenPart("plan") : undefined
+          }
+          onCreateApprovedFollowUp={
+            canCreateReport && !readOnly && onFollowUp ? prepareFollowUp : undefined
+          }
+        />
+      )}
       {authorized && (
         <>
           {writable && (!reviewClosed || !!note) && (
