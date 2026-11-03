@@ -1,5 +1,36 @@
 # Leverancelog for samling af Freyra
 
+## 3. november 2026 — S11: kode- og sikkerhedskontrol
+
+Kilde `ce2ff55c1c28aa3d2cc3919a0785c33fff511304`,
+`codex/security-hardening-v1`, [draft PR42](https://github.com/JESRI-C/freyra-hub/pull/42).
+Det eksisterende program bevares med rettede pakker, beskyttelse af dynamiske
+appsvar og reproducerbar Node/npm-installation. Historiske rapporters
+manifest-/PDF-/ZIP-kontrolsummer bevares ved at fastholde den eksisterende
+geografipakke. Billedtesten deklarerer sin stabile Miniflare direkte.
+
+[CI 41555566168](https://github.com/JESRI-C/freyra-hub/actions/runs/41555566168)
+består: 3.449 app-tests/260 filer, 1.568 databasekontroller/24 filer,
+typecheck, lint, faktisk lokal billedafkodning, beregningskilder, build,
+migrationsreplay, samtidighed og dump/restore. Runtime-audit er nul;
+fuld audit har 14 moderate fund i udviklingsværktøjernes minimatch-kæde.
+
+Staging-Worker `d912e6bf-d2d6-4a0d-aec1-32370219bd3f` og offentlig metadata
+matcher kilden. Alle 97 aktive indgange består ved tre bredder, i alt 291
+målinger. Syv indgange har fortsat kun bevis til projektvalg. Opgave-/review-
+version, originalhash, historik, tilbagekaldt/anonym adgang, HTTP-headers og
+neutral offline-genindlæsning består på samme version. Kodekortet har nu
+878 kildefiler, 601 produktionsfiler, 276 test-/supportfiler og uændret
+71 produktsider/93 routes/68 krav.
+
+[Sikkerhedsnotatet](SIKKERHEDSKONTROL_2026-11-03.md) og
+[maskinkvitteringen](security-staging-receipt-2026-11-03.json) dokumenterer
+også de åbne fund: driftsadgang til PostGIS-objekter, Auth-passwordbeskyttelse,
+managed Postgres-opgradering og udviklingsværktøjernes moderate fund.
+Brugerens to lokale Jobs/Geotag-dokumenter er bytebevaret uden for commits.
+Ingen hosted DDL, produktion, merge, besked eller betalt udbyder er ændret.
+S04/S05, fuld Skyhost-paritet og faglig/brugeraccept er fortsat åbne.
+
 ## 2. november 2026 — plan og afgrænset oprydning
 
 Udgangspunkt: `2b122fe4518fc3673a6c8db0450b2073c5a166d3`, `codex/work-order-ux-v1`.

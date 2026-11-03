@@ -1,8 +1,8 @@
 {
   "schema": "freyra.program-map/v1",
   "date": "2026-11-02",
-  "baselineCommit": "e4d71ece56a9fbe333f7ad5d06c85aa14a504c9a",
-  "sourceTreeSha256": "0ed117058c462d880f7f55b37391e12c1b45d238feb9e3656fdd76c904608d9a",
+  "baselineCommit": "ce2ff55c1c28aa3d2cc3919a0785c33fff511304",
+  "sourceTreeSha256": "4ce88be43919a9f47f17961d79f3aa8155c233d9e2eb54c21c51e08a133a3a22",
   "method": "All current src JS/TS files, route declarations, local static imports, project destinations and 68 existing requirement IDs. Static mapping is not functional, hosted, security or customer acceptance. A route-unreachable file is a review candidate, never a deletion recommendation.",
   "source": {
     "name": "Skyhost_Jobs_Geotag_funktionskortlaegning_2026-10-29.html",
@@ -10,9 +10,9 @@
     "url": "https://drive.google.com/file/d/1hDgbtkI4Zh7fHE4FLqfUQFuvH3bcjlBx/view"
   },
   "counts": {
-    "sourceFiles": 876,
-    "productionFiles": 600,
-    "tests": 275,
+    "sourceFiles": 878,
+    "productionFiles": 601,
+    "tests": 276,
     "routeDeclarations": 93,
     "canonicalProductPages": 71,
     "projectDestinations": 20,
@@ -21,7 +21,7 @@
     "partiallyDeliveredRoadmapCapabilities": 1,
     "requirementIds": 68,
     "unmappedProductRoutes": 0,
-    "staticUnreachedProductionFiles": 97
+    "staticUnreachedProductionFiles": 98
   },
   "areas": [
     {
@@ -9283,6 +9283,12 @@
       ]
     },
     {
+      "file": "src/lib/application-response.ts",
+      "sha256": "282cf3cfb9bf66121492918c67ad0dc8a626ae72d5a861751352a2fd277d2eeb",
+      "kind": "source",
+      "reachedFromRoutes": []
+    },
+    {
       "file": "src/lib/auth-project-selection.ts",
       "sha256": "b023f02442a6434e464a235da560d804448f6b2131907dd9c1f151ab4c743605",
       "kind": "source",
@@ -11567,7 +11573,13 @@
     },
     {
       "file": "src/lib/__tests__/ai-server-authorization.test.ts",
-      "sha256": "229839583c8c76553e1460e325f14e619388c5c7ef3bfca5d9da5fc69cb5e49e",
+      "sha256": "62c3ee05f37068835b0c04bad99c12b5ba3d41ff377cc36c20641dc6a98b73d5",
+      "kind": "test",
+      "reachedFromRoutes": []
+    },
+    {
+      "file": "src/lib/__tests__/application-response.test.ts",
+      "sha256": "a5d753ac028ab5d0f4cd15f8a05c9a78afc2885d6c9e6b343ff946361634015e",
       "kind": "test",
       "reachedFromRoutes": []
     },
@@ -12469,7 +12481,7 @@
     },
     {
       "file": "src/routes/app.projects.geometry.$slug.tsx",
-      "sha256": "a8bcafb412bd5ff45c9e4d08d5dfff127f67f782726dc22337424b9356499fa0",
+      "sha256": "2b8f8b68b6f8f069f80ab3cd90d87d819da7ec6fb599f78fe766b417877d8ad5",
       "kind": "source",
       "reachedFromRoutes": [
         "/app/projects/geometry/$slug"
@@ -12773,7 +12785,7 @@
     },
     {
       "file": "src/routes/__root.tsx",
-      "sha256": "fb1c92ee69581c4d138beeb31db2619fc66d524365da787cb01e2a540bc334d0",
+      "sha256": "571ec950063a500806fc7813e57bea202a8b9eb2fdb943a19a94371ed2ff2a29",
       "kind": "source",
       "reachedFromRoutes": []
     },
@@ -12797,7 +12809,7 @@
     },
     {
       "file": "src/server.ts",
-      "sha256": "8a988b973d6c3e844df998d0b16d1181e2cc13f489d77e1aaa904ae12b55ad11",
+      "sha256": "8262dc85602c8365457eb56614bfbff33e449ad2f34fb23f54360d363b91a36c",
       "kind": "source",
       "reachedFromRoutes": []
     },
