@@ -818,13 +818,21 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     </main>
   );
 }
-function ReportPreview({
+export function ReportPreview({
   content,
   revision,
 }: {
   content: ReportContent;
   revision?: ReportRevision;
 }) {
+  const sources = new Map(
+    content.sources.map((source, index) => [
+      source.id,
+      { title: source.title, anchor: "report-source-" + index },
+    ]),
+  );
+  const hasApprovalSection =
+    content.workOrderApproval && content.sections.some((section) => section.id === "review");
   return (
     <Card className="mx-auto max-w-4xl space-y-6 p-4 sm:p-8">
       <header>
@@ -843,25 +851,61 @@ function ReportPreview({
         {content.workOrderApproval && (
           <p className="text-sm">
             Grundlag · Godkendt afleveringsversion {content.workOrderApproval.submissionVersion}
+            {hasApprovalSection && (
+              <a
+                href="#report-work-order-review"
+                className="ml-2 inline-flex min-h-11 items-center text-primary underline"
+              >
+                Se den faglige afgørelse
+              </a>
+            )}
           </p>
         )}
       </header>
       {content.sections.map((s) => (
-        <section key={s.id}>
+        <section
+          key={s.id}
+          id={hasApprovalSection && s.id === "review" ? "report-work-order-review" : undefined}
+          tabIndex={hasApprovalSection && s.id === "review" ? -1 : undefined}
+          className="scroll-mt-20"
+        >
           <h2 className="font-semibold text-lg">{s.title}</h2>
           <p className="text-xs text-muted-foreground">{BASIS_LABELS[s.basis]}</p>
           <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere]">
             {s.text || "Grundlaget er ikke dokumenteret."}
           </p>
           <p className="mt-2 text-xs [overflow-wrap:anywhere]">
-            Kilder: {s.sourceIds.join(", ") || "Ingen"}
+            Kilder: {s.sourceIds.length === 0 && "Ingen"}
+            {s.sourceIds.map((sourceId, index) => {
+              const source = sources.get(sourceId);
+              return (
+                <span key={sourceId}>
+                  {index > 0 && ", "}
+                  {source ? (
+                    <a
+                      href={"#" + source.anchor}
+                      className="inline-block py-2 text-primary underline"
+                    >
+                      {source.title || sourceId}
+                    </a>
+                  ) : (
+                    sourceId
+                  )}
+                </span>
+              );
+            })}
           </p>
         </section>
       ))}
       <section>
         <h2 className="font-semibold text-lg">Kilderegister</h2>
         {content.sources.map((s) => (
-          <p key={s.id} className="mt-2 text-sm [overflow-wrap:anywhere]">
+          <p
+            key={s.id}
+            id={sources.get(s.id)?.anchor}
+            tabIndex={-1}
+            className="mt-2 scroll-mt-20 text-sm [overflow-wrap:anywhere]"
+          >
             {s.id}: {s.title} · {s.method} · version {s.version} · GPS{" "}
             {s.position?.join(", ") ?? "mangler"} · SHA-256 {s.checksum ?? "ikke dokumenteret"}
           </p>
