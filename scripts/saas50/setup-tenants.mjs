@@ -71,7 +71,7 @@ const quote = (text) => `'${text.replaceAll("'", "''")}'`;
 const orgRows = [],
   projectRows = [];
 for (const tenant of fixture.tenants) {
-  for (const role of ["manager", "field", "reviewer", "viewer"]) {
+  for (const role of ["manager", "field", "reviewer", "viewer", "external"]) {
     const user = getUser(tenant.number, role);
     orgRows.push(`('${tenant.organizationId}','${user.id}','viewer')`);
     const projectRole = {
@@ -79,6 +79,7 @@ for (const tenant of fixture.tenants) {
       field: "field",
       reviewer: "editor",
       viewer: "viewer",
+      external: "external",
     }[role];
     projectRows.push(`('${tenant.projectId}','${user.id}','${projectRole}')`);
   }

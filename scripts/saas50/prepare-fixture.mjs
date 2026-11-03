@@ -22,7 +22,7 @@ try {
     qaTag: `freyra_saas50_${run}`,
     url: "https://xdvqdzdpyceojbdknofi.supabase.co",
     app: "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
-    sourceRevision: "ce2ff55c1c28aa3d2cc3919a0785c33fff511304",
+    sourceRevision: process.env.FREYRA_TEST_REVISION ?? "ce2ff55c1c28aa3d2cc3919a0785c33fff511304",
     createdAt: new Date().toISOString(),
     users: [],
     tenants: Array.from({ length: 8 }, (_, index) => ({
@@ -55,6 +55,11 @@ try {
   });
 }
 assert.equal(fixture.users.length, 50);
+assert(
+  !fixture.credentialsRetired,
+  "Archive the completed tmp/saas50 run before preparing a new fixture",
+);
+assert(/^[a-f0-9]{40}$/.test(fixture.sourceRevision));
 assert.equal(new Set(fixture.users.map((user) => user.id)).size, 50);
 assert.equal(new Set(fixture.users.map((user) => user.password)).size, 50);
 assert.equal(fixture.url, "https://xdvqdzdpyceojbdknofi.supabase.co");

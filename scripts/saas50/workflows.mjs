@@ -6,6 +6,7 @@ import { deflateSync } from "node:zlib";
 import { Upload } from "tus-js-client";
 import { createClientRpc } from "@tanstack/start-client-core/client-rpc";
 import { runWithStartContext } from "@tanstack/start-storage-context";
+import { launch, openSession, taskUrl } from "./browser-session.mjs";
 import {
   directory,
   fixture,
@@ -190,9 +191,7 @@ await pool(fixture.tenants, 2, async (tenant) => {
           p_request_id: await request(tenant, "template"),
         })
       )[0];
-      const args = { ...scope, p_template_version_id: tenant.template.id };
-      delete args.p_organization_id; // add explicitly below to keep the RPC's exact declared arguments.
-      const jobArgs = { ...args, p_organization_id: tenant.organizationId };
+      const jobArgs = { ...scope, p_template_version_id: tenant.template.id };
       tenant.draft = (
         await rpc(manager, "save_field_job_version", {
           ...jobArgs,
@@ -331,38 +330,105 @@ await pool(fixture.tenants, 2, async (tenant) => {
       };
     });
     await step(tenant, "execution-and-bound-evidence", field, async () => {
-      tenant.execution = (
-        await rpc(field, "save_work_order_execution", {
-          ...scope,
-          p_plan_version_id: tenant.plan.id,
-          p_expected_plan_version: tenant.plan.version,
-          p_expected_version: 0,
-          p_performed_by_id: field.id,
-          p_deviation_reason: "",
-          p_expected_assignment_version_id: tenant.assignment.id,
-          p_expected_assignment_version: tenant.assignment.version,
-          p_execution: {
-            schema: "freyra.action-execution/v1",
-            actionId: tenant.actionId,
-            surveyRoundId: null,
-            dataBasis: "synthetic",
-            workType: "other",
-            stage: "performed",
-            actualDate: "2026-11-03",
-            actualEndDate: null,
-            method: "TEST · Automatisk prøve",
-            reach: "TEST · Prøveområde",
-            performedBy: field.name,
-            sourceReference: "TEST · SaaS50",
-            evidenceIds: [],
-            deviation: "",
-            correctionReason: "",
-            coverage: "limited",
-            coverageDescription: "TEST · Ingen påstået faglig naturvirkning.",
-          },
-          p_request_id: await request(tenant, "execution"),
-        })
-      )[0];
+      const initialArgs = {
+        ...scope,
+        p_plan_version_id: tenant.plan.id,
+        p_expected_plan_version: tenant.plan.version,
+        p_expected_version: 0,
+        p_performed_by_id: field.id,
+        p_deviation_reason: "",
+        p_expected_assignment_version_id: tenant.assignment.id,
+        p_expected_assignment_version: tenant.assignment.version,
+        p_execution: {
+          schema: "freyra.action-execution/v1",
+          actionId: tenant.actionId,
+          surveyRoundId: null,
+          dataBasis: "synthetic",
+          workType: "other",
+          stage: "performed",
+          actualDate: "2026-11-03",
+          actualEndDate: null,
+          method: "TEST · Automatisk prøve",
+          reach: "TEST · Prøveområde",
+          performedBy: field.name,
+          sourceReference: "TEST · SaaS50",
+          evidenceIds: [],
+          deviation: "",
+          correctionReason: "",
+          coverage: "limited",
+          coverageDescription: "TEST · Ingen påstået faglig naturvirkning.",
+        },
+        p_request_id: await request(tenant, "execution"),
+      };
+      tenant.initialExecutionArgs = initialArgs;
+      await saveFixture();
+      tenant.execution = (await rpc(field, "save_work_order_execution", initialArgs))[0];
+      assert.equal(tenant.execution.performed_by_id, field.id);
+      if (tenant.number === 1 && !tenant.browserExecutionProof) {
+        const browser = await launch();
+        try {
+          const { page, context } = await openSession(
+            browser,
+            field,
+            savedSessions[field.id],
+            tenant,
+            390,
+          );
+          await page.goto(taskUrl(tenant, "execution"));
+          await page
+            .getByRole("button", { name: "Åbn udførelsesregistrering", exact: true })
+            .click();
+          await page.getByText(/Du gemmer din egen udførelse på den valgte opgave/).waitFor();
+          await page
+            .getByLabel("Årsag til rettelse (kræves ved ny version)", { exact: true })
+            .fill("TEST · Feltmedarbejder gemmer en ny version fra telefonvisningen.");
+          await page.getByRole("button", { name: "Gem udførelsesversion", exact: true }).click();
+          await page.getByText(/Udførelsesregistrering gemt som version 2/).waitFor();
+          await context.close();
+          tenant.browserExecutionProof = true;
+          await saveFixture();
+        } finally {
+          await browser.close();
+        }
+      }
+      if (tenant.number === 2 && !tenant.executionRace) {
+        const raceArgs = await Promise.all(
+          [field, manager].map(async (actor) => ({
+            ...initialArgs,
+            p_expected_version: 1,
+            p_execution: {
+              ...initialArgs.p_execution,
+              method: `TEST · Rettelse fra ${actor.role}`,
+              correctionReason: "TEST · To forskellige brugere ændrer samme version samtidig",
+            },
+            p_request_id: await request(tenant, `execution-race-${actor.role}`),
+          })),
+        );
+        const race = await Promise.all(
+          [field, manager].map((actor, index) =>
+            client(actor).rpc("save_work_order_execution", raceArgs[index]),
+          ),
+        );
+        const winners = race.filter((result) => !result.error);
+        assert.equal(winners.length, 1);
+        assert.equal(race.find((result) => result.error)?.error.code, "PT409");
+        assert.equal(winners[0].data[0].version, 2);
+        tenant.executionRace = { distinctWriters: 2, committedVersions: 1, staleConflict: "PT409" };
+        await saveFixture();
+      }
+      if (tenant.browserExecutionProof || tenant.executionRace) {
+        tenant.execution = ok(
+          await client(field)
+            .from("work_order_execution_bindings")
+            .select("*")
+            .eq("action_id", tenant.actionId)
+            .order("version", { ascending: false })
+            .limit(1)
+            .single(),
+          "Latest exact execution revision",
+        );
+        assert.equal(tenant.execution.version, 2);
+      }
       tenant.evidence = (
         await rpc(field, "save_work_order_evidence", {
           ...scope,
@@ -376,7 +442,12 @@ await pool(fixture.tenants, 2, async (tenant) => {
           p_request_id: await request(tenant, "evidence"),
         })
       )[0];
-      return { sharedActionIdentity: true, originalBoundToRecordedVersion: true };
+      return {
+        sharedActionIdentity: true,
+        originalBoundToRecordedVersion: true,
+        actualMobileWrite: !!tenant.browserExecutionProof,
+        race: tenant.executionRace ?? null,
+      };
     });
     await step(tenant, "lifecycle-and-frozen-submission", field, async () => {
       for (const status of ["draft", "planned", "assigned", "started", "performed"]) {
@@ -400,7 +471,7 @@ await pool(fixture.tenants, 2, async (tenant) => {
               assignmentVersionId: tenant.assignment.id,
               executionRevisionId: tenant.execution.workspace_entry_id,
               ...(status === "started"
-                ? { startedAt: "2026-11-03T08:00:00Z", startedSource: "TEST · Syntetisk tidspunkt" }
+                ? { startedAt: fixture.createdAt, startedSource: "TEST · Syntetisk tidspunkt" }
                 : {}),
             },
             p_request_id: await request(tenant, "state-" + status),
@@ -424,14 +495,14 @@ await pool(fixture.tenants, 2, async (tenant) => {
       return { frozenVersion: tenant.submission.version, completeCurrentBasis: true };
     });
     await step(tenant, "independent-review-and-idempotency", reviewer, async () => {
-      for (const target of [reviewer, external]) {
+      for (const target of [field, reviewer, external]) {
         await rpc(owner, "save_work_order_access", {
           ...scope,
           p_user_id: target.id,
           p_expected_version: 0,
           p_active: true,
           p_can_execute: false,
-          p_can_review: target.id === reviewer.id,
+          p_can_review: target.id !== external.id,
           p_reason: "TEST · Afgrænset adgang, ingen besked",
           p_request_id: await request(tenant, "access-" + target.role),
         });
@@ -464,9 +535,78 @@ await pool(fixture.tenants, 2, async (tenant) => {
         p_request_id: randomUUID(),
       });
       assert.equal(denied.error?.code, "42501");
-      const independent = await rpc(reviewer, "get_work_order_review_context", scope);
+      let independent = await rpc(reviewer, "get_work_order_review_context", scope);
       assert.equal(independent.self_review, false);
       assert.equal(independent.can_review, true);
+      if (tenant.number === 3 && !tenant.returnedAndResubmitted) {
+        await rpc(field, "save_work_order_evidence", {
+          ...scope,
+          p_evidence_id: tenant.evidenceId,
+          p_expected_version: tenant.evidence.version,
+          p_observation_version_id: tenant.job.id,
+          p_upload_id: tenant.uploadId,
+          p_execution_revision_id: tenant.execution.workspace_entry_id,
+          p_state: "attached",
+          p_reason: "TEST · Præcisering efter første aflevering",
+          p_request_id: await request(tenant, "evidence-correction"),
+        });
+        const stale = await client(reviewer).rpc("mutate_work_order_lifecycle", {
+          ...scope,
+          p_expected_version: independent.state.version,
+          p_values: values("review", "approved"),
+          p_request_id: await request(tenant, "stale-approval"),
+        });
+        assert.equal(stale.error?.code, "PT409");
+        await rpc(reviewer, "mutate_work_order_lifecycle", {
+          ...scope,
+          p_expected_version: independent.state.version,
+          p_values: values("review", "returned"),
+          p_request_id: await request(tenant, "return"),
+        });
+        let current = await rpc(field, "get_work_order_review_context", scope);
+        assert.equal(current.state.status, "returned");
+        await rpc(field, "mutate_work_order_lifecycle", {
+          ...scope,
+          p_expected_version: current.state.version,
+          p_values: values("reopen", "reopened"),
+          p_request_id: await request(tenant, "reopen"),
+        });
+        current = await rpc(field, "get_work_order_review_context", scope);
+        assert.equal(current.state.status, "reopened");
+        await rpc(field, "mutate_work_order_lifecycle", {
+          ...scope,
+          p_expected_version: current.state.version,
+          p_values: {
+            operation: "transition",
+            targetStatus: "performed",
+            planVersionId: tenant.plan.id,
+            assignmentVersionId: tenant.assignment.id,
+            executionRevisionId: tenant.execution.workspace_entry_id,
+          },
+          p_request_id: await request(tenant, "performed-again"),
+        });
+        const basis = await rpc(field, "get_work_order_submission_context", scope);
+        assert.deepEqual(basis.gaps, []);
+        tenant.submission = (
+          await rpc(field, "save_work_order_submission", {
+            ...scope,
+            p_expected_version: 1,
+            p_basis_hash: basis.basis_hash,
+            p_note: "TEST · Rettet grundlag efter returnering",
+            p_request_id: await request(tenant, "submission-2"),
+          })
+        )[0];
+        current = await rpc(field, "get_work_order_review_context", scope);
+        await rpc(field, "mutate_work_order_lifecycle", {
+          ...scope,
+          p_expected_version: current.state.version,
+          p_values: values("submit", "submitted"),
+          p_request_id: await request(tenant, "submit-2"),
+        });
+        tenant.returnedAndResubmitted = true;
+        await saveFixture();
+        independent = await rpc(reviewer, "get_work_order_review_context", scope);
+      }
       const args = {
         ...scope,
         p_expected_version: independent.state.version,
@@ -485,7 +625,9 @@ await pool(fixture.tenants, 2, async (tenant) => {
         p_page_size: 5,
       });
       assert.equal(
-        createHash("sha256").update(JSON.stringify(packets[0])).digest("hex"),
+        createHash("sha256")
+          .update(JSON.stringify(packets.find((packet) => packet.version === 1)))
+          .digest("hex"),
         tenant.firstSubmissionHash,
       );
       return {
@@ -493,6 +635,7 @@ await pool(fixture.tenants, 2, async (tenant) => {
         independentReviewer: true,
         retrySingleVersion: true,
         historyPreserved: true,
+        returnedAndResubmitted: !!tenant.returnedAndResubmitted,
       };
     });
   } catch (error) {

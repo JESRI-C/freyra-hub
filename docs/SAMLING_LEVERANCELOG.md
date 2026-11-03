@@ -1,5 +1,24 @@
 # Leverancelog for samling af Freyra
 
+## 3. november 2026 — S02/S04/S11: 50 brugere og afgrænset feltudførelse
+
+[Rapport og frigivelseskriterier](SAAS_50_BRUGERE_2026-11-03.md) ·
+[Maskinkvittering](saas-50-users-receipt-2026-11-03.json) ·
+[Draft PR43](https://github.com/JESRI-C/freyra-hub/pull/43).
+
+50 syntetiske, autentificerede brugere i otte organisationer. En fælles
+feltrollefejl blev rettet gennem de eksisterende scope-, versions- og
+auditkontrakter. Alle otte opgaver når uafhængig godkendelse med bevaret
+registrering, original og historik. 507 kontroller bestod, herunder 50
+browserprofiler, tre runder med 50 samtidige læsninger og konkrete negative
+fil-/rolleprøver. Testadgang er lukket, og testdata er bevaret.
+
+Stagingkilde `5cdb5ef…`, Worker `47f58571-d8a7-4bd9-8543-4af56f1571c1`,
+migration `20261103014500`. CI består med 3.450 app-tests og 1.583
+databasekontroller. S05, de navngivne Supabase-opgaver, kundeoprettelse,
+mobil brugeraccept og fuld produktparitet er fortsat åbne. Ingen produktion
+eller merge er ændret.
+
 ## 3. november 2026 — S11: kode- og sikkerhedskontrol
 
 Kilde `ce2ff55c1c28aa3d2cc3919a0785c33fff511304`,

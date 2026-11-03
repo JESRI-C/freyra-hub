@@ -9,8 +9,26 @@ export const directory = "tmp/saas50";
 export const fixture = JSON.parse(await fs.readFile(`${directory}/fixture.private.json`, "utf8"));
 export const env = loadEnv("staging", process.cwd(), "");
 assert.equal(fixture.url, "https://xdvqdzdpyceojbdknofi.supabase.co");
+assert.equal(fixture.app, "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev");
 assert.equal(env.SUPABASE_URL, fixture.url);
 assert.equal(fixture.users.length, 50);
+assert(/^[a-f0-9]{8}$/.test(fixture.run));
+assert.equal(fixture.qaTag, `freyra_saas50_${fixture.run}`);
+const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
+assert(fixture.users.every((user) => uuid.test(user.id) && user.email.endsWith("@example.test")));
+assert.equal(fixture.tenants.length, 8);
+assert(
+  fixture.tenants.every((tenant) =>
+    [
+      tenant.organizationId,
+      tenant.projectId,
+      tenant.actionId,
+      tenant.uploadId,
+      tenant.evidenceId,
+      tenant.templateId,
+    ].every((id) => uuid.test(id)),
+  ),
+);
 export const outcomes = [];
 export const requests = [];
 export const clients = new Map();
@@ -69,7 +87,14 @@ export async function check(name, user, operation) {
     const detail = await operation();
     Object.assign(row, { result: "PASS", detail });
   } catch (error) {
-    Object.assign(row, { result: "FAIL", error: error.message.slice(0, 700) });
+    const message = error instanceof Error ? error.message : String(error);
+    Object.assign(row, {
+      result: "FAIL",
+      error: message
+        .replace(/https?:\/\/\S+/g, "[URL]")
+        .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [REDACTED]")
+        .slice(0, 700),
+    });
   }
   row.milliseconds = Math.round(performance.now() - start);
   outcomes.push(row);
@@ -102,7 +127,14 @@ export async function finish(phase) {
   await fs.writeFile(
     `${directory}/${phase}.private.json`,
     JSON.stringify(
-      { schema: "freyra.saas50-phase/v1", run: fixture.run, phase, outcomes, requests },
+      {
+        schema: "freyra.saas50-phase/v1",
+        run: fixture.run,
+        sourceRevision: fixture.sourceRevision,
+        phase,
+        outcomes,
+        requests,
+      },
       null,
       2,
     ),
