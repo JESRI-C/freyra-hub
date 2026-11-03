@@ -176,6 +176,31 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT lives_ok($$SELECT public.save_work_order_plan(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan()||'{"estimatedHours":2.5}', '',pg_temp.k(191))$$,'planner saves the assigned field test plan');
 SELECT lives_ok($$SELECT pg_temp.assign(0,192,37,'person',ARRAY[2],NULL)$$,'manager assigns execution to field role');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$INSERT INTO public.project_material_catalog(id,organization_id,project_id,material,unit)
+ VALUES(pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg')$$,'42501',NULL,'field cannot manage the material catalog');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$INSERT INTO public.project_material_catalog(id,organization_id,project_id,material,unit)
+ VALUES(pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg')$$,'manager can add a catalog material');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT material FROM public.project_material_catalog WHERE id=pg_temp.k(330)),
+ 'Testgrus','the assigned field user can see active catalog materials');
+SELECT throws_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(331),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Forkert navn','kg',1250,1,pg_temp.k(330))$$,
+ '22023',NULL,'catalog material snapshots must match the catalog');
+SELECT lives_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(331),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1250,1,pg_temp.k(330))$$,
+ 'an assigned field user can register a catalog material');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+UPDATE public.project_material_catalog SET active=false WHERE id=pg_temp.k(330);
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT count(*) FROM public.project_material_catalog WHERE id=pg_temp.k(330)),
+ 0::bigint,'archived catalog materials are hidden from field selection');
+SELECT lives_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id,reason)
+ VALUES(pg_temp.k(332),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1000,2,pg_temp.k(330),'Kontrolvejning')$$,
+ 'archiving preserves existing usage and permits correction');
 CREATE FUNCTION pg_temp.material(row_id integer, entry integer, task integer, version integer, quantity integer, label text DEFAULT 'Testmateriale')
 RETURNS void LANGUAGE sql AS $$
  INSERT INTO public.work_order_material_versions
@@ -190,7 +215,7 @@ SELECT throws_ok($$SELECT pg_temp.material(323,320,37,2,1000)$$,'40001',NULL,'a 
 SELECT throws_ok($$SELECT pg_temp.material(324,320,37,3,500,'Andet materiale')$$,'22023',NULL,'a correction cannot change the material identity');
 SELECT is((SELECT count(*) FROM public.work_order_material_versions WHERE entry_id=pg_temp.k(320)),
  2::bigint,'original material version is preserved');
-SELECT is((SELECT quantity_milli FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37))),
+SELECT is((SELECT quantity_milli FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) WHERE entry_id=pg_temp.k(320)),
  1250,'material list shows the current quantity');
 SELECT lives_ok($$INSERT INTO public.work_order_time_versions
  (id,action_id,organization_id,project_id,work_date,version,minutes)
@@ -228,7 +253,7 @@ SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct wor
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
 SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
-SELECT is((SELECT actor_id FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37))),
+SELECT is((SELECT actor_id FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) WHERE entry_id=pg_temp.k(320)),
  pg_temp.k(2),'the manager can see the recorded material with the authenticated field author');
 SELECT is((SELECT count(*) FROM public.list_work_order_material_usage(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))),
  0::bigint,'material list rejects mismatched scope');

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
@@ -13,6 +13,7 @@ const rowSchema = z.object({
   id: z.string().uuid(),
   entry_id: z.string().uuid(),
   actor_id: z.string().uuid(),
+  catalog_id: z.string().uuid().nullable().optional(),
   material: z.string(),
   unit: z.enum(units),
   version: z.number().int().positive(),
@@ -137,6 +138,7 @@ export function WorkOrderMaterials({
     quantity: string;
     reason: string;
     base?: Row;
+    catalogId?: string;
   }>();
   const [cursor, setCursor] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -162,6 +164,25 @@ export function WorkOrderMaterials({
     },
   });
 
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const catalog = useQuery({
+    queryKey: ["material-catalog", actorId, scope, catalogSearch],
+    enabled: canWrite && !!draft && !draft.base,
+    queryFn: async () => {
+      const result = await db()
+        .from("project_material_catalog")
+        .select("id,material,unit")
+        .eq("organization_id", scope.organizationId)
+        .eq("project_id", scope.projectId)
+        .eq("active", true)
+        .ilike("material", "%" + catalogSearch.trim() + "%")
+        .order("material")
+        .limit(100);
+      if (result.error) throw new Error("Materialekataloget kunne ikke hentes.");
+      return z.array(rowSchema.pick({ id: true, material: true, unit: true })).parse(result.data);
+    },
+  });
+
   async function save() {
     if (!canWrite || !draft || inFlight.current) return;
     const material = draft.material.trim();
@@ -180,7 +201,14 @@ export function WorkOrderMaterials({
       setError("Angiv en årsag til rettelsen.");
       return;
     }
-    const signature = JSON.stringify([draft.base?.id, material, draft.unit, quantityMilli, reason]);
+    const signature = JSON.stringify([
+      draft.base?.id,
+      draft.catalogId,
+      material,
+      draft.unit,
+      quantityMilli,
+      reason,
+    ]);
     if (attempt.current?.signature !== signature)
       attempt.current = { signature, id: crypto.randomUUID() };
     const id = attempt.current.id;
@@ -195,6 +223,7 @@ export function WorkOrderMaterials({
       quantity_milli: quantityMilli,
       version: (draft.base?.version ?? 0) + 1,
       reason,
+      ...(draft.catalogId ? { catalog_id: draft.catalogId } : {}),
     };
     inFlight.current = true;
     setBusy(true);
@@ -279,6 +308,7 @@ export function WorkOrderMaterials({
                       quantity: quantityFormat.format(row.quantity_milli / 1000),
                       reason: "",
                       base: row,
+                      catalogId: row.catalog_id ?? undefined,
                     });
                   }}
                 >
@@ -334,6 +364,54 @@ export function WorkOrderMaterials({
           }}
         >
           <fieldset className="min-w-0 space-y-2" disabled={busy}>
+            {!draft.base && (
+              <div className="space-y-2 rounded-lg border p-2">
+                <label className="block">
+                  Søg i materialekataloget
+                  <input
+                    type="search"
+                    className={control}
+                    value={catalogSearch}
+                    onChange={(event) => setCatalogSearch(event.target.value)}
+                  />
+                </label>
+                <label className="block">
+                  Materiale fra kataloget
+                  <select
+                    className={control}
+                    value={draft.catalogId ?? ""}
+                    onChange={(event) => {
+                      const item = catalog.data?.find(({ id }) => id === event.target.value);
+                      setDraft({
+                        ...draft,
+                        catalogId: item?.id,
+                        material: item?.material ?? "",
+                        unit: item?.unit ?? "stk",
+                      });
+                    }}
+                  >
+                    <option value="">Indtast materiale selv</option>
+                    {draft.catalogId && !catalog.data?.some(({ id }) => id === draft.catalogId) && (
+                      <option value={draft.catalogId}>
+                        {draft.material} · {unitLabel[draft.unit]}
+                      </option>
+                    )}
+                    {catalog.data?.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.material} · {unitLabel[item.unit]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {catalog.isPending && <p role="status">Henter kataloget…</p>}
+                {catalog.isError && (
+                  <button type="button" className={button} onClick={() => void catalog.refetch()}>
+                    Hent kataloget igen
+                  </button>
+                )}
+                {catalog.data?.length === 0 && <p>Ingen katalogmaterialer i udvalget.</p>}
+              </div>
+            )}
             <label className="block">
               Materiale
               <input
@@ -341,7 +419,7 @@ export function WorkOrderMaterials({
                 required
                 maxLength={120}
                 value={draft.material}
-                readOnly={!!draft.base}
+                readOnly={!!draft.base || !!draft.catalogId}
                 onChange={(event) => setDraft({ ...draft, material: event.target.value })}
               />
             </label>
@@ -350,7 +428,7 @@ export function WorkOrderMaterials({
               <select
                 className={control}
                 value={draft.unit}
-                disabled={!!draft.base}
+                disabled={!!draft.base || !!draft.catalogId}
                 onChange={(event) =>
                   setDraft({ ...draft, unit: z.enum(units).parse(event.target.value) })
                 }
@@ -408,5 +486,218 @@ export function WorkOrderMaterials({
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}
     </section>
+  );
+}
+
+const catalogRowSchema = rowSchema.pick({ id: true, material: true, unit: true }).extend({
+  active: z.boolean(),
+});
+
+export function ProjectMaterialCatalog({
+  scope,
+  actorId,
+  onEditing,
+}: {
+  scope: ProjectScope;
+  actorId: string;
+  onEditing: (value: boolean) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [material, setMaterial] = useState("");
+  const [unit, setUnit] = useState<Row["unit"]>("stk");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const inFlight = useRef(false);
+  const attempt = useRef<{ id: string; material: string; unit: Row["unit"] } | undefined>(
+    undefined,
+  );
+  const cache = useQueryClient();
+  const key = ["material-catalog", actorId, scope];
+  useWorkOrderEditorLock(!!material || busy, onEditing);
+  const db = () => createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
+  const scoped = () =>
+    db()
+      .from("project_material_catalog")
+      .select("id,material,unit,active")
+      .eq("organization_id", scope.organizationId)
+      .eq("project_id", scope.projectId);
+  const catalog = useQuery({
+    queryKey: [...key, "manage", search],
+    enabled: open,
+    retry: false,
+    queryFn: async () => {
+      const result = await scoped()
+        .ilike("material", "%" + search.trim() + "%")
+        .order("material")
+        .limit(100);
+      if (result.error) throw new Error("Materialekataloget kunne ikke hentes.");
+      return z.array(catalogRowSchema).parse(result.data);
+    },
+  });
+
+  async function change(item?: z.infer<typeof catalogRowSchema>) {
+    const name = material.trim();
+    if (inFlight.current || (!item && !name)) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      if (item) {
+        const result = await db()
+          .from("project_material_catalog")
+          .update({ active: !item.active })
+          .eq("id", item.id)
+          .eq("organization_id", scope.organizationId)
+          .eq("project_id", scope.projectId)
+          .eq("active", item.active)
+          .select("id")
+          .maybeSingle();
+        if (result.error || result.data?.id !== item.id) {
+          const recovered = await scoped().eq("id", item.id).maybeSingle();
+          if (recovered.error || recovered.data?.active !== !item.active)
+            throw new Error("Ændringen kunne ikke bekræftes. Opdater kataloget og prøv igen.");
+        }
+        setMessage(item.active ? "Materialet er arkiveret." : "Materialet er aktivt igen.");
+      } else {
+        if (attempt.current?.material !== name || attempt.current.unit !== unit)
+          attempt.current = { id: crypto.randomUUID(), material: name, unit };
+        const id = attempt.current.id;
+        const result = await db()
+          .from("project_material_catalog")
+          .insert({
+            id,
+            project_id: scope.projectId,
+            organization_id: scope.organizationId,
+            material: name,
+            unit,
+          })
+          .select("id")
+          .single();
+        if (result.error || result.data?.id !== id) {
+          const recovered = await scoped().eq("id", id).maybeSingle();
+          if (recovered.error || recovered.data?.material !== name || recovered.data?.unit !== unit)
+            throw new Error(
+              result.error?.code === "23505"
+                ? "Navn og enhed findes allerede. Søg efter materialet i kataloget."
+                : "Materialet kunne ikke bekræftes. Prøv igen.",
+            );
+        }
+        attempt.current = undefined;
+        setMaterial("");
+        setSearch("");
+        setMessage("Materialet er tilføjet til kataloget.");
+      }
+      await cache.invalidateQueries({ queryKey: key });
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Materialet kunne ikke gemmes.");
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  return (
+    <details
+      className="space-y-3 rounded-xl border bg-card p-3 text-sm"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary className="min-h-11 cursor-pointer py-3 font-semibold">
+        Projektets materialekatalog
+      </summary>
+      <p>Tilføj materialer, som udførere kan vælge på projektets opgaver.</p>
+      <form
+        className="space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void change();
+        }}
+      >
+        <fieldset disabled={busy} className="space-y-2">
+          <label className="block">
+            Navn på nyt katalogmateriale
+            <input
+              className={control}
+              required
+              maxLength={120}
+              value={material}
+              onChange={(event) => setMaterial(event.target.value)}
+            />
+          </label>
+          <label className="block">
+            Enhed for nyt katalogmateriale
+            <select
+              className={control}
+              value={unit}
+              onChange={(event) => setUnit(z.enum(units).parse(event.target.value))}
+            >
+              {units.map((item) => (
+                <option key={item} value={item}>
+                  {unitLabel[item]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className={button} type="submit">
+            Tilføj materiale
+          </button>
+          {material && (
+            <button
+              type="button"
+              className={button}
+              onClick={() => {
+                setMaterial("");
+                setError("");
+                attempt.current = undefined;
+              }}
+            >
+              Fortryd
+            </button>
+          )}
+        </fieldset>
+      </form>
+      <label className="block">
+        Find katalogmateriale
+        <input
+          className={control}
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </label>
+      {open && catalog.isPending && <p role="status">Henter materialekatalog…</p>}
+      {catalog.isError && (
+        <button type="button" className={button} onClick={() => void catalog.refetch()}>
+          Hent kataloget igen
+        </button>
+      )}
+      {catalog.data?.length === 0 && <p>Ingen katalogmaterialer i udvalget.</p>}
+      {catalog.data?.length === 100 && <p>Viser de første 100. Søg for at indsnævre listen.</p>}
+      <ul className="space-y-2">
+        {catalog.data?.map((item) => (
+          <li
+            key={item.id}
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2"
+          >
+            <span className="min-w-0 break-words">
+              {item.material} · {unitLabel[item.unit]}
+              {!item.active && " · Arkiveret"}
+            </span>
+            <button
+              type="button"
+              className={button}
+              disabled={busy || !!material}
+              onClick={() => void change(item)}
+            >
+              {item.active ? "Arkivér" : "Genaktivér"}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {error && <p role="alert">{error}</p>}
+      {message && <p role="status">{message}</p>}
+    </details>
   );
 }

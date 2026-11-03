@@ -23,7 +23,7 @@ import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ProjectWorkTimeOverview } from "./ProjectWorkTimeOverview";
-import { WorkOrderMaterials } from "./WorkOrderMaterials";
+import { ProjectMaterialCatalog, WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
@@ -41,6 +41,7 @@ type Props = {
 };
 export type { WorkOrderView } from "@/lib/work-order-navigation";
 type Part = WorkOrderView;
+type Editor = Part | "material-catalog";
 const parts = WORK_ORDER_PARTS;
 const taskPageSize = 40;
 const scheduleDate = new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeZone: "UTC" });
@@ -96,7 +97,7 @@ function WorkOrders({
   const showSchedule = listView === "schedule" || listView === "calendar";
   const [scheduleActionId, setScheduleActionId] = useState<string>();
   const actionId = selectedActionId ?? localActionId;
-  const [editors, setEditors] = useState<Set<Part>>(() => new Set());
+  const [editors, setEditors] = useState<Set<Editor>>(() => new Set());
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -119,7 +120,7 @@ function WorkOrders({
     onSelectAction?.(createdActionId);
     setCreatedActionId(undefined);
   }, [createdActionId, locked, onSelectAction]);
-  const onEditing = useCallback((part: Part, value: boolean) => {
+  const onEditing = useCallback((part: Editor, value: boolean) => {
     setEditors((old) => {
       if (old.has(part) === value) return old;
       const next = new Set(old);
@@ -751,7 +752,7 @@ function TaskWorkspace({
   canContribute: boolean;
   canManageTime: boolean;
   timeReviewDate?: string;
-  onEditing: (part: Part, value: boolean) => void;
+  onEditing: (part: Editor, value: boolean) => void;
   initialView?: WorkOrderView;
 }) {
   const [part, setPart] = useState<Part>(initialView ?? "plan");
@@ -829,7 +830,14 @@ function TaskWorkspace({
             />
           )}
           {canManageTime && (
-            <WorkOrderMaterials scope={scope} actionId={actionId} actorId={actorId} />
+            <>
+              <WorkOrderMaterials scope={scope} actionId={actionId} actorId={actorId} />
+              <ProjectMaterialCatalog
+                scope={scope}
+                actorId={actorId}
+                onEditing={(value) => onEditing("material-catalog", value)}
+              />
+            </>
           )}
           <ActionExecutionPanel
             scope={scope}

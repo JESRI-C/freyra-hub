@@ -506,3 +506,5 @@ Stagingprøven i Chrome ved 390 px registrerede 2,5 kg som udfører, rettede mæ
 Udfører og projektleder kan nu åbne Tidligere versioner på en rettet materialelinje. Historikken viser mængde, enhed, tidspunkt og eventuel begrundelse for hver gemt version. Den indlæses først, når den åbnes, og læses i sider under samme opgaveadgang.
 
 På staging viste udførerens og projektlederens visninger den aktuelle mængde på 0,75 kg samt version 2 på 1,25 kg og version 1 på 2,5 kg. Prøven kontrollerede begrundelse og tidspunkt i Chrome ved 390 px. Kilde `68d681c`, Worker `9be64248-1937-4747-8f80-89a7cb77305f`. Typekontrol, 28 målrettede tests og staging-build bestod.
+
+Under Udført arbejde kan projektlederen vedligeholde et projektbundet materialekatalog med navn og enhed. Udføreren kan søge og vælge aktive katalogmaterialer ved registrering på en opgave eller indtaste materialet selv. Navn og enhed fastholdes på forbrugsversionen. Arkiverede katalogmaterialer kan ikke vælges til nyt forbrug, men eksisterende forbrug kan stadig læses og korrigeres. Prisreferencer og faktureringsgrundlag for materialer står åbne.
