@@ -41,12 +41,12 @@ BEGIN
     LOOP
       cursor_id:=(item->>'action_id')::uuid;
       scanned:=scanned+1;
-      IF CASE p_filter
+      IF (CASE p_filter
         WHEN 'waiting' THEN (item->>'waiting_for_prerequisites')::boolean
         WHEN 'cancelled' THEN (item->>'cancelled')::boolean
         ELSE NOT (item->>'cancelled')::boolean AND NOT (item->>'waiting_for_prerequisites')::boolean
           AND coalesce(item->>'task_status','draft') NOT IN ('submitted','approved','performed')
-      END THEN
+      END) THEN
         RETURN NEXT item;
         matched:=matched+1;
         IF matched>p_page_size THEN RETURN; END IF;
