@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import type { ProjectScope } from "@/services/project-workspace-service";
+import { MaterialUnitPrice } from "./MaterialUnitPrice";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
 const units = ["stk", "kg", "l", "m", "m2", "m3"] as const;
@@ -503,6 +504,8 @@ export function ProjectMaterialCatalog({
   onEditing: (value: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [priceItem, setPriceItem] = useState<string>();
+  const [priceEditing, setPriceEditing] = useState(false);
   const [search, setSearch] = useState("");
   const [material, setMaterial] = useState("");
   const [unit, setUnit] = useState<Row["unit"]>("stk");
@@ -515,7 +518,7 @@ export function ProjectMaterialCatalog({
   );
   const cache = useQueryClient();
   const key = ["material-catalog", actorId, scope];
-  useWorkOrderEditorLock(!!material || busy, onEditing);
+  useWorkOrderEditorLock(!!material || busy || priceEditing, onEditing);
   const db = () => createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
   const scoped = () =>
     db()
@@ -525,6 +528,8 @@ export function ProjectMaterialCatalog({
       .eq("project_id", scope.projectId);
   const catalog = useQuery({
     queryKey: [...key, "manage", search],
+    refetchOnWindowFocus: !priceEditing,
+    refetchOnReconnect: !priceEditing,
     enabled: open,
     retry: false,
     queryFn: async () => {
@@ -539,7 +544,7 @@ export function ProjectMaterialCatalog({
 
   async function change(item?: z.infer<typeof catalogRowSchema>) {
     const name = material.trim();
-    if (inFlight.current || (!item && !name)) return;
+    if (priceEditing || inFlight.current || (!item && !name)) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -615,7 +620,7 @@ export function ProjectMaterialCatalog({
           void change();
         }}
       >
-        <fieldset disabled={busy} className="space-y-2">
+        <fieldset disabled={busy || priceEditing} className="space-y-2">
           <label className="block">
             Navn på nyt katalogmateriale
             <input
@@ -662,6 +667,7 @@ export function ProjectMaterialCatalog({
         Find katalogmateriale
         <input
           className={control}
+          disabled={priceEditing}
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -688,11 +694,30 @@ export function ProjectMaterialCatalog({
             <button
               type="button"
               className={button}
-              disabled={busy || !!material}
+              disabled={busy || !!material || priceEditing}
               onClick={() => void change(item)}
             >
               {item.active ? "Arkivér" : "Genaktivér"}
             </button>
+            <button
+              type="button"
+              className={button}
+              disabled={busy || !!material || priceEditing}
+              aria-expanded={priceItem === item.id}
+              onClick={() => setPriceItem(priceItem === item.id ? undefined : item.id)}
+            >
+              {priceItem === item.id ? "Luk enhedspris" : "Vis enhedspris"}
+            </button>
+            {priceItem === item.id && (
+              <MaterialUnitPrice
+                scope={scope}
+                actorId={actorId}
+                catalogId={item.id}
+                unitLabel={unitLabel[item.unit]}
+                disabled={busy || !!material}
+                onEditing={setPriceEditing}
+              />
+            )}
           </li>
         ))}
       </ul>

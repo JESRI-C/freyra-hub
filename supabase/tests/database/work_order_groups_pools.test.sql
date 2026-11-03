@@ -181,7 +181,19 @@ SELECT throws_ok($$INSERT INTO public.project_material_catalog(id,organization_i
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT lives_ok($$INSERT INTO public.project_material_catalog(id,organization_id,project_id,material,unit)
  VALUES(pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg')$$,'manager can add a catalog material');
+SELECT lives_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(334),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),1,1995)$$,'manager can record a catalog unit price');
+SELECT lives_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(335),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,0)$$,'zero is a valid versioned unit price');
+SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(336),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,2995)$$,'40001',NULL,'stale price updates are rejected');
+SELECT is((SELECT unit_price_ore FROM public.project_material_unit_prices WHERE id=pg_temp.k(334)),1995,
+ 'the initial unit price remains available after an update');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT count(*) FROM public.project_material_unit_prices WHERE catalog_id=pg_temp.k(330)),0::bigint,
+ 'field users cannot read catalog prices');
+SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(337),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),3,2500)$$,'42501',NULL,'field users cannot change catalog prices');
 SELECT is((SELECT material FROM public.project_material_catalog WHERE id=pg_temp.k(330)),
  'Testgrus','the assigned field user can see active catalog materials');
 SELECT throws_ok($$INSERT INTO public.work_order_material_versions
