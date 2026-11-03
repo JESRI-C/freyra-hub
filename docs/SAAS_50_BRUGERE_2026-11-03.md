@@ -56,6 +56,8 @@ Hvis kontooprettelsen afbrydes, kan `prepare-cleanup.mjs --staging --partial-pro
 
 En rollback-prøve i staging oprettede én syntetisk konto med den normale oprettelsestrigger. Oprydningen lukkede kontoen og ændrede medlemskabet i den personlige organisation til læseadgang. Rollback fjernede testkontoen igen. En negativ prøve med et uventet organisationsnavn blev afvist. Standardoprydningen afviste også en kørsel med kun én konto.
 
+Generér standardoprydningen fra den aktuelle fixture efter `setup-tenants`. Opsætningen erstatter de foreløbige organisations-id'er med de faktiske organisations-id'er, før projektrollerne oprettes. Den særskilte fil til afbrudt kontooprettelse kan genereres før dette trin.
+
 Der er ikke ændret produktion, merget kode, sendt invitationer eller aktiveret en betalt udbyder. Brugerens to lokale Jobs/Geotag-dokumenter og eksisterende projekter er bevaret.
 
 ## Opfølgning efter 50-brugerprøven
@@ -91,3 +93,11 @@ Oprydningen lukkede alle 50 konti. Efter læsning på staging var der 0 aktive s
 Den opdaterede genprøve dækker arbejdsforløbet til gemt rapport og PDF. Den samlede frigivelsesvurdering afventer uassisteret brug på fysisk telefon, fuld Skyhost-dækning og de resterende fagvisninger, længere belastning, kundeopstart, betaling og produktionsdrift.
 
 Den efterfølgende S13-leverance tilføjer en afgrænset ugentlig serie fra Arbejdsopgaver → Arbejdsgrundlag. Stagingprøven ved 390 px oprettede to særskilte arbejdsopgaver, genåbnede deres datoer og verificerede den præcise kildeplan. Serien er testet separat fra 50-brugerprøven. Flere gentagelsesintervaller og samlet omplanlægning af en serie er åbne. Den første browserprøve efterlod to syntetiske poster med id-format, som appen afviser, i det oprindelige testprojekt. Genprøven bestod i et separat syntetisk projekt efter rettelsen.
+
+## Genprøve af navigation og rapportens kildeversion
+
+Kørsel `6e51f4bb` på staging, appkilde `596bdc5` og Worker `adf6fef4-4388-49f0-a8e7-03f0c6ccd29c`. Alle 515 kontroller bestod. Det omfatter 50 login, otte projektoprettelser, 268 isolationskontroller, 56 forløbskontroller, 50 browserprofiler, otte rapportprøver og 75 afsluttende adgangskontroller. Der blev registreret 1.066 SDK-kald. Alle otte projektledere fandt via tastaturet den korrekte aflevering fra Overblik. Alle otte rapportprøver viste den forventede godkendte afleveringsversion, åbnede samme rapport ved genforsøg, hentede PDF og vendte tilbage til samme opgave med tastaturet.
+
+Standardoprydningen stoppede først på den gamle organisationsafgrænsning. Efter generering fra den afsluttede fixture blev alle 50 konti lukket. Aflæsningen viste 0 aktive sessioner, 0 aktive refresh-tokens og 0 medlemskaber med skriveadgang for kontiene. Login og refresh på en lukket konto blev afvist med `user_banned`. Lokale legitimationsoplysninger blev fjernet. Otte projekter, otte verificerede originaler og ni afleveringsversioner blev bevaret. En separat afbrudt opstart `56233511` blev lukket med én oprettet og én lukket konto.
+
+Prøven er teknisk og syntetisk. Fysisk telefon, uassisteret kundebrug, vedvarende belastning og de øvrige åbne frigivelseskriterier afventes.
