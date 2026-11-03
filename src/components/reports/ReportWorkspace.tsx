@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateEvidenceReportDraft } from "@/lib/report-draft.functions";
+import { getProjectWorkOrderEvidenceOriginal } from "@/lib/work-order-evidence.functions";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, PageHeader } from "@/components/ui-bits";
@@ -62,6 +63,7 @@ export function ReportWorkspace({ mode }: { mode: Mode }) {
 function ScopedReportWorkspace({ mode }: { mode: Mode }) {
   const { currentOrg, currentProject, user, session } = useAuth();
   const generateDraft = useServerFn(generateEvidenceReportDraft);
+  const signEvidenceOriginal = useServerFn(getProjectWorkOrderEvidenceOriginal);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const search = useRouterState({ select: (s) => s.location.search }) as {
@@ -140,6 +142,39 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     setImages([]);
     setImagesReady(false);
   }, [mode, orgId, projectId, reportId, revision, currentOrg, currentProject, search.template]);
+  async function downloadPackage(saved: ReportRevision, includeOriginals = false) {
+    const approval = saved.content.workOrderApproval;
+    const { buildWorkflowReportPackage, buildWorkOrderReportPackage } =
+      await import("@/lib/workflow-report-package");
+    const signOriginal =
+      includeOriginals && approval && orgId && projectId && user?.id
+        ? (id: string) =>
+            signEvidenceOriginal({
+              data: {
+                id,
+                actionId: approval.actionId,
+                projectId,
+                organizationId: orgId,
+                expectedActorId: user.id,
+              },
+            })
+        : undefined;
+    if (includeOriginals && !signOriginal) throw new Error("Originalfilerne kræver projektadgang.");
+    const bytes = approval
+      ? await buildWorkOrderReportPackage(saved, signOriginal)
+      : await buildWorkflowReportPackage(
+          saved,
+          imagesReady && assetRevisionId === saved.id ? images : [],
+        );
+    const url = URL.createObjectURL(new Blob([bytes.slice().buffer], { type: "application/zip" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    const prefix = approval ? "Freyra-opgaverapport-v" : "Freyra-foer-efter-v";
+    anchor.download = prefix + saved.version + (includeOriginals ? "-med-originaler" : "") + ".zip";
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setMessage("");
@@ -726,39 +761,26 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
             <button
               className={button}
               disabled={busy || changed}
-              onClick={() =>
-                void run(async () => {
-                  const { buildWorkflowReportPackage, buildWorkOrderReportPackage } =
-                    await import("@/lib/workflow-report-package");
-                  const isWorkOrderReport = !!revision.content.workOrderApproval;
-                  const bytes = isWorkOrderReport
-                    ? await buildWorkOrderReportPackage(revision)
-                    : await buildWorkflowReportPackage(
-                        revision,
-                        imagesReady && assetRevisionId === revision.id ? images : [],
-                      );
-                  const url = URL.createObjectURL(
-                    new Blob([bytes.slice().buffer], { type: "application/zip" }),
-                  );
-                  const anchor = document.createElement("a");
-                  anchor.href = url;
-                  const prefix = isWorkOrderReport
-                    ? "Freyra-opgaverapport-v"
-                    : "Freyra-foer-efter-v";
-                  anchor.download = prefix + revision.version + ".zip";
-                  anchor.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 10000);
-                })
-              }
+              onClick={() => void run(() => downloadPackage(revision))}
             >
               Hent PDF og kildepakke fra denne version
             </button>
           )}
           {revision.content.workOrderApproval ? (
-            <p className="text-sm">
-              Eksporten indeholder den gemte rapport med originalernes referencer og kontrolsummer.
-              Brug linket til opgaven for at åbne originalfotos.
-            </p>
+            <>
+              <button
+                className={button}
+                disabled={busy || changed}
+                onClick={() => void run(() => downloadPackage(revision, true))}
+              >
+                Hent ZIP med verificerede originalfotos
+              </button>
+              <p className="text-sm">
+                Kildepakken indeholder referencer og kontrolsummer. ZIP med originalfotos henter
+                også filerne med din aktuelle adgang, op til 25 MiB i alt. Du kan åbne originalfotos
+                enkeltvis fra opgaven.
+              </p>
+            </>
           ) : (
             <>
               <p className="text-sm">
