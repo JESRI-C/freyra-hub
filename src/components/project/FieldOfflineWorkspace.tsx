@@ -11,7 +11,7 @@ import {
   type FieldWorkPack,
   type OfflineItem,
 } from "@/lib/field-offline";
-import type { FieldJobValues } from "@/lib/field-job-cards";
+import { FieldJobVersionSchema, type FieldJobValues } from "@/lib/field-job-cards";
 import { RequiredFieldJobProgress } from "./RequiredFieldJobProgress";
 import { openFieldOfflineStore, type FieldOfflineStore } from "@/services/field-offline-store";
 import { drainFieldOfflineQueue } from "@/services/field-offline-sync";
@@ -476,7 +476,8 @@ export function FieldOfflineWorkspace({
             </label>
             <p className="text-sm text-muted-foreground">
               Når telefonen lukker eller suspenderer siden, bevares køen. Åbn feltsiden igen med net
-              for at fortsætte. En kvittering gælder filens bytes, ikke faglig godkendelse.
+              for at fortsætte. For jobkort viser kvitteringen den gemte version. For fotos
+              bekræfter den, at originalfilen er kontrolleret. Faglig gennemgang sker i opgaven.
             </p>
             <ul className="space-y-3">
               {items.slice(0, visibleCount).map((item) => (
@@ -497,6 +498,9 @@ export function FieldOfflineWorkspace({
                       : ""}
                     {progress?.id === item.id ? ` · ${Math.round(progress.percent)} %` : ""}
                   </p>
+                  {item.kind === "job" && item.state === "complete" && (
+                    <JobReceipt receipt={item.receipt} />
+                  )}
                   {item.kind === "photo" && (
                     <p className="text-xs text-muted-foreground">
                       {bytes(item.originalBytes)} ·{" "}
@@ -1119,4 +1123,19 @@ function offlineJobAnswer(value: FieldJobValues[string] | undefined) {
   if (value == null || value === "") return "Ikke registreret";
   if (typeof value === "boolean") return value ? "Ja" : "Nej";
   return String(value);
+}
+
+function JobReceipt({ receipt }: { receipt: unknown }) {
+  const result = FieldJobVersionSchema.safeParse(receipt);
+  if (!result.success) return null;
+  const status = {
+    draft: "Kladde",
+    recorded: "Registreret af medarbejder",
+    needs_review: "Til ekstra gennemgang",
+  }[result.data.status];
+  return (
+    <p className="text-sm text-muted-foreground">
+      Gemt som version {result.data.version} · {status}
+    </p>
+  );
 }

@@ -224,6 +224,30 @@ describe("mobile field local save feedback", () => {
     expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("0");
     expect(f.enqueue).not.toHaveBeenCalled();
   });
+  it("shows the server version and draft status on a completed job receipt", async () => {
+    const savedPack = pack();
+    const job = savedPack.jobs[0];
+    f.packs.mockResolvedValue([savedPack]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        projectId: f.project,
+        kind: "job",
+        state: "complete",
+        template: job.template,
+        payload: { actionId: f.action, expectedVersion: 1, values: job.latest!.values },
+        receipt: { ...job.latest, version: 2, status: "draft" },
+      },
+    ]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const queue = host.querySelector('[aria-label="Telefonens feltkø"]');
+    expect(queue?.textContent).toContain("Gemt som version 2 · Kladde");
+    expect(queue?.textContent).toContain("Modtaget og kontrolleret på serveren");
+  });
   it("does not replace an unavailable requested task with another saved task", async () => {
     await act(async () =>
       root!.render(
