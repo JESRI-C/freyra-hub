@@ -608,3 +608,7 @@ Planlagte opgaver har en genvej til Omplanlæg datoer fra Kalender og Planoversi
 Den særskilte browserprøve af Planoversigt bestod også på staging i Chrome ved 390 px. Genvejen åbnede datoformularen på samme opgave. Ændringen blev gemt som planversion 2 med den oprindelige arbejdsinstruktion bevaret. Kilde bd84957 og Worker e9fd58d2-99d3-4d21-a3e4-5e1287f20192.
 
 Projektkalenderen har nu samme titelsøgning som opgavelisten. Søgning afgrænser opgaver og estimat i den viste liste, mens kalenderens planmarkeringer og sammenligning med ansvarliges tilgængelige tid fortsat medregner alle opgaver i den valgte periode for filteret. 23 målrettede tests og lint bestod. I Chrome ved 390 px på staging viste en præcis titel én opgave. En søgning uden match viste nul opgaver, mens datoen stadig var markeret med planlagt arbejde. Rydning viste opgaven igen. Staging-build bestod. Kilde 48b1363 og Worker 15778f65-5476-4c28-ab43-a1433ddd9b5b.
+
+## Opfølgende arbejdsopgaver
+
+Fra en gemt arbejdsplan kan projektlederen oprette en særskilt opfølgende opgave. Første plankladde genbruger instruktioner, metode, lokaliteter, besøgsrækkefølge og øvrige planfelter. Datoer og ansvarlig vælges på ny. Oprettelsen gemmer opgaven, og plankladden gemmes efter brugerens gennemgang. Kildeplanens titel og version fremgår af opgavebeskrivelsen. 34 målrettede tests bestod. Browserprøve, automatiske serier og egentlige afhængigheder afventer.

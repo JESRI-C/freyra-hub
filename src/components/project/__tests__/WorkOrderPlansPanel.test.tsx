@@ -118,11 +118,15 @@ async function settle() {
     await new Promise((r) => setTimeout(r, 20));
   });
 }
-async function open(edit = true, openReschedule = false) {
+async function open(edit = true, openReschedule = false, planSource?: ReturnType<typeof row>) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
-        <WorkOrderPlansPanel scope={scope} openReschedule={openReschedule} />
+        <WorkOrderPlansPanel
+          scope={scope}
+          openReschedule={openReschedule}
+          planSource={planSource}
+        />
       </QueryClientProvider>,
     ),
   );
@@ -354,6 +358,37 @@ describe("work-order plan editor", () => {
       data: expect.objectContaining({
         expectedVersion: 1,
         plan: { ...row().plan, estimatedHours: 2.75 },
+      }),
+    });
+  });
+  it("reuses the planning details for a follow-up without copying dates or responsibility", async () => {
+    const source = row();
+    Object.assign(source.plan, {
+      instructions: "Synthetic mowing instructions",
+      plannedStart: "2026-11-10",
+      plannedEnd: "2026-11-12",
+      responsibleId: actor,
+    });
+    m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
+    await open(false, false, source);
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Opret arbejdsopgavens plan")!
+        .click(),
+    );
+    m.save.mockResolvedValue(row());
+    await save();
+    expect(m.save).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        expectedVersion: 0,
+        plan: expect.objectContaining({
+          instructions: source.plan.instructions,
+          profile: "watercourse",
+          watercourse: source.plan.watercourse,
+          plannedStart: null,
+          plannedEnd: null,
+          responsibleId: null,
+        }),
       }),
     });
   });

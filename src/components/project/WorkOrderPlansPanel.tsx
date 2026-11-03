@@ -50,6 +50,8 @@ type PlanPanelProps = {
   selectedActionId?: string;
   openBooking?: boolean;
   openReschedule?: boolean;
+  planSource?: WorkOrderPlanVersion;
+  onFollowUp?: (source: WorkOrderPlanVersion) => void;
   suggestedStart?: string;
   onEditing?: (value: boolean) => void;
 };
@@ -71,6 +73,8 @@ function WorkOrderPlans({
   selectedActionId,
   openBooking,
   openReschedule,
+  planSource,
+  onFollowUp,
   suggestedStart,
   onEditing,
 }: PlanPanelProps & {
@@ -161,6 +165,8 @@ function WorkOrderPlans({
               }
               openBooking={openBooking}
               openReschedule={openReschedule}
+              planSource={planSource}
+              onFollowUp={onFollowUp}
               suggestedStart={suggestedStart}
               canBook={access.data?.canManageAvailability === true}
               onEditing={setEditing}
@@ -190,6 +196,8 @@ function PlanWorkspace({
   canBook,
   openBooking,
   openReschedule,
+  planSource,
+  onFollowUp,
   suggestedStart,
   onEditing,
 }: {
@@ -201,6 +209,8 @@ function PlanWorkspace({
   canBook: boolean;
   openBooking?: boolean;
   openReschedule?: boolean;
+  planSource?: WorkOrderPlanVersion;
+  onFollowUp?: (source: WorkOrderPlanVersion) => void;
   suggestedStart?: string;
   onEditing: (value: boolean) => void;
 }) {
@@ -254,8 +264,11 @@ function PlanWorkspace({
     (onlyDates = false) => {
       setDatesOnly(onlyDates);
       const plan = latest?.plan ?? {
-        ...emptyWorkOrderPlan(title),
+        ...(planSource?.plan ?? emptyWorkOrderPlan(title)),
+        title,
+        responsibleId: null,
         plannedStart: suggestedStart ?? null,
+        plannedEnd: null,
       };
       setDraft(plan);
       setHoursText(plan.estimatedHours?.toString().replace(".", ",") ?? "");
@@ -274,7 +287,7 @@ function PlanWorkspace({
       );
       onEditing(true);
     },
-    [latest, onEditing, suggestedStart, title],
+    [latest, onEditing, planSource, suggestedStart, title],
   );
   const openedReschedule = useRef(false);
   useEffect(() => {
@@ -478,6 +491,16 @@ function PlanWorkspace({
           )}
           {canPlan && (
             <div className="flex flex-wrap gap-2">
+              {latest && onFollowUp && (
+                <button
+                  type="button"
+                  className={button}
+                  disabled={history.isFetching}
+                  onClick={() => onFollowUp(latest)}
+                >
+                  Opret opfølgende opgave
+                </button>
+              )}
               {latest && (
                 <button
                   type="button"

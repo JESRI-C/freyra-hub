@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
+import type { WorkOrderPlanVersion } from "@/lib/work-order-plan";
 import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
@@ -107,6 +108,11 @@ function WorkOrders({
   const [error, setError] = useState("");
   const [createdActionId, setCreatedActionId] = useState<string>();
   const [calendarPlan, setCalendarPlan] = useState<{ actionId: string; date: string }>();
+  const [followUpSource, setFollowUpSource] = useState<WorkOrderPlanVersion>();
+  const [copiedPlan, setCopiedPlan] = useState<{
+    actionId: string;
+    source: WorkOrderPlanVersion;
+  }>();
   const alive = useRef(true);
   const inFlight = useRef(false);
   const createAttempt = useRef<{ id: string; signature: string } | undefined>(undefined);
@@ -121,10 +127,11 @@ function WorkOrders({
   useEffect(() => {
     if (!createdActionId || locked) return;
     setLocalAction(createdActionId);
-    if (calendarPlan?.actionId === createdActionId) onSelectAction?.(createdActionId, "plan");
+    if (calendarPlan?.actionId === createdActionId || copiedPlan?.actionId === createdActionId)
+      onSelectAction?.(createdActionId, "plan");
     else onSelectAction?.(createdActionId);
     setCreatedActionId(undefined);
-  }, [createdActionId, calendarPlan, locked, onSelectAction]);
+  }, [createdActionId, calendarPlan, copiedPlan, locked, onSelectAction]);
   const onEditing = useCallback((part: Editor, value: boolean) => {
     setEditors((old) => {
       if (old.has(part) === value) return old;
@@ -262,20 +269,30 @@ function WorkOrders({
     setBusy(true);
     setError("");
     try {
-      const signature = JSON.stringify({ scope, title: title.trim() });
+      const signature = JSON.stringify({ scope, title: title.trim(), source: followUpSource?.id });
       if (createAttempt.current?.signature !== signature)
         createAttempt.current = { signature, id: crypto.randomUUID() };
       const action = await createProjectAction(
         scope,
         title.trim(),
-        "Arbejdsgrundlag afventer planlægning.",
+        followUpSource
+          ? "Opfølgning på " +
+              followUpSource.plan.title +
+              " (planversion " +
+              followUpSource.version +
+              ")."
+          : "Arbejdsgrundlag afventer planlægning.",
         createAttempt.current.id,
       );
       if (alive.current) {
         setCreating(false);
         setTitle("");
-        setCalendarPlan(createDate ? { actionId: action.id, date: createDate } : undefined);
-        if (createDate) setScheduleActionId(action.id);
+        setCalendarPlan(
+          createDate && !followUpSource ? { actionId: action.id, date: createDate } : undefined,
+        );
+        setCopiedPlan(followUpSource ? { actionId: action.id, source: followUpSource } : undefined);
+        setFollowUpSource(undefined);
+        if (createDate || followUpSource) setScheduleActionId(action.id);
         setCreatedActionId(action.id);
         createAttempt.current = undefined;
       }
@@ -756,13 +773,20 @@ function WorkOrders({
                 <input
                   className={control}
                   required
-                  maxLength={200}
+                  maxLength={followUpSource ? 160 : 200}
+                  autoFocus={!!followUpSource}
                   value={title}
                   disabled={busy}
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </label>
-              {createDate && (
+              {followUpSource && (
+                <p className="text-sm text-muted-foreground">
+                  Genbrug arbejdsgrundlaget fra {followUpSource.plan.title}, version{" "}
+                  {followUpSource.version}. Vælg nye datoer og ansvarlig i den nye plan.
+                </p>
+              )}
+              {createDate && !followUpSource && (
                 <p className="text-sm text-muted-foreground">
                   {scheduleDate.format(new Date(createDate))} foreslås som startdato, når du åbner
                   arbejdsgrundlaget.
@@ -781,6 +805,7 @@ function WorkOrders({
                   disabled={busy}
                   onClick={() => {
                     setCreating(false);
+                    setFollowUpSource(undefined);
                     setTitle("");
                     setError("");
                   }}
@@ -803,6 +828,16 @@ function WorkOrders({
               timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
               openBooking={listView === "bookings"}
               openReschedule={rescheduleActionId === actionId}
+              planSource={copiedPlan?.actionId === actionId ? copiedPlan?.source : undefined}
+              onFollowUp={
+                canEdit && access.data?.canConfigure && !locked
+                  ? (source) => {
+                      setFollowUpSource(source);
+                      setTitle(source.plan.title.slice(0, 145) + " – opfølgning");
+                      setCreating(true);
+                    }
+                  : undefined
+              }
               suggestedStart={calendarPlan?.actionId === actionId ? calendarPlan?.date : undefined}
               canManageTime={!!access.data?.canManageAvailability}
               onEditing={onEditing}
@@ -830,6 +865,8 @@ function TaskWorkspace({
   canManageTime,
   openBooking,
   openReschedule,
+  planSource,
+  onFollowUp,
   suggestedStart,
   timeReviewDate,
   onEditing,
@@ -844,6 +881,8 @@ function TaskWorkspace({
   canManageTime: boolean;
   openBooking: boolean;
   openReschedule: boolean;
+  planSource?: WorkOrderPlanVersion;
+  onFollowUp?: (source: WorkOrderPlanVersion) => void;
   suggestedStart?: string;
   timeReviewDate?: string;
   onEditing: (part: Editor, value: boolean) => void;
@@ -913,6 +952,8 @@ function TaskWorkspace({
             selectedActionId={actionId}
             openBooking={openBooking}
             openReschedule={openReschedule}
+            planSource={planSource}
+            onFollowUp={onFollowUp}
             suggestedStart={suggestedStart}
             onEditing={planEditing}
           />
