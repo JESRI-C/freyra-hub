@@ -7,6 +7,7 @@ const m = vi.hoisted(() => ({
   access: vi.fn(),
   actions: vi.fn(),
   schedule: vi.fn(),
+  indicators: vi.fn(),
   time: vi.fn(),
   create: vi.fn(),
   blocker: vi.fn(),
@@ -40,6 +41,7 @@ vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: m.actions,
   listFieldJobSchedule: m.schedule,
 }));
+vi.mock("@/services/indicators-service", () => ({ getIndicatorsByProject: m.indicators }));
 vi.mock("../useWorkOrderPeople", () => ({
   useWorkOrderPeople: () => ({
     data: [{ user_id: "responsible-person", display_name: "Testansvarlig" }],
@@ -139,6 +141,33 @@ const tasks = [
   { id: "first", title: "Første opgave", status: "Åben" },
   { id: "second", title: "Anden opgave", status: "Åben" },
 ];
+it("shows the same-project target and links to its measurement history", async () => {
+  const indicatorId = "00000000-0000-4000-8000-000000000009";
+  m.actions.mockResolvedValue([{ ...tasks[0], linked_indicator_id: indicatorId }]);
+  m.indicators.mockResolvedValue([
+    { id: indicatorId, project_id: "foreign-project", label: "Foreign indicator" },
+    {
+      id: indicatorId,
+      project_id: scope.projectId,
+      label: "Optalte planter",
+      target_value: 0,
+      target_direction: "at_most",
+      target_unit: "stk.",
+    },
+  ]);
+  await render("first");
+  const panel = host.querySelector('[aria-label="Indikator for opgaven"]')!;
+  expect(panel.textContent).toContain("Optalte planter");
+  expect(panel.textContent).toContain("Højst 0 stk.");
+  expect(panel.textContent).not.toContain("Foreign indicator");
+  const url = new URL(panel.querySelector("a")!.href);
+  expect(Object.fromEntries(url.searchParams)).toEqual({
+    tab: "indikatorer",
+    task: "first",
+    round: "exact-round",
+    indicator: indicatorId,
+  });
+});
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function settle() {
   await act(async () => {

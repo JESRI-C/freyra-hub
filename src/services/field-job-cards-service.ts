@@ -43,6 +43,7 @@ const fieldJobAction = z.object({
   id: WorkOrderActionIdSchema,
   title: z.string(),
   status: z.string().nullable(),
+  linked_indicator_id: z.string().uuid().nullish(),
 });
 
 export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSignal) {
@@ -54,7 +55,7 @@ export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSig
     signal?.throwIfAborted();
     let query = db
       .from("actions")
-      .select("id,title,status,action_type")
+      .select("id,title,status,action_type,linked_indicator_id")
       .eq("project_id", scope.projectId)
       .order("id")
       .limit(pageSize);

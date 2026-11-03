@@ -20,6 +20,7 @@ import { rememberFollowUpSource } from "@/lib/work-order-follow-up-draft";
 import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
+import { getIndicatorsByProject } from "@/services/indicators-service";
 import { createProjectAction, type ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
@@ -286,6 +287,19 @@ function WorkOrders({
     if (listView !== "schedule") setListView("schedule");
   }
   const selected = actions.data?.find((a) => a.id === actionId);
+  const linkedIndicators = useQuery({
+    queryKey: ["indicators", scope.projectId, actorId],
+    queryFn: () => getIndicatorsByProject(scope.projectId),
+    enabled: authorized && actions.isSuccess && !!selected?.linked_indicator_id,
+    retry: false,
+  });
+  const linkedIndicator = linkedIndicators.isSuccess
+    ? linkedIndicators.data.find(
+        (indicator) =>
+          indicator.id === selected?.linked_indicator_id &&
+          indicator.project_id === scope.projectId,
+      )
+    : undefined;
   const [timeReview, setTimeReview] = useState<{ actionId: string; date: string }>();
   function select(id: string, view?: WorkOrderView, reviewDate?: string) {
     if (locked) return;
@@ -1021,6 +1035,45 @@ function WorkOrders({
             </form>
           )}
           {error && <p role="alert">{error}</p>}
+          {authorized && actions.isSuccess && selected?.linked_indicator_id && (
+            <section
+              aria-label="Indikator for opgaven"
+              className="space-y-1 rounded-xl border p-3 text-sm"
+            >
+              <h3 className="font-medium">Indikator for opgaven</h3>
+              {linkedIndicator ? (
+                <>
+                  <p>{linkedIndicator.label}</p>
+                  <p className="text-muted-foreground">
+                    {linkedIndicator.target_value != null &&
+                    linkedIndicator.target_direction &&
+                    linkedIndicator.target_unit
+                      ? `${linkedIndicator.target_direction === "at_most" ? "Højst" : "Mindst"} ${linkedIndicator.target_value} ${linkedIndicator.target_unit}`
+                      : "Der er endnu ikke sat en målværdi."}
+                  </p>
+                  {!locked && (
+                    <Link
+                      to="/app/projects/$slug"
+                      params={{ slug: scope.projectId }}
+                      search={{
+                        tab: "indikatorer",
+                        task: selected.id,
+                        round,
+                        indicator: linkedIndicator.id,
+                      }}
+                      className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4"
+                    >
+                      Åbn indikatorens målehistorik
+                    </Link>
+                  )}
+                </>
+              ) : linkedIndicators.isPending ? (
+                <p role="status">Henter indikatoren…</p>
+              ) : (
+                <p>Den tilknyttede indikator kunne ikke vises med din aktuelle adgang.</p>
+              )}
+            </section>
+          )}
           {selected && actorId && (
             <TaskWorkspace
               key={actionId}

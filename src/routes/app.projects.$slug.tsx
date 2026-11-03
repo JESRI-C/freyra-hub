@@ -136,6 +136,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
     work?: WorkOrderView;
     taskList?: WorkOrderListView;
     submissionVersion?: number;
+    indicator?: string;
   } => ({
     ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
       ? { step: search.step as MunicipalStep }
@@ -153,6 +154,10 @@ export const Route = createFileRoute("/app/projects/$slug")({
       : {}),
     ...(isWorkOrderView(search.work) ? { work: search.work as WorkOrderView } : {}),
     ...(isWorkOrderListView(search.taskList) ? { taskList: search.taskList } : {}),
+    ...(typeof search.indicator === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.indicator)
+      ? { indicator: search.indicator.toLowerCase() }
+      : {}),
     ...(typeof search.submissionVersion === "number" &&
     Number.isInteger(search.submissionVersion) &&
     search.submissionVersion > 0 &&
@@ -384,7 +389,9 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
     setLocalActions(actions);
   }, [actions]);
   const [selectedIndicatorId, setSelectedIndicatorId] = useState<string>();
-  const selectedIndicator = indicators.find((item) => item.id === selectedIndicatorId) ?? null;
+  const linkedIndicatorId = activeTab === "indikatorer" ? search.indicator : undefined;
+  const selectedIndicator =
+    indicators.find((item) => item.id === (linkedIndicatorId ?? selectedIndicatorId)) ?? null;
   const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
   const [actionFilterSite, setActionFilterSite] = useState<string>("");
   const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
@@ -623,6 +630,26 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
               <div className="space-y-4">
+                {search.task && (
+                  <Link
+                    to="/app/projects/$slug"
+                    params={{ slug }}
+                    search={{
+                      tab: "handlinger",
+                      task: search.task,
+                      work: "plan",
+                      round: search.round,
+                    }}
+                    className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4"
+                  >
+                    Tilbage til opgavens arbejdsgrundlag
+                  </Link>
+                )}
+                {linkedIndicatorId && !selectedIndicator && (
+                  <p role="status">
+                    Den valgte indikator findes ikke på sagen med din aktuelle adgang.
+                  </p>
+                )}
                 <Link
                   to="/app/projects/$slug"
                   params={{ slug }}
@@ -1101,8 +1128,13 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
         key={selectedIndicator?.id}
         indicator={selectedIndicator}
         readOnly={!canEdit}
-        open={indicatorDetailOpen}
-        onOpenChange={setIndicatorDetailOpen}
+        open={indicatorDetailOpen || !!linkedIndicatorId}
+        onOpenChange={(open) => {
+          setIndicatorDetailOpen(open);
+          if (!open && linkedIndicatorId) {
+            void navigate({ search: { ...search, indicator: undefined }, replace: true });
+          }
+        }}
       />
     </main>
   );
