@@ -148,6 +148,25 @@ export function WorkOrderReviewControls({
   const currentApproval =
     c?.state?.status === "approved" && c.state.operation === "review" ? c.state : undefined;
 
+  function submissionLink(version: number) {
+    return (
+      <Link
+        className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-2"
+        to="/app/projects/$slug"
+        params={{ slug: scope.projectId }}
+        search={(previous) => ({
+          ...previous,
+          tab: "handlinger",
+          task: scope.actionId,
+          work: "submission",
+          submissionVersion: version,
+        })}
+      >
+        Se afleveringsversion {version}
+      </Link>
+    );
+  }
+
   function reportAction(reviewId: string, submissionId: string, version: number) {
     if (report?.content.workOrderApproval?.reviewId === reviewId) {
       return (
@@ -295,6 +314,7 @@ export function WorkOrderReviewControls({
             Status: {phase ? workOrderStatusLabels[phase] : "Ikke fastlagt"}
             {c?.packet ? ` · afleveringsversion ${c.packet.version}` : ""}
           </p>
+          {c?.packet && !locked && !disabledByParent && submissionLink(c.packet.version)}
           {c?.state?.reason &&
             ["submitted", "approved", "returned", "reopened"].includes(phase ?? "") && (
               <p className="whitespace-pre-wrap text-sm">Begrundelse: {c.state.reason}</p>
@@ -433,6 +453,7 @@ export function WorkOrderReviewControls({
                     </p>
                     <p className="whitespace-pre-wrap">{entry.state.reason}</p>
                     <p>Omfang: Registreret udførelse og vedlagt dokumentation.</p>
+                    {!locked && !disabledByParent && submissionLink(entry.submission_version)}
                     {canCreateReport &&
                       !draft &&
                       entry.state.status === "approved" &&

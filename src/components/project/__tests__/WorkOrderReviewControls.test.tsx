@@ -20,8 +20,22 @@ const m = vi.hoisted(() => ({
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({
   useBlocker: vi.fn(),
-  Link: ({ children, search }: { children: React.ReactNode; search: Record<string, string> }) => (
-    <a href={`/app/reports/preview?${new URLSearchParams(search)}`}>{children}</a>
+  Link: ({
+    children,
+    search,
+    to,
+    params,
+  }: {
+    children: React.ReactNode;
+    search: Record<string, string> | ((previous: Record<string, string>) => Record<string, string>);
+    to: string;
+    params?: { slug: string };
+  }) => (
+    <a
+      href={`${to.replace("$slug", params?.slug ?? "")}?${new URLSearchParams(typeof search === "function" ? search({}) : search)}`}
+    >
+      {children}
+    </a>
   ),
 }));
 vi.mock("@/services/report-document-service", () => ({
@@ -228,7 +242,7 @@ it("opens the saved report on exactly the approved packet and review", async () 
     submissionId: c.packet!.id,
     reviewId: id(20),
   });
-  expect(host.querySelector("a")?.getAttribute("href")).toBe(
+  expect(host.querySelector('a[href^="/app/reports/preview"]')?.getAttribute("href")).toBe(
     `/app/reports/preview?report=${id(21)}&version=1`,
   );
 });
@@ -257,6 +271,12 @@ it("opens the historical approval after the task has been reopened", async () =>
     content: { workOrderApproval: { reviewId: id(22) } },
   });
   await render({ canCreateReport: true });
+  const historicalLink = [...host.querySelectorAll("a")].find(
+    (link) => link.textContent === "Se afleveringsversion 1",
+  );
+  expect(historicalLink?.getAttribute("href")).toBe(
+    `/app/projects/${scope.projectId}?tab=handlinger&task=${scope.actionId}&work=submission&submissionVersion=1`,
+  );
   await click("Klargør rapportkladde for afleveringsversion 1");
   expect(m.saveReport).toHaveBeenCalledWith({
     ...scope,

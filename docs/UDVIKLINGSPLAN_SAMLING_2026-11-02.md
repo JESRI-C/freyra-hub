@@ -217,6 +217,8 @@ Første del af D05c viser nødvendige felter og enheder i en gemt afleverings fa
 
 Afleveringshistorikken viser også metodeprofil og planlagt metode fra den fastholdte planversion. Profilnavnene genbruges fra arbejdsgrundlaget. En komponentprøve sammenligner to afleveringer med forskellige profiler, metoder og feltkrav. 51 lokale prøver for plan og aflevering bestod. Stagingprøven bestod på kilde f83feac og Worker 16f1e35c-6d20-4417-92b0-59c0e04b1a43. Ved 1280 og 390 px åbnede rapporten præcis afleveringsversion 3 med den gemte metodeprofil og adgang til originalfotoet. Derefter viste historikken også metodeprofilen på version 2. Ingen vandret overflow eller JavaScript-sidefejl. Prøven læste eksisterende testdata. Fysisk telefon og servervaliderede, profilspecifikke dokumentationskrav afventes.
 
+Faglig gennemgang linker nu til den præcise afleveringsversion for både den aktuelle gennemgang og historikken. Genvejen bruger den samme adgangskontrollerede visning som rapportens kildehenvisning og skjules under igangværende redigering. Komponentprøven kontrollerer, at en tidligere godkendelse efter genåbning stadig åbner sin egen version. Serveren kontrollerer obligatoriske felter fra hver fastholdt jobkortdefinition. Der er endnu ingen defineret binding fra planens metodeprofil til et obligatorisk jobkort. Stagingprøve for gennemgangens genvej afventes.
+
 - Genbrug eksisterende operationel status. Tilføj den manglende aflevering med frosset krav-/evidenssnapshot.
 - Lad reviewer returnere med konkrete mangler eller godkende det eksplicitte omfang. Rettelse og genaflevering bevarer gammel historik.
 - Håndhæv roller, version, manglende bilag og selvreviewregler server-/databasenært; knapvisning er kun vejledning.
