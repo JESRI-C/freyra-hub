@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link, useBlocker } from "@tanstack/react-router";
@@ -49,6 +49,7 @@ type PlanPanelProps = {
   round?: string;
   selectedActionId?: string;
   openBooking?: boolean;
+  openReschedule?: boolean;
   suggestedStart?: string;
   onEditing?: (value: boolean) => void;
 };
@@ -69,6 +70,7 @@ function WorkOrderPlans({
   actorId,
   selectedActionId,
   openBooking,
+  openReschedule,
   suggestedStart,
   onEditing,
 }: PlanPanelProps & {
@@ -158,6 +160,7 @@ function WorkOrderPlans({
                 !access.isFetching
               }
               openBooking={openBooking}
+              openReschedule={openReschedule}
               suggestedStart={suggestedStart}
               canBook={access.data?.canManageAvailability === true}
               onEditing={setEditing}
@@ -186,6 +189,7 @@ function PlanWorkspace({
   canPlan,
   canBook,
   openBooking,
+  openReschedule,
   suggestedStart,
   onEditing,
 }: {
@@ -196,6 +200,7 @@ function PlanWorkspace({
   canPlan: boolean;
   canBook: boolean;
   openBooking?: boolean;
+  openReschedule?: boolean;
   suggestedStart?: string;
   onEditing: (value: boolean) => void;
 }) {
@@ -245,29 +250,46 @@ function PlanWorkspace({
       [...(history.data?.items ?? []), ...pages.flatMap((p) => p.items)].map((v) => [v.id, v]),
     ).values(),
   ].sort((a, b) => b.version - a.version);
-  const open = (onlyDates = false) => {
-    setDatesOnly(onlyDates);
-    const plan = latest?.plan ?? {
-      ...emptyWorkOrderPlan(title),
-      plannedStart: suggestedStart ?? null,
-    };
-    setDraft(plan);
-    setHoursText(plan.estimatedHours?.toString().replace(".", ",") ?? "");
-    setBase(latest?.version ?? 0);
-    setReason("");
-    setError("");
-    setMessage("");
-    attempt.current = null;
-    setMeters(
-      Object.fromEntries(
-        ["stationFromM", "stationToM", "lengthM", "bottomWidthM"].map((k) => [
-          k,
-          String(plan.watercourse?.[k as "lengthM"] ?? ""),
-        ]),
-      ),
-    );
-    onEditing(true);
-  };
+  const open = useCallback(
+    (onlyDates = false) => {
+      setDatesOnly(onlyDates);
+      const plan = latest?.plan ?? {
+        ...emptyWorkOrderPlan(title),
+        plannedStart: suggestedStart ?? null,
+      };
+      setDraft(plan);
+      setHoursText(plan.estimatedHours?.toString().replace(".", ",") ?? "");
+      setBase(latest?.version ?? 0);
+      setReason("");
+      setError("");
+      setMessage("");
+      attempt.current = null;
+      setMeters(
+        Object.fromEntries(
+          ["stationFromM", "stationToM", "lengthM", "bottomWidthM"].map((k) => [
+            k,
+            String(plan.watercourse?.[k as "lengthM"] ?? ""),
+          ]),
+        ),
+      );
+      onEditing(true);
+    },
+    [latest, onEditing, suggestedStart, title],
+  );
+  const openedReschedule = useRef(false);
+  useEffect(() => {
+    if (
+      !openReschedule ||
+      openedReschedule.current ||
+      !canPlan ||
+      !latest ||
+      history.isFetching ||
+      history.isError
+    )
+      return;
+    openedReschedule.current = true;
+    open(true);
+  }, [openReschedule, canPlan, latest, history.isFetching, history.isError, open]);
   async function submit() {
     if (!draft || !canPlan || saving.current) return;
     saving.current = true;

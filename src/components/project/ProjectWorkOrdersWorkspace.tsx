@@ -98,6 +98,7 @@ function WorkOrders({
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView === "schedule" || listView === "calendar";
   const [scheduleActionId, setScheduleActionId] = useState<string>();
+  const [rescheduleActionId, setRescheduleActionId] = useState<string>();
   const actionId = selectedActionId ?? localActionId;
   const [editors, setEditors] = useState<Set<Editor>>(() => new Set());
   const [creating, setCreating] = useState(false);
@@ -245,6 +246,7 @@ function WorkOrders({
     setTimeReview(reviewDate ? { actionId: id, date: reviewDate } : undefined);
     setLocalAction(id);
     setScheduleActionId(view === "plan" ? id : undefined);
+    setRescheduleActionId(undefined);
     onSelectAction?.(id || undefined, view);
     setError("");
   }
@@ -628,43 +630,61 @@ function WorkOrders({
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const estimate = estimates.get(a.id);
                   return (
-                    <button
-                      type="button"
-                      key={a.id}
-                      disabled={locked}
-                      onClick={() => select(a.id, showSchedule ? "plan" : undefined)}
-                      className="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left disabled:opacity-50"
-                    >
-                      <span className="min-w-0">
-                        <span className="block font-medium">{a.title}</span>
-                        {showSchedule && (
-                          <span className="block text-sm text-muted-foreground">
-                            {scheduleLabel(dates?.[a.id])}
-                            {estimate != null && (
-                              <span className="block">
-                                {listView === "calendar" ? "Estimat i udsnittet" : "Estimat"} ·{" "}
-                                {formatWorkOrderHours(estimate)}
-                              </span>
-                            )}
-                            {canEdit && (
-                              <span className="block">
-                                {dates?.[a.id]?.responsibleId
-                                  ? (names.get(dates?.[a.id]?.responsibleId ?? "") ??
-                                    "Ansvarlig registreret")
-                                  : "Ingen ansvarlig i planen"}
-                              </span>
-                            )}
-                            {listView === "calendar" &&
-                              dayOverlap?.has(dates?.[a.id]?.responsibleId ?? "") && (
-                                <span className="block font-medium text-foreground">
-                                  Flere opgaver samme dag
+                    <div key={a.id} className="space-y-1">
+                      <button
+                        type="button"
+                        disabled={locked}
+                        onClick={() => select(a.id, showSchedule ? "plan" : undefined)}
+                        className="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left disabled:opacity-50"
+                      >
+                        <span className="min-w-0">
+                          <span className="block font-medium">{a.title}</span>
+                          {showSchedule && (
+                            <span className="block text-sm text-muted-foreground">
+                              {scheduleLabel(dates?.[a.id])}
+                              {estimate != null && (
+                                <span className="block">
+                                  {listView === "calendar" ? "Estimat i udsnittet" : "Estimat"} ·{" "}
+                                  {formatWorkOrderHours(estimate)}
                                 </span>
                               )}
-                          </span>
+                              {canEdit && (
+                                <span className="block">
+                                  {dates?.[a.id]?.responsibleId
+                                    ? (names.get(dates?.[a.id]?.responsibleId ?? "") ??
+                                      "Ansvarlig registreret")
+                                    : "Ingen ansvarlig i planen"}
+                                </span>
+                              )}
+                              {listView === "calendar" &&
+                                dayOverlap?.has(dates?.[a.id]?.responsibleId ?? "") && (
+                                  <span className="block font-medium text-foreground">
+                                    Flere opgaver samme dag
+                                  </span>
+                                )}
+                            </span>
+                          )}
+                        </span>
+                        <span className="shrink-0 text-sm text-primary">Åbn →</span>
+                      </button>
+                      {showSchedule &&
+                        dates?.[a.id]?.start &&
+                        canEdit &&
+                        access.data?.canConfigure && (
+                          <button
+                            type="button"
+                            className={button}
+                            aria-label={"Omplanlæg datoer for " + a.title}
+                            disabled={locked}
+                            onClick={() => {
+                              select(a.id, "plan");
+                              setRescheduleActionId(a.id);
+                            }}
+                          >
+                            Omplanlæg datoer
+                          </button>
                         )}
-                      </span>
-                      <span className="shrink-0 text-sm text-primary">Åbn →</span>
-                    </button>
+                    </div>
                   );
                 })}
               {usesTaskList &&
@@ -775,6 +795,7 @@ function WorkOrders({
               canContribute={!!access.data?.canContribute}
               timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
               openBooking={listView === "bookings"}
+              openReschedule={rescheduleActionId === actionId}
               suggestedStart={calendarPlan?.actionId === actionId ? calendarPlan?.date : undefined}
               canManageTime={!!access.data?.canManageAvailability}
               onEditing={onEditing}
@@ -801,6 +822,7 @@ function TaskWorkspace({
   canContribute,
   canManageTime,
   openBooking,
+  openReschedule,
   suggestedStart,
   timeReviewDate,
   onEditing,
@@ -814,6 +836,7 @@ function TaskWorkspace({
   canContribute: boolean;
   canManageTime: boolean;
   openBooking: boolean;
+  openReschedule: boolean;
   suggestedStart?: string;
   timeReviewDate?: string;
   onEditing: (part: Editor, value: boolean) => void;
@@ -882,6 +905,7 @@ function TaskWorkspace({
             round={round}
             selectedActionId={actionId}
             openBooking={openBooking}
+            openReschedule={openReschedule}
             suggestedStart={suggestedStart}
             onEditing={planEditing}
           />

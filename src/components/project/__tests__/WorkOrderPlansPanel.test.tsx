@@ -118,11 +118,11 @@ async function settle() {
     await new Promise((r) => setTimeout(r, 20));
   });
 }
-async function open(edit = true) {
+async function open(edit = true, openReschedule = false) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
-        <WorkOrderPlansPanel scope={scope} />
+        <WorkOrderPlansPanel scope={scope} openReschedule={openReschedule} />
       </QueryClientProvider>,
     ),
   );
@@ -358,12 +358,8 @@ describe("work-order plan editor", () => {
     });
   });
   it("reschedules a saved plan without changing the work instructions or measurements", async () => {
-    await open(false);
-    await act(async () =>
-      [...host.querySelectorAll("button")]
-        .find((b) => b.textContent === "Omplanlæg datoer")!
-        .click(),
-    );
+    await open(false, true);
+    expect(host.querySelector("form")?.textContent).toContain("Omplanlæg datoer");
     expect(host.querySelector("form")?.textContent).not.toContain("Arbejdsinstruktion");
     await fill("Planlagt fra", "2026-11-11");
     await fill("Planlagt til", "2026-11-13");
