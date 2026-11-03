@@ -25,6 +25,37 @@ const row = {
   created_at: "2026-10-29T18:00:00Z",
 };
 describe("work-order plan request boundary", () => {
+  it("opens a legacy recurring plan and saves a new version against the same task", async () => {
+    const actionId = "11111111-1111-c111-5111-111111111111";
+    const legacyRow = { ...row, action_id: actionId, request_id: actionId };
+    const change = { ...input, actionId, expectedVersion: 1, correctionReason: "Ny dato" };
+    const corrected = {
+      ...legacyRow,
+      version: 2,
+      request_id: change.requestId,
+      correction_reason: change.correctionReason,
+    };
+    const rpc = vi
+      .fn()
+      .mockResolvedValueOnce({ data: [legacyRow], error: null })
+      .mockResolvedValueOnce({ data: [corrected], error: null });
+    const history = await getWorkOrderPlanHistory({ rpc }, actor, {
+      ...scope,
+      actionId,
+      beforeVersion: null,
+      pageSize: 5,
+    });
+    expect(history.items).toEqual([legacyRow]);
+    expect(await saveWorkOrderPlan({ rpc }, actor, change)).toEqual(corrected);
+    expect(rpc).toHaveBeenLastCalledWith(
+      "save_work_order_plan",
+      expect.objectContaining({
+        p_action_id: actionId,
+        p_expected_version: 1,
+        p_request_id: change.requestId,
+      }),
+    );
+  });
   it("does not mix actual execution into its plan mutation", async () => {
     const rpc = vi.fn(async () => ({ data: [row], error: null }));
     expect(await saveWorkOrderPlan({ rpc }, actor, input)).toEqual(row);

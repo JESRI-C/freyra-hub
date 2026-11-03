@@ -715,6 +715,8 @@ RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kla
 
 ### Ældre opgaver i planoversigt og kalender
 
+Tidlige ugegentagelser brugte et hashbaseret opgave-id som både opgave- og anmodnings-id. Arbejdsgrundlaget læser nu den oprindelige planversion og accepterer den samme opgave som mål for en rettelse. Den lokale serviceprøve læser version 1 og kontrollerer, at en ny version sendes med samme opgave-id, forventet version 1 og et nyt anmodnings-id. Stagingprøve af selve rettelsen og øvrige opgaveområder afventes.
+
 Planoversigt og kalender bruger nu samme validering af gemte opgave-id'er som opgavelisten. Det gælder også id'et på en forudgående opgave. En lokal prøve dækker en ældre planlagt opgave, hvis udførte status skal fjerne den fra ventelisten på en anden opgave. Prøven dækker planoversigtens datalæsning. De enkelte handlinger på ældre opgaver skal verificeres særskilt.
 
 ### Fra aflevering til næste handling

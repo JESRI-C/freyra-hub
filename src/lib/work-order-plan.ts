@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CalendarDate } from "./action-execution";
-import { WorkOrderScopeSchema } from "./work-order-access";
+import { WorkOrderActionIdSchema, WorkOrderScopeSchema } from "./work-order-access";
 const uuid = z.string().uuid();
 const optionalText = (max: number) => z.string().trim().min(1).max(max).nullable();
 const metres = z.number().finite().min(0).max(1_000_000_000).nullable();
@@ -194,16 +194,16 @@ export const SaveWorkOrderPlanSchema = WorkOrderScopeSchema.extend({
 export type SaveWorkOrderPlan = z.infer<typeof SaveWorkOrderPlanSchema>;
 export const WorkOrderPlanVersionSchema = z.object({
   id: uuid,
-  action_id: uuid,
+  action_id: WorkOrderActionIdSchema,
   organization_id: uuid,
   project_id: uuid,
   version: z.number().int().positive(),
   plan: WorkOrderPlanSchema,
   correction_reason: z.string().trim().max(2000),
   source_plan_version_id: uuid.nullish(),
-  source_action_id: uuid.nullish(),
+  source_action_id: WorkOrderActionIdSchema.nullish(),
   source_plan_version: z.number().int().positive().nullish(),
-  request_id: uuid,
+  request_id: WorkOrderActionIdSchema,
   created_by: uuid,
   created_at: z.string().datetime({ offset: true }),
 });

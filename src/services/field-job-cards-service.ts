@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { WorkOrderEstimatedHoursSchema } from "@/lib/work-order-plan";
 import { CalendarDate } from "@/lib/action-execution";
+import { WorkOrderActionIdSchema } from "@/lib/work-order-access";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { assertProjectScope, type ProjectScope } from "./project-workspace-service";
@@ -38,10 +39,8 @@ function scopeRow<T extends { project_id: string; organization_id: string }>(
     throw new Error("Jobkortet tilhører en anden sag.");
   return row;
 }
-// PostgreSQL can store legacy action IDs without RFC version and variant bits.
-const storedActionId = z.guid();
 const fieldJobAction = z.object({
-  id: storedActionId,
+  id: WorkOrderActionIdSchema,
   title: z.string(),
   status: z.string().nullable(),
 });
@@ -67,19 +66,19 @@ export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSig
       if (row.action_type !== "workflow_followup") actions.push(fieldJobAction.parse(row));
     }
     if (!data || data.length < pageSize) return actions;
-    afterId = storedActionId.parse(data[data.length - 1].id);
+    afterId = WorkOrderActionIdSchema.parse(data[data.length - 1].id);
   }
 }
 const scheduleRow = z.object({
   work_order_prerequisite_versions: z
     .array(
       z.object({
-        prerequisite_action_id: storedActionId.nullable(),
-        prerequisite_action_ids: z.array(storedActionId).max(12).nullable(),
+        prerequisite_action_id: WorkOrderActionIdSchema.nullable(),
+        prerequisite_action_ids: z.array(WorkOrderActionIdSchema).max(12).nullable(),
       }),
     )
     .max(1),
-  action_id: storedActionId,
+  action_id: WorkOrderActionIdSchema,
   work_order_lifecycle_versions: z.array(z.object({ status: z.string() })).max(1),
   work_order_plan_versions: z
     .array(

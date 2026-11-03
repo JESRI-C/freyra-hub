@@ -1,6 +1,8 @@
 import { z, type ZodType } from "zod";
 const uuid = z.string().uuid();
-const scope = { actionId: uuid, organizationId: uuid, projectId: uuid };
+// Earlier recurring orders used a hash stored directly in a PostgreSQL UUID.
+export const WorkOrderActionIdSchema = z.guid();
+const scope = { actionId: WorkOrderActionIdSchema, organizationId: uuid, projectId: uuid };
 export const WorkOrderScopeSchema = z.object(scope).strict();
 export type WorkOrderScope = z.infer<typeof WorkOrderScopeSchema>;
 export const InitializeWorkOrderSchema = z
@@ -34,10 +36,10 @@ export const SaveWorkOrderAccessSchema = z
       });
   });
 export type SaveWorkOrderAccess = z.infer<typeof SaveWorkOrderAccessSchema>;
-const identity = { action_id: uuid, organization_id: uuid, project_id: uuid };
+const identity = { action_id: WorkOrderActionIdSchema, organization_id: uuid, project_id: uuid };
 export const WorkOrderIdentitySchema = z.object({
   ...identity,
-  request_id: uuid,
+  request_id: WorkOrderActionIdSchema,
   created_by: uuid,
   created_at: z.string().datetime({ offset: true }),
 });
