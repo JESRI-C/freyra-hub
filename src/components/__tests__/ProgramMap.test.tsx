@@ -64,7 +64,7 @@ describe("program overview", () => {
     )!;
     expect(link.getAttribute("href")).toBe("/app/projects");
   });
-  it("shows all ten Skyhost areas and keeps planned time/material/booking controls inactive", async () => {
+  it("shows all ten Skyhost areas and links the implemented time registration", async () => {
     const host = await render("project-a");
     await act(async () =>
       [...host.querySelectorAll("button")]
@@ -73,7 +73,12 @@ describe("program overview", () => {
     );
     const list = host.querySelector('section[aria-label="Skyhost-jobkortets funktioner"]')!;
     expect(list.querySelectorAll("li").length).toBe(10);
-    for (const title of ["Timer", "Materialer", "Booking", "Ruter"]) {
+    const time = [...list.querySelectorAll("li")].find(
+      (li) => li.querySelector("h2")?.textContent === "Timer",
+    )!;
+    expect(time.textContent).toContain("Delvist samlet");
+    expect(time.querySelector('a[href="/opgaver"]')?.textContent).toBe("Åbn Registrér arbejdstid");
+    for (const title of ["Materialer", "Booking", "Ruter"]) {
       const item = [...list.querySelectorAll("li")].find(
         (li) => li.querySelector("h2")?.textContent === title,
       )!;
