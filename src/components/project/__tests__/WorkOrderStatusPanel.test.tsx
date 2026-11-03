@@ -12,6 +12,12 @@ const m = vi.hoisted(() => ({
   editing: vi.fn(),
   blocker: vi.fn(),
 }));
+vi.mock("@/lib/work-order-prerequisite.functions", () => ({
+  getWorkOrderPrerequisite: vi
+    .fn()
+    .mockResolvedValue({ version: 0, ready: true, prerequisiteActionId: null }),
+  saveWorkOrderPrerequisite: vi.fn(),
+}));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (f: unknown) => f }));
 vi.mock("@tanstack/react-router", () => ({ useBlocker: m.blocker }));
 vi.mock("@/lib/work-order-lifecycle.functions", () => ({

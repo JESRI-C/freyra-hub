@@ -54,6 +54,24 @@ SELECT ok((SELECT (basis->>'unknownPlannedDate')::boolean FROM public.get_work_o
 SELECT throws_ok($$SELECT pg_temp.change(31,2,203,'transition','assigned')$$,'22023',NULL,'permissions alone are not an operational assignment');
 SELECT lives_ok($$SELECT pg_temp.assign(31,0,151)$$,'task gets its named operational recipient');
 SELECT lives_ok($$SELECT pg_temp.change(31,2,203,'transition','assigned')$$,'valid named assignment allows assigned status');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisite(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),0,pg_temp.k(42),pg_temp.k(640))$$,
+ '23503',NULL,'another project cannot supply a prerequisite');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisite(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),0,pg_temp.k(31),pg_temp.k(640))$$,
+ '22023',NULL,'a task cannot depend on itself');
+SELECT is(public.save_work_order_prerequisite(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),0,pg_temp.k(34),pg_temp.k(640)),1,
+ 'manager sets a prerequisite');
+SELECT is(public.save_work_order_prerequisite(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),0,pg_temp.k(34),pg_temp.k(640)),1,
+ 'identical prerequisite retry returns the same version');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((public.get_work_order_prerequisite(pg_temp.k(31))->>'ready')::boolean,false,'worker sees prerequisite is incomplete');
+SELECT throws_ok($$SELECT pg_temp.change(31,3,204,'transition','started',
+ '{"startedAt":"2026-10-08T08:00:00+02:00","startedSource":"Synthetic original work log"}')$$,
+ 'PT409',NULL,'incomplete prerequisite prevents the normal start');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisite(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),1,NULL,pg_temp.k(641))$$,
+ '42501',NULL,'worker cannot remove the prerequisite');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is(public.save_work_order_prerequisite(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),1,NULL,pg_temp.k(641)),2,
+ 'removal appends a new version');
 SELECT throws_ok($$SELECT pg_temp.change(31,3,204,'transition','started','{"startedAt":"2026-10-08T08:00:00+02:00","startedSource":"Synthetic original work log"}')$$,'42501',NULL,'office manager cannot impersonate the assigned worker confirmation');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT throws_ok($$SELECT pg_temp.change(31,3,204,'transition','started','{"startedAt":"2026-10-08T08:00:00" ,"startedSource":"Synthetic"}')$$,'22023',NULL,'actual start requires an offset, not an inferred timezone');

@@ -29,6 +29,12 @@ const actor = id(1),
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({ user: { id: "00000000-0000-4000-8000-000000000001" } }),
 }));
+vi.mock("@/lib/work-order-prerequisite.functions", () => ({
+  getWorkOrderPrerequisite: vi
+    .fn()
+    .mockResolvedValue({ version: 0, ready: true, prerequisiteActionId: null }),
+  saveWorkOrderPrerequisite: vi.fn(),
+}));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({
   useBlocker: m.blocker,

@@ -466,5 +466,15 @@ SELECT throws_ok($$SELECT public.reserve_work_order_equipment(pg_temp.k(413),pg_
  'cancelled work orders cannot reserve equipment');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
 SELECT throws_ok($$SELECT pg_temp.cancel_series(412)$$,'42501',NULL,'reader cannot cancel a series');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is(public.save_work_order_prerequisite(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),0,
+ pg_temp.weekly_id(390,1),pg_temp.k(650)),1,'first prerequisite in chain is recorded');
+SELECT is(public.save_work_order_prerequisite(pg_temp.weekly_id(390,1),pg_temp.k(11),pg_temp.k(21),0,
+ pg_temp.weekly_id(390,2),pg_temp.k(651)),1,'second prerequisite in chain is recorded');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisite(pg_temp.weekly_id(390,2),pg_temp.k(11),pg_temp.k(21),0,
+ pg_temp.weekly_id(390,0),pg_temp.k(652))$$,'22023',NULL,'a three-task cycle is refused');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT throws_ok($$SELECT public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))$$,
+ '42501',NULL,'another organization cannot read the dependency');
 SELECT * FROM finish();
 ROLLBACK;

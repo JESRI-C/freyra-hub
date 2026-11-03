@@ -1,3 +1,4 @@
+import { WorkOrderPrerequisite } from "./WorkOrderPrerequisite";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -156,6 +157,7 @@ function WorkOrderPlans({
             <PlanWorkspace
               key={actorId + actionId}
               scope={scope}
+              candidates={actions.data}
               actorId={actorId}
               actionId={actionId}
               title={actions.data.find((a) => a.id === actionId)?.title ?? "Arbejdsopgave"}
@@ -192,6 +194,7 @@ function WorkOrderPlans({
 function PlanWorkspace({
   scope,
   actorId,
+  candidates,
   actionId,
   title,
   canPlan,
@@ -205,6 +208,7 @@ function PlanWorkspace({
 }: {
   scope: ProjectScope;
   actorId: string;
+  candidates: { id: string; title: string }[];
   actionId: string;
   title: string;
   canPlan: boolean;
@@ -494,6 +498,25 @@ function PlanWorkspace({
           {latest ? (
             <>
               <WorkOrderPlanSummary row={latest} members={members.data ?? []} />
+              {canPlan && canBook && (
+                <WorkOrderPrerequisite
+                  scope={scope}
+                  actorId={actorId}
+                  actionId={actionId}
+                  candidates={candidates}
+                  disabled={
+                    seriesSaving ||
+                    accessEditing ||
+                    assignmentEditing ||
+                    lifecycleEditing ||
+                    bookingEditing
+                  }
+                  onSaving={(saving) => {
+                    setSeriesSaving(saving);
+                    onEditing(saving);
+                  }}
+                />
+              )}
               {canPlan && (
                 <WorkOrderFollowUps
                   actorId={actorId}

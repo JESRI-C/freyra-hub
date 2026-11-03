@@ -1,3 +1,4 @@
+import { getWorkOrderPrerequisite } from "@/lib/work-order-prerequisite.functions";
 import { useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -91,6 +92,14 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
     queryFn: () => load({ data: inputScope }),
     retry: false,
     refetchOnWindowFocus: false,
+  });
+  const loadPrerequisite = useServerFn(getWorkOrderPrerequisite);
+  const prerequisite = useQuery({
+    queryKey: ["work-order-prerequisite", actorId, scope.actionId],
+    queryFn: () =>
+      loadPrerequisite({ data: { actionId: scope.actionId, expectedActorId: actorId } }),
+    enabled: context.data?.state?.status === "assigned",
+    retry: false,
   });
   const log = useInfiniteQuery({
     queryKey: logKey,
@@ -384,13 +393,32 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
               ))}
             </ul>
           )}
+          {next === "started" && prerequisite.data?.ready === false && (
+            <p role="status" className="text-sm">
+              Afventer forudsætning. Den anden opgave skal udføres først.
+            </p>
+          )}
+          {next === "started" && prerequisite.data?.ready !== true && (
+            <button
+              type="button"
+              className={button}
+              disabled={prerequisite.isFetching}
+              onClick={() => void prerequisite.refetch()}
+            >
+              Kontrollér forudsætning igen
+            </button>
+          )}
           {!draft && (
             <div className="flex flex-wrap gap-2">
               {canNext && next && (
                 <button
                   type="button"
                   className={button}
-                  disabled={busy || !!nextGaps.length}
+                  disabled={
+                    busy ||
+                    !!nextGaps.length ||
+                    (next === "started" && prerequisite.data?.ready !== true)
+                  }
                   onClick={() => status("transition", next)}
                 >
                   {next === "draft"
