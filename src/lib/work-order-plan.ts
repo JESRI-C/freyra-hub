@@ -98,6 +98,17 @@ export const WorkOrderPlanSchema = z
     profile: z.enum(["general", "watercourse", "nature", "construction", "grazing"]).nullable(),
     responsibleId: uuid.nullable(),
     siteId: uuid.nullable(),
+    visitStops: z
+      .array(
+        z
+          .object({
+            siteId: uuid,
+            name: z.string().trim().min(1).max(500),
+          })
+          .strict(),
+      )
+      .max(20)
+      .optional(),
     watercourseVersionId: uuid.nullable(),
     locationNote: z.string().trim().max(2000),
     plannedStart: CalendarDate.nullable(),
@@ -109,6 +120,16 @@ export const WorkOrderPlanSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    const siteIds = (value.visitStops ?? []).map((stop) => stop.siteId.toLowerCase());
+    if (
+      new Set(siteIds).size !== siteIds.length ||
+      siteIds.includes(value.siteId?.toLowerCase() ?? "")
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["visitStops"],
+        message: "Vælg kun hver lokalitet én gang.",
+      });
     if (value.plannedEnd && (!value.plannedStart || value.plannedEnd < value.plannedStart))
       ctx.addIssue({
         code: "custom",
@@ -201,7 +222,7 @@ export function workOrderPlanGaps(plan: WorkOrderPlan): string[] {
     ...(!plan.plannedStart ? ["Planlagt start er uafklaret."] : []),
     ...(!plan.plannedMethod ? ["Planlagt metode er uafklaret."] : []),
     ...(!plan.instructions ? ["Arbejdsinstruktion mangler."] : []),
-    ...(!plan.siteId && !plan.watercourseVersionId && !plan.locationNote
+    ...(!plan.siteId && !plan.visitStops?.length && !plan.watercourseVersionId && !plan.locationNote
       ? ["Sted eller delstrækning er uafklaret."]
       : []),
   ];

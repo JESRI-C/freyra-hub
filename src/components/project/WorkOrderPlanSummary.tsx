@@ -38,6 +38,16 @@ export function WorkOrderPlanSummary({
         <p>Estimeret arbejdstid · {formatWorkOrderHours(plan.estimatedHours)}</p>
       )}
       {plan.locationNote && <p>Sted: {plan.locationNote}</p>}
+      {!!plan.visitStops?.length && (
+        <div className="rounded-lg border p-3">
+          <p className="font-medium">Ekstra besøg i planlagt rækkefølge</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5">
+            {plan.visitStops.map((stop) => (
+              <li key={stop.siteId}>{stop.name}</li>
+            ))}
+          </ol>
+        </div>
+      )}
       {plan.description && <p>{plan.description}</p>}
       {plan.instructions && <p>Instruktion: {plan.instructions}</p>}
       {plan.watercourse && (

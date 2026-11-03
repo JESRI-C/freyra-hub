@@ -613,10 +613,10 @@ function PlanWorkspace({
                 </label>
                 <details>
                   <summary className="min-h-11 cursor-pointer py-2 text-sm">
-                    Vælg gemt lokalitet eller vandløbsgrundlag
+                    Vælg lokaliteter og besøg
                   </summary>
                   <label className="block text-sm">
-                    Lokalitet
+                    Hovedlokalitet
                     <select
                       className={control}
                       value={draft.siteId ?? ""}
@@ -627,12 +627,109 @@ function PlanWorkspace({
                         <option value={draft.siteId}>Tidligere valgt lokalitet</option>
                       )}
                       {sites.data?.map((s) => (
-                        <option key={s.id} value={s.id}>
+                        <option
+                          key={s.id}
+                          value={s.id}
+                          disabled={draft.visitStops?.some((stop) => stop.siteId === s.id)}
+                        >
                           {s.name}
                         </option>
                       ))}
                     </select>
                   </label>
+                  <div className="space-y-2 py-2">
+                    <p className="font-medium">Ekstra besøg i rækkefølge</p>
+                    <p className="text-sm text-muted-foreground">
+                      Vælg projektsteder og flyt dem i den rækkefølge, udføreren skal besøge dem.
+                    </p>
+                    {!!draft.visitStops?.length && (
+                      <ol className="list-decimal space-y-2 pl-6">
+                        {draft.visitStops.map((stop, index, stops) => (
+                          <li key={stop.siteId}>
+                            <p>{stop.name}</p>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                className={button}
+                                disabled={index === 0}
+                                aria-label={"Flyt " + stop.name + " op"}
+                                onClick={() => {
+                                  const next = [...stops];
+                                  [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                                  set("visitStops", next);
+                                }}
+                              >
+                                Flyt op
+                              </button>
+                              <button
+                                type="button"
+                                className={button}
+                                disabled={index === stops.length - 1}
+                                aria-label={"Flyt " + stop.name + " ned"}
+                                onClick={() => {
+                                  const next = [...stops];
+                                  [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                                  set("visitStops", next);
+                                }}
+                              >
+                                Flyt ned
+                              </button>
+                              <button
+                                type="button"
+                                className={button}
+                                aria-label={"Fjern " + stop.name}
+                                onClick={() =>
+                                  set(
+                                    "visitStops",
+                                    stops.filter((item) => item.siteId !== stop.siteId),
+                                  )
+                                }
+                              >
+                                Fjern
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                    <label className="block text-sm">
+                      Tilføj et ekstra besøg
+                      <select
+                        className={control}
+                        value=""
+                        disabled={!sites.isSuccess || (draft.visitStops?.length ?? 0) >= 20}
+                        onChange={(event) => {
+                          const site = sites.data?.find((item) => item.id === event.target.value);
+                          if (site)
+                            set("visitStops", [
+                              ...(draft.visitStops ?? []),
+                              { siteId: site.id, name: site.name.trim() },
+                            ]);
+                        }}
+                      >
+                        <option value="">Vælg projektsted</option>
+                        {sites.data
+                          ?.filter(
+                            (site) =>
+                              site.id !== draft.siteId &&
+                              !draft.visitStops?.some((stop) => stop.siteId === site.id),
+                          )
+                          .map((site) => (
+                            <option key={site.id} value={site.id}>
+                              {site.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    {sites.isError && (
+                      <button type="button" className={button} onClick={() => void sites.refetch()}>
+                        Hent lokaliteter igen
+                      </button>
+                    )}
+                    {draft.visitStops?.length === 20 && (
+                      <p>Planen har plads til 20 ekstra besøg.</p>
+                    )}
+                  </div>
                   {draft.profile === "watercourse" && (
                     <label className="block text-sm">
                       Vandløbsgrundlag

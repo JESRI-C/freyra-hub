@@ -20,6 +20,22 @@ describe("versioned work-order plan", () => {
     });
     expect(workOrderPlanGaps(plan)).toHaveLength(6);
   });
+  it("keeps visit order and rejects a duplicate or repeated main location", () => {
+    const plan = emptyWorkOrderPlan("Synthetic route");
+    const first = { siteId: "00000000-0000-4000-8000-000000000001", name: "First site" };
+    const second = { siteId: "00000000-0000-4000-8000-000000000002", name: "Second site" };
+    expect(WorkOrderPlanSchema.parse({ ...plan, visitStops: [second, first] }).visitStops).toEqual([
+      second,
+      first,
+    ]);
+    expect(WorkOrderPlanSchema.safeParse({ ...plan, visitStops: [first, first] }).success).toBe(
+      false,
+    );
+    expect(
+      WorkOrderPlanSchema.safeParse({ ...plan, siteId: first.siteId, visitStops: [first] }).success,
+    ).toBe(false);
+  });
+
   it.each([
     ["", null],
     ["0", 0],

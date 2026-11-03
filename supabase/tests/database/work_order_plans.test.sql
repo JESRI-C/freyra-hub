@@ -12,7 +12,7 @@ INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_tem
 INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'viewer'),(pg_temp.k(21),pg_temp.k(4),'external');
 INSERT INTO public.actions(id,project_id,title) SELECT pg_temp.k(n),pg_temp.k(21),'Synthetic plan action '||n FROM generate_series(31,35) n;
 INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(36),pg_temp.k(22),'Synthetic inaccessible action');
-INSERT INTO public.sites(id,project_id,name) VALUES(pg_temp.k(51),pg_temp.k(21),'Synthetic same project site'),(pg_temp.k(52),pg_temp.k(22),'Synthetic other project site');
+INSERT INTO public.sites(id,project_id,name) VALUES(pg_temp.k(51),pg_temp.k(21),'Synthetic same project site'),(pg_temp.k(52),pg_temp.k(22),'Synthetic other project site'),(pg_temp.k(55),pg_temp.k(21),'Synthetic second visit');
 INSERT INTO public.watercourse_versions(id,organization_id,project_id,version,geometry,crs,direction,source,length_m,method,created_by)
  VALUES(pg_temp.k(53),pg_temp.k(11),pg_temp.k(21),1,'{"type":"LineString","coordinates":[[9.4,55.2],[9.401,55.2]]}','EPSG:4326','unknown','Synthetic same project centerline',1,'fixture',pg_temp.k(1)),
  (pg_temp.k(54),pg_temp.k(11),pg_temp.k(22),1,'{"type":"LineString","coordinates":[[9.4,55.2],[9.401,55.2]]}','EPSG:4326','unknown','Synthetic other project centerline',1,'fixture',pg_temp.k(1));
@@ -88,12 +88,21 @@ SELECT lives_ok($$SELECT pg_temp.save(1,62,pg_temp.plan()||jsonb_build_object('s
 SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions WHERE version=1 AND plan=pg_temp.plan()),1,'T10 original plan stays unchanged after correction');
 SELECT is((SELECT responsible_id FROM public.work_order_plan_versions WHERE version=2),pg_temp.k(2),'named responsible is projected without granting access');
 SELECT is((SELECT count(*)::integer FROM public.work_order_access_versions WHERE user_id=pg_temp.k(2)),0,'responsible selection grants no task capability');
-SELECT lives_ok($$SELECT pg_temp.save(2,63,pg_temp.plan(),31,11,21,'Synthetic third version')$$,'third version is appended');
+SELECT lives_ok($$SELECT pg_temp.save(2,63,pg_temp.plan()||jsonb_build_object('visitStops',
+ jsonb_build_array(jsonb_build_object('siteId',pg_temp.k(55),'name','Synthetic second visit'),
+                   jsonb_build_object('siteId',pg_temp.k(51),'name','Synthetic same project site'))),
+ 31,11,21,'Synthetic third version')$$,'ordered project visits are appended in the plan version');
 SELECT is((SELECT array_agg(version) FROM pg_temp.history(31,NULL,1)),ARRAY[3,2],'history uses descending cursor with one lookahead row');
 SELECT is((SELECT array_agg(version) FROM pg_temp.history(31,2,1)),ARRAY[1],'older cursor has no duplicates or skipped old revision');
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan(),32,12,21)$$,'23503',NULL,'T02 organization/project mismatch is rejected in database');
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan(),36,11,21)$$,'23503',NULL,'T02 action/project mismatch is rejected in database');
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('siteId',pg_temp.k(52)),32)$$,'23503',NULL,'foreign site cannot be attached even by raw API');
+SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('visitStops',
+ jsonb_build_array(jsonb_build_object('siteId',pg_temp.k(52),'name','Synthetic other project site'))),32)$$,
+ '22023',NULL,'foreign project site is refused as a visit stop');
+SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('visitStops',
+ jsonb_build_array(jsonb_build_object('siteId',pg_temp.k(51),'name','Spoofed site label'))),32)$$,
+ '22023',NULL,'client-supplied label must match the project site');
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('watercourseVersionId',pg_temp.k(54)),32)$$,'23503',NULL,'foreign centerline cannot be attached');
 SELECT is((SELECT count(*)::integer FROM public.work_orders WHERE action_id=pg_temp.k(32)),0,'foreign relation rolls back initialization too');
 SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organization_id,project_id,version,plan,request_id,created_by) VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),4,pg_temp.plan(),pg_temp.k(65),pg_temp.k(2))$$,'42501',NULL,'Data API cannot spoof plan actor');
@@ -101,6 +110,8 @@ SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organiz
 SELECT lives_ok($$SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),0,true,true,false,'Synthetic assigned executor',pg_temp.k(70))$$,'concrete external executor is assigned without project access');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),3,'assigned external executor can read its task plan history');
+SELECT is((SELECT plan#>>'{visitStops,0,name}' FROM pg_temp.history() WHERE version=3),
+ 'Synthetic second visit','external executor can see the first stop in the saved order');
 SELECT ok(NOT private.can_read_project(pg_temp.k(21)),'reading the assigned plan does not grant project access');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(32)$$,'42501',NULL,'unassigned plan is unavailable');
 SELECT throws_ok($$SELECT pg_temp.save(3,66,pg_temp.plan(),31,11,21,'Synthetic unauthorized edit')$$,'42501',NULL,'execution permission cannot change the work plan');
