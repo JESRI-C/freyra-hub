@@ -672,3 +672,7 @@ Freyra bruger observation → produktregel → implementering → test fra [RES]
 Første eksempel er næste handling ved afventende planlagt arbejde. Stagingprøven viste, at kalenderen markerede opgaven og viste forudsætningens navn. Freyra-reglen er, at en kendt forudsætning i samme projekt kan åbnes direkte fra den afventende opgaverække. Handlingen genbruger arbejdsgrundlaget og respekterer låsen for igangværende redigering. En app-test åbner forudsætningen fra Planoversigt og kontrollerer opgave-id'et. Handlingen er udviklet ud fra den observerede Freyra-brugerrejse. Der er ingen selvstændig verifikation af samme genvej i Skyhost.
 
 Genvejen blev verificeret i Chrome ved 390 px på staging. Fra både den valgte kalenderdato og Planoversigt åbnede Åbn forudsætning den samme gemte opgave med dens arbejdsgrundlag. Staging-login og build bestod. Kilde d9930ed, Worker eaf26b8f-1fb7-4e46-a9b4-55588389183b.
+
+### S13 – Flere forudsætninger for opstart
+
+Projektlederen kan gemme op til 12 opgaver fra samme projekt i én version. Arbejdsgrundlaget viser hver forudsætning med status, mens kalender og planoversigt viser de opgaver, der stadig afventes. Startregistreringen kræver, at alle er udført, afleveret eller godkendt. Tidligere enkeltstående forudsætninger kan fortsat læses, og gamle klienter afvises, hvis de forsøger at overskrive en liste med flere forudsætninger.

@@ -242,7 +242,7 @@ function WorkOrders({
       if (plan.cancelled || !plan.start || plan.start > key || (plan.end ?? plan.start) < key)
         continue;
       total++;
-      if (plan.waitingForActionId) waiting++;
+      if (plan.waitingForActionIds?.length) waiting++;
       if (canEdit && plan.responsibleId) {
         if (assigned.has(plan.responsibleId)) overlap.add(plan.responsibleId);
         assigned.add(plan.responsibleId);
@@ -583,7 +583,7 @@ function WorkOrders({
                         (modifiers.overlap ? ", flere opgaver for samme ansvarlige" : ""),
                     }}
                   />
-                  {scheduledPeriods.some((plan) => plan.waitingForActionId) && (
+                  {scheduledPeriods.some((plan) => plan.waitingForActionIds?.length) && (
                     <p className="text-sm text-muted-foreground">
                       En gul baggrund markerer opgaver, der afventer en forudsætning.
                     </p>
@@ -663,8 +663,11 @@ function WorkOrders({
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const estimate = estimates.get(a.id);
-                  const prerequisiteId = dates?.[a.id]?.waitingForActionId;
-                  const prerequisite = actions.data.find((task) => task.id === prerequisiteId);
+                  const prerequisiteIds = dates?.[a.id]?.waitingForActionIds ?? [];
+                  const prerequisites = prerequisiteIds.flatMap((id) => {
+                    const task = actions.data.find((candidate) => candidate.id === id);
+                    return task ? [task] : [];
+                  });
                   return (
                     <div key={a.id} className="space-y-1">
                       <button
@@ -678,9 +681,12 @@ function WorkOrders({
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
                               {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
-                              {prerequisiteId && (
+                              {prerequisiteIds.length > 0 && (
                                 <span className="block font-medium text-foreground">
-                                  Afventer · {prerequisite?.title ?? "Forudsætning for opstart"}
+                                  Afventer ·{" "}
+                                  {prerequisiteIds.length === 1
+                                    ? (prerequisites[0]?.title ?? "Forudsætning for opstart")
+                                    : prerequisiteIds.length + " forudsætninger"}
                                 </span>
                               )}
                               {estimate != null && (
@@ -708,17 +714,19 @@ function WorkOrders({
                         </span>
                         <span className="shrink-0 text-sm text-primary">Åbn →</span>
                       </button>
-                      {showSchedule && prerequisite && (
-                        <button
-                          type="button"
-                          className={button}
-                          disabled={locked}
-                          aria-label={"Åbn forudsætning: " + prerequisite.title}
-                          onClick={() => select(prerequisite.id, "plan")}
-                        >
-                          Åbn forudsætning
-                        </button>
-                      )}
+                      {showSchedule &&
+                        prerequisites.map((prerequisite) => (
+                          <button
+                            type="button"
+                            className={button}
+                            disabled={locked}
+                            key={prerequisite.id}
+                            aria-label={"Åbn forudsætning: " + prerequisite.title}
+                            onClick={() => select(prerequisite.id, "plan")}
+                          >
+                            {prerequisites.length > 1 ? prerequisite.title : "Åbn forudsætning"}
+                          </button>
+                        ))}
                       {showSchedule &&
                         dates?.[a.id]?.start &&
                         canEdit &&

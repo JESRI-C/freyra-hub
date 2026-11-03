@@ -224,7 +224,7 @@ it("shows dated work ahead of undated work and opens its existing plan", async (
 
 it("opens the prerequisite plan directly from a waiting task", async () => {
   m.schedule.mockResolvedValue({
-    second: { start: "2026-11-03", end: null, waitingForActionId: "first" },
+    second: { start: "2026-11-03", end: null, waitingForActionIds: ["first"] },
   });
   await render();
   await click("Planoversigt");
@@ -245,7 +245,7 @@ it("shows a task spanning the month boundary and filters it by a planned day", a
       start: key(new Date(now.getFullYear(), now.getMonth(), 0)),
       end: key(new Date(now.getFullYear(), now.getMonth(), 4)),
       estimatedHours: 10,
-      waitingForActionId: "first",
+      waitingForActionIds: ["first"],
     },
   });
   await render();

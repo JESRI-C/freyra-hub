@@ -476,5 +476,25 @@ SELECT throws_ok($$SELECT public.save_work_order_prerequisite(pg_temp.weekly_id(
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
 SELECT throws_ok($$SELECT public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))$$,
  '42501',NULL,'another organization cannot read the dependency');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is(public.save_work_order_prerequisites(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),1,
+ ARRAY[pg_temp.weekly_id(390,1),pg_temp.weekly_id(390,2)],pg_temp.k(653)),2,'two prerequisites are saved as one version');
+SELECT is(public.save_work_order_prerequisites(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),1,
+ ARRAY[pg_temp.weekly_id(390,1),pg_temp.weekly_id(390,2)],pg_temp.k(653)),2,'identical list retry reuses the version');
+SELECT is(jsonb_array_length(public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))->'prerequisites'),2,
+ 'both prerequisites are visible to the project manager');
+SELECT is((public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))->>'ready')::boolean,false,
+ 'an unfinished list prevents start');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisite(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),2,
+ NULL,pg_temp.k(654))$$,'PT409',NULL,'an old client cannot silently remove multiple prerequisites');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisites(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),2,
+ ARRAY[pg_temp.weekly_id(390,1),pg_temp.weekly_id(390,1)],pg_temp.k(654))$$,'22023',NULL,'duplicate prerequisites are rejected');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisites(pg_temp.weekly_id(390,2),pg_temp.k(11),pg_temp.k(21),0,
+ ARRAY[pg_temp.weekly_id(391,0),pg_temp.weekly_id(390,0)],pg_temp.k(655))$$,'22023',NULL,
+ 'a cycle through a secondary prerequisite is rejected');
+SELECT is(public.save_work_order_prerequisites(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),2,
+ ARRAY[]::uuid[],pg_temp.k(656)),3,'the entire list can be cleared explicitly');
+SELECT is((public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))->>'ready')::boolean,true,
+ 'clearing the list removes the prerequisite gate');
 SELECT * FROM finish();
 ROLLBACK;

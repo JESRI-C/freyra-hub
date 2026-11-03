@@ -64,7 +64,12 @@ export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSig
 }
 const scheduleRow = z.object({
   work_order_prerequisite_versions: z
-    .array(z.object({ prerequisite_action_id: uuid.nullable() }))
+    .array(
+      z.object({
+        prerequisite_action_id: uuid.nullable(),
+        prerequisite_action_ids: z.array(uuid).max(12).nullable(),
+      }),
+    )
     .max(1),
   action_id: uuid,
   work_order_lifecycle_versions: z.array(z.object({ status: z.string() })).max(1),
@@ -88,14 +93,14 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     {
       planVersionId: string;
       cancelled: boolean;
-      waitingForActionId: string | null;
+      waitingForActionIds: string[];
       start: string | null;
       end: string | null;
       responsibleId: string | null;
       estimatedHours: number | null;
     }
   > = {};
-  const prerequisites = new Map<string, string>();
+  const prerequisites = new Map<string, string[]>();
   const completed = new Set<string>();
   const pageSize = 200;
   let afterId: string | undefined;
@@ -103,7 +108,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     let query = db
       .from("work_orders")
       .select(
-        "action_id,work_order_plan_versions(id,planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours),work_order_lifecycle_versions(status),work_order_prerequisite_versions(prerequisite_action_id)",
+        "action_id,work_order_plan_versions(id,planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours),work_order_lifecycle_versions(status),work_order_prerequisite_versions(prerequisite_action_id,prerequisite_action_ids)",
       )
       .eq("organization_id", scope.organizationId)
       .eq("project_id", scope.projectId)
@@ -124,8 +129,11 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
       if (status === "performed" || status === "submitted" || status === "approved") {
         completed.add(row.action_id);
       }
-      const prerequisite = row.work_order_prerequisite_versions[0]?.prerequisite_action_id;
-      if (prerequisite && (!status || ["draft", "planned", "assigned"].includes(status))) {
+      const dependency = row.work_order_prerequisite_versions[0];
+      const prerequisite =
+        dependency?.prerequisite_action_ids ??
+        (dependency?.prerequisite_action_id ? [dependency.prerequisite_action_id] : []);
+      if (prerequisite.length && (!status || ["draft", "planned", "assigned"].includes(status))) {
         prerequisites.set(row.action_id, prerequisite);
       }
       const plan = row.work_order_plan_versions[0];
@@ -133,7 +141,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
         dates[row.action_id] = {
           planVersionId: plan.id,
           cancelled: status === "cancelled",
-          waitingForActionId: null,
+          waitingForActionIds: [],
           start: plan.planned_start,
           end: plan.planned_end,
           responsibleId: plan.responsible_id,
@@ -143,9 +151,9 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     if (rows.length < pageSize) break;
     afterId = rows[rows.length - 1].action_id;
   }
-  for (const [actionId, prerequisiteId] of prerequisites) {
+  for (const [actionId, prerequisiteIds] of prerequisites) {
     const plan = dates[actionId];
-    if (plan && !completed.has(prerequisiteId)) plan.waitingForActionId = prerequisiteId;
+    if (plan) plan.waitingForActionIds = prerequisiteIds.filter((id) => !completed.has(id));
   }
   return dates;
 }

@@ -396,7 +396,7 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
           )}
           {next === "started" && prerequisite.data?.ready === false && (
             <p role="status" className="text-sm">
-              Afventer forudsætning. Den anden opgave skal udføres først.
+              Afventer forudsætninger. De skal være udført, før opgaven kan startes.
             </p>
           )}
           {next === "started" && prerequisite.data?.ready !== true && (

@@ -13,7 +13,7 @@ const identity = z.object({ actionId: uuid, expectedActorId: uuid });
 const prerequisite = z.object({
   version: z.number().int().nonnegative(),
   ready: z.boolean(),
-  prerequisiteActionId: uuid.nullable(),
+  prerequisites: z.array(z.object({ actionId: uuid, ready: z.boolean() })).max(12),
 });
 
 export const getWorkOrderPrerequisite = createServerFn({ method: "GET" })
@@ -27,7 +27,7 @@ export const getWorkOrderPrerequisite = createServerFn({ method: "GET" })
     return prerequisite.parse(result.data);
   });
 
-export const saveWorkOrderPrerequisite = createServerFn({ method: "POST" })
+export const saveWorkOrderPrerequisites = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
     parseWorkOrderInput(
@@ -35,7 +35,7 @@ export const saveWorkOrderPrerequisite = createServerFn({ method: "POST" })
         organizationId: uuid,
         projectId: uuid,
         expectedVersion: z.number().int().nonnegative(),
-        prerequisiteActionId: uuid.nullable(),
+        prerequisiteActionIds: z.array(uuid).max(12),
         requestId: uuid,
       }),
       raw,
@@ -44,12 +44,12 @@ export const saveWorkOrderPrerequisite = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     checkActor(context.userId, data.expectedActorId);
     const client = context.supabase as unknown as WorkOrderRequestClient;
-    const result = await client.rpc("save_work_order_prerequisite", {
+    const result = await client.rpc("save_work_order_prerequisites", {
       p_action_id: data.actionId,
       p_organization_id: data.organizationId,
       p_project_id: data.projectId,
       p_expected_version: data.expectedVersion,
-      p_prerequisite_action_id: data.prerequisiteActionId,
+      p_prerequisite_action_ids: data.prerequisiteActionIds,
       p_request_id: data.requestId,
     });
     if (result.error) workOrderRpcFailure(result.error);
