@@ -42,7 +42,15 @@ export interface MapEditorMapProps {
   lat: number;
   lng: number;
   initialZoom?: number;
-  locationPoints?: Array<{ id: string; label: string; lat: number; lng: number }>;
+  initialBaseLayer?: BaseLayer;
+  readOnly?: boolean;
+  locationPoints?: Array<{
+    id: string;
+    label: string;
+    lat: number;
+    lng: number;
+    visitNumber?: number;
+  }>;
   locationBounds?: Array<[number, number]> | null;
   onLayerStatus?: (id: string, message: string | null) => void;
   areaHa?: number | null;
@@ -258,6 +266,8 @@ export function MapEditorMap({
   onBoundaryEditStateChange,
   onMeasurement,
   initialZoom = 15,
+  initialBaseLayer = "satellite",
+  readOnly = false,
   locationPoints = [],
   locationBounds,
   onLayerStatus,
@@ -330,7 +340,7 @@ export function MapEditorMap({
   }, [drawMode]);
 
   const [boundaryRenderVersion, setBoundaryRenderVersion] = useState(0);
-  const [baseLayer, setBaseLayer] = useState<BaseLayer>("satellite");
+  const [baseLayer, setBaseLayer] = useState<BaseLayer>(initialBaseLayer);
   const [measurement, setMeasurement] = useState<{ areaHa: number; perimeterM: number } | null>(
     null,
   );
@@ -982,10 +992,29 @@ export function MapEditorMap({
       const group = L.layerGroup();
       for (const p of locationPoints) {
         const label = document.createElement("span");
-        label.textContent = p.label + " · Kameraposition, ikke billeddækning";
-        L.circleMarker([p.lat, p.lng], { radius: 6, color: "#2563eb", fillOpacity: 0.8 })
-          .bindTooltip(label)
-          .addTo(group);
+        if (p.visitNumber !== undefined) {
+          const markerText = document.createElement("span");
+          markerText.textContent = String(p.visitNumber);
+          markerText.className =
+            "flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-700 font-bold text-white shadow";
+          label.textContent = p.visitNumber + ". " + p.label;
+          L.marker([p.lat, p.lng], {
+            title: label.textContent,
+            icon: L.divIcon({
+              html: markerText,
+              className: "",
+              iconSize: [28, 28],
+              iconAnchor: [14, 14],
+            }),
+          })
+            .bindPopup(label)
+            .addTo(group);
+        } else {
+          label.textContent = p.label + " · Kameraposition, ikke billeddækning";
+          L.circleMarker([p.lat, p.lng], { radius: 6, color: "#2563eb", fillOpacity: 0.8 })
+            .bindTooltip(label)
+            .addTo(group);
+        }
       }
       group.addTo(mapRef.current);
       locationLayerRef.current = group;
@@ -1300,70 +1329,76 @@ export function MapEditorMap({
     <div className={`flex flex-col ${className ?? ""}`} style={{ height }}>
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 px-3 py-2 bg-card border-b flex-wrap">
-        <span className="text-xs text-muted-foreground">Tegn:</span>
-        <button
-          onClick={() => setMode(drawMode === "boundary" ? "none" : "boundary")}
-          disabled={boundaryBusy || isEditing || isSavingEdit || !onBoundaryDrawn}
-          className={`${toolBtn(drawMode === "boundary", "bg-emerald-600 text-white border-emerald-600")} disabled:opacity-40 disabled:cursor-not-allowed`}
-        >
-          ⬠ Projektgrænse
-        </button>
-        <button
-          onClick={() => setMode(drawMode === "zone" ? "none" : "zone")}
-          disabled={isEditing || isSavingEdit}
-          className={toolBtn(drawMode === "zone", "bg-amber-500 text-white border-amber-500")}
-        >
-          ⬠ Zone
-        </button>
-        <button
-          onClick={() => setMode(drawMode === "measure" ? "none" : "measure")}
-          disabled={isEditing || isSavingEdit}
-          className={toolBtn(drawMode === "measure", "bg-violet-600 text-white border-violet-600")}
-        >
-          📐 Mål areal
-        </button>
-
-        <div className="w-px h-4 bg-border mx-1" />
-
-        {isEditing ? (
+        {!readOnly && (
           <>
+            <span className="text-xs text-muted-foreground">Tegn:</span>
             <button
-              onClick={() => void saveBoundaryEdit()}
-              disabled={boundaryBusy || isSavingEdit}
-              className={toolBtn(true, "bg-blue-600 text-white border-blue-600")}
+              onClick={() => setMode(drawMode === "boundary" ? "none" : "boundary")}
+              disabled={boundaryBusy || isEditing || isSavingEdit || !onBoundaryDrawn}
+              className={`${toolBtn(drawMode === "boundary", "bg-emerald-600 text-white border-emerald-600")} disabled:opacity-40 disabled:cursor-not-allowed`}
             >
-              {isSavingEdit ? "Gemmer …" : "✓ Gem grænse"}
+              ⬠ Projektgrænse
             </button>
             <button
-              onClick={cancelBoundaryEdit}
-              disabled={isSavingEdit}
-              className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium disabled:opacity-50"
+              onClick={() => setMode(drawMode === "zone" ? "none" : "zone")}
+              disabled={isEditing || isSavingEdit}
+              className={toolBtn(drawMode === "zone", "bg-amber-500 text-white border-amber-500")}
             >
-              ✕ Annuller
+              ⬠ Zone
             </button>
+            <button
+              onClick={() => setMode(drawMode === "measure" ? "none" : "measure")}
+              disabled={isEditing || isSavingEdit}
+              className={toolBtn(
+                drawMode === "measure",
+                "bg-violet-600 text-white border-violet-600",
+              )}
+            >
+              📐 Mål areal
+            </button>
+
+            <div className="w-px h-4 bg-border mx-1" />
+
+            {isEditing ? (
+              <>
+                <button
+                  onClick={() => void saveBoundaryEdit()}
+                  disabled={boundaryBusy || isSavingEdit}
+                  className={toolBtn(true, "bg-blue-600 text-white border-blue-600")}
+                >
+                  {isSavingEdit ? "Gemmer …" : "✓ Gem grænse"}
+                </button>
+                <button
+                  onClick={cancelBoundaryEdit}
+                  disabled={isSavingEdit}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium disabled:opacity-50"
+                >
+                  ✕ Annuller
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={startBoundaryEdit}
+                disabled={boundaryBusy || !boundaryGeoJSON || !onBoundaryDrawn}
+                className={`${toolBtn(false, "")} disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                ✏️ Redigér grænse
+              </button>
+            )}
+            <button onClick={clearDrawings} className={toolBtn(false, "")}>
+              🗑 Ryd tegninger
+            </button>
+
+            {drawMode !== "none" && (
+              <button
+                onClick={() => setMode("none")}
+                className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium"
+              >
+                ✕ Stop
+              </button>
+            )}
           </>
-        ) : (
-          <button
-            onClick={startBoundaryEdit}
-            disabled={boundaryBusy || !boundaryGeoJSON || !onBoundaryDrawn}
-            className={`${toolBtn(false, "")} disabled:opacity-40 disabled:cursor-not-allowed`}
-          >
-            ✏️ Redigér grænse
-          </button>
         )}
-        <button onClick={clearDrawings} className={toolBtn(false, "")}>
-          🗑 Ryd tegninger
-        </button>
-
-        {drawMode !== "none" && (
-          <button
-            onClick={() => setMode("none")}
-            className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium"
-          >
-            ✕ Stop
-          </button>
-        )}
-
         <div className="ml-auto flex max-w-full flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Baggrund:</span>
           {(Object.keys(BASE_LAYERS) as BaseLayer[]).map((key) => (

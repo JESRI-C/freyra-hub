@@ -56,6 +56,17 @@ vi.mock("@/services/watercourse-service", () => ({ getWatercourseVersions: m.cen
 vi.mock("../WorkOrderAccessPanel", () => ({ WorkOrderAccessPanel: () => null }));
 vi.mock("../WorkOrderAssignmentPanel", () => ({ WorkOrderAssignmentPanel: () => null }));
 vi.mock("../WorkOrderStatusPanel", () => ({ WorkOrderStatusPanel: () => null }));
+vi.mock("@/components/maps/MapEditorMap", () => ({
+  MapEditorMap: ({
+    locationPoints,
+  }: {
+    locationPoints: Array<{ visitNumber: number; label: string }>;
+  }) => (
+    <div data-testid="visit-markers">
+      {locationPoints.map((point) => point.visitNumber + ". " + point.label).join(", ")}
+    </div>
+  ),
+}));
 import { WorkOrderPlansPanel } from "../WorkOrderPlansPanel";
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 const row = () => ({
@@ -154,6 +165,45 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("opens the saved visit map without shifting numbers when a position is missing", async () => {
+    const saved = row();
+    m.history.mockResolvedValue({
+      items: [
+        {
+          ...saved,
+          plan: {
+            ...saved.plan,
+            siteId: id(20),
+            visitStops: [{ siteId: id(21), name: "Gemt stopnavn" }],
+          },
+        },
+      ],
+      nextBeforeVersion: null,
+    });
+    m.sites.mockResolvedValue([
+      { id: id(20), name: "Hovedsted" },
+      {
+        id: id(21),
+        name: "Nyt navn",
+        geometry_geojson: { type: "Point", coordinates: [9.4, 55.2] },
+      },
+    ]);
+    await open(false);
+    expect(host.querySelector('[data-testid="visit-markers"]')).toBeNull();
+    const details = [...host.querySelectorAll("summary")].find(
+      (summary) => summary.textContent === "Vis besøg på kort",
+    )!.parentElement as HTMLDetailsElement;
+    await act(async () => {
+      details.open = true;
+      details.dispatchEvent(new Event("toggle", { bubbles: true }));
+    });
+    await settle();
+    expect(host.textContent).toContain("Hovedsted · Ingen kortposition");
+    expect(host.querySelector('[data-testid="visit-markers"]')?.textContent).toBe(
+      "2. Gemt stopnavn",
+    );
+  });
+
   it("saves a Danish decimal time estimate on the exact plan version", async () => {
     await open();
     await fill("Estimeret arbejdstid", "2,75");

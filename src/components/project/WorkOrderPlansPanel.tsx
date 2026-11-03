@@ -20,6 +20,7 @@ import {
 import { listFieldJobActions, type listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
+import { WorkOrderVisitMap } from "./WorkOrderVisitMap";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
 import { getWatercourseVersions } from "@/services/watercourse-service";
@@ -193,6 +194,7 @@ function PlanWorkspace({
     retry: false,
   });
   const members = useWorkOrderPeople(scope, actorId);
+  const [visitMapOpen, setVisitMapOpen] = useState(false);
   const sites = useQuery({
     queryKey: ["work-order-plan-sites", actorId, scope],
     queryFn: () => fetchSitesByProject(scope.projectId),
@@ -394,6 +396,31 @@ function PlanWorkspace({
             <WorkOrderPlanSummary row={latest} members={members.data ?? []} />
           ) : (
             <p className="text-sm">Arbejdsgrundlaget er endnu ikke gemt som plan.</p>
+          )}
+          {latest && (latest.plan.siteId || !!latest.plan.visitStops?.length) && (
+            <details
+              className="rounded-xl border px-3 pb-2"
+              onToggle={(event) => setVisitMapOpen(event.currentTarget.open)}
+            >
+              <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                Vis besøg på kort
+              </summary>
+              {visitMapOpen &&
+                (sites.isSuccess ? (
+                  <WorkOrderVisitMap
+                    key={latest.id}
+                    plan={latest.plan}
+                    sites={sites.data}
+                    projectId={scope.projectId}
+                  />
+                ) : sites.isError ? (
+                  <button type="button" className={button} onClick={() => void sites.refetch()}>
+                    Hent lokaliteter igen
+                  </button>
+                ) : (
+                  <p role="status">Henter lokaliteter…</p>
+                ))}
+            </details>
           )}
           {canPlan && (
             <div className="flex flex-wrap gap-2">
