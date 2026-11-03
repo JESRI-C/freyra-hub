@@ -53,3 +53,11 @@ Næste leverance er **S05: generel rapport på den præcise godkendte opgavevers
 `scripts/saas50` gemmer den reproducerbare prøve. Start en ny syntetisk kørsel i et tomt, ignoreret `tmp/saas50` og angiv præcis stagingrevision i `FREYRA_TEST_REVISION`. `prepare-fixture.mjs --staging` bruger en lokalt installeret `bcryptjs@3.0.3` i `tmp/saas50-tools`. Den forbereder kun data til det navngivne stagingprojekt. Autoriseret drift kører først den ene konto og derefter resten af det afgrænsede fixture-SQL. `authenticate`, `setup-tenants` og rollefixture etablerer de 50 sessioner og otte projekter. Kør `isolation`, `workflows`, `browser` og `final-boundaries` i rækkefølge; de anvender almindelige brugerrettigheder. Efter prøven afvikles det afgrænsede `prepare-cleanup`-SQL og læses tilbage. `render-report.py` bruger den sanerede kvittering til rapporten.
 
 Der er ikke ændret produktion, merget kode, sendt invitationer eller aktiveret en betalt udbyder. Brugerens to lokale Jobs/Geotag-dokumenter og eksisterende projekter er bevaret.
+
+## Opfølgning efter 50-brugerprøven
+
+S05 er teknisk verificeret på staging for den godkendte arbejdsopgave. Projektlederen kan danne og genåbne en rapport fra den konkrete godkendelse, eksportere PDF og følge forbindelsen tilbage til opgaven og originalerne. Browserprøven dækkede 320, 390 og 1280 px. Se udviklingsplanens S05-afsnit for revisioner og testbevis.
+
+Projektets arbejdsopgaver har desuden fået plan- og kalenderoversigt, registrering af timer og materialer, kortlagte besøg med udførelseshistorik og udstyrsbooking. Se udviklingsplanen for de enkelte leverancer og deres teststatus. Ledighed inden reservation er implementeret i `6c3ddbb`. Databasetest og browserprøve på staging afventer.
+
+Tallene i rapporten gælder den oprindelige 50-brugerprøve. Der er stadig åbne frigivelseskriterier for fysisk telefon, uassisteret brug, fuld Skyhost-dækning og fagvisninger, længere belastning, kundens onboarding, betaling og produktionsdrift.
