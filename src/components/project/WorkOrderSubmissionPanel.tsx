@@ -84,12 +84,8 @@ export function WorkOrderSubmissionPanel({
     () => ["work-order-submission", actorId, scope.organizationId, scope.projectId, actionId],
     [actorId, scope.organizationId, scope.projectId, actionId],
   );
-  const locked = !!note || busy || opening || uncertain || reviewEditing;
-  const wasActive = useRef(active);
-  useEffect(() => {
-    if (active && !wasActive.current && !locked) void cache.invalidateQueries({ queryKey: key });
-    wasActive.current = active;
-  }, [active, locked, cache, key]);
+  const requestLocked = busy || opening || uncertain || reviewEditing;
+  const locked = !!note || requestLocked;
   useWorkOrderEditorLock(locked, onEditing);
   useBlocker({ shouldBlockFn: () => locked, enableBeforeUnload: locked });
   const context = useQuery({
@@ -100,6 +96,13 @@ export function WorkOrderSubmissionPanel({
     refetchOnReconnect: !locked,
   });
   const c = context.data;
+  const refreshOnReturn = !requestLocked && (!note || !!c?.gaps?.length);
+  const wasActive = useRef(active);
+  useEffect(() => {
+    if (active && !wasActive.current && refreshOnReturn)
+      void cache.invalidateQueries({ queryKey: key });
+    wasActive.current = active;
+  }, [active, refreshOnReturn, cache, key]);
   const authorized =
     !context.isError &&
     c?.user_id === actorId &&
@@ -259,9 +262,9 @@ export function WorkOrderSubmissionPanel({
                             <button
                               type="button"
                               className="block min-h-11 text-left font-medium text-primary underline underline-offset-2 disabled:opacity-50"
-                              disabled={locked || context.isFetching}
+                              disabled={requestLocked || context.isFetching}
                               onClick={() => {
-                                if (!locked && !context.isFetching) onOpenPart(part.id);
+                                if (!requestLocked && !context.isFetching) onOpenPart(part.id);
                               }}
                             >
                               Åbn {part.label}

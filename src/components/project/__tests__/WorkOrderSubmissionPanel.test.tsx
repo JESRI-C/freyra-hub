@@ -98,15 +98,19 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("submission preparation on the existing task", () => {
-  it("shows the updated result after returning from a corrected workspace", async () => {
+  it("rechecks after opening a correction and preserves the written note", async () => {
     m.context.mockResolvedValueOnce({ ...context(), gaps: ["evidence_missing"] });
     await render();
     expect(host.textContent).toContain("Dette mangler");
+    await fill();
+    await click("Åbn Dokumentation");
+    expect(m.openPart).toHaveBeenCalledWith("evidence");
     await render(false, false);
     m.context.mockResolvedValue(context());
     await render();
     expect(host.textContent).not.toContain("Dette mangler");
     expect(host.textContent).toContain("Grundlaget er klar til at blive gemt");
+    expect(host.querySelector("textarea")?.value).toBe(input.note);
   });
   it("shows concrete gaps and cannot save an incomplete task", async () => {
     m.context.mockResolvedValue({
@@ -122,8 +126,6 @@ describe("submission preparation on the existing task", () => {
     await click("Åbn Dokumentation");
     expect(m.openPart.mock.calls).toEqual([["plan"], ["evidence"]]);
     await fill();
-    await click("Åbn Dokumentation");
-    expect(m.openPart).toHaveBeenCalledTimes(2);
     expect(host.textContent).toContain("Opgavens blokering skal afklares");
     expect(
       [...host.querySelectorAll("button")].find((b) => b.textContent === "Gem afleveringsversion")
