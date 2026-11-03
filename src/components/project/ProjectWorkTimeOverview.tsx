@@ -49,7 +49,7 @@ export function ProjectWorkTimeOverview({
       for (;;) {
         signal.throwIfAborted();
         const { data, error } = await client
-          .rpc("list_project_work_order_time", {
+          .rpc("list_project_work_order_time_review", {
             p_organization_id: scope.organizationId,
             p_project_id: scope.projectId,
             p_after_action_id: after,

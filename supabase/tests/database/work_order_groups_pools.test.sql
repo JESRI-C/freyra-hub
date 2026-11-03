@@ -232,7 +232,7 @@ SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(1
   WHERE t.action_id=pg_temp.k(37)),75::bigint,'project time sums only the latest actor and day version');
 SELECT is((SELECT t.estimated_hours FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
   WHERE t.action_id=pg_temp.k(37)),2.5::numeric,'project time includes the latest estimate');
-SELECT is((SELECT t.pending_entries FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+SELECT is((SELECT t.pending_entries FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
   WHERE t.action_id=pg_temp.k(37)),0::bigint,'the current approved time does not appear in the review queue');
 SELECT ok(NOT EXISTS (SELECT 1 FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) t
   WHERE t.action_id<=pg_temp.k(37)),'project time cursor excludes the preceding page');
@@ -256,9 +256,9 @@ SELECT ok(EXISTS(SELECT 1 FROM public.work_order_time_approvals WHERE time_id=pg
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT is(public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03'),
  '[]'::jsonb,'the approved older version is excluded after an unapproved correction');
-SELECT is((SELECT t.pending_entries FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+SELECT is((SELECT t.pending_entries FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
   WHERE t.action_id=pg_temp.k(37)),2::bigint,'the overview counts the unapproved correction and the manager registration');
-SELECT is((SELECT t.pending_date FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+SELECT is((SELECT t.pending_date FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
   WHERE t.action_id=pg_temp.k(37)),'2026-11-03'::date,'the review opens an approvable date ahead of the managers own time');
 SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
  (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids)

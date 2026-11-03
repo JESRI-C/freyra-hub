@@ -1,6 +1,5 @@
 -- Read the project's task totals in stable pages under the existing manager and task policies.
-drop function public.list_project_work_order_time(uuid,uuid,uuid);
-create function public.list_project_work_order_time(
+create function public.list_project_work_order_time_review(
   p_organization_id uuid, p_project_id uuid, p_after_action_id uuid default null
 ) returns table(action_id uuid, title text, minutes bigint, entries bigint, estimated_hours numeric,
   pending_entries bigint, pending_date date)
@@ -42,5 +41,15 @@ begin
     ) p on true
     order by a.id;
 end $$;
-revoke all on function public.list_project_work_order_time(uuid,uuid,uuid) from public, anon, authenticated, service_role;
-grant execute on function public.list_project_work_order_time(uuid,uuid,uuid) to authenticated;
+revoke all on function public.list_project_work_order_time_review(uuid,uuid,uuid) from public, anon, authenticated, service_role;
+grant execute on function public.list_project_work_order_time_review(uuid,uuid,uuid) to authenticated;
+
+-- Preserve the existing API result for clients that only need task totals.
+create or replace function public.list_project_work_order_time(
+  p_organization_id uuid, p_project_id uuid, p_after_action_id uuid default null
+) returns table(action_id uuid, title text, minutes bigint, entries bigint, estimated_hours numeric)
+language sql stable security invoker set search_path = '' as $$
+  select t.action_id,t.title,t.minutes,t.entries,t.estimated_hours
+    from public.list_project_work_order_time_review(p_organization_id,p_project_id,p_after_action_id) t
+    order by t.action_id;
+$$;
