@@ -23,6 +23,9 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@/lib/report-draft.functions", () => ({ generateEvidenceReportDraft: vi.fn() }));
+vi.mock("@/components/project/WorkOrderFollowUps", () => ({
+  WorkOrderFollowUps: () => null,
+}));
 vi.mock("@tanstack/react-query", () => ({
   useQuery: state.query,
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
