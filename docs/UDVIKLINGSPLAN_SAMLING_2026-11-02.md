@@ -566,3 +566,5 @@ Fra projektets bookingoversigt kan projektlederen nu vælge en eksisterende arbe
 I Chrome ved 390 px åbnede opgavevælgeren den valgte opgaves bookingpanel fra en oversigt uden matchende reservationer. Søgningen var bevaret ved retur, og siden kunne bruges uden vandret rulning. Typekontrol, lint, staging-build og 21 målrettede tests bestod. Kilde 2d55278 og Worker 5762e4c8-403b-4c17-9a2d-d0cbcea3348b.
 
 Bookingoversigten har genveje til I dag, Denne uge og Denne måned. Den valgte genvej markeres, og en dansk uge følger mandag til søndag. Manuelle datoer, udstyrssøgning og aflysningsfilter kan fortsat kombineres med periodevalget.
+
+I Chrome ved 390 px satte I dag samme start- og slutdato. Denne uge satte mandag til søndag. Perioden og udstyrssøgningen var bevaret efter retur fra den valgte opgaves booking. Staging-build, lint og 21 målrettede tests bestod. Kilde 63fcd4e og Worker f93f6bde-ec4a-4474-817d-6bae97920611.
