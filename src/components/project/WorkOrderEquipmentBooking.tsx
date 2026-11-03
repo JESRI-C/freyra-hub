@@ -2,13 +2,15 @@ import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import {
+  workEquipmentKind as kinds,
+  workEquipmentKindLabel as kindLabel,
+} from "@/lib/work-order-equipment";
 import { CalendarDate } from "@/lib/action-execution";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
-const kinds = z.enum(["vehicle", "machine", "tool"]);
-const kindLabel = { vehicle: "Køretøj", machine: "Maskine", tool: "Værktøj" };
 const uuid = z.string().uuid();
 const equipmentSchema = z.object({ id: uuid, name: z.string(), kind: kinds });
 const bookingSchema = z.object({

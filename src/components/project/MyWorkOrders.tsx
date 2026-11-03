@@ -13,6 +13,7 @@ import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignm
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
+import { FieldWorkOrderEquipment } from "./FieldWorkOrderEquipment";
 import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimePanel } from "./WorkOrderTimePanel";
@@ -238,6 +239,13 @@ function TaskCard({
           <summary className="min-h-11 cursor-pointer py-2 font-medium">Se arbejdsgrundlag</summary>
           <WorkOrderPlanSummary row={{ plan: task.plan, version: task.plan_version }} />
         </details>
+        {active && task.can_execute && (
+          <FieldWorkOrderEquipment
+            scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+            actorId={actorId}
+            actionId={task.action_id}
+          />
+        )}
         {active && (task.plan.siteId || !!task.plan.visitStops?.length) && (
           <WorkOrderVisitResults
             key={task.plan_version_id}

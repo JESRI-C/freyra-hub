@@ -260,5 +260,26 @@ SELECT lives_ok($$SELECT pg_temp.book(373,36,22,'2026-11-12','2026-11-13')$$,'ca
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
 SELECT is((SELECT count(*) FROM public.organization_work_equipment),0::bigint,'foreign tenant cannot see organization equipment');
 SELECT is((SELECT count(*) FROM public.work_order_equipment_bookings),0::bigint,'foreign tenant cannot see reservations');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT pg_temp.book(375,31,21,'2026-11-20','2026-11-21')$$,'task has active equipment for field lookup');
+SELECT lives_ok($$SELECT * FROM public.save_work_order_access(
+ pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),2,true,true,false,'Synthetic field booking lookup',pg_temp.k(376)
+)$$,'the external account receives scoped work permission');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
+SELECT is((SELECT name FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31))),
+ 'Synthetic equipment','assigned external can see the active reservation without catalogue access');
+SELECT is((SELECT count(*) FROM public.organization_work_equipment),0::bigint,'field booking view grants no catalogue access');
+SELECT is((SELECT count(*) FROM public.work_order_equipment_bookings),0::bigint,'field booking view grants no raw reservation access');
+SELECT throws_ok($$SELECT * FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(22),pg_temp.k(31))$$,
+ '42501',NULL,'field booking lookup rejects mismatched project scope');
+SELECT throws_ok($$SELECT * FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(22),pg_temp.k(36))$$,
+ '42501',NULL,'field booking lookup denies a different work order');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT * FROM public.save_work_order_access(
+ pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),3,false,false,false,'Synthetic field booking lookup revoked',pg_temp.k(377)
+)$$,'field work permission is revoked');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
+SELECT throws_ok($$SELECT * FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31))$$,
+ '42501',NULL,'revocation prevents subsequent field booking reads');
 SELECT * FROM finish();
 ROLLBACK;
