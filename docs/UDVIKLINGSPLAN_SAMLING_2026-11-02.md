@@ -650,3 +650,5 @@ I Chrome ved 390 px på staging flyttede projektlederen den ugentlige serie fra 
 ### S13 – Aflys hele serien
 
 Projektlederen kan bekræfte aflysning af en hel serie med én årsag. Hver opgave får den eksisterende status Aflyst og beholder plan og historik. Kalenderen udelader aflyste opgaver fra aktive datoer og belastning. En aktiv reservation, en påbegyndt opgave eller en forældet plan afviser hele aflysningen. En aflyst opgave kan ikke få en ny reservation.
+
+I Chrome ved 390 px aflyste projektlederen to månedlige opgaver fra samme serie. Efter genindlæsning viste begge Aflyst med deres oprindelige dato. Den ugentlige serie på samme kildeopgave var fortsat aktiv. Databaseprøven bekræftede adgang, samme genforsøg, årsag i historikken og afvisning ved aktiv reservation. 38 målrettede app-tests, typekontrol, lint og staging-build bestod. Kilde b9f64f5, Worker 52883372-4413-4b21-9a28-1760f046a5c7 og migration 20261103134841.
