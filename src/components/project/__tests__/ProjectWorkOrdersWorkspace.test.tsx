@@ -446,9 +446,14 @@ it("filters the dated and undated tasks by plan responsibility", async () => {
 it("marks only overlapping days for the same responsible person", async () => {
   const now = new Date();
   const month = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0")].join("-");
+  m.actions.mockResolvedValue([
+    ...tasks,
+    { id: "third", title: "Opgave uden overlap", status: "Åben" },
+  ]);
   m.schedule.mockResolvedValue({
     first: { start: month + "-02", end: month + "-04", responsibleId: "responsible-person" },
     second: { start: month + "-04", end: null, responsibleId: "responsible-person" },
+    third: { start: month + "-04", end: null, responsibleId: "other-person" },
   });
   await render();
   await click("Kalender");
@@ -457,11 +462,22 @@ it("marks only overlapping days for the same responsible person", async () => {
   );
   expect(overlaps).toHaveLength(1);
   await act(async () => overlaps[0].click());
-  expect(host.textContent).toContain("2 planlagte opgaver på den valgte dato");
+  expect(host.textContent).toContain("3 planlagte opgaver på den valgte dato");
   const flags = [...host.querySelectorAll("span")].filter(
     (node) => node.textContent === "Flere opgaver samme dag",
   );
   expect(flags).toHaveLength(2);
+  const overlapFilter = [...host.querySelectorAll("label")]
+    .find((label) => label.textContent?.includes("Vis kun overlappende opgaver på dagen"))!
+    .querySelector<HTMLInputElement>("input")!;
+  await act(async () => overlapFilter.click());
+  expect(host.textContent).toContain("2 planlagte opgaver på den valgte dato");
+  expect(host.textContent).not.toContain("Opgave uden overlap");
+  expect(
+    host.querySelectorAll('button[aria-label*="flere opgaver for samme ansvarlige"]'),
+  ).toHaveLength(1);
+  await act(async () => overlapFilter.click());
+  expect(host.textContent).toContain("Opgave uden overlap");
   const filter = host.querySelector<HTMLSelectElement>("select")!;
   await act(async () => {
     filter.value = "unassigned";

@@ -97,6 +97,7 @@ function WorkOrders({
   const [availabilityEditing, setAvailabilityEditing] = useState(false);
   const [onlyUndated, setOnlyUndated] = useState(false);
   const [onlyWaiting, setOnlyWaiting] = useState(false);
+  const [overlapFilterDate, setOverlapFilterDate] = useState<string>();
   const [taskSearch, setTaskSearch] = useState("");
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView === "schedule" || listView === "calendar";
@@ -231,33 +232,6 @@ function WorkOrders({
           );
         })
       : undefined;
-  const searchTerm = taskSearch.trim().toLocaleLowerCase("da");
-  const visibleActions = (listView === "calendar" ? calendarActions : orderedActions)?.filter(
-    (task) =>
-      (listView !== "schedule" ||
-        !onlyUndated ||
-        (!dates?.[task.id]?.cancelled && !dates?.[task.id]?.start)) &&
-      (!showSchedule || !onlyWaiting || !!dates?.[task.id]?.waitingForActionIds?.length) &&
-      task.title.toLocaleLowerCase("da").includes(searchTerm),
-  );
-  const usesTaskList = listView !== "time" && listView !== "bookings";
-  const visibleCount = usesTaskList ? (visibleActions?.length ?? 0) : 0;
-  const estimates = new Map(
-    (calendarActions ?? visibleActions ?? []).map(({ id }) => {
-      const plan = dates?.[id];
-      const hours = plan?.cancelled
-        ? null
-        : listView === "calendar" && plan
-          ? workOrderHoursInPeriod(plan, from, through)
-          : (plan?.estimatedHours ?? null);
-      return [id, hours];
-    }),
-  );
-  const knownEstimates = (visibleActions ?? [])
-    .map(({ id }) => estimates.get(id) ?? null)
-    .filter((hours) => hours !== null);
-  const calendarEstimates = [...estimates.values()].filter((hours) => hours !== null);
-  const totalEstimatedHours = knownEstimates.reduce((total, hours) => total + hours, 0);
   const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
   const daySummaries = new Map<string, { total: number; waiting: number; overlap: Set<string> }>();
   function daySummary(key: string) {
@@ -281,6 +255,35 @@ function WorkOrders({
     return summary;
   }
   const dayOverlap = day ? daySummary(from).overlap : undefined;
+  const onlyOverlaps = listView === "calendar" && !!dayOverlap?.size && overlapFilterDate === from;
+  const searchTerm = taskSearch.trim().toLocaleLowerCase("da");
+  const visibleActions = (listView === "calendar" ? calendarActions : orderedActions)?.filter(
+    (task) =>
+      (listView !== "schedule" ||
+        !onlyUndated ||
+        (!dates?.[task.id]?.cancelled && !dates?.[task.id]?.start)) &&
+      (!showSchedule || !onlyWaiting || !!dates?.[task.id]?.waitingForActionIds?.length) &&
+      (!onlyOverlaps || dayOverlap.has(dates?.[task.id]?.responsibleId ?? "")) &&
+      task.title.toLocaleLowerCase("da").includes(searchTerm),
+  );
+  const usesTaskList = listView !== "time" && listView !== "bookings";
+  const visibleCount = usesTaskList ? (visibleActions?.length ?? 0) : 0;
+  const estimates = new Map(
+    (calendarActions ?? visibleActions ?? []).map(({ id }) => {
+      const plan = dates?.[id];
+      const hours = plan?.cancelled
+        ? null
+        : listView === "calendar" && plan
+          ? workOrderHoursInPeriod(plan, from, through)
+          : (plan?.estimatedHours ?? null);
+      return [id, hours];
+    }),
+  );
+  const knownEstimates = (visibleActions ?? [])
+    .map(({ id }) => estimates.get(id) ?? null)
+    .filter((hours) => hours !== null);
+  const calendarEstimates = [...estimates.values()].filter((hours) => hours !== null);
+  const totalEstimatedHours = knownEstimates.reduce((total, hours) => total + hours, 0);
   function showProjectPlanningTasks(focus: "waiting" | "undated" | "unassigned") {
     setTaskSearch("");
     setResponsible(focus === "unassigned" ? "unassigned" : "");
@@ -724,6 +727,20 @@ function WorkOrders({
                       for at se opgaverne.
                     </p>
                   )}
+                  {!!dayOverlap?.size && (
+                    <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={onlyOverlaps}
+                        disabled={locked}
+                        onChange={(event) => {
+                          setOverlapFilterDate(event.target.checked ? from : undefined);
+                          setTaskLimit(taskPageSize);
+                        }}
+                      />
+                      Vis kun overlappende opgaver på dagen
+                    </label>
+                  )}
                   {day && actorId && access.data?.canManageAvailability && names.has(filter) && (
                     <ProjectWorkAvailability
                       key={filter + ":" + from}
@@ -745,7 +762,7 @@ function WorkOrders({
                   <p role="status" className="text-sm">
                     {visibleCount} {visibleCount === 1 ? "planlagt opgave" : "planlagte opgaver"}{" "}
                     {day ? "på den valgte dato" : "i måneden"}.
-                    {(searchTerm || onlyWaiting) &&
+                    {(searchTerm || onlyWaiting || onlyOverlaps) &&
                       " Filtrene ændrer listen. Kalenderens markeringer viser stadig planlagt arbejde."}
                     {day && <> Valgt dato: {scheduleDate.format(new Date(from))}.</>}
                   </p>
