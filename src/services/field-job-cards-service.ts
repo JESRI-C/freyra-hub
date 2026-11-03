@@ -74,12 +74,12 @@ const scheduleRow = z.object({
   work_order_prerequisite_versions: z
     .array(
       z.object({
-        prerequisite_action_id: uuid.nullable(),
-        prerequisite_action_ids: z.array(uuid).max(12).nullable(),
+        prerequisite_action_id: storedActionId.nullable(),
+        prerequisite_action_ids: z.array(storedActionId).max(12).nullable(),
       }),
     )
     .max(1),
-  action_id: uuid,
+  action_id: storedActionId,
   work_order_lifecycle_versions: z.array(z.object({ status: z.string() })).max(1),
   work_order_plan_versions: z
     .array(

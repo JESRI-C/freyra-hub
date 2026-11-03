@@ -37,6 +37,7 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 import {
   listFieldJobActions,
+  listFieldJobSchedule,
   listFieldJobTemplates,
   listFieldJobVersions,
   saveFieldJobTemplate,
@@ -107,6 +108,36 @@ describe("project scoped job card persistence", () => {
     expect(actions).toHaveLength(201);
     expect(actions[199]).toEqual(row);
     expect(state.filters).toContainEqual(["id", legacyId]);
+  });
+  it("keeps a scheduled legacy task and resolves it as a completed prerequisite", async () => {
+    const legacyId = "11111111-1111-c111-5111-111111111111";
+    const plan = {
+      id: id(12),
+      planned_start: "2026-11-04",
+      planned_end: null,
+      responsible_id: null,
+      estimated_hours: null,
+    };
+    state.rows = [
+      {
+        action_id: legacyId,
+        work_order_plan_versions: [plan],
+        work_order_lifecycle_versions: [{ status: "performed" }],
+        work_order_prerequisite_versions: [],
+      },
+      {
+        action_id: id(13),
+        work_order_plan_versions: [{ ...plan, id: id(14) }],
+        work_order_lifecycle_versions: [{ status: "planned" }],
+        work_order_prerequisite_versions: [
+          { prerequisite_action_id: null, prerequisite_action_ids: [legacyId, id(15)] },
+        ],
+      },
+    ];
+
+    const dates = await listFieldJobSchedule(scope);
+    expect(dates[legacyId].start).toBe(plan.planned_start);
+    expect(dates[id(13)].waitingForActionIds).toEqual([id(15)]);
   });
   it("scopes template and history reads to project and organisation", async () => {
     state.rows = [template];

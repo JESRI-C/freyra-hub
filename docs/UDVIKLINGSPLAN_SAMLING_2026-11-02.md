@@ -713,6 +713,10 @@ På staging afviste databasen en gyldig ny feltregistrering på den aflyste test
 
 RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kladder bevaret efter aflysning stadig talte som afventende. Freyra viser nu de bevarede kladder særskilt og beholder eksporten i samme kø. En lokal komponentprøve med én aflyst og én aktiv kladde kontrollerer begge tællere, eksport og fravær af en genforsøgsknap på den aflyste kladde. Skyhost-kortlægningen er reference for jobforløbet. Denne særskilte køvisning er en Freyra-regel.
 
+### Ældre opgaver i planoversigt og kalender
+
+Planoversigt og kalender bruger nu samme validering af gemte opgave-id'er som opgavelisten. Det gælder også id'et på en forudgående opgave. En lokal prøve dækker en ældre planlagt opgave, hvis udførte status skal fjerne den fra ventelisten på en anden opgave. Prøven dækker planoversigtens datalæsning. De enkelte handlinger på ældre opgaver skal verificeres særskilt.
+
 ### Fra aflevering til næste handling
 
 En afleveret opgave forklarer, hvem der tager over, når brugeren ikke selv kan gennemgå den. En returneret aflevering viser begrundelsen og forklarer, om brugeren selv kan genåbne opgaven, eller om en anden med adgang skal gøre det. Visningen bruger de samme tilladelser og den samme afleveringsversion som handlingsknapperne. Komponentprøven dækker begge visninger af en returneret aflevering. Browserprøve på staging afventes.
