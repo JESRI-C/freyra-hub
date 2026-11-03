@@ -222,6 +222,26 @@ it("shows dated work ahead of undated work and opens its existing plan", async (
   expect(m.navigate).toHaveBeenCalledWith("second");
 });
 
+it("finds waiting tasks across the project from the calendar and clears the filter", async () => {
+  m.schedule.mockResolvedValue({
+    first: { start: null, end: null, waitingForActionIds: ["second"] },
+    second: { start: "2099-01-01", end: null, waitingForActionIds: [] },
+  });
+  await render();
+  await click("Kalender");
+  await click("Se afventende opgaver i hele projektet (1)");
+  const listedTasks = () =>
+    [...host.querySelectorAll("button")].filter((button) => button.textContent?.includes("Åbn →"));
+  expect(listedTasks()).toHaveLength(1);
+  expect(listedTasks()[0].textContent).toContain(tasks[0].title);
+  const filter = [...host.querySelectorAll("label")]
+    .find((label) => label.textContent?.includes("Kun opgaver der afventer forudsætninger"))!
+    .querySelector("input")!;
+  expect(filter.checked).toBe(true);
+  await act(async () => filter.click());
+  expect(listedTasks()).toHaveLength(2);
+});
+
 it("opens the prerequisite plan directly from a waiting task", async () => {
   m.schedule.mockResolvedValue({
     second: { start: "2026-11-03", end: null, waitingForActionIds: ["first"] },

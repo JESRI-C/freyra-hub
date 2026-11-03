@@ -88,6 +88,7 @@ function WorkOrders({
   const [responsible, setResponsible] = useState("");
   const [availabilityEditing, setAvailabilityEditing] = useState(false);
   const [onlyUndated, setOnlyUndated] = useState(false);
+  const [onlyWaiting, setOnlyWaiting] = useState(false);
   const [taskSearch, setTaskSearch] = useState("");
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView === "schedule" || listView === "calendar";
@@ -193,6 +194,9 @@ function WorkOrders({
   const createDate = listView === "calendar" && day ? from : undefined;
   const through = calendarKey(day ?? endOfMonth(month));
   const undatedCount = (orderedActions ?? []).filter(({ id }) => !dates?.[id]?.start).length;
+  const waitingCount = (actions.data ?? []).filter(
+    ({ id }) => dates?.[id]?.waitingForActionIds?.length,
+  ).length;
   const calendarActions =
     listView === "calendar"
       ? orderedActions?.filter(({ id }) => {
@@ -209,6 +213,7 @@ function WorkOrders({
   const visibleActions = (listView === "calendar" ? calendarActions : orderedActions)?.filter(
     (task) =>
       (listView !== "schedule" || !onlyUndated || !dates?.[task.id]?.start) &&
+      (!showSchedule || !onlyWaiting || !!dates?.[task.id]?.waitingForActionIds?.length) &&
       task.title.toLocaleLowerCase("da").includes(searchTerm),
   );
   const usesTaskList = listView !== "time" && listView !== "bookings";
@@ -478,6 +483,20 @@ function WorkOrders({
                       Kun opgaver uden planlagt dato
                     </label>
                   )}
+                  {schedule.isSuccess && (
+                    <label className="flex min-h-11 items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={onlyWaiting}
+                        disabled={locked}
+                        onChange={(event) => {
+                          setOnlyWaiting(event.target.checked);
+                          setTaskLimit(taskPageSize);
+                        }}
+                      />
+                      Kun opgaver der afventer forudsætninger
+                    </label>
+                  )}
                   {canEdit && schedule.isSuccess && (
                     <div className="flex flex-wrap items-end gap-2">
                       <label className="block min-w-0 text-sm font-medium">
@@ -615,10 +634,27 @@ function WorkOrders({
                   <p role="status" className="text-sm">
                     {visibleCount} {visibleCount === 1 ? "planlagt opgave" : "planlagte opgaver"}{" "}
                     {day ? "på den valgte dato" : "i måneden"}.
-                    {searchTerm &&
-                      " Søgningen filtrerer listen. Kalenderens markeringer viser stadig planlagt arbejde."}
+                    {(searchTerm || onlyWaiting) &&
+                      " Filtrene ændrer listen. Kalenderens markeringer viser stadig planlagt arbejde."}
                     {day && <> Valgt dato: {scheduleDate.format(new Date(from))}.</>}
                   </p>
+                  {waitingCount > 0 && (
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={locked}
+                      onClick={() => {
+                        setTaskSearch("");
+                        setResponsible("");
+                        setOnlyUndated(false);
+                        setOnlyWaiting(true);
+                        setTaskLimit(taskPageSize);
+                        setListView("schedule");
+                      }}
+                    >
+                      Se afventende opgaver i hele projektet ({waitingCount})
+                    </button>
+                  )}
                   {schedule.isSuccess && undatedCount > 0 && (
                     <button
                       type="button"
@@ -627,6 +663,7 @@ function WorkOrders({
                       onClick={() => {
                         setTaskSearch("");
                         setTaskLimit(taskPageSize);
+                        setOnlyWaiting(false);
                         setOnlyUndated(true);
                         setListView("schedule");
                       }}
