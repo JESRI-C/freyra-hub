@@ -57,7 +57,7 @@ export function WorkOrderSubmissionPanel({
   active?: boolean;
   requestedVersion?: number;
   onEditing?: (value: boolean) => void;
-  onOpenPart?: (part: WorkOrderView) => void;
+  onOpenPart?: (part: WorkOrderView, correction?: WorkOrderCorrectionNote) => void;
   onFollowUp?: (source: WorkOrderFollowUpSource) => void;
 }) {
   const cache = useQueryClient();
@@ -587,4 +587,4 @@ export function WorkOrderSubmissionPanel({
   );
 }
 import type { WorkOrderFollowUpSource } from "@/lib/work-order-plan";
-import type { ApprovedFollowUpBasis } from "@/lib/work-order-review";
+import type { ApprovedFollowUpBasis, WorkOrderCorrectionNote } from "@/lib/work-order-review";

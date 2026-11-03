@@ -139,9 +139,23 @@ import { ProjectWorkOrdersWorkspace, type WorkOrderView } from "../ProjectWorkOr
 vi.mock("../WorkOrderSubmissionPanel", () => ({
   WorkOrderSubmissionPanel: ({
     actionId,
+    onOpenPart,
     ...props
-  }: { actionId: string } & Omit<Parameters<typeof Editor>[0], "selectedActionId">) => (
-    <Editor {...props} selectedActionId={actionId} label="Aflevering" />
+  }: {
+    actionId: string;
+    onOpenPart?: (part: WorkOrderView, note: { submissionVersion: number; reason: string }) => void;
+  } & Omit<Parameters<typeof Editor>[0], "selectedActionId">) => (
+    <>
+      <Editor {...props} selectedActionId={actionId} label="Aflevering" />
+      <button
+        type="button"
+        onClick={() =>
+          onOpenPart?.("evidence", { submissionVersion: 2, reason: "Tilføj foto af afslutningen." })
+        }
+      >
+        Ret dokumentationen
+      </button>
+    </>
   ),
 }));
 const scope = { organizationId: "org", projectId: "project" };
@@ -686,6 +700,19 @@ describe("one task across the project workspaces", () => {
         .find((button) => button.textContent === "Udført arbejde")
         ?.getAttribute("aria-pressed"),
     ).toBe("true");
+  });
+  it("keeps the return reason visible while correcting the same task", async () => {
+    await render("second", true, false, "submission");
+    await click("Ret dokumentationen");
+    expect(document.activeElement?.textContent).toBe("Dokumentation");
+    const note = () => host.querySelector('aside[aria-label="Mangler ved afleveringen"]');
+    expect(note()?.textContent).toContain("Mangler i afleveringsversion 2");
+    expect(note()?.textContent).toContain("Tilføj foto af afslutningen.");
+    await click("Feltregistrering");
+    expect(note()).not.toBeNull();
+    await click("Tilbage til afleveringen");
+    expect(document.activeElement?.textContent).toBe("Aflevering");
+    expect(note()).toBeNull();
   });
   it("opens the exact deep-linked task in all views and retains the round in photo navigation", async () => {
     await render("second");

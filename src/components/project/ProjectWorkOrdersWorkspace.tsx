@@ -38,6 +38,7 @@ import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
+import type { WorkOrderCorrectionNote } from "@/lib/work-order-review";
 
 type Props = {
   scope: ProjectScope;
@@ -1222,9 +1223,11 @@ function TaskWorkspace({
 }) {
   const [savedObservation, setSavedObservation] = useState<FieldJobVersion>();
   const [part, setPart] = useState<Part>(initialView ?? "plan");
+  const [correctionNote, setCorrectionNote] = useState<WorkOrderCorrectionNote>();
   const [opened, setOpened] = useState<Set<Part>>(() => new Set([initialView ?? "plan"]));
   useEffect(() => {
     if (!initialView) return;
+    setCorrectionNote(undefined);
     setOpened((old) => (old.has(initialView) ? old : new Set([...old, initialView])));
     setPart(initialView);
   }, [initialView]);
@@ -1245,12 +1248,13 @@ function TaskWorkspace({
   const navigationId = useId();
   const current = parts.find((item) => item.id === part)!;
   const next = parts[parts.indexOf(current) + 1];
-  function openPart(id: Part) {
+  function openPart(id: Part, note?: WorkOrderCorrectionNote) {
+    if (note || id === "submission") setCorrectionNote(note);
     setOpened((old) => new Set([...old, id]));
     setPart(id);
   }
-  function openPartWithFocus(id: Part) {
-    openPart(id);
+  function openPartWithFocus(id: Part, note?: WorkOrderCorrectionNote) {
+    openPart(id, note);
     document.getElementById(navigationId + id)?.focus();
   }
   return (
@@ -1276,6 +1280,20 @@ function TaskWorkspace({
         purpose={current.purpose}
         output={current.output}
       />
+      {correctionNote && (canEdit || canContribute) && (
+        <aside
+          aria-label="Mangler ved afleveringen"
+          className="space-y-2 rounded-xl border p-4 text-sm"
+        >
+          <h4 className="font-semibold">
+            Mangler i afleveringsversion {correctionNote.submissionVersion}
+          </h4>
+          <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{correctionNote.reason}</p>
+          <button type="button" className={button} onClick={() => openPartWithFocus("submission")}>
+            Tilbage til afleveringen
+          </button>
+        </aside>
+      )}
       {opened.has("plan") && (
         <div hidden={part !== "plan"}>
           <WorkOrderPlansPanel

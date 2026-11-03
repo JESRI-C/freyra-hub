@@ -16,6 +16,7 @@ import type {
   ApprovedFollowUpBasis,
   WorkOrderReviewAction,
   WorkOrderReviewContext,
+  WorkOrderCorrectionNote,
 } from "@/lib/work-order-review";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
@@ -63,7 +64,7 @@ export function WorkOrderReviewControls({
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
   onOpenSubmissionVersion?: (version: number) => void;
-  onOpenCorrection?: (part: "execution" | "evidence") => void;
+  onOpenCorrection?: (part: "execution" | "evidence", note?: WorkOrderCorrectionNote) => void;
   onOpenFollowUpPlan?: () => void;
   onCreateApprovedFollowUp?: (packet: ApprovedFollowUpBasis) => void;
 }) {
@@ -125,6 +126,9 @@ export function WorkOrderReviewControls({
             state.submission_version_id === c.state?.submission_version_id,
         )
       : undefined;
+  const correctionNote = returnedReview
+    ? { submissionVersion: returnedReview.submission_version, reason: returnedReview.state.reason }
+    : undefined;
   useEffect(() => {
     if (authorized) onPhase(phase);
   }, [authorized, phase, onPhase]);
@@ -393,7 +397,7 @@ export function WorkOrderReviewControls({
                     type="button"
                     className={button}
                     disabled={locked || disabledByParent || query.isFetching}
-                    onClick={() => onOpenCorrection("execution")}
+                    onClick={() => onOpenCorrection("execution", correctionNote)}
                   >
                     Åbn udførelsen
                   </button>
@@ -401,7 +405,7 @@ export function WorkOrderReviewControls({
                     type="button"
                     className={button}
                     disabled={locked || disabledByParent || query.isFetching}
-                    onClick={() => onOpenCorrection("evidence")}
+                    onClick={() => onOpenCorrection("evidence", correctionNote)}
                   >
                     Åbn dokumentationen
                   </button>

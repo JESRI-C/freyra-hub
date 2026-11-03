@@ -151,7 +151,11 @@ describe("version-bound review on the existing task", () => {
     expect(heading?.parentElement?.textContent).toContain("Tilføj foto af afslutningen.");
     await click("Åbn udførelsen");
     await click("Åbn dokumentationen");
-    expect(openCorrection.mock.calls).toEqual([["execution"], ["evidence"]]);
+    const note = { submissionVersion: 1, reason: "Tilføj foto af afslutningen." };
+    expect(openCorrection.mock.calls).toEqual([
+      ["execution", note],
+      ["evidence", note],
+    ]);
     await render({ readOnly: true, onOpenCorrection: openCorrection });
     expect(button("Åbn dokumentationen")).toBeUndefined();
   });
