@@ -146,7 +146,9 @@ describe("frozen workflow report", () => {
       basisHash: "a".repeat(64),
     };
     report.content.workOrderApproval = approval;
-    const contents = files(await buildWorkOrderReportPackage(report));
+    const bytes = await buildWorkOrderReportPackage(report);
+    expect(await buildWorkOrderReportPackage(JSON.parse(JSON.stringify(report)))).toEqual(bytes);
+    const contents = files(bytes);
     const decoder = new TextDecoder();
     expect(decoder.decode(contents["rapport.pdf"].slice(0, 5))).toBe("%PDF-");
     expect(JSON.parse(decoder.decode(contents["inputversioner.json"]))).toEqual(approval);
