@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { rememberFollowUpSource, readFollowUpSource } from "@/lib/work-order-follow-up-draft";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -191,6 +192,7 @@ async function save() {
   );
 }
 beforeEach(() => {
+  sessionStorage.clear();
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.clearAllMocks();
@@ -600,6 +602,35 @@ describe("work-order plan editor", () => {
         }),
       }),
     });
+  });
+  it("recovers the pinned follow-up plan after reload and clears its pointer after saving", async () => {
+    const source = { ...row(), action_id: id(91), version: 3 };
+    rememberFollowUpSource(actor, { ...scope, actionId }, source);
+    expect(readFollowUpSource(id(92), { ...scope, actionId })).toBeUndefined();
+    m.history.mockImplementation(({ data }) =>
+      Promise.resolve({
+        items: data.actionId === source.action_id ? [source] : [],
+        nextBeforeVersion: null,
+      }),
+    );
+    await open(false);
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Opret arbejdsopgavens plan")!
+        .click(),
+    );
+    m.save.mockResolvedValue(row());
+    await save();
+    expect(m.history).toHaveBeenCalledWith({
+      data: { ...scope, actionId: source.action_id, beforeVersion: 4, pageSize: 1 },
+    });
+    expect(m.save).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        sourcePlanVersionId: source.id,
+        plan: expect.objectContaining({ instructions: source.plan.instructions }),
+      }),
+    });
+    expect(readFollowUpSource(actor, { ...scope, actionId })).toBeUndefined();
   });
   it("reschedules a saved plan without changing the work instructions or measurements", async () => {
     await open(false, true);

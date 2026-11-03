@@ -1,3 +1,4 @@
+import { readFollowUpSource, rememberFollowUpSource } from "@/lib/work-order-follow-up-draft";
 import { WorkOrderPrerequisite } from "./WorkOrderPrerequisite";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -263,6 +264,31 @@ function PlanWorkspace({
   const saving = useRef(false),
     attempt = useRef<{ signature: string; id: string } | null>(null);
   const latest = history.data?.items[0];
+  const draftSource =
+    canPlan && !latest && !planSource
+      ? readFollowUpSource(actorId, { ...scope, actionId })
+      : undefined;
+  const recoveredSource = useQuery({
+    queryKey: ["follow-up-draft-source", actorId, scope, actionId, draftSource],
+    enabled: !!draftSource && history.isSuccess,
+    retry: false,
+    queryFn: async () => {
+      if (!draftSource) throw new Error("Kildeplanen mangler.");
+      const page = await load({
+        data: {
+          ...scope,
+          actionId: draftSource.action_id,
+          beforeVersion: draftSource.version < 2147483647 ? draftSource.version + 1 : null,
+          pageSize: 1,
+        },
+      });
+      const source = page.items[0];
+      if (source?.id !== draftSource.id || source.version !== draftSource.version)
+        throw new Error("Kildeplanen kunne ikke genfindes.");
+      return source;
+    },
+  });
+  const followUpSource = planSource ?? recoveredSource.data;
   const [openSourceId, setOpenSourceId] = useState<string>();
   const sourceId = latest?.source_plan_version_id;
   const sourceActionId = latest?.source_action_id;
@@ -304,7 +330,7 @@ function PlanWorkspace({
       setDatesOnly(onlyDates);
       const suggestion = onlyDates && typeof openReschedule === "object" ? openReschedule : null;
       const plan = latest?.plan ?? {
-        ...(planSource?.plan ?? emptyWorkOrderPlan(title)),
+        ...(followUpSource?.plan ?? emptyWorkOrderPlan(title)),
         title,
         responsibleId: null,
         plannedStart: suggestedStart ?? null,
@@ -332,7 +358,7 @@ function PlanWorkspace({
       );
       onEditing(true);
     },
-    [latest, onEditing, openReschedule, planSource, suggestedStart, title],
+    [latest, onEditing, openReschedule, followUpSource, suggestedStart, title],
   );
   const openedReschedule = useRef(false);
   useEffect(() => {
@@ -378,7 +404,7 @@ function PlanWorkspace({
               }
             : draft.watercourse,
       });
-      const sourcePlanVersionId = base === 0 ? planSource?.id : undefined;
+      const sourcePlanVersionId = base === 0 ? followUpSource?.id : undefined;
       const signature = JSON.stringify({ plan, base, reason: reason.trim(), sourcePlanVersionId });
       if (attempt.current?.signature !== signature)
         attempt.current = { signature, id: crypto.randomUUID() };
@@ -394,6 +420,7 @@ function PlanWorkspace({
           ...(sourcePlanVersionId ? { sourcePlanVersionId } : {}),
         },
       });
+      if (sourcePlanVersionId) rememberFollowUpSource(actorId, { ...scope, actionId });
       cache.setQueryData<Awaited<ReturnType<typeof listFieldJobSchedule>>>(
         ["field-job-schedule", actorId, scope],
         (current) =>
@@ -419,10 +446,10 @@ function PlanWorkspace({
       setPages([]);
       await Promise.all([
         cache.invalidateQueries({ queryKey: key }),
-        ...(sourcePlanVersionId && planSource
+        ...(sourcePlanVersionId && followUpSource
           ? [
               cache.invalidateQueries({
-                queryKey: ["work-order-follow-ups", actorId, scope, planSource.action_id],
+                queryKey: ["work-order-follow-ups", actorId, scope, followUpSource.action_id],
               }),
             ]
           : []),
@@ -647,6 +674,21 @@ function PlanWorkspace({
             )}
           {canPlan && (
             <div className="flex flex-wrap gap-2">
+              {draftSource && recoveredSource.isPending && (
+                <p role="status">Henter opfølgningens kildeplan…</p>
+              )}
+              {draftSource && recoveredSource.isError && (
+                <div>
+                  <p role="alert">Opfølgningens kildeplan kunne ikke hentes.</p>
+                  <button
+                    type="button"
+                    className={button}
+                    onClick={() => void recoveredSource.refetch()}
+                  >
+                    Hent kildeplan igen
+                  </button>
+                </div>
+              )}
               {latest && onFollowUp && (
                 <button
                   type="button"
@@ -679,6 +721,7 @@ function PlanWorkspace({
                 className={button}
                 disabled={
                   history.isFetching ||
+                  (!!draftSource && !recoveredSource.isSuccess) ||
                   accessEditing ||
                   assignmentEditing ||
                   lifecycleEditing ||

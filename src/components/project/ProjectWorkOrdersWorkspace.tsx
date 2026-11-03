@@ -16,6 +16,7 @@ import { Link, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import type { WorkOrderFollowUpSource } from "@/lib/work-order-plan";
+import { rememberFollowUpSource } from "@/lib/work-order-follow-up-draft";
 import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
@@ -317,6 +318,8 @@ function WorkOrders({
           : "Arbejdsgrundlag afventer planlægning.",
         createAttempt.current.id,
       );
+      if (actorId && followUpSource)
+        rememberFollowUpSource(actorId, { ...scope, actionId: action.id }, followUpSource);
       if (alive.current) {
         setCreating(false);
         setTitle("");
