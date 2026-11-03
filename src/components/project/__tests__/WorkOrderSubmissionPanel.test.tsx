@@ -18,6 +18,7 @@ const m = vi.hoisted(() => ({
   save: vi.fn(),
   original: vi.fn(),
   editing: vi.fn(),
+  openPart: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({ useBlocker: vi.fn() }));
@@ -51,6 +52,7 @@ async function render(readOnly = false, active = true) {
           readOnly={readOnly}
           active={active}
           onEditing={m.editing}
+          onOpenPart={m.openPart}
         />
       </QueryClientProvider>,
     ),
@@ -99,7 +101,12 @@ describe("submission preparation on the existing task", () => {
   it("shows concrete gaps and cannot save an incomplete task", async () => {
     m.context.mockResolvedValue({ ...context(), gaps: ["task_blocked", "evidence_missing"] });
     await render();
+    await click("Åbn Arbejdsgrundlag");
+    await click("Åbn Dokumentation");
+    expect(m.openPart.mock.calls).toEqual([["plan"], ["evidence"]]);
     await fill();
+    await click("Åbn Dokumentation");
+    expect(m.openPart).toHaveBeenCalledTimes(2);
     expect(host.textContent).toContain("Opgavens blokering skal afklares");
     expect(
       [...host.querySelectorAll("button")].find((b) => b.textContent === "Gem afleveringsversion")

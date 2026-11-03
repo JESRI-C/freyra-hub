@@ -14,9 +14,25 @@ import type { ProjectScope } from "@/services/project-workspace-service";
 import { WorkOrderExecutionReference } from "./WorkOrderExecutionReference";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 import { WorkOrderReviewControls } from "./WorkOrderReviewControls";
+import { WORK_ORDER_PARTS, type WorkOrderView } from "@/lib/work-order-navigation";
 import type { WorkOrderStatus } from "@/lib/work-order-lifecycle";
 
 const button = "min-h-11 rounded-xl border px-4 py-2 text-sm disabled:opacity-50";
+const gapDestination: Record<keyof typeof submissionGapLabels, WorkOrderView> = {
+  plan_incomplete: "plan",
+  assignment_invalid: "plan",
+  execution_incomplete: "execution",
+  not_performed: "plan",
+  task_blocked: "plan",
+  lifecycle_basis_changed: "plan",
+  observation_needs_review: "evidence",
+  observation_incomplete: "evidence",
+  original_unavailable: "evidence",
+  evidence_missing: "evidence",
+  too_many_evidence: "evidence",
+  packet_too_large: "evidence",
+};
+
 export function WorkOrderSubmissionPanel({
   scope,
   actorId,
@@ -26,6 +42,7 @@ export function WorkOrderSubmissionPanel({
   canCreateReport = false,
   active = true,
   onEditing,
+  onOpenPart,
 }: {
   scope: ProjectScope;
   actorId: string;
@@ -35,6 +52,7 @@ export function WorkOrderSubmissionPanel({
   canCreateReport?: boolean;
   active?: boolean;
   onEditing?: (value: boolean) => void;
+  onOpenPart?: (part: WorkOrderView) => void;
 }) {
   const cache = useQueryClient();
   const contextFn = useServerFn(getProjectWorkOrderSubmissionContext);
@@ -224,9 +242,34 @@ export function WorkOrderSubmissionPanel({
                   <h4 className="font-medium">Dette mangler før grundlaget kan fastholdes</h4>
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
                     {c.gaps.map((gap) => (
-                      <li key={gap}>{submissionGapLabels[gap]}</li>
+                      <li key={gap}>
+                        {submissionGapLabels[gap]}
+                        {onOpenPart && (
+                          <button
+                            type="button"
+                            className="block min-h-11 text-left font-medium text-primary underline underline-offset-2 disabled:opacity-50"
+                            disabled={locked}
+                            onClick={() => {
+                              if (!locked) onOpenPart(gapDestination[gap]);
+                            }}
+                          >
+                            Åbn{" "}
+                            {
+                              WORK_ORDER_PARTS.find((part) => part.id === gapDestination[gap])
+                                ?.label
+                            }
+                          </button>
+                        )}
+                      </li>
                     ))}
                   </ul>
+                  {(c.gaps.includes("observation_incomplete") ||
+                    c.gaps.includes("observation_needs_review")) && (
+                    <p className="mt-2 text-sm">
+                      Se den tilknyttede version under Dokumentation. Hvis du gemmer en rettelse i
+                      Feltregistrering, skal den nye version tilknyttes under Dokumentation.
+                    </p>
+                  )}
                 </div>
               )}
               {!c?.gaps?.length && (

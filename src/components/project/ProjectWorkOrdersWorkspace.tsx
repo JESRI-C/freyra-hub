@@ -9,7 +9,7 @@ import { endOfMonth, format, startOfMonth } from "date-fns";
 import { da } from "react-day-picker/locale";
 import { labelDayButton } from "react-day-picker";
 import { WorkspaceGuide } from "@/components/WorkspaceGuide";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -806,6 +806,7 @@ function TaskWorkspace({
     (value: boolean) => onEditing("submission", value),
     [onEditing],
   );
+  const navigationId = useId();
   const current = parts.find((item) => item.id === part)!;
   const next = parts[parts.indexOf(current) + 1];
   function openPart(id: Part) {
@@ -819,6 +820,7 @@ function TaskWorkspace({
           <button
             key={item.id}
             type="button"
+            id={navigationId + item.id}
             aria-pressed={part === item.id}
             onClick={() => openPart(item.id)}
             className={
@@ -900,6 +902,10 @@ function TaskWorkspace({
             actorId={actorId}
             actionId={actionId}
             onEditing={submissionEditing}
+            onOpenPart={(id) => {
+              openPart(id);
+              document.getElementById(navigationId + id)?.focus();
+            }}
           />
         </div>
       )}
