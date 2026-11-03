@@ -176,6 +176,22 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT lives_ok($$SELECT public.save_work_order_plan(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan()||'{"estimatedHours":2.5}', '',pg_temp.k(191))$$,'planner saves the assigned field test plan');
 SELECT lives_ok($$SELECT pg_temp.assign(0,192,37,'person',ARRAY[2],NULL)$$,'manager assigns execution to field role');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+CREATE FUNCTION pg_temp.material(row_id integer, entry integer, task integer, version integer, quantity integer, label text DEFAULT 'Testmateriale')
+RETURNS void LANGUAGE sql AS $$
+ INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,reason)
+ VALUES(pg_temp.k(row_id),pg_temp.k(entry),pg_temp.k(task),pg_temp.k(11),pg_temp.k(21),label,'kg',quantity,version,
+   CASE WHEN version=1 THEN '' ELSE 'Syntetisk rettelse' END);
+$$;
+SELECT lives_ok($$SELECT pg_temp.material(320,320,37,1,2500)$$,'assigned field staff can record materials');
+SELECT throws_ok($$SELECT pg_temp.material(321,321,36,1,500)$$,'42501',NULL,'field cannot record materials on unassigned work');
+SELECT lives_ok($$SELECT pg_temp.material(322,320,37,2,1250)$$,'material correction is appended');
+SELECT throws_ok($$SELECT pg_temp.material(323,320,37,2,1000)$$,'40001',NULL,'a stale material correction is rejected');
+SELECT throws_ok($$SELECT pg_temp.material(324,320,37,3,500,'Andet materiale')$$,'22023',NULL,'a correction cannot change the material identity');
+SELECT is((SELECT count(*) FROM public.work_order_material_versions WHERE entry_id=pg_temp.k(320)),
+ 2::bigint,'original material version is preserved');
+SELECT is((SELECT quantity_milli FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37))),
+ 1250,'material list shows the current quantity');
 SELECT lives_ok($$INSERT INTO public.work_order_time_versions
  (id,action_id,organization_id,project_id,work_date,version,minutes)
  VALUES(pg_temp.k(300),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',1,90)$$,
@@ -212,6 +228,10 @@ SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct wor
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
 SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is((SELECT actor_id FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37))),
+ pg_temp.k(2),'the manager can see the recorded material with the authenticated field author');
+SELECT is((SELECT count(*) FROM public.list_work_order_material_usage(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))),
+ 0::bigint,'material list rejects mismatched scope');
 SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(300))$$,
  '40001',NULL,'an outdated time version cannot be approved');
 SELECT lives_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(301))$$,

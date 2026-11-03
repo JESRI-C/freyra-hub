@@ -13,6 +13,7 @@ import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignm
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
+import { WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimePanel } from "./WorkOrderTimePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
 const button =
@@ -158,6 +159,8 @@ function TaskCard({
     [submissionEditing, setSubmissionEditing] = useState(false),
     [timeOpened, setTimeOpened] = useState(false),
     [timeEditing, setTimeEditing] = useState(false);
+  const [materialsOpened, setMaterialsOpened] = useState(false);
+  const [materialsEditing, setMaterialsEditing] = useState(false);
   const nestedLocks = useRef(new Set<string>());
   function reportEditing(part: string, value: boolean) {
     if (value) nestedLocks.current.add(part);
@@ -353,6 +356,36 @@ function TaskCard({
                   onEditing={(value) => {
                     setTimeEditing(value);
                     reportEditing("time", value);
+                  }}
+                />
+              </fieldset>
+            )}
+          </details>
+        )}
+        {(task.can_execute || materialsOpened) && (
+          <details
+            onToggle={(event) => {
+              if (event.currentTarget.open) setMaterialsOpened(true);
+            }}
+          >
+            <summary
+              className="min-h-11 cursor-pointer py-2 font-medium"
+              onClick={(event) => {
+                if (locked && !materialsEditing) event.preventDefault();
+              }}
+            >
+              Registrér materialeforbrug
+            </summary>
+            {materialsOpened && (
+              <fieldset disabled={(locked && !materialsEditing) || busy} className="min-w-0">
+                <WorkOrderMaterials
+                  scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+                  actorId={actorId}
+                  actionId={task.action_id}
+                  canWrite={task.can_execute}
+                  onEditing={(value) => {
+                    setMaterialsEditing(value);
+                    reportEditing("materials", value);
                   }}
                 />
               </fieldset>

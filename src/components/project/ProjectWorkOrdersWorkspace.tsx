@@ -23,6 +23,7 @@ import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ProjectWorkTimeOverview } from "./ProjectWorkTimeOverview";
+import { WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
@@ -826,6 +827,9 @@ function TaskWorkspace({
               actorId={actorId}
               reviewDate={timeReviewDate}
             />
+          )}
+          {canManageTime && (
+            <WorkOrderMaterials scope={scope} actionId={actionId} actorId={actorId} />
           )}
           <ActionExecutionPanel
             scope={scope}

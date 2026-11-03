@@ -496,3 +496,7 @@ Godkendelsesoversigten er verificeret på staging. I Chrome ved 390 px filtrered
 Kalenderen viser en genvej med antal opgaver uden planlagt dato inden for det valgte ansvarligfilter. Genvejen åbner Planoversigt med kun de udaterede opgaver, og filteret bevares, når brugeren åbner en opgave og går tilbage. Planoversigt kan også slå filteret til og fra direkte. Den eksisterende navigationstest dækker forløbet.
 
 På staging åbnede kalendergenvejen alle fem udaterede opgaver i testprojektet ved 320, 390 og 1280 px. Filter og antal var bevaret efter åbning og tilbagevenden. Ingen vandret rulning blev målt. Kilde `a027d51`, Worker `d30b410e-ced4-41c6-b05b-66a037e55a13`.
+
+### S14 - materialeforbrug på arbejdsopgaven
+
+Mine opgaver har en materialeregistrering for udførere med opgaveadgang. Registrér materialets navn, mængde og enhed. En rettelse af mængden kræver en årsag og danner en ny version. Nul kan bruges til at tilbageføre en mængde. Projektledere læser seneste version af hver registrering under Udført arbejde på samme opgave. Den første leverance bruger fritekst til materialets navn og seks faste enheder. Materialekatalog, visning af tidligere versioner, prisreferencer og samling med faktureringsgrundlaget står åbne.
