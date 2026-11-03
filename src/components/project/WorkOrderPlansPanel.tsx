@@ -17,6 +17,7 @@ import {
   workOrderPlanGaps,
   type WorkOrderPlan,
   type WorkOrderPlanVersion,
+  type WorkOrderFollowUpSource,
 } from "@/lib/work-order-plan";
 import { listFieldJobActions, type listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
@@ -54,8 +55,8 @@ type PlanPanelProps = {
   selectedActionId?: string;
   openBooking?: boolean;
   openReschedule?: PlanDateEditorRequest;
-  planSource?: WorkOrderPlanVersion;
-  onFollowUp?: (source: WorkOrderPlanVersion) => void;
+  planSource?: WorkOrderFollowUpSource;
+  onFollowUp?: (source: WorkOrderFollowUpSource) => void;
   suggestedStart?: string;
   onEditing?: (value: boolean) => void;
 };
@@ -216,8 +217,8 @@ function PlanWorkspace({
   canBook: boolean;
   openBooking?: boolean;
   openReschedule?: PlanDateEditorRequest;
-  planSource?: WorkOrderPlanVersion;
-  onFollowUp?: (source: WorkOrderPlanVersion) => void;
+  planSource?: WorkOrderFollowUpSource;
+  onFollowUp?: (source: WorkOrderFollowUpSource) => void;
   suggestedStart?: string;
   onEditing: (value: boolean) => void;
 }) {

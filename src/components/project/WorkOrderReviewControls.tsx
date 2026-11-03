@@ -12,7 +12,7 @@ import {
   type WorkOrderStatus,
 } from "@/lib/work-order-lifecycle";
 import { WorkOrderRequestError, type WorkOrderScope } from "@/lib/work-order-access";
-import type { WorkOrderReviewAction } from "@/lib/work-order-review";
+import type { WorkOrderReviewAction, WorkOrderReviewContext } from "@/lib/work-order-review";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
 const button = "min-h-11 rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -44,6 +44,7 @@ export function WorkOrderReviewControls({
   onEditing,
   onPhase,
   onOpenFollowUpPlan,
+  onCreateApprovedFollowUp,
 }: {
   scope: WorkOrderScope;
   actorId: string;
@@ -56,6 +57,7 @@ export function WorkOrderReviewControls({
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
   onOpenFollowUpPlan?: () => void;
+  onCreateApprovedFollowUp?: (packet: NonNullable<WorkOrderReviewContext["packet"]>) => void;
 }) {
   const load = useServerFn(getProjectWorkOrderReviewContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
@@ -403,6 +405,16 @@ export function WorkOrderReviewControls({
               >
                 Åbn arbejdsgrundlaget for opfølgning
               </button>
+              {onCreateApprovedFollowUp && c?.packet && (
+                <button
+                  type="button"
+                  className={button}
+                  disabled={disabledByParent || query.isFetching}
+                  onClick={() => onCreateApprovedFollowUp(c.packet!)}
+                >
+                  Opret opfølgning fra godkendt plan
+                </button>
+              )}
             </div>
           )}
           {!!c?.recent_reviews.length && (

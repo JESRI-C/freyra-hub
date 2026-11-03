@@ -15,7 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
-import type { WorkOrderPlanVersion } from "@/lib/work-order-plan";
+import type { WorkOrderFollowUpSource } from "@/lib/work-order-plan";
 import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
@@ -107,10 +107,10 @@ function WorkOrders({
   const [error, setError] = useState("");
   const [createdActionId, setCreatedActionId] = useState<string>();
   const [calendarPlan, setCalendarPlan] = useState<{ actionId: string; date: string }>();
-  const [followUpSource, setFollowUpSource] = useState<WorkOrderPlanVersion>();
+  const [followUpSource, setFollowUpSource] = useState<WorkOrderFollowUpSource>();
   const [copiedPlan, setCopiedPlan] = useState<{
     actionId: string;
-    source: WorkOrderPlanVersion;
+    source: WorkOrderFollowUpSource;
   }>();
   const alive = useRef(true);
   const inFlight = useRef(false);
@@ -1085,8 +1085,8 @@ function TaskWorkspace({
   canManageTime: boolean;
   openBooking: boolean;
   openReschedule: PlanDateEditorRequest;
-  planSource?: WorkOrderPlanVersion;
-  onFollowUp?: (source: WorkOrderPlanVersion) => void;
+  planSource?: WorkOrderFollowUpSource;
+  onFollowUp?: (source: WorkOrderFollowUpSource) => void;
   suggestedStart?: string;
   timeReviewDate?: string;
   onEditing: (part: Editor, value: boolean) => void;
@@ -1228,6 +1228,7 @@ function TaskWorkspace({
             actionId={actionId}
             onEditing={submissionEditing}
             onOpenPart={openPartWithFocus}
+            onFollowUp={onFollowUp}
           />
         </div>
       )}

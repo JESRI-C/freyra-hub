@@ -44,6 +44,7 @@ export function WorkOrderSubmissionPanel({
   requestedVersion,
   onEditing,
   onOpenPart,
+  onFollowUp,
 }: {
   scope: ProjectScope;
   actorId: string;
@@ -55,6 +56,7 @@ export function WorkOrderSubmissionPanel({
   requestedVersion?: number;
   onEditing?: (value: boolean) => void;
   onOpenPart?: (part: WorkOrderView) => void;
+  onFollowUp?: (source: WorkOrderFollowUpSource) => void;
 }) {
   const cache = useQueryClient();
   const contextFn = useServerFn(getProjectWorkOrderSubmissionContext);
@@ -203,6 +205,37 @@ export function WorkOrderSubmissionPanel({
       if (alive.current) setOpening(false);
     }
   }
+  async function prepareFollowUp(packet: NonNullable<WorkOrderReviewContext["packet"]>) {
+    if (!authorized || locked || !active || !onFollowUp || inFlight.current) return;
+    inFlight.current = true;
+    setOpening(true);
+    setError("");
+    try {
+      const page = await historyFn({
+        data: {
+          ...task,
+          beforeVersion: packet.version < 2147483647 ? packet.version + 1 : null,
+          pageSize: 1,
+        },
+      });
+      if (!alive.current) return;
+      const row = page.items[0];
+      if (
+        row?.id !== packet.id ||
+        row.version !== packet.version ||
+        row.snapshot.plan.id !== packet.plan_version_id
+      ) {
+        setError("Den godkendte plan kunne ikke hentes til opfølgning.");
+        return;
+      }
+      onFollowUp({ ...row.snapshot.plan, action_id: actionId });
+    } catch {
+      if (alive.current) setError("Den godkendte plan kunne ikke hentes til opfølgning.");
+    } finally {
+      inFlight.current = false;
+      if (alive.current) setOpening(false);
+    }
+  }
   return (
     <section
       aria-label="Opgavens afleveringsgrundlag"
@@ -243,6 +276,9 @@ export function WorkOrderSubmissionPanel({
         onPhase={setReviewPhase}
         onOpenFollowUpPlan={
           canCreateReport && !readOnly && onOpenPart ? () => onOpenPart("plan") : undefined
+        }
+        onCreateApprovedFollowUp={
+          canCreateReport && !readOnly && onFollowUp ? prepareFollowUp : undefined
         }
       />
       {authorized && (
@@ -480,3 +516,5 @@ export function WorkOrderSubmissionPanel({
     </section>
   );
 }
+import type { WorkOrderFollowUpSource } from "@/lib/work-order-plan";
+import type { WorkOrderReviewContext } from "@/lib/work-order-review";

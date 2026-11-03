@@ -225,6 +225,8 @@ Dokumentation viser næste trin ved manglende svar på en aktiv kobling. En læs
 
 ### S05 — Samlet rapport fra samme grundlag
 
+Handlingen Opret opfølgning fra godkendt plan klargør en opfølgning med den planversion, som godkendelsen bygger på. Den henter den fastholdte aflevering med det eksisterende adgangskontrollerede opslag og kontrollerer afleverings-id, nummer og plan-id. Formularen genbruger den eksisterende oprettelsesvej, som ved gemning knytter opfølgningen til kildeopgaven og kildeplanens version. Prøverne dækker handlingen og klargøring fra en ældre aflevering med nyere historik. Stagingprøve og særskilt lagring af gennemgangens id afventes.
+
 **Afhænger af:** S04; S03 for filtreret eksport. **Genbrug:** D07, F10/F11, report_document/revisions, workflowrapport og eksportadaptere. **Skøn:** 2–4 dage.
 
 Efter godkendelse viser gennemgangen en genvej til arbejdsgrundlaget, hvor projektlederen kan se og oprette opfølgende opgaver på samme sag. Genvejen genbruger den eksisterende planvisning, som knytter en opfølgende plan til kildeopgaven og dens planversion. Prøven dækker genvejen efter godkendelse. Stagingprøven på kilde 8fff0c7 og Worker bcc204c1-9f68-4c4a-8055-f06595f2711a bestod. Ved 390 og 1280 px åbnede Enter arbejdsgrundlaget og fokuserede fanen på samme godkendte testopgave. Listen over opfølgende opgaver kunne åbnes, og oprettelsesformularen viste kildeplanens version og næste valg. Formularen blev lukket uden at gemme. Ingen vandret overflow eller JavaScript-sidefejl i de prøvede visninger. En særskilt binding fra opfølgningen til den faglige gennemgang afventes.

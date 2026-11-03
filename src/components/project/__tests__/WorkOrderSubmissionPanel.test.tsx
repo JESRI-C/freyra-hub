@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkOrderRequestError } from "@/lib/work-order-access";
+import type { WorkOrderReviewContext } from "@/lib/work-order-review";
 import {
   actor,
   context,
@@ -19,6 +20,8 @@ const m = vi.hoisted(() => ({
   original: vi.fn(),
   editing: vi.fn(),
   openPart: vi.fn(),
+  followUp: vi.fn(),
+  approvedPacket: undefined as WorkOrderReviewContext["packet"] | undefined,
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({ useBlocker: vi.fn() }));
@@ -34,7 +37,18 @@ vi.mock("../WorkOrderExecutionReference", () => ({
   WorkOrderExecutionReference: () => <p>Valgt historisk udførelse</p>,
 }));
 import { WorkOrderSubmissionPanel } from "../WorkOrderSubmissionPanel";
-vi.mock("../WorkOrderReviewControls", () => ({ WorkOrderReviewControls: () => null }));
+vi.mock("../WorkOrderReviewControls", () => ({
+  WorkOrderReviewControls: ({
+    onCreateApprovedFollowUp,
+  }: {
+    onCreateApprovedFollowUp?: (packet: NonNullable<WorkOrderReviewContext["packet"]>) => void;
+  }) =>
+    m.approvedPacket && onCreateApprovedFollowUp ? (
+      <button onClick={() => onCreateApprovedFollowUp(m.approvedPacket!)}>
+        Forbered opfølgning
+      </button>
+    ) : null,
+}));
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function settle() {
   await act(async () => {
@@ -51,9 +65,11 @@ async function render(readOnly = false, active = true, requestedVersion?: number
           actionId={scope.actionId}
           readOnly={readOnly}
           active={active}
+          canCreateReport={!!m.approvedPacket}
           requestedVersion={requestedVersion}
           onEditing={m.editing}
           onOpenPart={m.openPart}
+          onFollowUp={m.followUp}
         />
       </QueryClientProvider>,
     ),
@@ -84,6 +100,7 @@ beforeEach(() => {
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.clearAllMocks();
+  m.approvedPacket = undefined;
   m.context.mockResolvedValue(context());
   m.list.mockResolvedValue({ items: [], nextBeforeVersion: null });
   m.save.mockResolvedValue(submission());
@@ -99,6 +116,28 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("submission preparation on the existing task", () => {
+  it("prepares the follow-up from the approved packet's pinned plan", async () => {
+    const approved = submission(2);
+    m.approvedPacket = {
+      id: approved.id,
+      version: approved.version,
+      plan_version_id: approved.snapshot.plan.id,
+      assignment_version_id: approved.snapshot.assignment.id,
+      execution_revision_id: approved.execution_revision_id,
+    };
+    m.list.mockImplementation(({ data }) =>
+      Promise.resolve({
+        items: [data.beforeVersion === 3 ? approved : submission(4)],
+        nextBeforeVersion: null,
+      }),
+    );
+    await render();
+    await click("Forbered opfølgning");
+    expect(m.followUp).toHaveBeenCalledWith({
+      ...approved.snapshot.plan,
+      action_id: scope.actionId,
+    });
+  });
   it("loads the report's exact submission directly and lets users return to full history", async () => {
     m.list.mockImplementation(({ data }) =>
       Promise.resolve({

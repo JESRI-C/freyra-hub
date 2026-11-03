@@ -211,9 +211,16 @@ it("opens the saved report on exactly the approved packet and review", async () 
   await render();
   expect(button("Klargør rapportkladde for afleveringsversion 1")).toBeUndefined();
   const openFollowUpPlan = vi.fn();
-  await render({ canCreateReport: true, onOpenFollowUpPlan: openFollowUpPlan });
+  const createFollowUp = vi.fn();
+  await render({
+    canCreateReport: true,
+    onOpenFollowUpPlan: openFollowUpPlan,
+    onCreateApprovedFollowUp: createFollowUp,
+  });
   await click("Åbn arbejdsgrundlaget for opfølgning");
   expect(openFollowUpPlan).toHaveBeenCalledOnce();
+  await click("Opret opfølgning fra godkendt plan");
+  expect(createFollowUp).toHaveBeenCalledWith(c.packet);
   await click(`Klargør rapportkladde for afleveringsversion ${c.packet!.version}`);
   expect(host.textContent).toContain("Rapportkladden er klar");
   expect(m.saveReport).toHaveBeenCalledWith({

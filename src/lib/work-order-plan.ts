@@ -237,3 +237,7 @@ export function workOrderPlanGaps(plan: WorkOrderPlan): string[] {
       : []),
   ];
 }
+export type WorkOrderFollowUpSource = Pick<
+  WorkOrderPlanVersion,
+  "id" | "action_id" | "version" | "plan"
+>;
