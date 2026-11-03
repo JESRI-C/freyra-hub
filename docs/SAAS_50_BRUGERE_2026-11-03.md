@@ -60,4 +60,24 @@ S05 er teknisk verificeret på staging for den godkendte arbejdsopgave. Projektl
 
 Projektets arbejdsopgaver har desuden fået plan- og kalenderoversigt, registrering af timer og materialer, kortlagte besøg med udførelseshistorik og udstyrsbooking. Se udviklingsplanen for de enkelte leverancer og deres teststatus. Ledighed inden reservation er implementeret i `6c3ddbb`. Databasetesten bestod, og Chrome-prøven på staging ved 390 px bekræftede, at en optaget periode blokerer gemning, og at aflysning frigiver perioden og bevarer historikken.
 
-Tallene i rapporten gælder den oprindelige 50-brugerprøve. Der er stadig åbne frigivelseskriterier for fysisk telefon, uassisteret brug, fuld Skyhost-dækning og fagvisninger, længere belastning, kundens onboarding, betaling og produktionsdrift.
+Tallene ovenfor gælder den oprindelige 50-brugerprøve. Der er stadig åbne frigivelseskriterier for fysisk telefon, uassisteret brug, fuld Skyhost-dækning og fagvisninger, længere belastning, kundens onboarding, betaling og produktionsdrift.
+
+## Genprøve med 50 brugere efter samlingen
+
+Kørsel ed583cee på staging, kilde 7a28b32e89a4b6eab3a4a4bf7e55baf05d0ba562 og Worker 6d270fda-160f-4365-bea2-88f95dea97d4. Alle 515 kontroller bestod på otte syntetiske projekter.
+
+| Prøve | Bestået | Hvad blev kontrolleret |
+|---|---:|---|
+| Login | 50 af 50 | Særskilte konti og sessioner. 14 af 64 loginforsøg fik HTTP 429. Alle konti loggede ind efter genforsøg. |
+| Projektoprettelse | 8 af 8 | Oprettelse og genåbning via den almindelige brugeradgang. |
+| Isolation og samtidige læsninger | 268 af 268 | Tre samtidige læserunder med 50 klienter samt afvisning af fremmed projektskrivning og forsøg på at ændre rettigheder gennem metadata. |
+| Arbejdsforløb | 56 af 56 | Plan, tildeling, feltregistrering, original, udførelse, versionsfast aflevering og uafhængig godkendelse. Samtidige skrivninger og genforsøg bevarede historikken. |
+| Browserprofiler | 50 af 50 | Rollevisninger ved 320, 390 og 1280 px. Ingen fremmede testprojekter, JavaScript-fejl eller vandret rulning på de afprøvede flader. |
+| Rapport og PDF | 8 af 8 | Projektlederen åbnede rapporten fra godkendelsen og genåbnede samme rapportversion. PDF-eksport virkede, og rapporten linkede til den præcise opgave og dens originalfotos. |
+| Afsluttende adgangskontrol | 75 af 75 | Fremmede originaler, uautoriserede genforsøg, tilbagekaldt opgaveadgang og ændrede roller. |
+
+Der blev registreret 1.067 SDK-kald i de målte faser. Browserkald er opgjort separat som scenarier. Kør genprøvens rapportfase med node scripts/saas50/reports.mjs --staging efter arbejdsforløbene og før kontolukning.
+
+Oprydningen lukkede alle 50 konti. Efter læsning på staging var der 0 aktive sessioner, 0 uinddragede refresh-tokens og 0 skrivende projekt- eller organisationsroller for kontiene. Login og refresh blev afvist for den repræsentative lukkede konto. De lokale testlegitimationsoplysninger blev fjernet. De otte projekter, otte verificerede originaler, ni afleveringsversioner og otte gemte rapporter er bevaret.
+
+Den opdaterede genprøve dækker arbejdsforløbet til gemt rapport og PDF. Den samlede frigivelsesvurdering afventer uassisteret brug på fysisk telefon, fuld Skyhost-dækning og de resterende fagvisninger, længere belastning, kundeopstart, betaling og produktionsdrift.
