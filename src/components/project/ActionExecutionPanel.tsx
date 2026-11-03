@@ -36,6 +36,7 @@ import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 type ExecutionPanelProps = {
   scope: ProjectScope;
   canEdit: boolean;
+  canContribute?: boolean;
   selectedRoundId?: string;
   selectedActionId?: string;
   onEditing?: (value: boolean) => void;
@@ -47,17 +48,20 @@ export function ActionExecutionPanel(props: ExecutionPanelProps) {
       key={`${user?.id ?? "anonymous"}:${props.scope.organizationId}:${props.scope.projectId}`}
       {...props}
       actorId={user?.id}
+      actorName={user?.name}
     />
   );
 }
 function ExecutionPanel({
   scope,
   canEdit,
+  canContribute = false,
   selectedRoundId,
   actorId,
+  actorName,
   selectedActionId,
   onEditing,
-}: ExecutionPanelProps & { actorId?: string }) {
+}: ExecutionPanelProps & { actorId?: string; actorName?: string }) {
   const cache = useQueryClient();
   const loadContext = useServerFn(loadProjectWorkOrderExecutionContext),
     saveBound = useServerFn(saveProjectWorkOrderExecution),
@@ -80,7 +84,6 @@ function ExecutionPanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  useWorkOrderEditorLock((!!draft && canEdit) || busy, onEditing);
   const [context, setContext] = useState<{
     plan: WorkOrderPlanVersion | null;
     binding: WorkOrderExecutionBinding | null;
@@ -88,13 +91,26 @@ function ExecutionPanel({
     canClaim: boolean;
     canExecute: boolean | null;
   } | null>(null);
+  const scopedFieldEdit =
+    !canEdit &&
+    canContribute &&
+    !!actorId &&
+    !!selectedActionId &&
+    selectedActionId === actionId &&
+    !!context?.plan &&
+    context.canExecute === true;
+  const canEditExecution = canEdit || scopedFieldEdit;
+  useWorkOrderEditorLock((!!draft && canEditExecution) || busy, onEditing);
   const [performedById, setPerformedById] = useState<string | null>(null),
     [deviationReason, setDeviationReason] = useState("");
   const attempt = useRef<{ signature: string; id: string } | null>(null),
     saving = useRef(false);
   const claimAttempt = useRef<{ signature: string; id: string } | null>(null);
   const members = useWorkOrderPeople(scope, actorId, canEdit);
-  useBlocker({ shouldBlockFn: () => !!draft && canEdit, enableBeforeUnload: !!draft && canEdit });
+  useBlocker({
+    shouldBlockFn: () => !!draft && canEditExecution,
+    enableBeforeUnload: !!draft && canEditExecution,
+  });
   useEffect(() => {
     setActionId("");
     setDraft(null);
@@ -141,7 +157,7 @@ function ExecutionPanel({
   async function save() {
     if (
       !draft ||
-      !canEdit ||
+      !canEditExecution ||
       !actorId ||
       !context ||
       saving.current ||
@@ -153,14 +169,17 @@ function ExecutionPanel({
     setError("");
     setMessage("");
     try {
-      const execution = ActionExecutionSchema.parse(draft);
+      const performer = scopedFieldEdit ? actorId : performedById;
+      const execution = ActionExecutionSchema.parse(
+        scopedFieldEdit ? { ...draft, performedBy: actorName || "Dig" } : draft,
+      );
       const signature = JSON.stringify({
         execution,
         base: baseVersion?.version ?? 0,
         planId: context.plan?.id,
         assignmentId: context.assignment?.id ?? null,
         assignmentVersion: context.assignment?.version ?? 0,
-        performedById,
+        performedById: performer,
         deviationReason: deviationReason.trim(),
       });
       if (attempt.current?.signature !== signature)
@@ -178,7 +197,7 @@ function ExecutionPanel({
               expectedAssignmentVersion: context.assignment?.version ?? 0,
               requestId: attempt.current.id,
               execution,
-              performedById,
+              performedById: performer,
               deviationReason,
             },
           })
@@ -368,7 +387,7 @@ function ExecutionPanel({
           </Button>
         )
       )}
-      {!canEdit && (
+      {!canEditExecution && (!canContribute || context !== null) && (
         <p>Du har læseadgang. En udførelse kan registreres af en medarbejder med skriveret.</p>
       )}
       {draft && (
@@ -379,11 +398,17 @@ function ExecutionPanel({
             void save();
           }}
         >
-          <fieldset disabled={!canEdit || busy} className="space-y-3">
+          <fieldset disabled={!canEditExecution || busy} className="space-y-3">
             <legend>
               Udførelse ·{" "}
               {baseVersion ? "version " + (baseVersion.version + 1) : "første registrering"}
             </legend>
+            {scopedFieldEdit && (
+              <p className="text-sm text-muted-foreground">
+                Registreret udfører: {actorName || "Dig"}. Du gemmer din egen udførelse på den
+                valgte opgave.
+              </p>
+            )}
             {context?.plan && (
               <div className="rounded-xl border bg-muted/30 p-3 text-sm">
                 <p>
@@ -416,7 +441,7 @@ function ExecutionPanel({
                 )}
               </div>
             )}
-            {context?.plan && (
+            {context?.plan && !scopedFieldEdit && (
               <>
                 <label className="block">
                   Registreret udfører
@@ -499,28 +524,30 @@ function ExecutionPanel({
               </select>
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
-              {textFields.map(([name, label, type]) => (
-                <label key={name}>
-                  {label}
-                  <input
-                    className={inputClass}
-                    type={type}
-                    value={draft[name] ?? ""}
-                    disabled={type === "date" && draft.stage === "planned"}
-                    maxLength={2000}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        [name]: ["actualDate", "actualEndDate", "method", "performedBy"].includes(
-                          name,
-                        )
-                          ? e.target.value || null
-                          : e.target.value,
-                      })
-                    }
-                  />
-                </label>
-              ))}
+              {textFields
+                .filter(([name]) => !scopedFieldEdit || name !== "performedBy")
+                .map(([name, label, type]) => (
+                  <label key={name}>
+                    {label}
+                    <input
+                      className={inputClass}
+                      type={type}
+                      value={draft[name] ?? ""}
+                      disabled={type === "date" && draft.stage === "planned"}
+                      maxLength={2000}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          [name]: ["actualDate", "actualEndDate", "method", "performedBy"].includes(
+                            name,
+                          )
+                            ? e.target.value || null
+                            : e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                ))}
             </div>
             {context?.plan && draft.deviation && (
               <label className="block">
@@ -588,7 +615,7 @@ function ExecutionPanel({
             ))}
           </ul>
           <div className="flex flex-wrap gap-2">
-            {canEdit && (
+            {canEditExecution && (
               <Button
                 className="min-h-11"
                 disabled={
