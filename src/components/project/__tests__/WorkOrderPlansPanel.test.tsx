@@ -504,6 +504,20 @@ describe("work-order plan editor", () => {
     const markers = host.querySelector('[data-testid="visit-markers"]');
     expect(markers?.textContent).toBe("1. Hovedsted, 3. Gemt stopnavn, 4. Sidste stop");
     expect(markers?.getAttribute("data-segments")).toBe("[[[55.2,9.4],[55.3,9.5]]]");
+    const writeText = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error());
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const copy = host.querySelector<HTMLButtonElement>(
+      'button[aria-label="Kopiér koordinater for Gemt stopnavn"]',
+    )!;
+    await act(async () => copy.click());
+    expect(writeText).toHaveBeenCalledWith("55.2, 9.4");
+    expect(host.textContent).toContain("Koordinater kopieret for Gemt stopnavn.");
+    await act(async () => copy.click());
+    expect(host.textContent).toContain("Kopiér koordinaterne manuelt fra stoplisten.");
+    expect(host.textContent).toContain("55.2, 9.4");
+    expect(
+      host.querySelector('button[aria-label="Kopiér koordinater for Uden position"]'),
+    ).toBeNull();
   });
 
   it("saves a Danish decimal time estimate on the exact plan version", async () => {

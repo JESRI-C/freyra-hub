@@ -555,6 +555,8 @@ Stagingprøven i Chrome ved 390 px gemte et samlet grundlag med godkendte timer 
 
 ### S15 - flere besøg på arbejdsopgaven
 
+Stoplisten på besøgskortet viser gemte koordinater og lader brugeren kopiere dem til egen navigation. Hvis browseren afviser adgang til udklipsholderen, kan koordinaterne markeres og kopieres manuelt. Stop uden position har ingen kopihandling. Komponentprøven dækker den gemte position, en afvist kopiering og et stop uden position. Stagingprøve af udklipsholderen og fysisk telefon afventes.
+
 Besøgsstatus viser næste stop uden udfald på den aktuelle plan, både fra arbejdsgrundlaget og Mine opgaver. Genvejen flytter fokus til det nummererede stop med den eksisterende registreringshandling. Registrerede gennemførte og oversprungne stop tæller som afklarede, og historiske planversioner får ingen genvej. Komponentprøve dækker fokus på stop 2 med bevaret nummer og filtrering. Stagingprøve af genvejen afventes.
 
 Browserprøven bestod ved 390 px på kilde f8f5593 og Worker 3de93d8b-f3e0-486e-ab7f-1fdfa3804f27. En ekstern testkonto åbnede Mine opgaver og flyttede fokus til stop 3 med Enter. Efter gemt besøgsudfald pegede genvejen på stop 4. Databasen bekræftede udfaldsversion 1 på den gemte plan, og den midlertidige opgaveadgang blev trukket tilbage.

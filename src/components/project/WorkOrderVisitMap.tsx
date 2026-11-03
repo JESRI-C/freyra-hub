@@ -37,6 +37,15 @@ export function WorkOrderVisitMap({
   projectId: string;
 }) {
   const [center, setCenter] = useState<MapEditorMapProps["centerOverride"]>();
+  const [copyStatus, setCopyStatus] = useState("");
+  async function copyCoordinates(name: string, coordinates: string) {
+    try {
+      await navigator.clipboard.writeText(coordinates);
+      setCopyStatus("Koordinater kopieret for " + name + ".");
+    } catch {
+      setCopyStatus("Kopiér koordinaterne manuelt fra stoplisten.");
+    }
+  }
   const { stops, points, bounds, segments } = useMemo(() => {
     const byId = new Map(sites.map((site) => [site.id, site]));
     const ordered = [
@@ -105,19 +114,37 @@ export function WorkOrderVisitMap({
       ) : (
         <p role="status">Ingen af planens lokaliteter har en kortposition.</p>
       )}
-      <ol aria-label="Besøg i planlagt rækkefølge" className="list-decimal space-y-2 pl-6">
+      <p role="status" className="text-sm">
+        {copyStatus}
+      </p>
+      <ol aria-label="Besøg i planlagt rækkefølge" className="list-decimal space-y-3 pl-6">
         {stops.map((stop) => {
           const point = stop.position;
+          const coordinates = point ? `${point.lat}, ${point.lng}` : "";
           return (
             <li key={stop.siteId} className="break-words">
               {point ? (
-                <button
-                  type="button"
-                  className={button}
-                  onClick={() => setCenter({ ...point, zoom: 16 })}
-                >
-                  Vis {stop.name} på kort
-                </button>
+                <div className="space-y-1">
+                  <p className="font-medium">{stop.name}</p>
+                  <p className="select-text text-sm tabular-nums">{coordinates}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={button}
+                      onClick={() => setCenter({ ...point, zoom: 16 })}
+                    >
+                      Vis {stop.name} på kort
+                    </button>
+                    <button
+                      type="button"
+                      className={button}
+                      aria-label={"Kopiér koordinater for " + stop.name}
+                      onClick={() => void copyCoordinates(stop.name, coordinates)}
+                    >
+                      Kopiér koordinater
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <p>{stop.name} · Ingen kortposition</p>
               )}
