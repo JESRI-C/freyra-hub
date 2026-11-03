@@ -149,6 +149,7 @@ export function WorkOrderVisitResults({
     outcome: z.infer<typeof outcome>;
     note: string;
   }>();
+  const [onlyPending, setOnlyPending] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -180,6 +181,17 @@ export function WorkOrderVisitResults({
     },
   });
   const bySite = new Map(results.data?.map((row) => [row.site_id, row]));
+  const ordered = stops.map((stop, index) => ({
+    ...stop,
+    number: index + 1,
+    result: bySite.get(stop.siteId),
+  }));
+  const visited = ordered.filter(({ result }) => result?.outcome === "visited").length;
+  const skipped = ordered.filter(({ result }) => result?.outcome === "skipped").length;
+  const pending = ordered.length - visited - skipped;
+  const visible = onlyPending
+    ? ordered.filter((stop) => !stop.result || draft?.siteId === stop.siteId)
+    : ordered;
 
   async function save() {
     if (!draft || !canWrite || disabled || inFlight.current) return;
@@ -263,104 +275,123 @@ export function WorkOrderVisitResults({
         </button>
       )}
       {results.data && (
-        <ol className="list-decimal space-y-3 pl-5">
-          {stops.map((stop) => {
-            const result = bySite.get(stop.siteId);
-            return (
-              <li key={stop.siteId} className="space-y-2 break-words">
-                <p className="font-medium">{stop.name}</p>
-                <p>
-                  {result
-                    ? label[result.outcome] + " · Version " + result.version
-                    : historical
-                      ? "Intet udfald registreret"
-                      : "Afventer registrering"}
-                </p>
-                {result?.note && <p>{result.note}</p>}
-                {result && result.version > 1 && (
-                  <VisitResultHistory
-                    scope={scope}
-                    actorId={actorId}
-                    actionId={actionId}
-                    planVersionId={planVersionId}
-                    result={result}
-                  />
-                )}
-                {canWrite && draft?.siteId !== stop.siteId && (
-                  <button
-                    type="button"
-                    className={button}
-                    disabled={disabled || busy || !!draft}
-                    onClick={() => {
-                      setMessage("");
-                      setError("");
-                      setDraft({
-                        siteId: stop.siteId,
-                        base: result?.version ?? 0,
-                        outcome: result?.outcome ?? "visited",
-                        note: "",
-                      });
-                    }}
-                  >
-                    {result ? "Ret besøg" : "Registrér besøg"}
-                  </button>
-                )}
-                {canWrite && draft?.siteId === stop.siteId && (
-                  <form
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void save();
-                    }}
-                  >
-                    <fieldset disabled={disabled || busy} className="space-y-2">
-                      <label className="block">
-                        Udfald
-                        <select
-                          className={control}
-                          value={draft.outcome}
-                          onChange={(event) =>
-                            setDraft({ ...draft, outcome: outcome.parse(event.target.value) })
-                          }
-                        >
-                          <option value="visited">Gennemført</option>
-                          <option value="skipped">Sprunget over</option>
-                        </select>
-                      </label>
-                      <label className="block">
-                        {draft.base || draft.outcome === "skipped"
-                          ? "Begrundelse"
-                          : "Bemærkning (valgfri)"}
-                        <textarea
-                          className={control}
-                          maxLength={2000}
-                          value={draft.note}
-                          onChange={(event) => setDraft({ ...draft, note: event.target.value })}
-                        />
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <button type="submit" className={button}>
-                          {busy ? "Gemmer…" : "Gem besøg"}
-                        </button>
-                        <button
-                          type="button"
-                          className={button}
-                          onClick={() => {
-                            setDraft(undefined);
-                            setError("");
-                            attempt.current = undefined;
-                            void results.refetch();
-                          }}
-                        >
-                          Fortryd
-                        </button>
-                      </div>
-                    </fieldset>
-                  </form>
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        <>
+          <p role="status" className="font-medium">
+            {visited} gennemført · {skipped} sprunget over · {pending} uden udfald
+          </p>
+          {!historical && (
+            <label className="flex min-h-11 items-center gap-2">
+              <input
+                type="checkbox"
+                checked={onlyPending}
+                disabled={!!draft || busy || disabled}
+                onChange={(event) => setOnlyPending(event.target.checked)}
+              />
+              Kun stop uden udfald
+            </label>
+          )}
+          {!visible.length && <p>Alle stop på denne plan har et registreret udfald.</p>}
+          {!!visible.length && (
+            <ol className="list-decimal space-y-3 pl-5">
+              {visible.map((stop) => {
+                const { result } = stop;
+                return (
+                  <li key={stop.siteId} value={stop.number} className="space-y-2 break-words">
+                    <p className="font-medium">{stop.name}</p>
+                    <p>
+                      {result
+                        ? label[result.outcome] + " · Version " + result.version
+                        : historical
+                          ? "Intet udfald registreret"
+                          : "Afventer registrering"}
+                    </p>
+                    {result?.note && <p>{result.note}</p>}
+                    {result && result.version > 1 && (
+                      <VisitResultHistory
+                        scope={scope}
+                        actorId={actorId}
+                        actionId={actionId}
+                        planVersionId={planVersionId}
+                        result={result}
+                      />
+                    )}
+                    {canWrite && draft?.siteId !== stop.siteId && (
+                      <button
+                        type="button"
+                        className={button}
+                        disabled={disabled || busy || !!draft}
+                        onClick={() => {
+                          setMessage("");
+                          setError("");
+                          setDraft({
+                            siteId: stop.siteId,
+                            base: result?.version ?? 0,
+                            outcome: result?.outcome ?? "visited",
+                            note: "",
+                          });
+                        }}
+                      >
+                        {result ? "Ret besøg" : "Registrér besøg"}
+                      </button>
+                    )}
+                    {canWrite && draft?.siteId === stop.siteId && (
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void save();
+                        }}
+                      >
+                        <fieldset disabled={disabled || busy} className="space-y-2">
+                          <label className="block">
+                            Udfald
+                            <select
+                              className={control}
+                              value={draft.outcome}
+                              onChange={(event) =>
+                                setDraft({ ...draft, outcome: outcome.parse(event.target.value) })
+                              }
+                            >
+                              <option value="visited">Gennemført</option>
+                              <option value="skipped">Sprunget over</option>
+                            </select>
+                          </label>
+                          <label className="block">
+                            {draft.base || draft.outcome === "skipped"
+                              ? "Begrundelse"
+                              : "Bemærkning (valgfri)"}
+                            <textarea
+                              className={control}
+                              maxLength={2000}
+                              value={draft.note}
+                              onChange={(event) => setDraft({ ...draft, note: event.target.value })}
+                            />
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="submit" className={button}>
+                              {busy ? "Gemmer…" : "Gem besøg"}
+                            </button>
+                            <button
+                              type="button"
+                              className={button}
+                              onClick={() => {
+                                setDraft(undefined);
+                                setError("");
+                                attempt.current = undefined;
+                                void results.refetch();
+                              }}
+                            >
+                              Fortryd
+                            </button>
+                          </div>
+                        </fieldset>
+                      </form>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </>
       )}
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}

@@ -189,6 +189,57 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("filters pending visits while preserving their saved stop number", async () => {
+    const saved = row();
+    m.history.mockResolvedValue({
+      items: [
+        {
+          ...saved,
+          plan: {
+            ...saved.plan,
+            visitStops: [
+              { siteId: id(20), name: "Gennemført stop" },
+              { siteId: id(21), name: "Åbent stop" },
+              { siteId: id(22), name: "Sprunget stop" },
+            ],
+          },
+        },
+      ],
+      nextBeforeVersion: null,
+    });
+    m.visitResults.mockResolvedValue({
+      data: [
+        {
+          id: id(30),
+          site_id: id(20),
+          version: 1,
+          outcome: "visited",
+          note: "",
+          created_by: actor,
+        },
+        {
+          id: id(31),
+          site_id: id(22),
+          version: 1,
+          outcome: "skipped",
+          note: "Låst port",
+          created_by: actor,
+        },
+      ],
+    });
+    await open(false);
+    const panel = host.querySelector('[aria-label="Besøgsstatus"]')!;
+    expect(panel.textContent).toContain("1 gennemført · 1 sprunget over · 1 uden udfald");
+    const filter = panel.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    await act(async () => filter.click());
+    const stops = [...panel.querySelectorAll("li")];
+    expect(stops).toHaveLength(1);
+    expect(stops[0].textContent).toContain("Åbent stop");
+    expect(stops[0].value).toBe(2);
+    await act(async () => filter.click());
+    expect(panel.querySelectorAll("li")).toHaveLength(3);
+  });
+
   it("opens corrected visit history for the selected old plan only", async () => {
     const old = row();
     m.history.mockResolvedValue({
