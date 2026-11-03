@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CalendarDate } from "@/lib/action-execution";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { assertProjectScope, type ProjectScope } from "./project-workspace-service";
@@ -48,6 +49,49 @@ export async function listFieldJobActions(scope: ProjectScope) {
   return (data ?? [])
     .filter((r) => r.action_type !== "workflow_followup")
     .map((r) => z.object({ id: uuid, title: z.string(), status: z.string().nullable() }).parse(r));
+}
+const scheduleRow = z.object({
+  action_id: uuid,
+  work_order_plan_versions: z
+    .array(
+      z.object({
+        planned_start: CalendarDate.nullable(),
+        planned_end: CalendarDate.nullable(),
+      }),
+    )
+    .max(1),
+});
+
+export async function listFieldJobSchedule(scope: ProjectScope) {
+  const db = await client(scope);
+  const dates: Record<string, { start: string; end: string | null }> = {};
+  const pageSize = 200;
+  let afterId: string | undefined;
+  for (;;) {
+    let query = db
+      .from("work_orders")
+      .select("action_id,work_order_plan_versions(planned_start,planned_end)")
+      .eq("organization_id", scope.organizationId)
+      .eq("project_id", scope.projectId)
+      .order("action_id")
+      .order("version", { referencedTable: "work_order_plan_versions", ascending: false })
+      .limit(1, { referencedTable: "work_order_plan_versions" })
+      .limit(pageSize);
+    if (afterId) query = query.gt("action_id", afterId);
+    const { data, error } = await query;
+    if (error) throw new Error("Planoversigten kunne ikke hentes. Prøv igen.");
+    const rows = z.array(scheduleRow).parse(data);
+    for (const row of rows) {
+      const plan = row.work_order_plan_versions[0];
+      if (plan?.planned_start)
+        dates[row.action_id] = {
+          start: plan.planned_start,
+          end: plan.planned_end,
+        };
+    }
+    if (rows.length < pageSize) return dates;
+    afterId = rows[rows.length - 1].action_id;
+  }
 }
 export async function listFieldJobTemplates(scope: ProjectScope) {
   const db = await client(scope);

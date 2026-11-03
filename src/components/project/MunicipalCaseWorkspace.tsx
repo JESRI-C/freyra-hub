@@ -123,7 +123,7 @@ export function MunicipalCaseWorkspace({
   onStep: (step: MunicipalStep) => void;
   onRound: (id: string | undefined) => void;
   selectedActionId?: string;
-  onSelectAction?: (id: string | undefined) => void;
+  onSelectAction?: (id: string | undefined, view?: WorkOrderView) => void;
   initialWorkOrderView?: WorkOrderView;
   embedded?: boolean;
 }) {

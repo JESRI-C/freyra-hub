@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({
   access: vi.fn(),
   actions: vi.fn(),
+  schedule: vi.fn(),
   create: vi.fn(),
   blocker: vi.fn(),
   navigate: vi.fn(),
@@ -26,7 +27,10 @@ vi.mock("@tanstack/react-router", () => ({
   }) => <a href={to + "?" + new URLSearchParams(search)}>{children}</a>,
 }));
 vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.access }));
-vi.mock("@/services/field-job-cards-service", () => ({ listFieldJobActions: m.actions }));
+vi.mock("@/services/field-job-cards-service", () => ({
+  listFieldJobActions: m.actions,
+  listFieldJobSchedule: m.schedule,
+}));
 vi.mock("@/services/project-workspace-service", () => ({ createProjectAction: m.create }));
 function Editor({
   label,
@@ -169,6 +173,21 @@ afterEach(async () => {
   host.remove();
   vi.unstubAllGlobals();
 });
+it("shows dated work ahead of undated work and opens its existing plan", async () => {
+  m.schedule.mockResolvedValue({ second: { start: "2026-11-03", end: "2026-11-05" } });
+  await render();
+  await click("Planoversigt");
+  expect(m.schedule).toHaveBeenCalledWith(scope);
+  expect(host.textContent).toContain("Ingen planlagt dato");
+  const listed = [...host.querySelectorAll("button")].filter((button) =>
+    button.textContent?.includes("Åbn →"),
+  );
+  expect(listed[0].textContent).toContain(tasks[1].title);
+  expect(listed[0].textContent).toContain("3. nov. 2026");
+  await act(async () => listed[0].click());
+  expect(m.navigate).toHaveBeenCalledWith("second");
+});
+
 describe("one task across the project workspaces", () => {
   it("moves to the next step without discarding the current plan draft", async () => {
     await render("first");

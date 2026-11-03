@@ -209,7 +209,9 @@ function MunicipalProjectPage({ step }: { step: MunicipalStep }) {
       selectedRoundId={search.round}
       selectedActionId={search.task}
       initialWorkOrderView={search.work}
-      onSelectAction={(task) => void navigate({ search: { ...search, task }, replace: true })}
+      onSelectAction={(task, view) =>
+        void navigate({ search: { ...search, task, work: view ?? search.work }, replace: true })
+      }
       onStep={(next) =>
         void navigate({ search: projectViewSearch(search, { kind: "step", id: next }) })
       }
@@ -635,8 +637,11 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                     canEdit={canEdit}
                     selectedActionId={search.task}
                     initialView={search.work}
-                    onSelectAction={(task) =>
-                      void navigate({ search: { ...search, task }, replace: true })
+                    onSelectAction={(task, view) =>
+                      void navigate({
+                        search: { ...search, task, work: view ?? search.work },
+                        replace: true,
+                      })
                     }
                   />
                 )}

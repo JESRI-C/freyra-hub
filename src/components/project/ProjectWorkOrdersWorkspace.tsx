@@ -6,7 +6,7 @@ import { Link, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
-import { listFieldJobActions } from "@/services/field-job-cards-service";
+import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { createProjectAction, type ProjectScope } from "@/services/project-workspace-service";
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
@@ -19,12 +19,20 @@ type Props = {
   round?: string;
   canEdit: boolean;
   selectedActionId?: string;
-  onSelectAction?: (id: string | undefined) => void;
+  onSelectAction?: (id: string | undefined, view?: WorkOrderView) => void;
   initialView?: WorkOrderView;
 };
 export type { WorkOrderView } from "@/lib/work-order-navigation";
 type Part = WorkOrderView;
 const parts = WORK_ORDER_PARTS;
+const scheduleDate = new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeZone: "UTC" });
+function scheduleLabel(plan?: { start: string; end: string | null }) {
+  if (!plan) return "Ingen planlagt dato";
+  const start = scheduleDate.format(new Date(plan.start));
+  return plan.end && plan.end !== plan.start
+    ? start + " – " + scheduleDate.format(new Date(plan.end))
+    : start;
+}
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background p-3 text-base";
@@ -52,6 +60,8 @@ function WorkOrders({
   const cache = useQueryClient();
   const loadAccess = useServerFn(getFieldJobAccess);
   const [localActionId, setLocalAction] = useState("");
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleActionId, setScheduleActionId] = useState<string>();
   const actionId = selectedActionId ?? localActionId;
   const [editors, setEditors] = useState<Set<Part>>(() => new Set());
   const [creating, setCreating] = useState(false);
@@ -104,11 +114,27 @@ function WorkOrders({
     refetchOnWindowFocus: !locked,
     refetchOnReconnect: !locked,
   });
+  const schedule = useQuery({
+    queryKey: ["field-job-schedule", actorId, scope],
+    queryFn: () => listFieldJobSchedule(scope),
+    enabled: authorized && showSchedule && !actionId && actions.isSuccess,
+    retry: false,
+  });
+  const dates = schedule.data;
+  const visibleActions =
+    showSchedule && dates
+      ? [...(actions.data ?? [])].sort((a, b) => {
+          const startA = dates[a.id]?.start ?? "9999-99-99";
+          const startB = dates[b.id]?.start ?? "9999-99-99";
+          return startA.localeCompare(startB) || a.title.localeCompare(b.title, "da");
+        })
+      : actions.data;
   const selected = actions.data?.find((a) => a.id === actionId);
-  function select(id: string) {
+  function select(id: string, view?: WorkOrderView) {
     if (locked) return;
     setLocalAction(id);
-    onSelectAction?.(id || undefined);
+    setScheduleActionId(view === "plan" ? id : undefined);
+    onSelectAction?.(id || undefined, view);
     setError("");
   }
   async function create() {
@@ -219,18 +245,72 @@ function WorkOrders({
           ) : (
             <div className="space-y-3">
               {!actions.data.length && <p>Der er endnu ingen arbejdsopgaver i projektet.</p>}
-              {actions.data.map((a) => (
-                <button
-                  type="button"
-                  key={a.id}
-                  disabled={locked}
-                  onClick={() => select(a.id)}
-                  className="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left disabled:opacity-50"
-                >
-                  <span className="font-medium">{a.title}</span>
-                  <span className="shrink-0 text-sm text-primary">Åbn →</span>
-                </button>
-              ))}
+              {!!actions.data.length && (
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Vis arbejdsopgaver">
+                  <button
+                    type="button"
+                    className={button}
+                    aria-pressed={!showSchedule}
+                    disabled={locked}
+                    onClick={() => setShowSchedule(false)}
+                  >
+                    Opgaveliste
+                  </button>
+                  <button
+                    type="button"
+                    className={button}
+                    aria-pressed={showSchedule}
+                    disabled={locked}
+                    onClick={() => setShowSchedule(true)}
+                  >
+                    Planoversigt
+                  </button>
+                </div>
+              )}
+              {showSchedule && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Planoversigt</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Se opgaver efter planlagt start. Åbn en opgave for at se eller ændre dens
+                    arbejdsgrundlag.
+                  </p>
+                  {schedule.isPending && !!actions.data.length && (
+                    <p role="status">Henter planlagte datoer…</p>
+                  )}
+                  {schedule.isError && (
+                    <div>
+                      <p role="alert">Planoversigten kunne ikke hentes.</p>
+                      <button
+                        type="button"
+                        className={button}
+                        onClick={() => void schedule.refetch()}
+                      >
+                        Prøv planoversigten igen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {(!showSchedule || schedule.isSuccess) &&
+                visibleActions?.map((a) => (
+                  <button
+                    type="button"
+                    key={a.id}
+                    disabled={locked}
+                    onClick={() => select(a.id, showSchedule ? "plan" : undefined)}
+                    className="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left disabled:opacity-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-medium">{a.title}</span>
+                      {showSchedule && (
+                        <span className="block text-sm text-muted-foreground">
+                          {scheduleLabel(dates?.[a.id])}
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-sm text-primary">Åbn →</span>
+                  </button>
+                ))}
             </div>
           )}
           {!creating && canEdit && access.data?.canConfigure && (
@@ -295,7 +375,7 @@ function WorkOrders({
               canEdit={canEdit}
               canContribute={!!access.data?.canContribute}
               onEditing={onEditing}
-              initialView={initialView}
+              initialView={scheduleActionId === actionId ? "plan" : initialView}
             />
           )}
         </div>

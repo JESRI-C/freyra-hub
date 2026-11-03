@@ -285,7 +285,10 @@ function PlanWorkspace({
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
       ]);
-      await cache.invalidateQueries({ queryKey: ["field-job-actions", actorId, scope] });
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: ["field-job-actions", actorId, scope] }),
+        cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId, scope] }),
+      ]);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Planen kunne ikke gemmes. Dine ændringer er bevaret.",
