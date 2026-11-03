@@ -52,6 +52,8 @@ Næste leverance er **S05: generel rapport på den præcise godkendte opgavevers
 
 `scripts/saas50` gemmer den reproducerbare prøve. Start en ny syntetisk kørsel i et tomt, ignoreret `tmp/saas50` og angiv præcis stagingrevision i `FREYRA_TEST_REVISION`. `prepare-fixture.mjs --staging` bruger en lokalt installeret `bcryptjs@3.0.3` i `tmp/saas50-tools`. Den forbereder kun data til det navngivne stagingprojekt. Autoriseret drift kører først den ene konto og derefter resten af det afgrænsede fixture-SQL. `authenticate`, `setup-tenants` og rollefixture etablerer de 50 sessioner og otte projekter. Kør `isolation`, `workflows`, `browser` og `final-boundaries` i rækkefølge; de anvender almindelige brugerrettigheder. Efter prøven afvikles det afgrænsede `prepare-cleanup`-SQL og læses tilbage. `render-report.py` bruger den sanerede kvittering til rapporten.
 
+Hvis kontooprettelsen afbrydes, kan `prepare-cleanup.mjs --staging --partial-provisioning` generere særskilt oprydnings-SQL. Det kontrollerer eksakt konto-id, e-mail og testmærke samt projekt- og organisationsmedlemskaber. Kvitteringen angiver antal fundne konti og antal lukkede konti. Standardoprydningen kræver stadig alle 50 konti. Generering og syntaks for Node-scriptet er kontrolleret lokalt. SQL'en er endnu ikke afprøvet mod en afbrudt stagingkørsel.
+
 Der er ikke ændret produktion, merget kode, sendt invitationer eller aktiveret en betalt udbyder. Brugerens to lokale Jobs/Geotag-dokumenter og eksisterende projekter er bevaret.
 
 ## Opfølgning efter 50-brugerprøven
