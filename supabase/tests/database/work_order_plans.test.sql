@@ -400,5 +400,41 @@ SELECT throws_ok($$INSERT INTO public.work_order_series_members(plan_version_id,
  'a manual follow-up cannot be assigned fabricated membership');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
 SELECT is((SELECT count(*) FROM public.work_order_series_members),0::bigint,'another organization cannot see series membership');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.shift_series(mutation integer, days integer DEFAULT 2) RETURNS integer
+LANGUAGE sql AS $$
+ SELECT public.shift_work_order_series(pg_temp.k(11),pg_temp.k(21),pg_temp.k(390),
+   current_setting('test.series_basis')::jsonb,days,'Synthetic series move',pg_temp.k(mutation),pg_temp.k(1))
+$$;
+SELECT set_config('test.series_basis',(
+ SELECT jsonb_object_agg(p.action_id,p.id)::text
+ FROM public.work_order_series_members m JOIN public.work_order_plan_versions p ON p.id=m.plan_version_id
+ WHERE m.series_id=pg_temp.k(390)
+),true);
+SELECT public.reserve_work_order_equipment(pg_temp.k(403),pg_temp.k(11),pg_temp.k(21),
+ pg_temp.weekly_id(390,2),pg_temp.k(370),'2027-03-31','2027-03-31');
+SELECT throws_ok($$SELECT pg_temp.shift_series(404)$$,'PT409',NULL,'active reservation blocks the entire series');
+SELECT is((SELECT count(*) FROM public.work_order_plan_versions v
+ WHERE v.version>1 AND v.action_id=ANY(pg_temp.recurring('monthly',390))),0::bigint,
+ 'reservation conflict leaves all original plans unchanged');
+UPDATE public.work_order_equipment_bookings SET cancelled_at=now() WHERE id=pg_temp.k(403);
+SELECT is(pg_temp.shift_series(400),3,'a complete series moves in one transaction');
+SELECT is(pg_temp.shift_series(400),3,'retry returns the original series move');
+SELECT throws_ok($$SELECT pg_temp.shift_series(400,3)$$,'22023',NULL,'same request key rejects a different offset');
+SELECT throws_ok($$SELECT pg_temp.shift_series(401)$$,'PT409',NULL,'a stale snapshot cannot shift any member');
+SELECT is((
+ SELECT array_agg(v.planned_start ORDER BY m.position)
+ FROM public.work_order_series_members m JOIN public.work_order_plan_versions p ON p.id=m.plan_version_id
+ JOIN public.work_order_plan_versions v ON v.action_id=p.action_id AND v.version=2
+ WHERE m.series_id=pg_temp.k(390)
+), ARRAY[DATE '2027-02-02',DATE '2027-03-02',DATE '2027-04-02'],'all dates move by two calendar days');
+SELECT is((
+ SELECT count(*) FROM public.work_order_plan_versions v
+ WHERE v.version>2 AND v.action_id=ANY(pg_temp.recurring('monthly',390))
+),0::bigint,'retry and stale snapshot add no extra versions');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT public.shift_work_order_series(pg_temp.k(11),pg_temp.k(21),pg_temp.k(390),
+ current_setting('test.series_basis')::jsonb,2,'Unauthorized',pg_temp.k(402),pg_temp.k(3))
+$$,'42501',NULL,'a reader cannot shift a series');
 SELECT * FROM finish();
 ROLLBACK;

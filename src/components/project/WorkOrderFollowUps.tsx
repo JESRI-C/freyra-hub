@@ -1,3 +1,4 @@
+import { WorkOrderSeriesShift } from "./WorkOrderSeriesShift";
 import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -33,10 +34,16 @@ export function WorkOrderFollowUps({
   actorId,
   scope,
   actionId,
+  canShift,
+  shiftDisabled,
+  onSeriesSaving,
 }: {
   actorId: string;
   scope: ProjectScope;
   actionId: string;
+  canShift: boolean;
+  shiftDisabled: boolean;
+  onSeriesSaving: (saving: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const followUps = useInfiniteQuery({
@@ -106,6 +113,21 @@ export function WorkOrderFollowUps({
               const ordered = group.sort(
                 (a, b) => (a.series?.position ?? 0) - (b.series?.position ?? 0),
               );
+              const plans = schedule.isSuccess
+                ? ordered.flatMap((row) => {
+                    const plan = schedule.data[row.action_id];
+                    return plan?.start && plan.planVersionId
+                      ? [
+                          {
+                            actionId: row.action_id,
+                            planVersionId: plan.planVersionId,
+                            start: plan.start,
+                            end: plan.end,
+                          },
+                        ]
+                      : [];
+                  })
+                : [];
               return (
                 <li key={key} className={series ? "rounded-xl border p-2" : undefined}>
                   {series && (
@@ -113,6 +135,16 @@ export function WorkOrderFollowUps({
                       {recurrenceLabels[series.cadence]} · {series.member_count} opgaver
                       {group.length < series.member_count && " · " + group.length + " vist"}
                     </p>
+                  )}
+                  {canShift && series && plans.length === series.member_count && (
+                    <WorkOrderSeriesShift
+                      actorId={actorId}
+                      scope={scope}
+                      seriesId={series.series_id}
+                      plans={plans}
+                      disabled={shiftDisabled}
+                      onSaving={onSeriesSaving}
+                    />
                   )}
                   <ul className="space-y-1">
                     {ordered.map((row) => (

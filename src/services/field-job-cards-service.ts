@@ -67,6 +67,7 @@ const scheduleRow = z.object({
   work_order_plan_versions: z
     .array(
       z.object({
+        id: uuid,
         planned_start: CalendarDate.nullable(),
         planned_end: CalendarDate.nullable(),
         responsible_id: uuid.nullable(),
@@ -81,6 +82,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
   const dates: Record<
     string,
     {
+      planVersionId: string;
       start: string | null;
       end: string | null;
       responsibleId: string | null;
@@ -93,7 +95,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     let query = db
       .from("work_orders")
       .select(
-        "action_id,work_order_plan_versions(planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours)",
+        "action_id,work_order_plan_versions(id,planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours)",
       )
       .eq("organization_id", scope.organizationId)
       .eq("project_id", scope.projectId)
@@ -109,6 +111,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
       const plan = row.work_order_plan_versions[0];
       if (plan)
         dates[row.action_id] = {
+          planVersionId: plan.id,
           start: plan.planned_start,
           end: plan.planned_end,
           responsibleId: plan.responsible_id,

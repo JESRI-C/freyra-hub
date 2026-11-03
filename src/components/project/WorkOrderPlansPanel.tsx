@@ -493,7 +493,23 @@ function PlanWorkspace({
             <>
               <WorkOrderPlanSummary row={latest} members={members.data ?? []} />
               {canPlan && (
-                <WorkOrderFollowUps actorId={actorId} scope={scope} actionId={actionId} />
+                <WorkOrderFollowUps
+                  actorId={actorId}
+                  scope={scope}
+                  actionId={actionId}
+                  canShift={canBook}
+                  shiftDisabled={
+                    seriesSaving ||
+                    accessEditing ||
+                    assignmentEditing ||
+                    lifecycleEditing ||
+                    bookingEditing
+                  }
+                  onSeriesSaving={(saving) => {
+                    setSeriesSaving(saving);
+                    onEditing(saving);
+                  }}
+                />
               )}
               {canPlan && sourceId && sourceActionId && sourceVersion && (
                 <div className="space-y-2">
@@ -649,7 +665,7 @@ function PlanWorkspace({
         </>
       )}
       <MoreWorkOrderPeople query={members} />
-      {latest && canBook && (
+      {latest && canBook && !seriesSaving && (
         <WorkOrderEquipmentBooking
           scope={scope}
           actorId={actorId}

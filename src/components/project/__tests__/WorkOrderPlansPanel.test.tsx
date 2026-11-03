@@ -10,6 +10,7 @@ const m = vi.hoisted(() => ({
   history: vi.fn(),
   save: vi.fn(),
   createSeries: vi.fn(),
+  shiftSeries: vi.fn(),
   schedule: vi.fn(),
   followUps: vi.fn(),
   members: vi.fn(),
@@ -52,6 +53,7 @@ vi.mock("@/lib/work-order-plan.functions", () => ({
   getProjectWorkOrderPlanHistory: m.history,
   saveProjectWorkOrderPlan: m.save,
   createProjectWorkOrderSeries: m.createSeries,
+  shiftProjectWorkOrderSeries: m.shiftSeries,
 }));
 vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: m.actions,
@@ -228,6 +230,12 @@ describe("work-order plan editor", () => {
   });
 
   it("distinguishes follow-ups with the same title using their current calendar dates", async () => {
+    m.access.mockResolvedValue({
+      userId: actor,
+      projectId: scope.projectId,
+      canConfigure: true,
+      canManageAvailability: true,
+    });
     m.followUps.mockResolvedValue({
       data: [42, 41, 43].map((n) => ({
         id: id(n + 10),
@@ -241,8 +249,8 @@ describe("work-order plan editor", () => {
       })),
     });
     m.schedule.mockResolvedValue({
-      [id(41)]: { start: "2026-11-08", end: null },
-      [id(42)]: { start: "2026-11-15", end: "2026-11-16" },
+      [id(41)]: { planVersionId: id(61), start: "2026-11-08", end: null },
+      [id(42)]: { planVersionId: id(62), start: "2026-11-15", end: "2026-11-16" },
     });
     await open(false);
     const summary = [...host.querySelectorAll("summary")].find(
@@ -259,6 +267,26 @@ describe("work-order plan editor", () => {
     expect(links[0].textContent).toContain("8. nov. 2026");
     expect(links[1].textContent).toContain("15. nov. 2026 – 16. nov. 2026");
     expect(links[1].textContent).toContain("Bygger på planversion 1");
+    const move = [...summary.parentElement!.querySelectorAll("button")].find(
+      (button) => button.textContent === "Flyt hele serien",
+    )!;
+    await act(async () => move.click());
+    await fill("Antal kalenderdage", "2");
+    await fill("Årsag til flytningen", "Flyttes to dage");
+    expect(host.querySelector('[aria-label="Nye datoer for serien"]')?.textContent).toContain(
+      "17. nov. 2026 – 18. nov. 2026",
+    );
+    m.shiftSeries.mockResolvedValue(2);
+    const save = [...summary.parentElement!.querySelectorAll("button")].find(
+      (button) => button.textContent === "Gem nye datoer",
+    )!;
+    await act(async () => save.click());
+    expect(m.shiftSeries.mock.calls[0][0].data).toMatchObject({
+      seriesId: id(80),
+      expectedPlans: { [id(41)]: id(61), [id(42)]: id(62) },
+      days: 2,
+      reason: "Flyttes to dage",
+    });
   });
 
   it("previews weekly periods and retries a lost reply using the original request id", async () => {
