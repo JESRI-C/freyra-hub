@@ -13,6 +13,16 @@ faktisk udført indsats, sammenlignelig før/efter, rapport og næste opfølgnin
 Plantning er valgfri. Historiske forløb og testbeviser nedenfor bevares som
 dateret dokumentation; de er ikke accept af nye ændringer.
 
+## Aktuel værktøjskæde og sikkerhedskontrol
+
+Brug Node 22.14.0 og npm 11.6.0, som CI også anvender. Ved en ældre lokal npm
+kan installationen køres med `npx --yes npm@11.6.0 ci`. npm 10 fejler med det
+opdaterede afhængighedstræ; brug ikke `--force` eller `--legacy-peer-deps`.
+`npm run audit:runtime` afviser alle kendte runtime-pakkesårbarheder i CI.
+Kør også den fulde `npm audit` for udviklingsværktøjerne; en grøn runtime-gate
+er ikke en sikkerhedsgodkendelse af database, indstillinger eller alle værktøjer.
+Historiske rapporters kontrolsummer og Turf 7.3.5 bevares i låsefilen.
+
 ## Historisk Haderslev-forløb, 27.10.2026
 
 [Aktuel plan](docs/HADERSLEV_PLAN_2026-11-10.md) · [15-minutters mødemanuskript og go/no-go](docs/HADERSLEV_DEMO_2710.md)
