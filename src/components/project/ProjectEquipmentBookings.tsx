@@ -39,6 +39,7 @@ export function ProjectEquipmentBookings({
 }) {
   const [from, setFrom] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [through, setThrough] = useState(() => format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [bookingActionId, setBookingActionId] = useState("");
   const [search, setSearch] = useState("");
   const [includeCancelled, setIncludeCancelled] = useState(false);
   const valid =
@@ -88,6 +89,7 @@ export function ProjectEquipmentBookings({
   });
   const rows = bookings.data?.pages.flatMap((page) => page.slice(0, pageSize));
   const names = new Map(tasks.map((task) => [task.id, task.title]));
+  const selectedTask = names.has(bookingActionId) ? bookingActionId : "";
   return (
     <section
       aria-label="Projektets bookingoversigt"
@@ -98,6 +100,39 @@ export function ProjectEquipmentBookings({
         Se reservationer, der overlapper perioden. Åbn en reservation for at gå til opgavens
         udstyrsbooking.
       </p>
+      {tasks.length > 0 ? (
+        <form
+          className="grid items-end gap-2 rounded-xl border bg-muted/30 p-3 sm:grid-cols-[1fr_auto]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (selectedTask && !locked) onOpen(selectedTask);
+          }}
+        >
+          <label className="min-w-0 text-sm">
+            Vælg opgave til udstyrsbooking
+            <select
+              className={control}
+              value={selectedTask}
+              disabled={locked}
+              onChange={(event) => setBookingActionId(event.target.value)}
+            >
+              <option value="">Vælg arbejdsopgave</option>
+              {tasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className={button} disabled={locked || !selectedTask}>
+            Åbn booking
+          </button>
+        </form>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Opret en arbejdsopgave, og gem dens arbejdsgrundlag for at reservere udstyr.
+        </p>
+      )}
       <fieldset disabled={locked} className="grid gap-2 sm:grid-cols-2">
         <label className="text-sm">
           Fra dato
@@ -138,7 +173,9 @@ export function ProjectEquipmentBookings({
       {!valid && <p role="alert">Vælg en gyldig periode.</p>}
       {valid && bookings.isPending && <p role="status">Henter projektets reservationer…</p>}
       {bookings.isError && <p role="alert">Projektets reservationer kunne ikke hentes.</p>}
-      {bookings.isSuccess && !rows?.length && <p>Ingen reservationer matcher dit udvalg.</p>}
+      {bookings.isSuccess && !rows?.length && (
+        <p>Ingen reservationer matcher perioden og filtrene.</p>
+      )}
       {!!rows?.length && (
         <ul className="space-y-2">
           {rows.map((row) => {
