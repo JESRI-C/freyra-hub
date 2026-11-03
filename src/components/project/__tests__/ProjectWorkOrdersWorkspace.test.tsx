@@ -215,6 +215,12 @@ it("shows a task spanning the month boundary and filters it by a planned day", a
   expect(host.textContent).toContain("1 planlagt opgave på den valgte dato");
   expect(host.textContent).toContain(tasks[1].title);
   expect(host.textContent).not.toContain(tasks[0].title);
+  const task = [...host.querySelectorAll("button")].find((button) =>
+    button.textContent?.includes(tasks[1].title),
+  )!;
+  await act(async () => task.click());
+  await click("Tilbage til kalender");
+  expect(host.textContent).toContain("1 planlagt opgave på den valgte dato");
   await click("Vis hele måneden");
   expect(host.textContent).toContain("1 planlagt opgave i måneden");
 });

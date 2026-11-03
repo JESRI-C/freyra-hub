@@ -295,6 +295,14 @@ function WorkOrders({
                   ))}
                 </select>
               </label>
+              <button type="button" className={button} disabled={locked} onClick={() => select("")}>
+                Tilbage til{" "}
+                {listView === "calendar"
+                  ? "kalender"
+                  : listView === "schedule"
+                    ? "planoversigt"
+                    : "opgaveliste"}
+              </button>
               {locked && (
                 <p role="status" className="text-sm">
                   Gem eller fortryd dine ændringer, før du vælger en anden opgave. Du kan skifte

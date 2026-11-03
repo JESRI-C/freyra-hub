@@ -17,7 +17,7 @@ import {
   type WorkOrderPlan,
   type WorkOrderPlanVersion,
 } from "@/lib/work-order-plan";
-import { listFieldJobActions } from "@/services/field-job-cards-service";
+import { listFieldJobActions, type listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
@@ -214,6 +214,7 @@ function PlanWorkspace({
     [assignmentEditing, setAssignmentEditing] = useState(false),
     [lifecycleEditing, setLifecycleEditing] = useState(false),
     [busy, setBusy] = useState(false);
+  const [datesOnly, setDatesOnly] = useState(false);
   const [meters, setMeters] = useState<Record<string, string>>({});
   const saving = useRef(false),
     attempt = useRef<{ signature: string; id: string } | null>(null);
@@ -224,7 +225,8 @@ function PlanWorkspace({
       [...(history.data?.items ?? []), ...pages.flatMap((p) => p.items)].map((v) => [v.id, v]),
     ).values(),
   ].sort((a, b) => b.version - a.version);
-  const open = () => {
+  const open = (onlyDates = false) => {
+    setDatesOnly(onlyDates);
     const plan = latest?.plan ?? emptyWorkOrderPlan(title);
     setDraft(plan);
     setBase(latest?.version ?? 0);
@@ -251,14 +253,15 @@ function PlanWorkspace({
     try {
       const plan = WorkOrderPlanSchema.parse({
         ...draft,
-        watercourse: draft.watercourse
-          ? {
-              ...draft.watercourse,
-              ...Object.fromEntries(
-                Object.entries(meters).map(([k, v]) => [k, parseWorkOrderMetres(v)]),
-              ),
-            }
-          : null,
+        watercourse:
+          !datesOnly && draft.watercourse
+            ? {
+                ...draft.watercourse,
+                ...Object.fromEntries(
+                  Object.entries(meters).map(([k, v]) => [k, parseWorkOrderMetres(v)]),
+                ),
+              }
+            : draft.watercourse,
       });
       const signature = JSON.stringify({ plan, base, reason: reason.trim() });
       if (attempt.current?.signature !== signature)
@@ -274,6 +277,18 @@ function PlanWorkspace({
           correctionReason: reason,
         },
       });
+      cache.setQueryData<Awaited<ReturnType<typeof listFieldJobSchedule>>>(
+        ["field-job-schedule", actorId, scope],
+        (current) =>
+          current && {
+            ...current,
+            [actionId]: {
+              start: saved.plan.plannedStart,
+              end: saved.plan.plannedEnd,
+              responsibleId: saved.plan.responsibleId,
+            },
+          },
+      );
       setDraft(null);
       onEditing(false);
       setMessage(
@@ -314,6 +329,28 @@ function PlanWorkspace({
   const set = <K extends keyof WorkOrderPlan>(key: K, value: WorkOrderPlan[K]) =>
     setDraft((old) => (old ? { ...old, [key]: value } : old));
   const gaps = draft ? workOrderPlanGaps(draft) : [];
+  const dateFields = draft && (
+    <>
+      <label className="block text-sm">
+        Planlagt fra
+        <input
+          className={control}
+          type="date"
+          value={draft.plannedStart ?? ""}
+          onChange={(e) => set("plannedStart", e.target.value || null)}
+        />
+      </label>
+      <label className="block text-sm">
+        Planlagt til
+        <input
+          className={control}
+          type="date"
+          value={draft.plannedEnd ?? ""}
+          onChange={(e) => set("plannedEnd", e.target.value || null)}
+        />
+      </label>
+    </>
+  );
   return (
     <div className="min-w-0 space-y-4">
       {history.isFetching && <p role="status">Henter planhistorik…</p>}
@@ -341,15 +378,30 @@ function PlanWorkspace({
             <p className="text-sm">Arbejdsgrundlaget er endnu ikke gemt som plan.</p>
           )}
           {canPlan && (
-            <button
-              className={button}
-              disabled={
-                history.isFetching || accessEditing || assignmentEditing || lifecycleEditing
-              }
-              onClick={open}
-            >
-              {latest ? "Rediger plan som ny version" : "Opret arbejdsopgavens plan"}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {latest && (
+                <button
+                  type="button"
+                  className={button}
+                  disabled={
+                    history.isFetching || accessEditing || assignmentEditing || lifecycleEditing
+                  }
+                  onClick={() => open(true)}
+                >
+                  Omplanlæg datoer
+                </button>
+              )}
+              <button
+                type="button"
+                className={button}
+                disabled={
+                  history.isFetching || accessEditing || assignmentEditing || lifecycleEditing
+                }
+                onClick={() => open()}
+              >
+                {latest ? "Rediger plan som ny version" : "Opret arbejdsopgavens plan"}
+              </button>
+            </div>
           )}
           {!canPlan && (
             <p className="text-sm text-muted-foreground">
@@ -404,268 +456,264 @@ function PlanWorkspace({
         >
           <fieldset className="min-w-0 space-y-3" disabled={busy || !canPlan}>
             <legend className="font-medium">
-              {base ? `Rediger plan version ${base}` : "Ny plan"}
+              {datesOnly ? "Omplanlæg datoer" : base ? `Rediger plan version ${base}` : "Ny plan"}
             </legend>
-            <label className="block text-sm">
-              Titel
-              <input
-                className={control}
-                maxLength={160}
-                required
-                value={draft.title}
-                onChange={(e) => set("title", e.target.value)}
-              />
-            </label>
-            <label className="block text-sm">
-              Beskrivelse
-              <textarea
-                className={control}
-                maxLength={4000}
-                value={draft.description}
-                onChange={(e) => set("description", e.target.value)}
-              />
-            </label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                Metodeprofil
-                <select
-                  className={control}
-                  value={draft.profile ?? ""}
-                  onChange={(e) => {
-                    const profile = (e.target.value || null) as WorkOrderPlan["profile"];
-                    if (profile !== "watercourse") setMeters({});
-                    setDraft((old) =>
-                      old
-                        ? {
-                            ...old,
-                            profile,
-                            watercourse:
-                              profile === "watercourse"
-                                ? (old.watercourse ?? emptyWorkOrderWatercourse())
-                                : null,
-                            watercourseVersionId:
-                              profile === "watercourse" ? old.watercourseVersionId : null,
-                          }
-                        : old,
-                    );
-                  }}
-                >
-                  <option value="">Uafklaret</option>
-                  {Object.entries(profiles).map(([v, label]) => (
-                    <option key={v} value={v}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                Prioritet
-                <select
-                  className={control}
-                  value={draft.priority ?? ""}
-                  onChange={(e) =>
-                    set("priority", (e.target.value || null) as WorkOrderPlan["priority"])
-                  }
-                >
-                  <option value="">Uafklaret</option>
-                  <option value="high">Høj</option>
-                  <option value="medium">Mellem</option>
-                  <option value="low">Lav</option>
-                </select>
-              </label>
-              <label className="block text-sm">
-                Planlagt fra
-                <input
-                  className={control}
-                  type="date"
-                  value={draft.plannedStart ?? ""}
-                  onChange={(e) => set("plannedStart", e.target.value || null)}
-                />
-              </label>
-              <label className="block text-sm">
-                Planlagt til
-                <input
-                  className={control}
-                  type="date"
-                  value={draft.plannedEnd ?? ""}
-                  onChange={(e) => set("plannedEnd", e.target.value || null)}
-                />
-              </label>
-            </div>
-            <label className="block text-sm">
-              Ansvarlig
-              <select
-                className={control}
-                value={draft.responsibleId ?? ""}
-                onChange={(e) => set("responsibleId", e.target.value || null)}
-              >
-                <option value="">Uafklaret</option>
-                {draft.responsibleId &&
-                  !members.data?.some((m) => m.user_id === draft.responsibleId) && (
-                    <option value={draft.responsibleId}>Tidligere valgt ansvarlig</option>
-                  )}
-                {members.data?.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>
-                    {m.display_name || m.email || "Projektmedlem"}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Den ansvarlige er adskilt fra den person, som faktisk udfører arbejdet. Dette valg
-              ændrer ingen adgangsrettigheder.
-            </p>
-            <label className="block text-sm">
-              Planlagt metode
-              <input
-                className={control}
-                maxLength={2000}
-                value={draft.plannedMethod ?? ""}
-                onChange={(e) => set("plannedMethod", nullable(e.target.value))}
-              />
-            </label>
-            <label className="block text-sm">
-              Arbejdsinstruktion
-              <textarea
-                className={control}
-                maxLength={4000}
-                value={draft.instructions}
-                onChange={(e) => set("instructions", e.target.value)}
-              />
-            </label>
-            <label className="block text-sm">
-              Sted eller delstrækning
-              <input
-                className={control}
-                maxLength={2000}
-                value={draft.locationNote}
-                onChange={(e) => set("locationNote", e.target.value)}
-              />
-            </label>
-            <details>
-              <summary className="min-h-11 cursor-pointer py-2 text-sm">
-                Vælg gemt lokalitet eller vandløbsgrundlag
-              </summary>
-              <label className="block text-sm">
-                Lokalitet
-                <select
-                  className={control}
-                  value={draft.siteId ?? ""}
-                  onChange={(e) => set("siteId", e.target.value || null)}
-                >
-                  <option value="">Ingen fast binding</option>
-                  {draft.siteId && !sites.data?.some((s) => s.id === draft.siteId) && (
-                    <option value={draft.siteId}>Tidligere valgt lokalitet</option>
-                  )}
-                  {sites.data?.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {draft.profile === "watercourse" && (
+            {datesOnly ? (
+              <div className="grid gap-3 sm:grid-cols-2">{dateFields}</div>
+            ) : (
+              <>
                 <label className="block text-sm">
-                  Vandløbsgrundlag
+                  Titel
+                  <input
+                    className={control}
+                    maxLength={160}
+                    required
+                    value={draft.title}
+                    onChange={(e) => set("title", e.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  Beskrivelse
+                  <textarea
+                    className={control}
+                    maxLength={4000}
+                    value={draft.description}
+                    onChange={(e) => set("description", e.target.value)}
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm">
+                    Metodeprofil
+                    <select
+                      className={control}
+                      value={draft.profile ?? ""}
+                      onChange={(e) => {
+                        const profile = (e.target.value || null) as WorkOrderPlan["profile"];
+                        if (profile !== "watercourse") setMeters({});
+                        setDraft((old) =>
+                          old
+                            ? {
+                                ...old,
+                                profile,
+                                watercourse:
+                                  profile === "watercourse"
+                                    ? (old.watercourse ?? emptyWorkOrderWatercourse())
+                                    : null,
+                                watercourseVersionId:
+                                  profile === "watercourse" ? old.watercourseVersionId : null,
+                              }
+                            : old,
+                        );
+                      }}
+                    >
+                      <option value="">Uafklaret</option>
+                      {Object.entries(profiles).map(([v, label]) => (
+                        <option key={v} value={v}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm">
+                    Prioritet
+                    <select
+                      className={control}
+                      value={draft.priority ?? ""}
+                      onChange={(e) =>
+                        set("priority", (e.target.value || null) as WorkOrderPlan["priority"])
+                      }
+                    >
+                      <option value="">Uafklaret</option>
+                      <option value="high">Høj</option>
+                      <option value="medium">Mellem</option>
+                      <option value="low">Lav</option>
+                    </select>
+                  </label>
+                  {dateFields}
+                </div>
+                <label className="block text-sm">
+                  Ansvarlig
                   <select
                     className={control}
-                    value={draft.watercourseVersionId ?? ""}
-                    onChange={(e) => set("watercourseVersionId", e.target.value || null)}
+                    value={draft.responsibleId ?? ""}
+                    onChange={(e) => set("responsibleId", e.target.value || null)}
                   >
-                    <option value="">Grundlag er uafklaret</option>
-                    {draft.watercourseVersionId &&
-                      !centerlines.data?.some((v) => v.id === draft.watercourseVersionId) && (
-                        <option value={draft.watercourseVersionId}>Tidligere valgt grundlag</option>
+                    <option value="">Uafklaret</option>
+                    {draft.responsibleId &&
+                      !members.data?.some((m) => m.user_id === draft.responsibleId) && (
+                        <option value={draft.responsibleId}>Tidligere valgt ansvarlig</option>
                       )}
-                    {centerlines.data?.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        Version {v.version} · {v.source}
+                    {members.data?.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.display_name || m.email || "Projektmedlem"}
                       </option>
                     ))}
                   </select>
                 </label>
-              )}
-            </details>
-            {draft.watercourse && (
-              <details open>
-                <summary className="min-h-11 cursor-pointer py-2 font-medium">
-                  Vandløbsoplysninger
-                </summary>
-                <div className="space-y-3">
-                  {(
-                    [
-                      ["name", "Vandløbsnavn"],
-                      ["externalId", "Vandløbs-ID"],
-                      ["regulationReference", "Regulativreference"],
-                      ["regulationVersion", "Regulativets dokumentversion"],
-                      ["term", "Termin"],
-                      ["measurementSource", "Kilde til stationer og mål"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <label className="block text-sm" key={key}>
-                      {label}
-                      <input
-                        className={control}
-                        maxLength={
-                          key === "term" || key === "measurementSource"
-                            ? 2000
-                            : key === "regulationReference"
-                              ? 1000
-                              : 200
-                        }
-                        value={draft.watercourse![key] ?? ""}
-                        onChange={(e) =>
-                          set("watercourse", {
-                            ...draft.watercourse!,
-                            [key]: nullable(e.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                  ))}
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {(
-                      [
-                        ["stationFromM", "Station fra (m)"],
-                        ["stationToM", "Station til (m)"],
-                        ["lengthM", "Oplyst længde (m)"],
-                        ["bottomWidthM", "Oplyst bundbredde (m)"],
-                      ] as const
-                    ).map(([key, label]) => (
-                      <label className="block text-sm" key={key}>
-                        {label}
-                        <input
-                          className={control}
-                          inputMode="decimal"
-                          value={meters[key] ?? ""}
-                          onChange={(e) => setMeters((old) => ({ ...old, [key]: e.target.value }))}
-                        />
-                      </label>
-                    ))}
-                  </div>
+                <p className="text-xs text-muted-foreground">
+                  Den ansvarlige er adskilt fra den person, som faktisk udfører arbejdet. Dette valg
+                  ændrer ingen adgangsrettigheder.
+                </p>
+                <label className="block text-sm">
+                  Planlagt metode
+                  <input
+                    className={control}
+                    maxLength={2000}
+                    value={draft.plannedMethod ?? ""}
+                    onChange={(e) => set("plannedMethod", nullable(e.target.value))}
+                  />
+                </label>
+                <label className="block text-sm">
+                  Arbejdsinstruktion
+                  <textarea
+                    className={control}
+                    maxLength={4000}
+                    value={draft.instructions}
+                    onChange={(e) => set("instructions", e.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  Sted eller delstrækning
+                  <input
+                    className={control}
+                    maxLength={2000}
+                    value={draft.locationNote}
+                    onChange={(e) => set("locationNote", e.target.value)}
+                  />
+                </label>
+                <details>
+                  <summary className="min-h-11 cursor-pointer py-2 text-sm">
+                    Vælg gemt lokalitet eller vandløbsgrundlag
+                  </summary>
                   <label className="block text-sm">
-                    Stationeringsretning
+                    Lokalitet
                     <select
                       className={control}
-                      value={draft.watercourse.stationDirection}
-                      onChange={(e) =>
-                        set("watercourse", {
-                          ...draft.watercourse!,
-                          stationDirection: e.target.value as "unknown" | "upstream" | "downstream",
-                        })
-                      }
+                      value={draft.siteId ?? ""}
+                      onChange={(e) => set("siteId", e.target.value || null)}
                     >
-                      <option value="unknown">Uafklaret</option>
-                      <option value="upstream">Mod strømretningen</option>
-                      <option value="downstream">Med strømretningen</option>
+                      <option value="">Ingen fast binding</option>
+                      {draft.siteId && !sites.data?.some((s) => s.id === draft.siteId) && (
+                        <option value={draft.siteId}>Tidligere valgt lokalitet</option>
+                      )}
+                      {sites.data?.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
                     </select>
                   </label>
-                  <p className="text-xs text-muted-foreground">
-                    Decimal-komma og punktum accepteres. Længden beregnes ikke automatisk ud fra
-                    stationerne. Tomme felter er ukendte.
-                  </p>
-                </div>
-              </details>
+                  {draft.profile === "watercourse" && (
+                    <label className="block text-sm">
+                      Vandløbsgrundlag
+                      <select
+                        className={control}
+                        value={draft.watercourseVersionId ?? ""}
+                        onChange={(e) => set("watercourseVersionId", e.target.value || null)}
+                      >
+                        <option value="">Grundlag er uafklaret</option>
+                        {draft.watercourseVersionId &&
+                          !centerlines.data?.some((v) => v.id === draft.watercourseVersionId) && (
+                            <option value={draft.watercourseVersionId}>
+                              Tidligere valgt grundlag
+                            </option>
+                          )}
+                        {centerlines.data?.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            Version {v.version} · {v.source}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </details>
+                {draft.watercourse && (
+                  <details open>
+                    <summary className="min-h-11 cursor-pointer py-2 font-medium">
+                      Vandløbsoplysninger
+                    </summary>
+                    <div className="space-y-3">
+                      {(
+                        [
+                          ["name", "Vandløbsnavn"],
+                          ["externalId", "Vandløbs-ID"],
+                          ["regulationReference", "Regulativreference"],
+                          ["regulationVersion", "Regulativets dokumentversion"],
+                          ["term", "Termin"],
+                          ["measurementSource", "Kilde til stationer og mål"],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <label className="block text-sm" key={key}>
+                          {label}
+                          <input
+                            className={control}
+                            maxLength={
+                              key === "term" || key === "measurementSource"
+                                ? 2000
+                                : key === "regulationReference"
+                                  ? 1000
+                                  : 200
+                            }
+                            value={draft.watercourse![key] ?? ""}
+                            onChange={(e) =>
+                              set("watercourse", {
+                                ...draft.watercourse!,
+                                [key]: nullable(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                      ))}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {(
+                          [
+                            ["stationFromM", "Station fra (m)"],
+                            ["stationToM", "Station til (m)"],
+                            ["lengthM", "Oplyst længde (m)"],
+                            ["bottomWidthM", "Oplyst bundbredde (m)"],
+                          ] as const
+                        ).map(([key, label]) => (
+                          <label className="block text-sm" key={key}>
+                            {label}
+                            <input
+                              className={control}
+                              inputMode="decimal"
+                              value={meters[key] ?? ""}
+                              onChange={(e) =>
+                                setMeters((old) => ({ ...old, [key]: e.target.value }))
+                              }
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <label className="block text-sm">
+                        Stationeringsretning
+                        <select
+                          className={control}
+                          value={draft.watercourse.stationDirection}
+                          onChange={(e) =>
+                            set("watercourse", {
+                              ...draft.watercourse!,
+                              stationDirection: e.target.value as
+                                | "unknown"
+                                | "upstream"
+                                | "downstream",
+                            })
+                          }
+                        >
+                          <option value="unknown">Uafklaret</option>
+                          <option value="upstream">Mod strømretningen</option>
+                          <option value="downstream">Med strømretningen</option>
+                        </select>
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        Decimal-komma og punktum accepteres. Længden beregnes ikke automatisk ud fra
+                        stationerne. Tomme felter er ukendte.
+                      </p>
+                    </div>
+                  </details>
+                )}
+              </>
             )}
             {base > 0 && (
               <label className="block text-sm">
@@ -679,7 +727,7 @@ function PlanWorkspace({
                 />
               </label>
             )}
-            {gaps.length > 0 && (
+            {!datesOnly && gaps.length > 0 && (
               <div className="text-sm">
                 <p>Kan gemmes med synlige afklaringer:</p>
                 <ul className="list-disc pl-5">

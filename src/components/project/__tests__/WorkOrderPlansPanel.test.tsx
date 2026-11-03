@@ -154,6 +154,28 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("reschedules a saved plan without changing the work instructions or measurements", async () => {
+    await open(false);
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((b) => b.textContent === "Omplanlæg datoer")!
+        .click(),
+    );
+    expect(host.querySelector("form")?.textContent).not.toContain("Arbejdsinstruktion");
+    await fill("Planlagt fra", "2026-11-11");
+    await fill("Planlagt til", "2026-11-13");
+    await fill("Årsag til planændring", "Omplanlagt i kalenderen");
+    const plan = { ...row().plan, plannedStart: "2026-11-11", plannedEnd: "2026-11-13" };
+    m.save.mockResolvedValue({ ...row(), plan, version: 2 });
+    await save();
+    expect(m.save).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        expectedVersion: 1,
+        plan,
+        correctionReason: "Omplanlagt i kalenderen",
+      }),
+    });
+  });
   it("reopens unknown plan dates and measured zero without turning them into actual execution", async () => {
     await open();
     expect(

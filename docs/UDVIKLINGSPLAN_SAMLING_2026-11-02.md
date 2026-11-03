@@ -440,3 +440,5 @@ Projektredaktører kan filtrere Planoversigt og Kalender efter den ansvarlige i 
 Kalenderen markerer dage, hvor mindst to opgaver med overlappende planperioder har samme ansvarlige. Markeringen kan læses med skærmlæser. Vælg dagen for at finde de berørte opgaver. Beregningen følger det valgte ansvarligfilter og bruger planlagte datoer. Arbejdstimer, tilgængelighed og faktisk kapacitet afventer.
 
 Arbejdsopgaver læser projektets opgaver i sider med 200 rækker gennem den eksisterende adgang, så den tidligere afvisning over 500 opgaver er fjernet. Søgning i Opgaveliste og Planoversigt dækker hele projektudvalget. Listen viser op til 40 opgaver ad gangen og kan udvides. Automatiske prøver med 1.001 opgaver dækker sidegrænser, søgning og åbning af den sidste opgave. Faktisk belastning med 1.000 opgaver på en fysisk telefon afventer.
+
+Omplanlægning findes i Arbejdsgrundlag på en opgave med en gemt plan. Handlingen åbner kun datofelter og ændringsårsag, genbruger samme versionshistorik og opdaterer kalenderen ved gemning. Tilbageknappen bevarer den valgte kalenderdag eller planoversigt. Den fulde planredigering er stadig tilgængelig fra samme arbejdsgrundlag.
