@@ -212,6 +212,21 @@ describe("mobile field local save feedback", () => {
     await act(async () => commit());
     expect(host.textContent).toContain("Registreringen er gemt på telefonen.");
   });
+  it("counts zero and no, then focuses a required field when its answer is cleared", async () => {
+    await edit();
+    expect(host.textContent).toContain("Nødvendige felter udfyldt: 2 af 2");
+    const count = host.querySelector<HTMLInputElement>('input[type="number"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(count, "");
+      count.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(host.textContent).toContain("Nødvendige felter udfyldt: 1 af 2");
+    const shortcut = Array.from(host.querySelectorAll("button")).find(
+      (item) => item.textContent?.trim() === "Udfyld Antal",
+    )!;
+    await act(async () => shortcut.click());
+    expect(document.activeElement).toBe(count);
+  });
   it("keeps the form and reason after quota failure instead of confirming a save", async () => {
     f.enqueue.mockRejectedValue(new DOMException("Lageret er fuldt", "QuotaExceededError"));
     const save = await edit();

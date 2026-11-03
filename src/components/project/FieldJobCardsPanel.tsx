@@ -21,6 +21,7 @@ import {
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { Button } from "@/components/ui/button";
 import { useBlocker } from "@tanstack/react-router";
+import { RequiredFieldJobProgress } from "./RequiredFieldJobProgress";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
 const control =
@@ -307,16 +308,6 @@ function JobCardEditor({
       ? [selected, ...latestTemplates]
       : latestTemplates;
   const inputPrefix = useId();
-  const requiredCount = selected?.definition.fields.filter((field) => field.required).length ?? 0;
-  let missing: ReturnType<typeof missingRequiredFieldJobFields> = [];
-  let invalid = false;
-  if (selected) {
-    try {
-      missing = missingRequiredFieldJobFields(selected.definition, values);
-    } catch {
-      invalid = true;
-    }
-  }
   return (
     <fieldset
       className="min-w-0 space-y-4"
@@ -505,34 +496,12 @@ function JobCardEditor({
             Denne registrering bruger skabelonversion {selected.version}. Rettelser bevarer
             tidligere versioner.
           </p>
-          {invalid ? (
-            <p role="alert">Svarene skal passe til den valgte skabelon.</p>
-          ) : requiredCount > 0 ? (
-            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-              <p className="font-medium">
-                Nødvendige felter udfyldt: {requiredCount - missing.length} af {requiredCount}
-              </p>
-              {missing.length > 0 && (
-                <>
-                  <p>Du kan gemme en kladde og fortsætte senere.</p>
-                  <ul className="mt-1">
-                    {missing.map((field) => (
-                      <li key={field.key}>
-                        <button
-                          type="button"
-                          disabled={!writable || busy}
-                          className="min-h-11 text-left underline underline-offset-2 disabled:no-underline"
-                          onClick={() => document.getElementById(inputPrefix + field.key)?.focus()}
-                        >
-                          Udfyld {field.label}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          ) : null}
+          <RequiredFieldJobProgress
+            definition={selected.definition}
+            values={values}
+            inputPrefix={inputPrefix}
+            disabled={!writable || busy}
+          />
           {selected.definition.fields.map((f) => (
             <label className="block" key={f.key}>
               {f.label}

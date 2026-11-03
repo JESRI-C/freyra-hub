@@ -1,6 +1,6 @@
 import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 import { programPageGuide } from "@/lib/program-map";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { Camera, CloudUpload, Download, LockKeyhole, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -11,7 +11,8 @@ import {
   type FieldWorkPack,
   type OfflineItem,
 } from "@/lib/field-offline";
-import { fieldJobGaps, type FieldJobValues } from "@/lib/field-job-cards";
+import type { FieldJobValues } from "@/lib/field-job-cards";
+import { RequiredFieldJobProgress } from "./RequiredFieldJobProgress";
 import { openFieldOfflineStore, type FieldOfflineStore } from "@/services/field-offline-store";
 import { drainFieldOfflineQueue } from "@/services/field-offline-sync";
 import {
@@ -876,6 +877,7 @@ function OfflineJobEditor({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const saving = useRef(false);
+  const inputPrefix = useId();
   if (!job.template || !job.latest)
     return (
       <p className="text-sm">
@@ -912,7 +914,6 @@ function OfflineJobEditor({
       setBusy(false);
     }
   }
-  const gaps = fieldJobGaps(job.template.definition, values);
   return (
     <div className="space-y-3">
       <p className="text-sm">
@@ -955,6 +956,12 @@ function OfflineJobEditor({
           )}
         </details>
       )}
+      <RequiredFieldJobProgress
+        definition={job.template.definition}
+        values={values}
+        inputPrefix={inputPrefix}
+        disabled={busy}
+      />
       {job.template.definition.fields.map((field) => (
         <label className="block space-y-2 text-sm" key={field.key}>
           {field.label}
@@ -965,6 +972,7 @@ function OfflineJobEditor({
           )}
           {field.type === "boolean" || field.type === "select" ? (
             <select
+              id={inputPrefix + field.key}
               className={control}
               disabled={busy}
               value={
@@ -994,6 +1002,7 @@ function OfflineJobEditor({
             </select>
           ) : field.type === "textarea" ? (
             <textarea
+              id={inputPrefix + field.key}
               className={control}
               disabled={busy}
               maxLength={4000}
@@ -1002,6 +1011,7 @@ function OfflineJobEditor({
             />
           ) : (
             <input
+              id={inputPrefix + field.key}
               className={control}
               disabled={busy}
               type={field.type === "date" ? "date" : field.type === "number" ? "number" : "text"}
@@ -1021,7 +1031,6 @@ function OfflineJobEditor({
           )}
         </label>
       ))}
-      {gaps.length > 0 && <p className="text-sm">Mangler: {gaps.join(" ")}</p>}
       <label className="block space-y-2 text-sm">
         Status
         <select
