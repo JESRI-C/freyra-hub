@@ -10,6 +10,8 @@ const m = vi.hoisted(() => ({
   history: vi.fn(),
   save: vi.fn(),
   createSeries: vi.fn(),
+  schedule: vi.fn(),
+  followUps: vi.fn(),
   members: vi.fn(),
   sites: vi.fn(),
   centerlines: vi.fn(),
@@ -51,7 +53,10 @@ vi.mock("@/lib/work-order-plan.functions", () => ({
   saveProjectWorkOrderPlan: m.save,
   createProjectWorkOrderWeeklySeries: m.createSeries,
 }));
-vi.mock("@/services/field-job-cards-service", () => ({ listFieldJobActions: m.actions }));
+vi.mock("@/services/field-job-cards-service", () => ({
+  listFieldJobActions: m.actions,
+  listFieldJobSchedule: m.schedule,
+}));
 vi.mock("../useWorkOrderPeople", () => ({
   useWorkOrderPeople: () => ({ data: [], isError: false }),
   MoreWorkOrderPeople: () => null,
@@ -61,7 +66,7 @@ vi.mock("@/lib/supabase/client", () => ({
     rpc: (_name: string, params: unknown) => ({
       abortSignal: () => m.visitResults(params),
     }),
-    from: () => {
+    from: (table: string) => {
       const query = {
         select: () => query,
         eq: (name: string, value: string) => {
@@ -71,7 +76,8 @@ vi.mock("@/lib/supabase/client", () => ({
         lt: () => query,
         order: () => query,
         limit: () => query,
-        abortSignal: () => m.visitHistory(),
+        abortSignal: () =>
+          table === "work_order_plan_versions" ? m.followUps() : m.visitHistory(),
       };
       return query;
     },
@@ -195,6 +201,33 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("distinguishes follow-ups with the same title using their current calendar dates", async () => {
+    m.followUps.mockResolvedValue({
+      data: [41, 42].map((n) => ({
+        id: id(n + 10),
+        action_id: id(n),
+        title: "Gentaget tilsyn",
+        source_plan_version: 1,
+      })),
+    });
+    m.schedule.mockResolvedValue({
+      [id(41)]: { start: "2026-11-08", end: null },
+      [id(42)]: { start: "2026-11-15", end: "2026-11-16" },
+    });
+    await open(false);
+    const summary = [...host.querySelectorAll("summary")].find(
+      (item) => item.textContent === "Opfølgende opgaver",
+    )!;
+    await act(async () => summary.click());
+    await settle();
+    await settle();
+    const links = [...summary.parentElement!.querySelectorAll("a")];
+    expect(links).toHaveLength(2);
+    expect(links[0].textContent).toContain("8. nov. 2026");
+    expect(links[1].textContent).toContain("15. nov. 2026 – 16. nov. 2026");
+    expect(links[1].textContent).toContain("Bygger på planversion 1");
+  });
+
   it("previews weekly periods and retries a lost reply using the original request id", async () => {
     const source = row();
     source.plan = { ...source.plan, plannedStart: "2026-03-20", plannedEnd: "2026-03-22" };

@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
+import { listFieldJobSchedule } from "@/services/field-job-cards-service";
+import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import type { ProjectScope } from "@/services/project-workspace-service";
 
 const pageSize = 20;
@@ -53,6 +55,12 @@ export function WorkOrderFollowUps({
     getNextPageParam: (page) => (page.length > pageSize ? page[pageSize - 1].id : undefined),
   });
   const items = followUps.data?.pages.flatMap((page) => page.slice(0, pageSize)) ?? [];
+  const schedule = useQuery({
+    queryKey: ["field-job-schedule", actorId, scope],
+    queryFn: () => listFieldJobSchedule(scope),
+    enabled: open && items.length > 0,
+    retry: false,
+  });
   const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
   return (
     <details
@@ -85,6 +93,7 @@ export function WorkOrderFollowUps({
                 >
                   <span className="block font-medium text-primary">{row.title}</span>
                   <span className="block text-muted-foreground">
+                    {schedule.isSuccess && <>{scheduleLabel(schedule.data[row.action_id])} · </>}
                     Bygger på planversion {row.source_plan_version}
                   </span>
                 </Link>
@@ -92,6 +101,14 @@ export function WorkOrderFollowUps({
             ))}
           </ul>
         ))}
+      {open && items.length > 0 && schedule.isError && (
+        <div>
+          <p role="alert">De planlagte datoer kunne ikke hentes.</p>
+          <button type="button" className={button} onClick={() => void schedule.refetch()}>
+            Hent datoer igen
+          </button>
+        </div>
+      )}
       {open && followUps.hasNextPage && !followUps.isError && (
         <button
           type="button"

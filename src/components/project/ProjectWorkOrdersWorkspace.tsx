@@ -4,6 +4,7 @@ import {
   type WorkOrderListView,
 } from "@/lib/work-order-navigation";
 import { formatWorkOrderHours, workOrderHoursInPeriod } from "@/lib/work-order-plan";
+import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import { Calendar } from "@/components/ui/calendar";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { da } from "react-day-picker/locale";
@@ -47,14 +48,6 @@ type Part = WorkOrderView;
 type Editor = Part | "material-catalog";
 const parts = WORK_ORDER_PARTS;
 const taskPageSize = 40;
-const scheduleDate = new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeZone: "UTC" });
-function scheduleLabel(plan?: { start: string | null; end: string | null }) {
-  if (!plan?.start) return "Ingen planlagt dato";
-  const start = scheduleDate.format(new Date(plan.start));
-  return plan.end && plan.end !== plan.start
-    ? start + " – " + scheduleDate.format(new Date(plan.end))
-    : start;
-}
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background p-3 text-base";
