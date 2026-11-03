@@ -186,6 +186,9 @@ SELECT is(pg_temp.field_execution(),(SELECT workspace_entry_id FROM public.work_
 SELECT is((SELECT performed_by_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(37)),pg_temp.k(2),'receipt pins the authenticated field actor');
 SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct workspace insertion cannot bypass the frozen binding');
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
+SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(37) AND event_type='work_order.execution_saved'),1,'field revision and retry emit one scoped execution audit event');
 RESET ROLE;
 UPDATE public.project_members SET role='viewer' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
 SET LOCAL ROLE authenticated;

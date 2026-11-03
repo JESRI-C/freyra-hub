@@ -30,6 +30,23 @@ ALTER POLICY work_order_execution_insert ON public.work_order_execution_bindings
  created_by=auth.uid() AND private.can_record_work_order_execution(action_id,organization_id,project_id,performed_by_id)
 );
 
+-- Field users must never gain generic INSERT on audit_events. Their scoped row
+-- is audited by work_order_execution_audit when its mandatory binding commits.
+-- Existing editor/owner workspace audit events are unchanged.
+CREATE OR REPLACE FUNCTION public.audit_workspace_entry() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
+BEGIN
+ IF NOT private.can_write_project(NEW.project_id) AND NEW.created_by=auth.uid()
+   AND NEW.kind='decision_note' AND NEW.payload->>'source'='action-execution:'||NEW.entry_id::text
+   AND private.can_record_work_order_execution(NEW.entry_id,NEW.organization_id,NEW.project_id,auth.uid())
+ THEN RETURN NEW; END IF;
+ INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id,after_data)
+ VALUES(NEW.project_id,'workspace_revision',NEW.title,NEW.created_by::text,'project_workspace',
+   'project_workspace_entries',NEW.entry_id,jsonb_build_object('version',NEW.version,'kind',NEW.kind,'revision_id',NEW.id));
+ RETURN NEW;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION private.guard_work_order_execution_binding() RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
 DECLARE e public.project_workspace_entries;j jsonb;plan public.work_order_plan_versions;org_role text;project_role text;previous public.work_order_execution_bindings;
 BEGIN
@@ -40,8 +57,8 @@ BEGIN
  SELECT * INTO e FROM public.project_workspace_entries WHERE id=NEW.workspace_entry_id AND entry_id=NEW.action_id AND organization_id=NEW.organization_id AND project_id=NEW.project_id AND version=NEW.version;
  SELECT * INTO plan FROM public.work_order_plan_versions WHERE id=NEW.plan_version_id AND action_id=NEW.action_id AND organization_id=NEW.organization_id AND project_id=NEW.project_id;
  IF e.id IS NULL OR e.created_by IS DISTINCT FROM auth.uid() OR e.kind<>'decision_note' OR e.payload->>'source' IS DISTINCT FROM 'action-execution:'||NEW.action_id::text OR plan.id IS NULL OR NEW.plan_version IS DISTINCT FROM plan.version THEN RAISE EXCEPTION 'Invalid execution/plan binding' USING ERRCODE='22023'; END IF;
- IF plan.version IS DISTINCT FROM (SELECT max(v.version) FROM public.work_order_plan_versions v WHERE v.action_id=NEW.action_id) THEN RAISE EXCEPTION 'Plan changed; reopen before saving execution' USING ERRCODE='40001'; END IF;
- IF NEW.version IS DISTINCT FROM (SELECT max(w.version) FROM public.project_workspace_entries w WHERE w.entry_id=NEW.action_id) THEN RAISE EXCEPTION 'Execution changed; reopen before saving' USING ERRCODE='40001'; END IF;
+ IF plan.version IS DISTINCT FROM (SELECT max(v.version) FROM public.work_order_plan_versions v WHERE v.action_id=NEW.action_id) THEN RAISE EXCEPTION 'Plan changed; reopen before saving execution' USING ERRCODE='PT409'; END IF;
+ IF NEW.version IS DISTINCT FROM (SELECT max(w.version) FROM public.project_workspace_entries w WHERE w.entry_id=NEW.action_id) THEN RAISE EXCEPTION 'Execution changed; reopen before saving' USING ERRCODE='PT409'; END IF;
  j:=(e.payload->>'decision')::jsonb;
  NEW.deviation_reason:=btrim(NEW.deviation_reason);
  IF NEW.deviation_reason IS NULL OR (length(btrim(j->>'deviation'))>0 AND length(NEW.deviation_reason)=0) THEN RAISE EXCEPTION 'Explain the execution deviation' USING ERRCODE='22023'; END IF;
