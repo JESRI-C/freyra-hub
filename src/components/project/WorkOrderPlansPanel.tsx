@@ -23,6 +23,7 @@ import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
 import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderVisitMap } from "./WorkOrderVisitMap";
+import { WorkOrderWeeklySeries } from "./WorkOrderWeeklySeries";
 import { WorkOrderFollowUps } from "./WorkOrderFollowUps";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
@@ -226,6 +227,7 @@ function PlanWorkspace({
   });
   const members = useWorkOrderPeople(scope, actorId);
   const [bookingEditing, setBookingEditing] = useState(false);
+  const [seriesSaving, setSeriesSaving] = useState(false);
   const [historicalVisits, setHistoricalVisits] = useState<string>();
   const [visitMapOpen, setVisitMapOpen] = useState(false);
   const sites = useQuery({
@@ -575,13 +577,31 @@ function PlanWorkspace({
               primaryName={sites.data?.find((site) => site.id === latest.plan.siteId)?.name}
             />
           )}
+          {canPlan &&
+            latest?.plan.plannedStart &&
+            !draft &&
+            !accessEditing &&
+            !assignmentEditing &&
+            !lifecycleEditing &&
+            !bookingEditing && (
+              <WorkOrderWeeklySeries
+                key={latest.id}
+                source={latest}
+                scope={scope}
+                actorId={actorId}
+                onSaving={(saving) => {
+                  setSeriesSaving(saving);
+                  onEditing(saving);
+                }}
+              />
+            )}
           {canPlan && (
             <div className="flex flex-wrap gap-2">
               {latest && onFollowUp && (
                 <button
                   type="button"
                   className={button}
-                  disabled={history.isFetching}
+                  disabled={history.isFetching || seriesSaving}
                   onClick={() => onFollowUp(latest)}
                 >
                   Opret opfølgende opgave
@@ -596,6 +616,7 @@ function PlanWorkspace({
                     accessEditing ||
                     assignmentEditing ||
                     lifecycleEditing ||
+                    seriesSaving ||
                     bookingEditing
                   }
                   onClick={() => open(true)}
@@ -611,6 +632,7 @@ function PlanWorkspace({
                   accessEditing ||
                   assignmentEditing ||
                   lifecycleEditing ||
+                  seriesSaving ||
                   bookingEditing
                 }
                 onClick={() => open()}
@@ -645,41 +667,56 @@ function PlanWorkspace({
           }}
         />
       )}
-      {latest && !draft && !bookingEditing && !assignmentEditing && !lifecycleEditing && (
-        <WorkOrderAccessPanel
-          scope={{ ...scope, actionId }}
-          actorId={actorId}
-          members={members.data ?? []}
-          onEditing={(value) => {
-            setAccessEditing(value);
-            onEditing(value);
-          }}
-        />
-      )}
-      {latest && !draft && !bookingEditing && !accessEditing && !lifecycleEditing && (
-        <WorkOrderAssignmentPanel
-          scope={{ ...scope, actionId }}
-          actorId={actorId}
-          planId={latest.id}
-          canManage={canPlan && !history.isError && !history.isFetching}
-          people={members.data ?? []}
-          onEditing={(value) => {
-            setAssignmentEditing(value);
-            onEditing(value);
-          }}
-        />
-      )}
-      {latest && !draft && !bookingEditing && !accessEditing && !assignmentEditing && (
-        <WorkOrderStatusPanel
-          scope={{ ...scope, actionId }}
-          actorId={actorId}
-          manageNavigation={false}
-          onEditing={(value) => {
-            setLifecycleEditing(value);
-            onEditing(value);
-          }}
-        />
-      )}
+      {latest &&
+        !draft &&
+        !seriesSaving &&
+        !bookingEditing &&
+        !assignmentEditing &&
+        !lifecycleEditing && (
+          <WorkOrderAccessPanel
+            scope={{ ...scope, actionId }}
+            actorId={actorId}
+            members={members.data ?? []}
+            onEditing={(value) => {
+              setAccessEditing(value);
+              onEditing(value);
+            }}
+          />
+        )}
+      {latest &&
+        !draft &&
+        !seriesSaving &&
+        !bookingEditing &&
+        !accessEditing &&
+        !lifecycleEditing && (
+          <WorkOrderAssignmentPanel
+            scope={{ ...scope, actionId }}
+            actorId={actorId}
+            planId={latest.id}
+            canManage={canPlan && !history.isError && !history.isFetching}
+            people={members.data ?? []}
+            onEditing={(value) => {
+              setAssignmentEditing(value);
+              onEditing(value);
+            }}
+          />
+        )}
+      {latest &&
+        !draft &&
+        !seriesSaving &&
+        !bookingEditing &&
+        !accessEditing &&
+        !assignmentEditing && (
+          <WorkOrderStatusPanel
+            scope={{ ...scope, actionId }}
+            actorId={actorId}
+            manageNavigation={false}
+            onEditing={(value) => {
+              setLifecycleEditing(value);
+              onEditing(value);
+            }}
+          />
+        )}
       {draft && (
         <form
           className="space-y-4"

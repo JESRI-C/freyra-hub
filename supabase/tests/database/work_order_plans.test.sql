@@ -310,5 +310,40 @@ SELECT throws_ok($$SELECT * FROM public.save_work_order_plan(
  current_setting('test.foreign_plan')::uuid
 )$$,'23503','Source plan is unavailable','another project cannot provide the source');
 SELECT is((SELECT count(*) FROM pg_temp.history(38)),0::bigint,'rejected source leaves no plan');
+SELECT lives_ok($$SELECT pg_temp.save(0,383,pg_temp.plan()||jsonb_build_object(
+ 'plannedStart','2026-03-20','plannedEnd','2026-03-22','siteId',pg_temp.k(51),'responsibleId',pg_temp.k(2)
+),38)$$,'a dated plan is saved as the series source');
+SELECT set_config('test.weekly_source', (SELECT id::text FROM pg_temp.history(38)), true);
+CREATE FUNCTION pg_temp.weekly(first_date date DEFAULT '2026-03-27', amount integer DEFAULT 3, key_id integer DEFAULT 384)
+RETURNS uuid[] LANGUAGE sql AS $$
+ SELECT public.create_work_order_weekly_series(pg_temp.k(11),pg_temp.k(21),
+   current_setting('test.weekly_source')::uuid,first_date,amount,pg_temp.k(key_id),pg_temp.k(1))
+$$;
+SELECT is(cardinality(pg_temp.weekly()),3,'three independent weekly work orders are created');
+SELECT is(pg_temp.weekly(),pg_temp.weekly(),'the same request recovers the same ids');
+SELECT results_eq(
+ $$SELECT planned_start,planned_end,responsible_id,site_id FROM public.work_order_plan_versions
+   WHERE source_plan_version_id=current_setting('test.weekly_source')::uuid ORDER BY planned_start$$,
+ $$VALUES (DATE '2026-03-27',DATE '2026-03-29',NULL::uuid,pg_temp.k(51)),
+          (DATE '2026-04-03',DATE '2026-04-05',NULL::uuid,pg_temp.k(51)),
+          (DATE '2026-04-10',DATE '2026-04-12',NULL::uuid,pg_temp.k(51))$$,
+ 'weekly dates and duration are preserved across daylight saving while assignment is cleared');
+SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-28')$$,'22023',NULL,'retry cannot change the start date');
+SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-27',4)$$,'22023',NULL,'retry cannot extend the series');
+SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-22',3,385)$$,'22023',NULL,'series must start after source period');
+INSERT INTO public.actions(id,project_id,title)
+ VALUES(md5('work-order-series:'||pg_temp.k(385)::text||':1')::uuid,pg_temp.k(21),'Synthetic collision');
+SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-27',3,385)$$,'22023',NULL,'an occupied id cannot be reused');
+SELECT is((SELECT count(*) FROM public.actions WHERE id=md5('work-order-series:'||pg_temp.k(385)::text||':0')::uuid),
+ 0::bigint,'failure on the second task rolls back the first task');
+SELECT throws_ok($$SELECT public.create_work_order_weekly_series(pg_temp.k(11),pg_temp.k(21),
+ current_setting('test.foreign_plan')::uuid,'2026-03-27',3,pg_temp.k(386),pg_temp.k(1))
+$$,'22023',NULL,'a series cannot use a plan from another project');
+SELECT ok(NOT has_function_privilege('anon','public.create_work_order_weekly_series(uuid,uuid,uuid,date,integer,uuid,uuid)','EXECUTE'),
+ 'anonymous users cannot invoke the series endpoint');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT public.create_work_order_weekly_series(pg_temp.k(11),pg_temp.k(21),
+ current_setting('test.weekly_source')::uuid,'2026-03-27',3,pg_temp.k(386),pg_temp.k(3))
+$$,'42501',NULL,'readers cannot create a series');
 SELECT * FROM finish();
 ROLLBACK;

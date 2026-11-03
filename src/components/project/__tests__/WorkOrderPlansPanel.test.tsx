@@ -9,6 +9,7 @@ const m = vi.hoisted(() => ({
   actions: vi.fn(),
   history: vi.fn(),
   save: vi.fn(),
+  createSeries: vi.fn(),
   members: vi.fn(),
   sites: vi.fn(),
   centerlines: vi.fn(),
@@ -48,6 +49,7 @@ vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.access
 vi.mock("@/lib/work-order-plan.functions", () => ({
   getProjectWorkOrderPlanHistory: m.history,
   saveProjectWorkOrderPlan: m.save,
+  createProjectWorkOrderWeeklySeries: m.createSeries,
 }));
 vi.mock("@/services/field-job-cards-service", () => ({ listFieldJobActions: m.actions }));
 vi.mock("../useWorkOrderPeople", () => ({
@@ -193,6 +195,30 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("previews weekly periods and retries a lost reply using the original request id", async () => {
+    const source = row();
+    source.plan = { ...source.plan, plannedStart: "2026-03-20", plannedEnd: "2026-03-22" };
+    m.history.mockResolvedValue({ items: [source], nextBeforeVersion: null });
+    m.createSeries
+      .mockRejectedValueOnce(new Error("Lost reply"))
+      .mockResolvedValueOnce([id(41), id(42)]);
+    await open(false);
+    await fill("Første dato", "2026-03-27");
+    expect(host.querySelector('[aria-label="Datoer for nye opgaver"]')?.textContent).toContain(
+      "2026-04-03 til 2026-04-05",
+    );
+    const button = Array.from(host.querySelectorAll("button")).find(
+      (item) => item.textContent === "Opret 2 opgaver",
+    )!;
+    await act(async () => button.click());
+    expect(host.textContent).toContain("Serien kunne ikke bekræftes");
+    await act(async () => button.click());
+    expect(m.createSeries).toHaveBeenCalledTimes(2);
+    expect(m.createSeries.mock.calls[1]).toEqual(m.createSeries.mock.calls[0]);
+    expect(m.createSeries.mock.calls[0][0].data.sourcePlanVersionId).toBe(source.id);
+    expect(host.textContent).toContain("2 arbejdsopgaver er oprettet");
+  });
+
   it("filters pending visits while preserving their saved stop number", async () => {
     const saved = row();
     m.history.mockResolvedValue({

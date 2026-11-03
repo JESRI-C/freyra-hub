@@ -1,9 +1,15 @@
+import { z } from "zod";
+import { CalendarDate } from "./action-execution";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { SaveWorkOrderPlanSchema, WorkOrderPlanHistorySchema } from "./work-order-plan";
 import { parseWorkOrderInput } from "./work-order-access";
 import { saveWorkOrderPlan, getWorkOrderPlanHistory } from "@/services/work-order-plan-service";
-import type { WorkOrderRequestClient } from "@/services/work-order-access-service";
+import {
+  checkActor,
+  workOrderRpcFailure,
+  type WorkOrderRequestClient,
+} from "@/services/work-order-access-service";
 export const saveProjectWorkOrderPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => parseWorkOrderInput(SaveWorkOrderPlanSchema, raw))
@@ -20,3 +26,34 @@ export const getProjectWorkOrderPlanHistory = createServerFn({ method: "POST" })
       data,
     ),
   );
+
+const WeeklySeriesSchema = z
+  .object({
+    organizationId: z.string().uuid(),
+    projectId: z.string().uuid(),
+    sourcePlanVersionId: z.string().uuid(),
+    expectedActorId: z.string().uuid(),
+    firstDate: CalendarDate,
+    count: z.number().int().min(2).max(12),
+    requestId: z.string().uuid(),
+  })
+  .strict();
+
+export const createProjectWorkOrderWeeklySeries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => parseWorkOrderInput(WeeklySeriesSchema, raw))
+  .handler(async ({ data, context }) => {
+    checkActor(context.userId, data.expectedActorId);
+    const client = context.supabase as unknown as WorkOrderRequestClient;
+    const result = await client.rpc("create_work_order_weekly_series", {
+      p_organization_id: data.organizationId,
+      p_project_id: data.projectId,
+      p_source_plan_version_id: data.sourcePlanVersionId,
+      p_first_date: data.firstDate,
+      p_count: data.count,
+      p_request_id: data.requestId,
+      p_expected_actor_id: data.expectedActorId,
+    });
+    if (result.error) workOrderRpcFailure(result.error);
+    return z.array(z.string().uuid()).length(data.count).parse(result.data);
+  });
