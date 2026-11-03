@@ -151,7 +151,7 @@ SELECT throws_ok($$SELECT pg_temp.change(32,3,214,'transition','started','{"star
 SELECT lives_ok($$SELECT public.claim_work_order_pool(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),1,(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(32) ORDER BY version DESC LIMIT 1),pg_temp.k(153))$$,'worker atomically takes the pool');
 SELECT lives_ok($$SELECT pg_temp.change(32,3,214,'transition','started','{"startedAt":"2026-10-08T06:00:00Z","startedSource":"Synthetic own record"}')$$,'claimed worker can confirm own start');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
-SELECT pg_temp.assign(33,0,154);
+SELECT pg_temp.assign(33,0,154,'pool',ARRAY[2,3]);
 SELECT lives_ok($$SELECT pg_temp.change(33,0,221,'transition','draft');SELECT pg_temp.change(33,1,222,'block',NULL,jsonb_build_object('blockOwnerId',pg_temp.k(1),'blockReason','Synthetic cancelled visit','blockNextAction','Synthetic notify internally'));SELECT pg_temp.change(33,2,223,'transition','cancelled','{"reason":"Synthetic explicit cancellation"}')$$,'manager can cancel early work with an explanation');
 SELECT ok(NOT (SELECT blocked FROM public.work_order_lifecycle_versions WHERE action_id=pg_temp.k(33) AND version=3),'cancellation ends only the active block, preserving previous block history');
 SELECT is((SELECT count(*)::integer FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31)),4,'cancelling another task never deletes actual work');
@@ -162,6 +162,11 @@ SELECT is((SELECT (task->>'cancelled')::boolean
  true,'an assigned cancelled task stays visible as cancelled');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT * FROM public.claim_work_order_pool(pg_temp.k(33),pg_temp.k(11),pg_temp.k(21),1,
+ (SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(33) ORDER BY version DESC LIMIT 1),pg_temp.k(660))$$,
+ 'PT409',NULL,'an assigned candidate cannot claim a cancelled task from an old app tab');
+SELECT is((SELECT count(*) FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(33)),
+ 1::bigint,'a refused claim leaves the existing assignment unchanged');
 SELECT is((SELECT result->>'action_id' FROM public.list_my_work_orders_with_filter(NULL,1,'cancelled') result),
  pg_temp.k(33)::text,'cancelled filter runs before the requested page limit');
 SELECT is((SELECT count(*) FROM public.list_my_work_orders_with_filter(pg_temp.k(33),1,'cancelled')),
