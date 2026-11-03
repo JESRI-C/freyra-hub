@@ -116,6 +116,7 @@ export function MunicipalCaseWorkspace({
   onSelectAction,
   initialWorkOrderView,
   initialTaskList,
+  submissionVersion,
   onTaskList,
   embedded = false,
 }: {
@@ -129,6 +130,7 @@ export function MunicipalCaseWorkspace({
   onSelectAction?: (id: string | undefined, view?: WorkOrderView) => void;
   initialWorkOrderView?: WorkOrderView;
   initialTaskList?: WorkOrderListView;
+  submissionVersion?: number;
   onTaskList?: (view: WorkOrderListView) => void;
   embedded?: boolean;
 }) {
@@ -469,6 +471,7 @@ export function MunicipalCaseWorkspace({
                 selectedActionId={selectedActionId}
                 initialView={initialWorkOrderView}
                 initialListView={initialTaskList}
+                submissionVersion={submissionVersion}
                 onListView={onTaskList}
                 onSelectAction={onSelectAction}
               />

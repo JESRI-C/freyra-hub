@@ -135,6 +135,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
     task?: string;
     work?: WorkOrderView;
     taskList?: WorkOrderListView;
+    submissionVersion?: number;
   } => ({
     ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
       ? { step: search.step as MunicipalStep }
@@ -152,6 +153,12 @@ export const Route = createFileRoute("/app/projects/$slug")({
       : {}),
     ...(isWorkOrderView(search.work) ? { work: search.work as WorkOrderView } : {}),
     ...(isWorkOrderListView(search.taskList) ? { taskList: search.taskList } : {}),
+    ...(typeof search.submissionVersion === "number" &&
+    Number.isInteger(search.submissionVersion) &&
+    search.submissionVersion > 0 &&
+    search.submissionVersion <= 2147483647
+      ? { submissionVersion: search.submissionVersion }
+      : {}),
   }),
   head: () => ({ meta: [{ title: "Projekt — Freyra" }] }),
   // Project reads depend on the browser-persisted Supabase session. Rendering
@@ -216,9 +223,18 @@ function MunicipalProjectPage({ step }: { step: MunicipalStep }) {
       selectedActionId={search.task}
       initialWorkOrderView={search.work}
       initialTaskList={search.taskList}
+      submissionVersion={search.submissionVersion}
       onTaskList={(taskList) => void navigate({ search: { ...search, taskList }, replace: true })}
       onSelectAction={(task, view) =>
-        void navigate({ search: { ...search, task, work: view ?? search.work }, replace: true })
+        void navigate({
+          search: {
+            ...search,
+            task,
+            work: view ?? search.work,
+            submissionVersion: task === search.task ? search.submissionVersion : undefined,
+          },
+          replace: true,
+        })
       }
       onStep={(next) =>
         void navigate({ search: projectViewSearch(search, { kind: "step", id: next }) })
@@ -646,12 +662,19 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                     selectedActionId={search.task}
                     initialView={search.work}
                     initialListView={search.taskList}
+                    submissionVersion={search.submissionVersion}
                     onListView={(taskList) =>
                       void navigate({ search: { ...search, taskList }, replace: true })
                     }
                     onSelectAction={(task, view) =>
                       void navigate({
-                        search: { ...search, task, work: view ?? search.work },
+                        search: {
+                          ...search,
+                          task,
+                          work: view ?? search.work,
+                          submissionVersion:
+                            task === search.task ? search.submissionVersion : undefined,
+                        },
                         replace: true,
                       })
                     }

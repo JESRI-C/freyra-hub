@@ -40,6 +40,7 @@ type Props = {
   selectedActionId?: string;
   onSelectAction?: (id: string | undefined, view?: WorkOrderView) => void;
   initialView?: WorkOrderView;
+  submissionVersion?: number;
   initialListView?: WorkOrderListView;
   onListView?: (view: WorkOrderListView) => void;
 };
@@ -71,6 +72,7 @@ function WorkOrders({
   onSelectAction,
   actorId,
   initialView,
+  submissionVersion,
   initialListView,
   onListView,
 }: Props & { actorId?: string }) {
@@ -1041,6 +1043,7 @@ function WorkOrders({
               suggestedStart={calendarPlan?.actionId === actionId ? calendarPlan?.date : undefined}
               canManageTime={!!access.data?.canManageAvailability}
               onEditing={onEditing}
+              submissionVersion={submissionVersion}
               initialView={
                 timeReview?.actionId === actionId
                   ? "execution"
@@ -1071,6 +1074,7 @@ function TaskWorkspace({
   timeReviewDate,
   onEditing,
   initialView,
+  submissionVersion,
 }: {
   scope: ProjectScope;
   actorId: string;
@@ -1087,6 +1091,7 @@ function TaskWorkspace({
   timeReviewDate?: string;
   onEditing: (part: Editor, value: boolean) => void;
   initialView?: WorkOrderView;
+  submissionVersion?: number;
 }) {
   const [savedObservation, setSavedObservation] = useState<FieldJobVersion>();
   const [part, setPart] = useState<Part>(initialView ?? "plan");
@@ -1215,6 +1220,7 @@ function TaskWorkspace({
       {opened.has("submission") && (
         <div hidden={part !== "submission"}>
           <WorkOrderSubmissionPanel
+            requestedVersion={submissionVersion}
             active={part === "submission"}
             canCreateReport={canEdit}
             scope={scope}

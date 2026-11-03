@@ -227,6 +227,8 @@ Dokumentation viser næste trin ved manglende svar på en aktiv kobling. En læs
 
 **Afhænger af:** S04; S03 for filtreret eksport. **Genbrug:** D07, F10/F11, report_document/revisions, workflowrapport og eksportadaptere. **Skøn:** 2–4 dage.
 
+Genvejen fra en gemt rapport bærer nu rapportens afleveringsversion. Afleveringspanelet henter versionen direkte via det eksisterende adgangskontrollerede historikopslag, også når nyere versioner findes. Brugeren kan åbne hele historikken fra samme panel. Komponentprøven åbner version 1 og viser derefter den nyere historik. Browserprøve af den præcise genvej afventes.
+
 - Bind rapportrevisionen til opgaven og den præcise afleverings-/reviewrevision. Saml det eksisterende input til én kanonisk eksportkontrakt uden at genopfinde rapporttabellerne.
 - Afstem PDF, redigerbart dokument, atlas, CSV/GeoJSON og ZIP-manifest mod samme snapshot. Dokumentér eventuelle bevidste formatforskelle.
 - Brug Haderslev-rapporten som layout-/indholdsreference. Adskil genanvendeligt layout fra hardkodede kundeafsnit og udokumenterede tal.

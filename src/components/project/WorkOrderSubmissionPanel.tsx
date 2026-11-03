@@ -41,6 +41,7 @@ export function WorkOrderSubmissionPanel({
   allowReviewInReadOnly = false,
   canCreateReport = false,
   active = true,
+  requestedVersion,
   onEditing,
   onOpenPart,
 }: {
@@ -51,6 +52,7 @@ export function WorkOrderSubmissionPanel({
   allowReviewInReadOnly?: boolean;
   canCreateReport?: boolean;
   active?: boolean;
+  requestedVersion?: number;
   onEditing?: (value: boolean) => void;
   onOpenPart?: (part: WorkOrderView) => void;
 }) {
@@ -110,17 +112,23 @@ export function WorkOrderSubmissionPanel({
     c.project_id === scope.projectId &&
     c.organization_id === scope.organizationId;
   const writable = authorized && !!c?.can_prepare && !readOnly;
+  const [showAllForVersion, setShowAllForVersion] = useState<number>();
+  const selectedVersion = showAllForVersion === requestedVersion ? undefined : requestedVersion;
   const history = useInfiniteQuery({
-    queryKey: [...key, "history"],
-    initialPageParam: null as number | null,
+    queryKey: [...key, "history", selectedVersion],
+    initialPageParam: selectedVersion && selectedVersion < 2147483647 ? selectedVersion + 1 : null,
     queryFn: ({ pageParam }) =>
-      historyFn({ data: { ...task, beforeVersion: pageParam, pageSize: 5 } }),
-    getNextPageParam: (page) => page.nextBeforeVersion ?? undefined,
+      historyFn({ data: { ...task, beforeVersion: pageParam, pageSize: selectedVersion ? 1 : 5 } }),
+    getNextPageParam: (page) =>
+      selectedVersion ? undefined : (page.nextBeforeVersion ?? undefined),
     enabled: authorized,
     retry: false,
     refetchOnWindowFocus: !locked,
     refetchOnReconnect: !locked,
   });
+  const visibleVersions = history.data?.pages
+    .flatMap((page) => page.items)
+    .filter((row) => !selectedVersion || row.version === selectedVersion);
   async function save() {
     if (
       !writable ||
@@ -357,95 +365,103 @@ export function WorkOrderSubmissionPanel({
             </div>
           )}
           {history.isPending && <p role="status">Henter afleveringsversioner…</p>}
-          {history.data &&
-            !history.isError &&
-            !history.data.pages.some((page) => page.items.length) && (
-              <p className="text-sm text-muted-foreground">
-                Der er endnu ikke gemt et afleveringsgrundlag for opgaven.
-              </p>
-            )}
+          {selectedVersion && (
+            <button
+              type="button"
+              className={button}
+              disabled={locked}
+              onClick={() => setShowAllForVersion(selectedVersion)}
+            >
+              Vis alle afleveringsversioner
+            </button>
+          )}
+          {history.isSuccess && !visibleVersions?.length && (
+            <p className="text-sm text-muted-foreground">
+              {selectedVersion
+                ? `Afleveringsversion ${selectedVersion} er ikke tilgængelig på opgaven.`
+                : "Der er endnu ikke gemt et afleveringsgrundlag for opgaven."}
+            </p>
+          )}
           {!history.isError &&
-            history.data?.pages
-              .flatMap((page) => page.items)
-              .map((row) => (
-                <article key={row.id} className="space-y-3 rounded-xl border p-4">
-                  <h4 className="font-semibold">Afleveringsversion {row.version}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Gemt {new Date(row.created_at).toLocaleString("da-DK")} · Fastholdt grundlag
-                  </p>
-                  <p className="whitespace-pre-wrap text-sm">{row.note}</p>
-                  <p className="text-sm">
-                    Planversion {row.snapshot.plan.version} · udførelsesversion{" "}
-                    {row.snapshot.execution.binding.version} · {row.snapshot.evidence.length}{" "}
-                    dokumentationskoblinger
-                  </p>
-                  <details>
-                    <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
-                      Se det fastholdte grundlag
-                    </summary>
-                    <div className="space-y-3 text-sm">
-                      <h5 className="font-medium">{row.snapshot.plan.plan.title}</h5>
-                      <p className="whitespace-pre-wrap">{row.snapshot.plan.plan.instructions}</p>
-                      <p>Planlagt fra: {row.snapshot.plan.plan.plannedStart ?? "Ukendt"}</p>
-                      <p>
-                        Udført: {row.snapshot.execution.values.actualDate} ·{" "}
-                        {row.snapshot.execution.values.method}
-                      </p>
-                      <p>{row.snapshot.execution.values.coverageDescription}</p>
-                      {row.snapshot.execution.values.dataBasis !== "real" && (
-                        <p>Eksempel- eller testgrundlag</p>
-                      )}
-                      <WorkOrderExecutionReference
-                        scope={task}
-                        actorId={actorId}
-                        revisionId={row.execution_revision_id}
-                      />
-                      {row.snapshot.evidence.map((ev) => (
-                        <div key={ev.id} className="space-y-2 border-t pt-3">
-                          <h5 className="font-medium">
-                            {ev.observation_snapshot.template.title} · registrering version{" "}
-                            {ev.observation_snapshot.version}
-                          </h5>
-                          <p className="text-muted-foreground">
-                            Nødvendige felter er markeret efter jobkortet på tidspunktet for
-                            registreringen.
-                          </p>
-                          <dl>
-                            {ev.observation_snapshot.template.fields.map((field) => (
-                              <div key={field.key}>
-                                <dt className="text-muted-foreground">
-                                  {field.label}
-                                  {field.unit && ` (${field.unit})`}
-                                  {field.required && " · Nødvendigt felt"}
-                                </dt>
-                                <dd>
-                                  {typeof ev.observation_snapshot.values[field.key] === "boolean"
-                                    ? ev.observation_snapshot.values[field.key]
-                                      ? "Ja"
-                                      : "Nej"
-                                    : (ev.observation_snapshot.values[field.key] ?? "Ukendt")}
-                                </dd>
-                              </div>
-                            ))}
-                          </dl>
-                          <button
-                            type="button"
-                            className={button}
-                            disabled={busy || opening || reviewEditing}
-                            onClick={() => void openOriginal(ev.id)}
-                          >
-                            Åbn fastholdt originalfoto
-                          </button>
-                        </div>
-                      ))}
-                      <p className="text-muted-foreground">
-                        Originalåbning kontrollerer din aktuelle adgang og filens identitet. En
-                        tilbagetrukket kobling giver ikke et nyt original-link.
-                      </p>
-                    </div>
-                  </details>
-                </article>
-              ))}
+            visibleVersions?.map((row) => (
+              <article key={row.id} className="space-y-3 rounded-xl border p-4">
+                <h4 className="font-semibold">Afleveringsversion {row.version}</h4>
+                <p className="text-sm text-muted-foreground">
+                  Gemt {new Date(row.created_at).toLocaleString("da-DK")} · Fastholdt grundlag
+                </p>
+                <p className="whitespace-pre-wrap text-sm">{row.note}</p>
+                <p className="text-sm">
+                  Planversion {row.snapshot.plan.version} · udførelsesversion{" "}
+                  {row.snapshot.execution.binding.version} · {row.snapshot.evidence.length}{" "}
+                  dokumentationskoblinger
+                </p>
+                <details>
+                  <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
+                    Se det fastholdte grundlag
+                  </summary>
+                  <div className="space-y-3 text-sm">
+                    <h5 className="font-medium">{row.snapshot.plan.plan.title}</h5>
+                    <p className="whitespace-pre-wrap">{row.snapshot.plan.plan.instructions}</p>
+                    <p>Planlagt fra: {row.snapshot.plan.plan.plannedStart ?? "Ukendt"}</p>
+                    <p>
+                      Udført: {row.snapshot.execution.values.actualDate} ·{" "}
+                      {row.snapshot.execution.values.method}
+                    </p>
+                    <p>{row.snapshot.execution.values.coverageDescription}</p>
+                    {row.snapshot.execution.values.dataBasis !== "real" && (
+                      <p>Eksempel- eller testgrundlag</p>
+                    )}
+                    <WorkOrderExecutionReference
+                      scope={task}
+                      actorId={actorId}
+                      revisionId={row.execution_revision_id}
+                    />
+                    {row.snapshot.evidence.map((ev) => (
+                      <div key={ev.id} className="space-y-2 border-t pt-3">
+                        <h5 className="font-medium">
+                          {ev.observation_snapshot.template.title} · registrering version{" "}
+                          {ev.observation_snapshot.version}
+                        </h5>
+                        <p className="text-muted-foreground">
+                          Nødvendige felter er markeret efter jobkortet på tidspunktet for
+                          registreringen.
+                        </p>
+                        <dl>
+                          {ev.observation_snapshot.template.fields.map((field) => (
+                            <div key={field.key}>
+                              <dt className="text-muted-foreground">
+                                {field.label}
+                                {field.unit && ` (${field.unit})`}
+                                {field.required && " · Nødvendigt felt"}
+                              </dt>
+                              <dd>
+                                {typeof ev.observation_snapshot.values[field.key] === "boolean"
+                                  ? ev.observation_snapshot.values[field.key]
+                                    ? "Ja"
+                                    : "Nej"
+                                  : (ev.observation_snapshot.values[field.key] ?? "Ukendt")}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={busy || opening || reviewEditing}
+                          onClick={() => void openOriginal(ev.id)}
+                        >
+                          Åbn fastholdt originalfoto
+                        </button>
+                      </div>
+                    ))}
+                    <p className="text-muted-foreground">
+                      Originalåbning kontrollerer din aktuelle adgang og filens identitet. En
+                      tilbagetrukket kobling giver ikke et nyt original-link.
+                    </p>
+                  </div>
+                </details>
+              </article>
+            ))}
           {history.hasNextPage && (
             <button
               type="button"

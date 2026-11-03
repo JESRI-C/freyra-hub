@@ -41,7 +41,7 @@ async function settle() {
     await new Promise((resolve) => setTimeout(resolve, 15));
   });
 }
-async function render(readOnly = false, active = true) {
+async function render(readOnly = false, active = true, requestedVersion?: number) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
@@ -51,6 +51,7 @@ async function render(readOnly = false, active = true) {
           actionId={scope.actionId}
           readOnly={readOnly}
           active={active}
+          requestedVersion={requestedVersion}
           onEditing={m.editing}
           onOpenPart={m.openPart}
         />
@@ -98,6 +99,22 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("submission preparation on the existing task", () => {
+  it("loads the report's exact submission directly and lets users return to full history", async () => {
+    m.list.mockImplementation(({ data }) =>
+      Promise.resolve({
+        items: data.beforeVersion === 2 ? [submission(1)] : [submission(8)],
+        nextBeforeVersion: null,
+      }),
+    );
+    await render(false, true, 1);
+    expect(m.list).toHaveBeenCalledWith({
+      data: expect.objectContaining({ actionId: scope.actionId, beforeVersion: 2, pageSize: 1 }),
+    });
+    expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 1");
+    await click("Vis alle afleveringsversioner");
+    expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 8");
+  });
+
   it("shows required fields and units from each saved submission's own job card", async () => {
     const previous = submission();
     const current = submission(2);

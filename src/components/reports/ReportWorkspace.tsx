@@ -697,6 +697,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
             tab: "handlinger",
             task: revision.content.workOrderApproval.actionId,
             work: "submission",
+            submissionVersion: revision.content.workOrderApproval.submissionVersion,
           }}
         >
           Åbn opgavens aflevering og originalfotos

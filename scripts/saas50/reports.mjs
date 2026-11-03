@@ -66,6 +66,7 @@ try {
         const backUrl = new URL(await back.getAttribute("href"), fixture.app);
         assert.equal(backUrl.searchParams.get("task"), tenant.actionId);
         assert.equal(backUrl.searchParams.get("work"), "submission");
+        assert.equal(backUrl.searchParams.get("submissionVersion"), String(submissionVersion));
         await back.focus();
         await page.keyboard.press("Enter");
         await page.waitForURL(
@@ -74,6 +75,9 @@ try {
             url.searchParams.get("task") === tenant.actionId &&
             url.searchParams.get("work") === "submission",
         );
+        await page
+          .getByRole("heading", { name: `Afleveringsversion ${submissionVersion}`, exact: true })
+          .waitFor();
         await create.waitFor();
         assert.deepEqual(pageErrors, []);
         return {
