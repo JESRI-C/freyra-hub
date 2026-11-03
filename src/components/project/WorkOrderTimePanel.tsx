@@ -122,6 +122,7 @@ export function WorkOrderTimePanel({
       void cache.invalidateQueries({
         queryKey: ["work-order-time-summary", actorId, scope, actionId],
       });
+      void cache.invalidateQueries({ queryKey: ["project-work-time", actorId, scope] });
       setDraft(undefined);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Tiden kunne ikke gemmes.");

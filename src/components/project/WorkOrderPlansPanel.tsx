@@ -303,6 +303,7 @@ function PlanWorkspace({
             },
           },
       );
+      void cache.invalidateQueries({ queryKey: ["project-work-time", actorId, scope] });
       setDraft(null);
       onEditing(false);
       setMessage(

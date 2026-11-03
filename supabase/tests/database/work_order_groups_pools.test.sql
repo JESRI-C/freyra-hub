@@ -196,6 +196,8 @@ SELECT throws_ok($$INSERT INTO public.work_order_time_versions
  (id,action_id,organization_id,project_id,work_date,version,minutes)
  VALUES(pg_temp.k(304),pg_temp.k(36),pg_temp.k(11),pg_temp.k(21),'2026-11-03',1,60)$$,
  '42501',NULL,'field staff cannot record time on unassigned work');
+SELECT throws_ok($$SELECT * FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21))$$,
+ '42501',NULL,'field users cannot read the project time overview');
 SELECT throws_ok($$SELECT public.get_work_order_time_summary(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37))$$,
  '42501',NULL,'field users cannot use the manager time summary');
 SELECT ok(NOT private.can_write_project(pg_temp.k(21)),'field remains unable to edit the project');
@@ -210,6 +212,12 @@ SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct wor
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
 SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),75::bigint,'project time sums only the latest actor and day version');
+SELECT is((SELECT t.estimated_hours FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),2.5::numeric,'project time includes the latest estimate');
+SELECT ok(NOT EXISTS (SELECT 1 FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) t
+  WHERE t.action_id<=pg_temp.k(37)),'project time cursor excludes the preceding page');
 SELECT is(public.get_work_order_time_summary(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)),
  '{"minutes":75,"entries":1,"estimatedHours":2.5}'::jsonb,'time summary counts the corrected daily version once');
 SELECT throws_ok($$SELECT public.get_work_order_time_summary(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))$$,

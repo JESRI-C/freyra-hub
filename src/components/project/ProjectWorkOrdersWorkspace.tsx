@@ -22,6 +22,7 @@ import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
+import { ProjectWorkTimeOverview } from "./ProjectWorkTimeOverview";
 import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
@@ -90,7 +91,7 @@ function WorkOrders({
   const [availabilityEditing, setAvailabilityEditing] = useState(false);
   const [taskSearch, setTaskSearch] = useState("");
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
-  const showSchedule = listView !== "tasks";
+  const showSchedule = listView === "schedule" || listView === "calendar";
   const [scheduleActionId, setScheduleActionId] = useState<string>();
   const actionId = selectedActionId ?? localActionId;
   const [editors, setEditors] = useState<Set<Part>>(() => new Set());
@@ -191,7 +192,7 @@ function WorkOrders({
       : orderedActions?.filter((task) =>
           task.title.toLocaleLowerCase("da").includes(taskSearch.trim().toLocaleLowerCase("da")),
         );
-  const visibleCount = visibleActions?.length ?? 0;
+  const visibleCount = listView === "time" ? 0 : (visibleActions?.length ?? 0);
   const estimates = new Map(
     (visibleActions ?? []).map(({ id }) => {
       const plan = dates?.[id];
@@ -332,7 +333,9 @@ function WorkOrders({
                   ? "kalender"
                   : listView === "schedule"
                     ? "planoversigt"
-                    : "opgaveliste"}
+                    : listView === "time"
+                      ? "timer"
+                      : "opgaveliste"}
               </button>
               {locked && (
                 <p role="status" className="text-sm">
@@ -356,28 +359,42 @@ function WorkOrders({
                       ["tasks", "Opgaveliste"],
                       ["schedule", "Planoversigt"],
                       ["calendar", "Kalender"],
+                      ["time", "Timer"],
                     ] as const
-                  ).map(([view, label]) => (
-                    <button
-                      key={view}
-                      type="button"
-                      className={
-                        button +
-                        (listView === view ? " bg-primary text-primary-foreground" : " bg-card")
-                      }
-                      aria-pressed={listView === view}
-                      disabled={locked}
-                      onClick={() => {
-                        setListView(view);
-                        setTaskLimit(taskPageSize);
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                  )
+                    .filter(([view]) => view !== "time" || access.data?.canManageAvailability)
+                    .map(([view, label]) => (
+                      <button
+                        key={view}
+                        type="button"
+                        className={
+                          button +
+                          (listView === view ? " bg-primary text-primary-foreground" : " bg-card")
+                        }
+                        aria-pressed={listView === view}
+                        disabled={locked}
+                        onClick={() => {
+                          setListView(view);
+                          setTaskLimit(taskPageSize);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
                 </div>
               )}
-              {listView !== "calendar" && !!actions.data.length && (
+              {listView === "time" &&
+                (actorId && access.data?.canManageAvailability ? (
+                  <ProjectWorkTimeOverview
+                    scope={scope}
+                    actorId={actorId}
+                    locked={locked}
+                    onOpen={(id) => select(id, "execution")}
+                  />
+                ) : (
+                  <p>Projektets timer kræver projektlederadgang.</p>
+                ))}
+              {listView !== "calendar" && listView !== "time" && !!actions.data.length && (
                 <label className="block text-sm font-medium">
                   Find opgave
                   <input
@@ -525,6 +542,7 @@ function WorkOrders({
                 </div>
               )}
               {listView !== "calendar" &&
+                listView !== "time" &&
                 (!showSchedule || schedule.isSuccess) &&
                 !!actions.data.length &&
                 !visibleCount && <p role="status">Ingen opgaver matcher dit udvalg.</p>}
@@ -546,7 +564,8 @@ function WorkOrders({
                   Estimatet fordeles ligeligt over opgavens kalenderdage, inklusive weekender.
                 </p>
               )}
-              {(!showSchedule || schedule.isSuccess) &&
+              {listView !== "time" &&
+                (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const estimate = estimates.get(a.id);
                   return (
@@ -589,15 +608,17 @@ function WorkOrders({
                     </button>
                   );
                 })}
-              {(!showSchedule || schedule.isSuccess) && visibleCount > taskLimit && (
-                <button
-                  type="button"
-                  className={button}
-                  onClick={() => setTaskLimit(taskLimit + taskPageSize)}
-                >
-                  Vis flere opgaver · {taskLimit} af {visibleCount}
-                </button>
-              )}
+              {listView !== "time" &&
+                (!showSchedule || schedule.isSuccess) &&
+                visibleCount > taskLimit && (
+                  <button
+                    type="button"
+                    className={button}
+                    onClick={() => setTaskLimit(taskLimit + taskPageSize)}
+                  >
+                    Vis flere opgaver · {taskLimit} af {visibleCount}
+                  </button>
+                )}
             </div>
           )}
           {!creating && canEdit && access.data?.canConfigure && (

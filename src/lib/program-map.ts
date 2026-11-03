@@ -628,6 +628,16 @@ export const TASK_FEATURES: ProgramFeature[] = WORK_ORDER_PARTS.map((part) => ({
 }));
 const planningFeatures: ProgramFeature[] = [
   {
+    id: "work:project-time",
+    areaId: "tasks",
+    title: "Projektets timer",
+    question: "Hvilke opgaver har brugt mere tid end estimeret?",
+    purpose: "Se som projektleder opgavernes registrerede og estimerede tid samlet.",
+    output: "Et timeoverblik med søgning, afvigelsesfilter og adgang til den enkelte opgave.",
+    status: "existing",
+    destination: { kind: "project", view: { kind: "tab", id: "handlinger" }, taskList: "time" },
+  },
+  {
     id: "work:time",
     areaId: "tasks",
     title: "Registrér arbejdstid",
@@ -822,8 +832,8 @@ export const SKYHOST_JOB_AREAS = [
     id: "time",
     title: "Timer",
     purpose: "Aktiviteter, estimat, forbrug, rest og registreringshistorik.",
-    remaining: "Samlet timeforbrug, aktiviteter, restestimat og faktureringsgrundlag afventer.",
-    featureIds: ["work:time", "planned:time"],
+    remaining: "Godkendelse af timer, aktivitetskategorier og faktureringsgrundlag afventer.",
+    featureIds: ["work:time", "work:project-time", "planned:time"],
     planned: false,
   },
   {
