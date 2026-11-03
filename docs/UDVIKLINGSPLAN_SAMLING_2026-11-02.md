@@ -556,3 +556,7 @@ I Chrome ved 390 px viste Mine opgaver værktøjets navn og de to reserverede da
 Projektlederen kan åbne Booking under Arbejdsopgaver eller fra programkortet. Oversigten viser projektets reservationer, der overlapper den valgte periode, og kan filtreres på udstyr og aflysninger. En reservation åbner opgavens bookingpanel direkte. Filtre bevares, når brugeren går tilbage, og gemning eller aflysning opdaterer oversigten. Oversigten bruger de eksisterende reservationsrækker og projektadgang. Reservation på klokkeslæt og oversigt for flere projekter står åbne.
 
 I Chrome ved 390 px fandt projektlederen en reservation, der overlappede den valgte dato, åbnede den præcise opgave og aflyste reservationen. Tilbage i oversigten var dato og udstyrssøgning bevaret. Den aflyste reservation var tilgængelig via filteret Vis også aflyste reservationer. Kilde `3c91f1b`, Worker `9bb80222-7a9f-4a0e-a334-a9a8781a32fa`. Typekontrol, staging-build og 31 målrettede tests bestod.
+
+## Ledighed før reservation
+
+Når projektlederen vælger udstyr og en gyldig periode på en gemt arbejdsopgave, viser bookingpanelet resultatet af et opslag på tværs af organisationens projekter. Opslaget returnerer kun ledigt eller optaget. Databasen afgør stadig, hvem der får reservationen, hvis to brugere gemmer samtidigt. Aflysninger frigiver perioden, og reservationshistorikken bevares. Databaseprøver for overlap, tilstødende datoer, aflysning og fremmed organisation er tilføjet. Stagingprøven af denne ændring afventer.

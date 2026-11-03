@@ -96,6 +96,36 @@ export function WorkOrderEquipmentBooking({
     },
   });
 
+  const validBooking =
+    !!draft &&
+    uuid.safeParse(draft.equipmentId).success &&
+    CalendarDate.safeParse(draft.from).success &&
+    CalendarDate.safeParse(draft.through).success &&
+    draft.from <= draft.through &&
+    Date.parse(draft.through) - Date.parse(draft.from) <= 365 * 86400000;
+  const availability = useQuery({
+    queryKey: ["work-equipment-availability", actorId, scope, actionId, draft],
+    enabled: open && validBooking && !disabled,
+    retry: false,
+    queryFn: async ({ signal }) => {
+      const result = await db()
+        .rpc("is_work_order_equipment_available", {
+          p_organization_id: scope.organizationId,
+          p_project_id: scope.projectId,
+          p_action_id: actionId,
+          p_equipment_id: draft?.equipmentId,
+          p_starts_on: draft?.from,
+          p_ends_on: draft?.through,
+        })
+        .abortSignal(signal);
+      if (result.error) throw new Error("Ledigheden kunne ikke kontrolleres.");
+      return z.boolean().parse(result.data);
+    },
+  });
+  const signature = JSON.stringify([newEquipment, draft]);
+  // An uncertain write may already have reserved the period. Keep its exact retry available.
+  const knownConflict = availability.data === false && attempt.current?.signature !== signature;
+
   async function mutate() {
     if (disabled || inFlight.current) return;
     const name = newEquipment?.name.trim();
@@ -103,24 +133,17 @@ export function WorkOrderEquipmentBooking({
       setError("Angiv et navn på udstyret.");
       return;
     }
-    if (
-      draft &&
-      (!uuid.safeParse(draft.equipmentId).success ||
-        !CalendarDate.safeParse(draft.from).success ||
-        !CalendarDate.safeParse(draft.through).success ||
-        draft.from > draft.through ||
-        Date.parse(draft.through) - Date.parse(draft.from) > 365 * 86400000)
-    ) {
+    if (draft && !validBooking) {
       setError("Vælg udstyr og en gyldig periode på højst 366 dage.");
       return;
     }
+    if (draft && knownConflict) return;
     if (!cancelId && !draft && !newEquipment) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      const signature = JSON.stringify([newEquipment, draft]);
       if (attempt.current?.signature !== signature)
         attempt.current = { signature, id: crypto.randomUUID() };
       const id = attempt.current.id;
@@ -171,6 +194,10 @@ export function WorkOrderEquipmentBooking({
         });
         if (result.error || result.data !== id) {
           const receipt = await bookingsQuery().match(payload).maybeSingle();
+          if (result.error?.code === "23P01" && receipt.data?.id !== id) {
+            attempt.current = undefined;
+            void availability.refetch();
+          }
           if (receipt.error || receipt.data?.id !== id)
             throw new Error(
               result.error?.code === "23P01"
@@ -197,6 +224,7 @@ export function WorkOrderEquipmentBooking({
       }
       attempt.current = undefined;
       void cache.invalidateQueries({ queryKey: ["project-equipment-bookings", actorId, scope] });
+      void cache.invalidateQueries({ queryKey: ["work-equipment-availability", actorId] });
       await bookings.refetch();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Ændringen kunne ikke gemmes.");
@@ -414,8 +442,31 @@ export function WorkOrderEquipmentBooking({
                 </div>
               </>
             )}
+            {draft && validBooking && (
+              <div className="space-y-1 rounded-lg bg-muted/40 p-2">
+                <p role="status">
+                  {availability.isFetching || availability.isPending
+                    ? "Kontrollerer ledighed…"
+                    : availability.isError
+                      ? "Ledigheden kunne ikke kontrolleres. Freyra kontrollerer igen ved gemning."
+                      : availability.data === false
+                        ? "Optaget i den valgte periode. Vælg andre datoer eller andet udstyr."
+                        : "Ledigt ved seneste kontrol. Reservationen bekræftes, når du gemmer."}
+                </p>
+                {!availability.isFetching &&
+                  (availability.data === false || availability.isError) && (
+                    <button
+                      type="button"
+                      className={button}
+                      onClick={() => void availability.refetch()}
+                    >
+                      Tjek ledighed igen
+                    </button>
+                  )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
-              <button type="submit" className={button}>
+              <button type="submit" className={button} disabled={!!draft && knownConflict}>
                 {busy ? "Gemmer…" : draft ? "Gem reservation" : "Gem udstyr"}
               </button>
               <button type="button" className={button} onClick={clear}>
