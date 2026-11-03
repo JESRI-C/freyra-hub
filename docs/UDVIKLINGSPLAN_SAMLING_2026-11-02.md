@@ -374,6 +374,8 @@ For en gemt opgave uden startdato kan Planoversigt foreslå dagen efter den sene
 
 Hjælp placeres dér, hvor kunden arbejder. Første regel i Planoversigt finder opgaver uden startdato ud fra den adgangsafgrænsede planlæsning, forklarer hvorfor de ikke er i kalenderen og åbner det relevante udsnit. Samme princip bruges senere til kapacitet, manglende feltdokumentation og afleveringsklarhed.
 
+Planoversigt fremhæver også planlagte opgaver uden en ansvarlig i planen. Genvejen vælger det eksisterende filter Uden ansvarlig for hele projektet. Opgaver med en startdato og uden ansvarlig er markeret i listen, og projektlederen kan åbne arbejdsgrundlaget på samme opgave. Aflyste opgaver tæller ikke med i hjælpen. Komponentprøven dækker filter og navigation. Stagingprøve af denne ændring afventes.
+
 Planhjælpen finder også opgaver, der afventer en forudsætning. Genvejen bruger samme projektfilter som kalenderen. Opgaverækken kan åbne det arbejdsgrundlag, der skal afklares, hvis brugeren allerede har adgang til det. Komponentprøven dækker forløbet fra beskeden til forudsætningen. Stagingprøve af planhjælpen afventes.
 
 Browserprøven af afventende opgaver bestod på staging ved 390 og 1280 px, kilde 2bb95cc og Worker 743fd9e1-a864-48d5-9c25-51b8a914726f. Enter på planhjælpens genvej slog projektfilteret til, og opgaverækken åbnede den forventede forudsætnings arbejdsgrundlag. Tilbage til Planoversigt bevarede filteret. Prøven læste eksisterende syntetiske opgaver.

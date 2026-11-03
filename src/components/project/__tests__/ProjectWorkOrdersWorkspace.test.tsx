@@ -266,6 +266,24 @@ it("finds waiting tasks across the project from the calendar and clears the filt
   expect(listedTasks()).toHaveLength(2);
 });
 
+it("guides project managers from a scheduled task without a responsible person to its plan", async () => {
+  m.schedule.mockResolvedValue({
+    first: { start: "2099-01-02", end: null },
+    second: { start: "2099-01-03", end: null, responsibleId: "responsible-person" },
+  });
+  await render();
+  await click("Planoversigt");
+  expect(host.textContent).toContain("1 opgave har en startdato og mangler en ansvarlig i planen.");
+  await click("Se opgaver uden ansvarlig");
+  expect(host.querySelector("select")?.value).toBe("unassigned");
+  expect(host.textContent).not.toContain(tasks[1].title);
+  const task = [...host.querySelectorAll("button")].find((button) =>
+    button.textContent?.includes("Mangler ansvarlig i planen"),
+  )!;
+  await act(async () => task.click());
+  expect(m.navigate).toHaveBeenCalledWith("first");
+});
+
 it("opens the prerequisite plan directly from a waiting task", async () => {
   m.schedule.mockResolvedValue({
     first: { start: "2099-01-02", end: "2099-01-03" },

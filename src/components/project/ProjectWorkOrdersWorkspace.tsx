@@ -202,6 +202,10 @@ function WorkOrders({
   const waitingCount = (actions.data ?? []).filter(
     ({ id }) => dates?.[id]?.waitingForActionIds?.length,
   ).length;
+  const unassignedPlannedCount = (actions.data ?? []).filter(({ id }) => {
+    const plan = dates?.[id];
+    return plan?.start && !plan.cancelled && !plan.responsibleId;
+  }).length;
   const undatedTaskCount =
     listView === "schedule" && schedule.isSuccess
       ? (actions.data ?? []).filter(({ id }) => !dates?.[id]?.cancelled && !dates?.[id]?.start)
@@ -270,9 +274,9 @@ function WorkOrders({
     return summary;
   }
   const dayOverlap = day ? daySummary(from).overlap : undefined;
-  function showProjectPlanningTasks(focus: "waiting" | "undated") {
+  function showProjectPlanningTasks(focus: "waiting" | "undated" | "unassigned") {
     setTaskSearch("");
-    setResponsible("");
+    setResponsible(focus === "unassigned" ? "unassigned" : "");
     setOnlyUndated(focus === "undated");
     setOnlyWaiting(focus === "waiting");
     setTaskLimit(taskPageSize);
@@ -487,9 +491,27 @@ function WorkOrders({
               {listView === "schedule" &&
                 canEdit &&
                 schedule.isSuccess &&
-                (undatedTaskCount > 0 || waitingCount > 0) && (
+                (undatedTaskCount > 0 || waitingCount > 0 || unassignedPlannedCount > 0) && (
                   <div className="space-y-2 rounded-xl border bg-primary/5 p-3">
                     <h3 className="font-medium">Freyra hjælper med planen</h3>
+                    {unassignedPlannedCount > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm">
+                          {unassignedPlannedCount === 1
+                            ? "1 opgave har en startdato og mangler en ansvarlig i planen."
+                            : `${unassignedPlannedCount} opgaver har en startdato og mangler en ansvarlig i planen.`}
+                          {" Åbn arbejdsgrundlaget for at vælge en ansvarlig."}
+                        </p>
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={locked}
+                          onClick={() => showProjectPlanningTasks("unassigned")}
+                        >
+                          Se opgaver uden ansvarlig
+                        </button>
+                      </div>
+                    )}
                     {waitingCount > 0 && (
                       <div className="space-y-2">
                         <p className="text-sm">
@@ -807,6 +829,9 @@ function WorkOrders({
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
                               {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
+                              {canEdit && plan?.start && !plan.cancelled && !plan.responsibleId && (
+                                <span className="block">Mangler ansvarlig i planen</span>
+                              )}
                               {prerequisiteIds.length > 0 && (
                                 <span className="block font-medium text-foreground">
                                   Afventer ·{" "}
