@@ -221,7 +221,7 @@ Første del af D05c viser nødvendige felter og enheder i en gemt afleverings fa
 
 **Færdig:** Manglende obligatorisk dokumentation afviser aflevering med handlingsrettede fejl. Ændret udførelse efter aflevering opdaterer ikke snapshot eller gammel godkendelse. Parallelle reviewers får kontrolleret konflikt, og direkte API/tabelkald kan ikke omgå kontrakten.
 
-Dokumentation viser næste trin ved manglende svar på en aktiv kobling. En læser får besked om, hvem der skal tage over. Hvis brugeren allerede har gemt en nyere registrering, forklarer Freyra, at den skal vælges og koblingen gemmes som ny version. Den eksisterende koblingsformular bevarer det valgte originalfoto. Komponentprøven dækker de to forløb og kladdelåsen. Stagingprøve af vejledningen afventes.
+Dokumentation viser næste trin ved manglende svar på en aktiv kobling. En læser får besked om, hvem der skal tage over. Hvis brugeren allerede har gemt en nyere registrering, forklarer Freyra, at den skal vælges og koblingen gemmes som ny version. Den eksisterende koblingsformular bevarer det valgte originalfoto. Komponentprøven dækker de to forløb og kladdelåsen. Stagingprøven på kilde 12b370d og Worker 999fe864-9991-4c83-841c-7dbb83e2bd80 bestod. Læsekontoen så vejledningen ved 1280 px. Projektlederen åbnede det manglende felt ved 390 px, gemte registreringsversion 2 og valgte den via den nye vejledning. Dokumentationskobling version 2 brugte samme original og kontrolsum, mens version 1 forblev læsbar. Testkoblingen blev trukket tilbage efter prøven, og den midlertidige kontos adgang blev fjernet og kontoen lukket.
 
 ### S05 — Samlet rapport fra samme grundlag
 
