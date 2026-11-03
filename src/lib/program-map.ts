@@ -4,7 +4,11 @@ import {
   type ProjectView,
   type ProjectNavigationSearch,
 } from "./project-navigation";
-import { WORK_ORDER_PARTS, type WorkOrderView } from "./work-order-navigation";
+import {
+  WORK_ORDER_PARTS,
+  type WorkOrderListView,
+  type WorkOrderView,
+} from "./work-order-navigation";
 
 /** Presentation inventory. A visible page is not a readiness, access or effect assessment. */
 export const PROGRAM_AREAS = [
@@ -15,7 +19,7 @@ export const PROGRAM_AREAS = [
 ];
 export type ProgramDestination =
   | { kind: "route"; path: string; selectAt?: string }
-  | { kind: "project"; view: ProjectView; work?: WorkOrderView };
+  | { kind: "project"; view: ProjectView; work?: WorkOrderView; taskList?: WorkOrderListView };
 export type ProgramFeature = {
   id: string;
   areaId: string;
@@ -622,12 +626,36 @@ export const TASK_FEATURES: ProgramFeature[] = WORK_ORDER_PARTS.map((part) => ({
   status: part.id === "submission" ? "partial" : "existing",
   destination: { kind: "project", view: { kind: "tab", id: "handlinger" }, work: part.id },
 }));
+const planningFeatures: ProgramFeature[] = [
+  {
+    id: "work:calendar",
+    areaId: "tasks",
+    title: "Projektkalender",
+    question: "Hvornår ligger projektets opgaver?",
+    purpose:
+      "Find planlagte perioder, filtrér på den ansvarlige og åbn arbejdsgrundlaget for at ændre datoer.",
+    output: "En kalender over gemte planperioder med markering af overlappende opgaver.",
+    status: "existing",
+    destination: { kind: "project", view: { kind: "tab", id: "handlinger" }, taskList: "calendar" },
+  },
+  {
+    id: "work:schedule",
+    areaId: "tasks",
+    title: "Planoversigt",
+    question: "Hvilke opgaver har en dato eller en ansvarlig?",
+    purpose: "Søg i projektets opgaver og find både daterede og udaterede planer.",
+    output: "En liste sorteret efter den senest gemte planlagte start.",
+    status: "existing",
+    destination: { kind: "project", view: { kind: "tab", id: "handlinger" }, taskList: "schedule" },
+  },
+];
+
 export const PLANNED_FEATURES: ProgramFeature[] = [
   [
-    "calendar",
-    "Planlægningskalender",
-    "Fordel og omplanlæg arbejde med synlig kapacitet.",
-    "En samlet driftskalender.",
+    "capacity",
+    "Kapacitet og tilgængelighed",
+    "Sammenhold planlagte arbejdstimer med medarbejdernes tilgængelighed.",
+    "En kapacitetsberegning til fordeling af arbejdet.",
   ],
   [
     "recurrence",
@@ -740,8 +768,8 @@ export const SKYHOST_JOB_AREAS = [
     title: "Detaljer",
     purpose: "Jobbets identitet, instruktion, datoer, ansvar, tildeling og bilag.",
     remaining:
-      "Kunde-/kontaktfelter, jobtyper, ekstra felter, nummerserier, kalender og gentagelse skal samles.",
-    featureIds: ["work:plan", "work:execution"],
+      "Kunde- og kontaktfelter, jobtyper, ekstra felter, nummerserier, kapacitet og gentagelser mangler.",
+    featureIds: ["work:plan", "work:execution", "work:calendar", "work:schedule"],
     planned: false,
   },
   {
@@ -875,6 +903,7 @@ export const INTEGRATION_FEATURES: ProgramFeature[] = [
 export const PROGRAM_FEATURES = [
   ...PROJECT_FEATURES,
   ...TASK_FEATURES,
+  ...planningFeatures,
   ...PROGRAM_PAGES,
   ...INTEGRATION_FEATURES,
   ...PLANNED_FEATURES,
@@ -925,6 +954,13 @@ export function programFeatureLink(
   if (d.kind === "route") return { to: d.selectAt ?? d.path, search: {} };
   if (!projectId) return { to: "/app/projects", search: {} };
   const search = projectViewSearch(context, d.view);
+  if (d.taskList) {
+    const { task: _task, work: _work, ...projectContext } = search;
+    return {
+      to: `/app/projects/${encodeURIComponent(projectId)}`,
+      search: { ...projectContext, taskList: d.taskList },
+    };
+  }
   return {
     to: `/app/projects/${encodeURIComponent(projectId)}`,
     search: { ...search, ...(d.work ? { work: d.work } : {}) },

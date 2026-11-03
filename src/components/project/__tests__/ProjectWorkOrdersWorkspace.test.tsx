@@ -118,6 +118,7 @@ async function render(
   canEdit = true,
   controlled = false,
   initialView?: WorkOrderView,
+  initialListView?: "calendar",
 ) {
   function RouteHarness() {
     const [selected, select] = useState(task);
@@ -128,6 +129,7 @@ async function render(
         canEdit={canEdit}
         selectedActionId={controlled ? selected : task}
         initialView={initialView}
+        initialListView={initialListView}
         onSelectAction={(id) => {
           m.navigate(id);
           if (controlled) select(id);
@@ -303,6 +305,12 @@ it("searches the full project while limiting the rendered task list", async () =
   expect(m.navigate).toHaveBeenCalledWith("task-1000");
 });
 
+it("opens the calendar directly when the project link specifies it", async () => {
+  m.schedule.mockResolvedValue({});
+  await render(undefined, true, false, undefined, "calendar");
+  expect(host.querySelector('button[aria-pressed="true"]')?.textContent).toBe("Kalender");
+  expect(m.schedule).toHaveBeenCalledWith(scope);
+});
 describe("one task across the project workspaces", () => {
   it("moves to the next step without discarding the current plan draft", async () => {
     await render("first");

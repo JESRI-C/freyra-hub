@@ -21,6 +21,7 @@ import { getMyProjectRole, permissionsFor } from "@/services/project-members-ser
 import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/supabase/types";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
+import type { WorkOrderListView } from "@/lib/work-order-navigation";
 import { ProjectWorkOrdersWorkspace, type WorkOrderView } from "./ProjectWorkOrdersWorkspace";
 import { countCanonicalProjectOriginals } from "@/services/project-media-service";
 import { listProjectBaselines } from "@/lib/public-baseline.functions";
@@ -114,6 +115,8 @@ export function MunicipalCaseWorkspace({
   selectedActionId,
   onSelectAction,
   initialWorkOrderView,
+  initialTaskList,
+  onTaskList,
   embedded = false,
 }: {
   project: Project;
@@ -125,6 +128,8 @@ export function MunicipalCaseWorkspace({
   selectedActionId?: string;
   onSelectAction?: (id: string | undefined, view?: WorkOrderView) => void;
   initialWorkOrderView?: WorkOrderView;
+  initialTaskList?: WorkOrderListView;
+  onTaskList?: (view: WorkOrderListView) => void;
   embedded?: boolean;
 }) {
   const { user, selectProject, projectId: selectedProjectId } = useAuth();
@@ -463,6 +468,8 @@ export function MunicipalCaseWorkspace({
                 canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
                 selectedActionId={selectedActionId}
                 initialView={initialWorkOrderView}
+                initialListView={initialTaskList}
+                onListView={onTaskList}
                 onSelectAction={onSelectAction}
               />
             )}

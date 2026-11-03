@@ -1,4 +1,8 @@
-import { WORK_ORDER_PARTS, type WorkOrderView } from "@/lib/work-order-navigation";
+import {
+  WORK_ORDER_PARTS,
+  type WorkOrderView,
+  type WorkOrderListView,
+} from "@/lib/work-order-navigation";
 import { Calendar } from "@/components/ui/calendar";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { da } from "react-day-picker/locale";
@@ -27,6 +31,8 @@ type Props = {
   selectedActionId?: string;
   onSelectAction?: (id: string | undefined, view?: WorkOrderView) => void;
   initialView?: WorkOrderView;
+  initialListView?: WorkOrderListView;
+  onListView?: (view: WorkOrderListView) => void;
 };
 export type { WorkOrderView } from "@/lib/work-order-navigation";
 type Part = WorkOrderView;
@@ -63,11 +69,18 @@ function WorkOrders({
   onSelectAction,
   actorId,
   initialView,
+  initialListView,
+  onListView,
 }: Props & { actorId?: string }) {
   const cache = useQueryClient();
   const loadAccess = useServerFn(getFieldJobAccess);
   const [localActionId, setLocalAction] = useState("");
-  const [listView, setListView] = useState<"tasks" | "schedule" | "calendar">("tasks");
+  const [localListView, setLocalListView] = useState<WorkOrderListView>("tasks");
+  const listView = initialListView ?? localListView;
+  function setListView(view: WorkOrderListView) {
+    setLocalListView(view);
+    onListView?.(view);
+  }
   const [month, setMonth] = useState(() => new Date());
   const [day, setDay] = useState<Date>();
   const [responsible, setResponsible] = useState("");

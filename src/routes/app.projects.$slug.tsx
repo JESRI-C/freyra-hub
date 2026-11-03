@@ -1,4 +1,8 @@
-import { isWorkOrderView } from "@/lib/work-order-navigation";
+import {
+  isWorkOrderListView,
+  isWorkOrderView,
+  type WorkOrderListView,
+} from "@/lib/work-order-navigation";
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -130,6 +134,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
     step?: MunicipalStep;
     task?: string;
     work?: WorkOrderView;
+    taskList?: WorkOrderListView;
   } => ({
     ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
       ? { step: search.step as MunicipalStep }
@@ -146,6 +151,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
       ? { task: search.task.toLowerCase() }
       : {}),
     ...(isWorkOrderView(search.work) ? { work: search.work as WorkOrderView } : {}),
+    ...(isWorkOrderListView(search.taskList) ? { taskList: search.taskList } : {}),
   }),
   head: () => ({ meta: [{ title: "Projekt — Freyra" }] }),
   // Project reads depend on the browser-persisted Supabase session. Rendering
@@ -209,6 +215,8 @@ function MunicipalProjectPage({ step }: { step: MunicipalStep }) {
       selectedRoundId={search.round}
       selectedActionId={search.task}
       initialWorkOrderView={search.work}
+      initialTaskList={search.taskList}
+      onTaskList={(taskList) => void navigate({ search: { ...search, taskList }, replace: true })}
       onSelectAction={(task, view) =>
         void navigate({ search: { ...search, task, work: view ?? search.work }, replace: true })
       }
@@ -637,6 +645,10 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                     canEdit={canEdit}
                     selectedActionId={search.task}
                     initialView={search.work}
+                    initialListView={search.taskList}
+                    onListView={(taskList) =>
+                      void navigate({ search: { ...search, taskList }, replace: true })
+                    }
                     onSelectAction={(task, view) =>
                       void navigate({
                         search: { ...search, task, work: view ?? search.work },

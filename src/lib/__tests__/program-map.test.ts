@@ -85,6 +85,24 @@ describe("program map destinations", () => {
     const task = PROGRAM_FEATURES.find((f) => f.id === "work:submission")!;
     expect(programFeatureLink(task)).toEqual({ to: "/app/projects", search: {} });
   });
+  it("opens planning tools on the project list without retaining a selected task", () => {
+    for (const view of ["calendar", "schedule"] as const) {
+      const feature = PROGRAM_FEATURES.find((item) => item.id === "work:" + view)!;
+      expect(feature.status).toBe("existing");
+      expect(
+        programFeatureLink(feature, "project-a", {
+          task: "task-a",
+          work: "submission",
+          step: "rapport",
+          round: "round-a",
+        }),
+      ).toEqual({
+        to: "/app/projects/project-a",
+        search: { tab: "handlinger", taskList: view, round: "round-a" },
+      });
+    }
+    expect(PROGRAM_FEATURES.find((item) => item.id === "planned:capacity")?.status).toBe("planned");
+  });
   it("never turns a planned capability into an active link", () => {
     for (const feature of PROGRAM_FEATURES.filter((f) => f.status === "planned"))
       expect(programFeatureLink(feature, "project-a")).toBeUndefined();
