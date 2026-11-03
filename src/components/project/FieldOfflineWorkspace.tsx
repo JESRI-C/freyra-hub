@@ -1,6 +1,6 @@
 import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 import { programPageGuide } from "@/lib/program-map";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { Camera, CloudUpload, Download, LockKeyhole, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -90,12 +90,25 @@ export function FieldOfflineWorkspace({
   const projectRef = useRef(projectId);
   projectRef.current = projectId;
   const pack = packs.find((p) => p.projectId === projectId);
+  const canOpenWorkOrderEvidence =
+    online &&
+    projectId === requestedProject &&
+    !!requestedActionId &&
+    !!actor &&
+    pack?.actorId === actor &&
+    pack.jobs.some((job) => job.actionId === requestedActionId);
   const queueReady = !!queue && queue.actor === actor && queue.projectId === projectId;
   const items = queueReady ? queue.items : [];
   const cancelledCount = items.filter((item) => item.lastError === "cancelled").length;
   const pendingCount = items.filter(
     (item) => item.state !== "complete" && item.lastError !== "cancelled",
   ).length;
+
+  function guardDraftNavigation(event: MouseEvent<HTMLAnchorElement>) {
+    if (!dirty) return;
+    event.preventDefault();
+    setError("Gem eller fortryd ændringerne, før du forlader feltsiden.");
+  }
 
   useBlocker({
     shouldBlockFn: () => {
@@ -306,16 +319,7 @@ export function FieldOfflineWorkspace({
           er net.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Link
-            to="/select"
-            className={button}
-            onClick={(event) => {
-              if (dirty) {
-                event.preventDefault();
-                setError("Gem eller fortryd ændringerne, før du forlader feltsiden.");
-              }
-            }}
-          >
+          <Link to="/select" className={button} onClick={guardDraftNavigation}>
             Dashboard og login
           </Link>
           {actor && (
@@ -336,14 +340,25 @@ export function FieldOfflineWorkspace({
               work: projectId === requestedProject && requestedActionId ? "field" : undefined,
             }}
             className="inline-block min-h-11 py-2 text-sm underline"
-            onClick={(event) => {
-              if (dirty) {
-                event.preventDefault();
-                setError("Gem eller fortryd ændringerne, før du forlader feltsiden.");
-              }
-            }}
+            onClick={guardDraftNavigation}
           >
             Tilbage til sagen med net
+          </Link>
+        )}
+        {canOpenWorkOrderEvidence && (
+          <Link
+            to="/app/projects/$slug"
+            params={{ slug: projectId }}
+            search={{
+              tab: "handlinger",
+              round: requestedRound,
+              task: requestedActionId,
+              work: "evidence",
+            }}
+            className={button}
+            onClick={guardDraftNavigation}
+          >
+            Knyt dokumentation til opgaven
           </Link>
         )}
       </header>

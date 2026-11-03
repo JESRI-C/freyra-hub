@@ -2,14 +2,16 @@ import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 import { programPageGuide } from "@/lib/program-map";
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
+import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import {
   claimProjectWorkOrderPool,
   listCurrentUserWorkOrders,
 } from "@/lib/work-order-assignments.functions";
 import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignments";
+import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
@@ -226,8 +228,26 @@ function TaskCard({
   onOpen: () => void;
 }) {
   const canExecute = task.can_execute && !task.cancelled;
+  const canPlan = task.can_plan && !task.cancelled;
   const claim = useServerFn(claimProjectWorkOrderPool),
     cache = useQueryClient();
+  const loadFieldAccess = useServerFn(getFieldJobAccess);
+  const fieldAccess = useQuery({
+    queryKey: ["field-job-access", actorId, task.project_id],
+    queryFn: () => loadFieldAccess({ data: { projectId: task.project_id } }),
+    enabled: active && canExecute && !task.waiting_for_prerequisites,
+    retry: false,
+    refetchOnWindowFocus: !locked,
+    refetchOnReconnect: !locked,
+  });
+  const canContributeField =
+    active &&
+    canExecute &&
+    !task.waiting_for_prerequisites &&
+    fieldAccess.isSuccess &&
+    fieldAccess.data.userId === actorId &&
+    fieldAccess.data.projectId === task.project_id &&
+    fieldAccess.data.canContribute;
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
@@ -297,6 +317,20 @@ function TaskCard({
               : " · Ledig"
           : ""}
       </p>
+      <dl aria-label="Planlagt tid og sted" className="space-y-1 text-sm">
+        <div className="flex flex-wrap gap-x-2">
+          <dt className="font-medium">
+            {task.plan.plannedEnd ? "Planlagt periode" : "Planlagt start"}
+          </dt>
+          <dd>{scheduleLabel({ start: task.plan.plannedStart, end: task.plan.plannedEnd })}</dd>
+        </div>
+        {task.plan.locationNote && (
+          <div>
+            <dt className="font-medium">Sted</dt>
+            <dd className="line-clamp-2 [overflow-wrap:anywhere]">{task.plan.locationNote}</dd>
+          </div>
+        )}
+      </dl>
       {task.cancelled && (
         <p className="rounded-xl border bg-muted px-3 py-2 text-sm font-medium">
           Aflyst. Se instruktion og historik ved at åbne opgaven.
@@ -431,19 +465,21 @@ function TaskCard({
               if (locked && !evidenceEditing) event.preventDefault();
             }}
           >
-            Se dokumentation
+            {canContributeField ? "Dokumentation" : "Se dokumentation"}
           </summary>
           {evidenceOpened && (
-            <WorkOrderEvidencePanel
-              scope={{ organizationId: task.organization_id, projectId: task.project_id }}
-              actorId={actorId}
-              actionId={task.action_id}
-              canContribute={false}
-              onEditing={(value) => {
-                setEvidenceEditing(value);
-                reportEditing("evidence", value);
-              }}
-            />
+            <fieldset disabled={(locked && !evidenceEditing) || busy} className="min-w-0">
+              <WorkOrderEvidencePanel
+                scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+                actorId={actorId}
+                actionId={task.action_id}
+                canContribute={canContributeField}
+                onEditing={(value) => {
+                  setEvidenceEditing(value);
+                  reportEditing("evidence", value);
+                }}
+              />
+            </fieldset>
           )}
         </details>
         <details
@@ -457,20 +493,22 @@ function TaskCard({
               if (locked && !submissionEditing) event.preventDefault();
             }}
           >
-            Se afleveringsversioner
+            {canExecute ? "Aflevering og historik" : "Se afleveringsversioner"}
           </summary>
           {submissionOpened && (
-            <WorkOrderSubmissionPanel
-              scope={{ organizationId: task.organization_id, projectId: task.project_id }}
-              actorId={actorId}
-              actionId={task.action_id}
-              readOnly
-              allowReviewInReadOnly={!task.cancelled}
-              onEditing={(value) => {
-                setSubmissionEditing(value);
-                reportEditing("submission", value);
-              }}
-            />
+            <fieldset disabled={(locked && !submissionEditing) || busy} className="min-w-0">
+              <WorkOrderSubmissionPanel
+                scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+                actorId={actorId}
+                actionId={task.action_id}
+                readOnly={!canExecute}
+                allowReviewInReadOnly={!task.cancelled}
+                onEditing={(value) => {
+                  setSubmissionEditing(value);
+                  reportEditing("submission", value);
+                }}
+              />
+            </fieldset>
           )}
         </details>
         {(canExecute || timeOpened) && (
@@ -533,13 +571,14 @@ function TaskCard({
             )}
           </details>
         )}
-        {task.can_plan && !task.cancelled && (
+        {(canPlan || canContributeField) && (
           <div className="grid gap-2 sm:grid-cols-2">
             <Link
               to="/app/projects/$slug"
               params={{ slug: task.project_id }}
               search={{ step: "udfoerelse", task: task.action_id, work: "execution" }}
               className={button}
+              disabled={locked || busy}
             >
               Registrér udført arbejde
             </Link>
@@ -547,6 +586,7 @@ function TaskCard({
               to="/felt"
               search={{ project: task.project_id, task: task.action_id }}
               className={button}
+              disabled={locked || busy}
             >
               Tag fotos på projektet
             </Link>

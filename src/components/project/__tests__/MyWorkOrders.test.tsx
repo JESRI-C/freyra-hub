@@ -7,6 +7,7 @@ import { emptyWorkOrderPlan } from "@/lib/work-order-plan";
 const m = vi.hoisted(() => ({
   load: vi.fn(),
   claim: vi.fn(),
+  fieldAccess: vi.fn(),
   actor: "00000000-0000-4000-8000-000000000001" as string | null,
 }));
 vi.mock("@/lib/auth", () => ({
@@ -17,18 +18,59 @@ vi.mock("@/lib/work-order-assignments.functions", () => ({
   listCurrentUserWorkOrders: m.load,
   claimProjectWorkOrderPool: m.claim,
 }));
+vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.fieldAccess }));
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ to, children, search }: { to: string; children: React.ReactNode; search?: unknown }) => (
-    <a href={to} data-search={JSON.stringify(search)}>
+  Link: ({
+    to,
+    children,
+    search,
+    params,
+    disabled,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    search?: unknown;
+    params?: unknown;
+    disabled?: boolean;
+  }) => (
+    <a
+      href={disabled ? undefined : to}
+      aria-disabled={disabled}
+      data-search={JSON.stringify(search)}
+      data-params={JSON.stringify(params)}
+    >
       {children}
     </a>
   ),
 }));
 import { MyWorkOrders } from "../MyWorkOrders";
 vi.mock("../WorkOrderSubmissionPanel", () => ({
-  WorkOrderSubmissionPanel: ({ actionId, readOnly }: { actionId: string; readOnly: boolean }) => (
-    <div data-submission-task={actionId} data-read-only={readOnly}>
+  WorkOrderSubmissionPanel: ({
+    actionId,
+    actorId,
+    scope,
+    readOnly,
+    allowReviewInReadOnly,
+    onEditing,
+  }: {
+    actionId: string;
+    actorId: string;
+    scope: { organizationId: string; projectId: string };
+    readOnly: boolean;
+    allowReviewInReadOnly: boolean;
+    onEditing: (value: boolean) => void;
+  }) => (
+    <div
+      data-submission-task={actionId}
+      data-actor={actorId}
+      data-project={scope.projectId}
+      data-organization={scope.organizationId}
+      data-read-only={readOnly}
+      data-allow-review={allowReviewInReadOnly}
+    >
       Afleveringsgrundlag
+      <button onClick={() => onEditing(true)}>Synthetic edit submission</button>
+      <button onClick={() => onEditing(false)}>Synthetic cancel submission</button>
     </div>
   ),
 }));
@@ -107,6 +149,11 @@ beforeEach(() => {
   m.actor = id(1);
   m.load.mockResolvedValue({ items: [task], nextAfterActionId: null });
   m.claim.mockRejectedValue(new Error("Synthetic lost response"));
+  m.fieldAccess.mockResolvedValue({
+    userId: task.user_id,
+    projectId: task.project_id,
+    canContribute: false,
+  });
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -118,6 +165,48 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("shows the saved plan window and location before an assigned worker opens the task", async () => {
+    const assigned = {
+      ...task,
+      assignment_mode: "person",
+      can_claim: false,
+      can_execute: true,
+    };
+    m.load.mockResolvedValue({
+      items: [
+        {
+          ...assigned,
+          plan: {
+            ...task.plan,
+            plannedStart: "2026-11-05",
+            plannedEnd: "2026-11-07",
+            locationNote: "Ved den nordlige låge",
+          },
+        },
+        {
+          ...assigned,
+          action_id: id(10),
+          plan: { ...emptyWorkOrderPlan("Startdato"), plannedStart: "2026-11-09" },
+        },
+        { ...assigned, action_id: id(11), plan: emptyWorkOrderPlan("Afventer dato") },
+      ],
+      nextAfterActionId: null,
+    });
+
+    await render();
+
+    const previews = [...host.querySelectorAll('dl[aria-label="Planlagt tid og sted"]')];
+    expect(previews).toHaveLength(3);
+    expect(previews.every((preview) => !preview.closest("[hidden]"))).toBe(true);
+    expect(previews[0].textContent).toContain("Planlagt periode");
+    expect(previews[0].textContent).toContain("5. nov. 2026 – 7. nov. 2026");
+    expect(previews[0].textContent).toContain("Ved den nordlige låge");
+    expect(previews[1].textContent).toContain("Planlagt start");
+    expect(previews[1].textContent).toContain("9. nov. 2026");
+    expect(previews[1].textContent).not.toContain("Sted");
+    expect(previews[2].textContent).toContain("Ingen planlagt dato");
+  });
+
   it("submits a title search with the selected status and clears it explicitly", async () => {
     await render();
     await click("Aktive");
@@ -196,6 +285,143 @@ describe("mobile personal tasks", () => {
     expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.textContent).toContain(
       "Synthetic instructions",
     );
+  });
+
+  it("opens the exact task in the field workspace and enables its existing manual evidence link for a project contributor", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, assignment_mode: "person", can_claim: false, can_execute: true }],
+      nextAfterActionId: null,
+    });
+    m.fieldAccess.mockResolvedValue({
+      userId: task.user_id,
+      projectId: task.project_id,
+      canContribute: true,
+    });
+    await render();
+    expect(m.fieldAccess).not.toHaveBeenCalled();
+    await openTask();
+    expect(m.fieldAccess).toHaveBeenCalledWith({ data: { projectId: task.project_id } });
+    const photo = host.querySelector('a[href="/felt"]')!;
+    expect(photo.textContent).toBe("Tag fotos på projektet");
+    expect(JSON.parse(photo.getAttribute("data-search")!)).toEqual({
+      project: task.project_id,
+      task: task.action_id,
+    });
+    const execution = [...host.querySelectorAll("a")].find(
+      (link) => link.textContent === "Registrér udført arbejde",
+    )!;
+    expect(execution.getAttribute("href")).toBe("/app/projects/$slug");
+    expect(JSON.parse(execution.getAttribute("data-params")!)).toEqual({ slug: task.project_id });
+    expect(JSON.parse(execution.getAttribute("data-search")!)).toEqual({
+      step: "udfoerelse",
+      task: task.action_id,
+      work: "execution",
+    });
+
+    const evidence = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Dokumentation",
+    )!;
+    await act(async () => {
+      evidence.open = true;
+      evidence.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    const panel = host.querySelector<HTMLElement>("[data-evidence-task]")!;
+    expect(panel.dataset.evidenceTask).toBe(task.action_id);
+    expect(panel.dataset.canContribute).toBe("true");
+    await click("Synthetic open original");
+    expect(photo.getAttribute("aria-disabled")).toBe("true");
+    expect(photo.getAttribute("href")).toBeNull();
+    expect(execution.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it.each([
+    { kind: "outside project contribution", userId: id(1), projectId: id(4), canContribute: false },
+    { kind: "different user", userId: id(99), projectId: id(4), canContribute: true },
+    { kind: "different project", userId: id(1), projectId: id(99), canContribute: true },
+  ])("keeps field photos and evidence writes closed for $kind", async ({ kind: _, ...access }) => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, assignment_mode: "person", can_claim: false, can_execute: true }],
+      nextAfterActionId: null,
+    });
+    m.fieldAccess.mockResolvedValue(access);
+    await render();
+    await openTask();
+    expect(host.textContent).not.toContain("Tag fotos på projektet");
+    expect(host.textContent).not.toContain("Registrér udført arbejde");
+    const evidence = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Se dokumentation",
+    )!;
+    await act(async () => {
+      evidence.open = true;
+      evidence.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    expect(host.querySelector<HTMLElement>("[data-evidence-task]")?.dataset.canContribute).toBe(
+      "false",
+    );
+  });
+
+  it.each([
+    { canExecute: true, cancelled: false, readOnly: false, allowReview: true },
+    { canExecute: false, cancelled: false, readOnly: true, allowReview: true },
+    { canExecute: true, cancelled: true, readOnly: true, allowReview: false },
+  ])("uses exact task scope and execution access for submission (%j)", async (access) => {
+    m.load.mockResolvedValue({
+      items: [
+        {
+          ...task,
+          assignment_mode: "person",
+          can_claim: false,
+          can_execute: access.canExecute,
+          cancelled: access.cancelled,
+        },
+      ],
+      nextAfterActionId: null,
+    });
+    await render();
+    await openTask();
+    const submission = [...host.querySelectorAll("details")].find(
+      (d) =>
+        d.querySelector("summary")?.textContent ===
+        (access.readOnly ? "Se afleveringsversioner" : "Aflevering og historik"),
+    )!;
+    await act(async () => {
+      submission.open = true;
+      submission.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+
+    const panel = host.querySelector<HTMLElement>("[data-submission-task]")!;
+    expect(panel.dataset).toMatchObject({
+      submissionTask: task.action_id,
+      actor: task.user_id,
+      project: task.project_id,
+      organization: task.organization_id,
+      readOnly: String(access.readOnly),
+      allowReview: String(access.allowReview),
+    });
+    if (access.readOnly) return;
+
+    await click("Synthetic edit submission");
+    expect(panel.closest("fieldset")?.disabled).toBe(false);
+    expect(
+      [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "Opdater opgaver",
+      )?.disabled,
+    ).toBe(true);
+    await click("Synthetic cancel submission");
+
+    const status = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Status og logbog",
+    )!;
+    await act(async () => {
+      status.open = true;
+      status.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    await click("Synthetic edit status");
+    expect(panel.closest("fieldset")?.disabled).toBe(true);
   });
 
   it("opens exact-task documentation as read-only and retains the status editor lock", async () => {
