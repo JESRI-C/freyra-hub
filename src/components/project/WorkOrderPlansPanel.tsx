@@ -22,6 +22,7 @@ import {
   type WorkOrderFollowUpSource,
 } from "@/lib/work-order-plan";
 import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
+import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
@@ -500,15 +501,17 @@ function PlanWorkspace({
     enabled: checkOverlap,
     retry: false,
   });
-  const overlappingCount =
+  const overlapping =
     checkOverlap && schedule.isSuccess
       ? Object.entries(schedule.data).filter(
           ([id, plan]) =>
             id !== actionId &&
             plan.responsibleId === responsibleId &&
             workOrderPlanOverlaps(plan, draftStart, draftEnd),
-        ).length
-      : 0;
+        )
+      : [];
+  const overlappingCount = overlapping.length;
+  const candidateTitles = new Map(candidates.map(({ id, title }) => [id, title]));
   const dateFields = draft && (
     <>
       <label className="block text-sm">
@@ -530,11 +533,30 @@ function PlanWorkspace({
         />
       </label>
       {checkOverlap && (overlappingCount > 0 || schedule.isError) && (
-        <p role="status" className="rounded-lg border p-3 text-sm sm:col-span-2">
-          {schedule.isError
-            ? "Kalenderen kunne ikke kontrolleres for overlappende opgaver."
-            : `Den ansvarlige har ${overlappingCount === 1 ? "én anden opgave" : `${overlappingCount} andre opgaver`} i perioden. Kontrollér arbejdsfordelingen, før du gemmer.`}
-        </p>
+        <div className="space-y-2 rounded-lg border p-3 text-sm sm:col-span-2">
+          <p role="status">
+            {schedule.isError
+              ? "Kalenderen kunne ikke kontrolleres for overlappende opgaver."
+              : `Den ansvarlige har ${overlappingCount === 1 ? "én anden opgave" : `${overlappingCount} andre opgaver`} i perioden. Kontrollér arbejdsfordelingen, før du gemmer.`}
+          </p>
+          {overlappingCount > 0 && (
+            <details>
+              <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                Se overlappende opgaver
+              </summary>
+              <ul className="space-y-2 [overflow-wrap:anywhere]">
+                {overlapping.map(([id, plan]) => (
+                  <li key={id}>
+                    <span className="block font-medium">
+                      {candidateTitles.get(id) ?? "Opgave uden tilgængelig titel"}
+                    </span>
+                    <span className="text-muted-foreground">{scheduleLabel(plan)}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
       )}
     </>
   );

@@ -641,6 +641,12 @@ describe("work-order plan editor", () => {
       plannedEnd: null,
     };
     m.history.mockResolvedValue({ items: [{ ...row(), plan }], nextBeforeVersion: null });
+    m.actions.mockResolvedValue([
+      { id: actionId, title: "Opgaven der redigeres", status: "Åben" },
+      { id: id(90), title: "Tilsyn i mosen", status: "Åben" },
+      { id: id(91), title: "Aflyst besøg", status: "Åben" },
+      { id: id(92), title: "Tilsyn med anden ansvarlig", status: "Åben" },
+    ]);
     const scheduled = {
       start: "2026-11-09",
       end: "2026-11-10",
@@ -655,6 +661,12 @@ describe("work-order plan editor", () => {
     });
     await open(false, true);
     expect(host.textContent).toContain("Den ansvarlige har én anden opgave i perioden.");
+    const details = [...host.querySelectorAll("details")].find(
+      (entry) => entry.querySelector("summary")?.textContent === "Se overlappende opgaver",
+    );
+    expect(details?.querySelectorAll("li")).toHaveLength(1);
+    expect(details?.textContent).toContain("Tilsyn i mosen");
+    expect(details?.textContent).toContain("9. nov. 2026 – 10. nov. 2026");
     await fill("Planlagt fra", "2026-11-11");
     expect(host.textContent).not.toContain("Den ansvarlige har én anden opgave i perioden.");
   });
