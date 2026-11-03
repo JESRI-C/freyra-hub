@@ -190,6 +190,8 @@ SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id
 SELECT is((SELECT unit_price_ore FROM public.project_material_unit_prices WHERE id=pg_temp.k(334)),1995,
  'the initial unit price remains available after an update');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'field users cannot read project material billing');
 SELECT is((SELECT count(*) FROM public.project_material_unit_prices WHERE catalog_id=pg_temp.k(330)),0::bigint,
  'field users cannot read catalog prices');
 SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
@@ -265,6 +267,28 @@ SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct wor
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
 SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.material_export() RETURNS jsonb LANGUAGE sql AS $$
+  SELECT public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),
+    (now() at time zone 'Europe/Copenhagen')::date,(now() at time zone 'Europe/Copenhagen')::date);
+$$;
+SELECT is((SELECT (r->>'unit_price_ore')::integer FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),0,'historical zero price is distinct from a missing price');
+SELECT is((SELECT r->>'amount_ore' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(320)::text),NULL::text,'free-text material is explicitly unpriced');
+UPDATE public.project_material_catalog SET active=true WHERE id=pg_temp.k(330);
+INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(338),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),3,1995);
+INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(339),pg_temp.k(339),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1250,1,pg_temp.k(330));
+SELECT is((SELECT (r->>'amount_ore')::bigint FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(339)::text),2494::bigint,'billing rounds the material line to the nearest ore');
+SELECT is((SELECT r->>'price_version_id' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),pg_temp.k(335)::text,'price changes do not reprice earlier usage');
+SELECT is((SELECT r->>'material_version_id' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),pg_temp.k(332)::text,'billing traces the latest corrected quantity');
+SELECT throws_ok($$SELECT public.get_project_material_billing_export(pg_temp.k(12),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'material billing rejects a mismatched organization');
 SELECT is((SELECT actor_id FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) WHERE entry_id=pg_temp.k(320)),
  pg_temp.k(2),'the manager can see the recorded material with the authenticated field author');
 SELECT is((SELECT count(*) FROM public.list_work_order_material_usage(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))),

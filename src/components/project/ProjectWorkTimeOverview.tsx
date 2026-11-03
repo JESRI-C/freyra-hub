@@ -1,3 +1,4 @@
+import { ProjectMaterialBillingExport } from "./ProjectMaterialBillingExport";
 import { ProjectApprovedTimeExport } from "./ProjectApprovedTimeExport";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -94,6 +95,7 @@ export function ProjectWorkTimeOverview({
         Godkendte timer kan bruges i faktureringsgrundlaget.
       </p>
       <ProjectApprovedTimeExport scope={scope} actorId={actorId} active={active && !locked} />
+      <ProjectMaterialBillingExport scope={scope} actorId={actorId} active={active && !locked} />
       {query.isPending && <p role="status">Henter projektets timer…</p>}
       {query.isError && (
         <div>
