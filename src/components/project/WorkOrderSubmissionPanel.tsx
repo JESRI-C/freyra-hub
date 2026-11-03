@@ -121,6 +121,7 @@ export function WorkOrderSubmissionPanel({
   async function save() {
     if (
       !writable ||
+      context.isFetching ||
       reviewClosed ||
       reviewEditing ||
       !c?.basis_hash ||
@@ -203,7 +204,9 @@ export function WorkOrderSubmissionPanel({
           ikke de gemte afleveringsversioner.
         </p>
       </header>
-      {context.isPending && <p role="status">Kontrollerer afleveringsgrundlaget…</p>}
+      {(context.isPending || context.isFetching) && (
+        <p role="status">Kontrollerer afleveringsgrundlaget…</p>
+      )}
       {(context.error || error || history.error) && (
         <p role="alert">{context.error?.message || error || history.error?.message}</p>
       )}
@@ -256,9 +259,9 @@ export function WorkOrderSubmissionPanel({
                             <button
                               type="button"
                               className="block min-h-11 text-left font-medium text-primary underline underline-offset-2 disabled:opacity-50"
-                              disabled={locked}
+                              disabled={locked || context.isFetching}
                               onClick={() => {
-                                if (!locked) onOpenPart(part.id);
+                                if (!locked && !context.isFetching) onOpenPart(part.id);
                               }}
                             >
                               Åbn {part.label}
@@ -278,10 +281,17 @@ export function WorkOrderSubmissionPanel({
                 </div>
               )}
               {!c?.gaps?.length && (
-                <p className="text-sm">
-                  Planversion {c?.plan_version} · udførelsesversion {c?.execution_version} ·{" "}
-                  {c?.evidence_count} dokumentationskoblinger.
-                </p>
+                <div className="space-y-1 text-sm">
+                  {!context.isFetching && (
+                    <p className="font-medium">
+                      Grundlaget er klar til at blive gemt som en afleveringsversion.
+                    </p>
+                  )}
+                  <p>
+                    Planversion {c?.plan_version} · udførelsesversion {c?.execution_version} ·{" "}
+                    {c?.evidence_count} dokumentationskoblinger.
+                  </p>
+                </div>
               )}
               {c?.context_changed && (
                 <p className="text-sm">

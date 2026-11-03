@@ -348,6 +348,8 @@ ikke aktiveret af denne planændring. Eget estimat følger.
 
 Afleveringskontrollen grupperer nu de konkrete mangler efter arbejdsområde i opgavens rækkefølge. Projektlederen får én genvej pr. område og kan stadig se hver mangel, som serveren fandt. En komponentprøve viser flere mangler i arbejdsgrundlaget før dokumentation, kontrollerer genvejene og bekræfter, at en ufuldstændig aflevering ikke kan gemmes.
 
+Når brugeren vender tilbage efter en rettelse, viser Aflevering, at grundlaget kontrolleres igen. Genveje og gemmehandling afventer kontrollen. Når serverens aktuelle mangelliste er tom, viser Freyra, at grundlaget kan gemmes som en afleveringsversion. Komponentprøven dækker opdateringen fra manglende dokumentation til klar til at gemme.
+
 Browserprøven i staging bestod ved 390 og 1280 px på kilde a1211f9 og Worker 552fbe7f-66ca-486d-8315-009270c1795e. Den syntetiske opgave viste Arbejdsgrundlag, Udført arbejde og Dokumentation i den rækkefølge. Enter på hver genvej åbnede og fokuserede det rigtige område på samme opgave. Gem afleveringsversion forblev deaktiveret. Prøven ændrede ingen opgavedata.
 
 Datokladden bestod stagingprøven i Chrome ved 390 px på kilde 055fe1f og Worker 4cc912fb-c39d-442c-b014-7c2d19b83928. En syntetisk forudsætning med slutdato 6. januar gav 7. januar i kladden. Planhistorikken var uændret, mens kladden var åben. Projektlederen valgte 8. januar og gemte med begrundelse. Databasen viste den valgte dato som version 2, bevaret instruktion og uændret version 1.

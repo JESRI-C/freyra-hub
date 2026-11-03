@@ -98,6 +98,16 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("submission preparation on the existing task", () => {
+  it("shows the updated result after returning from a corrected workspace", async () => {
+    m.context.mockResolvedValueOnce({ ...context(), gaps: ["evidence_missing"] });
+    await render();
+    expect(host.textContent).toContain("Dette mangler");
+    await render(false, false);
+    m.context.mockResolvedValue(context());
+    await render();
+    expect(host.textContent).not.toContain("Dette mangler");
+    expect(host.textContent).toContain("Grundlaget er klar til at blive gemt");
+  });
   it("shows concrete gaps and cannot save an incomplete task", async () => {
     m.context.mockResolvedValue({
       ...context(),
