@@ -2,7 +2,7 @@ ALTER TABLE public.work_order_prerequisite_versions ADD COLUMN prerequisite_acti
 CREATE INDEX work_order_prerequisite_array ON public.work_order_prerequisite_versions USING gin(prerequisite_action_ids);
 
 CREATE OR REPLACE FUNCTION private.guard_work_order_prerequisite() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $
+LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
 DECLARE selected_ids uuid[];
 BEGIN
   IF auth.uid() IS NULL OR NOT coalesce(private.can_manage_project(NEW.project_id),false) THEN
