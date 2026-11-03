@@ -95,6 +95,22 @@ afterEach(async () => {
   host.remove();
 });
 describe("version-bound review on the existing task", () => {
+  it("explains the next step on a returned delivery with and without a reopen action", async () => {
+    const context = reviewContext();
+    m.context.mockResolvedValue({
+      ...context,
+      can_reopen: true,
+      can_review: false,
+      state: { ...context.state, status: "returned", reason: "Tilføj foto af afslutningen." },
+    });
+    await render();
+    expect(host.textContent).toContain("Tilføj foto af afslutningen.");
+    expect(host.textContent).toContain("Genåbn opgaven for at rette manglerne");
+
+    await render({ readOnly: true });
+    expect(host.textContent).toContain("En person med adgang til at genåbne opgaven");
+    expect(host.textContent).not.toContain("Genåbn opgaven for at rette manglerne");
+  });
   it("does not let the author or performer review their own material", async () => {
     m.context.mockResolvedValue({ ...reviewContext(), self_review: true, can_review: false });
     await render();

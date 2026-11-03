@@ -295,6 +295,19 @@ export function WorkOrderReviewControls({
               egen udførelse eller dokumentation.
             </p>
           )}
+          {phase === "submitted" && !c?.self_review && (!allowReview || !c?.can_review) && (
+            <p className="text-sm">
+              Afleveringen afventer faglig gennemgang. En person med gennemgangsadgang tager
+              stilling til den gemte version.
+            </p>
+          )}
+          {phase === "returned" && !c?.state?.blocked && (
+            <p className="text-sm">
+              {!readOnly && c?.can_reopen
+                ? "Genåbn opgaven for at rette manglerne og aflevere en ny version."
+                : "En person med adgang til at genåbne opgaven skal sætte rettelserne i gang."}
+            </p>
+          )}
           {phase === "reopened" && (
             <p className="text-sm">
               Ret de relevante oplysninger, og bekræft udført status under Arbejdsgrundlag. Fasthold

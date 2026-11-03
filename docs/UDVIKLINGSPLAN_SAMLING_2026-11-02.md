@@ -712,3 +712,7 @@ Aflyste opgaver afviser nye feltregistreringer efter samme opgavelås som aflysn
 På staging afviste databasen en gyldig ny feltregistrering på den aflyste testopgave uden at tilføje en version. Login med testkontoen og kontrol af den udrullede kilde bestod. Kilde 5c320d1, Worker 559b1618-1a20-4843-9199-8d80e0e5cbe7 og stagingmigration 20261103150750.
 
 RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kladder bevaret efter aflysning stadig talte som afventende. Freyra viser nu de bevarede kladder særskilt og beholder eksporten i samme kø. En lokal komponentprøve med én aflyst og én aktiv kladde kontrollerer begge tællere, eksport og fravær af en genforsøgsknap på den aflyste kladde. Skyhost-kortlægningen er reference for jobforløbet. Denne særskilte køvisning er en Freyra-regel.
+
+### Fra aflevering til næste handling
+
+En afleveret opgave forklarer, hvem der tager over, når brugeren ikke selv kan gennemgå den. En returneret aflevering viser begrundelsen og forklarer, om brugeren selv kan genåbne opgaven, eller om en anden med adgang skal gøre det. Visningen bruger de samme tilladelser og den samme afleveringsversion som handlingsknapperne. Komponentprøven dækker begge visninger af en returneret aflevering. Browserprøve på staging afventes.
