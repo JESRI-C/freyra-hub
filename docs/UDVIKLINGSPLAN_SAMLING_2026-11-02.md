@@ -350,6 +350,8 @@ Hjælp placeres dér, hvor kunden arbejder. Første regel i Planoversigt finder 
 
 Planhjælpen finder også opgaver, der afventer en forudsætning. Genvejen bruger samme projektfilter som kalenderen. Opgaverækken kan åbne det arbejdsgrundlag, der skal afklares, hvis brugeren allerede har adgang til det. Komponentprøven dækker forløbet fra beskeden til forudsætningen. Stagingprøve af planhjælpen afventes.
 
+Browserprøven af afventende opgaver bestod på staging ved 390 og 1280 px, kilde 2bb95cc og Worker 743fd9e1-a864-48d5-9c25-51b8a914726f. Enter på planhjælpens genvej slog projektfilteret til, og opgaverækken åbnede den forventede forudsætnings arbejdsgrundlag. Tilbage til Planoversigt bevarede filteret. Prøven læste eksisterende syntetiske opgaver.
+
 Fra listen over opgaver uden startdato kan projektlederen åbne datoformularen direkte på en gemt plan. Brugeren vælger dato og begrundelse, og gemmehandlingen opretter en ny planversion. Opgaver uden en gemt plan åbnes stadig via arbejdsgrundlaget. Aflyste opgaver viser ingen datohandling i planoversigten. Komponentprøven kontrollerer, at genvejen åbner formularen på den valgte opgave. Stagingprøve af formularforløbet afventes.
 
 Browserprøven af datoformularen bestod ved 390 px på kilde 2bb95cc og Worker 743fd9e1-a864-48d5-9c25-51b8a914726f. Fra planhjælpen fandt projektlederen en syntetisk opgave uden dato og åbnede datoformularen direkte. Første startdato og begrundelse blev gemt som version 2, og arbejdsinstruktionen blev bevaret. Første testkørsel forventede kalenderens URL efter oprettelse fra planoversigten. Efter rettelse af den forventning bestod prøven.
