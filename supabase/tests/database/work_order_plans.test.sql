@@ -11,7 +11,7 @@ INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES
 INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_temp.k(11),'Synthetic plan project'),(pg_temp.k(22),pg_temp.k(11),'Synthetic other plan project'),(pg_temp.k(23),pg_temp.k(12),'Synthetic foreign plan project');
 INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'viewer'),(pg_temp.k(21),pg_temp.k(4),'external');
 INSERT INTO public.actions(id,project_id,title) SELECT pg_temp.k(n),pg_temp.k(21),'Synthetic plan action '||n FROM generate_series(31,35) n;
-INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(36),pg_temp.k(22),'Synthetic inaccessible action');
+INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(36),pg_temp.k(22),'Synthetic inaccessible action'),(pg_temp.k(37),pg_temp.k(21),'Synthetic follow-up'),(pg_temp.k(38),pg_temp.k(21),'Synthetic rejected follow-up');
 INSERT INTO public.sites(id,project_id,name) VALUES(pg_temp.k(51),pg_temp.k(21),'Synthetic same project site'),(pg_temp.k(52),pg_temp.k(22),'Synthetic other project site'),(pg_temp.k(55),pg_temp.k(21),'Synthetic second visit');
 INSERT INTO public.watercourse_versions(id,organization_id,project_id,version,geometry,crs,direction,source,length_m,method,created_by)
  VALUES(pg_temp.k(53),pg_temp.k(11),pg_temp.k(21),1,'{"type":"LineString","coordinates":[[9.4,55.2],[9.401,55.2]]}','EPSG:4326','unknown','Synthetic same project centerline',1,'fixture',pg_temp.k(1)),
@@ -289,5 +289,26 @@ SELECT lives_ok($$SELECT * FROM public.save_work_order_access(
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT throws_ok($$SELECT * FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31))$$,
  '42501',NULL,'revocation prevents subsequent field booking reads');
+RESET ROLE;
+SELECT set_config('test.foreign_plan', (SELECT id::text FROM public.work_order_plan_versions
+ WHERE action_id=pg_temp.k(36) AND version=1), true);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($SELECT * FROM public.save_work_order_plan(
+ pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(380),
+ (SELECT id FROM pg_temp.history(31) WHERE version=1)
+)$,'a new follow-up binds a specific source plan');
+SELECT is((SELECT source_plan_version_id FROM pg_temp.history(37)),
+ (SELECT id FROM pg_temp.history(31) WHERE version=1),'source is the exact earlier plan version');
+SELECT is((SELECT source_action_id FROM pg_temp.history(37)),pg_temp.k(31),'source action is derived from the source plan');
+SELECT lives_ok($SELECT pg_temp.save(1,381,pg_temp.plan(),37,11,21,'Synthetic correction')$,
+ 'legacy save appends a correction to the follow-up');
+SELECT is((SELECT source_plan_version FROM pg_temp.history(37) WHERE version=2),1,
+ 'follow-up corrections retain the original source version');
+SELECT throws_ok($SELECT * FROM public.save_work_order_plan(
+ pg_temp.k(38),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(382),
+ current_setting('test.foreign_plan')::uuid
+)$,'23503','Source plan is unavailable','another project cannot provide the source');
+SELECT is((SELECT count(*) FROM pg_temp.history(38)),0::bigint,'rejected source leaves no plan');
 SELECT * FROM finish();
 ROLLBACK;

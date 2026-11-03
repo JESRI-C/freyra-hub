@@ -381,6 +381,7 @@ describe("work-order plan editor", () => {
     expect(m.save).toHaveBeenCalledWith({
       data: expect.objectContaining({
         expectedVersion: 0,
+        sourcePlanVersionId: source.id,
         plan: expect.objectContaining({
           instructions: source.plan.instructions,
           profile: "watercourse",

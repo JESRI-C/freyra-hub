@@ -174,9 +174,16 @@ export const SaveWorkOrderPlanSchema = WorkOrderScopeSchema.extend({
   requestId: uuid,
   plan: WorkOrderPlanSchema,
   correctionReason: z.string().trim().max(2000),
+  sourcePlanVersionId: uuid.optional(),
 })
   .strict()
   .superRefine((input, ctx) => {
+    if (input.expectedVersion > 0 && input.sourcePlanVersionId)
+      ctx.addIssue({
+        code: "custom",
+        path: ["sourcePlanVersionId"],
+        message: "Kildeplanen vælges ved den første planversion.",
+      });
     if (input.expectedVersion > 0 && !input.correctionReason)
       ctx.addIssue({
         code: "custom",
@@ -193,6 +200,9 @@ export const WorkOrderPlanVersionSchema = z.object({
   version: z.number().int().positive(),
   plan: WorkOrderPlanSchema,
   correction_reason: z.string().trim().max(2000),
+  source_plan_version_id: uuid.nullish(),
+  source_action_id: uuid.nullish(),
+  source_plan_version: z.number().int().positive().nullish(),
   request_id: uuid,
   created_by: uuid,
   created_at: z.string().datetime({ offset: true }),

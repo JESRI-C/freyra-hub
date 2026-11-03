@@ -333,7 +333,8 @@ function PlanWorkspace({
               }
             : draft.watercourse,
       });
-      const signature = JSON.stringify({ plan, base, reason: reason.trim() });
+      const sourcePlanVersionId = base === 0 ? planSource?.id : undefined;
+      const signature = JSON.stringify({ plan, base, reason: reason.trim(), sourcePlanVersionId });
       if (attempt.current?.signature !== signature)
         attempt.current = { signature, id: crypto.randomUUID() };
       const saved = await save({
@@ -345,6 +346,7 @@ function PlanWorkspace({
           requestId: attempt.current.id,
           plan,
           correctionReason: reason,
+          ...(sourcePlanVersionId ? { sourcePlanVersionId } : {}),
         },
       });
       cache.setQueryData<Awaited<ReturnType<typeof listFieldJobSchedule>>>(
@@ -448,7 +450,22 @@ function PlanWorkspace({
       {!draft && history.data && !history.error && (
         <>
           {latest ? (
-            <WorkOrderPlanSummary row={latest} members={members.data ?? []} />
+            <>
+              <WorkOrderPlanSummary row={latest} members={members.data ?? []} />
+              {canPlan && latest.source_action_id && latest.source_plan_version && (
+                <p className="text-sm">
+                  Kilde: planversion {latest.source_plan_version}.{" "}
+                  <Link
+                    to="/app/projects/$slug"
+                    params={{ slug: scope.projectId }}
+                    search={{ tab: "handlinger", task: latest.source_action_id, work: "plan" }}
+                    className="text-primary underline underline-offset-2"
+                  >
+                    Åbn kildeopgaven
+                  </Link>
+                </p>
+              )}
+            </>
           ) : (
             <p className="text-sm">Arbejdsgrundlaget er endnu ikke gemt som plan.</p>
           )}
