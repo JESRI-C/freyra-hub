@@ -16,11 +16,12 @@ import {
   parseWorkOrderMetres,
   WorkOrderPlanSchema,
   workOrderPlanGaps,
+  workOrderPlanOverlaps,
   type WorkOrderPlan,
   type WorkOrderPlanVersion,
   type WorkOrderFollowUpSource,
 } from "@/lib/work-order-plan";
-import { listFieldJobActions, type listFieldJobSchedule } from "@/services/field-job-cards-service";
+import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
@@ -488,6 +489,26 @@ function PlanWorkspace({
   const set = <K extends keyof WorkOrderPlan>(key: K, value: WorkOrderPlan[K]) =>
     setDraft((old) => (old ? { ...old, [key]: value } : old));
   const gaps = draft ? workOrderPlanGaps(draft) : [];
+  const draftStart = draft?.plannedStart;
+  const draftEnd = draft?.plannedEnd ?? draftStart;
+  const responsibleId = draft?.responsibleId;
+  const checkOverlap =
+    canPlan && !!responsibleId && !!draftStart && !!draftEnd && draftStart <= draftEnd;
+  const schedule = useQuery({
+    queryKey: ["field-job-schedule", actorId, scope],
+    queryFn: () => listFieldJobSchedule(scope),
+    enabled: checkOverlap,
+    retry: false,
+  });
+  const overlappingCount =
+    checkOverlap && schedule.isSuccess
+      ? Object.entries(schedule.data).filter(
+          ([id, plan]) =>
+            id !== actionId &&
+            plan.responsibleId === responsibleId &&
+            workOrderPlanOverlaps(plan, draftStart, draftEnd),
+        ).length
+      : 0;
   const dateFields = draft && (
     <>
       <label className="block text-sm">
@@ -508,6 +529,13 @@ function PlanWorkspace({
           onChange={(e) => set("plannedEnd", e.target.value || null)}
         />
       </label>
+      {checkOverlap && (overlappingCount > 0 || schedule.isError) && (
+        <p role="status" className="rounded-lg border p-3 text-sm sm:col-span-2">
+          {schedule.isError
+            ? "Kalenderen kunne ikke kontrolleres for overlappende opgaver."
+            : `Den ansvarlige har ${overlappingCount === 1 ? "én anden opgave" : `${overlappingCount} andre opgaver`} i perioden. Kontrollér arbejdsfordelingen, før du gemmer.`}
+        </p>
+      )}
     </>
   );
   return (

@@ -211,6 +211,7 @@ beforeEach(() => {
   m.members.mockResolvedValue([]);
   m.sites.mockResolvedValue([]);
   m.centerlines.mockResolvedValue([]);
+  m.schedule.mockResolvedValue({});
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -631,6 +632,31 @@ describe("work-order plan editor", () => {
       }),
     });
     expect(readFollowUpSource(actor, { ...scope, actionId })).toBeUndefined();
+  });
+  it("warns about other scheduled work for the responsible person before rescheduling", async () => {
+    const plan = {
+      ...row().plan,
+      responsibleId: actor,
+      plannedStart: "2026-11-10",
+      plannedEnd: null,
+    };
+    m.history.mockResolvedValue({ items: [{ ...row(), plan }], nextBeforeVersion: null });
+    const scheduled = {
+      start: "2026-11-09",
+      end: "2026-11-10",
+      responsibleId: actor,
+      cancelled: false,
+    };
+    m.schedule.mockResolvedValue({
+      [actionId]: scheduled,
+      [id(90)]: scheduled,
+      [id(91)]: { ...scheduled, cancelled: true },
+      [id(92)]: { ...scheduled, responsibleId: id(99) },
+    });
+    await open(false, true);
+    expect(host.textContent).toContain("Den ansvarlige har én anden opgave i perioden.");
+    await fill("Planlagt fra", "2026-11-11");
+    expect(host.textContent).not.toContain("Den ansvarlige har én anden opgave i perioden.");
   });
   it("reschedules a saved plan without changing the work instructions or measurements", async () => {
     await open(false, true);

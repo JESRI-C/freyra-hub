@@ -3,7 +3,11 @@ import {
   type WorkOrderView,
   type WorkOrderListView,
 } from "@/lib/work-order-navigation";
-import { formatWorkOrderHours, workOrderHoursInPeriod } from "@/lib/work-order-plan";
+import {
+  formatWorkOrderHours,
+  workOrderHoursInPeriod,
+  workOrderPlanOverlaps,
+} from "@/lib/work-order-plan";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import { Calendar } from "@/components/ui/calendar";
 import { addDays, endOfMonth, format, parseISO, startOfMonth } from "date-fns";
@@ -264,8 +268,7 @@ function WorkOrders({
     const assigned = new Set<string>();
     const overlap = new Set<string>();
     for (const plan of scheduledPeriods) {
-      if (plan.cancelled || !plan.start || plan.start > key || (plan.end ?? plan.start) < key)
-        continue;
+      if (!workOrderPlanOverlaps(plan, key, key)) continue;
       total++;
       if (plan.waitingForActionIds?.length) waiting++;
       if (canEdit && plan.responsibleId) {

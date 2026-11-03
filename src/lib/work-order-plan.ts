@@ -64,6 +64,16 @@ export function formatWorkOrderHours(hours: number) {
   return workOrderHours.format(hours) + (hours === 1 ? " time" : " timer");
 }
 
+export function workOrderPlanOverlaps(
+  plan: { start: string | null; end: string | null; cancelled?: boolean },
+  from: string,
+  through: string,
+) {
+  return (
+    !plan.cancelled && !!plan.start && plan.start <= through && (plan.end ?? plan.start) >= from
+  );
+}
+
 /** Distribute an estimate evenly across its inclusive calendar dates, independent of DST. */
 export function workOrderHoursInPeriod(
   plan: { start: string | null; end: string | null; estimatedHours?: number | null },
