@@ -352,6 +352,8 @@ Når brugeren vender tilbage efter en rettelse, viser Aflevering, at grundlaget 
 
 En skrevet bemærkning kan bevares, mens brugeren følger en genvej fra en kendt mangel og vender tilbage til en ny kontrol. En kladde, der allerede har et komplet grundlag, beholder sin kontrolversion ved faneskift. Usikre gemninger beholder deres genforsøg. Komponentprøver dækker både rettelsesforløbet med bevaret tekst og fastholdelse af grundlaget på en kladde, der var klar.
 
+Browserprøven bestod ved 390 px på kilde a3a26dd og Worker b96d0daf-8984-4bdd-9c59-e7296d12edaf. Projektlederen skrev en bemærkning og åbnede Dokumentation fra den kendte mangel. Prøven tilknyttede den syntetiske dokumentation via det eksisterende API. Tilbage i Aflevering blev grundlaget klart, og den uændrede bemærkning og nye kobling blev gemt i version 1. Første prøvekørsel stoppede i testens klargøring, fordi den forventede en eksisterende kobling. Den bestod efter rettelse af testopsætningen.
+
 Browserprøven i staging bestod ved 390 og 1280 px på kilde a1211f9 og Worker 552fbe7f-66ca-486d-8315-009270c1795e. Den syntetiske opgave viste Arbejdsgrundlag, Udført arbejde og Dokumentation i den rækkefølge. Enter på hver genvej åbnede og fokuserede det rigtige område på samme opgave. Gem afleveringsversion forblev deaktiveret. Prøven ændrede ingen opgavedata.
 
 Datokladden bestod stagingprøven i Chrome ved 390 px på kilde 055fe1f og Worker 4cc912fb-c39d-442c-b014-7c2d19b83928. En syntetisk forudsætning med slutdato 6. januar gav 7. januar i kladden. Planhistorikken var uændret, mens kladden var åben. Projektlederen valgte 8. januar og gemte med begrundelse. Databasen viste den valgte dato som version 2, bevaret instruktion og uændret version 1.
