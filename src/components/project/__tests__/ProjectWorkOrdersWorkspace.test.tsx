@@ -268,12 +268,14 @@ it("finds waiting tasks across the project from the calendar and clears the filt
 
 it("opens the prerequisite plan directly from a waiting task", async () => {
   m.schedule.mockResolvedValue({
-    second: { start: "2026-11-03", end: null, waitingForActionIds: ["first"] },
+    first: { start: "2099-01-02", end: "2099-01-03" },
+    second: { start: null, end: null, waitingForActionIds: ["first"] },
   });
   await render();
   await click("Planoversigt");
   expect(host.textContent).toContain("1 opgave afventer, at en forudsætning bliver udført.");
   await click("Se afventende opgaver i hele projektet (1)");
+  expect(host.textContent).toContain("Forslag til startdato: 4. jan. 2099");
   const shortcut = host.querySelector<HTMLButtonElement>('button[aria-label^="Åbn forudsætning"]')!;
   expect(shortcut.getAttribute("aria-label")).toContain(tasks[0].title);
   await act(async () => shortcut.click());

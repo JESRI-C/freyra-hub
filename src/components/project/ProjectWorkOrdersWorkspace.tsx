@@ -6,7 +6,7 @@ import {
 import { formatWorkOrderHours, workOrderHoursInPeriod } from "@/lib/work-order-plan";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import { Calendar } from "@/components/ui/calendar";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { addDays, endOfMonth, format, parseISO, startOfMonth } from "date-fns";
 import { da } from "react-day-picker/locale";
 import { labelDayButton } from "react-day-picker";
 import { WorkspaceGuide } from "@/components/WorkspaceGuide";
@@ -764,6 +764,22 @@ function WorkOrders({
                     const task = actions.data.find((candidate) => candidate.id === id);
                     return task ? [task] : [];
                   });
+                  const prerequisiteEndDates = prerequisites.map(({ id }) => {
+                    const prerequisite = dates?.[id];
+                    return prerequisite?.cancelled ? null : (prerequisite?.end ?? null);
+                  });
+                  const latestPrerequisiteEnd =
+                    plan &&
+                    !plan.cancelled &&
+                    !plan.start &&
+                    prerequisiteEndDates.length === prerequisiteIds.length &&
+                    prerequisiteEndDates.length > 0 &&
+                    prerequisiteEndDates.every(Boolean)
+                      ? prerequisiteEndDates.sort().at(-1)
+                      : null;
+                  const suggestedDate = latestPrerequisiteEnd
+                    ? calendarKey(addDays(parseISO(latestPrerequisiteEnd), 1))
+                    : null;
                   return (
                     <div key={a.id} className="space-y-1">
                       <button
@@ -823,6 +839,16 @@ function WorkOrders({
                             {prerequisites.length > 1 ? prerequisite.title : "Åbn forudsætning"}
                           </button>
                         ))}
+                      {listView === "schedule" &&
+                        canEdit &&
+                        suggestedDate &&
+                        suggestedDate >= calendarKey(new Date()) && (
+                          <p className="rounded-lg bg-muted px-3 py-2 text-sm">
+                            Forslag til startdato: {scheduleDate.format(new Date(suggestedDate))}.
+                            Dagen efter den seneste planlagte slutdato for de opgaver, der stadig
+                            afventes. Tjek bemanding og udstyr, før du planlægger.
+                          </p>
+                        )}
                       {showSchedule &&
                         plan?.planVersionId &&
                         !plan.cancelled &&
