@@ -284,8 +284,12 @@ describe("mobile personal tasks", () => {
     });
     await render();
     await openTask();
+    expect(host.textContent).not.toContain("Gå til status og logbog");
     await click("Overtag opgaven");
     expect(host.textContent).toContain("Overtaget af dig");
+    await click("Gå til status og logbog");
+    expect(document.activeElement?.textContent).toBe("Status og logbog");
+    expect(document.activeElement?.parentElement?.hasAttribute("open")).toBe(true);
     expect(
       [...host.querySelectorAll("button")].some((b) => b.textContent === "Overtag opgaven"),
     ).toBe(false);

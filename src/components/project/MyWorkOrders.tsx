@@ -195,6 +195,8 @@ function TaskCard({
   const [materialsOpened, setMaterialsOpened] = useState(false);
   const [materialsEditing, setMaterialsEditing] = useState(false);
   const [visitEditing, setVisitEditing] = useState(false);
+  const statusDetails = useRef<HTMLDetailsElement>(null);
+  const statusSummary = useRef<HTMLElement>(null);
   const nestedLocks = useRef(new Set<string>());
   function reportEditing(part: string, value: boolean) {
     if (value) nestedLocks.current.add(part);
@@ -276,6 +278,28 @@ function TaskCard({
               "Der er endnu ikke angivet en instruktion. Kontakt projektansvarlig, før arbejdet udføres."}
           </p>
         </section>
+        {canExecute && (
+          <div className="space-y-2 rounded-xl border p-3">
+            <p className="text-sm">
+              {task.waiting_for_prerequisites
+                ? "Du kan følge opgaven i logbogen, mens du venter."
+                : "Når du har læst instruktionen, kan du opdatere status og skrive noter i logbogen."}
+            </p>
+            <button
+              type="button"
+              className={button}
+              disabled={locked || busy}
+              onClick={() => {
+                if (!statusDetails.current) return;
+                statusDetails.current.open = true;
+                setStatusOpened(true);
+                statusSummary.current?.focus();
+              }}
+            >
+              Gå til status og logbog
+            </button>
+          </div>
+        )}
         <details>
           <summary className="min-h-11 cursor-pointer py-2 font-medium">Se arbejdsgrundlag</summary>
           <WorkOrderPlanSummary row={{ plan: task.plan, version: task.plan_version }} />
@@ -314,11 +338,13 @@ function TaskCard({
           </button>
         )}
         <details
+          ref={statusDetails}
           onToggle={(e) => {
             if (e.currentTarget.open) setStatusOpened(true);
           }}
         >
           <summary
+            ref={statusSummary}
             className="min-h-11 cursor-pointer py-2 font-medium"
             onClick={(e) => {
               if (locked && !editing) e.preventDefault();
