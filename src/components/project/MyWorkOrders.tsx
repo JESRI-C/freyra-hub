@@ -21,6 +21,13 @@ import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 
+const taskFilters = [
+  ["all", "Alle"],
+  ["active", "Aktive"],
+  ["waiting", "Afventer"],
+  ["cancelled", "Aflyste"],
+] as const;
+
 export function MyWorkOrders() {
   const { user, loading, authError } = useAuth();
   if (loading)
@@ -50,11 +57,12 @@ function MyTasks({ actorId }: { actorId: string }) {
   const load = useServerFn(listCurrentUserWorkOrders);
   const [editors, setEditors] = useState<Set<string>>(() => new Set());
   const [activeTaskId, setActiveTask] = useState<string | null>(null);
+  const [filter, setFilter] = useState<(typeof taskFilters)[number][0]>("all");
   const tasks = useInfiniteQuery({
-    queryKey: ["my-work-orders", actorId],
+    queryKey: ["my-work-orders", actorId, filter],
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
-      load({ data: { expectedActorId: actorId, afterActionId: pageParam, pageSize: 20 } }),
+      load({ data: { expectedActorId: actorId, afterActionId: pageParam, pageSize: 20, filter } }),
     getNextPageParam: (page) => page.nextAfterActionId ?? undefined,
     retry: false,
     refetchOnWindowFocus: editors.size === 0,
@@ -74,6 +82,24 @@ function MyTasks({ actorId }: { actorId: string }) {
         </button>
       </header>
       <WorkspaceGuide {...programPageGuide("/opgaver")!} />
+      {!activeTaskId && (
+        <div role="group" aria-label="Filtrér mine opgaver" className="flex flex-wrap gap-2">
+          {taskFilters.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={
+                button + (filter === value ? " bg-primary text-primary-foreground" : " bg-card")
+              }
+              aria-pressed={filter === value}
+              disabled={editors.size > 0}
+              onClick={() => setFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {activeTaskId && (
         <button
           type="button"
@@ -81,7 +107,7 @@ function MyTasks({ actorId }: { actorId: string }) {
           disabled={editors.size > 0}
           onClick={() => setActiveTask(null)}
         >
-          ← Alle mine opgaver
+          ← Tilbage til opgavelisten
         </button>
       )}
       {!!editors.size && (
@@ -100,7 +126,11 @@ function MyTasks({ actorId }: { actorId: string }) {
         </p>
       )}
       {tasks.isSuccess && !items.length && (
-        <p className="rounded-xl border p-4">Du har ingen tildelte opgaver med en gemt plan.</p>
+        <p role="status" className="rounded-xl border p-4">
+          {filter === "all"
+            ? "Du har ingen tildelte opgaver med en gemt plan."
+            : "Du har ingen opgaver med den valgte status."}
+        </p>
       )}
       {items.map((task) => (
         <div key={task.action_id} hidden={activeTaskId !== null && activeTaskId !== task.action_id}>

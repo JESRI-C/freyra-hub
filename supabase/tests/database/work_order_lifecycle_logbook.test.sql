@@ -161,6 +161,16 @@ SELECT is((SELECT (task->>'cancelled')::boolean
  FROM public.list_my_work_orders_with_readiness(NULL,20) task WHERE task->>'action_id'=pg_temp.k(33)::text),
  true,'an assigned cancelled task stays visible as cancelled');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT result->>'action_id' FROM public.list_my_work_orders_with_filter(NULL,1,'cancelled') result),
+ pg_temp.k(33)::text,'cancelled filter runs before the requested page limit');
+SELECT is((SELECT count(*) FROM public.list_my_work_orders_with_filter(pg_temp.k(33),1,'cancelled')),
+ 0::bigint,'filtered continuation respects the action cursor');
+SELECT is((SELECT result->>'action_id' FROM public.list_my_work_orders_with_filter(NULL,1,'active') result),
+ pg_temp.k(32)::text,'active excludes completed and cancelled work');
+SELECT throws_ok($$SELECT * FROM public.list_my_work_orders_with_filter(NULL,20,'other')$$,
+ '22023',NULL,'unknown personal task filters are rejected');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 INSERT INTO pg_temp.log_pages SELECT 'first',log FROM public.get_work_order_log(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,NULL,NULL,3);
 SELECT is((SELECT jsonb_array_length(value->'items') FROM pg_temp.log_pages WHERE name='first'),3,'task log has a bounded page');
 SELECT ok((SELECT value->'next'<>'null'::jsonb FROM pg_temp.log_pages WHERE name='first'),'bounded task log returns a continuation cursor');

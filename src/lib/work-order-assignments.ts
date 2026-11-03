@@ -250,6 +250,7 @@ export const MyWorkOrdersInputSchema = z
   .object({
     expectedActorId: uuid,
     afterActionId: uuid.nullable(),
+    filter: z.enum(["all", "active", "waiting", "cancelled"]).optional(),
     pageSize: z.number().int().min(1).max(20),
   })
   .strict();

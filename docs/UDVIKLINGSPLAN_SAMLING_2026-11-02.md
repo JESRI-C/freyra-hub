@@ -690,3 +690,5 @@ Stagingprøven brugte en eksisterende testkonto og en tildelt syntetisk opgave. 
 RES-opfølgning på aflysninger. Mine opgaver viser Aflyst på kortet og giver fortsat adgang til instruktion, status og logbog. Kortet tilbyder ikke overtagelse eller ny feltregistrering på aflyste opgaver. Aflysningsstatus læses fra den eksisterende versionsførte status.
 
 Stagingprøven brugte et allerede aflyst syntetisk besøg, som blev tildelt testkontoen for at kontrollere visningen. Chrome ved 390 px viste Aflyst før åbning. Efter åbning var instruktion og logbog tilgængelige, mens overtagelse, timer og fotogenvej var skjult. 47 målrettede tests, typekontrol, staging-build og databaseisolation bestod. Kilde bf19093, Worker 5567de1a-96c1-4854-8db4-3355ca0d593c og migration 20261103143711.
+
+RES-opfølgning på feltarbejdslisten. Mine opgaver har filtrene Alle, Aktive, Afventer og Aflyste. Serveren filtrerer i den eksisterende adgangsafgrænsede liste før den viste side afgrænses. Når en opgave lukkes, vender brugeren tilbage til samme filter. Aktive udelader afventende, udførte, afleverede, godkendte og aflyste opgaver. Alle beholder adgang til historikken.
