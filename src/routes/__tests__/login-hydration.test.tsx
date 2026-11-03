@@ -1,8 +1,10 @@
-import React from "react";
+// @vitest-environment jsdom
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ hydrated: false, loading: false }));
+const state = vi.hoisted(() => ({ hydrated: false, loading: false, signIn: vi.fn() }));
 vi.mock("react", async (load) => ({
   ...(await load<typeof import("react")>()),
   useSyncExternalStore: (_subscribe: unknown, client: () => boolean, server: () => boolean) =>
@@ -20,7 +22,9 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({ user: null, loading: state.loading, refreshing: false, authError: null }),
 }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: {} } }));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { auth: { signInWithPassword: state.signIn } },
+}));
 vi.mock("@/integrations/lovable", () => ({ lovable: { auth: {} } }));
 import { Route } from "../login";
 
@@ -31,6 +35,7 @@ function markup() {
 beforeEach(() => {
   state.hydrated = false;
   state.loading = false;
+  state.signIn.mockReset();
 });
 describe("login hydration boundary", () => {
   it("renders both credential fields and sign-in actions disabled before hydration", () => {
@@ -51,5 +56,47 @@ describe("login hydration boundary", () => {
     state.loading = true;
     for (const field of markup().match(/<input[^>]+>/g) ?? [])
       expect(field).toContain('disabled=""');
+  });
+  it("shows a persistent in-form recovery message for an HTTP 429 and keeps the inputs", async () => {
+    state.hydrated = true;
+    state.signIn.mockResolvedValue({
+      error: Object.assign(new Error("Request rejected"), { status: 429 }),
+    });
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    try {
+      const Page = Route.options.component as React.ComponentType;
+      await act(async () => root.render(<Page />));
+      const [email, password] = host.querySelectorAll<HTMLInputElement>("input");
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      await act(async () => {
+        set.call(email, "someone@example.test");
+        email.dispatchEvent(new Event("input", { bubbles: true }));
+        set.call(password, "test-password");
+        password.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      const form = host.querySelector("form")!;
+      await act(async () =>
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+      );
+      expect(state.signIn).toHaveBeenCalledExactlyOnceWith({
+        email: "someone@example.test",
+        password: "test-password",
+      });
+      expect(host.querySelector('[role="alert"]')?.textContent).toContain("Vent et par minutter");
+      expect(email.value).toBe("someone@example.test");
+      expect(password.value).toBe("test-password");
+      const forgot = [...host.querySelectorAll("button")].find(
+        (button) => button.textContent?.trim() === "Glemt?",
+      );
+      await act(async () => forgot?.click());
+      expect(host.querySelector('[role="alert"]')).toBeNull();
+    } finally {
+      await act(async () => root.unmount());
+      host.remove();
+      vi.unstubAllGlobals();
+    }
   });
 });

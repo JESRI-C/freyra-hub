@@ -31,8 +31,11 @@ const clientHydrated = () => true;
 const serverHydrated = () => false;
 
 // Oversæt engelske Supabase-fejlbeskeder til klar dansk
-function translateError(message: string): string {
-  const m = message.toLowerCase();
+function translateError(error: unknown): string {
+  const m = error instanceof Error ? error.message.toLowerCase() : "";
+  const status = error && typeof error === "object" && "status" in error ? error.status : undefined;
+  if (status === 429 || m.includes("rate limit") || m.includes("too many"))
+    return "For mange forsøg lige nu. Vent et par minutter, og prøv igen. Dine oplysninger står stadig i formularen.";
   if (m.includes("invalid login credentials"))
     return "Forkert email eller adgangskode. Tjek at du har skrevet begge korrekt.";
   if (m.includes("email not confirmed"))
@@ -42,8 +45,6 @@ function translateError(message: string): string {
   if (m.includes("password should be at least"))
     return "Adgangskoden skal være mindst 6 tegn lang.";
   if (m.includes("unable to validate email")) return "Ugyldig email-adresse.";
-  if (m.includes("rate limit") || m.includes("too many"))
-    return "For mange forsøg. Vent et par minutter og prøv igen.";
   if (m.includes("network")) return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
   return "Login kunne ikke gennemføres. Prøv igen eller kontakt den ansvarlige for jeres adgang.";
 }
@@ -63,6 +64,7 @@ function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
@@ -70,10 +72,16 @@ function LoginPage() {
 
   if (destination) return <Navigate to={destination} />;
 
+  function changeMode(nextMode: Mode) {
+    setFormError("");
+    setMode(nextMode);
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (controlsDisabled) return;
     setBusy(true);
+    setFormError("");
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
@@ -102,7 +110,7 @@ function LoginPage() {
         // Hvis identities-arrayet er tomt, findes brugeren allerede
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           toast.error("Der findes allerede en konto med denne email. Prøv at logge ind.");
-          setMode("signin");
+          changeMode("signin");
         } else {
           setSignupSuccess(true);
         }
@@ -114,8 +122,7 @@ function LoginPage() {
         setForgotSent(true);
       }
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "Ukendt fejl";
-      toast.error(translateError(raw));
+      setFormError(translateError(err));
     } finally {
       setBusy(false);
     }
@@ -133,8 +140,7 @@ function LoginPage() {
       if (nextPath) window.location.href = nextPath;
       else navigate({ to: "/select" });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Google-login fejlede";
-      toast.error(translateError(msg));
+      toast.error(translateError(err));
     } finally {
       setBusy(false);
     }
@@ -179,7 +185,7 @@ function LoginPage() {
             type="button"
             onClick={() => {
               setSignupSuccess(false);
-              setMode("signin");
+              changeMode("signin");
               setPassword("");
             }}
             className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
@@ -211,7 +217,7 @@ function LoginPage() {
             type="button"
             onClick={() => {
               setForgotSent(false);
-              setMode("signin");
+              changeMode("signin");
             }}
             className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
           >
@@ -298,7 +304,7 @@ function LoginPage() {
                   <button
                     type="button"
                     disabled={controlsDisabled}
-                    onClick={() => setMode("forgot")}
+                    onClick={() => changeMode("forgot")}
                     className="text-xs text-primary hover:underline font-normal"
                   >
                     Glemt?
@@ -354,6 +360,15 @@ function LoginPage() {
               <p className="text-[11px] text-destructive mt-1.5">Adgangskoderne er ikke ens.</p>
             )}
           </Field>
+        )}
+
+        {formError && (
+          <p
+            role="alert"
+            className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          >
+            {formError}
+          </p>
         )}
 
         {authError && mode === "signin" && (
@@ -426,7 +441,7 @@ function LoginPage() {
           {isForgot ? (
             <button
               type="button"
-              onClick={() => setMode("signin")}
+              onClick={() => changeMode("signin")}
               disabled={controlsDisabled}
               className="text-primary hover:underline font-medium inline-flex items-center gap-1"
             >
@@ -437,7 +452,7 @@ function LoginPage() {
               Har du allerede en konto?{" "}
               <button
                 type="button"
-                onClick={() => setMode("signin")}
+                onClick={() => changeMode("signin")}
                 disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
@@ -449,7 +464,7 @@ function LoginPage() {
               Ny på Freyra?{" "}
               <button
                 type="button"
-                onClick={() => setMode("signup")}
+                onClick={() => changeMode("signup")}
                 disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
