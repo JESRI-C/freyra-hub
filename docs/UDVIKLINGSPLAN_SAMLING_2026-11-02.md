@@ -244,6 +244,8 @@ Genvejen fra en gemt rapport bærer nu rapportens afleveringsversion. Aflevering
 
 ### S06 — Gentagelige faglige forløb på fælles kerne
 
+Indikatorens målehistorik viser ændringen mellem den første og sidste registrering i den valgte periode, når tidspunkterne er forskellige og kilde, metode og enhed er oplyst og matcher. Målelisten viser den gemte kilde og metode og markerer manglende oplysninger som ukendte. Visningen adskiller ændring i værdier fra vurderingen af indsatsens effekt. Komponentprøven dækker en målt nulværdi og ukendt metode. Browserprøve, kobling til en konkret indsats og faglig vurdering af sammenlignelighed afventes.
+
 **Afhænger af:** S01/S04/S05. **Genbrug:** F15/F16/F21/F26/F27, lavbund, planting, construction og nature-services. **Skøn:** 3–6 dage for teknisk samling; faglige udvidelser estimeres separat.
 
 - Definér små metodeprofiler med obligatoriske input, enheder, kildekrav, beregningsversion og rapportafsnit. Vandløb er første reference; lavbund, beplantning og byggeri kobles på samme projekt-/evidensforløb.
