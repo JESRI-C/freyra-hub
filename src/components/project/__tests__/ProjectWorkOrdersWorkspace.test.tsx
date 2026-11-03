@@ -222,6 +222,18 @@ it("shows dated work ahead of undated work and opens its existing plan", async (
   expect(m.navigate).toHaveBeenCalledWith("second");
 });
 
+it("opens the prerequisite plan directly from a waiting task", async () => {
+  m.schedule.mockResolvedValue({
+    second: { start: "2026-11-03", end: null, waitingForActionId: "first" },
+  });
+  await render();
+  await click("Planoversigt");
+  const shortcut = host.querySelector<HTMLButtonElement>('button[aria-label^="Åbn forudsætning"]')!;
+  expect(shortcut.getAttribute("aria-label")).toContain(tasks[0].title);
+  await act(async () => shortcut.click());
+  expect(m.navigate).toHaveBeenCalledWith("first");
+});
+
 it("shows a task spanning the month boundary and filters it by a planned day", async () => {
   const now = new Date();
   const key = (date: Date) =>

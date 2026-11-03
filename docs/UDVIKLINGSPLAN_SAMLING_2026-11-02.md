@@ -662,3 +662,11 @@ I Chrome ved 390 px valgte projektlederen en anden opgave som forudsætning. Eft
 ### S13 – Forudsætninger i planoversigt og kalender
 
 Planoversigt og kalender viser opgaver, der afventer en forudsætning. Opgaverækken viser den forudgående opgaves navn, når det er tilgængeligt i projektlisten. Kalenderens datoer får en synlig markering og en tilgængelig beskrivelse. En ændring i forudsætning eller status opdaterer de eksisterende planlæsninger.
+
+Kalendermarkeringen blev verificeret i Chrome ved 390 px på staging. Den gemte forudsætning markerede 1. november, og den valgte dato viste den forudgående opgaves navn. 38 målrettede app-tests, typekontrol, lint og staging-build bestod. Kilde a8be890 og Worker 53d4a263-7974-45cb-bffb-7efc71b98a7d.
+
+### Arbejde efter RES-metoden
+
+Freyra bruger observation → produktregel → implementering → test fra [RES](https://github.com/alextnetto/res). Den eksisterende Skyhost-kortlægning og kravregistret leverer referencefunktionerne. Ved hver ændring gemmes kildens observation, Freyras valgte regel, adgangsgrænsen og et reproducerbart scenarie i de eksisterende udviklingsdokumenter. Offentlig dokumentation og allerede indsamlet materiale er kilder til denne runde. Ingen nye Skyhost-sessioner blev gennemført.
+
+Første eksempel er næste handling ved afventende planlagt arbejde. Stagingprøven viste, at kalenderen markerede opgaven og viste forudsætningens navn. Freyra-reglen er, at en kendt forudsætning i samme projekt kan åbnes direkte fra den afventende opgaverække. Handlingen genbruger arbejdsgrundlaget og respekterer låsen for igangværende redigering. En app-test åbner forudsætningen fra Planoversigt og kontrollerer opgave-id'et. Handlingen er udviklet ud fra den observerede Freyra-brugerrejse. Der er ingen selvstændig verifikation af samme genvej i Skyhost.

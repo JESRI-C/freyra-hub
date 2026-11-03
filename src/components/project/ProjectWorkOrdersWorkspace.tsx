@@ -664,6 +664,7 @@ function WorkOrders({
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const estimate = estimates.get(a.id);
                   const prerequisiteId = dates?.[a.id]?.waitingForActionId;
+                  const prerequisite = actions.data.find((task) => task.id === prerequisiteId);
                   return (
                     <div key={a.id} className="space-y-1">
                       <button
@@ -679,9 +680,7 @@ function WorkOrders({
                               {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
                               {prerequisiteId && (
                                 <span className="block font-medium text-foreground">
-                                  Afventer ·{" "}
-                                  {actions.data.find((task) => task.id === prerequisiteId)?.title ??
-                                    "Forudsætning for opstart"}
+                                  Afventer · {prerequisite?.title ?? "Forudsætning for opstart"}
                                 </span>
                               )}
                               {estimate != null && (
@@ -709,6 +708,17 @@ function WorkOrders({
                         </span>
                         <span className="shrink-0 text-sm text-primary">Åbn →</span>
                       </button>
+                      {showSchedule && prerequisite && (
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={locked}
+                          aria-label={"Åbn forudsætning: " + prerequisite.title}
+                          onClick={() => select(prerequisite.id, "plan")}
+                        >
+                          Åbn forudsætning
+                        </button>
+                      )}
                       {showSchedule &&
                         dates?.[a.id]?.start &&
                         canEdit &&
