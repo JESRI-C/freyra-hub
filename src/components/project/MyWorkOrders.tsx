@@ -58,11 +58,21 @@ function MyTasks({ actorId }: { actorId: string }) {
   const [editors, setEditors] = useState<Set<string>>(() => new Set());
   const [activeTaskId, setActiveTask] = useState<string | null>(null);
   const [filter, setFilter] = useState<(typeof taskFilters)[number][0]>("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const tasks = useInfiniteQuery({
-    queryKey: ["my-work-orders", actorId, filter],
+    queryKey: ["my-work-orders", actorId, filter, search],
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
-      load({ data: { expectedActorId: actorId, afterActionId: pageParam, pageSize: 20, filter } }),
+      load({
+        data: {
+          expectedActorId: actorId,
+          afterActionId: pageParam,
+          pageSize: 20,
+          filter,
+          search: search || undefined,
+        },
+      }),
     getNextPageParam: (page) => page.nextAfterActionId ?? undefined,
     retry: false,
     refetchOnWindowFocus: editors.size === 0,
@@ -82,6 +92,41 @@ function MyTasks({ actorId }: { actorId: string }) {
         </button>
       </header>
       <WorkspaceGuide {...programPageGuide("/opgaver")!} />
+      {!activeTaskId && (
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSearch(searchInput.trim());
+          }}
+        >
+          <label className="min-w-0 flex-1 text-sm font-medium">
+            Find opgave efter titel
+            <input
+              type="search"
+              maxLength={120}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className="mt-1 block min-h-11 w-full rounded-xl border bg-background px-3 text-base"
+            />
+          </label>
+          <button type="submit" className={button}>
+            Søg
+          </button>
+          {search && (
+            <button
+              type="button"
+              className={button}
+              onClick={() => {
+                setSearchInput("");
+                setSearch("");
+              }}
+            >
+              Ryd søgning
+            </button>
+          )}
+        </form>
+      )}
       {!activeTaskId && (
         <div role="group" aria-label="Filtrér mine opgaver" className="flex flex-wrap gap-2">
           {taskFilters.map(([value, label]) => (
@@ -127,9 +172,11 @@ function MyTasks({ actorId }: { actorId: string }) {
       )}
       {tasks.isSuccess && !items.length && (
         <p role="status" className="rounded-xl border p-4">
-          {filter === "all"
-            ? "Du har ingen tildelte opgaver med en gemt plan."
-            : "Du har ingen opgaver med den valgte status."}
+          {search
+            ? `Ingen opgaver matcher “${search}” i den valgte visning.`
+            : filter === "all"
+              ? "Du har ingen tildelte opgaver med en gemt plan."
+              : "Du har ingen opgaver med den valgte status."}
         </p>
       )}
       {items.map((task) => (

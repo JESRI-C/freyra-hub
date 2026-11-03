@@ -118,6 +118,31 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("submits a title search with the selected status and clears it explicitly", async () => {
+    await render();
+    await click("Aktive");
+    const input = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
+        input,
+        "  mobil  ",
+      );
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await click("Søg");
+    expect(m.load.mock.lastCall?.[0].data).toMatchObject({
+      expectedActorId: id(1),
+      afterActionId: null,
+      filter: "active",
+      search: "mobil",
+    });
+    await openTask();
+    await click("← Tilbage til opgavelisten");
+    expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("  mobil  ");
+    await click("Ryd søgning");
+    expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
+  });
+
   it("requests filtered pages from the server and restores the selected list after opening a task", async () => {
     m.load.mockImplementation(({ data }) =>
       Promise.resolve({

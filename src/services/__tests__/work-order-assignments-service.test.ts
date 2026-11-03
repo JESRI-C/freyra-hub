@@ -401,6 +401,19 @@ describe("groups and pool request boundary", () => {
       "list_my_work_orders_with_filter",
       expect.objectContaining({ p_after_action_id: taskRow.action_id }),
     );
+    await listMyWorkOrders(client, actor, {
+      expectedActorId: actor,
+      afterActionId: taskRow.action_id,
+      pageSize: 1,
+      filter: "active",
+      search: "  Synthetic  ",
+    });
+    expect(rpc).toHaveBeenLastCalledWith("search_my_work_orders", {
+      p_after_action_id: taskRow.action_id,
+      p_page_size: 1,
+      p_filter: "active",
+      p_search: "Synthetic",
+    });
     rpc.mockResolvedValue({ data: [{ ...taskRow, user_id: member }], error: null });
     await expect(
       listMyWorkOrders(client, actor, { expectedActorId: actor, afterActionId: null, pageSize: 1 }),

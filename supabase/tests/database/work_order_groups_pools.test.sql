@@ -82,6 +82,15 @@ SELECT ok(NOT private.can_execute_work_order(pg_temp.k(32)),'pool candidacy alon
 SELECT ok((SELECT can_claim AND NOT can_execute AND user_id=pg_temp.k(3) FROM public.get_work_order_assignment_state(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21))),'assignment state pins the current candidate and claim capability');
 SELECT ok(NOT (SELECT can_plan FROM public.list_my_work_orders(NULL,20) WHERE action_id=pg_temp.k(32)),'external task list does not offer a project manager route');
 SELECT is((SELECT count(*)::integer FROM public.list_my_work_orders(NULL,20)),2,'My tasks lists only group task and candidate pool');
+SELECT ok(NOT has_function_privilege('anon','public.search_my_work_orders(uuid,integer,text,text)','EXECUTE'),'anonymous task search is absent');
+SELECT is(
+  (SELECT array_agg((value->>'action_id')::uuid ORDER BY value->>'action_id') FROM public.search_my_work_orders(NULL,1,'all','  SYNTHETIC CREW  ') AS t(value)),
+  ARRAY[pg_temp.k(31),pg_temp.k(32)],
+  'title search returns only visible tasks plus the pagination sentinel'
+);
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(pg_temp.k(31),1,'all','synthetic crew')),1,'title search resumes after the keyset cursor');
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(NULL,20,'cancelled','synthetic crew')),0,'title search respects the selected status');
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(NULL,20,'all','%')),0,'title search treats wildcard characters literally');
 SELECT is((SELECT count(*)::integer FROM public.projects),0,'task assignment does not open whole projects');
 SELECT throws_ok($$SELECT pg_temp.group_save(1,65,ARRAY[2,3],51,true,'Synthetic self promotion')$$,'42501',NULL,'external executor cannot edit groups');
 SELECT throws_ok($$SELECT pg_temp.assign(1,75)$$,'42501',NULL,'external executor cannot assign other people');
