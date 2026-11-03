@@ -722,24 +722,30 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
       {revision && (mode === "approval" || mode === "preview") && (
         <Card className="p-5 space-y-3">
           <h2 className="font-semibold">Eksportér gemt version {revision.version}</h2>
-          {revision.content.workflowSnapshot && (
+          {(revision.content.workflowSnapshot || revision.content.workOrderApproval) && (
             <button
               className={button}
               disabled={busy || changed}
               onClick={() =>
                 void run(async () => {
-                  const { buildWorkflowReportPackage } =
+                  const { buildWorkflowReportPackage, buildWorkOrderReportPackage } =
                     await import("@/lib/workflow-report-package");
-                  const bytes = await buildWorkflowReportPackage(
-                    revision,
-                    imagesReady ? images : [],
-                  );
+                  const isWorkOrderReport = !!revision.content.workOrderApproval;
+                  const bytes = isWorkOrderReport
+                    ? await buildWorkOrderReportPackage(revision)
+                    : await buildWorkflowReportPackage(
+                        revision,
+                        imagesReady && assetRevisionId === revision.id ? images : [],
+                      );
                   const url = URL.createObjectURL(
                     new Blob([bytes.slice().buffer], { type: "application/zip" }),
                   );
                   const anchor = document.createElement("a");
                   anchor.href = url;
-                  anchor.download = "Freyra-foer-efter-v" + revision.version + ".zip";
+                  const prefix = isWorkOrderReport
+                    ? "Freyra-opgaverapport-v"
+                    : "Freyra-foer-efter-v";
+                  anchor.download = prefix + revision.version + ".zip";
                   anchor.click();
                   setTimeout(() => URL.revokeObjectURL(url), 10000);
                 })

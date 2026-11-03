@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { WorkflowReportSnapshotSchema } from "../workflow-report";
 import { emptyExecution } from "../action-execution";
 import { newReportContent, reportIssues, type ReportRevision } from "../report-document";
-import { buildWorkflowReportPackage } from "../workflow-report-package";
+import {
+  buildWorkflowReportPackage,
+  buildWorkOrderReportPackage,
+} from "../workflow-report-package";
 const uuid = (n: number) => "00000000-0000-4000-8000-" + String(n).padStart(12, "0");
 function fixture(): ReportRevision {
   const entry = {
@@ -131,5 +134,38 @@ describe("frozen workflow report", () => {
     }
     expect(await buildWorkflowReportPackage(JSON.parse(original))).toEqual(bytes);
     expect(JSON.stringify(report)).toBe(original);
+  });
+  it("exports an opgave report with its pinned approval, source references and checksums", async () => {
+    const report = fixture();
+    delete report.content.workflowSnapshot;
+    const approval = {
+      actionId: "00000000-0000-4000-8000-000000000001",
+      submissionId: "00000000-0000-4000-8000-000000000002",
+      submissionVersion: 3,
+      reviewId: "00000000-0000-4000-8000-000000000003",
+      basisHash: "a".repeat(64),
+    };
+    report.content.workOrderApproval = approval;
+    const contents = files(await buildWorkOrderReportPackage(report));
+    const decoder = new TextDecoder();
+    expect(decoder.decode(contents["rapport.pdf"].slice(0, 5))).toBe("%PDF-");
+    expect(JSON.parse(decoder.decode(contents["inputversioner.json"]))).toEqual(approval);
+    expect(JSON.parse(decoder.decode(contents["rapportversion.json"]))).toEqual(report);
+    expect(JSON.parse(decoder.decode(contents["originalreferencer.json"]))).toEqual(
+      report.content.sources,
+    );
+    const manifest = JSON.parse(decoder.decode(contents["manifest.json"]));
+    expect(manifest).toMatchObject({
+      schema: "freyra.work-order-report-package/v1",
+      reportId: report.report_id,
+      revisionId: report.id,
+      version: report.version,
+    });
+    for (const file of manifest.files) {
+      const data = contents[file.name];
+      const hash = await crypto.subtle.digest("SHA-256", data.slice().buffer);
+      expect(file.sha256).toBe(Buffer.from(hash).toString("hex"));
+      expect(file.bytes).toBe(data.length);
+    }
   });
 });
