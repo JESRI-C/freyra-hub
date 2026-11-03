@@ -716,3 +716,5 @@ RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kla
 ### Fra aflevering til næste handling
 
 En afleveret opgave forklarer, hvem der tager over, når brugeren ikke selv kan gennemgå den. En returneret aflevering viser begrundelsen og forklarer, om brugeren selv kan genåbne opgaven, eller om en anden med adgang skal gøre det. Visningen bruger de samme tilladelser og den samme afleveringsversion som handlingsknapperne. Komponentprøven dækker begge visninger af en returneret aflevering. Browserprøve på staging afventes.
+
+Stagingprøven på kilde fc8659f stoppede, før afleveringspanelet kunne åbnes. Ét ældre opgave-id, som PostgreSQL accepterer, blev afvist af opgavelistens strengere UUID-validering. Opgavelisten og dens sidecursor accepterer nu det gemte id-format. Rettelsen bevarer id'er og projektafgrænsning. Den lokale regressionstest dækker et ældre id på sidegrænsen. Den samlede browserprøve skal køres igen efter udrulning af rettelsen.

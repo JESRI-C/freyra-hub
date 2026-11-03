@@ -38,7 +38,13 @@ function scopeRow<T extends { project_id: string; organization_id: string }>(
     throw new Error("Jobkortet tilhører en anden sag.");
   return row;
 }
-const fieldJobAction = z.object({ id: uuid, title: z.string(), status: z.string().nullable() });
+// PostgreSQL can store legacy action IDs without RFC version and variant bits.
+const storedActionId = z.guid();
+const fieldJobAction = z.object({
+  id: storedActionId,
+  title: z.string(),
+  status: z.string().nullable(),
+});
 
 export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSignal) {
   const db = await client(scope);
@@ -61,7 +67,7 @@ export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSig
       if (row.action_type !== "workflow_followup") actions.push(fieldJobAction.parse(row));
     }
     if (!data || data.length < pageSize) return actions;
-    afterId = uuid.parse(data[data.length - 1].id);
+    afterId = storedActionId.parse(data[data.length - 1].id);
   }
 }
 const scheduleRow = z.object({

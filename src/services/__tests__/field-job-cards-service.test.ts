@@ -95,6 +95,19 @@ describe("project scoped job card persistence", () => {
     expect(state.filters).toContainEqual(["id", rows[999].id]);
     expect(actions.some((row) => row.id === rows[199].id)).toBe(false);
   });
+  it("keeps a legacy task ID in the list and uses it as a paging cursor", async () => {
+    const legacyId = "11111111-1111-c111-5111-111111111111";
+    const row = { id: legacyId, title: "Ældre opgave", status: null };
+    state.pages = [
+      [...Array.from({ length: 199 }, (_, index) => ({ ...row, id: id(index + 100) })), row],
+      [{ ...row, id: id(400), title: "Nyere opgave" }],
+    ];
+
+    const actions = await listFieldJobActions(scope);
+    expect(actions).toHaveLength(201);
+    expect(actions[199]).toEqual(row);
+    expect(state.filters).toContainEqual(["id", legacyId]);
+  });
   it("scopes template and history reads to project and organisation", async () => {
     state.rows = [template];
     await listFieldJobTemplates(scope);
