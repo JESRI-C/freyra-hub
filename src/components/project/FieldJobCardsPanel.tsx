@@ -29,6 +29,7 @@ type JobCardsProps = {
   scope: ProjectScope;
   selectedActionId?: string;
   onEditing?: (value: boolean) => void;
+  onSaved?: (version: FieldJobVersion | undefined) => void;
 };
 export function FieldJobCardsPanel(props: JobCardsProps) {
   const { scope } = props;
@@ -45,6 +46,7 @@ function JobCards({
   scope,
   actorId,
   selectedActionId,
+  onSaved,
   onEditing,
 }: JobCardsProps & { actorId?: string }) {
   const accessFn = useServerFn(getFieldJobAccess);
@@ -123,6 +125,7 @@ function JobCards({
               canConfigure={enabled && !!access.data?.canConfigure && !access.isFetching}
               canContribute={enabled && !!access.data?.canContribute && !access.isFetching}
               onEditing={setEditing}
+              onSaved={onSaved}
             />
           )}
         </div>
@@ -138,6 +141,7 @@ function JobCardEditor({
   templates,
   canConfigure,
   canContribute,
+  onSaved,
   onEditing,
 }: {
   scope: ProjectScope;
@@ -147,6 +151,7 @@ function JobCardEditor({
   canConfigure: boolean;
   canContribute: boolean;
   onEditing: (value: boolean) => void;
+  onSaved?: JobCardsProps["onSaved"];
 }) {
   const cache = useQueryClient();
   const history = useQuery({
@@ -256,9 +261,28 @@ function JobCardEditor({
         expectedVersion: base?.version ?? 0,
       };
       const saved = await saveFieldJobVersion(scope, { ...input, requestId: requestId(input) });
-      await cache.invalidateQueries({ queryKey: ["field-job-versions", actorId, scope, actionId] });
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: ["field-job-versions", actorId, scope, actionId] }),
+        cache.invalidateQueries({
+          queryKey: [
+            "work-order-evidence",
+            actorId,
+            scope.organizationId,
+            scope.projectId,
+            actionId,
+            "sources",
+            "observation",
+          ],
+        }),
+      ]);
       if (alive.current) {
         setBase(saved);
+        onSaved?.(
+          saved.status === "recorded" &&
+            missingRequiredFieldJobFields(selected.definition, saved.values).length === 0
+            ? saved
+            : undefined,
+        );
         setValues(saved.values);
         setReason("");
         setRecordDirty(false);

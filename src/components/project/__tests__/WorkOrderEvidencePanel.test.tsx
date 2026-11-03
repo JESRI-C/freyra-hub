@@ -35,6 +35,7 @@ vi.mock("@/lib/work-order-evidence.functions", () => ({
 vi.mock("@/lib/work-order-execution.functions", () => ({
   readProjectWorkOrderExecutionBinding: m.readExecution,
 }));
+import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { WorkOrderEvidencePanel } from "../WorkOrderEvidencePanel";
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function flush() {
@@ -42,7 +43,7 @@ async function flush() {
     await new Promise((r) => setTimeout(r, 20));
   });
 }
-async function render(canContribute = true, actorId = actor) {
+async function render(canContribute = true, actorId = actor, savedObservation?: FieldJobVersion) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
@@ -54,6 +55,7 @@ async function render(canContribute = true, actorId = actor) {
           canContribute={canContribute}
           onEditing={m.editing}
           onOpenField={m.openField}
+          savedObservation={savedObservation}
         />
       </QueryClientProvider>,
     ),
@@ -228,6 +230,34 @@ describe("task documentation UI", () => {
     expect(button("Åbn Feltregistrering").disabled).toBe(true);
     await click("Åbn Feltregistrering");
     expect(m.openField).toHaveBeenCalledTimes(1);
+  });
+  it("prefills a correction with the saved observation and keeps the original selected", async () => {
+    const linked = version();
+    const savedId = id(92);
+    m.list.mockResolvedValue({
+      items: [{ ...linked, observation_snapshot: { ...linked.observation_snapshot, values: {} } }],
+      nextAfterId: null,
+    });
+    const saved: FieldJobVersion = {
+      id: savedId,
+      organization_id: scope.organizationId,
+      project_id: scope.projectId,
+      action_id: scope.actionId,
+      version: 2,
+      template_version_id: id(93),
+      request_id: id(94),
+      created_by: actor,
+      created_at: linked.created_at,
+      correction_reason: "Test",
+      status: "recorded",
+      values: { count: 0, checked: false },
+    };
+    await render(true, actor, saved);
+    await click("Vælg gemt registrering version 2");
+    const selects = Array.from(host.querySelectorAll("select"));
+    expect(selects[0].value).toBe(savedId);
+    expect(selects[1].value).toBe(linked.upload_id);
+    expect(m.save).not.toHaveBeenCalled();
   });
   it("retries a lost reply with exactly the same evidence and request identities", async () => {
     m.save.mockRejectedValueOnce(new Error("Mistet svar"));

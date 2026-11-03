@@ -10,7 +10,7 @@ import {
   listProjectWorkOrderEvidenceExecutions,
   saveProjectWorkOrderEvidence,
 } from "@/lib/work-order-evidence.functions";
-import { fieldJobGaps } from "@/lib/field-job-cards";
+import { fieldJobGaps, type FieldJobVersion } from "@/lib/field-job-cards";
 import type { EvidenceVersion } from "@/lib/work-order-evidence";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
@@ -34,6 +34,7 @@ type Props = {
   canContribute: boolean;
   onEditing?: (value: boolean) => void;
   onOpenField?: () => void;
+  savedObservation?: FieldJobVersion;
 };
 
 /** Mounted only after opening Documentation; the task workspace owns the actor/project key. */
@@ -44,6 +45,7 @@ export function WorkOrderEvidencePanel({
   canContribute,
   onEditing,
   onOpenField,
+  savedObservation,
 }: Props) {
   const cache = useQueryClient();
   const accessFn = useServerFn(getProjectWorkOrderAccess);
@@ -121,17 +123,30 @@ export function WorkOrderEvidencePanel({
     refetchOnWindowFocus: !locked,
     refetchOnReconnect: !locked,
   });
+  const correction =
+    writable &&
+    savedObservation?.action_id === actionId &&
+    savedObservation.created_by === actorId &&
+    savedObservation.organization_id === scope.organizationId &&
+    savedObservation.project_id === scope.projectId &&
+    savedObservation.status === "recorded"
+      ? savedObservation
+      : undefined;
   const rows = history.data?.pages.flatMap((page) => page.items) ?? [];
   const latest = new Map<string, number>();
   rows.forEach((row) =>
     latest.set(row.evidence_id, Math.max(latest.get(row.evidence_id) ?? 0, row.version)),
   );
-  function edit(row?: EvidenceVersion, withdraw = false) {
+  function edit(
+    row?: EvidenceVersion,
+    withdraw = false,
+    observationVersionId = row?.observation_version_id ?? "",
+  ) {
     if (!writable || locked) return;
     setDraft({
       evidenceId: row?.evidence_id ?? crypto.randomUUID(),
       expectedVersion: row?.version ?? 0,
-      observationVersionId: row?.observation_version_id ?? "",
+      observationVersionId,
       uploadId: row?.upload_id ?? "",
       executionRevisionId: row?.execution_revision_id ?? null,
       state: withdraw ? "withdrawn" : "attached",
@@ -480,6 +495,11 @@ export function WorkOrderEvidencePanel({
                   observation={row.observation_snapshot}
                   onOpenField={writable ? onOpenField : undefined}
                   locked={locked}
+                  correction={
+                    correction && correction.version > row.observation_snapshot.version
+                      ? { version: correction.version, open: () => edit(row, false, correction.id) }
+                      : undefined
+                  }
                 />
               )}
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
@@ -583,7 +603,9 @@ function EvidenceObservationGaps({
   observation,
   onOpenField,
   locked,
+  correction,
 }: {
+  correction?: { version: number; open: () => void };
   onOpenField?: () => void;
   locked: boolean;
   observation: EvidenceVersion["observation_snapshot"];
@@ -605,6 +627,11 @@ function EvidenceObservationGaps({
         ))}
       </ul>
       <p>Gem en rettelse under Feltregistrering, og vælg den nye version via Ret kobling.</p>
+      {correction && (
+        <button type="button" className={button} disabled={locked} onClick={correction.open}>
+          Vælg gemt registrering version {correction.version}
+        </button>
+      )}
       {onOpenField && (
         <button type="button" className={button} disabled={locked} onClick={onOpenField}>
           Åbn Feltregistrering

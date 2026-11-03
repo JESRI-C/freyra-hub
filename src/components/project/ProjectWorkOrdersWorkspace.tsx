@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
+import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { createProjectAction, type ProjectScope } from "@/services/project-workspace-service";
@@ -785,6 +786,7 @@ function TaskWorkspace({
   onEditing: (part: Editor, value: boolean) => void;
   initialView?: WorkOrderView;
 }) {
+  const [savedObservation, setSavedObservation] = useState<FieldJobVersion>();
   const [part, setPart] = useState<Part>(initialView ?? "plan");
   const [opened, setOpened] = useState<Set<Part>>(() => new Set([initialView ?? "plan"]));
   useEffect(() => {
@@ -853,7 +855,12 @@ function TaskWorkspace({
       )}
       {opened.has("field") && (
         <div hidden={part !== "field"}>
-          <FieldJobCardsPanel scope={scope} selectedActionId={actionId} onEditing={fieldEditing} />
+          <FieldJobCardsPanel
+            scope={scope}
+            selectedActionId={actionId}
+            onEditing={fieldEditing}
+            onSaved={setSavedObservation}
+          />
         </div>
       )}
       {opened.has("execution") && (
@@ -895,6 +902,7 @@ function TaskWorkspace({
             canContribute={canContribute}
             onEditing={evidenceEditing}
             onOpenField={() => openPartWithFocus("field")}
+            savedObservation={savedObservation}
           />
         </div>
       )}
