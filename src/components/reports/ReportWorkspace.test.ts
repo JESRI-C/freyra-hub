@@ -35,6 +35,23 @@ vi.mock("@/components/ui-bits", () => ({
   Card: ({ children }: { children: unknown }) => children,
   PageHeader: () => null,
 }));
+vi.mock("@/components/project/WorkOrderFollowUps", () => ({
+  WorkOrderFollowUps: ({
+    actorId,
+    scope,
+    actionId,
+    canShift,
+  }: {
+    actorId: string;
+    scope: { organizationId: string; projectId: string };
+    actionId: string;
+    canShift?: boolean;
+  }) =>
+    createElement("p", {
+      "data-follow-ups": [actorId, scope.organizationId, scope.projectId, actionId].join("/"),
+      "data-can-shift": String(!!canShift),
+    }),
+}));
 vi.mock("@/services/report-document-service", () => ({
   getReportRevisions: vi.fn(),
   listReportDocuments: vi.fn(),
@@ -175,9 +192,18 @@ describe("real report editor draft hydration", () => {
     expect(host.textContent).toContain("Rapportkladde · Version 1");
     expect(host.textContent).toContain("Godkendt afleveringsversion 3");
     expect(host.querySelector('[data-task="task-a"][data-work="submission"]')).not.toBeNull();
+    expect(
+      host.querySelector(
+        '[data-follow-ups="user-a/org-a/project-a/task-a"][data-can-shift="false"]',
+      ),
+    ).not.toBeNull();
     const pdf = [...host.querySelectorAll("button")].find((b) => b.textContent === "PDF");
     expect(pdf?.disabled).toBe(false);
     expect(host.textContent).not.toContain("Vis kort og fotoatlas før PDF/DOCX-eksport");
+    state.auth.currentOrg.role = "viewer";
+    await render("preview");
+    expect(host.querySelector("[data-follow-ups]")).toBeNull();
+    expect(host.querySelector('[data-task="task-a"][data-work="submission"]')).not.toBeNull();
   });
   it("loads a deliberately selected different report revision", async () => {
     state.search = { report: "report-a", version: 1 };

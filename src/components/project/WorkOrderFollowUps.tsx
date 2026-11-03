@@ -41,9 +41,9 @@ export function WorkOrderFollowUps({
   actorId: string;
   scope: ProjectScope;
   actionId: string;
-  canShift: boolean;
-  shiftDisabled: boolean;
-  onSeriesSaving: (saving: boolean) => void;
+  canShift?: boolean;
+  shiftDisabled?: boolean;
+  onSeriesSaving?: (saving: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const followUps = useInfiniteQuery({
@@ -137,13 +137,13 @@ export function WorkOrderFollowUps({
                       {group.length < series.member_count && " · " + group.length + " vist"}
                     </p>
                   )}
-                  {canShift && series && plans.length === series.member_count && (
+                  {canShift && onSeriesSaving && series && plans.length === series.member_count && (
                     <WorkOrderSeriesActions
                       actorId={actorId}
                       scope={scope}
                       seriesId={series.series_id}
                       plans={plans}
-                      disabled={shiftDisabled}
+                      disabled={shiftDisabled ?? false}
                       onSaving={onSeriesSaving}
                     />
                   )}

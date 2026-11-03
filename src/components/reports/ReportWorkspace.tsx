@@ -4,6 +4,7 @@ import { generateEvidenceReportDraft } from "@/lib/report-draft.functions";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, PageHeader } from "@/components/ui-bits";
+import { WorkOrderFollowUps } from "@/components/project/WorkOrderFollowUps";
 import { useAuth } from "@/lib/auth";
 import { getMyProjectRole, permissionsFor } from "@/services/project-members-service";
 import {
@@ -689,19 +690,34 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
       )}
       {content && mode === "preview" && <ReportPreview revision={revision} content={content} />}
       {mode === "preview" && revision?.content.workOrderApproval && projectId && (
-        <Link
-          className={button}
-          to="/app/projects/$slug"
-          params={{ slug: projectId }}
-          search={{
-            tab: "handlinger",
-            task: revision.content.workOrderApproval.actionId,
-            work: "submission",
-            submissionVersion: revision.content.workOrderApproval.submissionVersion,
-          }}
-        >
-          Åbn opgavens aflevering og originalfotos
-        </Link>
+        <Card className="space-y-3 p-5">
+          <h2 className="font-semibold">Aflevering og opfølgning</h2>
+          <Link
+            className={button + " inline-flex min-h-11 items-center"}
+            to="/app/projects/$slug"
+            params={{ slug: projectId }}
+            search={{
+              tab: "handlinger",
+              task: revision.content.workOrderApproval.actionId,
+              work: "submission",
+              submissionVersion: revision.content.workOrderApproval.submissionVersion,
+            }}
+          >
+            Åbn opgavens aflevering og originalfotos
+          </Link>
+          {canEdit && user?.id && orgId && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Listen viser opgavens aktuelle opfølgninger på sagen.
+              </p>
+              <WorkOrderFollowUps
+                actorId={user.id}
+                scope={{ organizationId: orgId, projectId }}
+                actionId={revision.content.workOrderApproval.actionId}
+              />
+            </>
+          )}
+        </Card>
       )}
       {revision && (mode === "approval" || mode === "preview") && (
         <Card className="p-5 space-y-3">
