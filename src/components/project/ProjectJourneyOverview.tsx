@@ -105,7 +105,8 @@ export function ProjectJourneyOverview({
         <p className="font-semibold">Et eksempel på sammenhængen</p>
         <p className="mt-1">
           En eng gror til → du beskriver målet → planlægger plejen → registrerer det udførte arbejde
-          → sammenholder før og efter → samler dokumentationen.
+          → afleverer dokumentationen til faglig gennemgang → sammenholder før og efter → samler
+          rapporten.
         </p>
         <p className="mt-2 text-muted-foreground">
           Et foto viser forholdene på et tidspunkt. Opgaven forklarer, hvad der skulle gøres.

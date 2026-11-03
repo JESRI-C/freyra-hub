@@ -745,6 +745,8 @@ Planoversigt og kalender bruger nu samme validering af gemte opgave-id'er som op
 
 ### Fra aflevering til næste handling
 
+Projektets Overblik har et særskilt trin for opgavens aflevering og faglige gennemgang. Genvejen åbner det eksisterende afleveringspanel og fører et eventuelt valgt opgave-id og en runde med videre. Eksemplet på projektforløbet viser også afleveringen mellem udførelse og rapport. Komponentprøven dækker knappen og ruten med en allerede valgt opgave.
+
 En afleveret opgave forklarer, hvem der tager over, når brugeren ikke selv kan gennemgå den. En returneret aflevering viser begrundelsen og forklarer, om brugeren selv kan genåbne opgaven, eller om en anden med adgang skal gøre det. Visningen bruger de samme tilladelser og den samme afleveringsversion som handlingsknapperne. Komponentprøven dækker begge visninger af en returneret aflevering. Browserprøve på staging afventes.
 
 Stagingprøven på kilde fc8659f stoppede, før afleveringspanelet kunne åbnes. Ét ældre opgave-id, som PostgreSQL accepterer, blev afvist af opgavelistens strengere UUID-validering. Opgavelisten og dens sidecursor accepterer nu det gemte id-format. Rettelsen bevarer id'er og projektafgrænsning. Den lokale regressionstest dækker et ældre id på sidegrænsen. Den samlede browserprøve skal køres igen efter udrulning af rettelsen.

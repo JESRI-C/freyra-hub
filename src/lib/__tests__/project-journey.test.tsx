@@ -75,6 +75,12 @@ describe("project leader journey using existing workspaces", () => {
       step: "sammenligning",
     });
     expect(projectJourneySearch("plan", context).work).toBe("plan");
+    expect(projectJourneySearch("submission", context)).toEqual({
+      task: "exact-task",
+      round: "exact-round",
+      tab: "handlinger",
+      work: "submission",
+    });
   });
   it("starts an empty project with its purpose and preserves an existing description verbatim", async () => {
     const empty = await mount(null);
@@ -87,6 +93,8 @@ describe("project leader journey using existing workspaces", () => {
     expect(existing.choose).toHaveBeenLastCalledWith("plan");
     await existing.click("Åbn udført arbejde");
     expect(existing.choose).toHaveBeenLastCalledWith("execution");
+    await existing.click("Åbn opgavens aflevering");
+    expect(existing.choose).toHaveBeenLastCalledWith("submission");
   });
   it("does not offer editing to a reader or claim completion from a description", async () => {
     const reader = await mount("Eksisterende projektbeskrivelse", false);
