@@ -69,7 +69,7 @@ export function FieldOfflineWorkspace({
   const [actor, setActor] = useState<string | null>(null);
   const [packs, setPacks] = useState<FieldWorkPack[]>([]);
   const [projectId, setProject] = useState(requestedProject ?? "");
-  const [items, setItems] = useState<OfflineItem[]>([]);
+  const [queue, setQueue] = useState<{ actor: string; projectId: string; items: OfflineItem[] }>();
   const [online, setOnline] = useState(true);
   const [shellReady, setShellReady] = useState(false);
   const [persistent, setPersistent] = useState<boolean | null>(null);
@@ -90,6 +90,8 @@ export function FieldOfflineWorkspace({
   const projectRef = useRef(projectId);
   projectRef.current = projectId;
   const pack = packs.find((p) => p.projectId === projectId);
+  const queueReady = !!queue && queue.actor === actor && queue.projectId === projectId;
+  const items = queueReady ? queue.items : [];
   const pending = items.filter((i) => i.state !== "complete");
 
   useBlocker({
@@ -154,7 +156,7 @@ export function FieldOfflineWorkspace({
   useEffect(() => {
     if (!store || !actor) {
       setPacks([]);
-      setItems([]);
+      setQueue(undefined);
       return;
     }
     let current = true;
@@ -175,7 +177,7 @@ export function FieldOfflineWorkspace({
     if (!store || !actor) return;
     const rows = await store.items(actor, projectId || undefined);
     if (alive.current && actorRef.current === actor && projectRef.current === projectId)
-      setItems(rows);
+      setQueue({ actor, projectId, items: rows });
     const estimate = await navigator.storage?.estimate?.().catch(() => null);
     if (alive.current)
       setSpace(
@@ -434,20 +436,24 @@ export function FieldOfflineWorkspace({
                 setPhotoBusy(value);
             }}
           />
-          <OfflineJobs
-            key={actor + projectId + pack.savedAt}
-            pack={pack}
-            store={store}
-            items={items}
-            requestedActionId={projectId === requestedProject ? requestedActionId : undefined}
-            onSaved={() =>
-              void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
-            }
-            onDirty={(value) => {
-              if (actorRef.current === actor && projectRef.current === projectId)
-                setJobDirty(value);
-            }}
-          />
+          {queueReady ? (
+            <OfflineJobs
+              key={actor + projectId + pack.savedAt}
+              pack={pack}
+              store={store}
+              items={items}
+              requestedActionId={projectId === requestedProject ? requestedActionId : undefined}
+              onSaved={() =>
+                void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
+              }
+              onDirty={(value) => {
+                if (actorRef.current === actor && projectRef.current === projectId)
+                  setJobDirty(value);
+              }}
+            />
+          ) : (
+            <p role="status">Henter gemte feltkladder…</p>
+          )}
           <section className={card} aria-label="Telefonens feltkø">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-semibold">

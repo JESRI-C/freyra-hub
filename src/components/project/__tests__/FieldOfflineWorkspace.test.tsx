@@ -8,6 +8,7 @@ const f = vi.hoisted(() => ({
   project: "22222222-2222-4222-8222-222222222222",
   action: "33333333-3333-4333-8333-333333333333",
   packs: vi.fn(),
+  items: vi.fn(),
   enqueue: vi.fn(),
   prepare: vi.fn(),
   photo: vi.fn(),
@@ -37,7 +38,7 @@ vi.mock("@/services/field-offline-store", () => ({
   openFieldOfflineStore: async () => ({
     packs: f.packs,
     enqueue: f.enqueue,
-    items: async () => [],
+    items: f.items,
     close: () => {},
   }),
 }));
@@ -108,6 +109,7 @@ beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   localStorage.setItem("freyra-field-device-v1", f.actor);
   f.packs.mockResolvedValue([pack()]);
+  f.items.mockReset().mockResolvedValue([]);
   f.prepare.mockReturnValue({ id: "local" });
   f.enqueue.mockReset();
   host = document.createElement("div");
@@ -157,6 +159,36 @@ describe("mobile field local save feedback", () => {
     ).toBe(f.action);
     expect(host.textContent).toContain("Skabelonversion 1");
     expect(host.textContent).toContain("ikke automatisk opgavedokumentation");
+  });
+  it("waits for the local queue before opening a saved jobcard", async () => {
+    const savedPack = pack();
+    f.packs.mockResolvedValue([savedPack]);
+    let readQueue!: (items: unknown[]) => void;
+    const queue = new Promise<unknown[]>((resolve) => {
+      readQueue = resolve;
+    });
+    f.items.mockReturnValue(queue);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    expect(host.textContent).toContain("Henter gemte feltkladder");
+    expect(host.textContent).not.toContain("Skabelonversion 1");
+    await act(async () =>
+      readQueue([
+        {
+          id: crypto.randomUUID(),
+          projectId: f.project,
+          kind: "job",
+          state: "queued",
+          template: savedPack.jobs[0].template,
+          payload: { actionId: f.action, expectedVersion: 1, values: { count: null, seen: false } },
+        },
+      ]),
+    );
+    expect(host.textContent).toContain("Nødvendige felter udfyldt: 1 af 2");
+    expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("");
   });
   it("does not replace an unavailable requested task with another saved task", async () => {
     await act(async () =>
