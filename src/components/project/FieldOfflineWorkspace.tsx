@@ -92,7 +92,10 @@ export function FieldOfflineWorkspace({
   const pack = packs.find((p) => p.projectId === projectId);
   const queueReady = !!queue && queue.actor === actor && queue.projectId === projectId;
   const items = queueReady ? queue.items : [];
-  const pending = items.filter((i) => i.state !== "complete");
+  const cancelledCount = items.filter((item) => item.lastError === "cancelled").length;
+  const pendingCount = items.filter(
+    (item) => item.state !== "complete" && item.lastError !== "cancelled",
+  ).length;
 
   useBlocker({
     shouldBlockFn: () => {
@@ -457,12 +460,19 @@ export function FieldOfflineWorkspace({
           <section className={card} aria-label="Telefonens feltkø">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-semibold">
-                Telefonens kø · {pending.length} afventer på denne sag
+                Telefonens kø · {pendingCount} afventer på denne sag
               </h2>
               <button className={button} onClick={() => void refresh()}>
                 Opdater kø
               </button>
             </div>
+            {cancelledCount > 0 && (
+              <p className="text-sm">
+                {cancelledCount === 1
+                  ? "1 registrering er bevaret på telefonen efter aflysning."
+                  : `${cancelledCount} registreringer er bevaret på telefonen efter aflysning.`}
+              </p>
+            )}
             <label className="flex min-h-11 items-center gap-3 text-sm">
               <input
                 type="checkbox"

@@ -248,6 +248,31 @@ describe("mobile field local save feedback", () => {
     expect(queue?.textContent).toContain("Gemt som version 2 · Kladde");
     expect(queue?.textContent).toContain("Modtaget og kontrolleret på serveren");
   });
+  it("counts a retained cancelled registration separately from pending work", async () => {
+    const savedPack = pack();
+    const job = savedPack.jobs[0];
+    const registration = {
+      projectId: f.project,
+      kind: "job",
+      template: job.template,
+      payload: { actionId: f.action, expectedVersion: 1, values: job.latest!.values },
+    };
+    f.packs.mockResolvedValue([savedPack]);
+    f.items.mockResolvedValue([
+      { ...registration, id: crypto.randomUUID(), state: "blocked", lastError: "cancelled" },
+      { ...registration, id: crypto.randomUUID(), state: "queued" },
+    ]);
+    await act(async () => root!.render(<FieldOfflineWorkspace requestedProject={f.project} />));
+
+    const queue = host.querySelector('[aria-label="Telefonens feltkø"]')!;
+    expect(queue.textContent).toContain("1 afventer på denne sag");
+    expect(queue.textContent).toContain("1 registrering er bevaret på telefonen efter aflysning.");
+    const cancelled = [...queue.querySelectorAll("li")].find((item) =>
+      item.textContent?.includes("opgaven er aflyst"),
+    );
+    expect(cancelled?.textContent).toContain("Hent registrering");
+    expect(cancelled?.querySelectorAll("button")).toHaveLength(1);
+  });
   it("does not replace an unavailable requested task with another saved task", async () => {
     await act(async () =>
       root!.render(
