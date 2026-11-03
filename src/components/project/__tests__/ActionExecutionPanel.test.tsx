@@ -280,6 +280,41 @@ describe("existing actual-execution editor bound to work-order plan", () => {
     ).toBe(false);
     expect(m.saveBound).not.toHaveBeenCalled();
   });
+  it("records only the assigned field actor through the bound execution action", async () => {
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={cache}>
+          <ActionExecutionPanel
+            scope={scope}
+            canEdit={false}
+            canContribute
+            selectedActionId={actionId}
+          />
+        </QueryClientProvider>,
+      ),
+    );
+    await flush();
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Åbn udførelsesregistrering")!
+        .click(),
+    );
+    await flush();
+    expect(host.textContent).toContain("Registreret udfører: Dig");
+    expect(host.textContent).toContain("Arbejdsgrundlag: Synthetic plan");
+    expect(host.textContent).not.toContain("Udførerens identitet er uafklaret");
+    await correction("Synthetic assigned field correction");
+    await save();
+    expect(m.saveBound).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actionId,
+        expectedActorId: actor,
+        performedById: actor,
+        planVersionId: plan.id,
+      }),
+    });
+    expect(m.legacySave).not.toHaveBeenCalled();
+  });
   it("opens the shared task with the exact history context and protects its draft without another selector", async () => {
     const editing = vi.fn();
     await act(async () =>

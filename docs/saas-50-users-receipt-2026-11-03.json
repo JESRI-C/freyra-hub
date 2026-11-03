@@ -1,0 +1,260 @@
+{
+  "schema": "freyra.saas50-acceptance/v1",
+  "date": "2026-11-03",
+  "run": "f09aefd4",
+  "releaseVerdict": "NO_GO_FULL_CUSTOMER_SAAS",
+  "technicalStaging": "PASS_TESTED_CORE",
+  "staging": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "sourceRevisionBefore": "ce2ff55c1c28aa3d2cc3919a0785c33fff511304",
+  "sourceRevision": "5cdb5ef6bd141482490cd4cbd4cfb799dc2ea229",
+  "workerVersion": "47f58571-d8a7-4bd9-8543-4af56f1571c1",
+  "database": {
+    "projectRef": "xdvqdzdpyceojbdknofi",
+    "migrationCount": 47,
+    "fieldExecutionMigration": "20261103014500",
+    "migrationSha256": "1bf663f3e2760982e069ce45684ec27611d7d56503cdfeffdb3515891bc84146",
+    "executionInvoker": true,
+    "anonymousExecute": false
+  },
+  "pullRequests": {
+    "security": "https://github.com/JESRI-C/freyra-hub/pull/42",
+    "saas": "https://github.com/JESRI-C/freyra-hub/pull/43"
+  },
+  "ci": {
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41561374289",
+    "appTests": 3450,
+    "appFiles": 260,
+    "databaseTests": 1583,
+    "databaseFiles": 24,
+    "concurrency": true,
+    "restore": true,
+    "runtimeAuditFindings": 0,
+    "moderateDevFindings": 14
+  },
+  "users": {
+    "authenticated": 50,
+    "tenants": 8,
+    "roles": [
+      {
+        "role": "owner",
+        "users": 8,
+        "browserPassed": 8
+      },
+      {
+        "role": "manager",
+        "users": 8,
+        "browserPassed": 8
+      },
+      {
+        "role": "field",
+        "users": 8,
+        "browserPassed": 8
+      },
+      {
+        "role": "reviewer",
+        "users": 8,
+        "browserPassed": 8
+      },
+      {
+        "role": "viewer",
+        "users": 8,
+        "browserPassed": 8
+      },
+      {
+        "role": "external",
+        "users": 8,
+        "browserPassed": 8
+      },
+      {
+        "role": "unassigned",
+        "users": 2,
+        "browserPassed": 2
+      }
+    ],
+    "passwordRequests": 64,
+    "rateLimitedRequests": 14,
+    "synthetic": true
+  },
+  "phases": [
+    {
+      "name": "Login",
+      "passed": 50,
+      "failed": 0,
+      "recordedSdkRequests": 64
+    },
+    {
+      "name": "Projekter",
+      "passed": 8,
+      "failed": 0,
+      "recordedSdkRequests": 82
+    },
+    {
+      "name": "Adgang og samtidige læsninger",
+      "passed": 268,
+      "failed": 0,
+      "recordedSdkRequests": 336
+    },
+    {
+      "name": "Opgaveforløb før rettelse",
+      "passed": 32,
+      "failed": 8,
+      "recordedSdkRequests": 170
+    },
+    {
+      "name": "Genoptaget opgaveforløb efter rettelse",
+      "passed": 24,
+      "failed": 0,
+      "recordedSdkRequests": 274
+    },
+    {
+      "name": "Browserprofiler",
+      "passed": 50,
+      "failed": 0,
+      "recordedSdkRequests": 0
+    },
+    {
+      "name": "Filadgang og tilbagekaldelse",
+      "passed": 75,
+      "failed": 0,
+      "recordedSdkRequests": 199
+    }
+  ],
+  "passedChecks": 507,
+  "recordedSdkRequests": 1125,
+  "workflow": {
+    "approvedTasks": 8,
+    "initialFieldExecutionDenials": 8,
+    "realTusUploads": 8,
+    "verifiedOriginalDownloads": 8,
+    "originalBytes": 134,
+    "originalSha256": "5930b3a6ffe7795c1567756313f7ebf7f0050539a8f7015900f11a1622e0576a",
+    "manualPositionNotCameraGps": true,
+    "mobileWrite": true,
+    "executionRace": {
+      "distinctWriters": 2,
+      "committedVersions": 1,
+      "staleConflict": "PT409"
+    },
+    "returnedAndResubmitted": 1,
+    "preservedSubmissionVersions": 9,
+    "independentReview": true,
+    "idempotentApproval": true
+  },
+  "isolation": {
+    "projectReadCases": 50,
+    "foreignWriteDenials": 50,
+    "metadataEscalationDenials": 18,
+    "foreignOriginalDenials": 50,
+    "externalGrantsRevoked": 8,
+    "demotedFieldDenied": true
+  },
+  "performance": {
+    "method": "Three bounded waves of fifty authenticated reads from one machine on staging. Time measured around SDK call; no production capacity extrapolation.",
+    "waves": [
+      {
+        "wave": 1,
+        "users": 50,
+        "p50Ms": 225,
+        "p95Ms": 311,
+        "maxMs": 485
+      },
+      {
+        "wave": 2,
+        "users": 50,
+        "p50Ms": 219,
+        "p95Ms": 1024,
+        "maxMs": 1026
+      },
+      {
+        "wave": 3,
+        "users": 50,
+        "p50Ms": 169,
+        "p95Ms": 226,
+        "maxMs": 226
+      }
+    ]
+  },
+  "browser": {
+    "passed": 50,
+    "widths": [
+      1280,
+      390,
+      320
+    ],
+    "profileConcurrency": 2,
+    "javascriptErrors": 0,
+    "foreignDataShown": 0,
+    "physicalPhone": false
+  },
+  "securityPostflight": {
+    "revision": "5cdb5ef6bd141482490cd4cbd4cfb799dc2ea229",
+    "headers": [
+      {
+        "path": "/login",
+        "status": 200
+      },
+      {
+        "path": "/felt",
+        "status": 200
+      },
+      {
+        "path": "/app/program",
+        "status": 200
+      },
+      {
+        "path": "/.mcp/list-tools",
+        "status": 401
+      }
+    ],
+    "cacheProtection": true,
+    "anonymousMcpDenied": true
+  },
+  "cleanup": {
+    "active_sessions": 0,
+    "banned_accounts": 50,
+    "preserved_projects": 8,
+    "unrevoked_refresh_tokens": 0,
+    "preserved_verified_originals": 8,
+    "preserved_submission_versions": 9,
+    "project_memberships_with_access": 0,
+    "organization_memberships_with_write": 0,
+    "bannedLoginDenied": true,
+    "loginError": "user_banned",
+    "oldRefreshDenied": true,
+    "refreshError": "user_banned",
+    "localCredentialFilesRetired": true,
+    "activeTaskGrants": 0,
+    "preservedGrantHistories": 24
+  },
+  "open": [
+    {
+      "priority": "P0",
+      "topic": "Generel versionsbundet rapport",
+      "detail": "S05: Det godkendte opgavegrundlag eksporteres endnu ikke som den generelle rapport for projektet. Haderslev-skabelonen er en separat eksisterende leverance."
+    },
+    {
+      "priority": "P0",
+      "topic": "Supabase-drift",
+      "detail": "PostGIS-grants og API-eksponering, leaked-password protection samt sikkerhedsopgradering fra PostgreSQL 17.6 kræver driftsadgang."
+    },
+    {
+      "priority": "P1",
+      "topic": "Kundeoprettelse og betaling",
+      "detail": "Invitation, bekræftelsesmail, password-reset, kundeabonnement, fakturering og betalt provideraktivering er ikke afprøvet som produktforløb."
+    },
+    {
+      "priority": "P1",
+      "topic": "Mobil, fagdata og drift over tid",
+      "detail": "Fysisk telefon, kamera/GPS, syv fagprojektafhængige visninger, længerevarende belastning, driftsovervågning og kunde-/fagaccept er fortsat åbne."
+    },
+    {
+      "priority": "P2",
+      "topic": "Udviklingsværktøjer",
+      "detail": "14 moderate npm-poster i lintkæden. Runtime-audit har 0 kendte fund."
+    }
+  ],
+  "productionChanged": false,
+  "merge": false,
+  "messagesSent": false,
+  "paidProviderEnabled": false
+}

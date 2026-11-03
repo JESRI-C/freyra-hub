@@ -147,5 +147,52 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
 SELECT is((SELECT count(*)::integer FROM public.work_order_assignment_versions),0,'other tenant cannot enumerate assignments');
 SELECT throws_ok($$SELECT * FROM public.get_work_order_assignment_history(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,1)$$,'42501',NULL,'other tenant guessed assignment history is denied');
 SELECT throws_ok($$SELECT * FROM public.get_work_order_assignment_state(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21))$$,'42501',NULL,'other tenant cannot read the assignment-state envelope');
+
+-- Assigned field staff record their own work without obtaining project-editor access.
+RESET ROLE;
+UPDATE public.project_members SET role='field' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
+INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(37),pg_temp.k(21),'Synthetic assigned field execution');
+CREATE FUNCTION pg_temp.field_payload(a integer, correction text DEFAULT '') RETURNS jsonb LANGUAGE sql AS $$
+ SELECT jsonb_build_object('schema','freyra.action-execution/v1','actionId',pg_temp.k(a),'surveyRoundId',NULL,
+ 'dataBasis','synthetic','workType','other','stage','performed','actualDate','2026-11-03','actualEndDate',NULL,
+ 'method','Synthetic field method','reach','Synthetic reach','performedBy','Synthetic field user',
+ 'sourceReference','Synthetic original work log','evidenceIds','[]'::jsonb,'deviation','',
+ 'correctionReason',correction,'coverage','limited','coverageDescription','Synthetic limited coverage')
+$$;
+CREATE FUNCTION pg_temp.field_execution(a integer DEFAULT 37, performer integer DEFAULT 2, o integer DEFAULT 11)
+RETURNS uuid LANGUAGE sql AS $$ SELECT workspace_entry_id FROM public.save_work_order_execution(
+ pg_temp.k(a),pg_temp.k(o),pg_temp.k(21),(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),
+ 1,0,pg_temp.field_payload(a),pg_temp.k(performer),'',pg_temp.k(190),
+ (SELECT id FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(a) AND version=1),1) $$;
+CREATE FUNCTION pg_temp.unbound_field_row() RETURNS void LANGUAGE plpgsql AS $$ BEGIN
+ INSERT INTO public.project_workspace_entries(entry_id,organization_id,project_id,kind,version,title,payload)
+ VALUES(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'decision_note',2,'Unbound synthetic execution',
+ jsonb_build_object('basis','Synthetic basis','source','action-execution:'||pg_temp.k(37)::text,
+ 'decision',pg_temp.field_payload(37,'Synthetic correction')::text,'alternatives','','uncertainty','','owner','Synthetic actor'));
+ SET CONSTRAINTS work_order_execution_required IMMEDIATE;
+END $$;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT public.save_work_order_plan(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(191))$$,'planner saves the assigned field test plan');
+SELECT lives_ok($$SELECT pg_temp.assign(0,192,37,'person',ARRAY[2],NULL)$$,'manager assigns execution to field role');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT ok(NOT private.can_write_project(pg_temp.k(21)),'field remains unable to edit the project');
+SELECT throws_ok($$SELECT pg_temp.field_execution(36)$$,'42501',NULL,'field cannot execute an unassigned task');
+SELECT throws_ok($$SELECT pg_temp.field_execution(37,3)$$,'42501',NULL,'field cannot record execution as another user');
+SELECT throws_ok($$SELECT pg_temp.field_execution(37,2,12)$$,'42501',NULL,'mismatched tenant scope is rejected');
+SELECT throws_ok($$INSERT INTO public.project_workspace_entries(entry_id,organization_id,project_id,kind,version,title,payload) VALUES(pg_temp.k(193),pg_temp.k(11),pg_temp.k(21),'decision_note',1,'Unrelated note','{"basis":"Synthetic basis","source":"unrelated"}')$$,'42501',NULL,'field cannot create an unrelated workspace entry');
+SELECT lives_ok($$SELECT pg_temp.field_execution()$$,'assigned field can save a bound execution of their own work');
+SELECT is(pg_temp.field_execution(),(SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(37)), 'field retry preserves the same revision identity');
+SELECT is((SELECT performed_by_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(37)),pg_temp.k(2),'receipt pins the authenticated field actor');
+SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct workspace insertion cannot bypass the frozen binding');
+SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
+SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(37) AND event_type='work_order.execution_saved'),1,'field revision and retry emit one scoped execution audit event');
+RESET ROLE;
+UPDATE public.project_members SET role='viewer' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT pg_temp.field_execution()$$,'42501',NULL,'revocation also blocks a retry using a formerly authorized request');
 SELECT * FROM finish();
 ROLLBACK;

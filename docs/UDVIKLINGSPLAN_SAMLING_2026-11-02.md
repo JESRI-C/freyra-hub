@@ -1,6 +1,15 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.7 · 3. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.8 · 3. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+
+**Aktuelt SaaS-mål og bevis:** [50-brugerprøven](SAAS_50_BRUGERE_2026-11-03.md)
+afprøvede 50 forskellige konti i otte organisationer. Den fandt og rettede
+en reel spærring for den tildelte feltmedarbejders udførelse. Alle otte
+forløb når nu uafhængig gennemgang på staging, og adgangsgrænserne er genprøvet.
+Kilde `5cdb5ef…`, draft PR43. Kvalitetsmålet for helheden er en tydelig, praktisk
+brugeroplevelse på niveau med førende SaaS-systemer. Dineros opgavebaserede
+introduktion bruges som reference. Den tekniske prøve lukker ikke S05, fuld
+Skyhost-paritet, fysisk telefon, kundeaccept eller drift og salg.
 
 **Seneste sikkerhedsleverance (S11):** [Kode- og sikkerhedskontrol](SIKKERHEDSKONTROL_2026-11-03.md)
 samler de konkrete pakkerettelser, cachebeskyttelse, bevarede historiske

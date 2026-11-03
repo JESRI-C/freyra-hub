@@ -391,6 +391,7 @@ function TaskWorkspace({
           <ActionExecutionPanel
             scope={scope}
             canEdit={canEdit}
+            canContribute={canContribute}
             selectedRoundId={round}
             selectedActionId={actionId}
             onEditing={executionEditing}
