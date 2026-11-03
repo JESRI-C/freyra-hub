@@ -12,6 +12,8 @@ import { useAuth } from "@/lib/auth";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { createProjectAction, type ProjectScope } from "@/services/project-workspace-service";
+import { useWorkOrderPeople } from "./useWorkOrderPeople";
+import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
@@ -30,8 +32,8 @@ export type { WorkOrderView } from "@/lib/work-order-navigation";
 type Part = WorkOrderView;
 const parts = WORK_ORDER_PARTS;
 const scheduleDate = new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeZone: "UTC" });
-function scheduleLabel(plan?: { start: string; end: string | null }) {
-  if (!plan) return "Ingen planlagt dato";
+function scheduleLabel(plan?: { start: string | null; end: string | null }) {
+  if (!plan?.start) return "Ingen planlagt dato";
   const start = scheduleDate.format(new Date(plan.start));
   return plan.end && plan.end !== plan.start
     ? start + " – " + scheduleDate.format(new Date(plan.end))
@@ -67,6 +69,7 @@ function WorkOrders({
   const [listView, setListView] = useState<"tasks" | "schedule" | "calendar">("tasks");
   const [month, setMonth] = useState(() => new Date());
   const [day, setDay] = useState<Date>();
+  const [responsible, setResponsible] = useState("");
   const showSchedule = listView !== "tasks";
   const [scheduleActionId, setScheduleActionId] = useState<string>();
   const actionId = selectedActionId ?? localActionId;
@@ -127,14 +130,32 @@ function WorkOrders({
     enabled: authorized && showSchedule && !actionId && actions.isSuccess,
     retry: false,
   });
+  const people = useWorkOrderPeople(
+    scope,
+    actorId,
+    authorized && canEdit && showSchedule && !actionId,
+  );
+  const names = new Map(
+    (canEdit ? (people.data ?? []) : []).map((person) => [
+      person.user_id,
+      person.display_name || person.email || "Projektmedlem",
+    ]),
+  );
+  const filter =
+    canEdit && (responsible === "unassigned" || names.has(responsible)) ? responsible : "";
   const dates = schedule.data;
   const orderedActions =
     showSchedule && dates
-      ? [...(actions.data ?? [])].sort((a, b) => {
-          const startA = dates[a.id]?.start ?? "9999-99-99";
-          const startB = dates[b.id]?.start ?? "9999-99-99";
-          return startA.localeCompare(startB) || a.title.localeCompare(b.title, "da");
-        })
+      ? (actions.data ?? [])
+          .filter(({ id }) => {
+            const personId = dates[id]?.responsibleId;
+            return !filter || (filter === "unassigned" ? !personId : personId === filter);
+          })
+          .sort((a, b) => {
+            const startA = dates[a.id]?.start ?? "9999-99-99";
+            const startB = dates[b.id]?.start ?? "9999-99-99";
+            return startA.localeCompare(startB) || a.title.localeCompare(b.title, "da");
+          })
       : actions.data;
   const calendarKey = (date: Date) => format(date, "yyyy-MM-dd");
   const from = calendarKey(day ?? startOfMonth(month));
@@ -143,7 +164,7 @@ function WorkOrders({
     listView === "calendar"
       ? orderedActions?.filter(({ id }) => {
           const plan = dates?.[id];
-          return plan && plan.start <= through && (plan.end ?? plan.start) >= from;
+          return plan?.start && plan.start <= through && (plan.end ?? plan.start) >= from;
         })
       : orderedActions;
   const visibleCount = visibleActions?.length ?? 0;
@@ -299,6 +320,27 @@ function WorkOrders({
                       ? "Vælg en dato, eller se alle planlagte opgaver i måneden. Understregede datoer har planlagt arbejde."
                       : "Se opgaver efter planlagt start. Åbn en opgave for at se eller ændre dens arbejdsgrundlag."}
                   </p>
+                  {canEdit && schedule.isSuccess && (
+                    <div className="flex flex-wrap items-end gap-2">
+                      <label className="block min-w-0 text-sm font-medium">
+                        Ansvarlig i planen
+                        <select
+                          className={control}
+                          value={filter}
+                          onChange={(event) => setResponsible(event.target.value)}
+                        >
+                          <option value="">Alle opgaver</option>
+                          <option value="unassigned">Uden ansvarlig</option>
+                          {[...names].map(([id, name]) => (
+                            <option key={id} value={id}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <MoreWorkOrderPeople query={people} />
+                    </div>
+                  )}
                   {schedule.isPending && !!actions.data.length && (
                     <p role="status">Henter planlagte datoer…</p>
                   )}
@@ -334,7 +376,8 @@ function WorkOrders({
                       planned: (date) => {
                         const key = calendarKey(date);
                         return scheduledPeriods.some(
-                          (plan) => plan.start <= key && (plan.end ?? plan.start) >= key,
+                          (plan) =>
+                            plan.start && plan.start <= key && (plan.end ?? plan.start) >= key,
                         );
                       },
                     }}
@@ -343,6 +386,8 @@ function WorkOrders({
                         "[&_button]:font-semibold [&_button]:underline [&_button]:underline-offset-4",
                     }}
                     labels={{
+                      labelPrevious: () => "Forrige måned",
+                      labelNext: () => "Næste måned",
                       labelDayButton: (date, modifiers, options, lib) =>
                         labelDayButton(date, modifiers, options, lib) +
                         (modifiers.planned ? ", planlagt arbejde" : ""),
@@ -362,6 +407,9 @@ function WorkOrders({
                   </button>
                 </div>
               )}
+              {listView === "schedule" && schedule.isSuccess && !visibleCount && (
+                <p role="status">Ingen opgaver matcher den valgte ansvarlige.</p>
+              )}
               {(!showSchedule || schedule.isSuccess) &&
                 visibleActions?.map((a) => (
                   <button
@@ -376,6 +424,14 @@ function WorkOrders({
                       {showSchedule && (
                         <span className="block text-sm text-muted-foreground">
                           {scheduleLabel(dates?.[a.id])}
+                          {canEdit && (
+                            <span className="block">
+                              {dates?.[a.id]?.responsibleId
+                                ? (names.get(dates?.[a.id]?.responsibleId ?? "") ??
+                                  "Ansvarlig registreret")
+                                : "Ingen ansvarlig i planen"}
+                            </span>
+                          )}
                         </span>
                       )}
                     </span>

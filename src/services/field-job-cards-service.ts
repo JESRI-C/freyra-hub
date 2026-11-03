@@ -57,6 +57,7 @@ const scheduleRow = z.object({
       z.object({
         planned_start: CalendarDate.nullable(),
         planned_end: CalendarDate.nullable(),
+        responsible_id: uuid.nullable(),
       }),
     )
     .max(1),
@@ -64,13 +65,16 @@ const scheduleRow = z.object({
 
 export async function listFieldJobSchedule(scope: ProjectScope) {
   const db = await client(scope);
-  const dates: Record<string, { start: string; end: string | null }> = {};
+  const dates: Record<
+    string,
+    { start: string | null; end: string | null; responsibleId: string | null }
+  > = {};
   const pageSize = 200;
   let afterId: string | undefined;
   for (;;) {
     let query = db
       .from("work_orders")
-      .select("action_id,work_order_plan_versions(planned_start,planned_end)")
+      .select("action_id,work_order_plan_versions(planned_start,planned_end,responsible_id)")
       .eq("organization_id", scope.organizationId)
       .eq("project_id", scope.projectId)
       .order("action_id")
@@ -83,10 +87,11 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     const rows = z.array(scheduleRow).parse(data);
     for (const row of rows) {
       const plan = row.work_order_plan_versions[0];
-      if (plan?.planned_start)
+      if (plan)
         dates[row.action_id] = {
           start: plan.planned_start,
           end: plan.planned_end,
+          responsibleId: plan.responsible_id,
         };
     }
     if (rows.length < pageSize) return dates;

@@ -31,6 +31,11 @@ vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: m.actions,
   listFieldJobSchedule: m.schedule,
 }));
+vi.mock("../useWorkOrderPeople", () => ({
+  useWorkOrderPeople: () => ({
+    data: [{ user_id: "responsible-person", display_name: "Testansvarlig" }],
+  }),
+}));
 vi.mock("@/services/project-workspace-service", () => ({ createProjectAction: m.create }));
 function Editor({
   label,
@@ -212,6 +217,29 @@ it("shows a task spanning the month boundary and filters it by a planned day", a
   expect(host.textContent).not.toContain(tasks[0].title);
   await click("Vis hele måneden");
   expect(host.textContent).toContain("1 planlagt opgave i måneden");
+});
+
+it("filters the dated and undated tasks by plan responsibility", async () => {
+  m.schedule.mockResolvedValue({
+    second: { start: null, end: null, responsibleId: "responsible-person" },
+  });
+  await render();
+  await click("Planoversigt");
+  const filter = host.querySelector<HTMLSelectElement>("select");
+  expect(filter).not.toBeNull();
+  await act(async () => {
+    filter!.value = "responsible-person";
+    filter!.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(host.textContent).toContain(tasks[1].title);
+  expect(host.textContent).not.toContain(tasks[0].title);
+  expect(host.textContent).toContain("Ingen planlagt dato");
+  await act(async () => {
+    filter!.value = "unassigned";
+    filter!.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(host.textContent).toContain(tasks[0].title);
+  expect(host.textContent).not.toContain(tasks[1].title);
 });
 
 describe("one task across the project workspaces", () => {
