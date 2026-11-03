@@ -23,6 +23,7 @@ import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
 import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderVisitMap } from "./WorkOrderVisitMap";
+import { WorkOrderFollowUps } from "./WorkOrderFollowUps";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
 import { getWatercourseVersions } from "@/services/watercourse-service";
@@ -401,6 +402,13 @@ function PlanWorkspace({
       setPages([]);
       await Promise.all([
         cache.invalidateQueries({ queryKey: key }),
+        ...(sourcePlanVersionId && planSource
+          ? [
+              cache.invalidateQueries({
+                queryKey: ["work-order-follow-ups", actorId, scope, planSource.action_id],
+              }),
+            ]
+          : []),
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),
         cache.invalidateQueries({
@@ -482,6 +490,9 @@ function PlanWorkspace({
           {latest ? (
             <>
               <WorkOrderPlanSummary row={latest} members={members.data ?? []} />
+              {canPlan && (
+                <WorkOrderFollowUps actorId={actorId} scope={scope} actionId={actionId} />
+              )}
               {canPlan && sourceId && sourceActionId && sourceVersion && (
                 <div className="space-y-2">
                   <details

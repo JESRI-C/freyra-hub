@@ -388,7 +388,10 @@ describe("work-order plan editor", () => {
     expect(m.history).toHaveBeenCalledWith({
       data: { ...scope, actionId: source.action_id, beforeVersion: 2, pageSize: 1 },
     });
-    expect(host.textContent).toContain("Historisk kildeplan · plan version 1");
+    await vi.waitFor(async () => {
+      await settle();
+      expect(host.textContent).toContain("Historisk kildeplan · plan version 1");
+    });
   });
   it("reuses the planning details for a follow-up without copying dates or responsibility", async () => {
     const source = row();
