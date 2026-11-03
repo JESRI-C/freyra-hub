@@ -294,21 +294,21 @@ SELECT set_config('test.foreign_plan', (SELECT id::text FROM public.work_order_p
  WHERE action_id=pg_temp.k(36) AND version=1), true);
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
-SELECT lives_ok($SELECT * FROM public.save_work_order_plan(
+SELECT lives_ok($$SELECT * FROM public.save_work_order_plan(
  pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(380),
  (SELECT id FROM pg_temp.history(31) WHERE version=1)
-)$,'a new follow-up binds a specific source plan');
+)$$,'a new follow-up binds a specific source plan');
 SELECT is((SELECT source_plan_version_id FROM pg_temp.history(37)),
  (SELECT id FROM pg_temp.history(31) WHERE version=1),'source is the exact earlier plan version');
 SELECT is((SELECT source_action_id FROM pg_temp.history(37)),pg_temp.k(31),'source action is derived from the source plan');
-SELECT lives_ok($SELECT pg_temp.save(1,381,pg_temp.plan(),37,11,21,'Synthetic correction')$,
+SELECT lives_ok($$SELECT pg_temp.save(1,381,pg_temp.plan(),37,11,21,'Synthetic correction')$$,
  'legacy save appends a correction to the follow-up');
 SELECT is((SELECT source_plan_version FROM pg_temp.history(37) WHERE version=2),1,
  'follow-up corrections retain the original source version');
-SELECT throws_ok($SELECT * FROM public.save_work_order_plan(
+SELECT throws_ok($$SELECT * FROM public.save_work_order_plan(
  pg_temp.k(38),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(382),
  current_setting('test.foreign_plan')::uuid
-)$,'23503','Source plan is unavailable','another project cannot provide the source');
+)$$,'23503','Source plan is unavailable','another project cannot provide the source');
 SELECT is((SELECT count(*) FROM pg_temp.history(38)),0::bigint,'rejected source leaves no plan');
 SELECT * FROM finish();
 ROLLBACK;
