@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
@@ -24,6 +24,99 @@ const quantityFormat = new Intl.NumberFormat("da-DK", { useGrouping: false });
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full rounded-xl border bg-background px-3 text-base";
 const pageSize = 50;
+const historyPageSize = 20;
+const historyFields = "id,version,quantity_milli,reason,created_at";
+const historyRowSchema = rowSchema
+  .pick({
+    id: true,
+    version: true,
+    quantity_milli: true,
+    reason: true,
+  })
+  .extend({ created_at: z.string().datetime({ offset: true }) });
+const historyDate = new Intl.DateTimeFormat("da-DK", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+function MaterialHistory({
+  row,
+  scope,
+  actionId,
+  actorId,
+}: {
+  row: Row;
+  scope: ProjectScope;
+  actionId: string;
+  actorId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const history = useInfiniteQuery({
+    queryKey: ["work-order-material-history", actorId, scope, actionId, row.entry_id, row.version],
+    enabled: open,
+    retry: false,
+    initialPageParam: row.version,
+    queryFn: async ({ pageParam, signal }) => {
+      const client = createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
+      const result = await client
+        .from(table)
+        .select(historyFields)
+        .eq("organization_id", scope.organizationId)
+        .eq("project_id", scope.projectId)
+        .eq("action_id", actionId)
+        .eq("entry_id", row.entry_id)
+        .lt("version", pageParam)
+        .order("version", { ascending: false })
+        .limit(historyPageSize)
+        .abortSignal(signal);
+      if (result.error) throw new Error("Tidligere versioner kunne ikke hentes.");
+      return z.array(historyRowSchema).max(historyPageSize).parse(result.data);
+    },
+    getNextPageParam: (lastPage) => {
+      const lastVersion = lastPage.at(-1)?.version;
+      return lastPage.length === historyPageSize && lastVersion !== 1 ? lastVersion : undefined;
+    },
+  });
+
+  return (
+    <details className="mt-2 border-t" onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="min-h-11 cursor-pointer py-3 font-medium">
+        Tidligere versioner ({row.version - 1})
+      </summary>
+      {open && history.isPending && <p role="status">Henter tidligere versioner…</p>}
+      {open && history.isError && <p role="alert">Tidligere versioner kunne ikke hentes.</p>}
+      {history.data && (
+        <ol className="space-y-2">
+          {history.data.pages.flat().map((item) => (
+            <li key={item.id} className="rounded-lg bg-muted/40 p-2">
+              <p className="font-medium">
+                Version {item.version} · {quantityFormat.format(item.quantity_milli / 1000)}{" "}
+                {unitLabel[row.unit]}
+              </p>
+              <time dateTime={item.created_at}>
+                {historyDate.format(new Date(item.created_at))}
+              </time>
+              {item.reason && <p>{item.reason}</p>}
+            </li>
+          ))}
+        </ol>
+      )}
+      {open && (history.hasNextPage || history.isError) && (
+        <button
+          type="button"
+          className={button + " mt-2"}
+          disabled={history.isFetching}
+          onClick={() => {
+            if (history.hasNextPage) void history.fetchNextPage();
+            else void history.refetch();
+          }}
+        >
+          {history.isError ? "Prøv igen" : "Vis ældre versioner"}
+        </button>
+      )}
+    </details>
+  );
+}
 
 export function WorkOrderMaterials({
   scope,
@@ -168,7 +261,10 @@ export function WorkOrderMaterials({
                 {quantityFormat.format(row.quantity_milli / 1000)} {unitLabel[row.unit]} · Version{" "}
                 {row.version}
               </p>
-              {row.reason && <p>{row.reason}</p>}
+              {row.reason && <p>Årsag til rettelse · {row.reason}</p>}
+              {row.version > 1 && (
+                <MaterialHistory row={row} scope={scope} actionId={actionId} actorId={actorId} />
+              )}
               {canWrite && row.actor_id === actorId && (
                 <button
                   type="button"
