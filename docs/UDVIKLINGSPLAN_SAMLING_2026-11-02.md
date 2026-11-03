@@ -472,3 +472,5 @@ Stagingprøven ved 390 px fandt 75 registrerede minutter via titelsøgning, kont
 Opfølgning på timeoversigten. Søgning, filter og antal indlæste rækker bevares, når projektlederen åbner en opgave og vender tilbage til Timer. Oversigten kan opdateres fra samme visning og viser en tydelig tom tilstand ved et udvalg uden resultater.
 
 Projektledere kan godkende registreret tid under Timeoverblik på opgaven. Vælg datoen og godkend en bestemt version fra en anden udfører. Godkendelsen lagrer tidspunkt og godkender uden at ændre registreringen. Udføreren kan se status og tidligere godkendelser under Mine opgaver. En rettelse skal gennemgås særskilt, og en forældet version kan ikke godkendes. Aktivitetskategorier og faktureringsgrundlag afventer.
+
+Stagingprøven ved 390 px godkendte version 1 med en anden konto end udføreren og viste version 2 som afventende efter rettelse. Den midlertidige udføreradgang blev lukket efter prøven. Appbuild `a5e7d83`, Worker `3d5b39b0-c9f1-4c78-85dc-e4e0452b9169`, migration `20261103081849`. 31 målrettede tests, typekontrol og CI-databasejobbet bestod.
