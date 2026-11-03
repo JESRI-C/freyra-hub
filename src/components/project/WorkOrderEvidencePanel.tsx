@@ -10,6 +10,7 @@ import {
   listProjectWorkOrderEvidenceExecutions,
   saveProjectWorkOrderEvidence,
 } from "@/lib/work-order-evidence.functions";
+import { fieldJobGaps } from "@/lib/field-job-cards";
 import type { EvidenceVersion } from "@/lib/work-order-evidence";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
@@ -472,6 +473,9 @@ export function WorkOrderEvidencePanel({
                 Registrering version {row.observation_snapshot.version} · gemt{" "}
                 {new Date(row.created_at).toLocaleString("da-DK")}
               </p>
+              {row.state === "attached" && latest.get(row.evidence_id) === row.version && (
+                <EvidenceObservationGaps observation={row.observation_snapshot} />
+              )}
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
                 {row.observation_snapshot.template.fields.map((field) => (
                   <div key={field.key}>
@@ -569,6 +573,32 @@ export function WorkOrderEvidencePanel({
     </section>
   );
 }
+function EvidenceObservationGaps({
+  observation,
+}: {
+  observation: EvidenceVersion["observation_snapshot"];
+}) {
+  let gaps: string[];
+  try {
+    gaps = fieldJobGaps(observation.template, observation.values);
+  } catch {
+    gaps = ["Svarene skal passe til skabelonen."];
+  }
+  if (observation.status === "needs_review") gaps.unshift("Registreringen kræver gennemgang.");
+  if (gaps.length === 0) return null;
+  return (
+    <div className="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm">
+      <p className="font-medium">Afklar denne registrering før aflevering</p>
+      <ul className="list-disc pl-5">
+        {gaps.map((gap, index) => (
+          <li key={index}>{gap}</li>
+        ))}
+      </ul>
+      <p>Gem en rettelse under Feltregistrering, og vælg den nye version via Ret kobling.</p>
+    </div>
+  );
+}
+
 function formatValue(value: unknown) {
   return value === null || value === undefined || value === ""
     ? "Ukendt"

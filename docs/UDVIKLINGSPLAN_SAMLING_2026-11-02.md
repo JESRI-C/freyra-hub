@@ -576,3 +576,5 @@ Jobkortet viser over formularen, hvor mange nødvendige felter i den valgte skab
 Aflevering viser nu en genvej ved hver serverrapporteret mangel. Genvejen åbner Arbejdsgrundlag, Udført arbejde eller Dokumentation på samme opgave. For mangelfulde registreringer forklarer Freyra, hvor den tilknyttede version ses, og at en rettet feltregistrering skal tilknyttes på ny. Genvejene låses, mens afleveringen har ændringer eller en gemning afventer kvittering.
 
 I Chrome ved 390 px førte en afleveringsmangel til Arbejdsgrundlag på samme opgave. Fokus fulgte med, og Aflevering kunne genåbnes. Staging-build, typekontrol, lint og 36 målrettede tests bestod. Kilde a97e115 og Worker 4ba97cd0-c0b0-4ebd-89c7-e1dc4cf369ea.
+
+På den seneste aktive dokumentationskobling vises manglende nødvendige svar og status Til ekstra vurdering ud fra den fastholdte registreringsversion. Brugeren får den konkrete feltbetegnelse og besked om at gemme en rettelse og vælge den nye version via Ret kobling. Nul og nej tæller fortsat som svar. 19 målrettede tests bestod. Browserprøven af denne ændring afventer.

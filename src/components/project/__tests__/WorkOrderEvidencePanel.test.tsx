@@ -198,6 +198,28 @@ describe("task documentation UI", () => {
       "Ukendt",
     ]);
     expect(m.sources).not.toHaveBeenCalled();
+    expect(host.textContent).not.toContain("Afklar denne registrering før aflevering");
+  });
+  it("identifies missing required answers and review on the pinned registration", async () => {
+    const linked = version();
+    m.list.mockResolvedValue({
+      items: [
+        {
+          ...linked,
+          observation_snapshot: {
+            ...linked.observation_snapshot,
+            status: "needs_review",
+            values: { count: 0, checked: null },
+          },
+        },
+      ],
+      nextAfterId: null,
+    });
+    await render();
+    expect(host.textContent).toContain("Afklar denne registrering før aflevering");
+    expect(host.textContent).toContain("Registreringen kræver gennemgang.");
+    expect(host.textContent).toContain("Udfyld Kontrolleret.");
+    expect(host.textContent).not.toContain("Udfyld Antal.");
   });
   it("retries a lost reply with exactly the same evidence and request identities", async () => {
     m.save.mockRejectedValueOnce(new Error("Mistet svar"));
