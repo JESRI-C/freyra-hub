@@ -97,11 +97,15 @@ function WorkOrders({
   const [availabilityEditing, setAvailabilityEditing] = useState(false);
   const [onlyUndated, setOnlyUndated] = useState(false);
   const [onlyWaiting, setOnlyWaiting] = useState(false);
+  const [onlyReviewAttention, setOnlyReviewAttention] = useState(false);
   const [overlapFilterDate, setOverlapFilterDate] = useState<string>();
   const [taskSearch, setTaskSearch] = useState("");
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView === "schedule" || listView === "calendar";
-  const [scheduleActionId, setScheduleActionId] = useState<string>();
+  const [requestedTaskView, setRequestedTaskView] = useState<{
+    actionId: string;
+    view: WorkOrderView;
+  }>();
   const [dateEditor, setDateEditor] = useState<{
     actionId: string;
     request: PlanDateEditorRequest;
@@ -263,6 +267,7 @@ function WorkOrders({
         !onlyUndated ||
         (!dates?.[task.id]?.cancelled && !dates?.[task.id]?.start)) &&
       (!showSchedule || !onlyWaiting || !!dates?.[task.id]?.waitingForActionIds?.length) &&
+      (!showSchedule || !onlyReviewAttention || !!dates?.[task.id]?.reviewStatus) &&
       (!onlyOverlaps || dayOverlap.has(dates?.[task.id]?.responsibleId ?? "")) &&
       task.title.toLocaleLowerCase("da").includes(searchTerm),
   );
@@ -311,7 +316,7 @@ function WorkOrders({
     if (locked) return;
     setTimeReview(reviewDate ? { actionId: id, date: reviewDate } : undefined);
     setLocalAction(id);
-    setScheduleActionId(view === "plan" ? id : undefined);
+    setRequestedTaskView(view ? { actionId: id, view } : undefined);
     setDateEditor(undefined);
     onSelectAction?.(id || undefined, view);
     setError("");
@@ -348,7 +353,8 @@ function WorkOrders({
         );
         setCopiedPlan(followUpSource ? { actionId: action.id, source: followUpSource } : undefined);
         setFollowUpSource(undefined);
-        if (createDate || followUpSource) setScheduleActionId(action.id);
+        if (createDate || followUpSource)
+          setRequestedTaskView({ actionId: action.id, view: "plan" });
         setCreatedActionId(action.id);
         createAttempt.current = undefined;
       }
@@ -611,6 +617,20 @@ function WorkOrders({
                       Kun opgaver der afventer forudsætninger
                     </label>
                   )}
+                  {schedule.isSuccess && (
+                    <label className="flex min-h-11 items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={onlyReviewAttention}
+                        disabled={locked}
+                        onChange={(event) => {
+                          setOnlyReviewAttention(event.target.checked);
+                          setTaskLimit(taskPageSize);
+                        }}
+                      />
+                      Kun afleveringer til gennemgang eller rettelse
+                    </label>
+                  )}
                   {canEdit && schedule.isSuccess && (
                     <div className="flex flex-wrap items-end gap-2">
                       <label className="block min-w-0 text-sm font-medium">
@@ -868,6 +888,13 @@ function WorkOrders({
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
                               {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
+                              {plan?.reviewStatus && (
+                                <span className="block font-medium text-foreground">
+                                  {plan.reviewStatus === "submitted"
+                                    ? "Afleveret · Afventer faglig gennemgang"
+                                    : "Returneret · Afventer rettelse"}
+                                </span>
+                              )}
                               {canEdit && plan?.start && !plan.cancelled && !plan.responsibleId && (
                                 <span className="block">Mangler ansvarlig i planen</span>
                               )}
@@ -904,6 +931,18 @@ function WorkOrders({
                         </span>
                         <span className="shrink-0 text-sm text-primary">Åbn →</span>
                       </button>
+                      {showSchedule && plan?.reviewStatus && (
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={locked}
+                          onClick={() => select(a.id, "submission")}
+                        >
+                          {plan.reviewStatus === "submitted"
+                            ? "Se afleveringen"
+                            : "Se hvad der skal rettes"}
+                        </button>
+                      )}
                       {showSchedule &&
                         prerequisites.map((prerequisite) => (
                           <button
@@ -1123,8 +1162,8 @@ function WorkOrders({
               initialView={
                 timeReview?.actionId === actionId
                   ? "execution"
-                  : scheduleActionId === actionId
-                    ? "plan"
+                  : requestedTaskView?.actionId === actionId
+                    ? requestedTaskView.view
                     : initialView
               }
             />

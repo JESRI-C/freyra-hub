@@ -122,7 +122,7 @@ describe("project scoped job card persistence", () => {
       {
         action_id: legacyId,
         work_order_plan_versions: [plan],
-        work_order_lifecycle_versions: [{ status: "performed" }],
+        work_order_lifecycle_versions: [{ status: "submitted" }],
         work_order_prerequisite_versions: [],
       },
       {
@@ -137,6 +137,7 @@ describe("project scoped job card persistence", () => {
 
     const dates = await listFieldJobSchedule(scope);
     expect(dates[legacyId].start).toBe(plan.planned_start);
+    expect(dates[legacyId].reviewStatus).toBe("submitted");
     expect(dates[id(13)].waitingForActionIds).toEqual([id(15)]);
   });
   it("scopes template and history reads to project and organisation", async () => {

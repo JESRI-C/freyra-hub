@@ -101,6 +101,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     {
       planVersionId: string;
       cancelled: boolean;
+      reviewStatus?: "submitted" | "returned";
       waitingForActionIds: string[];
       start: string | null;
       end: string | null;
@@ -149,6 +150,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
         dates[row.action_id] = {
           planVersionId: plan.id,
           cancelled: status === "cancelled",
+          ...(status === "submitted" || status === "returned" ? { reviewStatus: status } : {}),
           waitingForActionIds: [],
           start: plan.planned_start,
           end: plan.planned_end,
