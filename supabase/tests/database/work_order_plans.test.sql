@@ -112,15 +112,32 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),3,'assigned external executor can read its task plan history');
 SELECT is((SELECT plan#>>'{visitStops,0,name}' FROM pg_temp.history() WHERE version=3),
  'Synthetic second visit','external executor can see the first stop in the saved order');
+CREATE FUNCTION pg_temp.visit(r integer, s integer, ver integer, p integer, result text, detail text)
+RETURNS void LANGUAGE sql AS $$
+ INSERT INTO public.work_order_visit_results(id,plan_version_id,site_id,action_id,organization_id,project_id,version,outcome,note)
+ VALUES(pg_temp.k(r),(SELECT id FROM pg_temp.history() WHERE version=p),pg_temp.k(s),pg_temp.k(31),
+        pg_temp.k(11),pg_temp.k(21),ver,result,detail);
+$$;
+SELECT lives_ok($$SELECT pg_temp.visit(350,55,1,3,'visited','')$$,'assigned external can register a planned visit');
+SELECT throws_ok($$SELECT pg_temp.visit(351,52,1,3,'visited','')$$,'22023',NULL,'a site outside the plan cannot be registered');
+SELECT throws_ok($$SELECT pg_temp.visit(351,51,1,2,'visited','')$$,'40001',NULL,'an older plan cannot receive a new visit result');
+SELECT throws_ok($$SELECT pg_temp.visit(351,55,2,3,'skipped','')$$,'23514',NULL,'a skipped visit requires a reason');
+SELECT lives_ok($$SELECT pg_temp.visit(352,55,2,3,'skipped','No access to site')$$,'a correction appends a new visit version');
+SELECT throws_ok($$SELECT pg_temp.visit(353,55,2,3,'visited','Stale')$$,'40001',NULL,'a stale visit correction is rejected');
+SELECT is((SELECT count(*) FROM public.work_order_visit_results),2::bigint,'visit history retains the original outcome');
+SELECT is((SELECT outcome FROM public.list_work_order_visit_results(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
+ (SELECT id FROM pg_temp.history() WHERE version=3))),'skipped','the plan view reads the current outcome');
 SELECT ok(NOT private.can_read_project(pg_temp.k(21)),'reading the assigned plan does not grant project access');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(32)$$,'42501',NULL,'unassigned plan is unavailable');
 SELECT throws_ok($$SELECT pg_temp.save(3,66,pg_temp.plan(),31,11,21,'Synthetic unauthorized edit')$$,'42501',NULL,'execution permission cannot change the work plan');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT pg_temp.visit(353,55,3,3,'visited','Viewer')$$,'42501',NULL,'viewer cannot register a visit');
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),3,'viewer can inspect existing plan history');
 SELECT throws_ok($$SELECT pg_temp.save(3,66,pg_temp.plan(),31,11,21,'Synthetic viewer edit')$$,'42501',NULL,'viewer cannot save a plan');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT throws_ok($$SELECT pg_temp.save(3,66,pg_temp.plan(),31,11,21,'Synthetic field edit')$$,'42501',NULL,'field role cannot impersonate the planner');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT is((SELECT count(*) FROM public.work_order_visit_results),0::bigint,'other tenant cannot read visit results');
 SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions),0,'other tenant cannot enumerate plan rows');
 SELECT throws_ok($$SELECT * FROM pg_temp.history()$$,'42501',NULL,'other tenant cannot fetch by guessed task ID');
 -- T09 domain + root + event transaction must fail closed on audit failure.

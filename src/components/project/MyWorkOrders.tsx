@@ -13,6 +13,7 @@ import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignm
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
+import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimePanel } from "./WorkOrderTimePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
@@ -161,6 +162,7 @@ function TaskCard({
     [timeEditing, setTimeEditing] = useState(false);
   const [materialsOpened, setMaterialsOpened] = useState(false);
   const [materialsEditing, setMaterialsEditing] = useState(false);
+  const [visitEditing, setVisitEditing] = useState(false);
   const nestedLocks = useRef(new Set<string>());
   function reportEditing(part: string, value: boolean) {
     if (value) nestedLocks.current.add(part);
@@ -236,6 +238,23 @@ function TaskCard({
           <summary className="min-h-11 cursor-pointer py-2 font-medium">Se arbejdsgrundlag</summary>
           <WorkOrderPlanSummary row={{ plan: task.plan, version: task.plan_version }} />
         </details>
+        {active && (task.plan.siteId || !!task.plan.visitStops?.length) && (
+          <WorkOrderVisitResults
+            key={task.plan_version_id}
+            scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+            actorId={actorId}
+            actionId={task.action_id}
+            planVersionId={task.plan_version_id}
+            planVersion={task.plan_version}
+            plan={task.plan}
+            canWrite={task.can_execute}
+            disabled={(locked && !visitEditing) || busy}
+            onEditing={(value) => {
+              setVisitEditing(value);
+              reportEditing("visits", value);
+            }}
+          />
+        )}
         {task.can_claim && (
           <button
             className={button + " bg-primary text-primary-foreground"}

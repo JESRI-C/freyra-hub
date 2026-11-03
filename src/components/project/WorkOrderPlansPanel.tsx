@@ -20,6 +20,7 @@ import {
 import { listFieldJobActions, type listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
+import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderVisitMap } from "./WorkOrderVisitMap";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
@@ -421,6 +422,18 @@ function PlanWorkspace({
                   <p role="status">Henter lokaliteter…</p>
                 ))}
             </details>
+          )}
+          {latest && (latest.plan.siteId || !!latest.plan.visitStops?.length) && (
+            <WorkOrderVisitResults
+              key={latest.id}
+              scope={scope}
+              actorId={actorId}
+              actionId={actionId}
+              planVersionId={latest.id}
+              planVersion={latest.version}
+              plan={latest.plan}
+              primaryName={sites.data?.find((site) => site.id === latest.plan.siteId)?.name}
+            />
           )}
           {canPlan && (
             <div className="flex flex-wrap gap-2">
