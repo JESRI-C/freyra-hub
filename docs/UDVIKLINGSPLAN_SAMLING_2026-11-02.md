@@ -676,3 +676,5 @@ Genvejen blev verificeret i Chrome ved 390 px på staging. Fra både den valgte 
 ### S13 – Flere forudsætninger for opstart
 
 Projektlederen kan gemme op til 12 opgaver fra samme projekt i én version. Arbejdsgrundlaget viser hver forudsætning med status, mens kalender og planoversigt viser de opgaver, der stadig afventes. Startregistreringen kræver, at alle er udført, afleveret eller godkendt. Tidligere enkeltstående forudsætninger kan fortsat læses, og gamle klienter afvises, hvis de forsøger at overskrive en liste med flere forudsætninger.
+
+I Chrome ved 390 px tilføjede projektlederen en ekstra forudsætning til en eksisterende. Begge stod i arbejdsgrundlaget efter genindlæsning, og planoversigten viste to afventende forudsætninger med genveje. 50 målrettede app-tests, typekontrol, lint og staging-build bestod. CI fandt en forkert afgrænset kolonnereference i projektkontrollen. Efter rettelsen bestod databaseprøven for projektgrænser, dubletter, genforsøg, kompatibilitet og en cirkel gennem en sekundær forudsætning. Appkilde 8a890a4, SQL-rettelse 53aa919, Worker cb1019ab-3ff0-4ff8-bafb-c74b01818ed9 og stagingmigration 20261103141925.
