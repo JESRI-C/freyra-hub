@@ -244,6 +244,8 @@ Genvejen fra en gemt rapport bærer nu rapportens afleveringsversion. Aflevering
 
 ### S06 — Gentagelige faglige forløb på fælles kerne
 
+Før- og eftervurderingen har en genvej til projektets indikatorer og deres målehistorik. Indikatorvisningen fører tilbage til vurderingen på samme sag og bevarer en valgt runde og opgave. Genvejene forbinder projektets arbejdsflader. En eksplicit kobling mellem en bestemt indikator, et naturmål og en udført indsats afventes. Browserprøve af genvejene afventes.
+
 Indikatorens målehistorik viser ændringen mellem den første og sidste registrering i den valgte periode, når tidspunkterne er forskellige og kilde, metode og enhed er oplyst og matcher. Målelisten viser den gemte kilde og metode og markerer manglende oplysninger som ukendte. Visningen adskiller ændring i værdier fra vurderingen af indsatsens effekt. Komponentprøven dækker en målt nulværdi og ukendt metode. Stagingprøven på kilde 0ac3bc8 og Worker 713000dc-80cd-4987-9f93-06002c34a372 bestod ved 390 og 1280 px. Perioden på 90 dage viste den registrerede værdi med ukendt metode og forklarede den manglende sammenligning. Enter på 30d viste ændringen fra 0 til 5 stk. med den fælles kilde, metode og enhed. Ingen vandret overflow i dialogen eller JavaScript-sidefejl. Den mærkede testindikator og dens målinger blev fjernet. Kobling til en konkret indsats og faglig vurdering af sammenlignelighed afventes.
 
 **Afhænger af:** S01/S04/S05. **Genbrug:** F15/F16/F21/F26/F27, lavbund, planting, construction og nature-services. **Skøn:** 3–6 dage for teknisk samling; faglige udvidelser estimeres separat.

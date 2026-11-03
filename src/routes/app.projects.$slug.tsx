@@ -624,6 +624,14 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
               <div className="space-y-4">
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug }}
+                  search={projectViewSearch(search, { kind: "step", id: "sammenligning" })}
+                  className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4"
+                >
+                  Åbn projektets før- og eftervurdering
+                </Link>
                 {!hasRealGeometry ? (
                   <GeometryRequiredBanner slug={slug} variant="detailed" />
                 ) : (

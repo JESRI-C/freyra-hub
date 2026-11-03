@@ -477,11 +477,28 @@ export function MunicipalCaseWorkspace({
               />
             )}
             {step === "sammenligning" && project.organization_id && (
-              <PhotoComparisonPanel
-                key={project.id}
-                scope={{ projectId: project.id, organizationId: project.organization_id }}
-                canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
-              />
+              <>
+                <div className="space-y-2 rounded-xl border bg-card p-4 text-sm">
+                  <h3 className="font-medium">Følg ændringer i projektets indikatorer</h3>
+                  <p className="text-muted-foreground">
+                    Åbn målehistorikken for at se værdier, kilde og metode som del af den faglige
+                    vurdering.
+                  </p>
+                  <Link
+                    to="/app/projects/$slug"
+                    params={{ slug: project.slug ?? project.id }}
+                    search={{ tab: "indikatorer", round: selectedRoundId, task: selectedActionId }}
+                    className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4"
+                  >
+                    Åbn projektets målehistorik
+                  </Link>
+                </div>
+                <PhotoComparisonPanel
+                  key={project.id}
+                  scope={{ projectId: project.id, organizationId: project.organization_id }}
+                  canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
+                />
+              </>
             )}
           </section>
           <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
