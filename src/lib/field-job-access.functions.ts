@@ -19,6 +19,12 @@ export const getFieldJobAccess = createServerFn({ method: "POST" })
       projectId: data.projectId,
       userId: context.userId,
       canConfigure: access.canPersist,
+      canManageAvailability: [
+        "organization_owner",
+        "organization_admin",
+        "admin",
+        "project_manager",
+      ].includes(access.role),
       canContribute: access.canPersist || access.role === "field",
     };
   });

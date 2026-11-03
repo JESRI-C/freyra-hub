@@ -19,6 +19,7 @@ import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-
 import { createProjectAction, type ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
+import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
@@ -85,6 +86,7 @@ function WorkOrders({
   const [month, setMonth] = useState(() => new Date());
   const [day, setDay] = useState<Date>();
   const [responsible, setResponsible] = useState("");
+  const [availabilityEditing, setAvailabilityEditing] = useState(false);
   const [taskSearch, setTaskSearch] = useState("");
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView !== "tasks";
@@ -105,7 +107,7 @@ function WorkOrders({
       alive.current = false;
     };
   }, []);
-  const locked = editors.size > 0 || busy || creating;
+  const locked = editors.size > 0 || busy || creating || availabilityEditing;
   useBlocker({ shouldBlockFn: () => locked, enableBeforeUnload: locked });
   useEffect(() => {
     if (!createdActionId || locked) return;
@@ -146,6 +148,8 @@ function WorkOrders({
     queryFn: () => listFieldJobSchedule(scope),
     enabled: authorized && showSchedule && !actionId && actions.isSuccess,
     retry: false,
+    refetchOnWindowFocus: !locked,
+    refetchOnReconnect: !locked,
   });
   const people = useWorkOrderPeople(
     scope,
@@ -404,6 +408,7 @@ function WorkOrders({
                         <select
                           className={control}
                           value={filter}
+                          disabled={locked}
                           onChange={(event) => setResponsible(event.target.value)}
                         >
                           <option value="">Alle opgaver</option>
@@ -443,10 +448,13 @@ function WorkOrders({
                     month={month}
                     selected={day}
                     onMonthChange={(next) => {
+                      if (locked) return;
                       setMonth(next);
                       setDay(undefined);
                     }}
-                    onSelect={setDay}
+                    onSelect={(next) => {
+                      if (!locked) setDay(next);
+                    }}
                     showOutsideDays={false}
                     className="max-w-full p-1 [--cell-size:clamp(1.5rem,8vw,2.75rem)]"
                     modifiers={{
@@ -473,8 +481,31 @@ function WorkOrders({
                       for at se opgaverne.
                     </p>
                   )}
+                  {day && actorId && access.data?.canManageAvailability && names.has(filter) && (
+                    <ProjectWorkAvailability
+                      key={filter + ":" + from}
+                      scope={scope}
+                      actorId={actorId}
+                      personId={filter}
+                      date={from}
+                      estimated={totalEstimatedHours}
+                      unknown={visibleCount - knownEstimates.length}
+                      onEditing={setAvailabilityEditing}
+                    />
+                  )}
+                  {access.data?.canManageAvailability && (!day || !names.has(filter)) && (
+                    <p className="text-sm text-muted-foreground">
+                      Vælg en ansvarlig og en dato for at sammenholde estimatet med den tilgængelige
+                      tid.
+                    </p>
+                  )}
                   {day && (
-                    <button type="button" className={button} onClick={() => setDay(undefined)}>
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={locked}
+                      onClick={() => setDay(undefined)}
+                    >
                       Vis hele måneden
                     </button>
                   )}
@@ -482,7 +513,12 @@ function WorkOrders({
                     {visibleCount} {visibleCount === 1 ? "planlagt opgave" : "planlagte opgaver"}{" "}
                     {day ? "på den valgte dato" : "i måneden"}.
                   </p>
-                  <button type="button" className={button} onClick={() => setListView("schedule")}>
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={locked}
+                    onClick={() => setListView("schedule")}
+                  >
                     Se også opgaver uden dato
                   </button>
                 </div>

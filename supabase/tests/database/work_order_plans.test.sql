@@ -32,6 +32,30 @@ SELECT ok(NOT has_function_privilege('service_role','public.save_work_order_plan
 SELECT ok(NOT (SELECT prosecdef FROM pg_proc WHERE oid='public.save_work_order_plan(uuid,uuid,uuid,integer,jsonb,text,uuid)'::regprocedure),'plan RPC preserves caller RLS');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(300),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',1,0)$$,
+ 'a project manager can record explicit zero daily availability');
+SELECT lives_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(301),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',2,6.5)$$,
+ 'a revision appends rather than rewriting availability');
+SELECT is((SELECT count(*)::integer FROM public.project_work_availability_versions),2,'availability history is retained');
+SELECT throws_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(302),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',2,7)$$,
+ '40001',NULL,'a concurrent stale availability change is refused');
+SELECT throws_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(302),pg_temp.k(11),pg_temp.k(21),pg_temp.k(6),'2026-11-12',1,7)$$,
+ '42501',NULL,'a foreign person cannot be added to the project calendar');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.project_work_availability_versions),0,'field users cannot read project availability');
+SELECT throws_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(303),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',3,8)$$,
+ '42501',NULL,'field users cannot write project availability');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),0,'authorized existing action has real empty history before first save');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(36)$$,'42501',NULL,'same organization does not expose another project history');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(31,NULL,0)$$,'22023',NULL,'zero page size is rejected');
