@@ -267,6 +267,14 @@ function WorkOrders({
     return summary;
   }
   const dayOverlap = day ? daySummary(from).overlap : undefined;
+  function showProjectPlanningTasks(focus: "waiting" | "undated") {
+    setTaskSearch("");
+    setResponsible("");
+    setOnlyUndated(focus === "undated");
+    setOnlyWaiting(focus === "waiting");
+    setTaskLimit(taskPageSize);
+    if (listView !== "schedule") setListView("schedule");
+  }
   const selected = actions.data?.find((a) => a.id === actionId);
   const [timeReview, setTimeReview] = useState<{ actionId: string; date: string }>();
   function select(id: string, view?: WorkOrderView, reviewDate?: string) {
@@ -473,30 +481,48 @@ function WorkOrders({
                   />
                 </label>
               )}
-              {listView === "schedule" && canEdit && undatedTaskCount > 0 && (
-                <div className="space-y-2 rounded-xl border bg-primary/5 p-3">
-                  <h3 className="font-medium">Freyra hjælper med planen</h3>
-                  <p className="text-sm">
-                    {undatedTaskCount === 1
-                      ? "1 opgave mangler en startdato og vises derfor ikke i kalenderen."
-                      : `${undatedTaskCount} opgaver mangler en startdato og vises derfor ikke i kalenderen.`}
-                  </p>
-                  <button
-                    type="button"
-                    className={button}
-                    disabled={locked}
-                    onClick={() => {
-                      setOnlyUndated(true);
-                      setOnlyWaiting(false);
-                      setResponsible("");
-                      setTaskSearch("");
-                      setTaskLimit(taskPageSize);
-                    }}
-                  >
-                    Se opgaver uden startdato i hele projektet
-                  </button>
-                </div>
-              )}
+              {listView === "schedule" &&
+                canEdit &&
+                schedule.isSuccess &&
+                (undatedTaskCount > 0 || waitingCount > 0) && (
+                  <div className="space-y-2 rounded-xl border bg-primary/5 p-3">
+                    <h3 className="font-medium">Freyra hjælper med planen</h3>
+                    {waitingCount > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm">
+                          {waitingCount === 1
+                            ? "1 opgave afventer, at en forudsætning bliver udført."
+                            : `${waitingCount} opgaver afventer, at deres forudsætninger bliver udført.`}
+                        </p>
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={locked}
+                          onClick={() => showProjectPlanningTasks("waiting")}
+                        >
+                          Se afventende opgaver i hele projektet ({waitingCount})
+                        </button>
+                      </div>
+                    )}
+                    {undatedTaskCount > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm">
+                          {undatedTaskCount === 1
+                            ? "1 opgave mangler en startdato og vises derfor ikke i kalenderen."
+                            : `${undatedTaskCount} opgaver mangler en startdato og vises derfor ikke i kalenderen.`}
+                        </p>
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={locked}
+                          onClick={() => showProjectPlanningTasks("undated")}
+                        >
+                          Se opgaver uden startdato i hele projektet
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               {showSchedule && (
                 <div className="space-y-2">
                   <h3 className="font-semibold">
@@ -681,14 +707,7 @@ function WorkOrders({
                       type="button"
                       className={button}
                       disabled={locked}
-                      onClick={() => {
-                        setTaskSearch("");
-                        setResponsible("");
-                        setOnlyUndated(false);
-                        setOnlyWaiting(true);
-                        setTaskLimit(taskPageSize);
-                        setListView("schedule");
-                      }}
+                      onClick={() => showProjectPlanningTasks("waiting")}
                     >
                       Se afventende opgaver i hele projektet ({waitingCount})
                     </button>

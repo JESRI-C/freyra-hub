@@ -348,6 +348,8 @@ ikke aktiveret af denne planændring. Eget estimat følger.
 
 Hjælp placeres dér, hvor kunden arbejder. Første regel i Planoversigt finder opgaver uden startdato ud fra den adgangsafgrænsede planlæsning, forklarer hvorfor de ikke er i kalenderen og åbner det relevante udsnit. Samme princip bruges senere til kapacitet, manglende feltdokumentation og afleveringsklarhed.
 
+Planhjælpen finder også opgaver, der afventer en forudsætning. Genvejen bruger samme projektfilter som kalenderen. Opgaverækken kan åbne det arbejdsgrundlag, der skal afklares, hvis brugeren allerede har adgang til det. Komponentprøven dækker forløbet fra beskeden til forudsætningen. Stagingprøve af planhjælpen afventes.
+
 Agenter indføres i tre trin. Først opdager de forhold og viser kilden og næste handling. Derefter kan de forberede en kladde med de konkrete ændringer. Til sidst kan de udføre særskilt aktiverede handlinger inden for et afgrænset mandat for organisation og projekt. Planændringer, tildelinger og faglig godkendelse bruger de eksisterende roller og versionskontroller. Afsendelse, betalte udbydere og produktion følger de aftalte godkendelsesgrænser.
 
 Før en baggrundsagent aktiveres, skal der være ejer, tilladte handlinger, mulighed for at stoppe den, sporbar beslutning og kildegrundlag samt sikre genforsøg. Prøver skal dække tilbagekaldt adgang, ændret plan under kørsel, dubletter og mulighed for at gennemgå resultatet. Første leverance er hjælp i Planoversigt. Baggrundskørsel og autonome ændringer er planlagt.

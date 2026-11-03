@@ -261,6 +261,8 @@ it("opens the prerequisite plan directly from a waiting task", async () => {
   });
   await render();
   await click("Planoversigt");
+  expect(host.textContent).toContain("1 opgave afventer, at en forudsætning bliver udført.");
+  await click("Se afventende opgaver i hele projektet (1)");
   const shortcut = host.querySelector<HTMLButtonElement>('button[aria-label^="Åbn forudsætning"]')!;
   expect(shortcut.getAttribute("aria-label")).toContain(tasks[0].title);
   await act(async () => shortcut.click());
