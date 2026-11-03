@@ -361,10 +361,10 @@ describe("groups and pool request boundary", () => {
       }),
     ).rejects.toMatchObject({ statusCode: 403 });
   });
-  it("pins the returned owner of the My tasks cache", async () => {
+  it("keeps legacy IDs in My tasks and pins the returned owner", async () => {
     const taskRow = {
       user_id: actor,
-      action_id: task.actionId,
+      action_id: "11111111-1111-c111-5111-111111111111",
       organization_id: scope.organizationId,
       project_id: scope.projectId,
       plan_version_id: id(9),
@@ -389,6 +389,18 @@ describe("groups and pool request boundary", () => {
         pageSize: 1,
       }),
     ).toEqual({ items: [taskRow], nextAfterActionId: null });
+    rpc.mockResolvedValue({ data: [], error: null });
+    expect(
+      await listMyWorkOrders(client, actor, {
+        expectedActorId: actor,
+        afterActionId: taskRow.action_id,
+        pageSize: 1,
+      }),
+    ).toEqual({ items: [], nextAfterActionId: null });
+    expect(rpc).toHaveBeenLastCalledWith(
+      "list_my_work_orders_with_filter",
+      expect.objectContaining({ p_after_action_id: taskRow.action_id }),
+    );
     rpc.mockResolvedValue({ data: [{ ...taskRow, user_id: member }], error: null });
     await expect(
       listMyWorkOrders(client, actor, { expectedActorId: actor, afterActionId: null, pageSize: 1 }),

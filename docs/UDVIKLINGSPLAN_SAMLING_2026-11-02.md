@@ -715,6 +715,8 @@ RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kla
 
 ### Ældre opgaver i planoversigt og kalender
 
+Tildeling og Mine opgaver bruger nu det samme gemte opgave-id som planoversigten. Den lokale prøve viser, at en ældre opgave kan læses på feltlisten og bruges ved sideskift, mens et svar til en anden bruger afvises. Tildeling og overtagelse af den ældre opgave skal fortsat prøves i staging.
+
 Status og logbog bruger også det gemte opgave-id. Logbogens oprettelseshændelse kan læses, når dens kilde-id er det ældre opgave-id. Øvrige hændelser kræver fortsat almindelige versions-id'er. Lokal serviceprøve dækker både status og den oprindelige oprettelseshændelse.
 
 Tidlige ugegentagelser brugte et hashbaseret opgave-id som både opgave- og anmodnings-id. Arbejdsgrundlaget læser nu den oprindelige planversion og accepterer den samme opgave som mål for en rettelse. Den lokale serviceprøve læser version 1 og kontrollerer, at en ny version sendes med samme opgave-id, forventet version 1 og et nyt anmodnings-id. Stagingprøve af selve rettelsen og øvrige opgaveområder afventes.

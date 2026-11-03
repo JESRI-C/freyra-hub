@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { WorkOrderPlanSchema } from "./work-order-plan";
+import { WorkOrderActionIdSchema } from "./work-order-access";
+const actionId = WorkOrderActionIdSchema.transform((value) => value.toLowerCase());
 const uuid = z
   .string()
   .uuid()
@@ -9,7 +11,7 @@ export const WorkOrderProjectScopeSchema = z
   .object({ organizationId: uuid, projectId: uuid })
   .strict();
 const actorScope = WorkOrderProjectScopeSchema.extend({ expectedActorId: uuid });
-const taskScope = actorScope.extend({ actionId: uuid });
+const taskScope = actorScope.extend({ actionId });
 export const WorkOrderMemberIdsSchema = z
   .array(uuid)
   .max(200)
@@ -115,7 +117,7 @@ export type WorkOrderAssignmentMode = z.infer<typeof WorkOrderAssignmentModeSche
 export const WorkOrderAssignmentSchema = z
   .object({
     ...identity,
-    action_id: uuid,
+    action_id: actionId,
     change_kind: z.enum(["configured", "claimed"]),
     mode: WorkOrderAssignmentModeSchema,
     plan_version_id: uuid,
@@ -193,7 +195,7 @@ export const WorkOrderAssignmentSchema = z
 export type WorkOrderAssignment = z.infer<typeof WorkOrderAssignmentSchema>;
 export const WorkOrderAssignmentStateInputSchema = taskScope.strict();
 export const WorkOrderAssignmentStateSchema = z.object({
-  action_id: uuid,
+  action_id: actionId,
   organization_id: uuid,
   project_id: uuid,
   user_id: uuid,
@@ -249,7 +251,7 @@ export const WorkOrderAssignmentHistorySchema = taskScope
 export const MyWorkOrdersInputSchema = z
   .object({
     expectedActorId: uuid,
-    afterActionId: uuid.nullable(),
+    afterActionId: actionId.nullable(),
     filter: z.enum(["all", "active", "waiting", "cancelled"]).optional(),
     pageSize: z.number().int().min(1).max(20),
   })
@@ -257,7 +259,7 @@ export const MyWorkOrdersInputSchema = z
 export const MyWorkOrderSchema = z
   .object({
     user_id: uuid,
-    action_id: uuid,
+    action_id: actionId,
     organization_id: uuid,
     project_id: uuid,
     plan_version_id: uuid,
