@@ -706,3 +706,5 @@ Databaseprøven på en frisk database bekræftede en gemt udførelsesversion fø
 Nye timer og materialer på aflyste opgaver afvises under opgavelåsen. Også nye rettelsesversioner afvises. Tidligere poster bevares, og en identisk genafsendelse kan læse sin oprindelige kvittering. Appen viser en konkret aflysningsbesked, hvis en postering fra en ældre visning afvises.
 
 Databaseisolation bestod for nye poster, rettelser og bevaret historik. På staging afviste databasen begge nye poster på det aflyste syntetiske besøg, og der blev ikke gemt forbrug. I en særskilt Chrome-prøve ved 390 px blev begge danske fejlbeskeder verificeret med simulerede konfliktsvar. Login, typekontrol, lint og staging-build bestod. Kilde cbf0a19, Worker 6e9fe063-d0ab-485d-8e6c-de9ce481b26c og migration 20261103150043.
+
+Aflyste opgaver afviser nye feltregistreringer efter samme opgavelås som aflysningen. Den tidligere registrering kan læses. Når telefonen modtager afvisningen, beholder den kladden og eventuelle afhængige kladder med forklaring om aflysningen. Den aflyste kladde kan eksporteres, men sættes ikke til automatisk eller manuelt genforsøg.

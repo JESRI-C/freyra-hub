@@ -22,6 +22,8 @@ async function client(scope: ProjectScope) {
   return supabase as unknown as SupabaseClient;
 }
 function failure(error: { code?: string; message?: string }): never {
+  if (error.code === "PT410")
+    throw new Error("Opgaven er aflyst. Du kan stadig se tidligere feltregistreringer.");
   if (error.code === "PT409" || error.code === "40001" || error.code === "23505")
     throw new Error("Jobkortet er ændret af en anden. Genindlæs før du gemmer en ny version.");
   if (error.code === "42P01" || error.code === "PGRST202" || error.code === "PGRST205")

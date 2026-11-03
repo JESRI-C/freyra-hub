@@ -242,16 +242,15 @@ export async function openFieldOfflineStore(
             while (changed) {
               changed = false;
               for (const row of rows) {
+                const predecessor = row.dependsOn && rows.find((item) => item.id === row.dependsOn);
                 if (
-                  row.dependsOn &&
+                  predecessor &&
                   (row.state === "queued" || row.state === "retry") &&
-                  rows.some(
-                    (p) =>
-                      p.id === row.dependsOn && (p.state === "conflict" || p.state === "blocked"),
-                  )
+                  (predecessor.state === "conflict" || predecessor.state === "blocked")
                 ) {
-                  row.state = "conflict";
-                  row.lastError = "predecessor_unresolved";
+                  const cancelled = predecessor.lastError === "cancelled";
+                  row.state = cancelled ? "blocked" : "conflict";
+                  row.lastError = cancelled ? "cancelled" : "predecessor_unresolved";
                   store.put(row);
                   changed = true;
                 }
@@ -312,7 +311,7 @@ export async function openFieldOfflineStore(
       actorId: string,
       id: string,
       leaseId: string,
-      code: "retry" | "blocked" | "conflict",
+      code: "retry" | "blocked" | "conflict" | "cancelled",
       now = Date.now(),
     ) {
       return update<boolean>(actorId, id, [], (tx, row, result) => {
@@ -320,7 +319,8 @@ export async function openFieldOfflineStore(
           result(false);
           return;
         }
-        row.state = row.attempts >= 5 && code === "retry" ? "blocked" : code;
+        row.state =
+          code === "cancelled" || (row.attempts >= 5 && code === "retry") ? "blocked" : code;
         row.lastError = code;
         row.nextAttemptAt = now + offlineRetryDelay(row.attempts);
         row.leaseId = null;
@@ -332,6 +332,10 @@ export async function openFieldOfflineStore(
     },
     async retry(actorId: string, id: string) {
       return update<void>(actorId, id, [], (tx, row, result, fail) => {
+        if (row.lastError === "cancelled") {
+          fail(new Error("Opgaven er aflyst. Kladden kan ikke sendes."));
+          return;
+        }
         if (row.state === "sending" || row.state === "complete" || row.state === "conflict") {
           fail(
             new Error("Denne registrering kan ikke nulstilles. En konflikt skal gennemgås først."),

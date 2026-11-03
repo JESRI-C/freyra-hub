@@ -223,6 +223,12 @@ INSERT INTO public.work_order_time_versions(id,action_id,organization_id,project
 INSERT INTO public.work_order_material_versions(id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version)
  VALUES(pg_temp.k(667),pg_temp.k(667),pg_temp.k(34),pg_temp.k(11),pg_temp.k(21),'Synthetic material','stk',1000,1);
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+INSERT INTO pg_temp.refs
+ SELECT 'cancel_job_template',id FROM public.save_field_job_template_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(672),0,
+ '{"schema":"freyra.field-job-template/v1","title":"Synthetic visit","domain":"general","fields":[{"key":"seen","label":"Observed","type":"boolean","required":false}]}',pg_temp.k(673));
+SELECT id FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(34),
+ (SELECT id FROM pg_temp.refs WHERE name='cancel_job_template'),0,'{"seen":false}','draft','',pg_temp.k(674));
 SELECT lives_ok($$SELECT pg_temp.change(34,1,664,'transition','cancelled','{"reason":"Synthetic early cancellation"}')$$,
  'cancellation preserves the preceding execution record');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
@@ -244,6 +250,11 @@ SELECT is((SELECT minutes FROM public.work_order_time_versions WHERE action_id=p
  'field worker can still read the original time after cancellation');
 SELECT is((SELECT quantity_milli FROM public.work_order_material_versions WHERE action_id=pg_temp.k(34)),1000,
  'field worker can still read the original material after cancellation');
+SELECT throws_ok($$SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(34),
+ (SELECT id FROM pg_temp.refs WHERE name='cancel_job_template'),1,'{"seen":true}','recorded','Synthetic offline retry',pg_temp.k(675))$$,
+ 'PT410',NULL,'a cancelled task refuses a new offline field version');
+SELECT is((SELECT count(*) FROM public.field_job_versions WHERE action_id=pg_temp.k(34)),1::bigint,
+ 'the original field version remains visible');
 SELECT is(pg_temp.execution(0,663,'Synthetic actual before cancellation','limited',34),
  (SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(34) AND version=1),
  'identical retry recovers the previously saved record after cancellation');

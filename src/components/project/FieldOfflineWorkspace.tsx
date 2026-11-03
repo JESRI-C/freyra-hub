@@ -492,7 +492,9 @@ export function FieldOfflineWorkspace({
                         "Jobkortregistrering")}
                   </p>
                   <p className="text-sm">
-                    {labels[item.state]}
+                    {item.lastError === "cancelled"
+                      ? "Bevaret på telefonen – opgaven er aflyst"
+                      : labels[item.state]}
                     {item.dependsOn && item.state === "queued"
                       ? " · afventer tidligere registrering"
                       : ""}
@@ -539,7 +541,8 @@ export function FieldOfflineWorkspace({
                         Hent registrering
                       </button>
                     )}
-                    {(item.state === "retry" || item.state === "blocked") && (
+                    {(item.state === "retry" ||
+                      (item.state === "blocked" && item.lastError !== "cancelled")) && (
                       <button
                         className={button}
                         onClick={() =>

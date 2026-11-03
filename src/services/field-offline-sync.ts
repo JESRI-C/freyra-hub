@@ -3,7 +3,7 @@ import type { OfflineItem, OfflinePhotoItem } from "@/lib/field-offline";
 import { sha256 } from "./monitoring/drone-ingest";
 
 export class OfflineSyncError extends Error {
-  constructor(readonly disposition: "retry" | "blocked" | "conflict") {
+  constructor(readonly disposition: "retry" | "blocked" | "conflict" | "cancelled") {
     super(disposition);
   }
 }

@@ -236,6 +236,7 @@ export function offlineSyncDependencies(
           p_request_id: item.id,
         })
         .abortSignal(signal);
+      if (result.error?.code === "PT410") throw new OfflineSyncError("cancelled");
       if (result.error)
         throw new OfflineSyncError(
           result.error.code === "PT409" ||
