@@ -316,9 +316,7 @@ export function FieldOfflineWorkspace({
         <h1 className="text-2xl font-semibold leading-tight">
           {requestedJob?.title ?? "Freyra i felten"}
         </h1>
-        {requestedJob && (
-          <p className="text-sm text-muted-foreground">{pack?.projectName}</p>
-        )}
+        {requestedJob && <p className="text-sm text-muted-foreground">{pack?.projectName}</p>}
       </header>
       {error && (
         <p role="alert" className="rounded-xl border border-destructive p-3 text-sm">
