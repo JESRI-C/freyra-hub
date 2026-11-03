@@ -1,3 +1,4 @@
+import { ProjectApprovedTimeExport } from "./ProjectApprovedTimeExport";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -86,6 +87,7 @@ export function ProjectWorkTimeOverview({
         Estimat og senest registreret tid for hver opgave. Åbn en opgave for at se dens
         timeoverblik.
       </p>
+      <ProjectApprovedTimeExport scope={scope} actorId={actorId} active={active && !locked} />
       {query.isPending && <p role="status">Henter projektets timer…</p>}
       {query.isError && (
         <div>

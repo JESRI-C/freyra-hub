@@ -216,6 +216,10 @@ SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(
  '40001',NULL,'an outdated time version cannot be approved');
 SELECT lives_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(301))$$,
  'the manager approves the latest field time version');
+SELECT is((public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')->0->>'minutes')::integer,
+ 75,'export contains the current approved time only');
+SELECT throws_ok($$SELECT public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-10-01','2026-11-03')$$,
+ '22023',NULL,'export rejects unbounded periods');
 SELECT ok((SELECT r.approved FROM public.list_work_order_time_for_review(
  pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'the review list shows the precise approval');
 SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
@@ -242,6 +246,8 @@ SELECT lives_ok($$INSERT INTO public.work_order_time_versions
 SELECT ok(EXISTS(SELECT 1 FROM public.work_order_time_approvals WHERE time_id=pg_temp.k(301)),
  'the performer can read the original approval');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is(public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03'),
+ '[]'::jsonb,'the approved older version is excluded after an unapproved correction');
 SELECT ok(NOT (SELECT r.approved FROM public.list_work_order_time_for_review(
  pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'approval does not carry to a corrected version');
 SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(37) AND event_type='work_order.execution_saved'),1,'field revision and retry emit one scoped execution audit event');
@@ -250,6 +256,8 @@ UPDATE public.project_members SET role='viewer' WHERE project_id=pg_temp.k(21) A
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT throws_ok($$SELECT pg_temp.field_execution()$$,'42501',NULL,'revocation also blocks a retry using a formerly authorized request');
+SELECT throws_ok($$SELECT public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'a field user cannot export billing evidence');
 SELECT throws_ok($$SELECT * FROM public.list_work_order_time_for_review(
  pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03')$$,'42501',NULL,'a field user cannot open the manager approval list');
 SELECT * FROM finish();
