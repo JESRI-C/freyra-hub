@@ -162,7 +162,7 @@ SELECT throws_ok($$SELECT public.save_approved_work_order_report(pg_temp.k(11),p
   '42501',NULL,'unverified review cannot produce a report');
 SELECT throws_ok($$SELECT public.save_report_revision(
   (value::jsonb->>'report_id')::uuid,pg_temp.k(11),pg_temp.k(21),1,'draft',
-  value::jsonb->'content' - 'workOrderApproval' - 'sources' || '{"sources":[]}'::jsonb)
+  (value::jsonb->'content') - 'workOrderApproval' - 'sources' || '{"sources":[]}'::jsonb)
   FROM pg_temp.saved WHERE name='work-order-report'$$,
   'P0001','The approved work order report is immutable','cannot strip provenance from a saved report');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);

@@ -13,11 +13,20 @@ import { WorkOrderRequestError } from "@/lib/work-order-access";
 const m = vi.hoisted(() => ({
   context: vi.fn(),
   mutate: vi.fn(),
+  saveReport: vi.fn(),
   editing: vi.fn(),
   phase: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
-vi.mock("@tanstack/react-router", () => ({ useBlocker: vi.fn() }));
+vi.mock("@tanstack/react-router", () => ({
+  useBlocker: vi.fn(),
+  Link: ({ children, search }: { children: React.ReactNode; search: Record<string, string> }) => (
+    <a href={`/app/reports/preview?${new URLSearchParams(search)}`}>{children}</a>
+  ),
+}));
+vi.mock("@/services/report-document-service", () => ({
+  saveApprovedWorkOrderReport: m.saveReport,
+}));
 vi.mock("@/lib/work-order-submission.functions", () => ({
   getProjectWorkOrderReviewContext: m.context,
 }));
@@ -170,4 +179,29 @@ describe("version-bound review on the existing task", () => {
     expect(button("Gem afleveringshandling")?.disabled).toBe(true);
     expect(host.textContent).not.toContain("Status: Afleveret");
   });
+});
+
+it("opens the saved report on exactly the approved packet and review", async () => {
+  const c = reviewContext();
+  m.context.mockResolvedValue({
+    ...c,
+    state: { ...c.state, id: id(20), status: "approved", operation: "review" },
+  });
+  m.saveReport.mockResolvedValue({
+    report_id: id(21),
+    version: 1,
+    content: { workOrderApproval: { reviewId: id(20) } },
+  });
+  await render();
+  expect(button("Hent rapport for afleveringsversion 1")).toBeUndefined();
+  await render({ canCreateReport: true });
+  await click(`Hent rapport for afleveringsversion ${c.packet!.version}`);
+  expect(m.saveReport).toHaveBeenCalledWith({
+    ...scope,
+    submissionId: c.packet!.id,
+    reviewId: id(20),
+  });
+  expect(host.querySelector("a")?.getAttribute("href")).toBe(
+    `/app/reports/preview?report=${id(21)}&version=1`,
+  );
 });

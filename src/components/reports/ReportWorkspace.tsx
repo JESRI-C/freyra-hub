@@ -94,6 +94,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     search.version ? r.version === search.version : true,
   );
   const [content, setContent] = useState<ReportContent | null>(null);
+  const canEditContent = canEdit && !content?.workOrderApproval;
   const [busy, setBusy] = useState(false);
   const [workflowReviewReason, setWorkflowReviewReason] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
@@ -314,7 +315,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
           Åbn rapporten for den godkendte aflevering
         </Link>
       )}
-      {canEdit && content && !content.workOrderApproval && (mode === "new" || mode === "builder") && (
+      {canEditContent && content && (mode === "new" || mode === "builder") && (
         <>
           <Card className="p-5 space-y-3">
             <label className="block">
@@ -663,7 +664,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               </p>
             </div>
           )}
-          {canEdit && mode === "approval" && !content.workOrderApproval && (
+          {canEditContent && mode === "approval" && (
             <div className="flex gap-2">
               <button
                 className={button}
