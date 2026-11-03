@@ -383,9 +383,8 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
   useEffect(() => {
     setLocalActions(actions);
   }, [actions]);
-  const [selectedIndicator, setSelectedIndicator] = useState<(typeof indicators)[number] | null>(
-    null,
-  );
+  const [selectedIndicatorId, setSelectedIndicatorId] = useState<string>();
+  const selectedIndicator = indicators.find((item) => item.id === selectedIndicatorId) ?? null;
   const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
   const [actionFilterSite, setActionFilterSite] = useState<string>("");
   const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
@@ -397,7 +396,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
     return true;
   });
   const openIndicator = (ind: (typeof indicators)[number]) => {
-    setSelectedIndicator(ind);
+    setSelectedIndicatorId(ind.id);
     setIndicatorDetailOpen(true);
   };
   // A failed background media refresh must not feed stale/empty evidence to the report preview.

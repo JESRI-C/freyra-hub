@@ -83,6 +83,15 @@ export function IndicatorDetail({
     !!first.unit?.trim() &&
     first.unit === last.unit;
   const change = comparable ? Number(last.value) - Number(first.value) : null;
+  const targetValue = indicator.target_value;
+  const targetDirection = indicator.target_direction;
+  const targetUnit = indicator.target_unit;
+  const targetReached =
+    targetValue != null && last && last.unit === targetUnit && Number.isFinite(Number(last.value))
+      ? targetDirection === "at_most"
+        ? Number(last.value) <= targetValue
+        : Number(last.value) >= targetValue
+      : null;
 
   async function handleAdd() {
     if (!indicator || readOnly || saving || !isSupabaseConfigured) return;
@@ -225,6 +234,23 @@ export function IndicatorDetail({
                       : "En sammenligning kræver forskellige måletidspunkter og samme dokumenterede kilde, metode og enhed."}
                   </p>
                 )}
+              </section>
+            )}
+
+            {targetValue != null && targetDirection && targetUnit && (
+              <section
+                aria-label="Indikatorens mål"
+                className="space-y-1 rounded-lg border p-3 text-sm"
+              >
+                <h3 className="font-medium">Indikatorens mål</h3>
+                <p>
+                  {targetDirection === "at_most" ? "Højst" : "Mindst"} {targetValue} {targetUnit}
+                </p>
+                <p className="text-muted-foreground">
+                  {measurementsError || targetReached === null
+                    ? "Afventer en registrering i perioden med målets enhed."
+                    : `Seneste registrering i perioden: ${last!.value} ${targetUnit}. ${targetReached ? "Værdien opfylder målet." : "Værdien ligger uden for målet."}`}
+                </p>
               </section>
             )}
 

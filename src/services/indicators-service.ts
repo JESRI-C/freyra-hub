@@ -204,6 +204,9 @@ export async function saveIndicatorConfig(
     threshold_warning?: number | null;
     threshold_critical?: number | null;
     threshold_direction?: "above" | "below";
+    target_value?: number | null;
+    target_direction?: "at_least" | "at_most" | null;
+    target_unit?: string | null;
     unit?: string | null;
   },
 ): Promise<void> {
