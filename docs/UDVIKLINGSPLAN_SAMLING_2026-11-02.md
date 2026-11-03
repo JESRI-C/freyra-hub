@@ -684,3 +684,5 @@ RES-opfølgning på planlægningen. Kalenderen viste før de afventende opgaver 
 Browserprøve på staging i Chrome ved 390 px. Genvejen åbnede Planoversigt med filteret valgt og viste den afventende opgave med begge forudsætninger. Da filteret blev slået fra, kom de øvrige opgaver tilbage. Login og staging-build bestod. Kilde 56457d6, Worker cfdae410-1d8f-450e-843d-dd708702c16f.
 
 RES-opfølgning fra feltmedarbejderens side. Mine opgaver viser Afventer forudsætninger på opgavekortet før åbning. Opgavens instruktion kan fortsat læses. Ventestatus beregnes fra samme kontrol som Registrer start og tilføjes til den eksisterende adgangsafgrænsede side. Svaret indeholder ingen identiteter for de forudgående opgaver.
+
+Stagingprøven brugte en eksisterende testkonto og en tildelt syntetisk opgave. API-svaret viste ventestatus og indeholdt ingen forudsætnings-id'er. Chrome ved 390 px viste ventestatus før åbning, og instruktionen var tilgængelig efter åbning. 46 målrettede tests, typekontrol, staging-build og databaseisolation bestod. Kilde c894649, Worker b8110c36-21fc-421d-b615-9041b75baba0 og migration 20261103143042.
