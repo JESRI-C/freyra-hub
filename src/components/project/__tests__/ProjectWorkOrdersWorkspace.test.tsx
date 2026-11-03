@@ -16,7 +16,11 @@ const m = vi.hoisted(() => ({
 vi.mock("@/lib/supabase/client", () => ({
   createActorBoundSupabaseClient: () => ({ rpc: () => ({ abortSignal: m.time }) }),
 }));
-vi.mock("../WorkOrderTimeSummary", () => ({ WorkOrderTimeSummary: () => null }));
+vi.mock("../WorkOrderTimeSummary", () => ({
+  WorkOrderTimeSummary: ({ reviewDate }: { reviewDate?: string }) => (
+    <div data-review-date={reviewDate} />
+  ),
+}));
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: m.actor ? { id: m.actor } : null }) }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({
@@ -331,7 +335,15 @@ it("keeps the time search and overrun filter when returning from an opened task"
   m.time.mockResolvedValue({
     error: null,
     data: [
-      { action_id: id, title: "Syntetisk tidsprøve", minutes: 120, entries: 1, estimated_hours: 1 },
+      {
+        action_id: id,
+        title: "Syntetisk tidsprøve",
+        minutes: 120,
+        entries: 1,
+        estimated_hours: 1,
+        pending_entries: 1,
+        pending_date: "2026-10-29",
+      },
     ],
   });
   await render();
@@ -350,6 +362,7 @@ it("keeps the time search and overrun filter when returning from an opened task"
     b.textContent?.includes("Syntetisk tidsprøve"),
   )!;
   await act(async () => row.click());
+  expect(host.querySelector('[data-review-date="2026-10-29"]')).not.toBeNull();
   await click("Tilbage til timer");
   expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("tidsprøve");
   expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
