@@ -43,6 +43,7 @@ export function WorkOrderReviewControls({
   active,
   onEditing,
   onPhase,
+  onOpenFollowUpPlan,
 }: {
   scope: WorkOrderScope;
   actorId: string;
@@ -54,6 +55,7 @@ export function WorkOrderReviewControls({
   active: boolean;
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
+  onOpenFollowUpPlan?: () => void;
 }) {
   const load = useServerFn(getProjectWorkOrderReviewContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
@@ -384,6 +386,23 @@ export function WorkOrderReviewControls({
                 PDF.
               </p>
               {reportAction(currentApproval.id, c.packet.id, c.packet.version)}
+            </div>
+          )}
+          {!draft && currentApproval && onOpenFollowUpPlan && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <h4 className="font-medium">Planlæg opfølgning</h4>
+              <p className="text-sm">
+                Hvis gennemgangen giver anledning til mere arbejde, kan du se eksisterende
+                opfølgninger eller oprette en ny opgave fra arbejdsgrundlaget.
+              </p>
+              <button
+                type="button"
+                className={button}
+                disabled={disabledByParent || query.isFetching}
+                onClick={onOpenFollowUpPlan}
+              >
+                Åbn arbejdsgrundlaget for opfølgning
+              </button>
             </div>
           )}
           {!!c?.recent_reviews.length && (

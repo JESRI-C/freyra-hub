@@ -241,6 +241,9 @@ export function WorkOrderSubmissionPanel({
         disabledByParent={!authorized || !!note || busy || opening || uncertain}
         onEditing={setReviewEditing}
         onPhase={setReviewPhase}
+        onOpenFollowUpPlan={
+          canCreateReport && !readOnly && onOpenPart ? () => onOpenPart("plan") : undefined
+        }
       />
       {authorized && (
         <>

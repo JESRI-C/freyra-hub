@@ -227,6 +227,8 @@ Dokumentation viser næste trin ved manglende svar på en aktiv kobling. En læs
 
 **Afhænger af:** S04; S03 for filtreret eksport. **Genbrug:** D07, F10/F11, report_document/revisions, workflowrapport og eksportadaptere. **Skøn:** 2–4 dage.
 
+Efter godkendelse viser gennemgangen en genvej til arbejdsgrundlaget, hvor projektlederen kan se og oprette opfølgende opgaver på samme sag. Genvejen genbruger den eksisterende planvisning, som knytter en opfølgende plan til kildeopgaven og dens planversion. Prøven dækker genvejen efter godkendelse. Browserprøve og en særskilt binding fra opfølgningen til den faglige gennemgang afventes.
+
 Genvejen fra en gemt rapport bærer nu rapportens afleveringsversion. Afleveringspanelet henter versionen direkte via det eksisterende adgangskontrollerede historikopslag, også når nyere versioner findes. Brugeren kan åbne hele historikken fra samme panel. Komponentprøven åbner version 1 og viser derefter den nyere historik. Stagingprøven på kilde bd22b4c og Worker faaf3522-7d88-4c35-ad4f-c763b159ff4c bestod. Den gemte testrapport åbnede samme rapportversion ved genforsøg og kunne hentes som PDF. Ved 320 px åbnede Enter præcis afleveringsversion 1. Det fastholdte grundlag viste handlingen til originalfotoet, og hele historikken kunne åbnes. Et versionsnummer uden en aflevering gav en forklaring. Rapportvisningen blev kontrolleret ved 320, 390 og 1280 px uden vandret overflow eller JavaScript-sidefejl. Prøven brugte én testopgave. En ældre aflevering efter flere nyere versioner er dækket af komponentprøven.
 
 - Bind rapportrevisionen til opgaven og den præcise afleverings-/reviewrevision. Saml det eksisterende input til én kanonisk eksportkontrakt uden at genopfinde rapporttabellerne.
