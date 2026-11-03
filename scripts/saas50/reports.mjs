@@ -24,17 +24,25 @@ try {
         width,
       );
       try {
+        const pageErrors = [];
+        page.on("pageerror", (error) => pageErrors.push(error.name));
         const target = taskUrl(tenant, "submission");
-        const create = page
-          .getByRole("button", { name: /^Klargør rapportkladde for afleveringsversion / })
-          .first();
-        const open = page.getByRole("link", { name: "Åbn den gemte rapport", exact: true }).first();
+        const currentReport = page
+          .getByRole("heading", { name: "Næste skridt · Projektrapport", exact: true })
+          .locator("..");
+        const submissionVersion = tenant.submission.version;
+        const create = currentReport.getByRole("button", {
+          name: `Klargør rapportkladde for afleveringsversion ${submissionVersion}`,
+          exact: true,
+        });
+        const open = currentReport.getByRole("link", {
+          name: "Åbn den gemte rapport",
+          exact: true,
+        });
         await page.goto(target);
-        const label = await create.innerText();
-        const submissionVersion = Number(label.match(/afleveringsversion (\d+)/)?.[1]);
-        assert(submissionVersion > 0);
         await create.click();
         await open.waitFor();
+        await page.getByRole("status").filter({ hasText: "Rapportkladden er klar." }).waitFor();
         const savedHref = await open.getAttribute("href");
         assert.equal(new URL(savedHref, fixture.app).searchParams.get("version"), "1");
         await page.goto(target);
@@ -43,6 +51,9 @@ try {
         assert.equal(await open.getAttribute("href"), savedHref);
         await open.click();
         await page.getByText("Godkendt afleveringsgrundlag", { exact: true }).first().waitFor();
+        await page
+          .getByText(`Grundlag · Godkendt afleveringsversion ${submissionVersion}`, { exact: true })
+          .waitFor();
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         const [pdf] = await Promise.all([
           page.waitForEvent("download"),
@@ -55,12 +66,23 @@ try {
         const backUrl = new URL(await back.getAttribute("href"), fixture.app);
         assert.equal(backUrl.searchParams.get("task"), tenant.actionId);
         assert.equal(backUrl.searchParams.get("work"), "submission");
+        await back.focus();
+        await page.keyboard.press("Enter");
+        await page.waitForURL(
+          (url) =>
+            url.pathname === backUrl.pathname &&
+            url.searchParams.get("task") === tenant.actionId &&
+            url.searchParams.get("work") === "submission",
+        );
+        await create.waitFor();
+        assert.deepEqual(pageErrors, []);
         return {
           width,
           submissionVersion,
           reopenedSameReport: true,
           validPdf: true,
           exactTaskLink: true,
+          keyboardReturn: true,
         };
       } finally {
         await context.close();

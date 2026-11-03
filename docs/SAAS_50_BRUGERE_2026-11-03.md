@@ -78,6 +78,8 @@ Kørsel ed583cee på staging, kilde 7a28b32e89a4b6eab3a4a4bf7e55baf05d0ba562 og 
 
 Der blev registreret 1.067 SDK-kald i de målte faser. Browserkald er opgjort separat som scenarier. Kør genprøvens rapportfase med node scripts/saas50/reports.mjs --staging efter arbejdsforløbene og før kontolukning.
 
+Rapportfasen bruger nu den forventede afleveringsversion fra det gennemførte arbejdsforløb. Den kontrollerer versionen på den aktuelle rapporthandling og i den åbnede rapport, kvitteringen efter klargøring, PDF, tastaturretur og JavaScript-sidefejl. Kontrollen af den viste kildeversion er efterprøvet på én eksisterende syntetisk stagingrapport. De historiske 50-brugertal ovenfor gælder fortsat den registrerede kørsel ed583cee.
+
 Oprydningen lukkede alle 50 konti. Efter læsning på staging var der 0 aktive sessioner, 0 uinddragede refresh-tokens og 0 skrivende projekt- eller organisationsroller for kontiene. Login og refresh blev afvist for den repræsentative lukkede konto. De lokale testlegitimationsoplysninger blev fjernet. De otte projekter, otte verificerede originaler, ni afleveringsversioner og otte gemte rapporter er bevaret.
 
 Den opdaterede genprøve dækker arbejdsforløbet til gemt rapport og PDF. Den samlede frigivelsesvurdering afventer uassisteret brug på fysisk telefon, fuld Skyhost-dækning og de resterende fagvisninger, længere belastning, kundeopstart, betaling og produktionsdrift.
