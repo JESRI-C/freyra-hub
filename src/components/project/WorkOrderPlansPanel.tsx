@@ -493,6 +493,7 @@ function PlanWorkspace({
     setDraft((old) => (old ? { ...old, [key]: value } : old));
   const gaps = draft ? workOrderPlanGaps(draft) : [];
   const assignmentSection = useRef<HTMLDivElement>(null);
+  const statusSection = useRef<HTMLDivElement>(null);
   const showAssignment =
     latest && !draft && !seriesSaving && !bookingEditing && !accessEditing && !lifecycleEditing;
   const draftStart = draft?.plannedStart;
@@ -850,6 +851,7 @@ function PlanWorkspace({
             planId={latest.id}
             canManage={canPlan && !history.isError && !history.isFetching}
             people={members.data ?? []}
+            onOpenStatus={() => statusSection.current?.focus()}
             onEditing={(value) => {
               setAssignmentEditing(value);
               onEditing(value);
@@ -863,15 +865,17 @@ function PlanWorkspace({
         !bookingEditing &&
         !accessEditing &&
         !assignmentEditing && (
-          <WorkOrderStatusPanel
-            scope={{ ...scope, actionId }}
-            actorId={actorId}
-            manageNavigation={false}
-            onEditing={(value) => {
-              setLifecycleEditing(value);
-              onEditing(value);
-            }}
-          />
+          <div ref={statusSection} tabIndex={-1} role="group" aria-label="Status på opgaven">
+            <WorkOrderStatusPanel
+              scope={{ ...scope, actionId }}
+              actorId={actorId}
+              manageNavigation={false}
+              onEditing={(value) => {
+                setLifecycleEditing(value);
+                onEditing(value);
+              }}
+            />
+          </div>
         )}
       {draft && (
         <form
