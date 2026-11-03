@@ -235,11 +235,7 @@ try {
         "EKSEMPEL: Besigtig området før valg af plejemetode. Beskriv de synlige forhold og relevante hensyn, og aftal hvilke førbilleder der skal tages. Ingen fysisk pleje er udført.",
       );
     await page.getByRole("button", { name: "Gem planversion", exact: true }).click();
-    await page
-      .getByText("Plan version 1 er gemt. Det er ikke en registrering af udført arbejde.", {
-        exact: true,
-      })
-      .waitFor();
+    await page.getByText(/^Plan(?:version| version) 1 er gemt\./).waitFor();
   }
   await page.getByRole("button", { name: "Rediger plan som ny version", exact: true }).click();
   const method = page.getByLabel("Planlagt metode", { exact: true });

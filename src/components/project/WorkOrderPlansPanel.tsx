@@ -446,9 +446,7 @@ function PlanWorkspace({
       void cache.invalidateQueries({ queryKey: ["project-work-time", actorId, scope] });
       setDraft(null);
       onEditing(false);
-      setMessage(
-        `Plan version ${saved.version} er gemt. Det er ikke en registrering af udført arbejde.`,
-      );
+      setMessage(`Planversion ${saved.version} er gemt.`);
       setPages([]);
       await Promise.all([
         cache.invalidateQueries({ queryKey: key }),
@@ -494,6 +492,9 @@ function PlanWorkspace({
   const set = <K extends keyof WorkOrderPlan>(key: K, value: WorkOrderPlan[K]) =>
     setDraft((old) => (old ? { ...old, [key]: value } : old));
   const gaps = draft ? workOrderPlanGaps(draft) : [];
+  const assignmentSection = useRef<HTMLDivElement>(null);
+  const showAssignment =
+    latest && !draft && !seriesSaving && !bookingEditing && !accessEditing && !lifecycleEditing;
   const draftStart = draft?.plannedStart;
   const draftEnd = draft?.plannedEnd ?? draftStart;
   const responsibleId = draft?.responsibleId;
@@ -573,9 +574,20 @@ function PlanWorkspace({
         </p>
       )}
       {message && (
-        <p role="status" className="text-sm">
-          {message}
-        </p>
+        <div className="space-y-2">
+          <p role="status" className="text-sm">
+            {message}
+          </p>
+          {showAssignment && canPlan && !history.isError && !history.isFetching && (
+            <button
+              type="button"
+              className={button}
+              onClick={() => assignmentSection.current?.focus()}
+            >
+              Gå til arbejdsfordeling
+            </button>
+          )}
+        </div>
       )}
       {(members.error || sites.error || centerlines.error) && (
         <p role="alert" className="text-sm">
@@ -830,12 +842,8 @@ function PlanWorkspace({
             }}
           />
         )}
-      {latest &&
-        !draft &&
-        !seriesSaving &&
-        !bookingEditing &&
-        !accessEditing &&
-        !lifecycleEditing && (
+      {showAssignment && (
+        <div ref={assignmentSection} tabIndex={-1} role="group" aria-label="Tildeling på opgaven">
           <WorkOrderAssignmentPanel
             scope={{ ...scope, actionId }}
             actorId={actorId}
@@ -847,7 +855,8 @@ function PlanWorkspace({
               onEditing(value);
             }}
           />
-        )}
+        </div>
+      )}
       {latest &&
         !draft &&
         !seriesSaving &&

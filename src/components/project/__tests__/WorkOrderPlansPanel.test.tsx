@@ -541,6 +541,13 @@ describe("work-order plan editor", () => {
         plan: { ...row().plan, estimatedHours: 2.75 },
       }),
     });
+    expect(host.textContent).toContain("Planversion 2 er gemt.");
+    const next = [...host.querySelectorAll("button")].find(
+      (button) => button.textContent === "Gå til arbejdsfordeling",
+    );
+    expect(next).toBeDefined();
+    await act(async () => next!.click());
+    expect(document.activeElement).toBe(host.querySelector('[aria-label="Tildeling på opgaven"]'));
   });
   it("opens the exact saved source plan only on request", async () => {
     const source = {
