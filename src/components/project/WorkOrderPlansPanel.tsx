@@ -389,6 +389,7 @@ function PlanWorkspace({
             ...current,
             [actionId]: {
               planVersionId: saved.id,
+              cancelled: current[actionId]?.cancelled ?? false,
               start: saved.plan.plannedStart,
               end: saved.plan.plannedEnd,
               responsibleId: saved.plan.responsibleId,

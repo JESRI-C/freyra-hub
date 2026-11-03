@@ -98,3 +98,24 @@ export const shiftProjectWorkOrderSeries = createServerFn({ method: "POST" })
     if (result.error) workOrderRpcFailure(result.error);
     return z.number().int().min(2).max(12).parse(result.data);
   });
+
+export const cancelProjectWorkOrderSeries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    parseWorkOrderInput(ShiftSeriesSchema.omit({ days: true }), raw),
+  )
+  .handler(async ({ data, context }) => {
+    checkActor(context.userId, data.expectedActorId);
+    const client = context.supabase as unknown as WorkOrderRequestClient;
+    const result = await client.rpc("cancel_work_order_series", {
+      p_organization_id: data.organizationId,
+      p_project_id: data.projectId,
+      p_series_id: data.seriesId,
+      p_expected_plans: data.expectedPlans,
+      p_reason: data.reason,
+      p_request_id: data.requestId,
+      p_expected_actor_id: data.expectedActorId,
+    });
+    if (result.error) workOrderRpcFailure(result.error);
+    return z.number().int().min(2).max(12).parse(result.data);
+  });

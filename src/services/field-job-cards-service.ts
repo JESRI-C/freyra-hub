@@ -64,6 +64,7 @@ export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSig
 }
 const scheduleRow = z.object({
   action_id: uuid,
+  work_order_lifecycle_versions: z.array(z.object({ status: z.string() })).max(1),
   work_order_plan_versions: z
     .array(
       z.object({
@@ -83,6 +84,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     string,
     {
       planVersionId: string;
+      cancelled: boolean;
       start: string | null;
       end: string | null;
       responsibleId: string | null;
@@ -95,13 +97,15 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
     let query = db
       .from("work_orders")
       .select(
-        "action_id,work_order_plan_versions(id,planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours)",
+        "action_id,work_order_plan_versions(id,planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours),work_order_lifecycle_versions(status)",
       )
       .eq("organization_id", scope.organizationId)
       .eq("project_id", scope.projectId)
       .order("action_id")
       .order("version", { referencedTable: "work_order_plan_versions", ascending: false })
       .limit(1, { referencedTable: "work_order_plan_versions" })
+      .order("version", { referencedTable: "work_order_lifecycle_versions", ascending: false })
+      .limit(1, { referencedTable: "work_order_lifecycle_versions" })
       .limit(pageSize);
     if (afterId) query = query.gt("action_id", afterId);
     const { data, error } = await query;
@@ -112,6 +116,7 @@ export async function listFieldJobSchedule(scope: ProjectScope) {
       if (plan)
         dates[row.action_id] = {
           planVersionId: plan.id,
+          cancelled: row.work_order_lifecycle_versions[0]?.status === "cancelled",
           start: plan.planned_start,
           end: plan.planned_end,
           responsibleId: plan.responsible_id,

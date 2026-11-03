@@ -11,6 +11,7 @@ const m = vi.hoisted(() => ({
   save: vi.fn(),
   createSeries: vi.fn(),
   shiftSeries: vi.fn(),
+  cancelSeries: vi.fn(),
   schedule: vi.fn(),
   followUps: vi.fn(),
   members: vi.fn(),
@@ -54,6 +55,7 @@ vi.mock("@/lib/work-order-plan.functions", () => ({
   saveProjectWorkOrderPlan: m.save,
   createProjectWorkOrderSeries: m.createSeries,
   shiftProjectWorkOrderSeries: m.shiftSeries,
+  cancelProjectWorkOrderSeries: m.cancelSeries,
 }));
 vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: m.actions,
@@ -286,6 +288,22 @@ describe("work-order plan editor", () => {
       expectedPlans: { [id(41)]: id(61), [id(42)]: id(62) },
       days: 2,
       reason: "Flyttes to dage",
+    });
+    const cancel = [...summary.parentElement!.querySelectorAll("button")].find(
+      (button) => button.textContent === "Aflys hele serien",
+    )!;
+    await act(async () => cancel.click());
+    expect(m.cancelSeries).not.toHaveBeenCalled();
+    await fill("Årsag til aflysningen", "Tilsyn aflyst");
+    m.cancelSeries.mockResolvedValue(2);
+    const confirm = [...summary.parentElement!.querySelectorAll("button")].find(
+      (button) => button.textContent === "Bekræft aflysning",
+    )!;
+    await act(async () => confirm.click());
+    expect(m.cancelSeries.mock.calls[0][0].data).toMatchObject({
+      seriesId: id(80),
+      expectedPlans: { [id(41)]: id(61), [id(42)]: id(62) },
+      reason: "Tilsyn aflyst",
     });
   });
 

@@ -1,4 +1,4 @@
-import { WorkOrderSeriesShift } from "./WorkOrderSeriesShift";
+import { WorkOrderSeriesActions } from "./WorkOrderSeriesActions";
 import { useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -123,6 +123,7 @@ export function WorkOrderFollowUps({
                             planVersionId: plan.planVersionId,
                             start: plan.start,
                             end: plan.end,
+                            cancelled: plan.cancelled,
                           },
                         ]
                       : [];
@@ -137,7 +138,7 @@ export function WorkOrderFollowUps({
                     </p>
                   )}
                   {canShift && series && plans.length === series.member_count && (
-                    <WorkOrderSeriesShift
+                    <WorkOrderSeriesActions
                       actorId={actorId}
                       scope={scope}
                       seriesId={series.series_id}
@@ -160,6 +161,7 @@ export function WorkOrderFollowUps({
                             {row.title}
                           </span>
                           <span className="block text-muted-foreground">
+                            {schedule.data?.[row.action_id]?.cancelled && "Aflyst · "}
                             {schedule.isSuccess && (
                               <>{scheduleLabel(schedule.data[row.action_id])} · </>
                             )}

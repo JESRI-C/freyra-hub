@@ -436,5 +436,35 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
 SELECT throws_ok($$SELECT public.shift_work_order_series(pg_temp.k(11),pg_temp.k(21),pg_temp.k(390),
  current_setting('test.series_basis')::jsonb,2,'Unauthorized',pg_temp.k(402),pg_temp.k(3))
 $$,'42501',NULL,'a reader cannot shift a series');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT set_config('test.cancel_basis',(
+ SELECT jsonb_object_agg(p.action_id,p.id)::text
+ FROM public.work_order_series_members m JOIN public.work_order_plan_versions p ON p.id=m.plan_version_id
+ WHERE m.series_id=pg_temp.k(392)
+),true);
+CREATE FUNCTION pg_temp.cancel_series(mutation integer, explanation text DEFAULT 'Synthetic series cancellation') RETURNS integer
+LANGUAGE sql AS $$
+ SELECT public.cancel_work_order_series(pg_temp.k(11),pg_temp.k(21),pg_temp.k(392),
+   current_setting('test.cancel_basis')::jsonb,explanation,pg_temp.k(mutation),auth.uid())
+$$;
+SELECT public.reserve_work_order_equipment(pg_temp.k(410),pg_temp.k(11),pg_temp.k(21),
+ pg_temp.weekly_id(392,2),pg_temp.k(370),'2027-02-02','2027-02-02');
+SELECT throws_ok($$SELECT pg_temp.cancel_series(411)$$,'PT409',NULL,'a reservation prevents cancellation of any member');
+SELECT is((SELECT count(*) FROM public.work_order_lifecycle_versions
+ WHERE action_id=ANY(pg_temp.recurring('daily',392))),0::bigint,'failed cancellation leaves no lifecycle changes');
+UPDATE public.work_order_equipment_bookings SET cancelled_at=now() WHERE id=pg_temp.k(410);
+SELECT is(pg_temp.cancel_series(411),3,'cancels all three tasks through the normal lifecycle');
+SELECT is(pg_temp.cancel_series(411),3,'identical retry returns the original receipt');
+SELECT throws_ok($$SELECT pg_temp.cancel_series(411,'A different reason')$$,'22023',NULL,'retry rejects changed reason');
+SELECT is((SELECT count(*) FROM public.work_order_lifecycle_versions
+ WHERE status='cancelled' AND reason='Synthetic series cancellation' AND action_id=ANY(pg_temp.recurring('daily',392))),
+ 3::bigint,'one cancelled entry per task preserves the reason');
+SELECT is((SELECT count(*) FROM public.work_order_plan_versions WHERE action_id=ANY(pg_temp.recurring('daily',392))),
+ 3::bigint,'original plans remain intact');
+SELECT throws_ok($$SELECT public.reserve_work_order_equipment(pg_temp.k(413),pg_temp.k(11),pg_temp.k(21),
+ pg_temp.weekly_id(392,2),pg_temp.k(370),'2027-02-02','2027-02-02')$$,'PT409',NULL,
+ 'cancelled work orders cannot reserve equipment');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT pg_temp.cancel_series(412)$$,'42501',NULL,'reader cannot cancel a series');
 SELECT * FROM finish();
 ROLLBACK;

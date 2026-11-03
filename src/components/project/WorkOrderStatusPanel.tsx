@@ -267,6 +267,7 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
       await Promise.all([
         cache.invalidateQueries({ queryKey: contextKey }),
         cache.invalidateQueries({ queryKey: logKey }),
+        cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId] }),
         cache.invalidateQueries({ queryKey: ["my-work-orders", actorId] }),
       ]);
     } catch (e) {

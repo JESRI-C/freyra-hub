@@ -646,3 +646,7 @@ På staging oprettede projektlederen to serier fra samme kildeplan. Efter genind
 På en serie med alle opgaver og aktuelle planer indlæst kan projektlederen flytte alle datoer med samme antal kalenderdage. Forhåndsvisningen viser de nye datoer. Brugeren angiver en årsag, som gemmes i den enkelte opgaves planhistorik. Databasen gemmer flytningen samlet og afviser en forældet plan, en påbegyndt eller lukket opgave og en aktiv udstyrsreservation. Samlet aflysning af en serie afventer særskilt udvikling.
 
 I Chrome ved 390 px på staging flyttede projektlederen den ugentlige serie fra 5. og 12. maj til 7. og 14. maj. Efter genindlæsning viste begge opgaver de nye datoer, en anden serie beholdt sin dato, og den oprindelige plan kunne findes i historikken. Databaseprøven bestod for stale planer, afvist læser, genforsøg og samlet rollback ved reservation. Typekontrol, lint og staging-build bestod. Kilde 4bba7a5, Worker 1108e446-10c5-4f9a-8c2d-d4788999fc54 og migration 20261103133845.
+
+### S13 – Aflys hele serien
+
+Projektlederen kan bekræfte aflysning af en hel serie med én årsag. Hver opgave får den eksisterende status Aflyst og beholder plan og historik. Kalenderen udelader aflyste opgaver fra aktive datoer og belastning. En aktiv reservation, en påbegyndt opgave eller en forældet plan afviser hele aflysningen. En aflyst opgave kan ikke få en ny reservation.

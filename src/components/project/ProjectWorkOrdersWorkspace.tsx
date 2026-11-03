@@ -197,7 +197,12 @@ function WorkOrders({
     listView === "calendar"
       ? orderedActions?.filter(({ id }) => {
           const plan = dates?.[id];
-          return plan?.start && plan.start <= through && (plan.end ?? plan.start) >= from;
+          return (
+            !plan?.cancelled &&
+            plan?.start &&
+            plan.start <= through &&
+            (plan.end ?? plan.start) >= from
+          );
         })
       : undefined;
   const searchTerm = taskSearch.trim().toLocaleLowerCase("da");
@@ -211,8 +216,9 @@ function WorkOrders({
   const estimates = new Map(
     (calendarActions ?? visibleActions ?? []).map(({ id }) => {
       const plan = dates?.[id];
-      const hours =
-        listView === "calendar" && plan
+      const hours = plan?.cancelled
+        ? null
+        : listView === "calendar" && plan
           ? workOrderHoursInPeriod(plan, from, through)
           : (plan?.estimatedHours ?? null);
       return [id, hours];
@@ -232,7 +238,8 @@ function WorkOrders({
     const assigned = new Set<string>();
     const overlap = new Set<string>();
     for (const plan of scheduledPeriods) {
-      if (!plan.start || plan.start > key || (plan.end ?? plan.start) < key) continue;
+      if (plan.cancelled || !plan.start || plan.start > key || (plan.end ?? plan.start) < key)
+        continue;
       total++;
       if (canEdit && plan.responsibleId) {
         if (assigned.has(plan.responsibleId)) overlap.add(plan.responsibleId);
@@ -658,7 +665,7 @@ function WorkOrders({
                           <span className="block font-medium">{a.title}</span>
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
-                              {scheduleLabel(dates?.[a.id])}
+                              {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
                               {estimate != null && (
                                 <span className="block">
                                   {listView === "calendar" ? "Estimat i udsnittet" : "Estimat"} ·{" "}
