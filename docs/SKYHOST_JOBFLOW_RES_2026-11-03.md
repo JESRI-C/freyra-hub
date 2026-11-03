@@ -56,4 +56,15 @@ En efterfølgende prøve brugte et nyt isoleret testprojekt og to forskellige ko
 3. Afbryd forbindelsen ved gem/aflevering. Luk og genåbn. Kontrollér, at kladden er bevaret, og at genforbindelse/genforsøg giver én registrering og én relevant afleveringsversion. Kontrollér præcis opgave, sted og filhash.
 4. Projektlederen åbner samme opgave, læser status og original og gennemfører den aftalte opfølgning. En bruger uden opgaveadgang skal få afvist opslag. Registrér enhed, browser, roller, build og udfald for hvert trin.
 
+### Selvbetjent prøve på iPhone
+
+Brug samme HTTPS-testversion på computer og i Safari på iPhone. Brug et særskilt testprojekt og to eksisterende testkonti, som har henholdsvis projektlederens og feltudførerens rolle. Brug et testmotiv og en syntetisk lokalitet.
+
+1. Projektlederen gemmer arbejdsgrundlag med dato, sted og instruktion. Tilknyt jobkortskabelonen første gang, og tildel arbejdsordren til den aftalte feltkonto. Notér arbejdsordrens identitet.
+2. Feltudføreren finder arbejdsordren i **Mine opgaver**, læser tid, sted og instruktion og åbner **Tag fotos på projektet**. Klargør feltpakken, mens der er net. Tillad kamera og position på telefonen ved behov.
+3. Slå Wi-Fi og mobildata fra. Tag testfotoet, gem lokalt og kontrollér i køen, at det er gemt. Genåbn feltsiden, mens forbindelsen stadig er afbrudt, og kontrollér samme foto. Slå nettet til igen og kontrollér, at køen viser en enkelt serverkvittering.
+4. Vælg **Knyt dokumentation til opgaven** og knyt originalen til arbejdsordrens feltregistrering og sted. Brug **Registrér udført arbejde** og sæt status til **Udført**, når registrering og dokumentation er på plads.
+5. Åbn **Aflevering og historik**. Afbryd forbindelsen under gemningen eller afleveringen, og genoptag fra samme skærm, når nettet er tilbage. Kontrollér én gemt afleveringsversion og status **Afleveret**.
+6. Projektlederen åbner arbejdsordren på computer, kontrollerer samme sted, original, version og status og laver den aftalte opfølgning. Registrér de to roller og udfaldet for hvert trin. Stop og notér skærmbillede og trin, hvis en rolle ikke kan komme videre.
+
 For at observere tilsvarende tilstandsskift i Skyhost skal en bruger selv oprette, tildele og afslutte et aftalt testjob. Derefter kan vi læse det fra udførerens Jobs/GeoTag-visning og igen fra den ansvarliges portalvisning. De nødvendige visninger er jobkortet efter tildeling, den stedfæstede registrering efter gemning og resuméet efter gennemgang.
