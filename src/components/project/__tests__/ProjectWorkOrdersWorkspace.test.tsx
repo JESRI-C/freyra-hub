@@ -268,6 +268,24 @@ it("shows a task spanning the month boundary and filters it by a planned day", a
   expect(host.textContent).not.toContain(tasks[1].title);
 });
 
+it("returns to today's date and tasks after browsing another month", async () => {
+  const today = new Date();
+  const day = [today.getFullYear(), today.getMonth() + 1, today.getDate()]
+    .map((part) => String(part).padStart(2, "0"))
+    .join("-");
+  m.schedule.mockResolvedValue({ second: { start: day, end: day } });
+  await render();
+  await click("Kalender");
+  const next = host.querySelector<HTMLButtonElement>('button[aria-label="Næste måned"]')!;
+  await act(async () => next.click());
+  expect(host.textContent).not.toContain(tasks[1].title);
+  await click("I dag");
+  expect(host.textContent).toContain("1 planlagt opgave på den valgte dato");
+  expect(host.textContent).toContain(tasks[1].title);
+  expect(host.textContent).toContain("Valgt dato:");
+  expect(host.textContent).toContain("Opret arbejdsopgave på valgt dato");
+});
+
 it("filters the dated and undated tasks by plan responsibility", async () => {
   m.schedule.mockResolvedValue({
     second: { start: null, end: null, responsibleId: "responsible-person" },

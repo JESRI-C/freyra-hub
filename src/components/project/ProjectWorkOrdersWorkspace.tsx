@@ -493,6 +493,34 @@ function WorkOrders({
               )}
               {listView === "calendar" && schedule.isSuccess && (
                 <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={locked}
+                      onClick={() => {
+                        const today = new Date();
+                        setMonth(today);
+                        setDay(today);
+                        setTaskLimit(taskPageSize);
+                      }}
+                    >
+                      I dag
+                    </button>
+                    {day && (
+                      <button
+                        type="button"
+                        className={button}
+                        disabled={locked}
+                        onClick={() => {
+                          setDay(undefined);
+                          setTaskLimit(taskPageSize);
+                        }}
+                      >
+                        Vis hele måneden
+                      </button>
+                    )}
+                  </div>
                   <Calendar
                     mode="single"
                     locale={da}
@@ -550,19 +578,10 @@ function WorkOrders({
                       tid.
                     </p>
                   )}
-                  {day && (
-                    <button
-                      type="button"
-                      className={button}
-                      disabled={locked}
-                      onClick={() => setDay(undefined)}
-                    >
-                      Vis hele måneden
-                    </button>
-                  )}
                   <p role="status" className="text-sm">
                     {visibleCount} {visibleCount === 1 ? "planlagt opgave" : "planlagte opgaver"}{" "}
                     {day ? "på den valgte dato" : "i måneden"}.
+                    {day && <> Valgt dato: {scheduleDate.format(new Date(from))}.</>}
                   </p>
                   {schedule.isSuccess && undatedCount > 0 && (
                     <button
