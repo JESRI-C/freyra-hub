@@ -19,8 +19,8 @@ CREATE FUNCTION pg_temp.plan(ready boolean DEFAULT true) RETURNS jsonb LANGUAGE 
 CREATE FUNCTION pg_temp.values_for(a integer DEFAULT 31,op text DEFAULT 'transition',target text DEFAULT 'draft',extra jsonb DEFAULT '{}'::jsonb) RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('operation',op,'targetStatus',target,'planVersionId',(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),'assignmentVersionId',(SELECT id FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),'executionRevisionId',(SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1))||extra $$;
 CREATE FUNCTION pg_temp.change(a integer,ver integer,req integer,op text,target text,extra jsonb DEFAULT '{}'::jsonb) RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.mutate_work_order_lifecycle(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),ver,pg_temp.values_for(a,op,target,extra),pg_temp.k(req)) $$;
 CREATE FUNCTION pg_temp.assign(a integer,ver integer,req integer,mode text DEFAULT 'person',members integer[] DEFAULT ARRAY[2]) RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.configure_work_order_assignment(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),ver,(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),mode,ARRAY(SELECT pg_temp.k(n) FROM unnest(members)n),NULL,'Synthetic named assignment',pg_temp.k(req)) $$;
-CREATE FUNCTION pg_temp.execution(ver integer,req integer,method text DEFAULT 'Synthetic actual method',coverage text DEFAULT 'limited') RETURNS uuid LANGUAGE sql AS $$ SELECT workspace_entry_id FROM public.save_work_order_execution(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1),(SELECT version FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1),ver,
- jsonb_build_object('schema','freyra.action-execution/v1','actionId',pg_temp.k(31),'surveyRoundId',NULL,'dataBasis','synthetic','workType','other','stage','performed','actualDate','2026-10-08','actualEndDate',NULL,'method',method,'reach','Synthetic reach','performedBy','Synthetic colleague','sourceReference','Synthetic actual work log','evidenceIds','[]'::jsonb,'deviation','Synthetic obstruction without attachment yet','correctionReason',CASE WHEN ver>0 THEN 'Synthetic factual correction' ELSE '' END,'coverage',coverage,'coverageDescription',CASE WHEN coverage='unknown' THEN '' ELSE 'Synthetic limited coverage' END),pg_temp.k(2),'Synthetic deviation reason',pg_temp.k(req),(SELECT id FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1),(SELECT version FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1)) $$;
+CREATE FUNCTION pg_temp.execution(ver integer,req integer,method text DEFAULT 'Synthetic actual method',coverage text DEFAULT 'limited',a integer DEFAULT 31) RETURNS uuid LANGUAGE sql AS $$ SELECT workspace_entry_id FROM public.save_work_order_execution(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),(SELECT version FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),ver,
+ jsonb_build_object('schema','freyra.action-execution/v1','actionId',pg_temp.k(a),'surveyRoundId',NULL,'dataBasis','synthetic','workType','other','stage','performed','actualDate','2026-10-08','actualEndDate',NULL,'method',method,'reach','Synthetic reach','performedBy','Synthetic colleague','sourceReference','Synthetic actual work log','evidenceIds','[]'::jsonb,'deviation','Synthetic obstruction without attachment yet','correctionReason',CASE WHEN ver>0 THEN 'Synthetic factual correction' ELSE '' END,'coverage',coverage,'coverageDescription',CASE WHEN coverage='unknown' THEN '' ELSE 'Synthetic limited coverage' END),pg_temp.k(2),'Synthetic deviation reason',pg_temp.k(req),(SELECT id FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),(SELECT version FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1)) $$;
 CREATE FUNCTION pg_temp.note(note_no integer,ver integer,req integer,body text DEFAULT 'Synthetic manual note',reason text DEFAULT '',plan_id uuid DEFAULT NULL) RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.save_work_order_note(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(note_no),ver,'comment',body,reason,coalesce(plan_id,(SELECT id FROM pg_temp.refs WHERE name='frozen_plan')),(SELECT id FROM pg_temp.refs WHERE name='frozen_assignment'),(SELECT id FROM pg_temp.refs WHERE name='frozen_execution'),(SELECT id FROM pg_temp.refs WHERE name='frozen_state'),pg_temp.k(req)) $$;
 
 SELECT ok(NOT has_table_privilege('anon','public.work_order_lifecycle_versions','SELECT'),'anonymous lifecycle read is absent');
@@ -212,5 +212,25 @@ DROP TRIGGER synthetic_lifecycle_audit_failure ON public.audit_events;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT lives_ok($$SELECT pg_temp.change(31,8,209,'confirm','performed','{"reason":"Synthetic same basis checked"}')$$,'same mutation can retry after full transaction rollback');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT pg_temp.assign(34,0,661);
+SELECT pg_temp.change(34,0,662,'transition','draft');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT lives_ok($$SELECT pg_temp.execution(0,663,'Synthetic actual before cancellation','limited',34)$$,
+ 'assigned worker can save actual work before cancellation');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT pg_temp.change(34,1,664,'transition','cancelled','{"reason":"Synthetic early cancellation"}')$$,
+ 'cancellation preserves the preceding execution record');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT pg_temp.execution(1,665,'Synthetic stale tab save','limited',34)$$,
+ 'PT409','A cancelled work order cannot record execution','cancelled task rejects a new execution revision');
+SELECT is(pg_temp.execution(0,663,'Synthetic actual before cancellation','limited',34),
+ (SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(34) AND version=1),
+ 'identical retry recovers the previously saved record after cancellation');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is((SELECT count(*) FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(34)),1::bigint,
+ 'rejected save adds no execution binding');
+SELECT is((SELECT count(*) FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(34)),1::bigint,
+ 'rejected save rolls back the corresponding workspace entry');
 SELECT * FROM finish();
 ROLLBACK;

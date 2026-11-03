@@ -698,3 +698,5 @@ I Chrome ved 390 px skiftede testkontoen mellem Afventer og Aflyste og så kun o
 Aflysning og overtagelse bruger samme opgavelås. Når en opgave er aflyst, afviser databasen en ny puljeovertagelse, også fra en fane der stadig viser den gamle handling. En afvist overtagelse tilføjer ingen tildelingsversion.
 
 Databaseisolation bestod på en frisk database. En stagingprøve brugte den normale overtagelsesfunktion med en kvalificeret kandidat på et aflyst syntetisk besøg. Funktionen returnerede PT409 for aflysningen, og prøven fandt stadig kun den oprindelige tildelingsversion. Prøvens midlertidige tildeling blev rullet tilbage. Kilde 90360dd og stagingmigration 20261103145155.
+
+En ny udførelsesversion kan ikke gemmes efter aflysning, heller ikke fra en tidligere åbnet fane. Kontrollen kører under opgavelåsen. Afvisning ruller den tilhørende arbejdsrumsrevision tilbage. En identisk genafsendelse kan fortsat hente en registrering, der allerede var gemt inden aflysningen.
