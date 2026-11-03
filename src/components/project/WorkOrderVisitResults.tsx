@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
@@ -23,6 +23,101 @@ const label = { visited: "Gennemført", skipped: "Sprunget over" };
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full rounded-xl border bg-background px-3 text-base";
 
+const historyPageSize = 20;
+const historyRowSchema = rowSchema.extend({ created_at: z.string().datetime({ offset: true }) });
+const historyDate = new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeStyle: "short" });
+
+function VisitResultHistory({
+  scope,
+  actorId,
+  actionId,
+  planVersionId,
+  result,
+}: {
+  scope: ProjectScope;
+  actorId: string;
+  actionId: string;
+  planVersionId: string;
+  result: z.infer<typeof rowSchema>;
+}) {
+  const [open, setOpen] = useState(false);
+  const history = useInfiniteQuery({
+    queryKey: [
+      "work-order-visit-history",
+      actorId,
+      scope,
+      actionId,
+      planVersionId,
+      result.site_id,
+      result.version,
+    ],
+    enabled: open,
+    retry: false,
+    initialPageParam: result.version,
+    queryFn: async ({ pageParam, signal }) => {
+      const client = createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
+      const response = await client
+        .from(table)
+        .select(fields + ",created_at")
+        .eq("organization_id", scope.organizationId)
+        .eq("project_id", scope.projectId)
+        .eq("action_id", actionId)
+        .eq("plan_version_id", planVersionId)
+        .eq("site_id", result.site_id)
+        .lt("version", pageParam)
+        .order("version", { ascending: false })
+        .limit(historyPageSize)
+        .abortSignal(signal);
+      if (response.error) throw new Error("Tidligere besøgsudfald kunne ikke hentes.");
+      return z.array(historyRowSchema).max(historyPageSize).parse(response.data);
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.length === historyPageSize && lastPage.at(-1)?.version !== 1
+        ? lastPage.at(-1)?.version
+        : undefined,
+  });
+  return (
+    <details
+      className="rounded-lg border px-3"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary className="min-h-11 cursor-pointer py-3 font-medium">
+        Tidligere udfald ({result.version - 1})
+      </summary>
+      {open && history.isPending && <p role="status">Henter tidligere udfald…</p>}
+      {open && history.isError && <p role="alert">Tidligere besøgsudfald kunne ikke hentes.</p>}
+      {history.data && (
+        <ol className="space-y-2 pb-2">
+          {history.data.pages.flat().map((entry) => (
+            <li key={entry.id} className="rounded-lg bg-muted/40 p-2">
+              <p>
+                {label[entry.outcome]} · Version {entry.version}
+              </p>
+              <time dateTime={entry.created_at}>
+                {historyDate.format(new Date(entry.created_at))}
+              </time>
+              {entry.note && <p>{entry.note}</p>}
+            </li>
+          ))}
+        </ol>
+      )}
+      {open && (history.hasNextPage || history.isError) && (
+        <button
+          type="button"
+          className={button + " mb-2"}
+          disabled={history.isFetching}
+          onClick={() => {
+            if (history.hasNextPage) void history.fetchNextPage();
+            else void history.refetch();
+          }}
+        >
+          {history.isError ? "Prøv igen" : "Vis ældre udfald"}
+        </button>
+      )}
+    </details>
+  );
+}
+
 export function WorkOrderVisitResults({
   scope,
   actorId,
@@ -31,6 +126,7 @@ export function WorkOrderVisitResults({
   planVersion,
   plan,
   primaryName,
+  historical = false,
   canWrite = false,
   disabled = false,
   onEditing,
@@ -42,6 +138,7 @@ export function WorkOrderVisitResults({
   planVersion: number;
   plan: WorkOrderPlan;
   primaryName?: string;
+  historical?: boolean;
   canWrite?: boolean;
   disabled?: boolean;
   onEditing?: (value: boolean) => void;
@@ -154,7 +251,11 @@ export function WorkOrderVisitResults({
   return (
     <section aria-label="Besøgsstatus" className="space-y-3 rounded-xl border bg-card p-3 text-sm">
       <h3 className="font-semibold">Besøgsstatus</h3>
-      <p>Planversion {planVersion}. Udfaldet knyttes til denne version af arbejdsgrundlaget.</p>
+      <p>
+        {historical
+          ? `Tidligere planversion ${planVersion}. Her vises udfaldene for den gemte plan.`
+          : `Planversion ${planVersion}. Udfaldet knyttes til denne version af arbejdsgrundlaget.`}
+      </p>
       {results.isPending && <p role="status">Henter besøgsstatus…</p>}
       {results.isError && (
         <button type="button" className={button} onClick={() => void results.refetch()}>
@@ -171,9 +272,20 @@ export function WorkOrderVisitResults({
                 <p>
                   {result
                     ? label[result.outcome] + " · Version " + result.version
-                    : "Afventer registrering"}
+                    : historical
+                      ? "Intet udfald registreret"
+                      : "Afventer registrering"}
                 </p>
                 {result?.note && <p>{result.note}</p>}
+                {result && result.version > 1 && (
+                  <VisitResultHistory
+                    scope={scope}
+                    actorId={actorId}
+                    actionId={actionId}
+                    planVersionId={planVersionId}
+                    result={result}
+                  />
+                )}
                 {canWrite && draft?.siteId !== stop.siteId && (
                   <button
                     type="button"

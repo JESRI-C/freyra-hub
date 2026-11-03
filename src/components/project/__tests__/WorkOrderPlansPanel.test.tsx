@@ -13,6 +13,9 @@ const m = vi.hoisted(() => ({
   sites: vi.fn(),
   centerlines: vi.fn(),
   blocker: vi.fn(),
+  visitResults: vi.fn(),
+  visitHistoryFilter: vi.fn(),
+  visitHistory: vi.fn(),
 }));
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const actor = id(1),
@@ -50,6 +53,27 @@ vi.mock("@/services/field-job-cards-service", () => ({ listFieldJobActions: m.ac
 vi.mock("../useWorkOrderPeople", () => ({
   useWorkOrderPeople: () => ({ data: [], isError: false }),
   MoreWorkOrderPeople: () => null,
+}));
+vi.mock("@/lib/supabase/client", () => ({
+  createActorBoundSupabaseClient: () => ({
+    rpc: (_name: string, params: unknown) => ({
+      abortSignal: () => m.visitResults(params),
+    }),
+    from: () => {
+      const query = {
+        select: () => query,
+        eq: (name: string, value: string) => {
+          m.visitHistoryFilter(name, value);
+          return query;
+        },
+        lt: () => query,
+        order: () => query,
+        limit: () => query,
+        abortSignal: () => m.visitHistory(),
+      };
+      return query;
+    },
+  }),
 }));
 vi.mock("@/lib/supabase/queries", () => ({ fetchSitesByProject: m.sites }));
 vi.mock("@/services/watercourse-service", () => ({ getWatercourseVersions: m.centerlines }));
@@ -165,6 +189,67 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("opens corrected visit history for the selected old plan only", async () => {
+    const old = row();
+    m.history.mockResolvedValue({
+      items: [
+        { ...old, id: id(9), version: 2 },
+        { ...old, plan: { ...old.plan, visitStops: [{ siteId: id(21), name: "Tidligere stop" }] } },
+      ],
+      nextBeforeVersion: null,
+    });
+    m.visitResults.mockResolvedValue({
+      data: [
+        {
+          id: id(22),
+          site_id: id(21),
+          version: 2,
+          outcome: "skipped",
+          note: "Låst port",
+          created_by: actor,
+        },
+      ],
+    });
+    m.visitHistory.mockResolvedValue({
+      data: [
+        {
+          id: id(23),
+          site_id: id(21),
+          version: 1,
+          outcome: "visited",
+          note: "",
+          created_by: actor,
+          created_at: "2026-11-03T09:00:00Z",
+        },
+      ],
+    });
+    await open(false);
+    expect(m.visitResults).not.toHaveBeenCalled();
+    const button = [...host.querySelectorAll("button")].find(
+      (item) => item.textContent === "Se besøg fra denne plan",
+    )!;
+    await act(async () => button.click());
+    await settle();
+    expect(m.visitResults).toHaveBeenCalledWith(
+      expect.objectContaining({ p_plan_version_id: old.id }),
+    );
+    expect(host.textContent).toContain("Tidligere planversion 1");
+    expect(host.textContent).toContain("Sprunget over · Version 2");
+    expect(m.visitHistory).not.toHaveBeenCalled();
+    const details = [...host.querySelectorAll("summary")].find((summary) =>
+      summary.textContent?.includes("Tidligere udfald (1)"),
+    )!.parentElement as HTMLDetailsElement;
+    await act(async () => {
+      details.open = true;
+      details.dispatchEvent(new Event("toggle", { bubbles: true }));
+    });
+    await settle();
+    expect(m.visitHistoryFilter).toHaveBeenCalledWith("plan_version_id", old.id);
+    expect(m.visitHistoryFilter).toHaveBeenCalledWith("site_id", id(21));
+    expect(host.textContent).toContain("Gennemført · Version 1");
+    expect(host.querySelector("time")?.dateTime).toBe("2026-11-03T09:00:00Z");
+  });
+
   it("opens the saved visit map without shifting numbers when a position is missing", async () => {
     const saved = row();
     m.history.mockResolvedValue({

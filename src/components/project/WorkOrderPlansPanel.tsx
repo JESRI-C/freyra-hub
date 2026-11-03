@@ -195,6 +195,7 @@ function PlanWorkspace({
     retry: false,
   });
   const members = useWorkOrderPeople(scope, actorId);
+  const [historicalVisits, setHistoricalVisits] = useState<string>();
   const [visitMapOpen, setVisitMapOpen] = useState(false);
   const sites = useQuery({
     queryKey: ["work-order-plan-sites", actorId, scope],
@@ -937,6 +938,36 @@ function PlanWorkspace({
                   </summary>
                   <WorkOrderPlanSummary row={row} members={members.data ?? []} />
                   <p className="text-sm">{row.correction_reason || "Første registrering"}</p>
+                  {(row.plan.siteId || !!row.plan.visitStops?.length) && (
+                    <>
+                      <button
+                        type="button"
+                        className={button}
+                        aria-expanded={historicalVisits === row.id}
+                        onClick={() =>
+                          setHistoricalVisits(historicalVisits === row.id ? undefined : row.id)
+                        }
+                      >
+                        {historicalVisits === row.id
+                          ? "Skjul besøg fra denne plan"
+                          : "Se besøg fra denne plan"}
+                      </button>
+                      {historicalVisits === row.id && (
+                        <WorkOrderVisitResults
+                          scope={scope}
+                          actorId={actorId}
+                          actionId={actionId}
+                          planVersionId={row.id}
+                          planVersion={row.version}
+                          plan={row.plan}
+                          historical
+                          primaryName={
+                            sites.data?.find((site) => site.id === row.plan.siteId)?.name
+                          }
+                        />
+                      )}
+                    </>
+                  )}
                 </details>
               </li>
             ))}
