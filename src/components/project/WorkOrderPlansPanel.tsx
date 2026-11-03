@@ -254,6 +254,36 @@ function PlanWorkspace({
   const saving = useRef(false),
     attempt = useRef<{ signature: string; id: string } | null>(null);
   const latest = history.data?.items[0];
+  const [openSourceId, setOpenSourceId] = useState<string>();
+  const sourceId = latest?.source_plan_version_id;
+  const sourceActionId = latest?.source_action_id;
+  const sourceVersion = latest?.source_plan_version;
+  const sourcePlan = useQuery({
+    queryKey: ["work-order-plan-source", actorId, scope, sourceActionId, sourceId, sourceVersion],
+    enabled:
+      canPlan &&
+      history.isSuccess &&
+      !!sourceId &&
+      !!sourceActionId &&
+      !!sourceVersion &&
+      openSourceId === sourceId,
+    retry: false,
+    queryFn: async () => {
+      if (!sourceId || !sourceActionId || !sourceVersion) throw new Error("Kildeplanen mangler.");
+      const page = await load({
+        data: {
+          ...scope,
+          actionId: sourceActionId,
+          beforeVersion: sourceVersion === 2147483647 ? null : sourceVersion + 1,
+          pageSize: 1,
+        },
+      });
+      const row = page.items[0];
+      if (row?.id !== sourceId || row.version !== sourceVersion)
+        throw new Error("Den konkrete kildeplan kunne ikke hentes.");
+      return row;
+    },
+  });
   const next = pages.length ? pages.at(-1)!.nextBeforeVersion : history.data?.nextBeforeVersion;
   const versions = [
     ...new Map(
@@ -452,18 +482,46 @@ function PlanWorkspace({
           {latest ? (
             <>
               <WorkOrderPlanSummary row={latest} members={members.data ?? []} />
-              {canPlan && latest.source_action_id && latest.source_plan_version && (
-                <p className="text-sm">
-                  Kilde: planversion {latest.source_plan_version}.{" "}
+              {canPlan && sourceId && sourceActionId && sourceVersion && (
+                <div className="space-y-2">
+                  <details
+                    key={sourceId}
+                    className="space-y-2 rounded-xl border p-3 text-sm"
+                    onToggle={(event) =>
+                      setOpenSourceId(event.currentTarget.open ? sourceId : undefined)
+                    }
+                  >
+                    <summary className="min-h-11 cursor-pointer py-2 font-medium">
+                      Kilde: planversion {sourceVersion}. Vis gemt kildeplan
+                    </summary>
+                    {openSourceId === sourceId && sourcePlan.isPending && (
+                      <p role="status">Henter kildeplanen…</p>
+                    )}
+                    {openSourceId === sourceId && sourcePlan.isError && (
+                      <div>
+                        <p role="alert">Den konkrete kildeplan kunne ikke hentes.</p>
+                        <button
+                          type="button"
+                          className={button}
+                          onClick={() => void sourcePlan.refetch()}
+                        >
+                          Prøv igen
+                        </button>
+                      </div>
+                    )}
+                    {openSourceId === sourceId && sourcePlan.isSuccess && (
+                      <WorkOrderPlanSummary row={sourcePlan.data} members={members.data ?? []} />
+                    )}
+                  </details>
                   <Link
                     to="/app/projects/$slug"
                     params={{ slug: scope.projectId }}
-                    search={{ tab: "handlinger", task: latest.source_action_id, work: "plan" }}
-                    className="text-primary underline underline-offset-2"
+                    search={{ tab: "handlinger", task: sourceActionId, work: "plan" }}
+                    className="inline-flex min-h-11 items-center text-primary underline underline-offset-2"
                   >
                     Åbn kildeopgaven
                   </Link>
-                </p>
+                </div>
               )}
             </>
           ) : (

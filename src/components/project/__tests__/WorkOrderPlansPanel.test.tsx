@@ -361,6 +361,35 @@ describe("work-order plan editor", () => {
       }),
     });
   });
+  it("opens the exact saved source plan only on request", async () => {
+    const source = {
+      ...row(),
+      id: id(80),
+      action_id: id(81),
+      plan: { ...row().plan, title: "Historisk kildeplan" },
+    };
+    const target = {
+      ...row(),
+      source_plan_version_id: source.id,
+      source_action_id: source.action_id,
+      source_plan_version: 1,
+    };
+    m.history.mockImplementation(async ({ data }) => ({
+      items: [data.actionId === source.action_id ? source : target],
+      nextBeforeVersion: null,
+    }));
+    await open(false);
+    expect(m.history.mock.calls.every(([input]) => input.data.actionId === actionId)).toBe(true);
+    const summary = [...host.querySelectorAll("summary")].find((node) =>
+      node.textContent?.includes("Vis gemt kildeplan"),
+    )!;
+    await act(async () => summary.click());
+    await settle();
+    expect(m.history).toHaveBeenCalledWith({
+      data: { ...scope, actionId: source.action_id, beforeVersion: 2, pageSize: 1 },
+    });
+    expect(host.textContent).toContain("Historisk kildeplan · plan version 1");
+  });
   it("reuses the planning details for a follow-up without copying dates or responsibility", async () => {
     const source = row();
     Object.assign(source.plan, {
