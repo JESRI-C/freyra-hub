@@ -19,6 +19,7 @@ const m = vi.hoisted(() => ({
   save: vi.fn(),
   original: vi.fn(),
   editing: vi.fn(),
+  openField: vi.fn(),
   blocker: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
@@ -52,6 +53,7 @@ async function render(canContribute = true, actorId = actor) {
           actorId={actorId}
           canContribute={canContribute}
           onEditing={m.editing}
+          onOpenField={m.openField}
         />
       </QueryClientProvider>,
     ),
@@ -220,6 +222,12 @@ describe("task documentation UI", () => {
     expect(host.textContent).toContain("Registreringen kræver gennemgang.");
     expect(host.textContent).toContain("Udfyld Kontrolleret.");
     expect(host.textContent).not.toContain("Udfyld Antal.");
+    await click("Åbn Feltregistrering");
+    expect(m.openField).toHaveBeenCalledTimes(1);
+    await click("Ret kobling");
+    expect(button("Åbn Feltregistrering").disabled).toBe(true);
+    await click("Åbn Feltregistrering");
+    expect(m.openField).toHaveBeenCalledTimes(1);
   });
   it("retries a lost reply with exactly the same evidence and request identities", async () => {
     m.save.mockRejectedValueOnce(new Error("Mistet svar"));

@@ -813,6 +813,10 @@ function TaskWorkspace({
     setOpened((old) => new Set([...old, id]));
     setPart(id);
   }
+  function openPartWithFocus(id: Part) {
+    openPart(id);
+    document.getElementById(navigationId + id)?.focus();
+  }
   return (
     <div className="min-w-0 space-y-4">
       <nav aria-label="Arbejd med opgaven" className="grid grid-cols-1 gap-2 sm:grid-cols-5">
@@ -890,6 +894,7 @@ function TaskWorkspace({
             actionId={actionId}
             canContribute={canContribute}
             onEditing={evidenceEditing}
+            onOpenField={() => openPartWithFocus("field")}
           />
         </div>
       )}
@@ -902,10 +907,7 @@ function TaskWorkspace({
             actorId={actorId}
             actionId={actionId}
             onEditing={submissionEditing}
-            onOpenPart={(id) => {
-              openPart(id);
-              document.getElementById(navigationId + id)?.focus();
-            }}
+            onOpenPart={openPartWithFocus}
           />
         </div>
       )}

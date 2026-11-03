@@ -33,6 +33,7 @@ type Props = {
   actionId: string;
   canContribute: boolean;
   onEditing?: (value: boolean) => void;
+  onOpenField?: () => void;
 };
 
 /** Mounted only after opening Documentation; the task workspace owns the actor/project key. */
@@ -42,6 +43,7 @@ export function WorkOrderEvidencePanel({
   actionId,
   canContribute,
   onEditing,
+  onOpenField,
 }: Props) {
   const cache = useQueryClient();
   const accessFn = useServerFn(getProjectWorkOrderAccess);
@@ -474,7 +476,11 @@ export function WorkOrderEvidencePanel({
                 {new Date(row.created_at).toLocaleString("da-DK")}
               </p>
               {row.state === "attached" && latest.get(row.evidence_id) === row.version && (
-                <EvidenceObservationGaps observation={row.observation_snapshot} />
+                <EvidenceObservationGaps
+                  observation={row.observation_snapshot}
+                  onOpenField={writable ? onOpenField : undefined}
+                  locked={locked}
+                />
               )}
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
                 {row.observation_snapshot.template.fields.map((field) => (
@@ -575,7 +581,11 @@ export function WorkOrderEvidencePanel({
 }
 function EvidenceObservationGaps({
   observation,
+  onOpenField,
+  locked,
 }: {
+  onOpenField?: () => void;
+  locked: boolean;
   observation: EvidenceVersion["observation_snapshot"];
 }) {
   let gaps: string[];
@@ -595,6 +605,11 @@ function EvidenceObservationGaps({
         ))}
       </ul>
       <p>Gem en rettelse under Feltregistrering, og vælg den nye version via Ret kobling.</p>
+      {onOpenField && (
+        <button type="button" className={button} disabled={locked} onClick={onOpenField}>
+          Åbn Feltregistrering
+        </button>
+      )}
     </div>
   );
 }
