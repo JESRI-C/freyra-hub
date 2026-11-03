@@ -715,6 +715,8 @@ RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kla
 
 ### Ældre opgaver i planoversigt og kalender
 
+Den synkroniserede kladde blev i staging fulgt af registreringsversion 3, udførelsesversion 1 og dokumentationskobling 1 på samme ældre opgave. Prøven brugte de eksisterende autentificerede databasefunktioner og bevarede version 1 og 2. Browseren viste koblingen og registreringens værdier. Originalen kunne åbnes fra dokumentationspanelet, og filens SHA-256 matchede den gemte kontrolsum. Kilde 7ec3b38. Selve oprettelsen af udførelse og kobling blev prøvet gennem API'et. Aflevering afventes.
+
 Den overtagne syntetiske opgave blev klargjort til offlinebrug i staging. Ved 390 px med nettet slået fra gemte testkontoen en kladde, lukkede siden og genåbnede kladden uden net. Efter genforbindelse viste køen serverkvittering. Databasen viste præcis én ny kladdeversion på samme opgave-id, bevaret version 1 og uændrede svar 0 og Nej. Genindlæsning og køopdatering tilføjede ingen ekstra version. Kilde 7ec3b38. Prøven brugte Chrome med simuleret offlineforbindelse. Fysisk telefon og den efterfølgende aflevering afventes.
 
 I staging blev den ældre syntetiske opgaves planversion 2 tildelt en pulje med testkontoen som kandidat. Ved 390 px viste Mine opgaver den som ledig. Testkontoen overtog opgaven og så den gemte instruktion. Databasen viste samme opgave-id, planbinding og tildelingsversion 2 med testkontoen som udfører. Prøven genoptog den gemte tildeling efter en ventefejl i browserprøven. Kilde 7ec3b38. Offline synkronisering og aflevering på denne opgave afventes.
