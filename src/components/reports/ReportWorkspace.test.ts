@@ -172,6 +172,7 @@ describe("real report editor draft hydration", () => {
       },
     ];
     await render("preview");
+    expect(host.textContent).toContain("Rapportkladde · Version 1");
     expect(host.textContent).toContain("Godkendt afleveringsversion 3");
     expect(host.querySelector('[data-task="task-a"][data-work="submission"]')).not.toBeNull();
     const pdf = [...host.querySelectorAll("button")].find((b) => b.textContent === "PDF");

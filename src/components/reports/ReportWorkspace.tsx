@@ -816,8 +816,12 @@ function ReportPreview({
         <h1 className="text-2xl font-semibold mt-3">{content.title}</h1>
         <p>{content.organizationName}</p>
         <p>
-          {revision?.status === "approved" ? "Godkendt" : "KLADDE - ikke godkendt"} · Version{" "}
-          {revision?.version ?? "ikke gemt"}
+          {revision?.status === "approved"
+            ? "Godkendt rapport"
+            : content.workOrderApproval
+              ? "Rapportkladde"
+              : "KLADDE - ikke godkendt"}{" "}
+          · Version {revision?.version ?? "ikke gemt"}
         </p>
         <p>Omfang · {content.scope}</p>
         {content.workOrderApproval && (
