@@ -227,8 +227,10 @@ function WorkOrders({
   }
   const dayOverlap = day ? daySummary(from).overlap : undefined;
   const selected = actions.data?.find((a) => a.id === actionId);
-  function select(id: string, view?: WorkOrderView) {
+  const [timeReview, setTimeReview] = useState<{ actionId: string; date: string }>();
+  function select(id: string, view?: WorkOrderView, reviewDate?: string) {
     if (locked) return;
+    setTimeReview(reviewDate ? { actionId: id, date: reviewDate } : undefined);
     setLocalAction(id);
     setScheduleActionId(view === "plan" ? id : undefined);
     onSelectAction?.(id || undefined, view);
@@ -620,7 +622,7 @@ function WorkOrders({
                 actorId={actorId}
                 locked={locked}
                 active={!actionId}
-                onOpen={(id) => select(id, "execution")}
+                onOpen={(id, date) => select(id, "execution", date)}
               />
             </div>
           )}
@@ -685,6 +687,7 @@ function WorkOrders({
               round={round}
               canEdit={canEdit}
               canContribute={!!access.data?.canContribute}
+              timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
               canManageTime={!!access.data?.canManageAvailability}
               onEditing={onEditing}
               initialView={scheduleActionId === actionId ? "plan" : initialView}
@@ -703,6 +706,7 @@ function TaskWorkspace({
   canEdit,
   canContribute,
   canManageTime,
+  timeReviewDate,
   onEditing,
   initialView,
 }: {
@@ -713,6 +717,7 @@ function TaskWorkspace({
   canEdit: boolean;
   canContribute: boolean;
   canManageTime: boolean;
+  timeReviewDate?: string;
   onEditing: (part: Part, value: boolean) => void;
   initialView?: WorkOrderView;
 }) {
@@ -783,7 +788,12 @@ function TaskWorkspace({
       {opened.has("execution") && (
         <div hidden={part !== "execution"}>
           {canManageTime && (
-            <WorkOrderTimeSummary scope={scope} actionId={actionId} actorId={actorId} />
+            <WorkOrderTimeSummary
+              scope={scope}
+              actionId={actionId}
+              actorId={actorId}
+              reviewDate={timeReviewDate}
+            />
           )}
           <ActionExecutionPanel
             scope={scope}

@@ -488,3 +488,5 @@ Stagingprøven bestod i Chrome ved 390 px på Worker `dfb86151-6665-4a55-b6a3-25
 Under Timer kan projektlederen nu kontrollere udtrækkets linjer i appen før gemning. Visningen viser opgave, dato, tidsversion, timer og eventuelt beløb. Den deler lange udtræk i sider på 20 linjer og bruger samme datagrundlag, når et gemt udtræk genåbnes. Efter gemning viser Freyra, hvor grundlaget kan åbnes igen.
 
 Chrome-prøven ved 390 px viste tidsversion 2 og 624,99 DKK før gemning og efter genåbning. CSV havde de samme 75 minutter og samme beløb. Der var ingen vandret rulning i prøven. Kilde `77eabc4`, staging-Worker `d60f48e8-d6ea-496b-9c85-c108678d5c36`.
+
+Timer viser, hvor mange af de seneste registreringer der afventer godkendelse. Projektlederen kan filtrere listen og åbne den eksisterende godkendelse direkte på en relevant arbejdsdato. Freyra vælger den ældste afventende dato med en andens tid først, da en bruger ikke kan godkende sin egen tid. En rettelse til en tidligere godkendt registrering afventer igen.

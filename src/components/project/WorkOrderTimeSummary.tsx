@@ -17,12 +17,14 @@ export function WorkOrderTimeSummary({
   scope,
   actionId,
   actorId,
+  reviewDate,
 }: {
   scope: ProjectScope;
   actionId: string;
   actorId: string;
+  reviewDate?: string;
 }) {
-  const [reviewOpened, setReviewOpened] = useState(false);
+  const [reviewOpened, setReviewOpened] = useState(!!reviewDate);
   const query = useQuery({
     queryKey: ["work-order-time-summary", actorId, scope, actionId],
     retry: false,
@@ -84,6 +86,7 @@ export function WorkOrderTimeSummary({
         </dl>
       )}
       <details
+        open={reviewDate ? true : undefined}
         onToggle={(event) => {
           if (event.currentTarget.open) setReviewOpened(true);
         }}
@@ -92,7 +95,12 @@ export function WorkOrderTimeSummary({
           Godkend registreret tid
         </summary>
         {reviewOpened && (
-          <WorkOrderTimeReview scope={scope} actorId={actorId} actionId={actionId} />
+          <WorkOrderTimeReview
+            scope={scope}
+            actorId={actorId}
+            actionId={actionId}
+            initialDate={reviewDate}
+          />
         )}
       </details>
     </section>

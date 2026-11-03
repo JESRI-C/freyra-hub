@@ -21,14 +21,16 @@ export function WorkOrderTimeReview({
   scope,
   actorId,
   actionId,
+  initialDate,
 }: {
   scope: ProjectScope;
   actorId: string;
   actionId: string;
+  initialDate?: string;
 }) {
   const cache = useQueryClient();
   const people = useWorkOrderPeople(scope, actorId);
-  const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [date, setDate] = useState(() => initialDate ?? format(new Date(), "yyyy-MM-dd"));
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState("");
   const writing = useRef(false);
@@ -85,6 +87,7 @@ export function WorkOrderTimeReview({
         );
       await review.refetch();
       await cache.invalidateQueries({ queryKey: ["work-order-time", actorId, scope, actionId] });
+      void cache.invalidateQueries({ queryKey: ["project-work-time", actorId, scope] });
     } catch {
       setError("Godkendelsen kunne ikke bekræftes. Prøv igen.");
     } finally {

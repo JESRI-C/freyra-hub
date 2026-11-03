@@ -2,6 +2,7 @@ import { ProjectApprovedTimeExport } from "./ProjectApprovedTimeExport";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { CalendarDate } from "@/lib/action-execution";
 import { z } from "zod";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import { formatWorkOrderHours, WorkOrderEstimatedHoursSchema } from "@/lib/work-order-plan";
@@ -12,6 +13,8 @@ const rowSchema = z.object({
   title: z.string(),
   minutes: z.number().int().nonnegative(),
   entries: z.number().int().nonnegative(),
+  pending_entries: z.number().int().nonnegative(),
+  pending_date: CalendarDate.nullable(),
   estimated_hours: WorkOrderEstimatedHoursSchema.nullable(),
 });
 const pageSize = 100;
@@ -29,11 +32,12 @@ export function ProjectWorkTimeOverview({
   actorId: string;
   locked: boolean;
   active: boolean;
-  onOpen: (actionId: string) => void;
+  onOpen: (actionId: string, reviewDate?: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(displaySize);
   const [onlyOver, setOnlyOver] = useState(false);
+  const [onlyPending, setOnlyPending] = useState(false);
   const query = useQuery({
     queryKey: ["project-work-time", actorId, scope],
     retry: false,
@@ -64,8 +68,10 @@ export function ProjectWorkTimeOverview({
   const visible = rows.filter(
     (row) =>
       row.title.toLocaleLowerCase("da").includes(term) &&
+      (!onlyPending || row.pending_entries > 0) &&
       (!onlyOver || (row.estimated_hours !== null && row.minutes / 60 > row.estimated_hours)),
   );
+  const pending = visible.reduce((sum, row) => sum + row.pending_entries, 0);
   const recorded = visible.filter((row) => row.entries > 0);
   const estimated = visible.filter((row) => row.estimated_hours !== null);
   return (
@@ -84,8 +90,8 @@ export function ProjectWorkTimeOverview({
         )}
       </div>
       <p className="text-sm text-muted-foreground">
-        Estimat og senest registreret tid for hver opgave. Åbn en opgave for at se dens
-        timeoverblik.
+        Se estimater og registreret tid. Åbn en opgave med timer, der afventer, for at gennemgå dem.
+        Godkendte timer kan bruges i faktureringsgrundlaget.
       </p>
       <ProjectApprovedTimeExport scope={scope} actorId={actorId} active={active && !locked} />
       {query.isPending && <p role="status">Henter projektets timer…</p>}
@@ -122,6 +128,17 @@ export function ProjectWorkTimeOverview({
             />
             Kun opgaver over estimatet
           </label>
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={onlyPending}
+              onChange={(event) => {
+                setOnlyPending(event.target.checked);
+                setLimit(displaySize);
+              }}
+            />
+            Kun opgaver med tid, der afventer godkendelse
+          </label>
           <dl className="grid gap-3 rounded-xl bg-muted/40 p-3 text-sm sm:grid-cols-2">
             <div>
               <dt>Registreret i udvalget</dt>
@@ -144,7 +161,7 @@ export function ProjectWorkTimeOverview({
           </dl>
           <p role="status" className="text-sm">
             {visible.length} opgaver · {visible.length - recorded.length} uden registrering ·{" "}
-            {visible.length - estimated.length} uden estimat
+            {visible.length - estimated.length} uden estimat · {pending} afventer godkendelse
           </p>
           {!visible.length && <p className="text-sm">Ingen opgaver matcher dit udvalg.</p>}
           <ul className="space-y-2">
@@ -154,7 +171,7 @@ export function ProjectWorkTimeOverview({
                   type="button"
                   disabled={locked}
                   className={button + " w-full p-3 text-left"}
-                  onClick={() => onOpen(row.action_id)}
+                  onClick={() => onOpen(row.action_id, row.pending_date ?? undefined)}
                 >
                   <span className="block font-medium">{row.title}</span>
                   <span className="block text-muted-foreground">
@@ -164,6 +181,13 @@ export function ProjectWorkTimeOverview({
                       ? "Intet estimat"
                       : formatWorkOrderHours(row.estimated_hours) + " estimeret"}
                   </span>
+                  {row.entries > 0 && (
+                    <span className="mt-1 block font-medium">
+                      {row.pending_entries
+                        ? `${row.pending_entries} afventer · Gennemgå timer`
+                        : "Alle registreringer godkendt"}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
