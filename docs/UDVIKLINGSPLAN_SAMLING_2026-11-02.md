@@ -715,6 +715,8 @@ RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kla
 
 ### Ældre opgaver i planoversigt og kalender
 
+Den overtagne syntetiske opgave blev klargjort til offlinebrug i staging. Ved 390 px med nettet slået fra gemte testkontoen en kladde, lukkede siden og genåbnede kladden uden net. Efter genforbindelse viste køen serverkvittering. Databasen viste præcis én ny kladdeversion på samme opgave-id, bevaret version 1 og uændrede svar 0 og Nej. Genindlæsning og køopdatering tilføjede ingen ekstra version. Kilde 7ec3b38. Prøven brugte Chrome med simuleret offlineforbindelse. Fysisk telefon og den efterfølgende aflevering afventes.
+
 I staging blev den ældre syntetiske opgaves planversion 2 tildelt en pulje med testkontoen som kandidat. Ved 390 px viste Mine opgaver den som ledig. Testkontoen overtog opgaven og så den gemte instruktion. Databasen viste samme opgave-id, planbinding og tildelingsversion 2 med testkontoen som udfører. Prøven genoptog den gemte tildeling efter en ventefejl i browserprøven. Kilde 7ec3b38. Offline synkronisering og aflevering på denne opgave afventes.
 
 På staging gemte projektlederen en tydeligt mærket instruktionsrettelse som planversion 2 på den eksisterende syntetiske gentagelse. Chrome ved 390 px viste den rettede instruktion og logbogens planversion 2 efter genindlæsning. Databasens planhistorik returnerede samme opgave-id, den indtastede begrundelse og en uændret version 1. Kilde 7ec3b38, Worker a6ec7958-2ff6-4db3-9506-41d93ef79482. Prøven dækker planredigering. Tildeling, offline synkronisering og aflevering på denne opgave afventes.
