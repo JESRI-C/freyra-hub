@@ -158,12 +158,12 @@ try {
   await actualLock(stale, winner);
   await commit(winner);
   await stale.marker("STALE_DONE");
-  assert.equal(stale.rows().find((row) => row.result)?.result, "40001");
+  assert.equal(stale.rows().find((row) => row.result)?.result, "PT409");
   await commit(stale);
   scenarios.push({
     name: "competing_first_binding",
     actualLockVerified: true,
-    staleSqlstate: "40001",
+    staleSqlstate: "PT409",
   });
 
   const retryRequest = randomUUID();

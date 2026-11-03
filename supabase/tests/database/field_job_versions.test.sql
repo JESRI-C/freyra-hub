@@ -105,7 +105,7 @@ SELECT is(pg_temp.save_job(),(SELECT id FROM public.field_job_versions WHERE ver
 SELECT is((SELECT status FROM public.field_job_versions WHERE version=1),'recorded','registration status carries no professional approval state');
 SELECT is((SELECT count(*)::integer FROM public.actions WHERE id='fc293000-0000-4000-8000-000000000001'),1,'job uses the existing action identity');
 SELECT throws_ok($$SELECT pg_temp.save_job('{"label":"Changed"}')$$,'22023',NULL,'job request reuse with changed answers is rejected');
-SELECT throws_ok($$SELECT pg_temp.save_job('{}',0,'',gen_random_uuid())$$,'40001',NULL,'stale expected job version is rejected');
+SELECT throws_ok($$SELECT pg_temp.save_job('{}',0,'',gen_random_uuid())$$,'PT409',NULL,'stale expected job version is rejected');
 SELECT throws_ok($$SELECT pg_temp.save_job('{}',1,'',gen_random_uuid())$$,'22023',NULL,'a correction reason is mandatory for every later revision');
 SELECT lives_ok($$SELECT pg_temp.save_job_template(jsonb_set(pg_temp.job_definition(),'{title}','"Synthetic revised checklist"'),1,'fc295000-0000-4000-8000-000000000002')$$,'editor appends template version two');
 SELECT is((SELECT template_version_id FROM public.field_job_versions WHERE version=1),pg_temp.first_job_template(),'existing job remains bound to its original template version');
@@ -124,7 +124,7 @@ SELECT throws_ok($$INSERT INTO public.field_job_versions(action_id,organization_
 
 SELECT set_config('request.jwt.claim.sub','fc290000-0000-4000-8000-000000000001',true);
 SELECT lives_ok($$SELECT pg_temp.save_job('{}',2,'Explicit editor template migration','fc296000-0000-4000-8000-000000000003',(SELECT id FROM public.field_job_template_versions WHERE version=2))$$,'editor explicitly rebinds with retained history and reason');
-SELECT throws_ok($$SELECT pg_temp.save_job('{}',3,'Wrong action project',gen_random_uuid(),NULL,'fc293000-0000-4000-8000-000000000003')$$,'40001',NULL,'wrong action cannot inherit another action version');
+SELECT throws_ok($$SELECT pg_temp.save_job('{}',3,'Wrong action project',gen_random_uuid(),NULL,'fc293000-0000-4000-8000-000000000003')$$,'PT409',NULL,'wrong action cannot inherit another action version');
 SELECT throws_ok($$SELECT pg_temp.save_job('{}',0,'Wrong action project',gen_random_uuid(),NULL,'fc293000-0000-4000-8000-000000000003')$$,'42501',NULL,'cross-project action binding is rejected at insertion boundary');
 SELECT throws_ok($$SELECT pg_temp.save_job('{}',3,'Wrong organization',gen_random_uuid(),NULL,'fc293000-0000-4000-8000-000000000001','fc292000-0000-4000-8000-000000000001','fc291000-0000-4000-8000-000000000002')$$,'42501',NULL,'client cannot spoof organization scope');
 SELECT throws_ok($$SELECT pg_temp.save_job('{}',0,'Wrong template project',gen_random_uuid(),NULL,'fc293000-0000-4000-8000-000000000003','fc292000-0000-4000-8000-000000000002')$$,'42501',NULL,'a readable template cannot be bound into another project');

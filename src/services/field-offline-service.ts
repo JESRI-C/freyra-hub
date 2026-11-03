@@ -238,7 +238,9 @@ export function offlineSyncDependencies(
         .abortSignal(signal);
       if (result.error)
         throw new OfflineSyncError(
-          result.error.code === "40001" || result.error.code === "23505"
+          result.error.code === "PT409" ||
+            result.error.code === "40001" ||
+            result.error.code === "23505"
             ? "conflict"
             : result.error.code === "42501"
               ? "blocked"

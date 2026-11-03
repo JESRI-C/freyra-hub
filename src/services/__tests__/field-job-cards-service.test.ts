@@ -165,7 +165,7 @@ describe("project scoped job card persistence", () => {
     expect(state.rpc).not.toHaveBeenCalled();
   });
   it("reports conflicts and does not call a failed save successful", async () => {
-    state.rpc.mockResolvedValue({ data: null, error: { code: "40001" } });
+    state.rpc.mockResolvedValue({ data: null, error: { code: "PT409" } });
     await expect(
       saveFieldJobTemplate(scope, {
         templateId: template.template_id,
