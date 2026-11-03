@@ -237,6 +237,17 @@ it("shows a task spanning the month boundary and filters it by a planned day", a
   expect(host.textContent).toContain("1 planlagt opgave på den valgte dato");
   await click("Vis hele måneden");
   expect(host.textContent).toContain("1 planlagt opgave i måneden");
+  await click("Se opgaver uden planlagt dato (1)");
+  expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
+  const undated = [...host.querySelectorAll("button")].filter((button) =>
+    button.textContent?.includes("Åbn →"),
+  );
+  expect(undated).toHaveLength(1);
+  expect(undated[0].textContent).toContain(tasks[0].title);
+  await act(async () => undated[0].click());
+  await click("Tilbage til planoversigt");
+  expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
+  expect(host.textContent).not.toContain(tasks[1].title);
 });
 
 it("filters the dated and undated tasks by plan responsibility", async () => {

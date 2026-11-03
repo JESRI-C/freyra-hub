@@ -89,6 +89,7 @@ function WorkOrders({
   const [day, setDay] = useState<Date>();
   const [responsible, setResponsible] = useState("");
   const [availabilityEditing, setAvailabilityEditing] = useState(false);
+  const [onlyUndated, setOnlyUndated] = useState(false);
   const [taskSearch, setTaskSearch] = useState("");
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView === "schedule" || listView === "calendar";
@@ -183,14 +184,17 @@ function WorkOrders({
   const calendarKey = (date: Date) => format(date, "yyyy-MM-dd");
   const from = calendarKey(day ?? startOfMonth(month));
   const through = calendarKey(day ?? endOfMonth(month));
+  const undatedCount = (orderedActions ?? []).filter(({ id }) => !dates?.[id]?.start).length;
   const visibleActions =
     listView === "calendar"
       ? orderedActions?.filter(({ id }) => {
           const plan = dates?.[id];
           return plan?.start && plan.start <= through && (plan.end ?? plan.start) >= from;
         })
-      : orderedActions?.filter((task) =>
-          task.title.toLocaleLowerCase("da").includes(taskSearch.trim().toLocaleLowerCase("da")),
+      : orderedActions?.filter(
+          (task) =>
+            (listView !== "schedule" || !onlyUndated || !dates?.[task.id]?.start) &&
+            task.title.toLocaleLowerCase("da").includes(taskSearch.trim().toLocaleLowerCase("da")),
         );
   const visibleCount = listView === "time" ? 0 : (visibleActions?.length ?? 0);
   const estimates = new Map(
@@ -376,6 +380,7 @@ function WorkOrders({
                         aria-pressed={listView === view}
                         disabled={locked}
                         onClick={() => {
+                          setOnlyUndated(false);
                           setListView(view);
                           setTaskLimit(taskPageSize);
                         }}
@@ -413,6 +418,20 @@ function WorkOrders({
                       ? "Vælg en dato, eller se alle planlagte opgaver i måneden. Understregede datoer har planlagt arbejde."
                       : "Se opgaver efter planlagt start. Åbn en opgave for at se eller ændre dens arbejdsgrundlag."}
                   </p>
+                  {listView === "schedule" && schedule.isSuccess && (
+                    <label className="flex min-h-11 items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={onlyUndated}
+                        disabled={locked}
+                        onChange={(event) => {
+                          setOnlyUndated(event.target.checked);
+                          setTaskLimit(taskPageSize);
+                        }}
+                      />
+                      Kun opgaver uden planlagt dato
+                    </label>
+                  )}
                   {canEdit && schedule.isSuccess && (
                     <div className="flex flex-wrap items-end gap-2">
                       <label className="block min-w-0 text-sm font-medium">
@@ -525,14 +544,21 @@ function WorkOrders({
                     {visibleCount} {visibleCount === 1 ? "planlagt opgave" : "planlagte opgaver"}{" "}
                     {day ? "på den valgte dato" : "i måneden"}.
                   </p>
-                  <button
-                    type="button"
-                    className={button}
-                    disabled={locked}
-                    onClick={() => setListView("schedule")}
-                  >
-                    Se også opgaver uden dato
-                  </button>
+                  {schedule.isSuccess && undatedCount > 0 && (
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={locked}
+                      onClick={() => {
+                        setTaskSearch("");
+                        setTaskLimit(taskPageSize);
+                        setOnlyUndated(true);
+                        setListView("schedule");
+                      }}
+                    >
+                      Se opgaver uden planlagt dato ({undatedCount})
+                    </button>
+                  )}
                 </div>
               )}
               {listView !== "calendar" &&
