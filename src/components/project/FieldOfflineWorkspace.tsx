@@ -927,7 +927,7 @@ function OfflineJobEditor({
       </p>
       <details>
         <summary className="min-h-11 cursor-pointer py-2 text-sm">
-          Serverens gemte version {job.latest.version}
+          Serverversion i opgavepakken: {job.latest.version}
         </summary>
         <dl className="space-y-2 text-sm">
           {Object.entries(job.latest.values).map(([key, value]) => (
@@ -935,32 +935,70 @@ function OfflineJobEditor({
               <dt className="font-medium">
                 {job.template!.definition.fields.find((f) => f.key === key)?.label ?? key}
               </dt>
-              <dd>{value === null ? "Ikke registreret" : String(value)}</dd>
+              <dd>{offlineJobAnswer(value)}</dd>
             </div>
           ))}
         </dl>
       </details>
       {local?.kind === "job" && local.state === "conflict" && (
-        <details>
-          <summary className="min-h-11 cursor-pointer py-2 text-sm">
-            Den bevarede lokale registrering
-          </summary>
-          <pre className="whitespace-pre-wrap text-xs">
-            {JSON.stringify(local.payload.values, null, 2)}
-          </pre>
-          {local.template.id === job.template.id && (
-            <button
-              className={button}
-              onClick={() => {
-                setValues(local.payload.values);
-                setStatus(local.payload.status);
-                onDirty(true);
-              }}
-            >
-              Brug den bevarede registrering som ny kladde
-            </button>
+        <div className="space-y-2 rounded-xl border bg-muted/40 p-3 text-sm">
+          <h3 className="font-medium">Sammenlign den lokale registrering med opgavepakken</h3>
+          {local.template.id !== job.template.id ? (
+            <p>
+              Skabelonen er ændret. Brug de bevarede svar nedenfor til at udfylde den nye skabelon.
+            </p>
+          ) : job.latest.version <= local.payload.expectedVersion ? (
+            <p>Opdater sagen med net, så opgavepakken indeholder den nyere serverversion.</p>
+          ) : (
+            <p>
+              Vælg, hvilke svar du vil gemme som en ny version. Angiv en begrundelse, før du gemmer.
+            </p>
           )}
-        </details>
+          <ul className="space-y-2">
+            {local.template.definition.fields.map((field) => {
+              const savedAnswer = offlineJobAnswer(job.latest?.values[field.key]);
+              const localAnswer = offlineJobAnswer(local.payload.values[field.key]);
+              return (
+                <li
+                  key={field.key}
+                  className="rounded-lg border bg-background p-2 [overflow-wrap:anywhere]"
+                >
+                  <p className="font-medium">
+                    {field.label}
+                    {field.unit ? ` (${field.unit})` : ""}
+                  </p>
+                  <dl className="grid gap-1 sm:grid-cols-2">
+                    {local.template.id === job.template?.id && (
+                      <div>
+                        <dt className="text-muted-foreground">I opgavepakken</dt>
+                        <dd className="whitespace-pre-wrap">{savedAnswer}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt className="text-muted-foreground">På telefonen</dt>
+                      <dd className="whitespace-pre-wrap">{localAnswer}</dd>
+                    </div>
+                  </dl>
+                </li>
+              );
+            })}
+          </ul>
+          {local.template.id === job.template.id &&
+            job.latest.version > local.payload.expectedVersion && (
+              <button
+                type="button"
+                className={button}
+                disabled={busy}
+                onClick={() => {
+                  setValues(local.payload.values);
+                  setStatus(local.payload.status);
+                  onDirty(true);
+                }}
+              >
+                Brug den bevarede registrering som ny kladde
+              </button>
+            )}
+        </div>
       )}
       <RequiredFieldJobProgress
         definition={job.template.definition}
@@ -1075,4 +1113,10 @@ function OfflineJobEditor({
       )}
     </div>
   );
+}
+
+function offlineJobAnswer(value: FieldJobValues[string] | undefined) {
+  if (value == null || value === "") return "Ikke registreret";
+  if (typeof value === "boolean") return value ? "Ja" : "Nej";
+  return String(value);
 }

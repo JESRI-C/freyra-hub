@@ -190,6 +190,40 @@ describe("mobile field local save feedback", () => {
     expect(host.textContent).toContain("Nødvendige felter udfyldt: 1 af 2");
     expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("");
   });
+  it("compares a conflicting local answer with the refreshed server version", async () => {
+    const refreshed = pack();
+    const job = refreshed.jobs[0];
+    job.latest = { ...job.latest!, version: 2, values: { count: 8, seen: true } };
+    f.packs.mockResolvedValue([refreshed]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        projectId: f.project,
+        kind: "job",
+        state: "conflict",
+        template: job.template,
+        payload: {
+          actionId: f.action,
+          expectedVersion: 1,
+          values: { count: 0, seen: false },
+          status: "draft",
+        },
+      },
+    ]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const values = [...host.querySelectorAll("li dl dd")].map((item) => item.textContent);
+    expect(values).toEqual(["8", "0", "Ja", "Nej"]);
+    const useLocal = [...host.querySelectorAll("button")].find((item) =>
+      item.textContent?.includes("Brug den bevarede registrering som ny kladde"),
+    )!;
+    await act(async () => useLocal.click());
+    expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("0");
+    expect(f.enqueue).not.toHaveBeenCalled();
+  });
   it("does not replace an unavailable requested task with another saved task", async () => {
     await act(async () =>
       root!.render(
