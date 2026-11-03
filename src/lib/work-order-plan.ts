@@ -64,6 +64,22 @@ export function formatWorkOrderHours(hours: number) {
   return workOrderHours.format(hours) + (hours === 1 ? " time" : " timer");
 }
 
+/** Distribute an estimate evenly across its inclusive calendar dates, independent of DST. */
+export function workOrderHoursInPeriod(
+  plan: { start: string | null; end: string | null; estimatedHours?: number | null },
+  from: string,
+  through: string,
+): number | null {
+  if (!plan.start || plan.estimatedHours == null) return null;
+  const end = plan.end ?? plan.start;
+  const overlapStart = from > plan.start ? from : plan.start;
+  const overlapEnd = through < end ? through : end;
+  if (overlapEnd < overlapStart) return 0;
+  const days = (start: string, finish: string) =>
+    (Date.parse(finish) - Date.parse(start)) / 86_400_000 + 1;
+  return (plan.estimatedHours * days(overlapStart, overlapEnd)) / days(plan.start, end);
+}
+
 export const WorkOrderEstimatedHoursSchema = z
   .number()
   .min(0)

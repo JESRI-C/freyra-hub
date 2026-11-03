@@ -3,7 +3,7 @@ import {
   type WorkOrderView,
   type WorkOrderListView,
 } from "@/lib/work-order-navigation";
-import { formatWorkOrderHours } from "@/lib/work-order-plan";
+import { formatWorkOrderHours, workOrderHoursInPeriod } from "@/lib/work-order-plan";
 import { Calendar } from "@/components/ui/calendar";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import { da } from "react-day-picker/locale";
@@ -187,8 +187,18 @@ function WorkOrders({
           task.title.toLocaleLowerCase("da").includes(taskSearch.trim().toLocaleLowerCase("da")),
         );
   const visibleCount = visibleActions?.length ?? 0;
-  const estimates = (visibleActions ?? []).flatMap(({ id }) => dates?.[id]?.estimatedHours ?? []);
-  const totalEstimatedHours = estimates.reduce((total, hours) => total + hours, 0);
+  const estimates = new Map(
+    (visibleActions ?? []).map(({ id }) => {
+      const plan = dates?.[id];
+      const hours =
+        listView === "calendar" && plan
+          ? workOrderHoursInPeriod(plan, from, through)
+          : (plan?.estimatedHours ?? null);
+      return [id, hours];
+    }),
+  );
+  const knownEstimates = [...estimates.values()].filter((hours) => hours !== null);
+  const totalEstimatedHours = knownEstimates.reduce((total, hours) => total + hours, 0);
   const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
   const daySummaries = new Map<string, { total: number; overlap: Set<string> }>();
   function daySummary(key: string) {
@@ -483,53 +493,65 @@ function WorkOrders({
                 !visibleCount && <p role="status">Ingen opgaver matcher dit udvalg.</p>}
               {showSchedule && schedule.isSuccess && visibleCount > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Estimat for de viste opgaver ·{" "}
-                  {estimates.length
+                  {listView === "calendar"
+                    ? "Estimeret tid i udsnittet"
+                    : "Estimat for de viste opgaver"}{" "}
+                  ·{" "}
+                  {knownEstimates.length
                     ? formatWorkOrderHours(totalEstimatedHours)
                     : "Ingen estimeret tid"}
-                  {estimates.length < visibleCount &&
-                    ` · ${visibleCount - estimates.length} uden estimat`}
+                  {knownEstimates.length < visibleCount &&
+                    ` · ${visibleCount - knownEstimates.length} uden estimat`}
+                </p>
+              )}
+              {listView === "calendar" && schedule.isSuccess && knownEstimates.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Estimatet fordeles ligeligt over opgavens kalenderdage, inklusive weekender.
                 </p>
               )}
               {(!showSchedule || schedule.isSuccess) &&
-                visibleActions?.slice(0, taskLimit).map((a) => (
-                  <button
-                    type="button"
-                    key={a.id}
-                    disabled={locked}
-                    onClick={() => select(a.id, showSchedule ? "plan" : undefined)}
-                    className="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left disabled:opacity-50"
-                  >
-                    <span className="min-w-0">
-                      <span className="block font-medium">{a.title}</span>
-                      {showSchedule && (
-                        <span className="block text-sm text-muted-foreground">
-                          {scheduleLabel(dates?.[a.id])}
-                          {dates?.[a.id]?.estimatedHours != null && (
-                            <span className="block">
-                              Estimat · {formatWorkOrderHours(dates[a.id].estimatedHours!)}
-                            </span>
-                          )}
-                          {canEdit && (
-                            <span className="block">
-                              {dates?.[a.id]?.responsibleId
-                                ? (names.get(dates?.[a.id]?.responsibleId ?? "") ??
-                                  "Ansvarlig registreret")
-                                : "Ingen ansvarlig i planen"}
-                            </span>
-                          )}
-                          {listView === "calendar" &&
-                            dayOverlap?.has(dates?.[a.id]?.responsibleId ?? "") && (
-                              <span className="block font-medium text-foreground">
-                                Flere opgaver samme dag
+                visibleActions?.slice(0, taskLimit).map((a) => {
+                  const estimate = estimates.get(a.id);
+                  return (
+                    <button
+                      type="button"
+                      key={a.id}
+                      disabled={locked}
+                      onClick={() => select(a.id, showSchedule ? "plan" : undefined)}
+                      className="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left disabled:opacity-50"
+                    >
+                      <span className="min-w-0">
+                        <span className="block font-medium">{a.title}</span>
+                        {showSchedule && (
+                          <span className="block text-sm text-muted-foreground">
+                            {scheduleLabel(dates?.[a.id])}
+                            {estimate != null && (
+                              <span className="block">
+                                {listView === "calendar" ? "Estimat i udsnittet" : "Estimat"} ·{" "}
+                                {formatWorkOrderHours(estimate)}
                               </span>
                             )}
-                        </span>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-sm text-primary">Åbn →</span>
-                  </button>
-                ))}
+                            {canEdit && (
+                              <span className="block">
+                                {dates?.[a.id]?.responsibleId
+                                  ? (names.get(dates?.[a.id]?.responsibleId ?? "") ??
+                                    "Ansvarlig registreret")
+                                  : "Ingen ansvarlig i planen"}
+                              </span>
+                            )}
+                            {listView === "calendar" &&
+                              dayOverlap?.has(dates?.[a.id]?.responsibleId ?? "") && (
+                                <span className="block font-medium text-foreground">
+                                  Flere opgaver samme dag
+                                </span>
+                              )}
+                          </span>
+                        )}
+                      </span>
+                      <span className="shrink-0 text-sm text-primary">Åbn →</span>
+                    </button>
+                  );
+                })}
               {(!showSchedule || schedule.isSuccess) && visibleCount > taskLimit && (
                 <button
                   type="button"
