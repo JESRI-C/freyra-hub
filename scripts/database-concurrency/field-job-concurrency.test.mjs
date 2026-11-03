@@ -952,6 +952,18 @@ try {
   };
   const staleRequests = [
     [
+      "save_field_job_version",
+      {
+        ...common,
+        p_template_version_id: templateVersion,
+        p_expected_version: 0,
+        p_values: {},
+        p_status: "draft",
+        p_correction_reason: "Synthetic stale field revision",
+        p_request_id: randomUUID(),
+      },
+    ],
+    [
       "save_work_order_evidence",
       {
         ...common,
