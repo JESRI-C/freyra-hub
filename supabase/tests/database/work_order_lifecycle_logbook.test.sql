@@ -151,10 +151,16 @@ SELECT throws_ok($$SELECT pg_temp.change(32,3,214,'transition','started','{"star
 SELECT lives_ok($$SELECT public.claim_work_order_pool(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),1,(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(32) ORDER BY version DESC LIMIT 1),pg_temp.k(153))$$,'worker atomically takes the pool');
 SELECT lives_ok($$SELECT pg_temp.change(32,3,214,'transition','started','{"startedAt":"2026-10-08T06:00:00Z","startedSource":"Synthetic own record"}')$$,'claimed worker can confirm own start');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT pg_temp.assign(33,0,154);
 SELECT lives_ok($$SELECT pg_temp.change(33,0,221,'transition','draft');SELECT pg_temp.change(33,1,222,'block',NULL,jsonb_build_object('blockOwnerId',pg_temp.k(1),'blockReason','Synthetic cancelled visit','blockNextAction','Synthetic notify internally'));SELECT pg_temp.change(33,2,223,'transition','cancelled','{"reason":"Synthetic explicit cancellation"}')$$,'manager can cancel early work with an explanation');
 SELECT ok(NOT (SELECT blocked FROM public.work_order_lifecycle_versions WHERE action_id=pg_temp.k(33) AND version=3),'cancellation ends only the active block, preserving previous block history');
 SELECT is((SELECT count(*)::integer FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31)),4,'cancelling another task never deletes actual work');
 SELECT throws_ok($$SELECT pg_temp.change(33,3,224,'transition','planned')$$,'22023',NULL,'cancelled task cannot silently restart');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT (task->>'cancelled')::boolean
+ FROM public.list_my_work_orders_with_readiness(NULL,20) task WHERE task->>'action_id'=pg_temp.k(33)::text),
+ true,'an assigned cancelled task stays visible as cancelled');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 INSERT INTO pg_temp.log_pages SELECT 'first',log FROM public.get_work_order_log(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,NULL,NULL,3);
 SELECT is((SELECT jsonb_array_length(value->'items') FROM pg_temp.log_pages WHERE name='first'),3,'task log has a bounded page');
 SELECT ok((SELECT value->'next'<>'null'::jsonb FROM pg_temp.log_pages WHERE name='first'),'bounded task log returns a continuation cursor');

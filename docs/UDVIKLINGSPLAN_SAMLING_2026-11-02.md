@@ -686,3 +686,5 @@ Browserprøve på staging i Chrome ved 390 px. Genvejen åbnede Planoversigt med
 RES-opfølgning fra feltmedarbejderens side. Mine opgaver viser Afventer forudsætninger på opgavekortet før åbning. Opgavens instruktion kan fortsat læses. Ventestatus beregnes fra samme kontrol som Registrer start og tilføjes til den eksisterende adgangsafgrænsede side. Svaret indeholder ingen identiteter for de forudgående opgaver.
 
 Stagingprøven brugte en eksisterende testkonto og en tildelt syntetisk opgave. API-svaret viste ventestatus og indeholdt ingen forudsætnings-id'er. Chrome ved 390 px viste ventestatus før åbning, og instruktionen var tilgængelig efter åbning. 46 målrettede tests, typekontrol, staging-build og databaseisolation bestod. Kilde c894649, Worker b8110c36-21fc-421d-b615-9041b75baba0 og migration 20261103143042.
+
+RES-opfølgning på aflysninger. Mine opgaver viser Aflyst på kortet og giver fortsat adgang til instruktion, status og logbog. Kortet tilbyder ikke overtagelse eller ny feltregistrering på aflyste opgaver. Aflysningsstatus læses fra den eksisterende versionsførte status.

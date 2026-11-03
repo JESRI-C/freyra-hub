@@ -148,6 +148,7 @@ function TaskCard({
   active: boolean;
   onOpen: () => void;
 }) {
+  const canExecute = task.can_execute && !task.cancelled;
   const claim = useServerFn(claimProjectWorkOrderPool),
     cache = useQueryClient();
   const [busy, setBusy] = useState(false),
@@ -173,7 +174,7 @@ function TaskCard({
   const inFlight = useRef(false),
     attempt = useRef<{ signature: string; requestId: string } | null>(null);
   async function take() {
-    if (inFlight.current || !task.can_claim || locked || !active) return;
+    if (inFlight.current || !task.can_claim || task.cancelled || locked || !active) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -217,7 +218,12 @@ function TaskCard({
               : " · Ledig"
           : ""}
       </p>
-      {task.waiting_for_prerequisites && (
+      {task.cancelled && (
+        <p className="rounded-xl border bg-muted px-3 py-2 text-sm font-medium">
+          Aflyst. Se instruktion og historik ved at åbne opgaven.
+        </p>
+      )}
+      {!task.cancelled && task.waiting_for_prerequisites && (
         <p className="rounded-xl border border-amber-600/40 bg-amber-50 px-3 py-2 text-sm font-medium dark:bg-amber-950">
           Afventer forudsætninger. Arbejdet kan startes, når de er udført.
         </p>
@@ -244,7 +250,7 @@ function TaskCard({
           <summary className="min-h-11 cursor-pointer py-2 font-medium">Se arbejdsgrundlag</summary>
           <WorkOrderPlanSummary row={{ plan: task.plan, version: task.plan_version }} />
         </details>
-        {active && task.can_execute && (
+        {active && canExecute && (
           <FieldWorkOrderEquipment
             scope={{ organizationId: task.organization_id, projectId: task.project_id }}
             actorId={actorId}
@@ -260,7 +266,7 @@ function TaskCard({
             planVersionId={task.plan_version_id}
             planVersion={task.plan_version}
             plan={task.plan}
-            canWrite={task.can_execute}
+            canWrite={canExecute}
             disabled={(locked && !visitEditing) || busy}
             onEditing={(value) => {
               setVisitEditing(value);
@@ -268,7 +274,7 @@ function TaskCard({
             }}
           />
         )}
-        {task.can_claim && (
+        {task.can_claim && !task.cancelled && (
           <button
             className={button + " bg-primary text-primary-foreground"}
             disabled={busy || locked}
@@ -356,7 +362,7 @@ function TaskCard({
               actorId={actorId}
               actionId={task.action_id}
               readOnly
-              allowReviewInReadOnly
+              allowReviewInReadOnly={!task.cancelled}
               onEditing={(value) => {
                 setSubmissionEditing(value);
                 reportEditing("submission", value);
@@ -364,7 +370,7 @@ function TaskCard({
             />
           )}
         </details>
-        {(task.can_execute || timeOpened) && (
+        {(canExecute || timeOpened) && (
           <details
             onToggle={(event) => {
               if (event.currentTarget.open) setTimeOpened(true);
@@ -384,7 +390,7 @@ function TaskCard({
                   scope={{ organizationId: task.organization_id, projectId: task.project_id }}
                   actorId={actorId}
                   actionId={task.action_id}
-                  canWrite={task.can_execute}
+                  canWrite={canExecute}
                   onEditing={(value) => {
                     setTimeEditing(value);
                     reportEditing("time", value);
@@ -394,7 +400,7 @@ function TaskCard({
             )}
           </details>
         )}
-        {(task.can_execute || materialsOpened) && (
+        {(canExecute || materialsOpened) && (
           <details
             onToggle={(event) => {
               if (event.currentTarget.open) setMaterialsOpened(true);
@@ -414,7 +420,7 @@ function TaskCard({
                   scope={{ organizationId: task.organization_id, projectId: task.project_id }}
                   actorId={actorId}
                   actionId={task.action_id}
-                  canWrite={task.can_execute}
+                  canWrite={canExecute}
                   onEditing={(value) => {
                     setMaterialsEditing(value);
                     reportEditing("materials", value);
@@ -424,7 +430,7 @@ function TaskCard({
             )}
           </details>
         )}
-        {task.can_plan && (
+        {task.can_plan && !task.cancelled && (
           <div className="grid gap-2 sm:grid-cols-2">
             <Link
               to="/app/projects/$slug"

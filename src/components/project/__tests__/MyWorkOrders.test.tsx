@@ -74,6 +74,7 @@ const task = {
   can_review: false,
   can_plan: false,
   waiting_for_prerequisites: false,
+  cancelled: false,
 };
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function flush() {
@@ -117,6 +118,21 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("keeps a cancelled task accessible without offering active field actions", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, cancelled: true, can_execute: true, can_plan: true }],
+      nextAfterActionId: null,
+    });
+    await render();
+    expect(host.textContent).toContain("Aflyst.");
+    await openTask();
+    expect(host.textContent).toContain("Synthetic instructions");
+    expect(host.textContent).toContain("Status og logbog");
+    expect(host.textContent).not.toContain("Overtag opgaven");
+    expect(host.textContent).not.toContain("Registrér arbejdstid");
+    expect(host.textContent).not.toContain("Tag fotos på projektet");
+  });
+
   it("shows waiting status before opening a task and keeps its instructions accessible", async () => {
     m.load.mockResolvedValue({
       items: [{ ...task, waiting_for_prerequisites: true }],

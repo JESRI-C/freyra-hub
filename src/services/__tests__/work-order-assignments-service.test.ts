@@ -379,6 +379,7 @@ describe("groups and pool request boundary", () => {
       can_review: false,
       can_plan: false,
       waiting_for_prerequisites: false,
+      cancelled: false,
     };
     rpc.mockResolvedValue({ data: [taskRow], error: null });
     expect(
