@@ -213,6 +213,8 @@ metoderegler, som kilderne ikke definerer, må ikke opfindes. Derefter S05:
 bind eksisterende rapportrevision til præcis aflevering og review. Samlet
 accept gennem rapport/ZIP er fortsat åben.
 
+Første del af D05c viser nødvendige felter og enheder i en gemt afleverings fastholdte registreringer. Visningen bruger jobkortdefinitionen fra hver registrerings snapshot. En komponentprøve viser to afleveringer med forskellige feltkrav og kontrollerer, at den tidligere aflevering stadig viser sit oprindelige krav, og at 0 og Nej bevares. Browserprøve og krav for den samlede metodeprofil afventes.
+
 - Genbrug eksisterende operationel status. Tilføj den manglende aflevering med frosset krav-/evidenssnapshot.
 - Lad reviewer returnere med konkrete mangler eller godkende det eksplicitte omfang. Rettelse og genaflevering bevarer gammel historik.
 - Håndhæv roller, version, manglende bilag og selvreviewregler server-/databasenært; knapvisning er kun vejledning.

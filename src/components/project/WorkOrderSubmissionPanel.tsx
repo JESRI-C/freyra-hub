@@ -406,10 +406,18 @@ export function WorkOrderSubmissionPanel({
                             {ev.observation_snapshot.template.title} · registrering version{" "}
                             {ev.observation_snapshot.version}
                           </h5>
+                          <p className="text-muted-foreground">
+                            Nødvendige felter er markeret efter jobkortet på tidspunktet for
+                            registreringen.
+                          </p>
                           <dl>
                             {ev.observation_snapshot.template.fields.map((field) => (
                               <div key={field.key}>
-                                <dt className="text-muted-foreground">{field.label}</dt>
+                                <dt className="text-muted-foreground">
+                                  {field.label}
+                                  {field.unit && ` (${field.unit})`}
+                                  {field.required && " · Nødvendigt felt"}
+                                </dt>
                                 <dd>
                                   {typeof ev.observation_snapshot.values[field.key] === "boolean"
                                     ? ev.observation_snapshot.values[field.key]

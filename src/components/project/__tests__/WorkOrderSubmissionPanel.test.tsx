@@ -98,6 +98,22 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("submission preparation on the existing task", () => {
+  it("shows required fields and units from each saved submission's own job card", async () => {
+    const previous = submission();
+    const current = submission(2);
+    const fields = current.snapshot.evidence[0].observation_snapshot.template.fields;
+    fields[0] = { ...fields[0], label: "Optalte planter", unit: "stk.", required: false };
+    m.list.mockResolvedValue({ items: [current, previous], nextBeforeVersion: null });
+    await render();
+    const labels = [...host.querySelectorAll("dt")].map((label) => label.textContent);
+    expect(labels).toContain("Optalte planter (stk.)");
+    expect(labels).toContain("Antal · Nødvendigt felt");
+    expect(labels).not.toContain("Optalte planter (stk.) · Nødvendigt felt");
+    const values = [...host.querySelectorAll("dd")].map((value) => value.textContent);
+    expect(values).toContain("0");
+    expect(values).toContain("Nej");
+  });
+
   it("rechecks after opening a correction and preserves the written note", async () => {
     m.context.mockResolvedValueOnce({ ...context(), gaps: ["evidence_missing"] });
     await render();
