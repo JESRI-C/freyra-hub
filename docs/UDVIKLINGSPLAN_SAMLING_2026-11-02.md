@@ -747,6 +747,8 @@ Planoversigt og kalender bruger nu samme validering af gemte opgave-id'er som op
 
 Uden en valgt opgave åbner genvejen fra Overblik nu opgavelisten, også hvis projektet sidst viste kalenderen. Listen forklarer, hvad brugeren skal vælge. En lokal prøve vælger en opgave og kontrollerer, at dens aflevering åbner. Browserprøve af denne ændring afventes.
 
+Stagingprøven bestod på kilde b07885a og Worker 260ad86e-3ac4-48f3-987d-dbc317db56b7. Ved 390 og 1280 px åbnede genvejen opgavelisten trods den tidligere kalendervisning. Brugeren kunne søge efter en konkret testopgave og åbne dens aflevering med rapporthandlingen. En på forhånd valgt opgave blev bevaret ved tastaturaktivering. Ingen JavaScript-sidefejl. Første forsøg på at vælge et søgeresultat brugte en ufuldstændig knaptekst. Prøven bestod med knappens fulde navn.
+
 Projektets Overblik har et særskilt trin for opgavens aflevering og faglige gennemgang. Genvejen åbner det eksisterende afleveringspanel og fører et eventuelt valgt opgave-id og en runde med videre. Eksemplet på projektforløbet viser også afleveringen mellem udførelse og rapport. Komponentprøven dækker knappen og ruten med en allerede valgt opgave.
 
 Browserprøven i staging bestod på kilde 517fdb4 og Worker 60499b50-1787-4dba-9563-7ec98f55184c. Ved 390 og 1280 px åbnede genvejen med Enter afleveringen på den valgte syntetiske opgave og viste rapporthandlingen. Uden valgt opgave åbnede genvejen opgavelisten. Der var ingen JavaScript-sidefejl. Prøven brugte Chrome og simuleret mobilbredde.
