@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { executeMiddleware } from "@tanstack/start-client-core";
+import { runWithStartContext } from "@tanstack/start-storage-context";
 
 const mocks = vi.hoisted(() => ({
   getRequest: vi.fn(),
@@ -47,11 +48,24 @@ vi.mock("@tanstack/react-start", async (importOriginal) => {
                 ...(await next()),
                 result: await handler({ data: validated }),
               }));
-            const executed = await executeMiddleware([...middlewares, terminal], "server", {
-              method: "POST",
-              data,
-              serverFnMeta: { id: "ai-unit-test" },
-            });
+            const executed = await runWithStartContext(
+              {
+                request: new Request("https://example.test/_serverFn/ai-unit-test"),
+                getRouter: () => {
+                  throw new Error("This function-only test must not load a router");
+                },
+                startOptions: {},
+                contextAfterGlobalMiddlewares: {},
+                executedRequestMiddlewares: new Set(),
+                handlerType: "serverFn",
+              },
+              () =>
+                executeMiddleware([...middlewares, terminal], "server", {
+                  method: "POST",
+                  data,
+                  serverFnMeta: { id: "ai-unit-test" },
+                }),
+            );
             if (executed.error) throw executed.error;
             return executed.result;
           };

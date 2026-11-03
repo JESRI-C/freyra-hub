@@ -4,7 +4,7 @@
 
 ## Hvad er kortlagt?
 
-Alle 876 aktuelle JS-/TS-filer i `src`, deres statiske lokale imports og
+Alle 878 aktuelle JS-/TS-filer i `src`, deres statiske lokale imports og
 93 routedefinitioner er inventeret. De 71 kanoniske produktsidevisninger,
 20 projektværktøjer og fem opgavedele har en navngiven destination. Ingen
 fundne produktsider mangler en mapping. Tekniske endpoints, layouts og
@@ -130,10 +130,12 @@ merge, sletning eller omklassificering er udført.
 
 ## Kontrol og afgrænsning
 
-Det aktuelle inventar er genskabt efter S04/D05b og visningskontrollen
-3. november: 600 produktionsfiler og
-275 test-/supportfiler samt genereret routetræ. Der er fortsat nul
-umappede produktsider og 97 undersøgelseskandidater. Den oprindelige
+Det aktuelle inventar er genskabt efter S04/D05b, visningskontrollen og
+sikkerhedsleverancen 3. november: 601 produktionsfiler og
+276 test-/supportfiler samt genereret routetræ. Der er fortsat nul
+umappede produktsider og 98 undersøgelseskandidater. Den nye HTTP-hjælper
+bruges fra serverindgangen, som ikke er en produktside i importkortet.
+Den oprindelige
 præsentationsleverances bevis nedenfor er historisk; gennemgangsleverancen er dokumenteret særskilt. Nyeste visningskode og browserprøve
 fremgår af [visningskontrollen](VISNINGSKONTROL_2026-11-03.md).
 

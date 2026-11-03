@@ -1,6 +1,13 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.6 · 3. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.7 · 3. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+
+**Seneste sikkerhedsleverance (S11):** [Kode- og sikkerhedskontrol](SIKKERHEDSKONTROL_2026-11-03.md)
+samler de konkrete pakkerettelser, cachebeskyttelse, bevarede historiske
+rapportkontrolsummer og genprøven af navigation/originaler/roller. Runtime-
+audit er nul; udviklingsværktøjer og navngivne PostGIS-/Auth-/engine-opgaver
+er fortsat åbne. Dette ændrer ikke S04/S05's faglige restarbejde eller gør
+programmet generelt produktionsgodkendt. Kildekandidat `ce2ff55…`, draft PR42.
 
 **Seneste visningsleverance:** [Kontrol af hele programkortet](VISNINGSKONTROL_2026-11-03.md)
 retter menumarkering, et pilotbundet kortlink, fælles danske betegnelser,
@@ -33,7 +40,7 @@ Alle 71 kanoniske produktsidevisninger, 20 projektværktøjer, fem opgavedele
 og 68 eksisterende krav er placeret. Skyhosts ti jobområder, fem konkrete
 integrationskandidater, 13 planlagte områder og én delvis gennemgangsfunktion
 er synlige med deres faktiske afgrænsning. Det aktuelle inventar indeholder
-876 kilde-/testfiler; tre ældre TypeScript-træer er fortsat bevaret og sammenholdt.
+878 kilde-/testfiler; tre ældre TypeScript-træer er fortsat bevaret og sammenholdt.
 CI og faktisk læsende browserprøve bestod. Eksisterende kode, menuindgange,
 projekt-/opgaveidentitet og originaler bevares. Fuld funktionel paritet og
 Jespers brugbarhedsaccept er fortsat åbne.

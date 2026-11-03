@@ -1,0 +1,3562 @@
+{
+  "schema": "freyra.security-staging-receipt/v1",
+  "checkedAt": "2026-11-03T01:08:42.662Z",
+  "sourceRevision": "ce2ff55c1c28aa3d2cc3919a0785c33fff511304",
+  "workerVersion": "d912e6bf-d2d6-4a0d-aec1-32370219bd3f",
+  "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/42",
+  "ci": {
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41555566168",
+    "result": "PASS",
+    "appTests": 3449,
+    "appFiles": 260,
+    "databaseTests": 1568,
+    "databaseFiles": 24,
+    "cleanInstall": true,
+    "imageDecode": true,
+    "migrationReplay": true,
+    "concurrency": true,
+    "restore": true
+  },
+  "audit": {
+    "runtime": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "all": {
+      "info": 0,
+      "low": 0,
+      "moderate": 14,
+      "high": 0,
+      "critical": 0,
+      "total": 14
+    },
+    "openDevPackages": [
+      "@eslint-community/eslint-utils",
+      "@eslint/config-array",
+      "@eslint/eslintrc",
+      "@typescript-eslint/eslint-plugin",
+      "@typescript-eslint/parser",
+      "@typescript-eslint/type-utils",
+      "@typescript-eslint/typescript-estree",
+      "@typescript-eslint/utils",
+      "eslint",
+      "eslint-config-prettier",
+      "eslint-plugin-prettier",
+      "eslint-plugin-react-refresh",
+      "minimatch",
+      "typescript-eslint"
+    ]
+  },
+  "secretChecks": {
+    "tracked": {
+      "scannedFiles": 1264,
+      "findings": []
+    },
+    "browserPatterns": {
+      "files": 206,
+      "findings": []
+    },
+    "configuredSecretValues": "PASS staging preflight"
+  },
+  "http": [
+    {
+      "path": "/login",
+      "status": 200,
+      "cacheControl": "private, no-store",
+      "nosniff": "nosniff",
+      "referrerPolicy": "strict-origin-when-cross-origin"
+    },
+    {
+      "path": "/felt",
+      "status": 200,
+      "cacheControl": "private, no-store",
+      "nosniff": "nosniff",
+      "referrerPolicy": "strict-origin-when-cross-origin"
+    },
+    {
+      "path": "/app/program",
+      "status": 200,
+      "cacheControl": "private, no-store",
+      "nosniff": "nosniff",
+      "referrerPolicy": "strict-origin-when-cross-origin"
+    },
+    {
+      "path": "/.well-known/oauth-protected-resource",
+      "status": 200,
+      "cacheControl": "private, no-store",
+      "nosniff": "nosniff",
+      "referrerPolicy": "strict-origin-when-cross-origin"
+    },
+    {
+      "path": "/.mcp/list-tools",
+      "status": 401,
+      "cacheControl": "private, no-store",
+      "nosniff": "nosniff",
+      "referrerPolicy": "strict-origin-when-cross-origin"
+    }
+  ],
+  "offline": {
+    "result": "PASS",
+    "anonymousNeutralShell": true,
+    "offlineReload": true,
+    "privateAppResponsesNotCached": true,
+    "cachedPublicEntries": 200
+  },
+  "flow": {
+    "result": "PASS",
+    "sameTaskAndApprovedVersion": true,
+    "headerShowsTaskTotal": true,
+    "originalDownloadSha256": "8343c81af5a4d07b716cf60482c91c5422e7721554eed642f1102e8c2c3be23e",
+    "registryOpensSameProject": true,
+    "reportFixedRecipientExplicit": true
+  },
+  "roles": {
+    "result": "PASS",
+    "revokedTaskRpc": "42501",
+    "revokedAccountTaskListEmpty": true,
+    "anonymousTaskLogin": true,
+    "anonymousProjectLogin": true,
+    "noRoleChanges": true
+  },
+  "structured": {
+    "result": "PASS",
+    "rawStructuredTextAbsent": true,
+    "structuredGenericEditHidden": true,
+    "historyPreservedReadable": true,
+    "executionLinkSameTask": true
+  },
+  "display": {
+    "activeDestinations": 97,
+    "checks": 291,
+    "fullViews": 90,
+    "projectSelectionOnly": 7,
+    "interpretation": "PASS covers loaded guides, HTTP/JavaScript, global page width, visible images and selected action bounds. Element-box candidates include intentionally clipped maps and scrollable navigation; they are not a proof that all content is fully visible or all domain data is accepted. Alerts retain actual missing-data states.",
+    "items": [
+      {
+        "id": "tab:overblik",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:audit",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:roller",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:handlinger",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:grundlag",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:livekort",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:sites",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:datakilder",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:miljodata",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 7
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "step:baseline",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:medier",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "step:billeder",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "step:datagrundlag",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:arbejde",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:dokumentation",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "step:gennemgang",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "step:sammenligning",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:indikatorer",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "step:beplantning",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "tab:rapporter",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "work:plan",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "work:field",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "work:execution",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "work:evidence",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "work:submission",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/overview",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dashboard"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/projects",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/projects/$slug",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/opgaver",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/map",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Kort og zoner"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/projects/geometry/$slug",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 6
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 6
+          }
+        ]
+      },
+      {
+        "id": "/app/projects/map/$slug",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [
+              "Naturregistreringer er ikke tilgængelige\n\nGem en gyldig projektpolygon for at se offentlige naturkandidater.\n\nEn kildefejl dokumenterer ikke fravær af beskyttet natur eller vandløb."
+            ],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [
+              "Naturregistreringer er ikke tilgængelige\n\nGem en gyldig projektpolygon for at se offentlige naturkandidater.\n\nEn kildefejl dokumenterer ikke fravær af beskyttet natur eller vandløb."
+            ],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [
+              "Naturregistreringer er ikke tilgængelige\n\nGem en gyldig projektpolygon for at se offentlige naturkandidater.\n\nEn kildefejl dokumenterer ikke fravær af beskyttet natur eller vandløb."
+            ],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/sources",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Kilder"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/data",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/registry",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Data og metoder"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/sources",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/add",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/integrations",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/felt",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/connect",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/upload",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/devices",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/live",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/alerts",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/connect/quality",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Overvågning og feltdata"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/decisions",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Projektindsigt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/decisions/recommendations",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Projektindsigt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/decisions/risk",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Projektindsigt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/decisions/scenarios",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Projektindsigt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/decisions/data-quality",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Projektindsigt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/decisions/notes",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Projektindsigt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/decisions/assistant",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Projektindsigt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/ledger/metrics",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dokumentation og audit"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/ledger/co2",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dokumentation og audit"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/ledger/csrd",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dokumentation og audit"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/reports",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Rapporter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 5
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/reports/new",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Rapporter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 5
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/reports/builder",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Rapporter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 5
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/reports/preview",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Rapporter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 5
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/reports/readiness",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Rapporter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 5
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/reports/approval",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Rapporter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 5
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/reports/templates",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Rapporter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 5
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/reports/library",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Rapporter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 5
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/ledger",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dokumentation og audit"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/ledger/audit",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dokumentation og audit"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/ledger/documents",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dokumentation og audit"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/ledger/sources",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dokumentation og audit"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/ledger/reporting",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Dokumentation og audit"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/construction",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Byggeri og natur"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/construction/projects/$slug",
+        "selectionOnly": true,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Byggeri og natur"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/lavbund",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Lavbund og beplantning"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/lavbund/$projektId",
+        "selectionOnly": true,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Lavbund og beplantning"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/lavbund/$projektId/kort",
+        "selectionOnly": true,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Lavbund og beplantning"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/lavbund/$projektId/klima",
+        "selectionOnly": true,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Lavbund og beplantning"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/lavbund/$projektId/fosfor",
+        "selectionOnly": true,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Lavbund og beplantning"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/lavbund/$projektId/rapport",
+        "selectionOnly": true,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Lavbund og beplantning"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/lavbund/$projektId/revisionsspor",
+        "selectionOnly": true,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Lavbund og beplantning"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/impact",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Finansiering og effekt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/impact/projects",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Finansiering og effekt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/impact/project",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Finansiering og effekt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/impact/portfolio",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Finansiering og effekt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/impact/credits",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Finansiering og effekt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/impact/verification",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Finansiering og effekt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/impact/organizations",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Finansiering og effekt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/impact/reports",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Finansiering og effekt"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 1
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/public-impact",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Offentlig formidling"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      },
+      {
+        "id": "/app/settings",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Indstillinger"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/settings/users",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Brugere og roller"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/settings/access",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Indstillinger"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/settings/billing",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Indstillinger"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/settings/frameworks",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Indstillinger"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/settings/modules",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Indstillinger"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/settings/notifications",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Indstillinger"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/settings/projects",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Indstillinger"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/settings/security",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Indstillinger"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 8
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "/app/system-test",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Systemtest"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 12
+          }
+        ]
+      },
+      {
+        "id": "planned:review",
+        "selectionOnly": false,
+        "httpStatus": 200,
+        "javascriptErrors": [],
+        "failedResponses": [],
+        "viewports": [
+          {
+            "width": 1280,
+            "scrollWidth": 1280,
+            "activeMenu": [
+              "Naturprojekter"
+            ],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 390,
+            "scrollWidth": 390,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          },
+          {
+            "width": 320,
+            "scrollWidth": 320,
+            "activeMenu": [],
+            "alerts": [],
+            "brokenImages": [],
+            "offscreenElementCandidates": 0
+          }
+        ]
+      }
+    ]
+  },
+  "inventory": {
+    "sourceFiles": 878,
+    "productionFiles": 601,
+    "tests": 276,
+    "routeDeclarations": 93,
+    "canonicalProductPages": 71,
+    "projectDestinations": 20,
+    "taskParts": 5,
+    "plannedCapabilities": 13,
+    "partiallyDeliveredRoadmapCapabilities": 1,
+    "requirementIds": 68,
+    "unmappedProductRoutes": 0,
+    "staticUnreachedProductionFiles": 98
+  },
+  "remaining": [
+    "14 moderate dev-tool findings",
+    "PostGIS extension-owner grants/exposure",
+    "Leaked-password protection disabled",
+    "Postgres 17.6 security upgrade",
+    "Seven data-dependent views, full Skyhost parity, physical phone and user/professional acceptance"
+  ],
+  "hostedDdl": false,
+  "productionChanged": false,
+  "merged": false,
+  "messagesSent": false
+}

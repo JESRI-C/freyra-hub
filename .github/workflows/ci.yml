@@ -35,6 +35,9 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Install pinned npm
+        run: npm install --global npm@11.6.0
+
       - name: Verify toolchain
         run: |
           node --version
@@ -42,6 +45,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Reject known runtime dependency vulnerabilities
+        run: npm run audit:runtime
 
       - name: Typecheck
         run: npm run typecheck
