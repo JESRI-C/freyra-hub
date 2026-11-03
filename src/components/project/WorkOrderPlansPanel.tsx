@@ -23,7 +23,7 @@ import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
 import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderVisitMap } from "./WorkOrderVisitMap";
-import { WorkOrderWeeklySeries } from "./WorkOrderWeeklySeries";
+import { WorkOrderSeries } from "./WorkOrderSeries";
 import { WorkOrderFollowUps } from "./WorkOrderFollowUps";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
@@ -584,7 +584,7 @@ function PlanWorkspace({
             !assignmentEditing &&
             !lifecycleEditing &&
             !bookingEditing && (
-              <WorkOrderWeeklySeries
+              <WorkOrderSeries
                 key={latest.id}
                 source={latest}
                 scope={scope}

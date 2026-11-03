@@ -51,7 +51,7 @@ vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.access
 vi.mock("@/lib/work-order-plan.functions", () => ({
   getProjectWorkOrderPlanHistory: m.history,
   saveProjectWorkOrderPlan: m.save,
-  createProjectWorkOrderWeeklySeries: m.createSeries,
+  createProjectWorkOrderSeries: m.createSeries,
 }));
 vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: m.actions,
@@ -201,6 +201,32 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("previews monthly repeats from the original day after a short month", async () => {
+    const source = row();
+    source.plan = { ...source.plan, plannedStart: "2026-12-01" };
+    m.history.mockResolvedValue({ items: [source], nextBeforeVersion: null });
+    await open(false);
+    const select = [...host.querySelectorAll("label")]
+      .find((label) => label.textContent?.startsWith("Gentagelse"))!
+      .querySelector("select")!;
+    const count = [...host.querySelectorAll("label")]
+      .find((label) => label.textContent?.startsWith("Antal opgaver"))!
+      .querySelector("select")!;
+    await act(async () => {
+      select.value = "monthly";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      count.value = "3";
+      count.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await fill("Første dato", "2027-01-31");
+    const dates = host.querySelector('[aria-label="Datoer for nye opgaver"]');
+    expect([...dates!.querySelectorAll("li")].map((item) => item.textContent)).toEqual([
+      "31. jan. 2027",
+      "28. feb. 2027",
+      "31. mar. 2027",
+    ]);
+  });
+
   it("distinguishes follow-ups with the same title using their current calendar dates", async () => {
     m.followUps.mockResolvedValue({
       data: [41, 42].map((n) => ({
@@ -238,7 +264,7 @@ describe("work-order plan editor", () => {
     await open(false);
     await fill("Første dato", "2026-03-27");
     expect(host.querySelector('[aria-label="Datoer for nye opgaver"]')?.textContent).toContain(
-      "2026-04-03 til 2026-04-05",
+      "3. apr. 2026 – 5. apr. 2026",
     );
     const button = Array.from(host.querySelectorAll("button")).find(
       (item) => item.textContent === "Opret 2 opgaver",

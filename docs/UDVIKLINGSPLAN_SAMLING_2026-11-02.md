@@ -628,3 +628,7 @@ Ved stagingprøven oprettede projektlederen to ugentlige opgaver fra planversion
 Kildeopgavens liste viser dato eller periode fra den seneste gemte plan for hver opfølgning. Datoerne kommer fra samme læsning som projektkalenderen. Listen beholder opgavens genvej og kildeplanversion ved en fejl i datolæsningen og tilbyder et genforsøg. Den målrettede regressionstest skelner to opgaver med samme titel på deres datoer.
 
 Stagingprøve på kilde 29d77db og Worker 981a3710-c83b-40e0-943c-921cc7db0d6e. Chrome ved 390 px viste to links med samme titel og hver sin dato. Efter omplanlægning fra 15. til 16. november viste kildelisten den nye dato. Staging-build, typekontrol, lint og 37 målrettede app-tests bestod. Ved første udrulning blokerede et manglende JavaScript-svar login. Staging blev midlertidigt rullet tilbage, og genprøven bestod med den nye version aktiv.
+
+### S13 – Gentagelsesintervaller
+
+Projektlederen kan vælge hver dag, hver uge, hver anden uge eller hver måned under Opret gentagne opgaver. Datoerne vises som i kalenderen før oprettelse. Ved månedlig gentagelse bruges den valgte dag eller månedens sidste dag. Den oprindelige dag genbruges i efterfølgende måneder. Planens varighed og kildeversion bevares. Eksisterende ugentlige klientkald bruger fortsat samme identiteter ved genforsøg. Ændring og aflysning af en hel serie er stadig åben.

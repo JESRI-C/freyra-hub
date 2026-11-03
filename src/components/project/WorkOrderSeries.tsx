@@ -1,18 +1,13 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarDate } from "@/lib/action-execution";
-import { createProjectWorkOrderWeeklySeries } from "@/lib/work-order-plan.functions";
+import { workOrderSeriesDates, type RecurrenceInterval } from "@/lib/work-order-recurrence";
+import { scheduleLabel } from "@/lib/work-order-schedule-label";
+import { createProjectWorkOrderSeries } from "@/lib/work-order-plan.functions";
 import type { WorkOrderPlanVersion } from "@/lib/work-order-plan";
 import type { ProjectScope } from "@/services/project-workspace-service";
 
-function shiftDate(date: string, days: number) {
-  const shifted = new Date(date + "T00:00:00Z");
-  shifted.setUTCDate(shifted.getUTCDate() + days);
-  return shifted.toISOString().split("T")[0];
-}
-
-export function WorkOrderWeeklySeries({
+export function WorkOrderSeries({
   source,
   scope,
   actorId,
@@ -24,30 +19,20 @@ export function WorkOrderWeeklySeries({
   onSaving: (saving: boolean) => void;
 }) {
   const [firstDate, setFirstDate] = useState("");
+  const [interval, setInterval] = useState<RecurrenceInterval>("weekly");
   const [count, setCount] = useState(2);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState(0);
   const attempt = useRef<{ signature: string; id: string } | undefined>(undefined);
   const inFlight = useRef(false);
-  const create = useServerFn(createProjectWorkOrderWeeklySeries);
+  const create = useServerFn(createProjectWorkOrderSeries);
   const cache = useQueryClient();
   const { plannedStart, plannedEnd } = source.plan;
-  const duration =
-    plannedStart && plannedEnd
-      ? (Date.parse(plannedEnd) - Date.parse(plannedStart)) / 86_400_000
-      : 0;
-  const dates =
-    plannedStart &&
-    CalendarDate.safeParse(firstDate).success &&
-    firstDate > (plannedEnd ?? plannedStart) &&
-    firstDate <= "9999-10-01"
-      ? Array.from({ length: count }, (_, index) => {
-          const start = shiftDate(firstDate, index * 7);
-          return { start, end: plannedEnd ? shiftDate(firstDate, index * 7 + duration) : null };
-        })
-      : [];
-  const valid = dates.length === count && (dates.at(-1)?.end?.length ?? 10) === 10;
+  const dates = plannedStart
+    ? workOrderSeriesDates(firstDate, count, interval, plannedStart, plannedEnd)
+    : [];
+  const valid = dates.length === count;
 
   async function save() {
     if (!valid || inFlight.current || created) return;
@@ -56,7 +41,7 @@ export function WorkOrderWeeklySeries({
     onSaving(true);
     setError("");
     try {
-      const signature = firstDate + ":" + count;
+      const signature = firstDate + ":" + count + ":" + interval;
       if (attempt.current?.signature !== signature)
         attempt.current = { signature, id: crypto.randomUUID() };
       const ids = await create({
@@ -65,6 +50,7 @@ export function WorkOrderWeeklySeries({
           sourcePlanVersionId: source.id,
           expectedActorId: actorId,
           firstDate,
+          interval,
           count,
           requestId: attempt.current.id,
         },
@@ -90,7 +76,7 @@ export function WorkOrderWeeklySeries({
 
   return (
     <details className="rounded-xl border p-3">
-      <summary className="min-h-11 cursor-pointer py-2 font-medium">Opret ugentlig serie</summary>
+      <summary className="min-h-11 cursor-pointer py-2 font-medium">Opret gentagne opgaver</summary>
       <p className="text-sm text-muted-foreground">
         Opret særskilte arbejdsopgaver med arbejdsgrundlag fra planversion {source.version}. Vælg
         ansvarlig på hver ny opgave.
@@ -111,7 +97,25 @@ export function WorkOrderWeeklySeries({
             />
           </label>
           <label className="block text-sm">
-            Antal ugentlige opgaver
+            Gentagelse
+            <select
+              className="block min-h-11 w-full rounded-xl border bg-background px-3"
+              value={interval}
+              onChange={(event) => setInterval(event.target.value as RecurrenceInterval)}
+            >
+              <option value="daily">Hver dag</option>
+              <option value="weekly">Hver uge</option>
+              <option value="fortnightly">Hver anden uge</option>
+              <option value="monthly">Hver måned</option>
+            </select>
+          </label>
+          {interval === "monthly" && (
+            <p className="text-sm text-muted-foreground">
+              Hvis måneden er kortere, bruges månedens sidste dag.
+            </p>
+          )}
+          <label className="block text-sm">
+            Antal opgaver
             <select
               className="block min-h-11 w-full rounded-xl border bg-background px-3"
               value={count}
@@ -127,11 +131,8 @@ export function WorkOrderWeeklySeries({
           )}
           {valid && (
             <ul aria-label="Datoer for nye opgaver" className="list-disc pl-5 text-sm">
-              {dates.map(({ start, end }) => (
-                <li key={start}>
-                  {start}
-                  {end && end !== start ? " til " + end : ""}
-                </li>
+              {dates.map((plan) => (
+                <li key={plan.start}>{scheduleLabel(plan)}</li>
               ))}
             </ul>
           )}

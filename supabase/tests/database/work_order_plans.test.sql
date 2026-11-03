@@ -351,5 +351,41 @@ SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
 SELECT throws_ok($$SELECT public.create_work_order_weekly_series(pg_temp.k(11),pg_temp.k(21),
  current_setting('test.weekly_source')::uuid,'2026-03-27',3,pg_temp.k(386),pg_temp.k(3))
 $$,'42501',NULL,'readers cannot create a series');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.recurring(cadence text, key_id integer, first_date date DEFAULT '2027-01-31')
+RETURNS uuid[] LANGUAGE sql AS $$
+ SELECT public.create_work_order_series(pg_temp.k(11),pg_temp.k(21),current_setting('test.weekly_source')::uuid,
+   first_date,3,pg_temp.k(key_id),pg_temp.k(1),cadence)
+$$;
+SELECT is(pg_temp.recurring('monthly',390),pg_temp.recurring('monthly',390),'monthly retry preserves identities');
+SELECT is(
+ (SELECT array_agg(planned_start ORDER BY planned_start) FROM public.work_order_plan_versions
+  WHERE action_id=ANY(pg_temp.recurring('monthly',390))),
+ ARRAY[DATE '2027-01-31',DATE '2027-02-28',DATE '2027-03-31'],
+ 'monthly repeats clamp February and return to the anchor day in March');
+SELECT is(
+ (SELECT array_agg(planned_end ORDER BY planned_start) FROM public.work_order_plan_versions
+  WHERE action_id=ANY(pg_temp.recurring('monthly',390))),
+ ARRAY[DATE '2027-02-02',DATE '2027-03-02',DATE '2027-04-02'],
+ 'monthly repeats retain the original duration');
+SELECT throws_ok($$SELECT pg_temp.recurring('daily',390)$$,'22023',NULL,'retry rejects a changed interval');
+SELECT lives_ok($$SELECT pg_temp.recurring('fortnightly',391)$$,'fortnightly series is saved');
+SELECT is(
+ (SELECT array_agg(planned_start ORDER BY planned_start) FROM public.work_order_plan_versions
+  WHERE action_id=ANY(pg_temp.recurring('fortnightly',391))),
+ ARRAY[DATE '2027-01-31',DATE '2027-02-14',DATE '2027-02-28'],
+ 'fortnightly repeats use fourteen calendar days');
+SELECT lives_ok($$SELECT pg_temp.recurring('daily',392)$$,'daily series is saved');
+SELECT is(
+ (SELECT array_agg(planned_start ORDER BY planned_start) FROM public.work_order_plan_versions
+  WHERE action_id=ANY(pg_temp.recurring('daily',392))),
+ ARRAY[DATE '2027-01-31',DATE '2027-02-01',DATE '2027-02-02'],
+ 'daily repeats cross the end of the month');
+SELECT throws_ok($$SELECT pg_temp.recurring('annual',393)$$,'22023',NULL,'an unknown interval is refused');
+SELECT throws_ok($$SELECT pg_temp.recurring('monthly',393,'9999-11-30')$$,'22023',NULL,'a date outside the app range is refused');
+SELECT is((SELECT count(*) FROM public.actions WHERE id=pg_temp.weekly_id(393,0)),0::bigint,
+ 'out of range recurrence leaves no partial series');
+SELECT ok(NOT has_function_privilege('anon','public.create_work_order_series(uuid,uuid,uuid,date,integer,uuid,uuid,text)','EXECUTE'),
+ 'anonymous callers cannot invoke configurable recurrence');
 SELECT * FROM finish();
 ROLLBACK;
