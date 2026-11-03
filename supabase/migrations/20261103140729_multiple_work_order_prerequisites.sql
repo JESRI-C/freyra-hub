@@ -32,8 +32,8 @@ BEGIN
   PERFORM a.id FROM public.actions a WHERE a.id=ANY(selected_ids) AND a.project_id=NEW.project_id
   ORDER BY a.id FOR SHARE;
   IF EXISTS (
-    SELECT 1 FROM unnest(selected_ids) id
-    WHERE NOT EXISTS (SELECT 1 FROM public.actions a WHERE a.id=id AND a.project_id=NEW.project_id)
+    SELECT 1 FROM unnest(selected_ids) AS selected(id)
+    WHERE NOT EXISTS (SELECT 1 FROM public.actions a WHERE a.id=selected.id AND a.project_id=NEW.project_id)
   ) THEN
     RAISE EXCEPTION 'Prerequisite must belong to the same project' USING ERRCODE='23503';
   END IF;
