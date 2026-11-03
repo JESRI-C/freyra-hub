@@ -15,7 +15,7 @@ import {
 } from "@/services/__tests__/work-order-submission-fixture";
 const m = vi.hoisted(() => ({
   context: vi.fn(),
-  review: vi.fn(),
+  approval: vi.fn(),
   list: vi.fn(),
   save: vi.fn(),
   original: vi.fn(),
@@ -27,7 +27,7 @@ const m = vi.hoisted(() => ({
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({ useBlocker: vi.fn() }));
 vi.mock("@/lib/work-order-submission.functions", () => ({
-  getProjectWorkOrderReviewContext: m.review,
+  hasProjectWorkOrderSubmissionApproval: m.approval,
   getProjectWorkOrderSubmissionContext: m.context,
   listProjectWorkOrderSubmissions: m.list,
   saveProjectWorkOrderSubmission: m.save,
@@ -109,7 +109,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   m.approvedPacket = undefined;
   m.context.mockResolvedValue(context());
-  m.review.mockResolvedValue(null);
+  m.approval.mockResolvedValue(false);
   m.list.mockResolvedValue({ items: [], nextBeforeVersion: null });
   m.save.mockResolvedValue(submission());
   host = document.createElement("div");
@@ -157,23 +157,7 @@ describe("submission preparation on the existing task", () => {
       assignment_version_id: current.snapshot.assignment.id,
       execution_revision_id: current.execution_revision_id,
     };
-    const review = {
-      action_id: scope.actionId,
-      organization_id: scope.organizationId,
-      project_id: scope.projectId,
-      user_id: actor,
-      recent_reviews: [
-        {
-          submission_version: 1,
-          state: {
-            status: "approved",
-            submission_version_id: approved.id,
-            plan_version_id: approved.snapshot.plan.id,
-          },
-        },
-      ],
-    };
-    m.review.mockResolvedValue(review);
+    m.approval.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     m.list.mockImplementation(({ data }) =>
       Promise.resolve({
         items: [data.beforeVersion === 2 ? approved : current],
@@ -182,8 +166,14 @@ describe("submission preparation on the existing task", () => {
     );
     await render(true, true, 1);
     expect(host.textContent).not.toContain("Opret opfølgning fra denne aflevering");
+    expect(m.approval).not.toHaveBeenCalled();
     await render(false, true, 1);
+    expect(host.textContent).not.toContain("Opret opfølgning fra denne aflevering");
+    await click("Genindlæs afleveringsversion");
     await click("Opret opfølgning fra denne aflevering");
+    expect(m.approval).toHaveBeenCalledWith({
+      data: { ...scope, submissionId: approved.id, planVersionId: approved.snapshot.plan.id },
+    });
     expect(m.followUp).toHaveBeenCalledExactlyOnceWith({
       ...approved.snapshot.plan,
       action_id: scope.actionId,

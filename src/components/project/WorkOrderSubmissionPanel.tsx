@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker } from "@tanstack/react-router";
 import {
-  getProjectWorkOrderReviewContext,
+  hasProjectWorkOrderSubmissionApproval,
   getProjectWorkOrderSubmissionContext,
   listProjectWorkOrderSubmissions,
   saveProjectWorkOrderSubmission,
@@ -62,7 +62,7 @@ export function WorkOrderSubmissionPanel({
 }) {
   const cache = useQueryClient();
   const contextFn = useServerFn(getProjectWorkOrderSubmissionContext);
-  const reviewContextFn = useServerFn(getProjectWorkOrderReviewContext);
+  const approvalFn = useServerFn(hasProjectWorkOrderSubmissionApproval);
   const historyFn = useServerFn(listProjectWorkOrderSubmissions);
   const saveFn = useServerFn(saveProjectWorkOrderSubmission);
   const originalFn = useServerFn(getProjectWorkOrderEvidenceOriginal);
@@ -120,27 +120,6 @@ export function WorkOrderSubmissionPanel({
   const selectedVersion = showAllForVersion === requestedVersion ? undefined : requestedVersion;
   const canFollowUpFromSavedVersion =
     authorized && !!selectedVersion && canCreateReport && !readOnly && !!onFollowUp;
-  const savedReviewContext = useQuery({
-    queryKey: [...key, "review-context"],
-    queryFn: () => reviewContextFn({ data: task }),
-    enabled: canFollowUpFromSavedVersion && active,
-    retry: false,
-    refetchOnWindowFocus: !locked,
-    refetchOnReconnect: !locked,
-  });
-  const savedReview = savedReviewContext.data;
-  const savedApproval =
-    canFollowUpFromSavedVersion &&
-    !savedReviewContext.isError &&
-    savedReview?.user_id === actorId &&
-    savedReview.action_id === actionId &&
-    savedReview.organization_id === scope.organizationId &&
-    savedReview.project_id === scope.projectId
-      ? savedReview.recent_reviews.find(
-          (entry) =>
-            entry.submission_version === selectedVersion && entry.state.status === "approved",
-        )
-      : undefined;
   const writable = authorized && !!c?.can_prepare && !readOnly && !selectedVersion;
   const history = useInfiniteQuery({
     queryKey: [...key, "history", selectedVersion],
@@ -157,6 +136,24 @@ export function WorkOrderSubmissionPanel({
   const visibleVersions = history.data?.pages
     .flatMap((page) => page.items)
     .filter((row) => !selectedVersion || row.version === selectedVersion);
+  const savedVersion = selectedVersion && !history.isError ? visibleVersions?.[0] : undefined;
+  const savedApproval = useQuery({
+    queryKey: [...key, "saved-approval", savedVersion?.id, savedVersion?.plan_version_id],
+    queryFn: () => {
+      if (!savedVersion) throw new WorkOrderRequestError("unavailable");
+      return approvalFn({
+        data: {
+          ...task,
+          submissionId: savedVersion.id,
+          planVersionId: savedVersion.plan_version_id,
+        },
+      });
+    },
+    enabled: canFollowUpFromSavedVersion && active && !!savedVersion,
+    retry: false,
+    refetchOnWindowFocus: !locked,
+    refetchOnReconnect: !locked,
+  });
   async function save() {
     if (
       !writable ||
@@ -460,12 +457,14 @@ export function WorkOrderSubmissionPanel({
                 <p className="text-sm text-muted-foreground">
                   Gemt {new Date(row.created_at).toLocaleString("da-DK")} · Fastholdt grundlag
                 </p>
-                {savedApproval?.state.submission_version_id === row.id &&
-                  savedApproval.state.plan_version_id === row.plan_version_id && (
+                {canFollowUpFromSavedVersion &&
+                  !savedApproval.isError &&
+                  savedApproval.data === true &&
+                  savedVersion?.id === row.id && (
                     <button
                       type="button"
                       className={button}
-                      disabled={locked || context.isFetching || savedReviewContext.isFetching}
+                      disabled={locked || context.isFetching || savedApproval.isFetching}
                       onClick={() =>
                         void prepareFollowUp({
                           id: row.id,
