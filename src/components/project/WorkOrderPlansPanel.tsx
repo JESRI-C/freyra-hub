@@ -47,12 +47,13 @@ const profiles = {
 };
 const nullable = (value: string) => (value.trim() ? value : null);
 type Page = { items: WorkOrderPlanVersion[]; nextBeforeVersion: number | null };
+export type PlanDateEditorRequest = boolean | { planVersionId: string; start: string };
 type PlanPanelProps = {
   scope: ProjectScope;
   round?: string;
   selectedActionId?: string;
   openBooking?: boolean;
-  openReschedule?: boolean;
+  openReschedule?: PlanDateEditorRequest;
   planSource?: WorkOrderPlanVersion;
   onFollowUp?: (source: WorkOrderPlanVersion) => void;
   suggestedStart?: string;
@@ -214,7 +215,7 @@ function PlanWorkspace({
   canPlan: boolean;
   canBook: boolean;
   openBooking?: boolean;
-  openReschedule?: boolean;
+  openReschedule?: PlanDateEditorRequest;
   planSource?: WorkOrderPlanVersion;
   onFollowUp?: (source: WorkOrderPlanVersion) => void;
   suggestedStart?: string;
@@ -300,6 +301,7 @@ function PlanWorkspace({
   const open = useCallback(
     (onlyDates = false) => {
       setDatesOnly(onlyDates);
+      const suggestion = onlyDates && typeof openReschedule === "object" ? openReschedule : null;
       const plan = latest?.plan ?? {
         ...(planSource?.plan ?? emptyWorkOrderPlan(title)),
         title,
@@ -307,7 +309,12 @@ function PlanWorkspace({
         plannedStart: suggestedStart ?? null,
         plannedEnd: null,
       };
-      setDraft(plan);
+      const canPrefill =
+        suggestion &&
+        suggestion.planVersionId === latest?.id &&
+        !plan.plannedStart &&
+        (!plan.plannedEnd || plan.plannedEnd >= suggestion.start);
+      setDraft(canPrefill ? { ...plan, plannedStart: suggestion.start } : plan);
       setHoursText(plan.estimatedHours?.toString().replace(".", ",") ?? "");
       setBase(latest?.version ?? 0);
       setReason("");
@@ -324,7 +331,7 @@ function PlanWorkspace({
       );
       onEditing(true);
     },
-    [latest, onEditing, planSource, suggestedStart, title],
+    [latest, onEditing, openReschedule, planSource, suggestedStart, title],
   );
   const openedReschedule = useRef(false);
   useEffect(() => {

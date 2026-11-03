@@ -346,7 +346,7 @@ ikke aktiveret af denne planændring. Eget estimat følger.
 
 ### Freyra hjælper kunden undervejs
 
-For en gemt opgave uden startdato kan Planoversigt foreslå dagen efter den seneste planlagte slutdato blandt de opgaver, der stadig afventes. Forslaget vises, når alle de afventede opgaver er synlige, har en slutdato og ikke er aflyst, og den foreslåede dag ikke er passeret. Forslaget er vejledende og angiver, at bemanding og udstyr skal tjekkes. Datoen vælges fortsat i den eksisterende formular. Browserprøve af datoforslaget afventes.
+For en gemt opgave uden startdato kan Planoversigt foreslå dagen efter den seneste planlagte slutdato blandt de opgaver, der stadig afventes. Forslaget vises, når alle de afventede opgaver er synlige, har en slutdato og ikke er aflyst, og datoen passer inden for opgavens eventuelle slutdato. Brug datoforslag udfylder startdatoen i datoformularen, hvis den gemte planversion stadig matcher forslaget. Brugeren kan justere datoen og gemmer selv med begrundelse. Bemanding og udstyr skal fortsat tjekkes. Browserprøve af datoforslaget afventes.
 
 Hjælp placeres dér, hvor kunden arbejder. Første regel i Planoversigt finder opgaver uden startdato ud fra den adgangsafgrænsede planlæsning, forklarer hvorfor de ikke er i kalenderen og åbner det relevante udsnit. Samme princip bruges senere til kapacitet, manglende feltdokumentation og afleveringsklarhed.
 

@@ -23,7 +23,7 @@ import { createProjectAction, type ProjectScope } from "@/services/project-works
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
-import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
+import { WorkOrderPlansPanel, type PlanDateEditorRequest } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ProjectEquipmentBookings } from "./ProjectEquipmentBookings";
 import { ProjectWorkTimeOverview } from "./ProjectWorkTimeOverview";
@@ -93,7 +93,10 @@ function WorkOrders({
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView === "schedule" || listView === "calendar";
   const [scheduleActionId, setScheduleActionId] = useState<string>();
-  const [rescheduleActionId, setRescheduleActionId] = useState<string>();
+  const [dateEditor, setDateEditor] = useState<{
+    actionId: string;
+    request: PlanDateEditorRequest;
+  }>();
   const actionId = selectedActionId ?? localActionId;
   const [editors, setEditors] = useState<Set<Editor>>(() => new Set());
   const [creating, setCreating] = useState(false);
@@ -282,7 +285,7 @@ function WorkOrders({
     setTimeReview(reviewDate ? { actionId: id, date: reviewDate } : undefined);
     setLocalAction(id);
     setScheduleActionId(view === "plan" ? id : undefined);
-    setRescheduleActionId(undefined);
+    setDateEditor(undefined);
     onSelectAction?.(id || undefined, view);
     setError("");
   }
@@ -757,7 +760,6 @@ function WorkOrders({
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const plan = dates?.[a.id];
-                  const dateAction = plan?.start ? "Omplanlæg datoer" : "Angiv startdato";
                   const estimate = estimates.get(a.id);
                   const prerequisiteIds = dates?.[a.id]?.waitingForActionIds ?? [];
                   const prerequisites = prerequisiteIds.flatMap((id) => {
@@ -777,9 +779,21 @@ function WorkOrders({
                     prerequisiteEndDates.every(Boolean)
                       ? prerequisiteEndDates.sort().at(-1)
                       : null;
-                  const suggestedDate = latestPrerequisiteEnd
+                  const proposedStart = latestPrerequisiteEnd
                     ? calendarKey(addDays(parseISO(latestPrerequisiteEnd), 1))
                     : null;
+                  const suggestedDate =
+                    listView === "schedule" &&
+                    proposedStart &&
+                    proposedStart >= calendarKey(new Date()) &&
+                    (!plan?.end || proposedStart <= plan.end)
+                      ? proposedStart
+                      : null;
+                  const dateAction = suggestedDate
+                    ? "Brug datoforslag"
+                    : plan?.start
+                      ? "Omplanlæg datoer"
+                      : "Angiv startdato";
                   return (
                     <div key={a.id} className="space-y-1">
                       <button
@@ -839,16 +853,13 @@ function WorkOrders({
                             {prerequisites.length > 1 ? prerequisite.title : "Åbn forudsætning"}
                           </button>
                         ))}
-                      {listView === "schedule" &&
-                        canEdit &&
-                        suggestedDate &&
-                        suggestedDate >= calendarKey(new Date()) && (
-                          <p className="rounded-lg bg-muted px-3 py-2 text-sm">
-                            Forslag til startdato: {scheduleDate.format(new Date(suggestedDate))}.
-                            Dagen efter den seneste planlagte slutdato for de opgaver, der stadig
-                            afventes. Tjek bemanding og udstyr, før du planlægger.
-                          </p>
-                        )}
+                      {canEdit && suggestedDate && (
+                        <p className="rounded-lg bg-muted px-3 py-2 text-sm">
+                          Forslag til startdato: {scheduleDate.format(new Date(suggestedDate))}.
+                          Dagen efter den seneste planlagte slutdato for de opgaver, der stadig
+                          afventes. Tjek bemanding og udstyr, før du planlægger.
+                        </p>
+                      )}
                       {showSchedule &&
                         plan?.planVersionId &&
                         !plan.cancelled &&
@@ -861,7 +872,12 @@ function WorkOrders({
                             disabled={locked}
                             onClick={() => {
                               select(a.id, "plan");
-                              setRescheduleActionId(a.id);
+                              setDateEditor({
+                                actionId: a.id,
+                                request: suggestedDate
+                                  ? { planVersionId: plan.planVersionId, start: suggestedDate }
+                                  : true,
+                              });
                             }}
                           >
                             {dateAction}
@@ -986,7 +1002,7 @@ function WorkOrders({
               canContribute={!!access.data?.canContribute}
               timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
               openBooking={listView === "bookings"}
-              openReschedule={rescheduleActionId === actionId}
+              openReschedule={dateEditor?.actionId === actionId ? dateEditor.request : false}
               planSource={copiedPlan?.actionId === actionId ? copiedPlan?.source : undefined}
               onFollowUp={
                 canEdit && access.data?.canConfigure && !locked
@@ -1039,7 +1055,7 @@ function TaskWorkspace({
   canContribute: boolean;
   canManageTime: boolean;
   openBooking: boolean;
-  openReschedule: boolean;
+  openReschedule: PlanDateEditorRequest;
   planSource?: WorkOrderPlanVersion;
   onFollowUp?: (source: WorkOrderPlanVersion) => void;
   suggestedStart?: string;

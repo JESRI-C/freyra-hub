@@ -136,7 +136,11 @@ async function settle() {
     await new Promise((r) => setTimeout(r, 20));
   });
 }
-async function open(edit = true, openReschedule = false, planSource?: ReturnType<typeof row>) {
+async function open(
+  edit = true,
+  openReschedule: React.ComponentProps<typeof WorkOrderPlansPanel>["openReschedule"] = false,
+  planSource?: ReturnType<typeof row>,
+) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
@@ -586,6 +590,15 @@ describe("work-order plan editor", () => {
         correctionReason: "Omplanlagt i kalenderen",
       }),
     });
+  });
+  it.each([true, false])("prefills a suggestion only on its source plan (%s)", async (current) => {
+    await open(false, {
+      planVersionId: current ? row().id : "older-plan",
+      start: "2026-11-11",
+    });
+    const start = host.querySelector<HTMLInputElement>('form input[type="date"]');
+    expect(start?.value).toBe(current ? "2026-11-11" : "");
+    expect(m.save).not.toHaveBeenCalled();
   });
   it("reopens unknown plan dates and measured zero without turning them into actual execution", async () => {
     await open();
