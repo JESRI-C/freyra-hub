@@ -299,6 +299,7 @@ export function WorkOrderSubmissionPanel({
           disabledByParent={!authorized || !!note || busy || opening || uncertain}
           onEditing={setReviewEditing}
           onPhase={setReviewPhase}
+          onOpenCorrection={!readOnly ? onOpenPart : undefined}
           onOpenSubmissionVersion={(version) => {
             if (version === requestedVersion) setShowAllForVersion(undefined);
           }}

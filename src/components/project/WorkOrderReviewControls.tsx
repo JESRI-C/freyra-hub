@@ -48,6 +48,7 @@ export function WorkOrderReviewControls({
   onEditing,
   onPhase,
   onOpenSubmissionVersion,
+  onOpenCorrection,
   onOpenFollowUpPlan,
   onCreateApprovedFollowUp,
 }: {
@@ -62,6 +63,7 @@ export function WorkOrderReviewControls({
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
   onOpenSubmissionVersion?: (version: number) => void;
+  onOpenCorrection?: (part: "execution" | "evidence") => void;
   onOpenFollowUpPlan?: () => void;
   onCreateApprovedFollowUp?: (packet: ApprovedFollowUpBasis) => void;
 }) {
@@ -115,6 +117,14 @@ export function WorkOrderReviewControls({
     c.project_id === scope.projectId &&
     c.organization_id === scope.organizationId;
   const phase = authorized ? c?.state?.status : undefined;
+  const returnedReview =
+    phase === "reopened" && c?.state?.submission_version_id
+      ? c.recent_reviews.find(
+          ({ state }) =>
+            state.status === "returned" &&
+            state.submission_version_id === c.state?.submission_version_id,
+        )
+      : undefined;
   useEffect(() => {
     if (authorized) onPhase(phase);
   }, [authorized, phase, onPhase]);
@@ -363,10 +373,41 @@ export function WorkOrderReviewControls({
             </p>
           )}
           {phase === "reopened" && (
-            <p className="text-sm">
-              Ret de relevante oplysninger, og bekræft udført status under Arbejdsgrundlag. Fasthold
-              derefter en ny afleveringsversion.
-            </p>
+            <div className="space-y-2 rounded-lg border p-3 text-sm">
+              <h4 className="font-medium">Ret den genåbnede aflevering</h4>
+              {returnedReview && (
+                <>
+                  <p className="font-medium">
+                    Mangler i afleveringsversion {returnedReview.submission_version}
+                  </p>
+                  <p className="whitespace-pre-wrap">{returnedReview.state.reason}</p>
+                </>
+              )}
+              <p>
+                Ret udførelsen eller dokumentationen, og bekræft udført status under
+                Arbejdsgrundlag. Fasthold derefter en ny afleveringsversion.
+              </p>
+              {!readOnly && onOpenCorrection && !draft && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={locked || disabledByParent || query.isFetching}
+                    onClick={() => onOpenCorrection("execution")}
+                  >
+                    Åbn udførelsen
+                  </button>
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={locked || disabledByParent || query.isFetching}
+                    onClick={() => onOpenCorrection("evidence")}
+                  >
+                    Åbn dokumentationen
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {c?.state?.blocked && (
             <p className="text-sm">

@@ -125,6 +125,36 @@ describe("version-bound review on the existing task", () => {
     expect(host.textContent).toContain("En person med adgang til at genåbne opgaven");
     expect(host.textContent).not.toContain("Genåbn opgaven for at rette manglerne");
   });
+  it("keeps the return reason for the reopened version next to correction shortcuts", async () => {
+    const context = reviewContext();
+    const openCorrection = vi.fn();
+    m.context.mockResolvedValue({
+      ...context,
+      state: { ...context.state, status: "reopened", reason: "Genåbnet efter gennemgang." },
+      recent_reviews: [
+        {
+          state: {
+            ...context.state,
+            id: id(21),
+            status: "returned",
+            reason: "Tilføj foto af afslutningen.",
+          },
+          submission_version: 1,
+        },
+      ],
+    });
+    await render({ onOpenCorrection: openCorrection });
+    const heading = [...host.querySelectorAll("h4")].find(
+      (node) => node.textContent === "Ret den genåbnede aflevering",
+    );
+    expect(heading?.parentElement?.textContent).toContain("Mangler i afleveringsversion 1");
+    expect(heading?.parentElement?.textContent).toContain("Tilføj foto af afslutningen.");
+    await click("Åbn udførelsen");
+    await click("Åbn dokumentationen");
+    expect(openCorrection.mock.calls).toEqual([["execution"], ["evidence"]]);
+    await render({ readOnly: true, onOpenCorrection: openCorrection });
+    expect(button("Åbn dokumentationen")).toBeUndefined();
+  });
   it("does not let the author or performer review their own material", async () => {
     m.context.mockResolvedValue({ ...reviewContext(), self_review: true, can_review: false });
     await render();
