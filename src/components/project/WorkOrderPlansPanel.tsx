@@ -49,6 +49,7 @@ type PlanPanelProps = {
   round?: string;
   selectedActionId?: string;
   openBooking?: boolean;
+  suggestedStart?: string;
   onEditing?: (value: boolean) => void;
 };
 export function WorkOrderPlansPanel(props: PlanPanelProps) {
@@ -68,6 +69,7 @@ function WorkOrderPlans({
   actorId,
   selectedActionId,
   openBooking,
+  suggestedStart,
   onEditing,
 }: PlanPanelProps & {
   actorId?: string;
@@ -156,6 +158,7 @@ function WorkOrderPlans({
                 !access.isFetching
               }
               openBooking={openBooking}
+              suggestedStart={suggestedStart}
               canBook={access.data?.canManageAvailability === true}
               onEditing={setEditing}
             />
@@ -183,6 +186,7 @@ function PlanWorkspace({
   canPlan,
   canBook,
   openBooking,
+  suggestedStart,
   onEditing,
 }: {
   scope: ProjectScope;
@@ -192,6 +196,7 @@ function PlanWorkspace({
   canPlan: boolean;
   canBook: boolean;
   openBooking?: boolean;
+  suggestedStart?: string;
   onEditing: (value: boolean) => void;
 }) {
   const load = useServerFn(getProjectWorkOrderPlanHistory),
@@ -242,7 +247,10 @@ function PlanWorkspace({
   ].sort((a, b) => b.version - a.version);
   const open = (onlyDates = false) => {
     setDatesOnly(onlyDates);
-    const plan = latest?.plan ?? emptyWorkOrderPlan(title);
+    const plan = latest?.plan ?? {
+      ...emptyWorkOrderPlan(title),
+      plannedStart: suggestedStart ?? null,
+    };
     setDraft(plan);
     setHoursText(plan.estimatedHours?.toString().replace(".", ",") ?? "");
     setBase(latest?.version ?? 0);

@@ -105,6 +105,7 @@ function WorkOrders({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [createdActionId, setCreatedActionId] = useState<string>();
+  const [calendarPlan, setCalendarPlan] = useState<{ actionId: string; date: string }>();
   const alive = useRef(true);
   const inFlight = useRef(false);
   const createAttempt = useRef<{ id: string; signature: string } | undefined>(undefined);
@@ -119,9 +120,10 @@ function WorkOrders({
   useEffect(() => {
     if (!createdActionId || locked) return;
     setLocalAction(createdActionId);
-    onSelectAction?.(createdActionId);
+    if (calendarPlan?.actionId === createdActionId) onSelectAction?.(createdActionId, "plan");
+    else onSelectAction?.(createdActionId);
     setCreatedActionId(undefined);
-  }, [createdActionId, locked, onSelectAction]);
+  }, [createdActionId, calendarPlan, locked, onSelectAction]);
   const onEditing = useCallback((part: Editor, value: boolean) => {
     setEditors((old) => {
       if (old.has(part) === value) return old;
@@ -187,6 +189,7 @@ function WorkOrders({
       : actions.data;
   const calendarKey = (date: Date) => format(date, "yyyy-MM-dd");
   const from = calendarKey(day ?? startOfMonth(month));
+  const createDate = listView === "calendar" && day ? from : undefined;
   const through = calendarKey(day ?? endOfMonth(month));
   const undatedCount = (orderedActions ?? []).filter(({ id }) => !dates?.[id]?.start).length;
   const visibleActions =
@@ -264,6 +267,8 @@ function WorkOrders({
       if (alive.current) {
         setCreating(false);
         setTitle("");
+        setCalendarPlan(createDate ? { actionId: action.id, date: createDate } : undefined);
+        if (createDate) setScheduleActionId(action.id);
         setCreatedActionId(action.id);
         createAttempt.current = undefined;
       }
@@ -689,7 +694,7 @@ function WorkOrders({
               disabled={locked}
               onClick={() => setCreating(true)}
             >
-              Opret arbejdsopgave
+              {createDate ? "Opret arbejdsopgave på valgt dato" : "Opret arbejdsopgave"}
             </button>
           )}
           {creating && (
@@ -711,6 +716,12 @@ function WorkOrders({
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </label>
+              {createDate && (
+                <p className="text-sm text-muted-foreground">
+                  {scheduleDate.format(new Date(createDate))} foreslås som startdato, når du åbner
+                  arbejdsgrundlaget.
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 <button
                   className={button + " bg-primary text-primary-foreground"}
@@ -745,6 +756,7 @@ function WorkOrders({
               canContribute={!!access.data?.canContribute}
               timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
               openBooking={listView === "bookings"}
+              suggestedStart={calendarPlan?.actionId === actionId ? calendarPlan?.date : undefined}
               canManageTime={!!access.data?.canManageAvailability}
               onEditing={onEditing}
               initialView={
@@ -770,6 +782,7 @@ function TaskWorkspace({
   canContribute,
   canManageTime,
   openBooking,
+  suggestedStart,
   timeReviewDate,
   onEditing,
   initialView,
@@ -782,6 +795,7 @@ function TaskWorkspace({
   canContribute: boolean;
   canManageTime: boolean;
   openBooking: boolean;
+  suggestedStart?: string;
   timeReviewDate?: string;
   onEditing: (part: Editor, value: boolean) => void;
   initialView?: WorkOrderView;
@@ -849,6 +863,7 @@ function TaskWorkspace({
             round={round}
             selectedActionId={actionId}
             openBooking={openBooking}
+            suggestedStart={suggestedStart}
             onEditing={planEditing}
           />
         </div>

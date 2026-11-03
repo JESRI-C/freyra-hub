@@ -94,9 +94,12 @@ vi.mock("../ProjectEquipmentBookings", () => ({
   ),
 }));
 vi.mock("../WorkOrderPlansPanel", () => ({
-  WorkOrderPlansPanel: (props: Parameters<typeof Editor>[0] & { openBooking?: boolean }) => (
+  WorkOrderPlansPanel: (
+    props: Parameters<typeof Editor>[0] & { openBooking?: boolean; suggestedStart?: string },
+  ) => (
     <>
       <Editor {...props} label="Plan" />
+      {props.suggestedStart && <p>Forslag: {props.suggestedStart}</p>}
       {props.openBooking && <p>Bookingpanelet er åbent</p>}
     </>
   ),
@@ -561,6 +564,28 @@ describe("one task across the project workspaces", () => {
     expect(host.querySelector("select")!.disabled).toBe(true);
     await click("Fortryd Plan");
     expect(host.querySelector("select")!.disabled).toBe(false);
+  });
+  it("passes the selected calendar day to the new task's plan", async () => {
+    m.create.mockImplementationOnce(async (_scope, title, _description, id) => {
+      m.actions.mockResolvedValue([...tasks, { id, title, status: "Åben" }]);
+      return { id, title };
+    });
+    await render(undefined, true, true);
+    await click("Kalender");
+    const dateButton = host.querySelector<HTMLButtonElement>("[data-day] button")!;
+    const now = new Date();
+    const date = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), "01"].join("-");
+    await act(async () => dateButton.click());
+    await click("Opret arbejdsopgave på valgt dato");
+    await fill("Hvad skal der udføres?", "Kalenderopgave");
+    await act(async () =>
+      host
+        .querySelector("form")!
+        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+    );
+    await settle();
+    expect(m.navigate).toHaveBeenLastCalledWith(m.create.mock.calls[0][3]);
+    expect(host.textContent).toContain("Forslag: " + date);
   });
   it("reuses the task identity after a lost create reply and selects it after successful recovery", async () => {
     m.create
