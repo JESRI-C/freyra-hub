@@ -564,3 +564,5 @@ Når projektlederen vælger udstyr og en gyldig periode på en gemt arbejdsopgav
 Fra projektets bookingoversigt kan projektlederen nu vælge en eksisterende arbejdsopgave og åbne dens booking, også før den første reservation er oprettet. Det bruger samme opgave, adgang og bookingpanel som opslag fra en eksisterende reservation. Oversigten bevarer filtrene på vej tilbage. Hvis projektet endnu ingen arbejdsopgaver har, forklarer oversigten, at der først skal oprettes en opgave med gemt arbejdsgrundlag.
 
 I Chrome ved 390 px åbnede opgavevælgeren den valgte opgaves bookingpanel fra en oversigt uden matchende reservationer. Søgningen var bevaret ved retur, og siden kunne bruges uden vandret rulning. Typekontrol, lint, staging-build og 21 målrettede tests bestod. Kilde 2d55278 og Worker 5762e4c8-403b-4c17-9a2d-d0cbcea3348b.
+
+Bookingoversigten har genveje til I dag, Denne uge og Denne måned. Den valgte genvej markeres, og en dansk uge følger mandag til søndag. Manuelle datoer, udstyrssøgning og aflysningsfilter kan fortsat kombineres med periodevalget.

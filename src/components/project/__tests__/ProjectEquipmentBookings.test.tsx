@@ -35,6 +35,18 @@ it("opens booking for a selected task even when it has no reservation", async ()
       select.dispatchEvent(new Event("change", { bubbles: true }));
     });
     expect(button.disabled).toBe(false);
+    const week = Array.from(host.querySelectorAll("button")).find(
+      (element) => element.textContent === "Denne uge",
+    )!;
+    await act(async () => week.click());
+    const [from, through] = Array.from(
+      host.querySelectorAll<HTMLInputElement>('input[type="date"]'),
+    );
+    expect(new Date(from.value).getUTCDay()).toBe(1);
+    expect(new Date(through.value).getUTCDay()).toBe(0);
+    expect(Date.parse(through.value) - Date.parse(from.value)).toBe(6 * 86_400_000);
+    expect(week.getAttribute("aria-pressed")).toBe("true");
+    expect(select.value).toBe(task.id);
     await act(async () => button.click());
     expect(onOpen).toHaveBeenCalledExactlyOnceWith(task.id);
   } finally {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { endOfMonth, endOfWeek, format, startOfMonth, startOfWeek } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { CalendarDate } from "@/lib/action-execution";
@@ -10,6 +10,17 @@ import type { ProjectScope } from "@/services/project-workspace-service";
 
 const uuid = z.string().uuid();
 const pageSize = 40;
+const datePattern = "yyyy-MM-dd";
+const danishWeek = { weekStartsOn: 1 } as const;
+const periodChoices = [
+  { label: "I dag", start: (date: Date) => date, end: (date: Date) => date },
+  {
+    label: "Denne uge",
+    start: (date: Date) => startOfWeek(date, danishWeek),
+    end: (date: Date) => endOfWeek(date, danishWeek),
+  },
+  { label: "Denne måned", start: startOfMonth, end: endOfMonth },
+];
 const booking = z.object({
   id: uuid,
   action_id: uuid,
@@ -37,8 +48,8 @@ export function ProjectEquipmentBookings({
   tasks: Array<{ id: string; title: string }>;
   onOpen: (actionId: string) => void;
 }) {
-  const [from, setFrom] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [through, setThrough] = useState(() => format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [from, setFrom] = useState(() => format(startOfMonth(new Date()), datePattern));
+  const [through, setThrough] = useState(() => format(endOfMonth(new Date()), datePattern));
   const [bookingActionId, setBookingActionId] = useState("");
   const [search, setSearch] = useState("");
   const [includeCancelled, setIncludeCancelled] = useState(false);
@@ -134,6 +145,28 @@ export function ProjectEquipmentBookings({
         </p>
       )}
       <fieldset disabled={locked} className="grid gap-2 sm:grid-cols-2">
+        <legend className="mb-1 text-sm font-medium">Filtrér reservationer</legend>
+        <div className="flex flex-wrap gap-2 sm:col-span-2">
+          {periodChoices.map(({ label, start, end }) => {
+            const today = new Date();
+            const startDate = format(start(today), datePattern);
+            const endDate = format(end(today), datePattern);
+            return (
+              <button
+                key={label}
+                type="button"
+                className={button + " aria-pressed:border-primary aria-pressed:bg-primary/10"}
+                aria-pressed={from === startDate && through === endDate}
+                onClick={() => {
+                  setFrom(startDate);
+                  setThrough(endDate);
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
         <label className="text-sm">
           Fra dato
           <input
@@ -170,7 +203,9 @@ export function ProjectEquipmentBookings({
           Vis også aflyste reservationer
         </label>
       </fieldset>
-      {!valid && <p role="alert">Vælg en gyldig periode.</p>}
+      {!valid && (
+        <p role="alert">Vælg begge datoer. Fra dato skal være før eller lig med slutdatoen.</p>
+      )}
       {valid && bookings.isPending && <p role="status">Henter projektets reservationer…</p>}
       {bookings.isError && <p role="alert">Projektets reservationer kunne ikke hentes.</p>}
       {bookings.isSuccess && !rows?.length && (
