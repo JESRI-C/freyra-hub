@@ -180,7 +180,7 @@ export async function listFieldJobTemplates(scope: ProjectScope) {
 }
 export async function listFieldJobVersions(scope: ProjectScope, actionId: string) {
   const db = await client(scope);
-  uuid.parse(actionId);
+  WorkOrderActionIdSchema.parse(actionId);
   const { data, error } = await db
     .from("field_job_versions")
     .select("*")
@@ -238,7 +238,7 @@ export async function saveFieldJobVersion(
     requestId: string;
   },
 ) {
-  uuid.parse(input.actionId);
+  WorkOrderActionIdSchema.parse(input.actionId);
   uuid.parse(input.templateVersionId);
   uuid.parse(input.requestId);
   z.number().int().nonnegative().parse(input.expectedVersion);

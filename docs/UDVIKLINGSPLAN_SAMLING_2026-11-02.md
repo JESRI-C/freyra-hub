@@ -715,6 +715,8 @@ RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kla
 
 ### Ældre opgaver i planoversigt og kalender
 
+Feltregistrering læser og sender jobkortversioner med det ældre opgave-id. Den samme reference accepteres i telefonens arbejdspakke og kladdekø. Lokale prøver dækker historik, gemmekald og køens krav om matchende kvittering før næste version. Staging og fysisk telefon afventes.
+
 Tildeling og Mine opgaver bruger nu det samme gemte opgave-id som planoversigten. Den lokale prøve viser, at en ældre opgave kan læses på feltlisten og bruges ved sideskift, mens et svar til en anden bruger afvises. Tildeling og overtagelse af den ældre opgave skal fortsat prøves i staging.
 
 Status og logbog bruger også det gemte opgave-id. Logbogens oprettelseshændelse kan læses, når dens kilde-id er det ældre opgave-id. Øvrige hændelser kræver fortsat almindelige versions-id'er. Lokal serviceprøve dækker både status og den oprindelige oprettelseshændelse.

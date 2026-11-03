@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CalendarDate } from "./action-execution";
+import { WorkOrderActionIdSchema } from "./work-order-access";
 
 const optionSchema = z.string().trim().min(1).max(120);
 
@@ -151,7 +152,7 @@ export type FieldJobTemplateVersion = z.infer<typeof FieldJobTemplateVersionSche
 
 export const FieldJobVersionSchema = z.object({
   ...identityShape,
-  action_id: z.string().uuid(),
+  action_id: WorkOrderActionIdSchema,
   template_version_id: z.string().uuid(),
   values: FieldJobValuesSchema,
   status: z.enum(["draft", "recorded", "needs_review"]),

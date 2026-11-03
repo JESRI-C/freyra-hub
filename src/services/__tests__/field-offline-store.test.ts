@@ -159,6 +159,7 @@ describe("durable field outbox", () => {
   it("sends dependent job revisions only after a matching canonical receipt, preserving false and zero", async () => {
     const store = await openFieldOfflineStore(new IDBFactory()),
       first = job();
+    first.payload.actionId = "11111111-1111-c111-5111-111111111111";
     const next = {
       ...first,
       id: crypto.randomUUID(),

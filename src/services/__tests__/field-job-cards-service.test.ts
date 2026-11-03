@@ -157,9 +157,13 @@ describe("project scoped job card persistence", () => {
     state.rows = Array(1001).fill(template);
     await expect(listFieldJobTemplates(scope)).rejects.toThrow("afgrænset");
   });
-  it("writes exact expected version, stable request and pinned template", async () => {
+  it("reads and writes a legacy task with exact version, request and template", async () => {
+    const actionId = "11111111-1111-c111-5111-111111111111";
+    const legacyRecord = { ...record, action_id: actionId, values: {} };
+    state.rows = [legacyRecord];
+    expect(await listFieldJobVersions(scope, actionId)).toEqual([legacyRecord]);
     const input = {
-      actionId: record.action_id,
+      actionId,
       templateVersionId: template.id,
       values: {},
       status: "draft" as const,
@@ -167,13 +171,14 @@ describe("project scoped job card persistence", () => {
       expectedVersion: 0,
       requestId: record.request_id,
     };
-    state.rpc.mockResolvedValue({ data: [{ ...record, values: {} }], error: null });
-    await saveFieldJobVersion(scope, input);
+    state.rpc.mockResolvedValue({ data: [legacyRecord], error: null });
+    expect(await saveFieldJobVersion(scope, input)).toEqual(legacyRecord);
     expect(state.rpc).toHaveBeenCalledWith(
       "save_field_job_version",
       expect.objectContaining({
         p_project_id: scope.projectId,
         p_organization_id: scope.organizationId,
+        p_action_id: actionId,
         p_expected_version: 0,
         p_template_version_id: template.id,
         p_request_id: record.request_id,
