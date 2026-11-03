@@ -1099,7 +1099,9 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
       </ProjectTabs>
 
       <IndicatorDetail
+        key={selectedIndicator?.id}
         indicator={selectedIndicator}
+        readOnly={!canEdit}
         open={indicatorDetailOpen}
         onOpenChange={setIndicatorDetailOpen}
       />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Sheet,
@@ -46,6 +46,9 @@ export function IndicatorDetail({
 }) {
   const [period, setPeriod] = useState<Period>("90d");
   const [newValue, setNewValue] = useState("");
+  const [source, setSource] = useState("");
+  const [method, setMethod] = useState("");
+  const measurementId = useId();
   const [saving, setSaving] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const qc = useQueryClient();
@@ -82,10 +85,10 @@ export function IndicatorDetail({
   const change = comparable ? Number(last.value) - Number(first.value) : null;
 
   async function handleAdd() {
-    if (!indicator) return;
+    if (!indicator || readOnly || saving || !isSupabaseConfigured) return;
     const v = Number(newValue);
-    if (Number.isNaN(v)) {
-      toast.error("Ugyldig værdi");
+    if (!newValue.trim() || !Number.isFinite(v) || !source.trim() || !method.trim()) {
+      toast.error("Angiv en gyldig værdi, kilde og målemetode.");
       return;
     }
     setSaving(true);
@@ -93,12 +96,13 @@ export function IndicatorDetail({
       await recordMeasurement({
         indicator,
         value: v,
-        source: "manual",
-        method: "manuel indtastning",
-        confidence_score: 1,
+        source: source.trim(),
+        method: method.trim(),
       });
       toast.success("Måling registreret");
       setNewValue("");
+      setSource("");
+      setMethod("");
       await refetch();
       qc.invalidateQueries({ queryKey: ["project-workspace"] });
       qc.invalidateQueries({ queryKey: ["indicators"] });
@@ -289,28 +293,71 @@ export function IndicatorDetail({
               <p role="alert">Målinger kunne ikke indlæses: {measurementsError.message}</p>
             )}
             {!readOnly && (
-              <div className="rounded-lg border p-3 space-y-2">
-                <Label className="text-sm">Registrér ny måling</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    step="any"
-                    value={newValue}
-                    onChange={(e) => setNewValue(e.target.value)}
-                    placeholder={`Værdi${indicator.unit ? ` (${indicator.unit})` : ""}`}
-                    disabled={!isSupabaseConfigured}
-                  />
-                  <Button
-                    onClick={handleAdd}
-                    disabled={saving || !newValue || !isSupabaseConfigured}
-                  >
-                    {saving ? "Gemmer…" : "Tilføj"}
-                  </Button>
-                </div>
+              <form
+                className="space-y-3 rounded-lg border p-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleAdd();
+                }}
+              >
+                <h3 className="text-sm font-medium">Registrér ny måling</h3>
+                <fieldset
+                  disabled={saving || !isSupabaseConfigured}
+                  className="grid gap-3 sm:grid-cols-2"
+                >
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label htmlFor={measurementId + "-value"}>
+                      Værdi{indicator.unit ? ` (${indicator.unit})` : ""}
+                    </Label>
+                    <Input
+                      id={measurementId + "-value"}
+                      type="number"
+                      step="any"
+                      required
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={measurementId + "-source"}>Kilde</Label>
+                    <Input
+                      id={measurementId + "-source"}
+                      value={source}
+                      onChange={(e) => setSource(e.target.value)}
+                      maxLength={120}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={measurementId + "-method"}>Målemetode</Label>
+                    <Input
+                      id={measurementId + "-method"}
+                      value={method}
+                      onChange={(e) => setMethod(e.target.value)}
+                      maxLength={200}
+                      required
+                    />
+                  </div>
+                </fieldset>
+                <p className="text-xs text-muted-foreground">
+                  Angiv fx feltjournal eller datasæt som kilde og beskriv, hvordan værdien er målt.
+                </p>
+                <Button
+                  type="submit"
+                  disabled={
+                    saving ||
+                    !newValue.trim() ||
+                    !source.trim() ||
+                    !method.trim() ||
+                    !isSupabaseConfigured
+                  }
+                >
+                  {saving ? "Gemmer…" : "Gem måling"}
+                </Button>
                 {!isSupabaseConfigured && (
                   <p className="text-xs text-muted-foreground">Kræver tilkoblet database.</p>
                 )}
-              </div>
+              </form>
             )}
 
             {/* Recent measurements table */}

@@ -33,7 +33,7 @@ vi.mock("./IndicatorConfigDialog", () => ({ IndicatorConfigDialog: () => null })
 vi.mock("@/lib/supabase/client", () => ({ isSupabaseConfigured: false }));
 
 const indicator = { id: "plants", label: "Optalte planter", unit: "stk." } as Indicator;
-function render(lastMethod: string | null) {
+function render(lastMethod: string | null, readOnly = true) {
   const first: IndicatorMeasurement = {
     id: "first",
     indicator_id: indicator.id,
@@ -52,7 +52,7 @@ function render(lastMethod: string | null) {
     { ...first, id: "last", value: 5, measured_at: "2026-10-10T12:00:00Z", method: lastMethod },
   ];
   return renderToStaticMarkup(
-    <IndicatorDetail indicator={indicator} open readOnly onOpenChange={() => {}} />,
+    <IndicatorDetail indicator={indicator} open readOnly={readOnly} onOpenChange={() => {}} />,
   );
 }
 
@@ -68,5 +68,13 @@ describe("indicator measurements over time", () => {
     expect(html).toContain("samme dokumenterede kilde, metode og enhed");
     expect(html).toContain("Metode: Ukendt");
     expect(html).not.toContain("ændring +5");
+  });
+
+  it("offers source and method fields to an editor and hides the form from readers", () => {
+    const editor = render(null, false);
+    expect(editor).toContain(">Kilde</label>");
+    expect(editor).toContain(">Målemetode</label>");
+    expect(editor).toContain("Gem måling");
+    expect(render(null)).not.toContain("Gem måling");
   });
 });
