@@ -486,3 +486,5 @@ Projektledere kan gemme et beregnet faktureringsgrundlag fra godkendte timer og 
 Stagingprøven bestod i Chrome ved 390 px på Worker `dfb86151-6665-4a55-b6a3-2534e62d6238`, bygget fra `47122ab`. Projektlederen beregnede 75 godkendte minutter fra tidsversion 2, fik afvist en sats med tre decimaler, gemte grundlaget ved 499,99 DKK/time, genåbnede det efter genindlæsning og hentede en CSV med 624,99 DKK. Databasejobbet bestod frisk migrationsreplay, isolation, samtidighed og restore. Stagingmigrationen er registreret som `20261103083452`.
 
 Under Timer kan projektlederen nu kontrollere udtrækkets linjer i appen før gemning. Visningen viser opgave, dato, tidsversion, timer og eventuelt beløb. Den deler lange udtræk i sider på 20 linjer og bruger samme datagrundlag, når et gemt udtræk genåbnes. Efter gemning viser Freyra, hvor grundlaget kan åbnes igen.
+
+Chrome-prøven ved 390 px viste tidsversion 2 og 624,99 DKK før gemning og efter genåbning. CSV havde de samme 75 minutter og samme beløb. Der var ingen vandret rulning i prøven. Kilde `77eabc4`, staging-Worker `d60f48e8-d6ea-496b-9c85-c108678d5c36`.
