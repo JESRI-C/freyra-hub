@@ -93,7 +93,7 @@ function MyTasks({ actorId }: { actorId: string }) {
           {tasks.isFetching ? "Henter…" : "Opdater opgaver"}
         </button>
       </header>
-      <WorkspaceGuide {...programPageGuide("/opgaver")!} />
+      {!activeTaskId && <WorkspaceGuide {...programPageGuide("/opgaver")!} />}
       {!activeTaskId && (
         <form
           className="flex flex-wrap items-end gap-2"
@@ -264,6 +264,8 @@ function TaskCard({
   const [visitEditing, setVisitEditing] = useState(false);
   const statusDetails = useRef<HTMLDetailsElement>(null);
   const statusSummary = useRef<HTMLElement>(null);
+  const submissionDetails = useRef<HTMLDetailsElement>(null);
+  const submissionSummary = useRef<HTMLElement>(null);
   const nestedLocks = useRef(new Set<string>());
   function reportEditing(part: string, value: boolean) {
     if (value) nestedLocks.current.add(part);
@@ -359,6 +361,59 @@ function TaskCard({
               "Der er endnu ikke angivet en instruktion. Kontakt projektansvarlig, før arbejdet udføres."}
           </p>
         </section>
+        {(canPlan || canContributeField) && (
+          <section
+            aria-labelledby={`workflow-${task.action_id}`}
+            className="space-y-3 rounded-xl border p-3"
+          >
+            <h3 id={`workflow-${task.action_id}`} className="font-semibold">
+              Udfør og aflever
+            </h3>
+            <ol className="list-decimal space-y-2 pl-5 marker:text-sm marker:text-muted-foreground">
+              <li>
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug: task.project_id }}
+                  search={{ step: "udfoerelse", task: task.action_id, work: "execution" }}
+                  className={button + " w-full justify-start gap-2 text-left"}
+                  disabled={locked || busy}
+                >
+                  Registrér udført arbejde
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/felt"
+                  search={{ project: task.project_id, task: task.action_id }}
+                  className={button + " w-full justify-start gap-2 text-left"}
+                  disabled={locked || busy}
+                >
+                  Tag fotos på projektet
+                </Link>
+              </li>
+              {canExecute && (
+                <li>
+                  <button
+                    type="button"
+                    className={
+                      button +
+                      " w-full justify-start gap-2 bg-primary text-left text-primary-foreground"
+                    }
+                    disabled={locked || busy}
+                    onClick={() => {
+                      if (!submissionDetails.current) return;
+                      submissionDetails.current.open = true;
+                      setSubmissionOpened(true);
+                      submissionSummary.current?.focus();
+                    }}
+                  >
+                    Gå til aflevering
+                  </button>
+                </li>
+              )}
+            </ol>
+          </section>
+        )}
         {canExecute && (
           <div className="space-y-2 rounded-xl border p-3">
             <p className="text-sm">
@@ -483,11 +538,13 @@ function TaskCard({
           )}
         </details>
         <details
+          ref={submissionDetails}
           onToggle={(event) => {
             if (event.currentTarget.open) setSubmissionOpened(true);
           }}
         >
           <summary
+            ref={submissionSummary}
             className="min-h-11 cursor-pointer py-2 font-medium"
             onClick={(event) => {
               if (locked && !submissionEditing) event.preventDefault();
@@ -570,27 +627,6 @@ function TaskCard({
               </fieldset>
             )}
           </details>
-        )}
-        {(canPlan || canContributeField) && (
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Link
-              to="/app/projects/$slug"
-              params={{ slug: task.project_id }}
-              search={{ step: "udfoerelse", task: task.action_id, work: "execution" }}
-              className={button}
-              disabled={locked || busy}
-            >
-              Registrér udført arbejde
-            </Link>
-            <Link
-              to="/felt"
-              search={{ project: task.project_id, task: task.action_id }}
-              className={button}
-              disabled={locked || busy}
-            >
-              Tag fotos på projektet
-            </Link>
-          </div>
         )}
         {error && <p role="alert">{error}</p>}
         {message && <p role="status">{message}</p>}

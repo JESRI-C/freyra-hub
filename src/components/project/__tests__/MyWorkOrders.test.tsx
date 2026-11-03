@@ -317,6 +317,10 @@ describe("mobile personal tasks", () => {
       task: task.action_id,
       work: "execution",
     });
+    await click("Gå til aflevering");
+    expect(host.querySelector("[data-submission-task]")?.getAttribute("data-submission-task")).toBe(
+      task.action_id,
+    );
 
     const evidence = [...host.querySelectorAll("details")].find(
       (d) => d.querySelector("summary")?.textContent === "Dokumentation",

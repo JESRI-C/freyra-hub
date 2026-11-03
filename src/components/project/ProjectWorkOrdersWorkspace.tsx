@@ -395,6 +395,72 @@ function WorkOrders({
       )}
       {sameAccess && actions.data && (
         <div className="space-y-4" hidden={!authorized || actions.isError}>
+          {!creating && canEdit && access.data?.canConfigure && (
+            <button
+              type="button"
+              className={button + " bg-primary text-primary-foreground"}
+              disabled={locked}
+              onClick={() => setCreating(true)}
+            >
+              {createDate ? "Opret arbejdsopgave på valgt dato" : "Opret arbejdsopgave"}
+            </button>
+          )}
+          {creating && (
+            <form
+              className="space-y-3 rounded-xl border bg-card p-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void create();
+              }}
+            >
+              <label className="block">
+                Hvad skal der udføres?
+                <input
+                  className={control}
+                  required
+                  maxLength={followUpSource ? 160 : 200}
+                  autoFocus={!!followUpSource}
+                  value={title}
+                  disabled={busy}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </label>
+              {followUpSource && (
+                <p className="text-sm text-muted-foreground">
+                  Genbrug arbejdsgrundlaget fra {followUpSource.plan.title}, version{" "}
+                  {followUpSource.version}. Vælg nye datoer og ansvarlig i den nye plan.
+                </p>
+              )}
+              {createDate && !followUpSource && (
+                <p className="text-sm text-muted-foreground">
+                  {scheduleDate.format(new Date(createDate))} foreslås som startdato, når du åbner
+                  arbejdsgrundlaget.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={button + " bg-primary text-primary-foreground"}
+                  disabled={busy || !title.trim()}
+                >
+                  Opret opgave
+                </button>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={busy}
+                  onClick={() => {
+                    setCreating(false);
+                    setFollowUpSource(undefined);
+                    setTitle("");
+                    setError("");
+                  }}
+                >
+                  Fortryd
+                </button>
+              </div>
+            </form>
+          )}
+          {error && <p role="alert">{error}</p>}
           {actionId ? (
             <div className="space-y-3 rounded-2xl border bg-card p-4">
               <label className="block text-sm font-medium">
@@ -969,72 +1035,6 @@ function WorkOrders({
                 />
               </div>
             )}
-          {!creating && canEdit && access.data?.canConfigure && (
-            <button
-              type="button"
-              className={button}
-              disabled={locked}
-              onClick={() => setCreating(true)}
-            >
-              {createDate ? "Opret arbejdsopgave på valgt dato" : "Opret arbejdsopgave"}
-            </button>
-          )}
-          {creating && (
-            <form
-              className="space-y-3 rounded-xl border bg-card p-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void create();
-              }}
-            >
-              <label className="block">
-                Hvad skal der udføres?
-                <input
-                  className={control}
-                  required
-                  maxLength={followUpSource ? 160 : 200}
-                  autoFocus={!!followUpSource}
-                  value={title}
-                  disabled={busy}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </label>
-              {followUpSource && (
-                <p className="text-sm text-muted-foreground">
-                  Genbrug arbejdsgrundlaget fra {followUpSource.plan.title}, version{" "}
-                  {followUpSource.version}. Vælg nye datoer og ansvarlig i den nye plan.
-                </p>
-              )}
-              {createDate && !followUpSource && (
-                <p className="text-sm text-muted-foreground">
-                  {scheduleDate.format(new Date(createDate))} foreslås som startdato, når du åbner
-                  arbejdsgrundlaget.
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  className={button + " bg-primary text-primary-foreground"}
-                  disabled={busy || !title.trim()}
-                >
-                  Opret opgave
-                </button>
-                <button
-                  type="button"
-                  className={button}
-                  disabled={busy}
-                  onClick={() => {
-                    setCreating(false);
-                    setFollowUpSource(undefined);
-                    setTitle("");
-                    setError("");
-                  }}
-                >
-                  Fortryd
-                </button>
-              </div>
-            </form>
-          )}
-          {error && <p role="alert">{error}</p>}
           {authorized && actions.isSuccess && selected?.linked_indicator_id && (
             <section
               aria-label="Indikator for opgaven"

@@ -90,13 +90,11 @@ export function FieldOfflineWorkspace({
   const projectRef = useRef(projectId);
   projectRef.current = projectId;
   const pack = packs.find((p) => p.projectId === projectId);
-  const canOpenWorkOrderEvidence =
-    online &&
-    projectId === requestedProject &&
-    !!requestedActionId &&
-    !!actor &&
-    pack?.actorId === actor &&
-    pack.jobs.some((job) => job.actionId === requestedActionId);
+  const requestedJob =
+    projectId === requestedProject && requestedActionId && actor && pack?.actorId === actor
+      ? pack.jobs.find((job) => job.actionId === requestedActionId)
+      : undefined;
+  const canOpenWorkOrderEvidence = online && !!requestedJob;
   const queueReady = !!queue && queue.actor === actor && queue.projectId === projectId;
   const items = queueReady ? queue.items : [];
   const cancelledCount = items.filter((item) => item.lastError === "cancelled").length;
@@ -305,61 +303,21 @@ export function FieldOfflineWorkspace({
   }
   return (
     <main className="mx-auto min-h-dvh max-w-3xl space-y-4 bg-background p-3 pb-10 text-foreground sm:p-6">
-      <WorkspaceGuide {...programPageGuide("/felt")!} />
       <header className={card}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">Freyra i felten</h1>
-          <span className="inline-flex items-center gap-2 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Feltarbejde
+          </p>
+          <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm">
             {online ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
-            {online ? "Netforbindelse" : "Arbejder lokalt"}
+            {online ? "Online" : "Offline"}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Originalfotos og jobkort gemmes på denne telefon. Send dem med samme login, når der igen
-          er net.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/select" className={button} onClick={guardDraftNavigation}>
-            Dashboard og login
-          </Link>
-          {actor && (
-            <button className={button} disabled={dirty} onClick={() => lockOfflineActor()}>
-              <LockKeyhole className="h-4 w-4" />
-              Lås feltadgang
-            </button>
-          )}
-        </div>
-        {projectId && (
-          <Link
-            to="/app/projects/$slug"
-            params={{ slug: projectId }}
-            search={{
-              tab: projectId === requestedProject && requestedActionId ? "handlinger" : "medier",
-              round: projectId === requestedProject ? requestedRound : undefined,
-              task: projectId === requestedProject ? requestedActionId : undefined,
-              work: projectId === requestedProject && requestedActionId ? "field" : undefined,
-            }}
-            className="inline-block min-h-11 py-2 text-sm underline"
-            onClick={guardDraftNavigation}
-          >
-            Tilbage til sagen med net
-          </Link>
-        )}
-        {canOpenWorkOrderEvidence && (
-          <Link
-            to="/app/projects/$slug"
-            params={{ slug: projectId }}
-            search={{
-              tab: "handlinger",
-              round: requestedRound,
-              task: requestedActionId,
-              work: "evidence",
-            }}
-            className={button}
-            onClick={guardDraftNavigation}
-          >
-            Knyt dokumentation til opgaven
-          </Link>
+        <h1 className="text-2xl font-semibold leading-tight">
+          {requestedJob?.title ?? "Freyra i felten"}
+        </h1>
+        {requestedJob && (
+          <p className="text-sm text-muted-foreground">{pack?.projectName}</p>
         )}
       </header>
       {error && (
@@ -372,8 +330,10 @@ export function FieldOfflineWorkspace({
           {notice}
         </p>
       )}
-      <section className={card} aria-label="Klargør feltarbejde">
-        <h2 className="font-semibold">Sagen på telefonen</h2>
+      <details className={card} open={!pack || !shellReady || dirty}>
+        <summary className="cursor-pointer font-semibold">
+          {pack && shellReady ? "Offlineindstillinger" : "Klargør sagen på telefonen"}
+        </summary>
         {packs.length > 0 && (
           <label className="block space-y-2 text-sm">
             Gemt sag
@@ -437,7 +397,7 @@ export function FieldOfflineWorkspace({
             Gem registreringen lokalt, før du skifter eller opdaterer sagen.
           </p>
         )}
-      </section>
+      </details>
       {store && actor && pack && (
         <>
           <OfflinePhotos
@@ -454,6 +414,40 @@ export function FieldOfflineWorkspace({
                 setPhotoBusy(value);
             }}
           />
+          <section className={card} aria-label="Synkronisering og næste handling">
+            <h2 className="font-semibold">Synkronisering</h2>
+            <p className="text-sm text-muted-foreground">
+              {!queueReady
+                ? "Henter køen på telefonen…"
+                : pendingCount > 0
+                  ? `${pendingCount} afventer afsendelse fra denne telefon.`
+                  : "Ingen registreringer afventer afsendelse."}
+            </p>
+            {canOpenWorkOrderEvidence && (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Når serveren har kvitteret for dit foto, kan du knytte det til denne opgave.
+                </p>
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug: projectId }}
+                  search={{
+                    tab: "handlinger",
+                    round: requestedRound,
+                    task: requestedActionId,
+                    work: "evidence",
+                  }}
+                  className={button + " w-full sm:w-auto"}
+                  onClick={guardDraftNavigation}
+                >
+                  Knyt dokumentation til opgaven
+                </Link>
+              </>
+            )}
+            <a href="#feltkoe" className="block min-h-11 py-2 text-sm underline">
+              Se kø og kvitteringer
+            </a>
+          </section>
           {queueReady ? (
             <OfflineJobs
               key={actor + projectId + pack.savedAt}
@@ -472,10 +466,10 @@ export function FieldOfflineWorkspace({
           ) : (
             <p role="status">Henter gemte feltkladder…</p>
           )}
-          <section className={card} aria-label="Telefonens feltkø">
+          <section id="feltkoe" className={card} aria-label="Telefonens feltkø">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-semibold">
-                Telefonens kø · {pendingCount} afventer på denne sag
+                Telefonens feltkø · {pendingCount} afventer på denne sag
               </h2>
               <button className={button} onClick={() => void refresh()}>
                 Opdater kø
@@ -606,6 +600,36 @@ export function FieldOfflineWorkspace({
           </section>
         </>
       )}
+      <footer className={card}>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/select" className={button} onClick={guardDraftNavigation}>
+            Dashboard og login
+          </Link>
+          {actor && (
+            <button className={button} disabled={dirty} onClick={() => lockOfflineActor()}>
+              <LockKeyhole className="h-4 w-4" />
+              Lås feltadgang
+            </button>
+          )}
+        </div>
+        {projectId && (
+          <Link
+            to="/app/projects/$slug"
+            params={{ slug: projectId }}
+            search={{
+              tab: projectId === requestedProject && requestedActionId ? "handlinger" : "medier",
+              round: projectId === requestedProject ? requestedRound : undefined,
+              task: projectId === requestedProject ? requestedActionId : undefined,
+              work: projectId === requestedProject && requestedActionId ? "field" : undefined,
+            }}
+            className="inline-block min-h-11 py-2 text-sm underline"
+            onClick={guardDraftNavigation}
+          >
+            Tilbage til sagen med net
+          </Link>
+        )}
+        <WorkspaceGuide {...programPageGuide("/felt")!} />
+      </footer>
     </main>
   );
 }
@@ -689,7 +713,7 @@ function OfflinePhotos({
   }
   return (
     <section className={card} aria-label="Feltfotos på telefonen">
-      <h2 className="font-semibold">Tag fotos i felten</h2>
+      <h2 className="text-lg font-semibold">Tag fotos i felten</h2>
       <details>
         <summary className="min-h-11 cursor-pointer py-2 text-sm">
           Titel og note (valgfrit, før foto)
@@ -735,9 +759,9 @@ function OfflinePhotos({
         disabled={busy || unsaved.length > 0}
         onChange={capture}
       />
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
-          className={primary}
+          className={primary + " w-full sm:w-auto"}
           disabled={!ready || busy || unsaved.length > 0}
           onClick={() => camera.current?.click()}
         >
@@ -753,8 +777,7 @@ function OfflinePhotos({
         </button>
       </div>
       <p className="text-sm text-muted-foreground">
-        Fotoet gemmes automatisk lokalt efter valg. Vent på bekræftelsen, før du lukker siden.
-        Originalen ændres ikke.
+        Fotoet gemmes automatisk på telefonen. Vent på bekræftelsen, før du lukker siden.
       </p>
       {message && (
         <p role="status" className="text-sm">
