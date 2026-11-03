@@ -261,8 +261,9 @@ function LoginPage() {
         </div>
 
         {isSignup && (
-          <Field label="Fulde navn" icon={<User className="h-4 w-4" />}>
+          <Field id="login-name" label="Fulde navn" icon={<User className="h-4 w-4" />}>
             <input
+              id="login-name"
               type="text"
               disabled={controlsDisabled}
               required
@@ -276,13 +277,16 @@ function LoginPage() {
         )}
 
         <Field
-          label="Email"
+          id="login-email"
+          label="E-mail"
           icon={<Mail className="h-4 w-4" />}
           hint={
             isSignup ? "Vi bruger din arbejdsemail til bekræftelse og notifikationer." : undefined
           }
         >
           <input
+            id="login-email"
+            aria-describedby={isSignup ? "login-email-hint" : undefined}
             type="email"
             disabled={controlsDisabled}
             required
@@ -297,20 +301,19 @@ function LoginPage() {
 
         {!isForgot && (
           <Field
-            label={
-              <div className="flex items-center justify-between w-full">
-                <span>Adgangskode</span>
-                {!isSignup && (
-                  <button
-                    type="button"
-                    disabled={controlsDisabled}
-                    onClick={() => changeMode("forgot")}
-                    className="text-xs text-primary hover:underline font-normal"
-                  >
-                    Glemt?
-                  </button>
-                )}
-              </div>
+            id="login-password"
+            label="Adgangskode"
+            action={
+              !isSignup && (
+                <button
+                  type="button"
+                  disabled={controlsDisabled}
+                  onClick={() => changeMode("forgot")}
+                  className="text-xs text-primary hover:underline font-normal"
+                >
+                  Glemt?
+                </button>
+              )
             }
             icon={<Lock className="h-4 w-4" />}
             hint={
@@ -320,6 +323,8 @@ function LoginPage() {
             }
           >
             <input
+              id="login-password"
+              aria-describedby={isSignup ? "login-password-hint" : undefined}
               type={showPassword ? "text" : "password"}
               disabled={controlsDisabled}
               required
@@ -336,7 +341,6 @@ function LoginPage() {
               onClick={() => setShowPassword((s) => !s)}
               className="absolute right-2 top-[30px] p-1.5 text-muted-foreground hover:text-foreground rounded-md"
               aria-label={showPassword ? "Skjul adgangskode" : "Vis adgangskode"}
-              tabIndex={-1}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -344,8 +348,13 @@ function LoginPage() {
         )}
 
         {isSignup && (
-          <Field label="Bekræft adgangskode" icon={<Lock className="h-4 w-4" />}>
+          <Field
+            id="login-confirm-password"
+            label="Bekræft adgangskode"
+            icon={<Lock className="h-4 w-4" />}
+          >
             <input
+              id="login-confirm-password"
               type={showPassword ? "text" : "password"}
               disabled={controlsDisabled}
               required
@@ -486,19 +495,28 @@ function LoginPage() {
 }
 
 function Field({
+  id,
   label,
+  action,
   icon,
   hint,
   children,
 }: {
-  label: React.ReactNode;
+  id: string;
+  label: string;
+  action?: React.ReactNode;
   icon?: React.ReactNode;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium block">{label}</label>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={id} className="text-sm font-medium">
+          {label}
+        </label>
+        {action}
+      </div>
       <div className="relative">
         {icon && (
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
@@ -507,7 +525,11 @@ function Field({
         )}
         {children}
       </div>
-      {hint && <p className="text-[11px] text-muted-foreground leading-relaxed">{hint}</p>}
+      {hint && (
+        <p id={id + "-hint"} className="text-[11px] text-muted-foreground leading-relaxed">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

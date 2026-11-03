@@ -70,6 +70,14 @@ describe("login hydration boundary", () => {
       const Page = Route.options.component as React.ComponentType;
       await act(async () => root.render(<Page />));
       const [email, password] = host.querySelectorAll<HTMLInputElement>("input");
+      expect(email.labels?.[0]?.textContent).toBe("E-mail");
+      expect(password.labels?.[0]?.textContent).toBe("Adgangskode");
+      const toggle = host.querySelector<HTMLButtonElement>('button[aria-label="Vis adgangskode"]')!;
+      expect(toggle.tabIndex).toBe(0);
+      await act(async () => toggle.click());
+      expect(password.type).toBe("text");
+      await act(async () => toggle.click());
+      expect(password.type).toBe("password");
       const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
       await act(async () => {
         set.call(email, "someone@example.test");
