@@ -555,6 +555,8 @@ Stagingprøven i Chrome ved 390 px gemte et samlet grundlag med godkendte timer 
 
 ### S15 - flere besøg på arbejdsopgaven
 
+Besøgskortet forbinder nu nummererede nabostop med en stiplet linje ud fra den eksisterende planrækkefølge. Hvis et stop mangler position, bevares dets nummer, og linjen brydes. Visningen bruger projektets gemte lokaliteter. Beregnet kørevej og rejsetid afventer en ruteudbyder. Lokal komponentprøve dækker både en tegnet forbindelse og et hul. Kortet skal afprøves i staging.
+
 Arbejdsgrundlag kan gemme op til 20 ekstra besøg fra projektets eksisterende lokaliteter i den rækkefølge, projektlederen vælger. Lokalitetens id og navn bevares i planversionen. Den eksisterende hovedlokalitet bruges fortsat. Udføreren kan læse rækkefølgen i Mine opgaver. Arbejdsplaner fra tidligere versioner kan fortsat læses af den nye app. En app fra før denne ændring kan ikke læse planer med de nye besøgsfelter. Kortvisning af stoppene, besøgskrav, booking og ruteoptimering står åbne.
 
 I Chrome ved 390 px valgte projektlederen to syntetiske projektsteder, byttede deres rækkefølge og gemte en ny planversion. En separat, tildelt udfører åbnede Se arbejdsgrundlag i Mine opgaver og så samme rækkefølge. Den midlertidige opgaveadgang blev tilbagekaldt. Kilde `77f408e`, Worker `20ed4a34-c80f-4ec7-b72b-e6c76eb3e19b`, migration `20261103095037`. Typekontrol, staging-build, 34 målrettede tests og [databasejobbet](https://github.com/JESRI-C/freyra-hub/actions/runs/41613874170) bestod.

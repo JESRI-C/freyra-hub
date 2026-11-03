@@ -101,10 +101,12 @@ vi.mock("../WorkOrderStatusPanel", () => ({ WorkOrderStatusPanel: () => null }))
 vi.mock("@/components/maps/MapEditorMap", () => ({
   MapEditorMap: ({
     locationPoints,
+    visitSegments,
   }: {
     locationPoints: Array<{ visitNumber: number; label: string }>;
+    visitSegments: Array<[[number, number], [number, number]]>;
   }) => (
-    <div data-testid="visit-markers">
+    <div data-testid="visit-markers" data-segments={JSON.stringify(visitSegments)}>
       {locationPoints.map((point) => point.visitNumber + ". " + point.label).join(", ")}
     </div>
   ),
@@ -462,14 +464,20 @@ describe("work-order plan editor", () => {
           plan: {
             ...saved.plan,
             siteId: id(20),
-            visitStops: [{ siteId: id(21), name: "Gemt stopnavn" }],
+            visitStops: [
+              { siteId: id(22), name: "Uden position" },
+              { siteId: id(21), name: "Gemt stopnavn" },
+              { siteId: id(23), name: "Sidste stop" },
+            ],
           },
         },
       ],
       nextBeforeVersion: null,
     });
     m.sites.mockResolvedValue([
-      { id: id(20), name: "Hovedsted" },
+      { id: id(20), name: "Hovedsted", centroid_lat: 55.1, centroid_lng: 9.3 },
+      { id: id(22), name: "Uden position" },
+      { id: id(23), name: "Sidste stop", centroid_lat: 55.3, centroid_lng: 9.5 },
       {
         id: id(21),
         name: "Nyt navn",
@@ -486,10 +494,10 @@ describe("work-order plan editor", () => {
       details.dispatchEvent(new Event("toggle", { bubbles: true }));
     });
     await settle();
-    expect(host.textContent).toContain("Hovedsted · Ingen kortposition");
-    expect(host.querySelector('[data-testid="visit-markers"]')?.textContent).toBe(
-      "2. Gemt stopnavn",
-    );
+    expect(host.textContent).toContain("Uden position · Ingen kortposition");
+    const markers = host.querySelector('[data-testid="visit-markers"]');
+    expect(markers?.textContent).toBe("1. Hovedsted, 3. Gemt stopnavn, 4. Sidste stop");
+    expect(markers?.getAttribute("data-segments")).toBe("[[[55.2,9.4],[55.3,9.5]]]");
   });
 
   it("saves a Danish decimal time estimate on the exact plan version", async () => {

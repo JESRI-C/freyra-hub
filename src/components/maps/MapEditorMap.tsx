@@ -52,6 +52,7 @@ export interface MapEditorMapProps {
     visitNumber?: number;
   }>;
   locationBounds?: Array<[number, number]> | null;
+  visitSegments?: Array<[[number, number], [number, number]]>;
   onLayerStatus?: (id: string, message: string | null) => void;
   areaHa?: number | null;
   boundaryGeoJSON?: GeoJsonPolygon | null;
@@ -270,6 +271,7 @@ export function MapEditorMap({
   readOnly = false,
   locationPoints = [],
   locationBounds,
+  visitSegments,
   onLayerStatus,
   centerOverride,
   wmsOverlays,
@@ -990,6 +992,11 @@ export function MapEditorMap({
       if (cancelled || !mapRef.current) return;
       if (locationLayerRef.current) mapRef.current.removeLayer(locationLayerRef.current);
       const group = L.layerGroup();
+      for (const segment of visitSegments ?? []) {
+        L.polyline(segment, { color: "#1d4ed8", dashArray: "6 6", interactive: false }).addTo(
+          group,
+        );
+      }
       for (const p of locationPoints) {
         const label = document.createElement("span");
         if (p.visitNumber !== undefined) {
@@ -1024,7 +1031,7 @@ export function MapEditorMap({
       if (locationLayerRef.current && mapRef.current)
         mapRef.current.removeLayer(locationLayerRef.current);
     };
-  }, [locationPoints, ready]);
+  }, [locationPoints, ready, visitSegments]);
   useEffect(() => {
     if (!mapRef.current || !ready || !locationBounds?.length) return;
     mapRef.current.fitBounds(locationBounds, { padding: [30, 30], maxZoom: 17 });

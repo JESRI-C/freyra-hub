@@ -37,7 +37,7 @@ export function WorkOrderVisitMap({
   projectId: string;
 }) {
   const [center, setCenter] = useState<MapEditorMapProps["centerOverride"]>();
-  const { stops, points, bounds } = useMemo(() => {
+  const { stops, points, bounds, segments } = useMemo(() => {
     const byId = new Map(sites.map((site) => [site.id, site]));
     const ordered = [
       ...(plan.siteId
@@ -66,6 +66,17 @@ export function WorkOrderVisitMap({
       stops,
       points,
       bounds: points.map(({ lat, lng }): [number, number] => [lat, lng]),
+      segments: points.slice(1).flatMap<[[number, number], [number, number]]>((point, index) => {
+        const previous = points[index];
+        return point.visitNumber === previous.visitNumber + 1
+          ? [
+              [
+                [previous.lat, previous.lng],
+                [point.lat, point.lng],
+              ],
+            ]
+          : [];
+      }),
     };
   }, [plan.siteId, plan.visitStops, sites]);
   const first = points[0];
@@ -73,7 +84,7 @@ export function WorkOrderVisitMap({
     <div className="min-w-0 space-y-3">
       <p className="text-sm text-muted-foreground">
         Kortnumrene følger rækkefølgen i arbejdsgrundlaget. Positionerne kommer fra projektets
-        lokaliteter.
+        lokaliteter. Stiplede linjer forbinder nabostop med kendt position i lige linje.
       </p>
       {first ? (
         <Suspense fallback={<p role="status">Henter kort…</p>}>
@@ -84,6 +95,7 @@ export function WorkOrderVisitMap({
             lng={first.lng}
             locationPoints={points}
             locationBounds={bounds}
+            visitSegments={segments}
             centerOverride={center}
             initialBaseLayer="osm"
             readOnly
