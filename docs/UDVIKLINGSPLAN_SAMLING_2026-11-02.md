@@ -225,7 +225,7 @@ Dokumentation viser næste trin ved manglende svar på en aktiv kobling. En læs
 
 ### S05 — Samlet rapport fra samme grundlag
 
-Handlingen Opret opfølgning fra godkendt plan klargør en opfølgning med den planversion, som godkendelsen bygger på. Den henter den fastholdte aflevering med det eksisterende adgangskontrollerede opslag og kontrollerer afleverings-id, nummer og plan-id. Formularen genbruger den eksisterende oprettelsesvej, som ved gemning knytter opfølgningen til kildeopgaven og kildeplanens version. Prøverne dækker handlingen og klargøring fra en ældre aflevering med nyere historik. Stagingprøve og særskilt lagring af gennemgangens id afventes.
+Handlingen Opret opfølgning fra godkendt plan klargør en opfølgning med den planversion, som godkendelsen bygger på. Den henter den fastholdte aflevering med det eksisterende adgangskontrollerede opslag og kontrollerer afleverings-id, nummer og plan-id. Formularen genbruger den eksisterende oprettelsesvej, som ved gemning knytter opfølgningen til kildeopgaven og kildeplanens version. Prøverne dækker handlingen og klargøring fra en ældre aflevering med nyere historik. Stagingprøven på kilde d32d14a og Worker 22c994e5-4410-480a-9110-ede1b0bbc550 bestod. Ved 390 px åbnede Enter formularen fra den godkendte testaflevering og en mærket opfølgende opgave og plan blev gemt. Efter genindlæsning ved 390 og 1280 px viste opfølgningen kildeplanversion 3, samme instruktion og link til den rigtige kildeopgave. Ingen vandret overflow eller JavaScript-sidefejl i de prøvede visninger. Særskilt lagring af gennemgangens id afventes.
 
 **Afhænger af:** S04; S03 for filtreret eksport. **Genbrug:** D07, F10/F11, report_document/revisions, workflowrapport og eksportadaptere. **Skøn:** 2–4 dage.
 
