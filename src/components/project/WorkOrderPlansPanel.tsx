@@ -48,6 +48,7 @@ type PlanPanelProps = {
   scope: ProjectScope;
   round?: string;
   selectedActionId?: string;
+  openBooking?: boolean;
   onEditing?: (value: boolean) => void;
 };
 export function WorkOrderPlansPanel(props: PlanPanelProps) {
@@ -66,6 +67,7 @@ function WorkOrderPlans({
   round,
   actorId,
   selectedActionId,
+  openBooking,
   onEditing,
 }: PlanPanelProps & {
   actorId?: string;
@@ -153,6 +155,7 @@ function WorkOrderPlans({
                 access.data?.canConfigure === true &&
                 !access.isFetching
               }
+              openBooking={openBooking}
               canBook={access.data?.canManageAvailability === true}
               onEditing={setEditing}
             />
@@ -179,6 +182,7 @@ function PlanWorkspace({
   title,
   canPlan,
   canBook,
+  openBooking,
   onEditing,
 }: {
   scope: ProjectScope;
@@ -187,6 +191,7 @@ function PlanWorkspace({
   title: string;
   canPlan: boolean;
   canBook: boolean;
+  openBooking?: boolean;
   onEditing: (value: boolean) => void;
 }) {
   const load = useServerFn(getProjectWorkOrderPlanHistory),
@@ -488,6 +493,7 @@ function PlanWorkspace({
           scope={scope}
           actorId={actorId}
           actionId={actionId}
+          initialOpen={openBooking}
           plannedStart={latest.plan.plannedStart}
           plannedEnd={latest.plan.plannedEnd}
           disabled={

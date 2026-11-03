@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import {
@@ -30,6 +30,7 @@ export function WorkOrderEquipmentBooking({
   scope,
   actorId,
   actionId,
+  initialOpen = false,
   plannedStart,
   plannedEnd,
   disabled,
@@ -38,12 +39,14 @@ export function WorkOrderEquipmentBooking({
   scope: ProjectScope;
   actorId: string;
   actionId: string;
+  initialOpen?: boolean;
   plannedStart: string | null;
   plannedEnd: string | null;
   disabled: boolean;
   onEditing: (value: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
+  const cache = useQueryClient();
   const [search, setSearch] = useState("");
   const [newEquipment, setNewEquipment] = useState<{ name: string; kind: z.infer<typeof kinds> }>();
   const [draft, setDraft] = useState<{ equipmentId: string; from: string; through: string }>();
@@ -193,6 +196,7 @@ export function WorkOrderEquipmentBooking({
         setMessage("Reservationen er aflyst.");
       }
       attempt.current = undefined;
+      void cache.invalidateQueries({ queryKey: ["project-equipment-bookings", actorId, scope] });
       await bookings.refetch();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Ændringen kunne ikke gemmes.");
@@ -214,6 +218,7 @@ export function WorkOrderEquipmentBooking({
   return (
     <details
       className="space-y-3 rounded-xl border px-3 pb-3 text-sm"
+      open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary className="min-h-11 cursor-pointer py-3 font-medium">Booking af udstyr</summary>

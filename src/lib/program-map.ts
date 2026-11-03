@@ -628,6 +628,16 @@ export const TASK_FEATURES: ProgramFeature[] = WORK_ORDER_PARTS.map((part) => ({
 }));
 const planningFeatures: ProgramFeature[] = [
   {
+    id: "work:project-bookings",
+    areaId: "tasks",
+    title: "Projektets bookingoversigt",
+    question: "Hvilket udstyr er reserveret til projektets opgaver?",
+    purpose: "Se reservationer i en periode og åbn den opgave, hvor de hører til.",
+    output: "Et filtrerbart overblik over udstyr, datoer og aflysninger.",
+    status: "existing",
+    destination: { kind: "project", view: { kind: "tab", id: "handlinger" }, taskList: "bookings" },
+  },
+  {
     id: "work:project-time",
     areaId: "tasks",
     title: "Projektets timer",
@@ -849,9 +859,9 @@ export const SKYHOST_JOB_AREAS = [
     id: "booking",
     title: "Booking",
     purpose: "Reservation af køretøjer, maskiner og værktøj.",
-    remaining: "Booking med tidsrum, ansvar og konfliktkontrol skal udvikles.",
-    featureIds: ["planned:booking"],
-    planned: true,
+    remaining: "Heldagsbooking og konfliktkontrol er samlet. Booking på klokkeslæt mangler.",
+    featureIds: ["work:project-bookings", "planned:booking"],
+    planned: false,
   },
   {
     id: "routes",

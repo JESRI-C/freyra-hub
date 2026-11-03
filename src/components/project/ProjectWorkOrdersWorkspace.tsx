@@ -22,6 +22,7 @@ import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
 import { WorkOrderPlansPanel } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
+import { ProjectEquipmentBookings } from "./ProjectEquipmentBookings";
 import { ProjectWorkTimeOverview } from "./ProjectWorkTimeOverview";
 import { ProjectMaterialCatalog, WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
@@ -198,7 +199,8 @@ function WorkOrders({
             (listView !== "schedule" || !onlyUndated || !dates?.[task.id]?.start) &&
             task.title.toLocaleLowerCase("da").includes(taskSearch.trim().toLocaleLowerCase("da")),
         );
-  const visibleCount = listView === "time" ? 0 : (visibleActions?.length ?? 0);
+  const usesTaskList = listView !== "time" && listView !== "bookings";
+  const visibleCount = usesTaskList ? (visibleActions?.length ?? 0) : 0;
   const estimates = new Map(
     (visibleActions ?? []).map(({ id }) => {
       const plan = dates?.[id];
@@ -343,7 +345,9 @@ function WorkOrders({
                     ? "planoversigt"
                     : listView === "time"
                       ? "timer"
-                      : "opgaveliste"}
+                      : listView === "bookings"
+                        ? "bookingoversigt"
+                        : "opgaveliste"}
               </button>
               {locked && (
                 <p role="status" className="text-sm">
@@ -368,9 +372,14 @@ function WorkOrders({
                       ["schedule", "Planoversigt"],
                       ["calendar", "Kalender"],
                       ["time", "Timer"],
+                      ["bookings", "Booking"],
                     ] as const
                   )
-                    .filter(([view]) => view !== "time" || access.data?.canManageAvailability)
+                    .filter(
+                      ([view]) =>
+                        (view !== "time" && view !== "bookings") ||
+                        access.data?.canManageAvailability,
+                    )
                     .map(([view, label]) => (
                       <button
                         key={view}
@@ -395,7 +404,10 @@ function WorkOrders({
               {listView === "time" && !access.data?.canManageAvailability && (
                 <p>Projektets timer kræver projektlederadgang.</p>
               )}
-              {listView !== "calendar" && listView !== "time" && !!actions.data.length && (
+              {listView === "bookings" && !access.data?.canManageAvailability && (
+                <p>Projektets bookingoversigt kræver projektlederadgang.</p>
+              )}
+              {listView !== "calendar" && usesTaskList && !!actions.data.length && (
                 <label className="block text-sm font-medium">
                   Find opgave
                   <input
@@ -564,7 +576,7 @@ function WorkOrders({
                 </div>
               )}
               {listView !== "calendar" &&
-                listView !== "time" &&
+                usesTaskList &&
                 (!showSchedule || schedule.isSuccess) &&
                 !!actions.data.length &&
                 !visibleCount && <p role="status">Ingen opgaver matcher dit udvalg.</p>}
@@ -586,7 +598,7 @@ function WorkOrders({
                   Estimatet fordeles ligeligt over opgavens kalenderdage, inklusive weekender.
                 </p>
               )}
-              {listView !== "time" &&
+              {usesTaskList &&
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const estimate = estimates.get(a.id);
@@ -630,7 +642,7 @@ function WorkOrders({
                     </button>
                   );
                 })}
-              {listView !== "time" &&
+              {usesTaskList &&
                 (!showSchedule || schedule.isSuccess) &&
                 visibleCount > taskLimit && (
                   <button
@@ -654,6 +666,21 @@ function WorkOrders({
               />
             </div>
           )}
+          {listView === "bookings" &&
+            actorId &&
+            authorized &&
+            access.data?.canManageAvailability && (
+              <div hidden={!!actionId}>
+                <ProjectEquipmentBookings
+                  scope={scope}
+                  actorId={actorId}
+                  active={!actionId}
+                  locked={locked}
+                  tasks={actions.data}
+                  onOpen={(id) => select(id, "plan")}
+                />
+              </div>
+            )}
           {!creating && canEdit && access.data?.canConfigure && (
             <button
               type="button"
@@ -716,6 +743,7 @@ function WorkOrders({
               canEdit={canEdit}
               canContribute={!!access.data?.canContribute}
               timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
+              openBooking={listView === "bookings"}
               canManageTime={!!access.data?.canManageAvailability}
               onEditing={onEditing}
               initialView={
@@ -740,6 +768,7 @@ function TaskWorkspace({
   canEdit,
   canContribute,
   canManageTime,
+  openBooking,
   timeReviewDate,
   onEditing,
   initialView,
@@ -751,6 +780,7 @@ function TaskWorkspace({
   canEdit: boolean;
   canContribute: boolean;
   canManageTime: boolean;
+  openBooking: boolean;
   timeReviewDate?: string;
   onEditing: (part: Editor, value: boolean) => void;
   initialView?: WorkOrderView;
@@ -810,6 +840,7 @@ function TaskWorkspace({
             scope={scope}
             round={round}
             selectedActionId={actionId}
+            openBooking={openBooking}
             onEditing={planEditing}
           />
         </div>

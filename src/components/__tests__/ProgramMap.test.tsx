@@ -78,7 +78,14 @@ describe("program overview", () => {
     )!;
     expect(time.textContent).toContain("Delvist samlet");
     expect(time.querySelector('a[href="/opgaver"]')?.textContent).toBe("Åbn Registrér arbejdstid");
-    for (const title of ["Materialer", "Booking", "Ruter"]) {
+    const booking = [...list.querySelectorAll("li")].find(
+      (li) => li.querySelector("h2")?.textContent === "Booking",
+    )!;
+    expect(booking.textContent).toContain("Delvist samlet");
+    expect(
+      booking.querySelector('a[href="/app/projects/project-a?tab=handlinger&taskList=bookings"]'),
+    ).not.toBeNull();
+    for (const title of ["Materialer", "Ruter"]) {
       const item = [...list.querySelectorAll("li")].find(
         (li) => li.querySelector("h2")?.textContent === title,
       )!;

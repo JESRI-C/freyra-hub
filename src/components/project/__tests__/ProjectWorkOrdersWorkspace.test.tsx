@@ -83,8 +83,23 @@ function Editor({
     </section>
   );
 }
+vi.mock("../ProjectEquipmentBookings", () => ({
+  ProjectEquipmentBookings: ({ onOpen }: { onOpen: (id: string) => void }) => (
+    <>
+      <input aria-label="Søg efter udstyr" type="search" />
+      <button type="button" onClick={() => onOpen("first")}>
+        Åbn opgavens booking
+      </button>
+    </>
+  ),
+}));
 vi.mock("../WorkOrderPlansPanel", () => ({
-  WorkOrderPlansPanel: (props: Parameters<typeof Editor>[0]) => <Editor {...props} label="Plan" />,
+  WorkOrderPlansPanel: (props: Parameters<typeof Editor>[0] & { openBooking?: boolean }) => (
+    <>
+      <Editor {...props} label="Plan" />
+      {props.openBooking && <p>Bookingpanelet er åbent</p>}
+    </>
+  ),
 }));
 vi.mock("../FieldJobCardsPanel", () => ({
   FieldJobCardsPanel: (props: Parameters<typeof Editor>[0]) => <Editor {...props} label="Felt" />,
@@ -334,6 +349,26 @@ it("opens the calendar directly when the project link specifies it", async () =>
   expect(host.querySelector('button[aria-pressed="true"]')?.textContent).toBe("Kalender");
   expect(m.schedule).toHaveBeenCalledWith(scope);
 });
+it("opens the selected booking and returns to the same equipment filter", async () => {
+  m.access.mockResolvedValue({
+    userId: "actor",
+    projectId: "project",
+    canConfigure: true,
+    canManageAvailability: true,
+  });
+  await render();
+  await click("Booking");
+  const search = host.querySelector<HTMLInputElement>('input[aria-label="Søg efter udstyr"]')!;
+  search.value = "Gravemaskine";
+  await click("Åbn opgavens booking");
+  expect(m.navigate).toHaveBeenCalledWith("first");
+  expect(host.textContent).toContain("Bookingpanelet er åbent");
+  await click("Tilbage til bookingoversigt");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Søg efter udstyr"]')?.value).toBe(
+    "Gravemaskine",
+  );
+});
+
 it("keeps the time search and overrun filter when returning from an opened task", async () => {
   const id = "00000000-0000-4000-8000-000000000012";
   m.actions.mockResolvedValue([{ id, title: "Syntetisk tidsprøve", status: null }]);
