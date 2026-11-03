@@ -311,7 +311,7 @@ SELECT throws_ok($$SELECT * FROM public.save_work_order_plan(
 )$$,'23503','Source plan is unavailable','another project cannot provide the source');
 SELECT is((SELECT count(*) FROM pg_temp.history(38)),0::bigint,'rejected source leaves no plan');
 SELECT lives_ok($$SELECT pg_temp.save(0,383,pg_temp.plan()||jsonb_build_object(
- 'plannedStart','2026-03-20','plannedEnd','2026-03-22','siteId',pg_temp.k(51),'responsibleId',pg_temp.k(2)
+ 'plannedStart','2026-03-20','plannedEnd','2026-03-22','siteId',pg_temp.k(51),'responsibleId',pg_temp.k(1)
 ),38)$$,'a dated plan is saved as the series source');
 SELECT set_config('test.weekly_source', (SELECT id::text FROM pg_temp.history(38)), true);
 CREATE FUNCTION pg_temp.weekly(first_date date DEFAULT '2026-03-27', amount integer DEFAULT 3, key_id integer DEFAULT 384)
