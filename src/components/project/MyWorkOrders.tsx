@@ -11,6 +11,7 @@ import {
   listCurrentUserWorkOrders,
 } from "@/lib/work-order-assignments.functions";
 import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignments";
+import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
 import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
@@ -29,6 +30,109 @@ const taskFilters = [
   ["waiting", "Afventer"],
   ["cancelled", "Aflyste"],
 ] as const;
+
+const boardLanes = [
+  { id: "open", label: "Åbne", color: "bg-muted text-foreground" },
+  {
+    id: "started",
+    label: "I gang",
+    color: "bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-100",
+  },
+  {
+    id: "performed",
+    label: "Udført",
+    color: "bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-100",
+  },
+  {
+    id: "submitted",
+    label: "Afleveret",
+    color: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-100",
+  },
+  {
+    id: "approved",
+    label: "Godkendt",
+    color: "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100",
+  },
+  {
+    id: "waiting",
+    label: "Afventer",
+    color: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
+  },
+  { id: "cancelled", label: "Aflyste", color: "bg-muted text-muted-foreground" },
+] as const;
+
+function boardLaneFor(task: MyWorkOrder): (typeof boardLanes)[number]["id"] {
+  if (task.cancelled || task.task_status === "cancelled") return "cancelled";
+  if (task.waiting_for_prerequisites) return "waiting";
+  switch (task.task_status) {
+    case "started":
+    case "performed":
+    case "submitted":
+    case "approved":
+      return task.task_status;
+    default:
+      return "open";
+  }
+}
+
+function WorkOrderBoard({
+  items,
+  onOpen,
+  locked,
+}: {
+  items: MyWorkOrder[];
+  onOpen: (id: string) => void;
+  locked: boolean;
+}) {
+  return (
+    <section
+      className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+      aria-label="Opgavetavle"
+    >
+      {boardLanes.map(({ id, label, color }) => {
+        const tasks = items.filter((task) => boardLaneFor(task) === id);
+        if ((id === "waiting" || id === "cancelled") && tasks.length === 0) return null;
+        return (
+          <section key={id} aria-label={label} className="min-w-0 rounded-xl border bg-muted/30">
+            <h2 className={`rounded-t-xl px-3 py-2 text-sm font-semibold ${color}`}>
+              {label} <span className="font-normal">· {tasks.length} vist</span>
+            </h2>
+            {tasks.length ? (
+              <ul className="space-y-2 p-2">
+                {tasks.map((task) => (
+                  <li key={task.action_id}>
+                    <button
+                      type="button"
+                      className="block min-h-11 w-full rounded-lg border bg-card p-3 text-left hover:border-primary/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+                      disabled={locked}
+                      onClick={() => onOpen(task.action_id)}
+                    >
+                      <span className="block font-medium">{task.plan.title}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {scheduleLabel({
+                          start: task.plan.plannedStart,
+                          end: task.plan.plannedEnd,
+                        })}
+                        {task.plan.locationNote && ` · ${task.plan.locationNote}`}
+                      </span>
+                      {task.task_status && id !== "waiting" && id !== "cancelled" && (
+                        <span className="mt-2 inline-block rounded-md bg-muted px-2 py-1 text-xs">
+                          {workOrderStatusLabels[task.task_status]}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="p-3 text-sm text-muted-foreground">Ingen opgaver i visningen</p>
+            )}
+          </section>
+        );
+      })}
+    </section>
+  );
+}
 
 export function MyWorkOrders() {
   const { user, loading, authError } = useAuth();
@@ -59,6 +163,7 @@ function MyTasks({ actorId }: { actorId: string }) {
   const load = useServerFn(listCurrentUserWorkOrders);
   const [editors, setEditors] = useState<Set<string>>(() => new Set());
   const [activeTaskId, setActiveTask] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "board">("list");
   const [filter, setFilter] = useState<(typeof taskFilters)[number][0]>("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -81,8 +186,11 @@ function MyTasks({ actorId }: { actorId: string }) {
     refetchOnReconnect: editors.size === 0,
   });
   const items = tasks.isError ? [] : (tasks.data?.pages.flatMap((page) => page.items) ?? []);
+  const showBoard = view === "board" && !activeTaskId;
   return (
-    <main className="mx-auto min-h-dvh max-w-3xl space-y-4 p-3 pb-12 sm:p-6 [overflow-wrap:anywhere]">
+    <main
+      className={`mx-auto min-h-dvh space-y-4 p-3 pb-12 sm:p-6 [overflow-wrap:anywhere] ${showBoard ? "max-w-6xl" : "max-w-3xl"}`}
+    >
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Mine opgaver</h1>
         <button
@@ -94,6 +202,32 @@ function MyTasks({ actorId }: { actorId: string }) {
         </button>
       </header>
       {!activeTaskId && <WorkspaceGuide {...programPageGuide("/opgaver")!} />}
+      {!activeTaskId && (
+        <div role="group" aria-label="Visning af mine opgaver" className="flex gap-2">
+          <button
+            type="button"
+            className={
+              button + (view === "list" ? " bg-primary text-primary-foreground" : " bg-card")
+            }
+            aria-pressed={view === "list"}
+            disabled={editors.size > 0}
+            onClick={() => setView("list")}
+          >
+            Liste
+          </button>
+          <button
+            type="button"
+            className={
+              button + (view === "board" ? " bg-primary text-primary-foreground" : " bg-card")
+            }
+            aria-pressed={view === "board"}
+            disabled={editors.size > 0}
+            onClick={() => setView("board")}
+          >
+            Kanban
+          </button>
+        </div>
+      )}
       {!activeTaskId && (
         <form
           className="flex flex-wrap items-end gap-2"
@@ -152,9 +286,12 @@ function MyTasks({ actorId }: { actorId: string }) {
           type="button"
           className={button}
           disabled={editors.size > 0}
-          onClick={() => setActiveTask(null)}
+          onClick={() => {
+            setActiveTask(null);
+            if (view === "board") void tasks.refetch();
+          }}
         >
-          ← Tilbage til opgavelisten
+          {view === "board" ? "← Tilbage til opgavetavlen" : "← Tilbage til opgavelisten"}
         </button>
       )}
       {!!editors.size && (
@@ -181,8 +318,14 @@ function MyTasks({ actorId }: { actorId: string }) {
               : "Du har ingen opgaver med den valgte status."}
         </p>
       )}
+      {showBoard && items.length > 0 && (
+        <WorkOrderBoard items={items} onOpen={setActiveTask} locked={editors.size > 0} />
+      )}
       {items.map((task) => (
-        <div key={task.action_id} hidden={activeTaskId !== null && activeTaskId !== task.action_id}>
+        <div
+          key={task.action_id}
+          hidden={showBoard || (activeTaskId !== null && activeTaskId !== task.action_id)}
+        >
           <TaskCard
             task={task}
             actorId={actorId}

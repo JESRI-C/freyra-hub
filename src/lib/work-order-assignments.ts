@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { WorkOrderPlanSchema } from "./work-order-plan";
 import { WorkOrderActionIdSchema } from "./work-order-access";
+import { WorkOrderStatusSchema } from "./work-order-lifecycle";
 const actionId = WorkOrderActionIdSchema.transform((value) => value.toLowerCase());
 const uuid = z
   .string()
@@ -274,6 +275,7 @@ export const MyWorkOrderSchema = z
     can_execute: z.boolean(),
     can_review: z.boolean(),
     can_plan: z.boolean(),
+    task_status: WorkOrderStatusSchema.nullable().optional(),
     waiting_for_prerequisites: z.boolean(),
     cancelled: z.boolean(),
   })

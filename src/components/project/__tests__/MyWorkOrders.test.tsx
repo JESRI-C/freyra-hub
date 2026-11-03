@@ -165,6 +165,68 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("groups loaded orders by lifecycle and returns to the refreshed board after opening one", async () => {
+    m.load.mockResolvedValue({
+      items: [
+        { ...task, task_status: "returned", plan: emptyWorkOrderPlan("Ret foto") },
+        {
+          ...task,
+          action_id: id(10),
+          task_status: "started",
+          plan: emptyWorkOrderPlan("I felten"),
+        },
+        {
+          ...task,
+          action_id: id(11),
+          task_status: "submitted",
+          plan: emptyWorkOrderPlan("Sendt til gennemgang"),
+        },
+        {
+          ...task,
+          action_id: id(12),
+          task_status: "approved",
+          plan: emptyWorkOrderPlan("Gennemgået"),
+        },
+        {
+          ...task,
+          action_id: id(13),
+          task_status: "assigned",
+          waiting_for_prerequisites: true,
+          plan: emptyWorkOrderPlan("Afventer adgang"),
+        },
+        {
+          ...task,
+          action_id: id(14),
+          plan: emptyWorkOrderPlan("Tidligere opgave"),
+        },
+      ],
+      nextAfterActionId: null,
+    });
+
+    await render();
+    expect(host.querySelector('section[aria-label="Opgavetavle"]')).toBeNull();
+    await click("Kanban");
+    const board = host.querySelector('section[aria-label="Opgavetavle"]')!;
+    const lane = (label: string) => board.querySelector(`section[aria-label="${label}"]`);
+    expect(lane("Åbne")?.textContent).toContain("Returneret");
+    expect(lane("Åbne")?.textContent).toContain("Tidligere opgave");
+    expect(lane("I gang")?.textContent).toContain("I felten");
+    expect(lane("Afleveret")?.textContent).toContain("Sendt til gennemgang");
+    expect(lane("Godkendt")?.textContent).toContain("Gennemgået");
+    expect(lane("Afventer")?.textContent).toContain("Afventer adgang");
+    expect(lane("Aflyste")).toBeNull();
+    await act(async () => lane("I gang")?.querySelector("button")?.click());
+    await flush();
+    expect(host.querySelector('section[aria-label="Opgavetavle"]')).toBeNull();
+    expect(
+      [...host.querySelectorAll("h2")].find((heading) => !heading.closest("[hidden]"))?.textContent,
+    ).toBe("I felten");
+    const loads = m.load.mock.calls.length;
+    await click("← Tilbage til opgavetavlen");
+    expect(host.querySelector('section[aria-label="Opgavetavle"]')).not.toBeNull();
+    expect(m.load.mock.calls.length).toBeGreaterThan(loads);
+  });
+
   it("shows the saved plan window and location before an assigned worker opens the task", async () => {
     const assigned = {
       ...task,
