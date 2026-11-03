@@ -568,3 +568,7 @@ I Chrome ved 390 px åbnede opgavevælgeren den valgte opgaves bookingpanel fra 
 Bookingoversigten har genveje til I dag, Denne uge og Denne måned. Den valgte genvej markeres, og en dansk uge følger mandag til søndag. Manuelle datoer, udstyrssøgning og aflysningsfilter kan fortsat kombineres med periodevalget.
 
 I Chrome ved 390 px satte I dag samme start- og slutdato. Denne uge satte mandag til søndag. Perioden og udstyrssøgningen var bevaret efter retur fra den valgte opgaves booking. Staging-build, lint og 21 målrettede tests bestod. Kilde 63fcd4e og Worker f93f6bde-ec4a-4474-817d-6bae97920611.
+
+## Jobkortets nødvendige felter
+
+Jobkortet viser over formularen, hvor mange nødvendige felter i den valgte skabelonversion der er udfyldt. Den, der kan redigere, kan vælge et manglende felt for at sætte fokus direkte i det. Nul og nej tæller som svar. Ufuldstændige registreringer kan fortsat gemmes, og tidligere versioner bevares. 21 målrettede tests bestod, herunder feltfokus, kladder, læseadgang og offlinearbejdsrummet. Browserprøven på staging og fælles serverkrav ved aflevering står fortsat åbne.

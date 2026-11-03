@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
@@ -6,7 +6,7 @@ import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import {
   FIELD_JOB_STARTER_TEMPLATES,
   FieldJobTemplateDefinitionSchema,
-  fieldJobGaps,
+  missingRequiredFieldJobFields,
   type FieldJobTemplateDefinition,
   type FieldJobValues,
   type FieldJobVersion,
@@ -282,12 +282,15 @@ function JobCardEditor({
     selected && !latestTemplates.some((t) => t.id === selected.id)
       ? [selected, ...latestTemplates]
       : latestTemplates;
-  let gaps: string[] = [];
+  const inputPrefix = useId();
+  const requiredCount = selected?.definition.fields.filter((field) => field.required).length ?? 0;
+  let missing: ReturnType<typeof missingRequiredFieldJobFields> = [];
+  let invalid = false;
   if (selected) {
     try {
-      gaps = fieldJobGaps(selected.definition, values);
+      missing = missingRequiredFieldJobFields(selected.definition, values);
     } catch {
-      gaps = ["Svarene skal passe til den valgte skabelon."];
+      invalid = true;
     }
   }
   return (
@@ -478,6 +481,34 @@ function JobCardEditor({
             Denne registrering bruger skabelonversion {selected.version}. Rettelser bevarer
             tidligere versioner.
           </p>
+          {invalid ? (
+            <p role="alert">Svarene skal passe til den valgte skabelon.</p>
+          ) : requiredCount > 0 ? (
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <p className="font-medium">
+                Nødvendige felter udfyldt: {requiredCount - missing.length} af {requiredCount}
+              </p>
+              {missing.length > 0 && (
+                <>
+                  <p>Du kan gemme en kladde og fortsætte senere.</p>
+                  <ul className="mt-1">
+                    {missing.map((field) => (
+                      <li key={field.key}>
+                        <button
+                          type="button"
+                          disabled={!writable || busy}
+                          className="min-h-11 text-left underline underline-offset-2 disabled:no-underline"
+                          onClick={() => document.getElementById(inputPrefix + field.key)?.focus()}
+                        >
+                          Udfyld {field.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          ) : null}
           {selected.definition.fields.map((f) => (
             <label className="block" key={f.key}>
               {f.label}
@@ -488,6 +519,7 @@ function JobCardEditor({
               )}
               {f.type === "boolean" || f.type === "select" ? (
                 <select
+                  id={inputPrefix + f.key}
                   className={control}
                   disabled={!writable || busy}
                   value={values[f.key] == null ? "" : String(values[f.key])}
@@ -512,6 +544,7 @@ function JobCardEditor({
                 </select>
               ) : f.type === "textarea" ? (
                 <textarea
+                  id={inputPrefix + f.key}
                   className={control}
                   disabled={!writable || busy}
                   maxLength={4000}
@@ -520,6 +553,7 @@ function JobCardEditor({
                 />
               ) : (
                 <input
+                  id={inputPrefix + f.key}
                   className={control}
                   disabled={!writable || busy}
                   type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
@@ -541,16 +575,6 @@ function JobCardEditor({
               )}
             </label>
           ))}
-          {gaps.length > 0 && (
-            <div className="text-sm">
-              <p>Mangler kan gemmes og afklares senere:</p>
-              <ul>
-                {gaps.map((g) => (
-                  <li key={g}>{g}</li>
-                ))}
-              </ul>
-            </div>
-          )}
           <label className="block">
             Vurderingsstatus
             <select

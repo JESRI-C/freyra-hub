@@ -110,7 +110,14 @@ describe("job card editor", () => {
     expect(host.querySelector('input[type="number"]')?.getAttribute("value")).toBe("0");
     const selects = [...host.querySelectorAll("select")];
     expect(selects.some((s) => s.value === "false")).toBe(true);
-    expect(host.textContent).toContain("Mangler kan gemmes");
+    expect(host.textContent).toContain("Nødvendige felter udfyldt: 2 af 3");
+    expect(host.textContent).toContain("Du kan gemme en kladde");
+    const missingNote = Array.from(host.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Udfyld Faglig note",
+    );
+    expect(missingNote).toBeDefined();
+    await act(async () => missingNote?.click());
+    expect(document.activeElement?.closest("label")?.textContent).toContain("Faglig note");
   });
   it("keeps viewer forms read only", async () => {
     mocks.access.mockResolvedValue({

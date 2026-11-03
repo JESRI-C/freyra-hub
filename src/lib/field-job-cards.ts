@@ -112,18 +112,23 @@ export function validateFieldJobValues(
   return result;
 }
 
+export function missingRequiredFieldJobFields(
+  definition: FieldJobTemplateDefinition,
+  values: FieldJobValues,
+) {
+  const parsed = validateFieldJobValues(definition, values);
+  return definition.fields.filter((field) => {
+    const value = parsed[field.key];
+    return field.required && (value === undefined || value === null || value === "");
+  });
+}
+
 /** Completion gaps describe missing input, never a biological or AI confidence score. */
 export function fieldJobGaps(
   definition: FieldJobTemplateDefinition,
   values: FieldJobValues,
 ): string[] {
-  const parsed = validateFieldJobValues(definition, values);
-  return definition.fields
-    .filter((field) => {
-      const value = parsed[field.key];
-      return field.required && (value === undefined || value === null || value === "");
-    })
-    .map((field) => `Udfyld ${field.label}.`);
+  return missingRequiredFieldJobFields(definition, values).map((field) => `Udfyld ${field.label}.`);
 }
 
 const identityShape = {
