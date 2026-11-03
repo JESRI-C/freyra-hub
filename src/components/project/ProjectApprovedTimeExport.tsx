@@ -3,6 +3,13 @@ import { useRef, useState } from "react";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import {
+  materialBillingColumns,
+  materialBillingCsvRow,
+  materialBillingRefs,
+  materialBillingSchema,
+} from "@/lib/project-material-billing";
+import { MaterialBillingPreview } from "./MaterialBillingPreview";
 import { CalendarDate } from "@/lib/action-execution";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import { formatWorkOrderHours } from "@/lib/work-order-plan";
@@ -32,7 +39,13 @@ const draftSchema = z.object({
   total_ore: z.number().int().nonnegative(),
   created_at: z.string().datetime({ offset: true }),
 });
+const snapshotFields = draftFields + ",snapshot,time_ids,material_refs,material_snapshot";
 const draftSnapshotSchema = draftSchema.extend({
+  material_refs: z
+    .array(z.tuple([uuid, uuid.nullable()]))
+    .max(5000)
+    .nullable(),
+  material_snapshot: materialBillingSchema,
   snapshot: z.array(rowSchema).min(1).max(5000),
   time_ids: z.array(uuid).min(1).max(5000),
 });
@@ -53,6 +66,8 @@ export function ProjectApprovedTimeExport({
   const [through, setThrough] = useState(() => format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [rate, setRate] = useState("");
   const [rows, setRows] = useState<z.infer<typeof rowSchema>[]>();
+  const [includeMaterials, setIncludeMaterials] = useState(false);
+  const [materials, setMaterials] = useState<z.infer<typeof materialBillingSchema>>();
   const [previewPage, setPreviewPage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -91,16 +106,21 @@ export function ProjectApprovedTimeExport({
     inFlight.current = true;
     setBusy(true);
     setRows(undefined);
+    setMaterials(undefined);
     setSavedId(undefined);
     setError("");
     try {
       const client = createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
-      const { data, error: failure } = await client.rpc("get_project_approved_time_export", {
+      const params = {
         p_organization_id: scope.organizationId,
         p_project_id: scope.projectId,
         p_from: from,
         p_through: through,
-      });
+      };
+      const [{ data, error: failure }, materialResult] = await Promise.all([
+        client.rpc("get_project_approved_time_export", params),
+        includeMaterials ? client.rpc("get_project_material_billing_export", params) : null,
+      ]);
       if (failure)
         throw new Error(
           failure.code === "54000"
@@ -110,6 +130,13 @@ export function ProjectApprovedTimeExport({
       const snapshot = z.array(rowSchema).max(5000).parse(data);
       if (snapshot.some((row) => row.work_date < from || row.work_date > through))
         throw new Error("Udtrækket stemmer ikke med den valgte periode.");
+      if (materialResult?.error)
+        throw new Error(
+          materialResult.error.code === "54000"
+            ? "Udtrækket har over 5.000 materialelinjer. Vælg en kortere periode."
+            : "Materialerne kunne ikke hentes.",
+        );
+      setMaterials(materialResult ? materialBillingSchema.parse(materialResult.data) : undefined);
       setPreviewPage(0);
       setRows(snapshot);
     } catch (failure) {
@@ -127,10 +154,17 @@ export function ProjectApprovedTimeExport({
       ? null
       : rows?.reduce((sum, row) => sum + billedLineOre(row.minutes, hourlyRateOre), 0);
 
+  const combinedOre =
+    materials && totalOre != null
+      ? materials.reduce((sum, row) => sum + BigInt(row.amount_ore ?? 0), BigInt(totalOre))
+      : undefined;
+  const combinedDigits = combinedOre?.toString().padStart(3, "0");
+
   async function saveDraft() {
     if (!active || inFlight.current || !rows?.length || hourlyRateOre === null || savedId) return;
     const timeIds = rows.map((row) => row.time_id);
-    const signature = JSON.stringify([from, through, hourlyRateOre, timeIds]);
+    const materialRefs = materials ? materialBillingRefs(materials) : null;
+    const signature = JSON.stringify([from, through, hourlyRateOre, timeIds, materialRefs]);
     if (attempt.current?.signature !== signature)
       attempt.current = { id: crypto.randomUUID(), signature };
     const id = attempt.current.id;
@@ -148,13 +182,14 @@ export function ProjectApprovedTimeExport({
           date_through: through,
           rate_ore: hourlyRateOre,
           time_ids: timeIds,
+          material_refs: materialRefs,
         })
-        .select(draftFields + ",snapshot,time_ids")
+        .select(snapshotFields)
         .single();
       const recovered = result.error
         ? await db()
             .from(draftsTable)
-            .select(draftFields + ",snapshot,time_ids")
+            .select(snapshotFields)
             .eq("id", id)
             .eq("organization_id", scope.organizationId)
             .eq("project_id", scope.projectId)
@@ -168,15 +203,19 @@ export function ProjectApprovedTimeExport({
         receipt.data.date_from !== from ||
         receipt.data.date_through !== through ||
         receipt.data.rate_ore !== hourlyRateOre ||
-        JSON.stringify(receipt.data.time_ids) !== JSON.stringify(timeIds)
+        JSON.stringify(receipt.data.time_ids) !== JSON.stringify(timeIds) ||
+        JSON.stringify(receipt.data.material_refs) !== JSON.stringify(materialRefs) ||
+        JSON.stringify(materialBillingRefs(receipt.data.material_snapshot)) !==
+          JSON.stringify(materialRefs ?? [])
       ) {
         throw new Error(
           result.error?.code === "40001"
-            ? "Godkendte timer er ændret. Beregn udtrækket igen før gemning."
+            ? "Timer eller materialer er ændret. Beregn udtrækket igen før gemning."
             : "Grundlaget kunne ikke bekræftes. Prøv igen.",
         );
       }
       setRows(receipt.data.snapshot);
+      setMaterials(materialRefs ? receipt.data.material_snapshot : undefined);
       setSavedId(id);
       await drafts.refetch();
     } catch (failure) {
@@ -195,7 +234,7 @@ export function ProjectApprovedTimeExport({
     try {
       const result = await db()
         .from(draftsTable)
-        .select(draftFields + ",snapshot,time_ids")
+        .select(snapshotFields)
         .eq("id", id)
         .eq("organization_id", scope.organizationId)
         .eq("project_id", scope.projectId)
@@ -204,6 +243,8 @@ export function ProjectApprovedTimeExport({
       const saved = draftSnapshotSchema.parse(result.data);
       if (
         saved.id !== id ||
+        JSON.stringify(materialBillingRefs(saved.material_snapshot)) !==
+          JSON.stringify(saved.material_refs ?? []) ||
         JSON.stringify(saved.snapshot.map((row) => row.time_id)) !==
           JSON.stringify(saved.time_ids) ||
         saved.snapshot.reduce((sum, row) => sum + billedLineOre(row.minutes, saved.rate_ore), 0) !==
@@ -215,6 +256,8 @@ export function ProjectApprovedTimeExport({
       setRate(billingDecimal(saved.rate_ore));
       setPreviewPage(0);
       setRows(saved.snapshot);
+      setIncludeMaterials(saved.material_refs !== null);
+      setMaterials(saved.material_refs ? saved.material_snapshot : undefined);
       setSavedId(id);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Det gemte grundlag kunne ikke åbnes.");
@@ -238,31 +281,53 @@ export function ProjectApprovedTimeExport({
       "godkendt_tidspunkt",
       ...(hourlyRateOre === null ? [] : ["timesats_dkk", "belob_dkk"]),
     ];
-    const csv = buildCsv(
-      rows.map((row) => {
-        const title = row.title.replace(/[\r\n]/g, " ");
-        return {
-          projekt_id: scope.projectId,
-          opgave_id: row.action_id,
-          opgave: /^\s*[=+\-@]/.test(title) ? "'" + title : title,
-          udfoerer_id: row.actor_id,
-          dato: row.work_date,
-          minutter: row.minutes,
-          tidsversion: row.version,
-          tidsversion_id: row.time_id,
-          godkendt_af: row.approved_by,
-          godkendt_tidspunkt: row.approved_at,
-          ...(hourlyRateOre === null
-            ? {}
-            : {
-                timesats_dkk: billingDecimal(hourlyRateOre),
-                belob_dkk: billingDecimal(billedLineOre(row.minutes, hourlyRateOre)),
-              }),
-        };
-      }),
-      columns,
-    );
-    downloadCsv(csv, `freyra-godkendte-timer-${from}-${through}.csv`);
+    const timeRows = rows.map((row) => {
+      const title = row.title.replace(/[\r\n]/g, " ");
+      return {
+        projekt_id: scope.projectId,
+        opgave_id: row.action_id,
+        opgave: /^\s*[=+\-@]/.test(title) ? "'" + title : title,
+        udfoerer_id: row.actor_id,
+        dato: row.work_date,
+        minutter: row.minutes,
+        tidsversion: row.version,
+        tidsversion_id: row.time_id,
+        godkendt_af: row.approved_by,
+        godkendt_tidspunkt: row.approved_at,
+        ...(hourlyRateOre === null
+          ? {}
+          : {
+              timesats_dkk: billingDecimal(hourlyRateOre),
+              belob_dkk: billingDecimal(billedLineOre(row.minutes, hourlyRateOre)),
+            }),
+      };
+    });
+    if (materials) {
+      const combinedColumns = [
+        "linjetype",
+        ...new Set([
+          ...columns.filter((column) => column !== "belob_dkk"),
+          ...materialBillingColumns,
+        ]),
+      ];
+      const csv = buildCsv(
+        [
+          ...timeRows.map(({ belob_dkk, ...row }) => ({
+            ...row,
+            linjetype: "Timer",
+            beloeb_dkk: belob_dkk,
+          })),
+          ...materials.map((row) => ({
+            ...materialBillingCsvRow(scope.projectId, row),
+            linjetype: "Materialer",
+          })),
+        ],
+        combinedColumns,
+      );
+      downloadCsv(csv, `freyra-faktureringsgrundlag-${from}-${through}.csv`);
+    } else {
+      downloadCsv(buildCsv(timeRows, columns), `freyra-godkendte-timer-${from}-${through}.csv`);
+    }
   }
 
   return (
@@ -292,6 +357,7 @@ export function ProjectApprovedTimeExport({
               onChange={(event) => {
                 setFrom(event.target.value);
                 setRows(undefined);
+                setMaterials(undefined);
                 setSavedId(undefined);
                 setRate("");
                 setError("");
@@ -308,6 +374,7 @@ export function ProjectApprovedTimeExport({
               onChange={(event) => {
                 setThrough(event.target.value);
                 setRows(undefined);
+                setMaterials(undefined);
                 setSavedId(undefined);
                 setRate("");
                 setError("");
@@ -315,6 +382,21 @@ export function ProjectApprovedTimeExport({
             />
           </label>
         </fieldset>
+        <label className="flex min-h-11 items-center gap-2">
+          <input
+            type="checkbox"
+            checked={includeMaterials}
+            disabled={busy || !active}
+            onChange={(event) => {
+              setIncludeMaterials(event.target.checked);
+              setRows(undefined);
+              setMaterials(undefined);
+              setSavedId(undefined);
+              setError("");
+            }}
+          />
+          Medtag materialer fra samme periode
+        </label>
         <button type="submit" className={button} disabled={busy || !active}>
           {busy ? "Henter…" : "Beregn udtræk"}
         </button>
@@ -330,6 +412,20 @@ export function ProjectApprovedTimeExport({
             ? `${rows.length} ${rows.length === 1 ? "linje" : "linjer"} · ${formatWorkOrderHours(rows.reduce((sum, row) => sum + row.minutes, 0) / 60)} godkendt`
             : "Ingen aktuelt godkendte timer i perioden."}
         </p>
+      )}
+      {combinedDigits && (
+        <p className="mt-3 font-semibold">
+          Timer og prissatte materialer uden moms · {combinedDigits.slice(0, -2)},
+          {combinedDigits.slice(-2)} DKK
+        </p>
+      )}
+      {materials && (
+        <details className="mt-3 space-y-2 rounded-xl border px-3 pb-3">
+          <summary className="min-h-11 cursor-pointer py-3 font-medium">
+            Materialer i grundlaget ({materials.length})
+          </summary>
+          <MaterialBillingPreview rows={materials} />
+        </details>
       )}
       {!!rows?.length && (
         <div className="mt-3 space-y-2">

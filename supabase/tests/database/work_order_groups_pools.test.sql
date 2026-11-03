@@ -307,6 +307,20 @@ SELECT lives_ok($$INSERT INTO public.project_approved_time_drafts
  'manager can save a priced snapshot of approved time');
 SELECT is((SELECT total_ore FROM public.project_approved_time_drafts WHERE id=pg_temp.k(307)),
  62499::bigint,'database rounds the approved 75 minutes to 624.99');
+SELECT lives_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids,material_refs)
+ VALUES(pg_temp.k(340),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)],
+  (SELECT coalesce(jsonb_agg(jsonb_build_array(r.value->>'material_version_id',r.value->>'price_version_id')
+    ORDER BY r.ordinality),'[]'::jsonb) FROM jsonb_array_elements(
+      public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')
+    ) WITH ORDINALITY r(value,ordinality)))$$,'the draft freezes both exact evidence sets');
+SELECT is((SELECT material_snapshot FROM public.project_approved_time_drafts WHERE id=pg_temp.k(340)),
+ public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03'),
+ 'combined draft stores the server material snapshot');
+SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids,material_refs)
+ VALUES(pg_temp.k(341),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)],'[[null,null]]')$$,
+ '40001',NULL,'a stale material preview cannot be saved');
 SELECT ok((SELECT r.approved FROM public.list_work_order_time_for_review(
  pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'the review list shows the precise approval');
 SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
