@@ -690,7 +690,13 @@ function WorkOrders({
               timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
               canManageTime={!!access.data?.canManageAvailability}
               onEditing={onEditing}
-              initialView={scheduleActionId === actionId ? "plan" : initialView}
+              initialView={
+                timeReview?.actionId === actionId
+                  ? "execution"
+                  : scheduleActionId === actionId
+                    ? "plan"
+                    : initialView
+              }
             />
           )}
         </div>
