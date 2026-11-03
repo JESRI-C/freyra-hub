@@ -832,7 +832,8 @@ export const SKYHOST_JOB_AREAS = [
     id: "time",
     title: "Timer",
     purpose: "Aktiviteter, estimat, forbrug, rest og registreringshistorik.",
-    remaining: "Godkendelse af timer, aktivitetskategorier og faktureringsgrundlag afventer.",
+    remaining:
+      "Projektledere kan godkende en konkret tidsversion. Aktivitetskategorier og faktureringsgrundlag afventer.",
     featureIds: ["work:time", "work:project-time", "planned:time"],
     planned: false,
   },

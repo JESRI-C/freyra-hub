@@ -15,6 +15,7 @@ const rowSchema = z.object({
   version: z.number().int().positive(),
   minutes: z.number().int().min(0).max(1440),
   reason: z.string(),
+  work_order_time_approvals: z.object({ time_id: z.string().uuid() }).nullable().optional(),
 });
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full rounded-xl border bg-background px-3 text-base";
@@ -45,7 +46,7 @@ export function WorkOrderTimePanel({
   const scoped = () =>
     db()
       .from(table)
-      .select(fields)
+      .select(fields + ",work_order_time_approvals(time_id)")
       .eq("organization_id", scope.organizationId)
       .eq("project_id", scope.projectId)
       .eq("action_id", actionId)
@@ -167,6 +168,9 @@ export function WorkOrderTimePanel({
             : "Ingen tid registreret på datoen."}
         </p>
       )}
+      {time.isSuccess && latest && (
+        <p>{latest.work_order_time_approvals ? "Godkendt" : "Afventer godkendelse"}</p>
+      )}
       {!draft && canWrite && time.isSuccess && (
         <button
           type="button"
@@ -240,7 +244,9 @@ export function WorkOrderTimePanel({
           <ul className="space-y-2">
             {time.data.slice(1).map((row) => (
               <li key={row.id}>
-                Version {row.version} · {row.minutes} min.{row.reason && <p>{row.reason}</p>}
+                Version {row.version} · {row.minutes} min.
+                {row.work_order_time_approvals && <p>Godkendt</p>}
+                {row.reason && <p>{row.reason}</p>}
               </li>
             ))}
           </ul>

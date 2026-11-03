@@ -212,6 +212,12 @@ SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct wor
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
 SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(300))$$,
+ '40001',NULL,'an outdated time version cannot be approved');
+SELECT lives_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(301))$$,
+ 'the manager approves the latest field time version');
+SELECT ok((SELECT r.approved FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'the review list shows the precise approval');
 SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
   WHERE t.action_id=pg_temp.k(37)),75::bigint,'project time sums only the latest actor and day version');
 SELECT is((SELECT t.estimated_hours FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
@@ -223,11 +229,28 @@ SELECT is(public.get_work_order_time_summary(pg_temp.k(11),pg_temp.k(21),pg_temp
 SELECT throws_ok($$SELECT public.get_work_order_time_summary(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))$$,
  '42501',NULL,'the time summary rejects a mismatched organization');
 SELECT is((SELECT count(*)::integer FROM public.work_order_time_versions),2,'the manager can read both immutable time versions');
+INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(305),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-02',1,60);
+SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(305))$$,
+ '42501',NULL,'a manager cannot approve their own registration');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(306),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',3,70,'After approval')$$,
+ 'a correction may follow an approval');
+SELECT ok(EXISTS(SELECT 1 FROM public.work_order_time_approvals WHERE time_id=pg_temp.k(301)),
+ 'the performer can read the original approval');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT ok(NOT (SELECT r.approved FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'approval does not carry to a corrected version');
 SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(37) AND event_type='work_order.execution_saved'),1,'field revision and retry emit one scoped execution audit event');
 RESET ROLE;
 UPDATE public.project_members SET role='viewer' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT throws_ok($$SELECT pg_temp.field_execution()$$,'42501',NULL,'revocation also blocks a retry using a formerly authorized request');
+SELECT throws_ok($$SELECT * FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03')$$,'42501',NULL,'a field user cannot open the manager approval list');
 SELECT * FROM finish();
 ROLLBACK;

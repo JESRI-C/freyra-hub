@@ -470,3 +470,5 @@ Projektets Timer viser registreret og estimeret tid på tværs af opgaver for pr
 Stagingprøven ved 390 px fandt 75 registrerede minutter via titelsøgning, kontrollerede filteret for overskridelser og åbnede det præcise timeoverblik. Browserens lokale søgeudsnit nulstilles ved åbning og tilbagevenden fra opgaven. Appbuild `a8fdfdc`, Worker `50da968b-95f0-453d-8794-082590b754db`, migration `20261103080719`. 50 målrettede tests, typekontrol og databaseisolationsprøverne bestod.
 
 Opfølgning på timeoversigten. Søgning, filter og antal indlæste rækker bevares, når projektlederen åbner en opgave og vender tilbage til Timer. Oversigten kan opdateres fra samme visning og viser en tydelig tom tilstand ved et udvalg uden resultater.
+
+Projektledere kan godkende registreret tid under Timeoverblik på opgaven. Vælg datoen og godkend en bestemt version fra en anden udfører. Godkendelsen lagrer tidspunkt og godkender uden at ændre registreringen. Udføreren kan se status og tidligere godkendelser under Mine opgaver. En rettelse skal gennemgås særskilt, og en forældet version kan ikke godkendes. Aktivitetskategorier og faktureringsgrundlag afventer.

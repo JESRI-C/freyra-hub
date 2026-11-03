@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import { formatWorkOrderHours, WorkOrderEstimatedHoursSchema } from "@/lib/work-order-plan";
+import { WorkOrderTimeReview } from "./WorkOrderTimeReview";
 import type { ProjectScope } from "@/services/project-workspace-service";
 
 const summarySchema = z.object({
@@ -20,6 +22,7 @@ export function WorkOrderTimeSummary({
   actionId: string;
   actorId: string;
 }) {
+  const [reviewOpened, setReviewOpened] = useState(false);
   const query = useQuery({
     queryKey: ["work-order-time-summary", actorId, scope, actionId],
     retry: false,
@@ -80,6 +83,18 @@ export function WorkOrderTimeSummary({
           )}
         </dl>
       )}
+      <details
+        onToggle={(event) => {
+          if (event.currentTarget.open) setReviewOpened(true);
+        }}
+      >
+        <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium">
+          Godkend registreret tid
+        </summary>
+        {reviewOpened && (
+          <WorkOrderTimeReview scope={scope} actorId={actorId} actionId={actionId} />
+        )}
+      </details>
     </section>
   );
 }
