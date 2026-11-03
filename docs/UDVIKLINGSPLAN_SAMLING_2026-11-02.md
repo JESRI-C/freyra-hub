@@ -346,6 +346,8 @@ ikke aktiveret af denne planændring. Eget estimat følger.
 
 ### Freyra hjælper kunden undervejs
 
+Datokladden bestod stagingprøven i Chrome ved 390 px på kilde 055fe1f og Worker 4cc912fb-c39d-442c-b014-7c2d19b83928. En syntetisk forudsætning med slutdato 6. januar gav 7. januar i kladden. Planhistorikken var uændret, mens kladden var åben. Projektlederen valgte 8. januar og gemte med begrundelse. Databasen viste den valgte dato som version 2, bevaret instruktion og uændret version 1.
+
 For en gemt opgave uden startdato kan Planoversigt foreslå dagen efter den seneste planlagte slutdato blandt de opgaver, der stadig afventes. Forslaget vises, når alle de afventede opgaver er synlige, har en slutdato og ikke er aflyst, og datoen passer inden for opgavens eventuelle slutdato. Brug datoforslag udfylder startdatoen i datoformularen, hvis den gemte planversion stadig matcher forslaget. Brugeren kan justere datoen og gemmer selv med begrundelse. Bemanding og udstyr skal fortsat tjekkes. Browserprøve af datoforslaget afventes.
 
 Hjælp placeres dér, hvor kunden arbejder. Første regel i Planoversigt finder opgaver uden startdato ud fra den adgangsafgrænsede planlæsning, forklarer hvorfor de ikke er i kalenderen og åbner det relevante udsnit. Samme princip bruges senere til kapacitet, manglende feltdokumentation og afleveringsklarhed.
