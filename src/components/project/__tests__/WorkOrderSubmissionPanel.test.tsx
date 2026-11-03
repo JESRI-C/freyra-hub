@@ -40,13 +40,18 @@ import { WorkOrderSubmissionPanel } from "../WorkOrderSubmissionPanel";
 vi.mock("../WorkOrderReviewControls", () => ({
   WorkOrderReviewControls: ({
     onCreateApprovedFollowUp,
+    onOpenSubmissionVersion,
   }: {
+    onOpenSubmissionVersion?: (version: number) => void;
     onCreateApprovedFollowUp?: (packet: NonNullable<WorkOrderReviewContext["packet"]>) => void;
   }) =>
     m.approvedPacket && onCreateApprovedFollowUp ? (
-      <button onClick={() => onCreateApprovedFollowUp(m.approvedPacket!)}>
-        Forbered opfølgning
-      </button>
+      <>
+        <button onClick={() => onCreateApprovedFollowUp(m.approvedPacket!)}>
+          Forbered opfølgning
+        </button>
+        <button onClick={() => onOpenSubmissionVersion?.(1)}>Se afleveringsversion 1</button>
+      </>
     ) : null,
 }));
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
@@ -162,6 +167,9 @@ describe("submission preparation on the existing task", () => {
     await click("Vis alle afleveringsversioner");
     expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 8");
     expect(host.textContent).toContain("Forbered opfølgning");
+    await click("Se afleveringsversion 1");
+    expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 1");
+    expect(host.textContent).not.toContain("Forbered opfølgning");
   });
 
   it("shows required fields and units from each saved submission's own job card", async () => {

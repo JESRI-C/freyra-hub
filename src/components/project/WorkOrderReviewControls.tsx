@@ -43,6 +43,7 @@ export function WorkOrderReviewControls({
   active,
   onEditing,
   onPhase,
+  onOpenSubmissionVersion,
   onOpenFollowUpPlan,
   onCreateApprovedFollowUp,
 }: {
@@ -56,6 +57,7 @@ export function WorkOrderReviewControls({
   active: boolean;
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
+  onOpenSubmissionVersion?: (version: number) => void;
   onOpenFollowUpPlan?: () => void;
   onCreateApprovedFollowUp?: (packet: NonNullable<WorkOrderReviewContext["packet"]>) => void;
 }) {
@@ -161,6 +163,16 @@ export function WorkOrderReviewControls({
           work: "submission",
           submissionVersion: version,
         })}
+        onClick={(event) => {
+          if (
+            event.button === 0 &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey
+          )
+            onOpenSubmissionVersion?.(version);
+        }}
       >
         Se afleveringsversion {version}
       </Link>
