@@ -120,7 +120,7 @@ async function render(
   actorId = actor,
   actions?: Pick<
     React.ComponentProps<typeof WorkOrderStatusPanel>,
-    "onOpenPlan" | "onOpenAssignment" | "onOpenExecution"
+    "onOpenPlan" | "onOpenAssignment" | "onOpenExecution" | "onOpenSubmission"
   >,
 ) {
   await act(async () =>
@@ -187,6 +187,23 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile operation status and canonical logbook", () => {
+  it("offers the submission check when work has been confirmed performed", async () => {
+    const onOpenSubmission = vi.fn();
+    await render(actor, { onOpenSubmission });
+    expect(host.textContent).not.toContain("Kontrollér afleveringsgrundlaget");
+    m.context.mockResolvedValue({
+      ...context,
+      state: { ...state, status: "performed" },
+      basis: { ...basis, executionGaps: [] },
+    });
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ["work-order-lifecycle"] });
+    });
+    await flush();
+    await click("Kontrollér afleveringsgrundlaget");
+    expect(onOpenSubmission).toHaveBeenCalledOnce();
+    expect(m.change).not.toHaveBeenCalled();
+  });
   it("routes planning blockers to the existing plan and assignment only for a manager", async () => {
     const incomplete = {
       ...context,

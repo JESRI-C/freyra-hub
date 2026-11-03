@@ -1238,6 +1238,7 @@ function TaskWorkspace({
             suggestedStart={suggestedStart}
             onEditing={planEditing}
             onOpenExecution={() => openPartWithFocus("execution")}
+            onOpenSubmission={() => openPartWithFocus("submission")}
           />
         </div>
       )}

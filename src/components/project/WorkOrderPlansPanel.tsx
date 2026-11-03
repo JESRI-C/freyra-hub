@@ -61,6 +61,7 @@ type PlanPanelProps = {
   planSource?: WorkOrderFollowUpSource;
   onFollowUp?: (source: WorkOrderFollowUpSource) => void;
   onOpenExecution?: () => void;
+  onOpenSubmission?: () => void;
   suggestedStart?: string;
   onEditing?: (value: boolean) => void;
 };
@@ -85,6 +86,7 @@ function WorkOrderPlans({
   planSource,
   onFollowUp,
   onOpenExecution,
+  onOpenSubmission,
   suggestedStart,
   onEditing,
 }: PlanPanelProps & {
@@ -179,6 +181,7 @@ function WorkOrderPlans({
               planSource={planSource}
               onFollowUp={onFollowUp}
               onOpenExecution={onOpenExecution}
+              onOpenSubmission={onOpenSubmission}
               suggestedStart={suggestedStart}
               canBook={access.data?.canManageAvailability === true}
               onEditing={setEditing}
@@ -212,6 +215,7 @@ function PlanWorkspace({
   planSource,
   onFollowUp,
   onOpenExecution,
+  onOpenSubmission,
   suggestedStart,
   onEditing,
 }: {
@@ -227,6 +231,7 @@ function PlanWorkspace({
   planSource?: WorkOrderFollowUpSource;
   onFollowUp?: (source: WorkOrderFollowUpSource) => void;
   onOpenExecution?: () => void;
+  onOpenSubmission?: () => void;
   suggestedStart?: string;
   onEditing: (value: boolean) => void;
 }) {
@@ -883,6 +888,7 @@ function PlanWorkspace({
               actorId={actorId}
               manageNavigation={false}
               onOpenExecution={onOpenExecution}
+              onOpenSubmission={onOpenSubmission}
               onOpenPlan={
                 canPlan && history.isSuccess && !history.isFetching
                   ? () => {

@@ -37,6 +37,7 @@ type Props = {
   onOpenPlan?: () => void;
   onOpenAssignment?: () => void;
   onOpenExecution?: () => void;
+  onOpenSubmission?: () => void;
 };
 type Target = NonNullable<LifecycleRequest["targetStatus"]>;
 type StatusDraft = {
@@ -88,6 +89,7 @@ function StatusPanel({
   onOpenPlan,
   onOpenAssignment,
   onOpenExecution,
+  onOpenSubmission,
 }: Props) {
   const load = useServerFn(getProjectWorkOrderLifecycleContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
@@ -391,9 +393,16 @@ function StatusPanel({
             </p>
           )}
           {s?.status === "performed" && (
-            <p className="text-sm">
-              Udført arbejde er endnu ikke afleveret eller fagligt godkendt.
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm">
+                Under Aflevering kan du kontrollere, om dokumentationen er klar til gennemgang.
+              </p>
+              {!draft && onOpenSubmission && (
+                <button type="button" className={button} disabled={busy} onClick={onOpenSubmission}>
+                  Kontrollér afleveringsgrundlaget
+                </button>
+              )}
+            </div>
           )}
           {!!current.basis.documentationGaps.length && s?.status === "performed" && (
             <ul className="list-disc space-y-1 pl-5 text-sm">

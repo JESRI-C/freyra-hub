@@ -102,6 +102,7 @@ vi.mock("../WorkOrderPlansPanel", () => ({
       openReschedule?: boolean;
       suggestedStart?: string;
       onOpenExecution?: () => void;
+      onOpenSubmission?: () => void;
     },
   ) => (
     <>
@@ -111,6 +112,9 @@ vi.mock("../WorkOrderPlansPanel", () => ({
       {props.openReschedule && <p>Datoformularen er åben</p>}
       <button type="button" onClick={props.onOpenExecution}>
         Åbn udførelsesregistreringen
+      </button>
+      <button type="button" onClick={props.onOpenSubmission}>
+        Kontrollér afleveringsgrundlaget
       </button>
     </>
   ),
@@ -682,6 +686,10 @@ describe("one task across the project workspaces", () => {
     expect(host.querySelector('a[href*="tab=medier"]')?.getAttribute("href")).toContain(
       "round=exact-round",
     );
+    await click("Arbejdsgrundlag");
+    await click("Kontrollér afleveringsgrundlaget");
+    expect(document.activeElement?.textContent).toBe("Aflevering");
+    expect(host.querySelector('[aria-label="Aflevering"]')?.textContent).toContain("second");
   });
   it("keeps drafts mounted across views, blocks changing task, then releases the lock on cancel", async () => {
     await render("first");
