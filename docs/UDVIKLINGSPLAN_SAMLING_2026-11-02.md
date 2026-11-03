@@ -458,3 +458,5 @@ Stagingprøven gemte nul timer, viste 0,92 timers overskridelse, gemte derefter 
 ### S14 - faktisk arbejdstid på opgaven
 
 Under Mine opgaver kan en udfører registrere dagens samlede arbejdstid i minutter på sin tildelte opgave. Rettelser med årsag danner en ny version. En rettelse til nul kan bruges til at tilbageføre en fejl. Opgavens id, bruger, dato og organisation er fastholdt, og samtidige rettelser kontrolleres. De seneste 20 tidligere versioner kan læses i visningen. Samlet forbrug for projektlederen, aktiviteter og faktureringsgrundlag afventer.
+
+Stagingprøven gemte 90 minutter, rettede til 75 minutter og genåbnede begge versioner efter genindlæsning ved 390 px. Appbuild `d29357e`, Worker `5ed68751-5eb2-4757-8563-73c5c52361dc`, migration `20261103075400`. Typekontrol, 53 målrettede tests og databaseisolationsprøverne bestod.
