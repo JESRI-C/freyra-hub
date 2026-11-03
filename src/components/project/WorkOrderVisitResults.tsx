@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -189,6 +189,8 @@ export function WorkOrderVisitResults({
   const visited = ordered.filter(({ result }) => result?.outcome === "visited").length;
   const skipped = ordered.filter(({ result }) => result?.outcome === "skipped").length;
   const pending = ordered.length - visited - skipped;
+  const nextStop = ordered.find((stop) => !stop.result);
+  const stopId = useId();
   const visible = onlyPending
     ? ordered.filter((stop) => !stop.result || draft?.siteId === stop.siteId)
     : ordered;
@@ -279,6 +281,16 @@ export function WorkOrderVisitResults({
           <p role="status" className="font-medium">
             {visited} gennemført · {skipped} sprunget over · {pending} uden udfald
           </p>
+          {!historical && results.isSuccess && nextStop && (
+            <button
+              type="button"
+              className="min-h-11 rounded-lg bg-primary/5 px-3 text-left font-medium text-primary underline disabled:opacity-50"
+              disabled={!!draft || busy || disabled}
+              onClick={() => document.getElementById(stopId + nextStop.number)?.focus()}
+            >
+              Næste stop uden udfald · {nextStop.number}. {nextStop.name}
+            </button>
+          )}
           {!historical && (
             <label className="flex min-h-11 items-center gap-2">
               <input
@@ -296,7 +308,13 @@ export function WorkOrderVisitResults({
               {visible.map((stop) => {
                 const { result } = stop;
                 return (
-                  <li key={stop.siteId} value={stop.number} className="space-y-2 break-words">
+                  <li
+                    key={stop.siteId}
+                    id={stopId + stop.number}
+                    tabIndex={-1}
+                    value={stop.number}
+                    className="scroll-mt-24 space-y-2 break-words"
+                  >
                     <p className="font-medium">{stop.name}</p>
                     <p>
                       {result

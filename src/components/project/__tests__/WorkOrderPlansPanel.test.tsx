@@ -384,6 +384,12 @@ describe("work-order plan editor", () => {
     await open(false);
     const panel = host.querySelector('[aria-label="Besøgsstatus"]')!;
     expect(panel.textContent).toContain("1 gennemført · 1 sprunget over · 1 uden udfald");
+    const next = [...panel.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Næste stop uden udfald · 2. Åbent stop"),
+    );
+    expect(next).toBeTruthy();
+    await act(async () => next!.click());
+    expect(document.activeElement?.textContent).toContain("Åbent stop");
     const filter = panel.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
     await act(async () => filter.click());
     const stops = [...panel.querySelectorAll("li")];
