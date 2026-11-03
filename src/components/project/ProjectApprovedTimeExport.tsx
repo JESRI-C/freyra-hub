@@ -5,6 +5,7 @@ import { z } from "zod";
 import { CalendarDate } from "@/lib/action-execution";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import { formatWorkOrderHours } from "@/lib/work-order-plan";
+import { billedLineOre, billingDecimal, parseHourlyRateOre } from "@/lib/work-time-billing";
 import { buildCsv, downloadCsv } from "@/services/export-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
 
@@ -34,6 +35,7 @@ export function ProjectApprovedTimeExport({
 }) {
   const [from, setFrom] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [through, setThrough] = useState(() => format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [rate, setRate] = useState("");
   const [rows, setRows] = useState<z.infer<typeof rowSchema>[]>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -79,8 +81,15 @@ export function ProjectApprovedTimeExport({
     }
   }
 
+  const hourlyRateOre = parseHourlyRateOre(rate);
+  const rateInvalid = !!rate.trim() && hourlyRateOre === null;
+  const totalOre =
+    hourlyRateOre === null
+      ? null
+      : rows?.reduce((sum, row) => sum + billedLineOre(row.minutes, hourlyRateOre), 0);
+
   function download() {
-    if (!active || !rows?.length) return;
+    if (!active || !rows?.length || rateInvalid) return;
     const columns = [
       "projekt_id",
       "opgave_id",
@@ -92,6 +101,7 @@ export function ProjectApprovedTimeExport({
       "tidsversion_id",
       "godkendt_af",
       "godkendt_tidspunkt",
+      ...(hourlyRateOre === null ? [] : ["timesats_dkk", "belob_dkk"]),
     ];
     const csv = buildCsv(
       rows.map((row) => {
@@ -107,6 +117,12 @@ export function ProjectApprovedTimeExport({
           tidsversion_id: row.time_id,
           godkendt_af: row.approved_by,
           godkendt_tidspunkt: row.approved_at,
+          ...(hourlyRateOre === null
+            ? {}
+            : {
+                timesats_dkk: billingDecimal(hourlyRateOre),
+                belob_dkk: billingDecimal(billedLineOre(row.minutes, hourlyRateOre)),
+              }),
         };
       }),
       columns,
@@ -121,8 +137,7 @@ export function ProjectApprovedTimeExport({
       </summary>
       <p>
         Hent et faktureringsgrundlag for op til 31 dage. Udtrækket indeholder timer og godkendelser.
-        Satser og beløb angives særskilt. CSV-filen afspejler godkendelserne på
-        beregningstidspunktet.
+        CSV-filen afspejler godkendelserne på beregningstidspunktet.
       </p>
       <form
         className="mt-2 space-y-2"
@@ -142,6 +157,7 @@ export function ProjectApprovedTimeExport({
               onChange={(event) => {
                 setFrom(event.target.value);
                 setRows(undefined);
+                setRate("");
                 setError("");
               }}
             />
@@ -156,6 +172,7 @@ export function ProjectApprovedTimeExport({
               onChange={(event) => {
                 setThrough(event.target.value);
                 setRows(undefined);
+                setRate("");
                 setError("");
               }}
             />
@@ -173,12 +190,43 @@ export function ProjectApprovedTimeExport({
       {rows && (
         <p role="status" className="mt-2">
           {rows.length
-            ? `${rows.length} linjer · ${formatWorkOrderHours(rows.reduce((sum, row) => sum + row.minutes, 0) / 60)} godkendt`
+            ? `${rows.length} ${rows.length === 1 ? "linje" : "linjer"} · ${formatWorkOrderHours(rows.reduce((sum, row) => sum + row.minutes, 0) / 60)} godkendt`
             : "Ingen aktuelt godkendte timer i perioden."}
         </p>
       )}
       {!!rows?.length && (
-        <button type="button" className={button + " mt-2"} onClick={download}>
+        <div className="mt-3 space-y-2">
+          <label className="block">
+            Aftalt timesats i DKK (valgfri)
+            <input
+              className={control}
+              inputMode="decimal"
+              maxLength={9}
+              placeholder="Fx 500,00"
+              value={rate}
+              aria-invalid={rateInvalid || undefined}
+              onChange={(event) => setRate(event.target.value)}
+            />
+          </label>
+          <p>
+            Satsen bruges for alle linjer i dette udtræk. Beløb afrundes pr. linje. Moms og øvrige
+            tillæg indgår ikke.
+          </p>
+          {rateInvalid && <p role="alert">Angiv en sats med højst seks cifre og to decimaler.</p>}
+          {totalOre !== null && totalOre !== undefined && (
+            <p role="status" className="font-medium">
+              Samlet beløb uden moms · {billingDecimal(totalOre)} DKK
+            </p>
+          )}
+        </div>
+      )}
+      {!!rows?.length && (
+        <button
+          type="button"
+          className={button + " mt-2"}
+          disabled={rateInvalid || !active}
+          onClick={download}
+        >
           Hent CSV
         </button>
       )}

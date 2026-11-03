@@ -833,7 +833,7 @@ export const SKYHOST_JOB_AREAS = [
     title: "Timer",
     purpose: "Aktiviteter, estimat, forbrug, rest og registreringshistorik.",
     remaining:
-      "Projektledere kan godkende og eksportere timer. Aktivitetskategorier, satser og fakturakladder afventer.",
+      "Projektledere kan godkende og eksportere timer. CSV-udtrækket kan bruge én indtastet timesats. Aktivitetskategorier, gemte satser og fakturakladder afventer.",
     featureIds: ["work:time", "work:project-time", "planned:time"],
     planned: false,
   },
