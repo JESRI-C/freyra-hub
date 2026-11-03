@@ -432,3 +432,5 @@ Opfølgning på visningen. Afleveringen viser rapporten som næste skridt, og ti
 ### S13 - projektets planoversigt
 
 Under Arbejdsopgaver kan projektlederen skifte mellem Opgaveliste og Planoversigt. Den nye visning sorterer efter den senest gemte planlagte start, viser perioder og markerer opgaver uden dato. Opgaven åbner i det eksisterende Arbejdsgrundlag. Datoerne kommer fra de versionsførte planer gennem den eksisterende projekt- og opgaveadgang. Kalendervisning, kapacitet, gentagelser og afhængigheder afventer særskilt udvikling.
+
+Kalendervisningen bruger de samme gemte planer som Planoversigt. Projektlederen kan bladre mellem måneder, finde dage med planlagt arbejde og filtrere listen til en dag. Perioder vises på alle dage i perioden, også på tværs af måneder. Opgaver åbner i Arbejdsgrundlag. Kapacitet, gentagelser og opgaveafhængigheder står fortsat åbne.

@@ -1,4 +1,8 @@
 import { WORK_ORDER_PARTS, type WorkOrderView } from "@/lib/work-order-navigation";
+import { Calendar } from "@/components/ui/calendar";
+import { endOfMonth, format, startOfMonth } from "date-fns";
+import { da } from "react-day-picker/locale";
+import { labelDayButton } from "react-day-picker";
 import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -60,7 +64,10 @@ function WorkOrders({
   const cache = useQueryClient();
   const loadAccess = useServerFn(getFieldJobAccess);
   const [localActionId, setLocalAction] = useState("");
-  const [showSchedule, setShowSchedule] = useState(false);
+  const [listView, setListView] = useState<"tasks" | "schedule" | "calendar">("tasks");
+  const [month, setMonth] = useState(() => new Date());
+  const [day, setDay] = useState<Date>();
+  const showSchedule = listView !== "tasks";
   const [scheduleActionId, setScheduleActionId] = useState<string>();
   const actionId = selectedActionId ?? localActionId;
   const [editors, setEditors] = useState<Set<Part>>(() => new Set());
@@ -121,7 +128,7 @@ function WorkOrders({
     retry: false,
   });
   const dates = schedule.data;
-  const visibleActions =
+  const orderedActions =
     showSchedule && dates
       ? [...(actions.data ?? [])].sort((a, b) => {
           const startA = dates[a.id]?.start ?? "9999-99-99";
@@ -129,6 +136,18 @@ function WorkOrders({
           return startA.localeCompare(startB) || a.title.localeCompare(b.title, "da");
         })
       : actions.data;
+  const calendarKey = (date: Date) => format(date, "yyyy-MM-dd");
+  const from = calendarKey(day ?? startOfMonth(month));
+  const through = calendarKey(day ?? endOfMonth(month));
+  const visibleActions =
+    listView === "calendar"
+      ? orderedActions?.filter(({ id }) => {
+          const plan = dates?.[id];
+          return plan && plan.start <= through && (plan.end ?? plan.start) >= from;
+        })
+      : orderedActions;
+  const visibleCount = visibleActions?.length ?? 0;
+  const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
   const selected = actions.data?.find((a) => a.id === actionId);
   function select(id: string, view?: WorkOrderView) {
     if (locked) return;
@@ -247,32 +266,38 @@ function WorkOrders({
               {!actions.data.length && <p>Der er endnu ingen arbejdsopgaver i projektet.</p>}
               {!!actions.data.length && (
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Vis arbejdsopgaver">
-                  <button
-                    type="button"
-                    className={button}
-                    aria-pressed={!showSchedule}
-                    disabled={locked}
-                    onClick={() => setShowSchedule(false)}
-                  >
-                    Opgaveliste
-                  </button>
-                  <button
-                    type="button"
-                    className={button}
-                    aria-pressed={showSchedule}
-                    disabled={locked}
-                    onClick={() => setShowSchedule(true)}
-                  >
-                    Planoversigt
-                  </button>
+                  {(
+                    [
+                      ["tasks", "Opgaveliste"],
+                      ["schedule", "Planoversigt"],
+                      ["calendar", "Kalender"],
+                    ] as const
+                  ).map(([view, label]) => (
+                    <button
+                      key={view}
+                      type="button"
+                      className={
+                        button +
+                        (listView === view ? " bg-primary text-primary-foreground" : " bg-card")
+                      }
+                      aria-pressed={listView === view}
+                      disabled={locked}
+                      onClick={() => setListView(view)}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               )}
               {showSchedule && (
                 <div className="space-y-2">
-                  <h3 className="font-semibold">Planoversigt</h3>
+                  <h3 className="font-semibold">
+                    {listView === "calendar" ? "Kalender" : "Planoversigt"}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Se opgaver efter planlagt start. Åbn en opgave for at se eller ændre dens
-                    arbejdsgrundlag.
+                    {listView === "calendar"
+                      ? "Vælg en dato, eller se alle planlagte opgaver i måneden. Understregede datoer har planlagt arbejde."
+                      : "Se opgaver efter planlagt start. Åbn en opgave for at se eller ændre dens arbejdsgrundlag."}
                   </p>
                   {schedule.isPending && !!actions.data.length && (
                     <p role="status">Henter planlagte datoer…</p>
@@ -289,6 +314,52 @@ function WorkOrders({
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+              {listView === "calendar" && schedule.isSuccess && (
+                <div className="space-y-2">
+                  <Calendar
+                    mode="single"
+                    locale={da}
+                    month={month}
+                    selected={day}
+                    onMonthChange={(next) => {
+                      setMonth(next);
+                      setDay(undefined);
+                    }}
+                    onSelect={setDay}
+                    showOutsideDays={false}
+                    className="max-w-full p-1 [--cell-size:clamp(1.5rem,8vw,2.75rem)]"
+                    modifiers={{
+                      planned: (date) => {
+                        const key = calendarKey(date);
+                        return scheduledPeriods.some(
+                          (plan) => plan.start <= key && (plan.end ?? plan.start) >= key,
+                        );
+                      },
+                    }}
+                    modifiersClassNames={{
+                      planned:
+                        "[&_button]:font-semibold [&_button]:underline [&_button]:underline-offset-4",
+                    }}
+                    labels={{
+                      labelDayButton: (date, modifiers, options, lib) =>
+                        labelDayButton(date, modifiers, options, lib) +
+                        (modifiers.planned ? ", planlagt arbejde" : ""),
+                    }}
+                  />
+                  {day && (
+                    <button type="button" className={button} onClick={() => setDay(undefined)}>
+                      Vis hele måneden
+                    </button>
+                  )}
+                  <p role="status" className="text-sm">
+                    {visibleCount} {visibleCount === 1 ? "planlagt opgave" : "planlagte opgaver"}{" "}
+                    {day ? "på den valgte dato" : "i måneden"}.
+                  </p>
+                  <button type="button" className={button} onClick={() => setListView("schedule")}>
+                    Se også opgaver uden dato
+                  </button>
                 </div>
               )}
               {(!showSchedule || schedule.isSuccess) &&

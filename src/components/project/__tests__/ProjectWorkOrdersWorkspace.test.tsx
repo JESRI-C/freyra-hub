@@ -188,6 +188,32 @@ it("shows dated work ahead of undated work and opens its existing plan", async (
   expect(m.navigate).toHaveBeenCalledWith("second");
 });
 
+it("shows a task spanning the month boundary and filters it by a planned day", async () => {
+  const now = new Date();
+  const key = (date: Date) =>
+    [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+      .map((value) => String(value).padStart(2, "0"))
+      .join("-");
+  m.schedule.mockResolvedValue({
+    second: {
+      start: key(new Date(now.getFullYear(), now.getMonth(), 0)),
+      end: key(new Date(now.getFullYear(), now.getMonth(), 4)),
+    },
+  });
+  await render();
+  await click("Kalender");
+  const plannedDays = [
+    ...host.querySelectorAll<HTMLButtonElement>('button[aria-label*="planlagt arbejde"]'),
+  ];
+  expect(plannedDays).toHaveLength(4);
+  await act(async () => plannedDays[2].click());
+  expect(host.textContent).toContain("1 planlagt opgave på den valgte dato");
+  expect(host.textContent).toContain(tasks[1].title);
+  expect(host.textContent).not.toContain(tasks[0].title);
+  await click("Vis hele måneden");
+  expect(host.textContent).toContain("1 planlagt opgave i måneden");
+});
+
 describe("one task across the project workspaces", () => {
   it("moves to the next step without discarding the current plan draft", async () => {
     await render("first");
