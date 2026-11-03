@@ -19,7 +19,8 @@ vi.mock("@/lib/auth", () => ({ useAuth: () => state.auth }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: () => vi.fn() }));
 vi.mock("@/lib/report-draft.functions", () => ({ generateEvidenceReportDraft: vi.fn() }));
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: unknown }) => children,
+  Link: ({ children, search }: { children: string; search?: { task?: string; work?: string } }) =>
+    createElement("a", { "data-task": search?.task, "data-work": search?.work }, children),
   useNavigate: () => vi.fn(),
   useRouterState: () => state.search,
 }));
@@ -51,7 +52,7 @@ import { ReportWorkspace, reportSearch } from "./ReportWorkspace";
 let root: Root;
 let host: HTMLDivElement;
 const firstSection = () => host.querySelector("textarea[aria-label]")?.getAttribute("aria-label");
-async function render(mode: "new" | "builder") {
+async function render(mode: "new" | "builder" | "preview") {
   await act(async () => root.render(createElement(ReportWorkspace, { mode })));
 }
 async function editOrder() {
@@ -147,6 +148,35 @@ describe("real report editor draft hydration", () => {
     state.revisions = structuredClone(state.revisions);
     await render("builder");
     expect(firstSection()).toBe("Oversigtskort og dækning");
+  });
+  it("shows the approved basis, links to the task and enables direct PDF download", async () => {
+    state.search = { report: "report-a", version: 1 };
+    state.revisions = [
+      {
+        id: "revision-a",
+        report_id: "report-a",
+        version: 1,
+        status: "draft",
+        created_at: "2026-10-26T00:00:00Z",
+        created_by: "user-a",
+        content: {
+          ...newReportContent("Projekt A", "Organisation A", "Udførelse", "Projektleder"),
+          workOrderApproval: {
+            actionId: "task-a",
+            reviewId: "review-a",
+            submissionId: "submission-a",
+            submissionVersion: 3,
+            basisHash: "a".repeat(64),
+          },
+        },
+      },
+    ];
+    await render("preview");
+    expect(host.textContent).toContain("Godkendt afleveringsversion 3");
+    expect(host.querySelector('[data-task="task-a"][data-work="submission"]')).not.toBeNull();
+    const pdf = [...host.querySelectorAll("button")].find((b) => b.textContent === "PDF");
+    expect(pdf?.disabled).toBe(false);
+    expect(host.textContent).not.toContain("Vis kort og fotoatlas før PDF/DOCX-eksport");
   });
   it("loads a deliberately selected different report revision", async () => {
     state.search = { report: "report-a", version: 1 };

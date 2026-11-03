@@ -688,6 +688,20 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
         </Card>
       )}
       {content && mode === "preview" && <ReportPreview revision={revision} content={content} />}
+      {mode === "preview" && revision?.content.workOrderApproval && projectId && (
+        <Link
+          className={button}
+          to="/app/projects/$slug"
+          params={{ slug: projectId }}
+          search={{
+            tab: "handlinger",
+            task: revision.content.workOrderApproval.actionId,
+            work: "submission",
+          }}
+        >
+          Åbn opgavens aflevering og originalfotos
+        </Link>
+      )}
       {revision && (mode === "approval" || mode === "preview") && (
         <Card className="p-5 space-y-3">
           <h2 className="font-semibold">Eksportér gemt version {revision.version}</h2>
@@ -717,31 +731,40 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               Hent PDF og kildepakke fra denne version
             </button>
           )}
-          <p className="text-sm">
-            Kladder mærkes tydeligt. Filen genereres fra den valgte gemte version og får en
-            SHA-256-checksum. Fotoatlas medtager JPEG/PNG-originaler med verificeret checksum. Andre
-            formater medtages kun som referencer. Oversigtskortet bruger OpenStreetMap. Hvis
-            kortfelter ikke kan hentes, vises det tydeligt i kortbilaget. Faktisk fotodækning og
-            officielle naturbindinger er ikke dokumenteret af GPS-punkterne.
-          </p>
-          <button
-            className={button}
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                setImagesReady(false);
-                const next = await buildReportImages(revision);
-                setImages(next);
-                setAssetRevisionId(revision.id);
-                setImagesReady(true);
-                setMessage(
-                  "Kort- og fotovisning er klar. PDF/DOCX genbruger denne visning uden at hente nye kortfelter.",
-                );
-              })
-            }
-          >
-            Vis kort og fotoatlas før PDF/DOCX-eksport
-          </button>
+          {revision.content.workOrderApproval ? (
+            <p className="text-sm">
+              Eksporten indeholder den gemte rapport med originalernes referencer og kontrolsummer.
+              Brug linket til opgaven for at åbne originalfotos.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm">
+                Kladder mærkes tydeligt. Filen genereres fra den valgte gemte version og får en
+                SHA-256-checksum. Fotoatlas medtager JPEG/PNG-originaler med verificeret checksum.
+                Andre formater medtages kun som referencer. Oversigtskortet bruger OpenStreetMap.
+                Hvis kortfelter ikke kan hentes, vises det tydeligt i kortbilaget. Faktisk
+                fotodækning og officielle naturbindinger er ikke dokumenteret af GPS-punkterne.
+              </p>
+              <button
+                className={button}
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    setImagesReady(false);
+                    const next = await buildReportImages(revision);
+                    setImages(next);
+                    setAssetRevisionId(revision.id);
+                    setImagesReady(true);
+                    setMessage(
+                      "Kort- og fotovisning er klar. PDF/DOCX genbruger denne visning uden at hente nye kortfelter.",
+                    );
+                  })
+                }
+              >
+                Vis kort og fotoatlas før PDF/DOCX-eksport
+              </button>
+            </>
+          )}
           {assetRevisionId === revision.id &&
             imageUrls.map((url, i) => (
               <figure key={images[i]?.id} className="border rounded-lg p-3">
@@ -756,7 +779,8 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 className={button}
                 disabled={
                   busy ||
-                  ((format === "pdf" || format === "docx") &&
+                  (!revision.content.workOrderApproval &&
+                    (format === "pdf" || format === "docx") &&
                     (!imagesReady || assetRevisionId !== revision.id))
                 }
                 onClick={() =>
@@ -785,7 +809,7 @@ function ReportPreview({
   revision?: ReportRevision;
 }) {
   return (
-    <Card className="p-8 max-w-4xl mx-auto space-y-6">
+    <Card className="mx-auto max-w-4xl space-y-6 p-4 sm:p-8">
       <header>
         <div className="text-primary font-bold">FREYRA</div>
         <h1 className="text-2xl font-semibold mt-3">{content.title}</h1>
@@ -794,20 +818,29 @@ function ReportPreview({
           {revision?.status === "approved" ? "Godkendt" : "KLADDE - ikke godkendt"} · Version{" "}
           {revision?.version ?? "ikke gemt"}
         </p>
-        <p>Scope: {content.scope}</p>
+        <p>Omfang · {content.scope}</p>
+        {content.workOrderApproval && (
+          <p className="text-sm">
+            Grundlag · Godkendt afleveringsversion {content.workOrderApproval.submissionVersion}
+          </p>
+        )}
       </header>
       {content.sections.map((s) => (
         <section key={s.id}>
           <h2 className="font-semibold text-lg">{s.title}</h2>
           <p className="text-xs text-muted-foreground">{BASIS_LABELS[s.basis]}</p>
-          <p className="whitespace-pre-wrap mt-2">{s.text || "Grundlaget er ikke dokumenteret."}</p>
-          <p className="text-xs mt-2">Kilder: {s.sourceIds.join(", ") || "Ingen"}</p>
+          <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere]">
+            {s.text || "Grundlaget er ikke dokumenteret."}
+          </p>
+          <p className="mt-2 text-xs [overflow-wrap:anywhere]">
+            Kilder: {s.sourceIds.join(", ") || "Ingen"}
+          </p>
         </section>
       ))}
       <section>
         <h2 className="font-semibold text-lg">Kilderegister</h2>
         {content.sources.map((s) => (
-          <p key={s.id} className="text-sm mt-2">
+          <p key={s.id} className="mt-2 text-sm [overflow-wrap:anywhere]">
             {s.id}: {s.title} · {s.method} · version {s.version} · GPS{" "}
             {s.position?.join(", ") ?? "mangler"} · SHA-256 {s.checksum ?? "ikke dokumenteret"}
           </p>

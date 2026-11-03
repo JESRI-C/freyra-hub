@@ -108,26 +108,16 @@ export function WorkOrderReviewControls({
   useEffect(() => {
     if (authorized) onPhase(phase);
   }, [authorized, phase, onPhase]);
-  async function openReport() {
-    if (
-      !authorized ||
-      !canCreateReport ||
-      !c?.packet ||
-      c.state?.status !== "approved" ||
-      c.state.operation !== "review" ||
-      disabledByParent ||
-      locked ||
-      inFlight.current
-    )
-      return;
+  async function openReport(reviewId: string, submissionId: string) {
+    if (!authorized || !canCreateReport || disabledByParent || locked || inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
     try {
       const result = await saveApprovedWorkOrderReport({
         ...scope,
-        submissionId: c.packet.id,
-        reviewId: c.state.id,
+        submissionId,
+        reviewId,
       });
       if (alive.current) setReport(result);
       await cache.invalidateQueries({ queryKey: ["report-documents"] });
@@ -138,6 +128,32 @@ export function WorkOrderReviewControls({
       inFlight.current = false;
       if (alive.current) setBusy(false);
     }
+  }
+  const currentApproval =
+    c?.state?.status === "approved" && c.state.operation === "review" ? c.state : undefined;
+
+  function reportAction(reviewId: string, submissionId: string, version: number) {
+    if (report?.content.workOrderApproval?.reviewId === reviewId) {
+      return (
+        <Link
+          className={button + " inline-flex items-center"}
+          to="/app/reports/preview"
+          search={{ report: report.report_id, version: report.version }}
+        >
+          Åbn den gemte rapport
+        </Link>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className={button}
+        disabled={locked || disabledByParent || query.isFetching}
+        onClick={() => void openReport(reviewId, submissionId)}
+      >
+        Hent rapport for afleveringsversion {version}
+      </button>
+    );
   }
   function start(action: WorkOrderReviewAction) {
     if (!authorized || !c?.packet || disabledByParent || locked) return;
@@ -333,32 +349,16 @@ export function WorkOrderReviewControls({
               )}
             </div>
           )}
-          {canCreateReport &&
-            !draft &&
-            c?.state?.status === "approved" &&
-            c.state.operation === "review" && (
-              <div className="space-y-2">
-                <p className="text-sm">
-                  Brug den godkendte aflevering som grundlag for en projektrapport.
-                </p>
-                <button
-                  type="button"
-                  className={button}
-                  disabled={locked || disabledByParent || query.isFetching}
-                  onClick={() => void openReport()}
-                >
-                  Hent rapport for afleveringsversion {c.packet?.version}
-                </button>
-                {report && report.content.workOrderApproval?.reviewId === c.state.id && (
-                  <Link
-                    to="/app/reports/preview"
-                    search={{ report: report.report_id, version: report.version }}
-                  >
-                    Åbn den gemte rapport
-                  </Link>
-                )}
-              </div>
-            )}
+          {canCreateReport && !draft && currentApproval && c?.packet && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <h4 className="font-medium">Næste skridt · Projektrapport</h4>
+              <p className="text-sm">
+                Åbn en rapportkladde med den godkendte udførelse og dokumentation. Du kan derefter
+                hente PDF fra den gemte rapport.
+              </p>
+              {reportAction(currentApproval.id, c.packet.id, c.packet.version)}
+            </div>
+          )}
           {!!c?.recent_reviews.length && (
             <div className="space-y-2">
               <h4 className="font-medium">Seneste faglige gennemgange</h4>
@@ -375,6 +375,19 @@ export function WorkOrderReviewControls({
                     </p>
                     <p className="whitespace-pre-wrap">{entry.state.reason}</p>
                     <p>Omfang: Registreret udførelse og vedlagt dokumentation.</p>
+                    {canCreateReport &&
+                      !draft &&
+                      entry.state.status === "approved" &&
+                      entry.state.id !== currentApproval?.id &&
+                      entry.state.submission_version_id && (
+                        <div className="mt-2">
+                          {reportAction(
+                            entry.state.id,
+                            entry.state.submission_version_id,
+                            entry.submission_version,
+                          )}
+                        </div>
+                      )}
                   </li>
                 ))}
               </ol>

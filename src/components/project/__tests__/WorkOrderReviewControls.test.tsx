@@ -205,3 +205,35 @@ it("opens the saved report on exactly the approved packet and review", async () 
     `/app/reports/preview?report=${id(21)}&version=1`,
   );
 });
+
+it("opens the historical approval after the task has been reopened", async () => {
+  const c = reviewContext();
+  m.context.mockResolvedValue({
+    ...c,
+    state: { ...c.state, status: "reopened" },
+    recent_reviews: [
+      {
+        state: {
+          ...c.state,
+          id: id(22),
+          status: "approved",
+          operation: "review",
+          submission_version_id: id(23),
+        },
+        submission_version: 1,
+      },
+    ],
+  });
+  m.saveReport.mockResolvedValue({
+    report_id: id(24),
+    version: 1,
+    content: { workOrderApproval: { reviewId: id(22) } },
+  });
+  await render({ canCreateReport: true });
+  await click("Hent rapport for afleveringsversion 1");
+  expect(m.saveReport).toHaveBeenCalledWith({
+    ...scope,
+    submissionId: id(23),
+    reviewId: id(22),
+  });
+});
