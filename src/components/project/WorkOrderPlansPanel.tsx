@@ -20,6 +20,7 @@ import {
 import { listFieldJobActions, type listFieldJobSchedule } from "@/services/field-job-cards-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
+import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
 import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderVisitMap } from "./WorkOrderVisitMap";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
@@ -152,6 +153,7 @@ function WorkOrderPlans({
                 access.data?.canConfigure === true &&
                 !access.isFetching
               }
+              canBook={access.data?.canManageAvailability === true}
               onEditing={setEditing}
             />
           )}
@@ -176,6 +178,7 @@ function PlanWorkspace({
   actionId,
   title,
   canPlan,
+  canBook,
   onEditing,
 }: {
   scope: ProjectScope;
@@ -183,6 +186,7 @@ function PlanWorkspace({
   actionId: string;
   title: string;
   canPlan: boolean;
+  canBook: boolean;
   onEditing: (value: boolean) => void;
 }) {
   const load = useServerFn(getProjectWorkOrderPlanHistory),
@@ -195,6 +199,7 @@ function PlanWorkspace({
     retry: false,
   });
   const members = useWorkOrderPeople(scope, actorId);
+  const [bookingEditing, setBookingEditing] = useState(false);
   const [historicalVisits, setHistoricalVisits] = useState<string>();
   const [visitMapOpen, setVisitMapOpen] = useState(false);
   const sites = useQuery({
@@ -443,7 +448,11 @@ function PlanWorkspace({
                   type="button"
                   className={button}
                   disabled={
-                    history.isFetching || accessEditing || assignmentEditing || lifecycleEditing
+                    history.isFetching ||
+                    accessEditing ||
+                    assignmentEditing ||
+                    lifecycleEditing ||
+                    bookingEditing
                   }
                   onClick={() => open(true)}
                 >
@@ -454,7 +463,11 @@ function PlanWorkspace({
                 type="button"
                 className={button}
                 disabled={
-                  history.isFetching || accessEditing || assignmentEditing || lifecycleEditing
+                  history.isFetching ||
+                  accessEditing ||
+                  assignmentEditing ||
+                  lifecycleEditing ||
+                  bookingEditing
                 }
                 onClick={() => open()}
               >
@@ -470,7 +483,24 @@ function PlanWorkspace({
         </>
       )}
       <MoreWorkOrderPeople query={members} />
-      {latest && !draft && !assignmentEditing && !lifecycleEditing && (
+      {latest && canBook && (
+        <WorkOrderEquipmentBooking
+          scope={scope}
+          actorId={actorId}
+          actionId={actionId}
+          plannedStart={latest.plan.plannedStart}
+          plannedEnd={latest.plan.plannedEnd}
+          disabled={
+            !!draft || accessEditing || assignmentEditing || lifecycleEditing || history.isError
+          }
+          onEditing={(value) => {
+            setBookingEditing(value);
+            if (!draft && !accessEditing && !assignmentEditing && !lifecycleEditing)
+              onEditing(value);
+          }}
+        />
+      )}
+      {latest && !draft && !bookingEditing && !assignmentEditing && !lifecycleEditing && (
         <WorkOrderAccessPanel
           scope={{ ...scope, actionId }}
           actorId={actorId}
@@ -481,7 +511,7 @@ function PlanWorkspace({
           }}
         />
       )}
-      {latest && !draft && !accessEditing && !lifecycleEditing && (
+      {latest && !draft && !bookingEditing && !accessEditing && !lifecycleEditing && (
         <WorkOrderAssignmentPanel
           scope={{ ...scope, actionId }}
           actorId={actorId}
@@ -494,7 +524,7 @@ function PlanWorkspace({
           }}
         />
       )}
-      {latest && !draft && !accessEditing && !assignmentEditing && (
+      {latest && !draft && !bookingEditing && !accessEditing && !assignmentEditing && (
         <WorkOrderStatusPanel
           scope={{ ...scope, actionId }}
           actorId={actorId}

@@ -233,5 +233,32 @@ SELECT throws_ok($$SELECT pg_temp.execution_save(3,86,pg_temp.execution(),1,'',3
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
 SELECT is((SELECT count(*)::integer FROM public.work_order_execution_bindings),0,'another tenant cannot enumerate execution bindings');
 SELECT throws_ok($$SELECT * FROM public.get_work_order_execution_binding(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(81))$$,'42501',NULL,'another tenant cannot fetch by guessed execution reference');
+RESET ROLE;
+INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(22),pg_temp.k(2),'project_manager');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$INSERT INTO public.organization_work_equipment(id,organization_id,source_project_id,name,kind)
+ VALUES(pg_temp.k(370),pg_temp.k(11),pg_temp.k(21),'Synthetic equipment','machine')$$,
+ 'manager can register organization equipment');
+CREATE FUNCTION pg_temp.book(r integer, task integer, project integer, starts date, ends date)
+RETURNS uuid LANGUAGE sql AS $$
+ SELECT public.reserve_work_order_equipment(pg_temp.k(r),pg_temp.k(11),pg_temp.k(project),pg_temp.k(task),pg_temp.k(370),starts,ends);
+$$;
+SELECT lives_ok($$SELECT pg_temp.book(372,31,21,'2026-11-12','2026-11-13')$$,'equipment can be reserved on the task');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT lives_ok($$SELECT pg_temp.save(0,371,pg_temp.plan(),36,11,22)$$,'initialize work order in another project');
+SELECT is((SELECT count(*) FROM public.work_order_equipment_bookings),0::bigint,'other project booking details are hidden');
+SELECT throws_ok($$SELECT pg_temp.book(373,36,22,'2026-11-13','2026-11-14')$$,
+ '23P01','Equipment is already reserved in this period','cross-project conflict returns only a generic error');
+SELECT lives_ok($$SELECT pg_temp.book(374,36,22,'2026-11-14','2026-11-14')$$,'the following day is available');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+UPDATE public.work_order_equipment_bookings SET cancelled_at=now() WHERE id=pg_temp.k(372);
+SELECT is((SELECT cancelled_by FROM public.work_order_equipment_bookings WHERE id=pg_temp.k(372)),pg_temp.k(1),
+ 'cancellation records the actor and retains the booking');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT lives_ok($$SELECT pg_temp.book(373,36,22,'2026-11-12','2026-11-13')$$,'cancellation releases the reserved dates');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT is((SELECT count(*) FROM public.organization_work_equipment),0::bigint,'foreign tenant cannot see organization equipment');
+SELECT is((SELECT count(*) FROM public.work_order_equipment_bookings),0::bigint,'foreign tenant cannot see reservations');
 SELECT * FROM finish();
 ROLLBACK;
