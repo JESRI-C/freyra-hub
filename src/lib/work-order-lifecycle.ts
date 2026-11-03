@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { CalendarDate } from "./action-execution";
+import { WorkOrderActionIdSchema } from "./work-order-access";
+const actionId = WorkOrderActionIdSchema.transform((value) => value.toLowerCase());
 const uuid = z
   .string()
   .uuid()
@@ -76,7 +78,7 @@ const gap = z.enum(
   ],
 );
 const scope = z
-  .object({ actionId: uuid, organizationId: uuid, projectId: uuid, expectedActorId: uuid })
+  .object({ actionId, organizationId: uuid, projectId: uuid, expectedActorId: uuid })
   .strict();
 const references = {
   planVersionId: uuid.nullable(),
@@ -160,7 +162,7 @@ export const MutateWorkOrderLifecycleSchema = scope
   .strict();
 const rowIdentity = {
   id: uuid,
-  action_id: uuid,
+  action_id: actionId,
   organization_id: uuid,
   project_id: uuid,
   version: z.number().int().positive(),
@@ -285,7 +287,7 @@ export const WorkOrderLifecycleBasisSchema = z
   });
 export const GetWorkOrderLifecycleSchema = scope;
 export const WorkOrderLifecycleContextSchema = z.object({
-  action_id: uuid,
+  action_id: actionId,
   organization_id: uuid,
   project_id: uuid,
   user_id: uuid,
@@ -382,7 +384,7 @@ export const WorkOrderLogEntrySchema = z
       "work_order.note_saved",
       "work_order.group_saved",
     ]),
-    source_id: uuid,
+    source_id: actionId,
     source_version: z.number().int().positive().nullable(),
     origin: z.enum(["system", "manual"]),
     audit_recorded: z.boolean(),
@@ -438,6 +440,7 @@ export const WorkOrderLogEntrySchema = z
     };
     if (
       v.key !== `${v.kind === "created" ? "root" : v.kind}:${v.source_id}` ||
+      (v.kind !== "created" && !uuid.safeParse(v.source_id).success) ||
       !types[v.kind].includes(v.event_type) ||
       (v.source_version === null) !== (v.kind === "created") ||
       (v.origin === "manual") !== (v.kind === "note")
@@ -458,7 +461,7 @@ export const WorkOrderLogEntrySchema = z
   });
 export type WorkOrderLogEntry = z.infer<typeof WorkOrderLogEntrySchema>;
 export const WorkOrderLogPageSchema = z.object({
-  action_id: uuid,
+  action_id: actionId,
   organization_id: uuid,
   project_id: uuid,
   user_id: uuid,
