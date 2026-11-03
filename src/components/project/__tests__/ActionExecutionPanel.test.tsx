@@ -96,11 +96,16 @@ async function flush() {
     await new Promise((resolve) => setTimeout(resolve, 15));
   });
 }
-async function render(canEdit = true) {
+async function render(canEdit = true, onOpenStatus?: () => void) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
-        <ActionExecutionPanel scope={scope} canEdit={canEdit} />
+        <ActionExecutionPanel
+          scope={scope}
+          canEdit={canEdit}
+          selectedActionId={onOpenStatus ? actionId : undefined}
+          onOpenStatus={onOpenStatus}
+        />
       </QueryClientProvider>,
     ),
   );
@@ -212,6 +217,22 @@ describe("existing actual-execution editor bound to work-order plan", () => {
       planVersionId: plan.id,
       expectedPlanVersion: 2,
     });
+  });
+  it("offers the same task's status step after confirmed execution has been saved", async () => {
+    const onOpenStatus = vi.fn();
+    m.saveBound.mockResolvedValue({ version: 2 });
+    await render(true, onOpenStatus);
+    const find = (label: string) =>
+      [...host.querySelectorAll("button")].find((button) => button.textContent === label);
+    const label = "Gå til arbejdsgrundlag og status";
+    expect(find(label)).toBeUndefined();
+    await act(async () => find("Åbn udførelsesregistrering")!.click());
+    await flush();
+    await correction("Synthetic completion");
+    await save();
+    expect(host.textContent).toContain("Udførelsesregistrering gemt som version 2.");
+    await act(async () => find(label)!.click());
+    expect(onOpenStatus).toHaveBeenCalledOnce();
   });
   it("shows planned week 39 beside actual week 41 and saves through the existing workspace binding", async () => {
     await render();

@@ -1278,6 +1278,7 @@ function TaskWorkspace({
             selectedRoundId={round}
             selectedActionId={actionId}
             onEditing={executionEditing}
+            onOpenStatus={() => openPartWithFocus("plan")}
           />
         </div>
       )}

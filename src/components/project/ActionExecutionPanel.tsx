@@ -40,6 +40,7 @@ type ExecutionPanelProps = {
   selectedRoundId?: string;
   selectedActionId?: string;
   onEditing?: (value: boolean) => void;
+  onOpenStatus?: () => void;
 };
 export function ActionExecutionPanel(props: ExecutionPanelProps) {
   const { user } = useAuth();
@@ -61,6 +62,7 @@ function ExecutionPanel({
   actorName,
   selectedActionId,
   onEditing,
+  onOpenStatus,
 }: ExecutionPanelProps & { actorId?: string; actorName?: string }) {
   const cache = useQueryClient();
   const loadContext = useServerFn(loadProjectWorkOrderExecutionContext),
@@ -83,6 +85,7 @@ function ExecutionPanel({
   const [newTitle, setNewTitle] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [savedPerformedActionId, setSavedPerformedActionId] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [context, setContext] = useState<{
     plan: WorkOrderPlanVersion | null;
@@ -168,6 +171,7 @@ function ExecutionPanel({
     setBusy(true);
     setError("");
     setMessage("");
+    setSavedPerformedActionId(undefined);
     try {
       const performer = scopedFieldEdit ? actorId : performedById;
       const execution = ActionExecutionSchema.parse(
@@ -216,6 +220,9 @@ function ExecutionPanel({
       ]);
       setDraft(null);
       setActionId("");
+      if (context.plan && execution.stage === "performed") {
+        setSavedPerformedActionId(execution.actionId);
+      }
       setMessage(
         "Udførelsesregistrering gemt som version " +
           saved.version +
@@ -660,7 +667,22 @@ function ExecutionPanel({
         </details>
       )}
       {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
+      {message && (
+        <div className="space-y-2">
+          <p role="status">{message}</p>
+          {!draft &&
+            savedPerformedActionId &&
+            savedPerformedActionId === selectedActionId &&
+            onOpenStatus && (
+              <>
+                <p className="text-sm">Kontrollér derefter, om opgaven kan markeres som udført.</p>
+                <Button type="button" variant="outline" className="min-h-11" onClick={onOpenStatus}>
+                  Gå til arbejdsgrundlag og status
+                </Button>
+              </>
+            )}
+        </div>
+      )}
     </section>
   );
 }
