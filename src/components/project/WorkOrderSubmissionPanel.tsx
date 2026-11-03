@@ -3,6 +3,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker } from "@tanstack/react-router";
 import {
+  getProjectWorkOrderReviewContext,
   getProjectWorkOrderSubmissionContext,
   listProjectWorkOrderSubmissions,
   saveProjectWorkOrderSubmission,
@@ -61,6 +62,7 @@ export function WorkOrderSubmissionPanel({
 }) {
   const cache = useQueryClient();
   const contextFn = useServerFn(getProjectWorkOrderSubmissionContext);
+  const reviewContextFn = useServerFn(getProjectWorkOrderReviewContext);
   const historyFn = useServerFn(listProjectWorkOrderSubmissions);
   const saveFn = useServerFn(saveProjectWorkOrderSubmission);
   const originalFn = useServerFn(getProjectWorkOrderEvidenceOriginal);
@@ -116,6 +118,29 @@ export function WorkOrderSubmissionPanel({
     c.organization_id === scope.organizationId;
   const [showAllForVersion, setShowAllForVersion] = useState<number>();
   const selectedVersion = showAllForVersion === requestedVersion ? undefined : requestedVersion;
+  const canFollowUpFromSavedVersion =
+    authorized && !!selectedVersion && canCreateReport && !readOnly && !!onFollowUp;
+  const savedReviewContext = useQuery({
+    queryKey: [...key, "review-context"],
+    queryFn: () => reviewContextFn({ data: task }),
+    enabled: canFollowUpFromSavedVersion && active,
+    retry: false,
+    refetchOnWindowFocus: !locked,
+    refetchOnReconnect: !locked,
+  });
+  const savedReview = savedReviewContext.data;
+  const savedApproval =
+    canFollowUpFromSavedVersion &&
+    !savedReviewContext.isError &&
+    savedReview?.user_id === actorId &&
+    savedReview.action_id === actionId &&
+    savedReview.organization_id === scope.organizationId &&
+    savedReview.project_id === scope.projectId
+      ? savedReview.recent_reviews.find(
+          (entry) =>
+            entry.submission_version === selectedVersion && entry.state.status === "approved",
+        )
+      : undefined;
   const writable = authorized && !!c?.can_prepare && !readOnly && !selectedVersion;
   const history = useInfiniteQuery({
     queryKey: [...key, "history", selectedVersion],
@@ -435,6 +460,23 @@ export function WorkOrderSubmissionPanel({
                 <p className="text-sm text-muted-foreground">
                   Gemt {new Date(row.created_at).toLocaleString("da-DK")} · Fastholdt grundlag
                 </p>
+                {savedApproval?.state.submission_version_id === row.id &&
+                  savedApproval.state.plan_version_id === row.plan_version_id && (
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={locked || context.isFetching || savedReviewContext.isFetching}
+                      onClick={() =>
+                        void prepareFollowUp({
+                          id: row.id,
+                          version: row.version,
+                          plan_version_id: row.plan_version_id,
+                        })
+                      }
+                    >
+                      Opret opfølgning fra denne aflevering
+                    </button>
+                  )}
                 <p className="whitespace-pre-wrap text-sm">{row.note}</p>
                 <p className="text-sm">
                   Planversion {row.snapshot.plan.version} · udførelsesversion{" "}
