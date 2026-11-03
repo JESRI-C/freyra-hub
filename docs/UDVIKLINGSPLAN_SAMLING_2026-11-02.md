@@ -542,3 +542,5 @@ Et rettet stop viser Tidligere udfald med status, version, tidspunkt og begrunde
 I Chrome ved 390 px åbnede projektlederen et stoppes rettede og oprindelige udfald. Efter gemning af en ny planversion fandt projektlederen begge udfald på den tidligere plan, med tidspunkt på den oprindelige registrering. Kilde `98d0f4a`, Worker `41588dcd-35fa-493c-b62b-113ca4ef48a8`. Typekontrol, staging-build, 18 målrettede tests og [begge CI-job](https://github.com/JESRI-C/freyra-hub/actions/runs/41616577490) bestod.
 
 Besøgsstatus viser antal gennemførte og oversprungne stop samt antal uden udfald for den viste planversion. På den aktuelle plan kan udfører og projektleder filtrere til stop uden udfald. Listen beholder stopnumrene fra arbejdsgrundlaget, også når mellemliggende stop er skjult.
+
+I Chrome ved 390 px filtrerede en tildelt udfører til stop uden udfald, registrerede et stop som sprunget over og så tællerne opdatere. Stoppet forsvandt fra det filtrerede udvalg. Filteret var stadig valgt, og stopnummeret var bevaret, da hele listen blev vist igen. Kilde `ebbca11`, Worker `3b284b73-d2d7-48d2-bd67-c124f4091d9a`. Staging-build og 19 målrettede tests bestod.
