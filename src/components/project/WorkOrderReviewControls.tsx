@@ -12,7 +12,11 @@ import {
   type WorkOrderStatus,
 } from "@/lib/work-order-lifecycle";
 import { WorkOrderRequestError, type WorkOrderScope } from "@/lib/work-order-access";
-import type { WorkOrderReviewAction, WorkOrderReviewContext } from "@/lib/work-order-review";
+import type {
+  ApprovedFollowUpBasis,
+  WorkOrderReviewAction,
+  WorkOrderReviewContext,
+} from "@/lib/work-order-review";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
 const button = "min-h-11 rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -59,7 +63,7 @@ export function WorkOrderReviewControls({
   onPhase: (phase: WorkOrderStatus | undefined) => void;
   onOpenSubmissionVersion?: (version: number) => void;
   onOpenFollowUpPlan?: () => void;
-  onCreateApprovedFollowUp?: (packet: NonNullable<WorkOrderReviewContext["packet"]>) => void;
+  onCreateApprovedFollowUp?: (packet: ApprovedFollowUpBasis) => void;
 }) {
   const load = useServerFn(getProjectWorkOrderReviewContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
@@ -466,6 +470,27 @@ export function WorkOrderReviewControls({
                     <p className="whitespace-pre-wrap">{entry.state.reason}</p>
                     <p>Omfang: Registreret udførelse og vedlagt dokumentation.</p>
                     {!locked && !disabledByParent && submissionLink(entry.submission_version)}
+                    {onCreateApprovedFollowUp &&
+                      !locked &&
+                      entry.state.status === "approved" &&
+                      entry.state.id !== currentApproval?.id &&
+                      entry.state.submission_version_id &&
+                      entry.state.plan_version_id && (
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={disabledByParent || query.isFetching}
+                          onClick={() =>
+                            onCreateApprovedFollowUp({
+                              id: entry.state.submission_version_id!,
+                              version: entry.submission_version,
+                              plan_version_id: entry.state.plan_version_id!,
+                            })
+                          }
+                        >
+                          Opret opfølgning fra afleveringsversion {entry.submission_version}
+                        </button>
+                      )}
                     {canCreateReport &&
                       !draft &&
                       entry.state.status === "approved" &&

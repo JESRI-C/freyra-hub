@@ -249,6 +249,7 @@ it("opens the saved report on exactly the approved packet and review", async () 
 
 it("opens the historical approval after the task has been reopened", async () => {
   const c = reviewContext();
+  const createFollowUp = vi.fn();
   m.context.mockResolvedValue({
     ...c,
     state: { ...c.state, status: "reopened" },
@@ -260,6 +261,7 @@ it("opens the historical approval after the task has been reopened", async () =>
           status: "approved",
           operation: "review",
           submission_version_id: id(23),
+          plan_version_id: id(25),
         },
         submission_version: 1,
       },
@@ -270,7 +272,9 @@ it("opens the historical approval after the task has been reopened", async () =>
     version: 1,
     content: { workOrderApproval: { reviewId: id(22) } },
   });
-  await render({ canCreateReport: true });
+  await render({ canCreateReport: true, onCreateApprovedFollowUp: createFollowUp });
+  await click("Opret opfølgning fra afleveringsversion 1");
+  expect(createFollowUp).toHaveBeenCalledWith({ id: id(23), version: 1, plan_version_id: id(25) });
   const historicalLink = [...host.querySelectorAll("a")].find(
     (link) => link.textContent === "Se afleveringsversion 1",
   );

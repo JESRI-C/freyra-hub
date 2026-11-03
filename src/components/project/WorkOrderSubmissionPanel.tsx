@@ -206,7 +206,7 @@ export function WorkOrderSubmissionPanel({
       if (alive.current) setOpening(false);
     }
   }
-  async function prepareFollowUp(packet: NonNullable<WorkOrderReviewContext["packet"]>) {
+  async function prepareFollowUp(packet: ApprovedFollowUpBasis) {
     if (!authorized || locked || !active || !onFollowUp || inFlight.current) return;
     inFlight.current = true;
     setOpening(true);
@@ -545,4 +545,4 @@ export function WorkOrderSubmissionPanel({
   );
 }
 import type { WorkOrderFollowUpSource } from "@/lib/work-order-plan";
-import type { WorkOrderReviewContext } from "@/lib/work-order-review";
+import type { ApprovedFollowUpBasis } from "@/lib/work-order-review";
