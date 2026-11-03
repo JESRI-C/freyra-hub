@@ -7,11 +7,16 @@ const m = vi.hoisted(() => ({
   access: vi.fn(),
   actions: vi.fn(),
   schedule: vi.fn(),
+  time: vi.fn(),
   create: vi.fn(),
   blocker: vi.fn(),
   navigate: vi.fn(),
   actor: "actor" as string | null,
 }));
+vi.mock("@/lib/supabase/client", () => ({
+  createActorBoundSupabaseClient: () => ({ rpc: () => ({ abortSignal: m.time }) }),
+}));
+vi.mock("../WorkOrderTimeSummary", () => ({ WorkOrderTimeSummary: () => null }));
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: m.actor ? { id: m.actor } : null }) }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({
@@ -313,6 +318,41 @@ it("opens the calendar directly when the project link specifies it", async () =>
   await render(undefined, true, false, undefined, "calendar");
   expect(host.querySelector('button[aria-pressed="true"]')?.textContent).toBe("Kalender");
   expect(m.schedule).toHaveBeenCalledWith(scope);
+});
+it("keeps the time search and overrun filter when returning from an opened task", async () => {
+  const id = "00000000-0000-4000-8000-000000000012";
+  m.actions.mockResolvedValue([{ id, title: "Syntetisk tidsprøve", status: null }]);
+  m.access.mockResolvedValue({
+    userId: "actor",
+    projectId: "project",
+    canConfigure: true,
+    canManageAvailability: true,
+  });
+  m.time.mockResolvedValue({
+    error: null,
+    data: [
+      { action_id: id, title: "Syntetisk tidsprøve", minutes: 120, entries: 1, estimated_hours: 1 },
+    ],
+  });
+  await render();
+  await click("Timer");
+  const search = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+  const filter = host.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
+      search,
+      "tidsprøve",
+    );
+    search.dispatchEvent(new Event("input", { bubbles: true }));
+    filter.click();
+  });
+  const row = [...host.querySelectorAll("button")].find((b) =>
+    b.textContent?.includes("Syntetisk tidsprøve"),
+  )!;
+  await act(async () => row.click());
+  await click("Tilbage til timer");
+  expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("tidsprøve");
+  expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
 });
 describe("one task across the project workspaces", () => {
   it("moves to the next step without discarding the current plan draft", async () => {

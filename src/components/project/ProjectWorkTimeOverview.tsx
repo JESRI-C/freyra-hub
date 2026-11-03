@@ -21,11 +21,13 @@ export function ProjectWorkTimeOverview({
   scope,
   actorId,
   locked,
+  active,
   onOpen,
 }: {
   scope: ProjectScope;
   actorId: string;
   locked: boolean;
+  active: boolean;
   onOpen: (actionId: string) => void;
 }) {
   const [search, setSearch] = useState("");
@@ -34,6 +36,7 @@ export function ProjectWorkTimeOverview({
   const query = useQuery({
     queryKey: ["project-work-time", actorId, scope],
     retry: false,
+    enabled: active,
     queryFn: async ({ signal }) => {
       const client = createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
       const rows: z.infer<typeof rowSchema>[] = [];
@@ -66,7 +69,19 @@ export function ProjectWorkTimeOverview({
   const estimated = visible.filter((row) => row.estimated_hours !== null);
   return (
     <section aria-label="Projektets timer" className="space-y-3 rounded-xl border bg-card p-4">
-      <h3 className="font-semibold">Projektets timer</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold">Projektets timer</h3>
+        {query.isSuccess && (
+          <button
+            type="button"
+            className={button}
+            disabled={query.isFetching}
+            onClick={() => void query.refetch()}
+          >
+            {query.isFetching ? "Henter timer…" : "Opdater timer"}
+          </button>
+        )}
+      </div>
       <p className="text-sm text-muted-foreground">
         Estimat og senest registreret tid for hver opgave. Åbn en opgave for at se dens
         timeoverblik.
@@ -129,6 +144,7 @@ export function ProjectWorkTimeOverview({
             {visible.length} opgaver · {visible.length - recorded.length} uden registrering ·{" "}
             {visible.length - estimated.length} uden estimat
           </p>
+          {!visible.length && <p className="text-sm">Ingen opgaver matcher dit udvalg.</p>}
           <ul className="space-y-2">
             {visible.slice(0, limit).map((row) => (
               <li key={row.action_id}>

@@ -383,17 +383,9 @@ function WorkOrders({
                     ))}
                 </div>
               )}
-              {listView === "time" &&
-                (actorId && access.data?.canManageAvailability ? (
-                  <ProjectWorkTimeOverview
-                    scope={scope}
-                    actorId={actorId}
-                    locked={locked}
-                    onOpen={(id) => select(id, "execution")}
-                  />
-                ) : (
-                  <p>Projektets timer kræver projektlederadgang.</p>
-                ))}
+              {listView === "time" && !access.data?.canManageAvailability && (
+                <p>Projektets timer kræver projektlederadgang.</p>
+              )}
               {listView !== "calendar" && listView !== "time" && !!actions.data.length && (
                 <label className="block text-sm font-medium">
                   Find opgave
@@ -619,6 +611,17 @@ function WorkOrders({
                     Vis flere opgaver · {taskLimit} af {visibleCount}
                   </button>
                 )}
+            </div>
+          )}
+          {listView === "time" && actorId && authorized && access.data?.canManageAvailability && (
+            <div hidden={!!actionId}>
+              <ProjectWorkTimeOverview
+                scope={scope}
+                actorId={actorId}
+                locked={locked}
+                active={!actionId}
+                onOpen={(id) => select(id, "execution")}
+              />
             </div>
           )}
           {!creating && canEdit && access.data?.canConfigure && (
