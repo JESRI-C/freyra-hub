@@ -48,6 +48,8 @@ type Props = {
   initialView?: WorkOrderView;
   submissionVersion?: number;
   initialListView?: WorkOrderListView;
+  reviewOnly?: boolean;
+  onReviewOnly?: (value: boolean) => void;
   onListView?: (view: WorkOrderListView) => void;
 };
 export type { WorkOrderView } from "@/lib/work-order-navigation";
@@ -81,6 +83,8 @@ function WorkOrders({
   submissionVersion,
   initialListView,
   onListView,
+  reviewOnly,
+  onReviewOnly,
 }: Props & { actorId?: string }) {
   const cache = useQueryClient();
   const loadAccess = useServerFn(getFieldJobAccess);
@@ -97,7 +101,8 @@ function WorkOrders({
   const [availabilityEditing, setAvailabilityEditing] = useState(false);
   const [onlyUndated, setOnlyUndated] = useState(false);
   const [onlyWaiting, setOnlyWaiting] = useState(false);
-  const [onlyReviewAttention, setOnlyReviewAttention] = useState(false);
+  const [localReviewOnly, setLocalReviewOnly] = useState(false);
+  const onlyReviewAttention = reviewOnly ?? localReviewOnly;
   const [overlapFilterDate, setOverlapFilterDate] = useState<string>();
   const [taskSearch, setTaskSearch] = useState("");
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
@@ -624,7 +629,8 @@ function WorkOrders({
                         checked={onlyReviewAttention}
                         disabled={locked}
                         onChange={(event) => {
-                          setOnlyReviewAttention(event.target.checked);
+                          setLocalReviewOnly(event.target.checked);
+                          onReviewOnly?.(event.target.checked);
                           setTaskLimit(taskPageSize);
                         }}
                       />
@@ -818,7 +824,13 @@ function WorkOrders({
                 usesTaskList &&
                 (!showSchedule || schedule.isSuccess) &&
                 !!actions.data.length &&
-                !visibleCount && <p role="status">Ingen opgaver matcher dit udvalg.</p>}
+                !visibleCount && (
+                  <p role="status">
+                    {showSchedule && onlyReviewAttention
+                      ? "Ingen afleveringer til gennemgang eller rettelse matcher dit udvalg."
+                      : "Ingen opgaver matcher dit udvalg."}
+                  </p>
+                )}
               {showSchedule && schedule.isSuccess && visibleCount > 0 && (
                 <p className="text-sm text-muted-foreground">
                   {listView === "calendar"
