@@ -110,6 +110,8 @@ export function WorkOrderTimePanel({
         row.data.minutes !== minutes ||
         row.data.reason !== reason
       ) {
+        if (result.error?.code === "PT409")
+          throw new Error("Opgaven er aflyst. Du kan stadig se tidligere timer.");
         if (result.error?.code === "40001" || result.error?.code === "23505")
           throw new Error(
             "Tiden er ændret. Fortryd, og hent den nyeste registrering før en rettelse.",

@@ -236,12 +236,15 @@ export function WorkOrderMaterials({
         ? await client.from(table).select().match(payload).eq("actor_id", actorId).maybeSingle()
         : result;
       const receipt = rowSchema.safeParse(recovered.data);
-      if (!receipt.success || receipt.data.id !== id || receipt.data.actor_id !== actorId)
+      if (!receipt.success || receipt.data.id !== id || receipt.data.actor_id !== actorId) {
+        if (result.error?.code === "PT409")
+          throw new Error("Opgaven er aflyst. Du kan stadig se tidligere materialeforbrug.");
         throw new Error(
           result.error?.code === "40001" || result.error?.code === "23505"
             ? "Registreringen er ændret. Fortryd og hent den nyeste version."
             : "Registreringen kunne ikke bekræftes. Prøv igen.",
         );
+      }
       setDraft(undefined);
       attempt.current = null;
       setMessage("Materialeforbrug gemt.");

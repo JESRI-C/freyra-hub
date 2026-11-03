@@ -702,3 +702,5 @@ Databaseisolation bestod på en frisk database. En stagingprøve brugte den norm
 En ny udførelsesversion kan ikke gemmes efter aflysning, heller ikke fra en tidligere åbnet fane. Kontrollen kører under opgavelåsen. Afvisning ruller den tilhørende arbejdsrumsrevision tilbage. En identisk genafsendelse kan fortsat hente en registrering, der allerede var gemt inden aflysningen.
 
 Databaseprøven på en frisk database bekræftede en gemt udførelsesversion før aflysning, afvisning af en ny version efter aflysning og genlæsning af den oprindelige kvittering. På staging afviste den normale udførelsesfunktion et gyldigt forsøg på det aflyste syntetiske besøg. Ingen arbejdsrumsrevision blev oprettet. Første stagingprobe manglede kildeangivelse og blev korrigeret, før aflysningskontrollen blev verificeret. Kilde f4056a3 og stagingmigration 20261103145545.
+
+Nye timer og materialer på aflyste opgaver afvises under opgavelåsen. Også nye rettelsesversioner afvises. Tidligere poster bevares, og en identisk genafsendelse kan læse sin oprindelige kvittering. Appen viser en konkret aflysningsbesked, hvis en postering fra en ældre visning afvises.

@@ -218,12 +218,32 @@ SELECT pg_temp.change(34,0,662,'transition','draft');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT lives_ok($$SELECT pg_temp.execution(0,663,'Synthetic actual before cancellation','limited',34)$$,
  'assigned worker can save actual work before cancellation');
+INSERT INTO public.work_order_time_versions(id,action_id,organization_id,project_id,work_date,minutes,version)
+ VALUES(pg_temp.k(666),pg_temp.k(34),pg_temp.k(11),pg_temp.k(21),'2026-10-08',45,1);
+INSERT INTO public.work_order_material_versions(id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version)
+ VALUES(pg_temp.k(667),pg_temp.k(667),pg_temp.k(34),pg_temp.k(11),pg_temp.k(21),'Synthetic material','stk',1000,1);
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT lives_ok($$SELECT pg_temp.change(34,1,664,'transition','cancelled','{"reason":"Synthetic early cancellation"}')$$,
  'cancellation preserves the preceding execution record');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT throws_ok($$SELECT pg_temp.execution(1,665,'Synthetic stale tab save','limited',34)$$,
  'PT409','A cancelled work order cannot record execution','cancelled task rejects a new execution revision');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions(id,action_id,organization_id,project_id,work_date,minutes,version)
+ VALUES(pg_temp.k(668),pg_temp.k(34),pg_temp.k(11),pg_temp.k(21),'2026-10-09',30,1)$$,
+ 'PT409','A cancelled work order cannot record time or materials','cancelled task rejects new time');
+SELECT throws_ok($$INSERT INTO public.work_order_material_versions(id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version)
+ VALUES(pg_temp.k(669),pg_temp.k(669),pg_temp.k(34),pg_temp.k(11),pg_temp.k(21),'Synthetic new material','stk',2000,1)$$,
+ 'PT409','A cancelled work order cannot record time or materials','cancelled task rejects new material');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions(id,action_id,organization_id,project_id,work_date,minutes,version,reason)
+ VALUES(pg_temp.k(670),pg_temp.k(34),pg_temp.k(11),pg_temp.k(21),'2026-10-08',35,2,'Synthetic stale revision')$$,
+ 'PT409',NULL,'cancelled task rejects a new time revision');
+SELECT throws_ok($$INSERT INTO public.work_order_material_versions(id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,reason)
+ VALUES(pg_temp.k(671),pg_temp.k(667),pg_temp.k(34),pg_temp.k(11),pg_temp.k(21),'Synthetic material','stk',2000,2,'Synthetic stale revision')$$,
+ 'PT409',NULL,'cancelled task rejects a new material revision');
+SELECT is((SELECT minutes FROM public.work_order_time_versions WHERE action_id=pg_temp.k(34)),45,
+ 'field worker can still read the original time after cancellation');
+SELECT is((SELECT quantity_milli FROM public.work_order_material_versions WHERE action_id=pg_temp.k(34)),1000,
+ 'field worker can still read the original material after cancellation');
 SELECT is(pg_temp.execution(0,663,'Synthetic actual before cancellation','limited',34),
  (SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(34) AND version=1),
  'identical retry recovers the previously saved record after cancellation');
