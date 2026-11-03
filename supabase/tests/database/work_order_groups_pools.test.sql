@@ -220,6 +220,12 @@ SELECT is((public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'
  75,'export contains the current approved time only');
 SELECT throws_ok($$SELECT public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-10-01','2026-11-03')$$,
  '22023',NULL,'export rejects unbounded periods');
+SELECT lives_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids)
+ VALUES(pg_temp.k(307),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)])$$,
+ 'manager can save a priced snapshot of approved time');
+SELECT is((SELECT total_ore FROM public.project_approved_time_drafts WHERE id=pg_temp.k(307)),
+ 62499::bigint,'database rounds the approved 75 minutes to 624.99');
 SELECT ok((SELECT r.approved FROM public.list_work_order_time_for_review(
  pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'the review list shows the precise approval');
 SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
@@ -248,6 +254,12 @@ SELECT ok(EXISTS(SELECT 1 FROM public.work_order_time_approvals WHERE time_id=pg
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT is(public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03'),
  '[]'::jsonb,'the approved older version is excluded after an unapproved correction');
+SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids)
+ VALUES(pg_temp.k(308),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)])$$,
+ '40001',NULL,'a saved draft cannot be created from superseded approval');
+SELECT is((SELECT snapshot->0->>'time_id' FROM public.project_approved_time_drafts WHERE id=pg_temp.k(307)),
+ pg_temp.k(301)::text,'the previously saved draft retains the precise time version');
 SELECT ok(NOT (SELECT r.approved FROM public.list_work_order_time_for_review(
  pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'approval does not carry to a corrected version');
 SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(37) AND event_type='work_order.execution_saved'),1,'field revision and retry emit one scoped execution audit event');

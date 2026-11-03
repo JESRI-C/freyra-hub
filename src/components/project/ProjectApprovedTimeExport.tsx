@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { endOfMonth, format, startOfMonth } from "date-fns";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -21,6 +22,20 @@ const rowSchema = z.object({
   approved_by: uuid,
   approved_at: z.string().datetime({ offset: true }),
 });
+const draftsTable = "project_approved_time_drafts";
+const draftFields = "id,date_from,date_through,rate_ore,total_ore,created_at";
+const draftSchema = z.object({
+  id: uuid,
+  date_from: CalendarDate,
+  date_through: CalendarDate,
+  rate_ore: z.number().int().min(0).max(99999999),
+  total_ore: z.number().int().nonnegative(),
+  created_at: z.string().datetime({ offset: true }),
+});
+const draftSnapshotSchema = draftSchema.extend({
+  snapshot: z.array(rowSchema).min(1).max(5000),
+  time_ids: z.array(uuid).min(1).max(5000),
+});
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full rounded-xl border bg-background px-2 text-base";
 
@@ -40,6 +55,26 @@ export function ProjectApprovedTimeExport({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const inFlight = useRef(false);
+  const [savedId, setSavedId] = useState<string>();
+  const attempt = useRef<{ id: string; signature: string } | null>(null);
+  const db = () => createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
+  const drafts = useQuery({
+    queryKey: ["approved-time-drafts", actorId, scope],
+    enabled: active,
+    retry: false,
+    queryFn: async () => {
+      const result = await db()
+        .from(draftsTable)
+        .select(draftFields)
+        .eq("organization_id", scope.organizationId)
+        .eq("project_id", scope.projectId)
+        .order("created_at", { ascending: false })
+        .order("id")
+        .limit(20);
+      if (result.error) throw new Error("Gemte grundlag kunne ikke hentes.");
+      return z.array(draftSchema).parse(result.data);
+    },
+  });
   async function load() {
     if (!active || inFlight.current) return;
     if (
@@ -54,6 +89,7 @@ export function ProjectApprovedTimeExport({
     inFlight.current = true;
     setBusy(true);
     setRows(undefined);
+    setSavedId(undefined);
     setError("");
     try {
       const client = createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
@@ -88,6 +124,101 @@ export function ProjectApprovedTimeExport({
       ? null
       : rows?.reduce((sum, row) => sum + billedLineOre(row.minutes, hourlyRateOre), 0);
 
+  async function saveDraft() {
+    if (!active || inFlight.current || !rows?.length || hourlyRateOre === null || savedId) return;
+    const timeIds = rows.map((row) => row.time_id);
+    const signature = JSON.stringify([from, through, hourlyRateOre, timeIds]);
+    if (attempt.current?.signature !== signature)
+      attempt.current = { id: crypto.randomUUID(), signature };
+    const id = attempt.current.id;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await db()
+        .from(draftsTable)
+        .insert({
+          id,
+          organization_id: scope.organizationId,
+          project_id: scope.projectId,
+          date_from: from,
+          date_through: through,
+          rate_ore: hourlyRateOre,
+          time_ids: timeIds,
+        })
+        .select(draftFields + ",snapshot,time_ids")
+        .single();
+      const recovered = result.error
+        ? await db()
+            .from(draftsTable)
+            .select(draftFields + ",snapshot,time_ids")
+            .eq("id", id)
+            .eq("organization_id", scope.organizationId)
+            .eq("project_id", scope.projectId)
+            .maybeSingle()
+        : result;
+      const receipt = draftSnapshotSchema.safeParse(recovered.data);
+      if (
+        !receipt.success ||
+        receipt.data.id !== id ||
+        receipt.data.total_ore !== totalOre ||
+        receipt.data.date_from !== from ||
+        receipt.data.date_through !== through ||
+        receipt.data.rate_ore !== hourlyRateOre ||
+        JSON.stringify(receipt.data.time_ids) !== JSON.stringify(timeIds)
+      ) {
+        throw new Error(
+          result.error?.code === "40001"
+            ? "Godkendte timer er ændret. Beregn udtrækket igen før gemning."
+            : "Grundlaget kunne ikke bekræftes. Prøv igen.",
+        );
+      }
+      setRows(receipt.data.snapshot);
+      setSavedId(id);
+      await drafts.refetch();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Grundlaget kunne ikke gemmes.");
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function openDraft(id: string) {
+    if (!active || inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await db()
+        .from(draftsTable)
+        .select(draftFields + ",snapshot,time_ids")
+        .eq("id", id)
+        .eq("organization_id", scope.organizationId)
+        .eq("project_id", scope.projectId)
+        .single();
+      if (result.error) throw new Error("Det gemte grundlag kunne ikke åbnes.");
+      const saved = draftSnapshotSchema.parse(result.data);
+      if (
+        saved.id !== id ||
+        JSON.stringify(saved.snapshot.map((row) => row.time_id)) !==
+          JSON.stringify(saved.time_ids) ||
+        saved.snapshot.reduce((sum, row) => sum + billedLineOre(row.minutes, saved.rate_ore), 0) !==
+          saved.total_ore
+      )
+        throw new Error("Det gemte grundlag kunne ikke kontrolleres.");
+      setFrom(saved.date_from);
+      setThrough(saved.date_through);
+      setRate(billingDecimal(saved.rate_ore));
+      setRows(saved.snapshot);
+      setSavedId(id);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Det gemte grundlag kunne ikke åbnes.");
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
   function download() {
     if (!active || !rows?.length || rateInvalid) return;
     const columns = [
@@ -157,6 +288,7 @@ export function ProjectApprovedTimeExport({
               onChange={(event) => {
                 setFrom(event.target.value);
                 setRows(undefined);
+                setSavedId(undefined);
                 setRate("");
                 setError("");
               }}
@@ -172,6 +304,7 @@ export function ProjectApprovedTimeExport({
               onChange={(event) => {
                 setThrough(event.target.value);
                 setRows(undefined);
+                setSavedId(undefined);
                 setRate("");
                 setError("");
               }}
@@ -205,6 +338,7 @@ export function ProjectApprovedTimeExport({
               placeholder="Fx 500,00"
               value={rate}
               aria-invalid={rateInvalid || undefined}
+              disabled={busy || !!savedId}
               onChange={(event) => setRate(event.target.value)}
             />
           </label>
@@ -230,6 +364,48 @@ export function ProjectApprovedTimeExport({
           Hent CSV
         </button>
       )}
+      {!!rows?.length && hourlyRateOre !== null && !savedId && (
+        <button
+          type="button"
+          className={button + " mt-2"}
+          disabled={busy || !active}
+          onClick={() => void saveDraft()}
+        >
+          Gem faktureringsgrundlag
+        </button>
+      )}
+      {savedId && (
+        <p role="status" className="mt-2 font-medium">
+          Gemt faktureringsgrundlag
+        </p>
+      )}
+      <div className="mt-3 space-y-2 border-t pt-3">
+        <h4 className="font-semibold">Seneste 20 gemte grundlag</h4>
+        {drafts.isError && (
+          <button
+            type="button"
+            className={button}
+            disabled={!active}
+            onClick={() => void drafts.refetch()}
+          >
+            Hent gemte grundlag igen
+          </button>
+        )}
+        {drafts.isSuccess && !drafts.data.length && <p>Der er endnu ingen gemte grundlag.</p>}
+        {drafts.data?.map((draft) => (
+          <button
+            key={draft.id}
+            type="button"
+            className={button + " block"}
+            disabled={busy || !active}
+            onClick={() => void openDraft(draft.id)}
+          >
+            Åbn grundlag · {draft.date_from} til {draft.date_through} ·{" "}
+            {billingDecimal(draft.total_ore)} DKK ·{" "}
+            {new Date(draft.created_at).toLocaleString("da-DK")}
+          </button>
+        ))}
+      </div>
     </details>
   );
 }
