@@ -34,6 +34,8 @@ type Props = {
   actorId: string;
   onEditing?: (value: boolean) => void;
   manageNavigation?: boolean;
+  onOpenPlan?: () => void;
+  onOpenAssignment?: () => void;
 };
 type Target = NonNullable<LifecycleRequest["targetStatus"]>;
 type StatusDraft = {
@@ -77,7 +79,14 @@ export function WorkOrderStatusPanel(props: Props) {
     />
   );
 }
-function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Props) {
+function StatusPanel({
+  scope,
+  actorId,
+  onEditing,
+  manageNavigation = true,
+  onOpenPlan,
+  onOpenAssignment,
+}: Props) {
   const load = useServerFn(getProjectWorkOrderLifecycleContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
     loadLog = useServerFn(getProjectWorkOrderLog),
@@ -471,11 +480,32 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
             </div>
           )}
           {!draft && canNext && !!nextGaps.length && (
-            <ul className="list-disc space-y-1 pl-5 text-sm">
-              {nextGaps.map((g) => (
-                <li key={g}>{g}</li>
-              ))}
-            </ul>
+            <div className="space-y-2">
+              <ul className="list-disc space-y-1 pl-5 text-sm">
+                {nextGaps.map((g) => (
+                  <li key={g}>{g}</li>
+                ))}
+              </ul>
+              {current.can_manage && (
+                <div className="flex flex-wrap gap-2">
+                  {!!current.basis.planGaps.length && onOpenPlan && (
+                    <button type="button" className={button} disabled={busy} onClick={onOpenPlan}>
+                      Ret arbejdsplanen
+                    </button>
+                  )}
+                  {next !== "planned" && !current.basis.assignmentValid && onOpenAssignment && (
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={busy}
+                      onClick={onOpenAssignment}
+                    >
+                      Kontrollér arbejdsfordelingen
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </>
       )}

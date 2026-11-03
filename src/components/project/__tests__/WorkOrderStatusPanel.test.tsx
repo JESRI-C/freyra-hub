@@ -116,11 +116,17 @@ async function flush() {
     await new Promise((r) => setTimeout(r, 15));
   });
 }
-async function render(actorId = actor) {
+async function render(
+  actorId = actor,
+  actions?: Pick<
+    React.ComponentProps<typeof WorkOrderStatusPanel>,
+    "onOpenPlan" | "onOpenAssignment"
+  >,
+) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
-        <WorkOrderStatusPanel scope={scope} actorId={actorId} onEditing={m.editing} />
+        <WorkOrderStatusPanel scope={scope} actorId={actorId} onEditing={m.editing} {...actions} />
       </QueryClientProvider>,
     ),
   );
@@ -181,6 +187,31 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile operation status and canonical logbook", () => {
+  it("routes planning blockers to the existing plan and assignment only for a manager", async () => {
+    const incomplete = {
+      ...context,
+      basis: { ...basis, planGaps: ["instructions_missing"], assignmentValid: false },
+    };
+    m.context.mockResolvedValue(incomplete);
+    const onOpenPlan = vi.fn();
+    const onOpenAssignment = vi.fn();
+    await render(actor, { onOpenPlan, onOpenAssignment });
+    await click("Ret arbejdsplanen");
+    await click("Kontrollér arbejdsfordelingen");
+    expect(onOpenPlan).toHaveBeenCalledOnce();
+    expect(onOpenAssignment).toHaveBeenCalledOnce();
+    m.context.mockResolvedValue({ ...incomplete, can_manage: false });
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ["work-order-lifecycle"] });
+    });
+    await flush();
+    expect(host.textContent).not.toContain("Ret arbejdsplanen");
+    expect(
+      [...host.querySelectorAll("button")].some(
+        (button) => button.textContent === "Kontrollér arbejdsfordelingen",
+      ),
+    ).toBe(false);
+  });
   it("starts with an unknown actual time and requires an explicit source", async () => {
     await render();
     await click("Registrer start");

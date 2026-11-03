@@ -494,6 +494,13 @@ function PlanWorkspace({
   const gaps = draft ? workOrderPlanGaps(draft) : [];
   const assignmentSection = useRef<HTMLDivElement>(null);
   const statusSection = useRef<HTMLDivElement>(null);
+  const planDraftHeading = useRef<HTMLLegendElement>(null);
+  const focusPlanDraft = useRef(false);
+  useEffect(() => {
+    if (!draft || !focusPlanDraft.current) return;
+    focusPlanDraft.current = false;
+    planDraftHeading.current?.focus();
+  }, [draft]);
   const showAssignment =
     latest && !draft && !seriesSaving && !bookingEditing && !accessEditing && !lifecycleEditing;
   const draftStart = draft?.plannedStart;
@@ -870,6 +877,19 @@ function PlanWorkspace({
               scope={{ ...scope, actionId }}
               actorId={actorId}
               manageNavigation={false}
+              onOpenPlan={
+                canPlan && history.isSuccess && !history.isFetching
+                  ? () => {
+                      focusPlanDraft.current = true;
+                      open();
+                    }
+                  : undefined
+              }
+              onOpenAssignment={
+                canPlan && showAssignment && !lifecycleEditing
+                  ? () => assignmentSection.current?.focus()
+                  : undefined
+              }
               onEditing={(value) => {
                 setLifecycleEditing(value);
                 onEditing(value);
@@ -886,7 +906,7 @@ function PlanWorkspace({
           }}
         >
           <fieldset className="min-w-0 space-y-3" disabled={busy || !canPlan}>
-            <legend className="font-medium">
+            <legend ref={planDraftHeading} tabIndex={-1} className="font-medium">
               {datesOnly ? "Omplanlæg datoer" : base ? `Rediger plan version ${base}` : "Ny plan"}
             </legend>
             {datesOnly ? (
