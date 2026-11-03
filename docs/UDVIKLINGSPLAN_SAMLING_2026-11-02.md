@@ -715,6 +715,8 @@ RES-opfølgning på telefonens kø. Gennemgangen af køens tæller viste, at kla
 
 ### Ældre opgaver i planoversigt og kalender
 
+Stagingprøve på kilde 7ec3b38 og Worker a6ec7958-2ff6-4db3-9506-41d93ef79482. Planoversigt og kalender åbnede på det syntetiske projekt. Direkte link til den ældre gentagne opgave viste gemt instruktion, planversion 1 og oprettelseshændelsen i logbogen. Chrome ved 1280, 390 og 320 px viste arbejdsgrundlaget uden vandret overflow eller JavaScript-sidefejl. Første prøve fandt teksten i skærmbilledet, men testens tekstmatch krævede en tekst uden den viste etiket. Efter rettelse af tekstmatchet bestod prøven. Der blev ikke ændret opgavedata. Redigering, feltsynkronisering og aflevering på selve den ældre opgave afventes.
+
 Udførelse, dokumentationskoblinger, aflevering, faglig gennemgang og rapportens opgavereference accepterer det gemte opgave-id. Den logiske arbejdsrumsreference kan arve samme id. En lokal afleveringsprøve kontrollerer det ældre id gennem de fastholdte kilder. Foto-, adgangs- og versionskontroller ligger fortsat i det eksisterende forløb. Samlet stagingprøve af denne kombination afventes.
 
 Feltregistrering læser og sender jobkortversioner med det ældre opgave-id. Den samme reference accepteres i telefonens arbejdspakke og kladdekø. Lokale prøver dækker historik, gemmekald og køens krav om matchende kvittering før næste version. Staging og fysisk telefon afventes.
