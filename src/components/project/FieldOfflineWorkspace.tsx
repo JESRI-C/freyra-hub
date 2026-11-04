@@ -456,20 +456,6 @@ export function FieldOfflineWorkspace({
       </section>
       {store && actor && pack && (
         <>
-          <OfflinePhotos
-            key={actor + projectId}
-            actorId={actor}
-            pack={pack}
-            store={store}
-            ready={shellReady && !jobDirty && !busy}
-            onSaved={() =>
-              void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
-            }
-            onBusy={(value) => {
-              if (actorRef.current === actor && projectRef.current === projectId)
-                setPhotoBusy(value);
-            }}
-          />
           {queueReady ? (
             <OfflineJobs
               disabled={busy || photoBusy || !shellReady}
@@ -490,6 +476,22 @@ export function FieldOfflineWorkspace({
           ) : (
             <p role="status">Henter gemte feltkladder…</p>
           )}
+          <OfflinePhotos
+            key={actor + projectId}
+            actorId={actor}
+            pack={pack}
+            job={selectedJob}
+            taskUnavailable={!!selectedActionId && !selectedJob}
+            store={store}
+            ready={shellReady && !jobDirty && !busy}
+            onSaved={() =>
+              void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
+            }
+            onBusy={(value) => {
+              if (actorRef.current === actor && projectRef.current === projectId)
+                setPhotoBusy(value);
+            }}
+          />
           <section className={card} aria-label="Telefonens feltkø">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-semibold">
@@ -556,6 +558,9 @@ export function FieldOfflineWorkspace({
                   )}
                   {item.kind === "photo" && (
                     <p className="text-xs text-muted-foreground">
+                      {item.payload.workOrder
+                        ? `Opgave: ${pack.jobs.find((job) => job.actionId === item.payload.workOrder?.actionId)?.title ?? item.payload.workOrder.actionId} · `
+                        : "Sagsfoto · "}
                       {bytes(item.originalBytes)} ·{" "}
                       {item.payload.capture.originalPosition
                         ? "Original GPS er bevaret"
@@ -639,6 +644,8 @@ export function FieldOfflineWorkspace({
 function OfflinePhotos({
   actorId,
   pack,
+  job,
+  taskUnavailable,
   store,
   ready,
   onSaved,
@@ -646,6 +653,8 @@ function OfflinePhotos({
 }: {
   actorId: string;
   pack: FieldWorkPack;
+  job?: FieldWorkPack["jobs"][number];
+  taskUnavailable: boolean;
   store: FieldOfflineStore;
   ready: boolean;
   onSaved: () => void;
@@ -656,6 +665,12 @@ function OfflinePhotos({
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const [unsaved, setUnsaved] = useState<File[]>([]);
+  const [target, setTarget] = useState<"task" | "project">("task");
+  const taskPhoto = !!job && target === "task";
+  const canCapture =
+    ready &&
+    (!taskUnavailable || target === "project") &&
+    (!taskPhoto || job.photoCaptureAllowed === true);
   const camera = useRef<HTMLInputElement>(null),
     library = useRef<HTMLInputElement>(null),
     captureBusy = useRef(false);
@@ -665,7 +680,15 @@ function OfflinePhotos({
     void saveFiles(files);
   }
   async function saveFiles(files: File[]) {
-    if (!files.length || captureBusy.current) return;
+    if (!files.length || captureBusy.current || !canCapture) return;
+    const workOrder = taskPhoto
+      ? {
+          schema: "freyra.field-photo-work-order/v1" as const,
+          organizationId: pack.organizationId,
+          actionId: job.actionId,
+          planVersionId: job.plan?.id ?? null,
+        }
+      : undefined;
     captureBusy.current = true;
     setBusy(true);
     onBusy(true);
@@ -693,6 +716,7 @@ function OfflinePhotos({
           file,
           title.trim() || file.name.replace(/\.[^.]+$/, "").slice(0, 160) || "Feltfoto",
           description,
+          workOrder,
         );
         if (readOfflineActor() !== actorId)
           throw new Error("Brugeren er skiftet. Filen er ikke bekræftet gemt.");
@@ -716,6 +740,47 @@ function OfflinePhotos({
   return (
     <section className={card} aria-label="Feltfotos på telefonen">
       <h2 className="font-semibold">Tag fotos i felten</h2>
+      {job || taskUnavailable ? (
+        <fieldset disabled={busy || unsaved.length > 0} className="space-y-2">
+          <legend className="text-sm font-medium">Hvad dokumenterer fotoet?</legend>
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="photo-target"
+              checked={target === "task"}
+              onChange={() => setTarget("task")}
+            />
+            {job ? `Opgaven: ${job.title}` : "Den valgte opgave findes ikke i den gemte pakke"}
+          </label>
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="photo-target"
+              checked={target === "project"}
+              onChange={() => setTarget("project")}
+            />
+            Sagen generelt, uden en opgave
+          </label>
+        </fieldset>
+      ) : (
+        <p className="text-sm">
+          Fotoet gemmes på sagen. Vælg en opgave ovenfor for at dokumentere den.
+        </p>
+      )}
+      {taskPhoto && (
+        <p className="text-sm">
+          Fotoet knyttes til {job.title}
+          {job.plan ? ` · arbejdsgrundlag version ${job.plan.version}` : ""}. Efter modtagelsen kan
+          du åbne det under opgavens Dokumentation og knytte det til en gemt registrering.
+        </p>
+      )}
+      {taskPhoto && !job.photoCaptureAllowed && (
+        <p role="status" className="text-sm">
+          {job.photoCaptureAllowed === undefined
+            ? "Opdater sagen med net for at kontrollere fotoets opgaveadgang."
+            : "Fotooptagelse er ikke tilgængelig på denne opgave. Opdater sagen med net for at se den aktuelle adgang og status."}
+        </p>
+      )}
       <details>
         <summary className="min-h-11 cursor-pointer py-2 text-sm">
           Titel og note (valgfrit, før foto)
@@ -748,7 +813,7 @@ function OfflinePhotos({
         type="file"
         accept="image/*"
         capture="environment"
-        disabled={busy || unsaved.length > 0}
+        disabled={!canCapture || busy || unsaved.length > 0}
         onChange={capture}
       />
       <input
@@ -758,13 +823,13 @@ function OfflinePhotos({
         type="file"
         accept="image/*"
         multiple
-        disabled={busy || unsaved.length > 0}
+        disabled={!canCapture || busy || unsaved.length > 0}
         onChange={capture}
       />
       <div className="grid grid-cols-2 gap-2">
         <button
           className={primary}
-          disabled={!ready || busy || unsaved.length > 0}
+          disabled={!canCapture || busy || unsaved.length > 0}
           onClick={() => camera.current?.click()}
         >
           <Camera className="h-5 w-5" />
@@ -772,7 +837,7 @@ function OfflinePhotos({
         </button>
         <button
           className={button}
-          disabled={!ready || busy || unsaved.length > 0}
+          disabled={!canCapture || busy || unsaved.length > 0}
           onClick={() => library.current?.click()}
         >
           Vælg fotos
@@ -864,8 +929,8 @@ function OfflineJobs({
         )}
         {actionId && (
           <p className="text-sm text-muted-foreground">
-            Opgavevalget gælder jobkortet. Fotos i feltkøen er fortsat knyttet til projektet; de er
-            ikke automatisk opgavedokumentation.
+            Vælg den opgave, du arbejder på. Jobkort og opgavefotos bruger samme valg. Fotoets
+            tilknytning vises, før du tager det.
           </p>
         )}
         <label className="block space-y-2 text-sm">

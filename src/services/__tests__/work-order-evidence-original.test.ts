@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { signWorkOrderEvidenceOriginal } from "../work-order-evidence-original.server";
+import {
+  signWorkOrderCapturedPhotoOriginal,
+  signWorkOrderEvidenceOriginal,
+} from "../work-order-evidence-original.server";
 import { actor, id, scope, version } from "./work-order-evidence-fixture";
 const pin = () => ({
   ...scope,
@@ -101,5 +104,49 @@ describe("exact-reference original signing", () => {
     );
     expect(error.code).toBe("unavailable");
     expect(error.message).not.toContain("secret");
+  });
+
+  it("uses the same signer with exact captured-task authorization", async () => {
+    const s = setup();
+    const original = {
+      ...pin().original,
+      workOrder: {
+        schema: "freyra.field-photo-work-order/v1",
+        actionId: scope.actionId,
+        organizationId: scope.organizationId,
+        planVersionId: id(100),
+      },
+    };
+    const capture = { ...pin(), id: original.uploadId, original };
+    s.rpc.mockResolvedValue({ data: capture, error: null });
+    await signWorkOrderCapturedPhotoOriginal(s.client, actor, { ...input, id: capture.id }, s.deps);
+    expect(s.rpc).toHaveBeenCalledWith(
+      "get_work_order_captured_photo_original",
+      expect.objectContaining({ p_id: capture.id, p_action_id: scope.actionId }),
+    );
+    expect(s.sign).toHaveBeenCalledWith(original.storagePath, 60);
+    expect(s.rpc).toHaveBeenCalledTimes(2);
+  });
+  it("refuses a captured original with another capture task before loading the signer", async () => {
+    const s = setup();
+    const original = {
+      ...pin().original,
+      workOrder: {
+        schema: "freyra.field-photo-work-order/v1",
+        actionId: id(32),
+        organizationId: scope.organizationId,
+        planVersionId: null,
+      },
+    };
+    s.rpc.mockResolvedValue({ data: { ...pin(), id: original.uploadId, original }, error: null });
+    await expect(
+      signWorkOrderCapturedPhotoOriginal(
+        s.client,
+        actor,
+        { ...input, id: original.uploadId },
+        s.deps,
+      ),
+    ).rejects.toHaveProperty("code", "access");
+    expect(s.deps.signer).not.toHaveBeenCalled();
   });
 });

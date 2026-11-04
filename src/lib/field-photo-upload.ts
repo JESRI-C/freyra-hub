@@ -16,6 +16,40 @@ export const FieldPhotoWorkOrderSchema = z
   })
   .strict();
 export type FieldPhotoWorkOrder = z.infer<typeof FieldPhotoWorkOrderSchema>;
+export class FieldPhotoUploadError extends Error {
+  constructor(
+    readonly disposition: "blocked" | "conflict" | "cancelled",
+    message: string,
+  ) {
+    super(message);
+  }
+}
+export function fieldPhotoUploadFailure(
+  error: { code?: string } | null | undefined,
+  message: string,
+): Error {
+  if (error?.code === "42501")
+    return new FieldPhotoUploadError(
+      "blocked",
+      "Din adgang til fotoets sag eller opgave er ændret. Originalen er bevaret.",
+    );
+  if (error?.code === "PT410")
+    return new FieldPhotoUploadError(
+      "cancelled",
+      "Opgaven er aflyst. Originalen er bevaret på telefonen.",
+    );
+  if (error?.code === "PT409")
+    return new FieldPhotoUploadError(
+      "conflict",
+      "Fotoets opgavegrundlag er ændret. Originalen er bevaret.",
+    );
+  if (error?.code === "22023" || error?.code === "23514")
+    return new FieldPhotoUploadError(
+      "blocked",
+      "Fotoets gemte oplysninger kræver afklaring. Originalen er bevaret.",
+    );
+  return new Error(message);
+}
 export const FieldPhotoVerificationInput = z
   .object({
     projectId: FieldPhotoUuid,

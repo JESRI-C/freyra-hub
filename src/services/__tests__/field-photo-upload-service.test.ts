@@ -78,7 +78,7 @@ describe("resumable field uploads", () => {
     mocks.rpc
       .mockResolvedValueOnce({ data: [draft], error: null })
       .mockResolvedValueOnce({ data: null, error: { code: "23514" } });
-    await expect(uploadFieldPhoto(input())).rejects.toThrow("ikke kvitteret");
+    await expect(uploadFieldPhoto(input())).rejects.toHaveProperty("disposition", "blocked");
     expect(mocks.tus).not.toHaveBeenCalled();
     expect(mocks.verify).not.toHaveBeenCalled();
   });

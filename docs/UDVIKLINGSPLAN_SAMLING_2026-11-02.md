@@ -73,6 +73,11 @@ Eksisterende implementeringer og delprøver genbruges. Kontrollen af slutmålet
 ændrer ingen tidligere prøves status og er ingen ny teknisk eller faglig
 godkendelse; samlet fysisk mobil-, kunde- og driftsaccept er fortsat åben.
 
+**Aktiv kodepakke, 4. november:** [Den fælles opgavefotoindgang](OPGAVE_FOTO_FELTINDGANG.md)
+samler valgt opgave, kamera og Dokumentation i den isolerede gren. Lokale
+prøver og typekontrol består. Database-CI, hosted forløb og fysisk telefon
+er fortsat åbne; den tidligere stagingkvittering genbruges med sit oprindelige omfang.
+
 **Seneste tekniske leverance, 4. november:** [Offlinepakken med krævede jobkort](OPGAVE_DOKUMENTATIONSKRAV.md#offlinepakken-under-samling)
 er på staging som appkilde `90f0196`, Worker `4e90dcd9-055a-44c5-a336-36bc2f7e512c`
 og migration `20261104034102`. CI 41777119984 består med 3.562 appprøver og

@@ -382,7 +382,7 @@ describe("mobile field local save feedback", () => {
         .value,
     ).toBe(f.action);
     expect(host.textContent).toContain("Skabelonversion 1");
-    expect(host.textContent).toContain("ikke automatisk opgavedokumentation");
+    expect(host.textContent).toContain("Jobkort og opgavefotos bruger samme valg");
   });
   it("reuses an already received card after a plan change without treating it as a conflict draft", async () => {
     const source = requiredPack(),
@@ -729,8 +729,15 @@ describe("mobile field local save feedback", () => {
     expect(host.textContent).not.toContain("Skabelonversion 1");
     expect(host.textContent).not.toContain("Knyt dokumentation til opgaven");
     expect(f.prepare).not.toHaveBeenCalled();
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Tag foto")
+        ?.disabled,
+    ).toBe(true);
   });
   it("retains a rejected camera file for download and retry instead of discarding the selection", async () => {
+    const source = requiredPack();
+    source.jobs[0].photoCaptureAllowed = true;
+    f.packs.mockResolvedValue([source]);
     f.photo.mockResolvedValue({ id: "photo" });
     f.enqueue.mockRejectedValue(new DOMException("Full", "QuotaExceededError"));
     await act(async () =>
@@ -811,5 +818,67 @@ describe("mobile field local save feedback", () => {
     expect(Array.from(host.querySelectorAll("input")).some((i) => i.value === "Feltbesøg")).toBe(
       true,
     );
+  });
+
+  it("captures the currently selected task and instructions without requiring a prior job card", async () => {
+    const source = requiredPack();
+    source.jobs[0].photoCaptureAllowed = true;
+    const second = {
+      ...source.jobs[0],
+      actionId: crypto.randomUUID(),
+      title: "Andet tilsyn",
+      plan: { ...source.jobs[0].plan!, id: crypto.randomUUID(), version: 3 },
+    };
+    source.jobs.push(second);
+    f.packs.mockResolvedValue([source]);
+    f.photo.mockResolvedValue({ id: "photo" });
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const select = host.querySelector<HTMLSelectElement>(
+      'section[aria-label="Jobkort på telefonen"] select',
+    )!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(
+        select,
+        second.actionId,
+      );
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const camera = host.querySelector<HTMLInputElement>('input[capture="environment"]')!;
+    const file = new File(["raw"], "task.png", { type: "image/png" });
+    Object.defineProperty(camera, "files", { value: [file] });
+    await act(async () => camera.dispatchEvent(new Event("change", { bubbles: true })));
+    expect(f.photo.mock.calls[0][5]).toEqual({
+      schema: "freyra.field-photo-work-order/v1",
+      organizationId: source.organizationId,
+      actionId: second.actionId,
+      planVersionId: second.plan.id,
+    });
+    expect(f.enqueue).toHaveBeenCalledWith(expect.anything(), file);
+    expect(host.textContent).toContain("Andet tilsyn · arbejdsgrundlag version 3");
+  });
+  it("requires refresh for a legacy task pack while keeping explicit general project capture", async () => {
+    f.photo.mockResolvedValue({ id: "photo" });
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const captureButton = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent?.trim() === "Tag foto",
+    )!;
+    expect(captureButton.disabled).toBe(true);
+    const projectRadio = [...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')][1];
+    await act(async () => projectRadio.click());
+    expect(captureButton.disabled).toBe(false);
+    const camera = host.querySelector<HTMLInputElement>('input[capture="environment"]')!;
+    Object.defineProperty(camera, "files", {
+      value: [new File(["raw"], "case.png", { type: "image/png" })],
+    });
+    await act(async () => camera.dispatchEvent(new Event("change", { bubbles: true })));
+    expect(f.photo.mock.calls[0][5]).toBeUndefined();
   });
 });

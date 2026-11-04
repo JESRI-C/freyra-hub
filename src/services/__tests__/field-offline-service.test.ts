@@ -1,3 +1,4 @@
+import { readOriginalMetadata, sha256 } from "../monitoring/drone-ingest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emptyWorkOrderPlan } from "@/lib/work-order-plan";
 import { FieldWorkPackSchema, type FieldWorkPack } from "@/lib/field-offline";
@@ -46,6 +47,7 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 import {
   downloadFieldWorkPack,
+  prepareOfflinePhoto,
   prepareOfflineJob,
   offlineSyncDependencies,
   requireOfflineProjectAccess,
@@ -150,7 +152,20 @@ beforeEach(() => {
     organization_id: org,
     can_execute: true,
   });
-  state.rpc.mockReturnValue({ abortSignal: async () => ({ data: [{ id: id(30) }], error: null }) });
+  state.rpc.mockImplementation((name: string, args: Record<string, unknown>) =>
+    name === "get_work_order_photo_capture_access"
+      ? Promise.resolve({
+          data: {
+            actionId: args.p_action_id,
+            organizationId: org,
+            projectId: project,
+            actorId: actor,
+            canCapture: true,
+          },
+          error: null,
+        })
+      : { abortSignal: async () => ({ data: [{ id: id(30) }], error: null }) },
+  );
 });
 describe("required job cards in the existing offline workflow", () => {
   it("blocks a revoked project after an opaque access failure is confirmed by an RLS read", async () => {
@@ -293,5 +308,68 @@ describe("required job cards in the existing offline workflow", () => {
       "save_field_job_version",
       expect.not.objectContaining({ p_required_plan_version_id: expect.anything() }),
     );
+  });
+
+  it("captures task photos before a first card and disables a cancelled capture hint", async () => {
+    const current = plan();
+    current.plan.requiredJobCards = [];
+    state.tables.work_order_plan_versions = [current];
+    const ready = await downloadFieldWorkPack(actor, project);
+    expect(ready.jobs[0].photoCaptureAllowed).toBe(true);
+    expect(ready.jobs[0].requirements).toBeUndefined();
+    state.rpc.mockResolvedValueOnce({
+      data: {
+        actionId: action,
+        organizationId: org,
+        projectId: project,
+        actorId: actor,
+        canCapture: false,
+      },
+      error: null,
+    });
+    expect((await downloadFieldWorkPack(actor, project)).jobs[0].photoCaptureAllowed).toBe(false);
+  });
+  it("rejects an unverifiable capture hint instead of replacing the offline pack", async () => {
+    state.rpc.mockResolvedValueOnce({
+      data: {
+        actionId: action,
+        organizationId: org,
+        projectId: project,
+        actorId: id(99),
+        canCapture: true,
+      },
+      error: null,
+    });
+    await expect(downloadFieldWorkPack(actor, project)).rejects.toThrow("Fotoets opgaveadgang");
+  });
+  it("snapshots capture context before asynchronous metadata extraction", async () => {
+    let resolve!: (value: Awaited<ReturnType<typeof readOriginalMetadata>>) => void;
+    vi.mocked(readOriginalMetadata).mockReturnValueOnce(
+      new Promise((r) => {
+        resolve = r;
+      }),
+    );
+    vi.mocked(sha256).mockResolvedValueOnce("a".repeat(64));
+    const context = {
+      schema: "freyra.field-photo-work-order/v1" as const,
+      organizationId: org,
+      actionId: action,
+      planVersionId: id(20),
+    };
+    const pending = prepareOfflinePhoto(
+      actor,
+      project,
+      new File(["original"], "before.jpg", { type: "image/jpeg" }),
+      "Førtilstand",
+      "",
+      context,
+    );
+    context.actionId = id(99);
+    resolve({ latitude: null, longitude: null, capturedAt: null } as Awaited<
+      ReturnType<typeof readOriginalMetadata>
+    >);
+    const item = await pending;
+    expect(item.payload.workOrder?.actionId).toBe(action);
+    expect(item.payload.workOrder?.planVersionId).toBe(id(20));
   });
 });
