@@ -63,16 +63,26 @@ på samme identificerede kandidat, inklusive adgang, fejlhåndtering, rapporters
 kildespor og gendannelse af både database og originalfiler. Kundens opstart,
 supportvej og leverede arbejdsgange skal være dokumenteret før salg og drift.
 
-**Igangværende kodepakke:** [Mine opgavers feltforløb](MINE_OPGAVER_FELTFORLOEB_2026-11-04.md)
-samler nu den allerede udviklede handoff og mediefejlisolation med PR46's
-opgavefotos og offlinepakke i `codex/field-task-handoff`. 105 målrettede
-komponent-/serviceprøver i syv filer og strict typecheck består lokalt.
-Aktiv staging ændres først efter en separat kandidats browserprøve og
-koordinering med den parallelle gren. Det udvidede hosted prøveprogram
-starter fra Mine opgaver og bruger UI til udførelse, dokumentation og
-aflevering; det er endnu ikke kørt på kandidaten. Fuld CI og browserbevis
-registreres efter kørsel. Den parallelle chat ejer kompakt valgt-opgavevisning
-og P9's supplerende SQL-/gendannelsesprøver.
+**Seneste afprøvede kandidat:** [Mine opgavers feltforløb](MINE_OPGAVER_FELTFORLOEB_2026-11-04.md)
+samler eksisterende handoff og mediefejlisolation med PR46's opgavefotos og
+offlinepakke. Kilde `3ba51b1`, draft PR48 og separat Worker `0ebf0053`.
+[CI 41798870264](https://github.com/JESRI-C/freyra-hub/actions/runs/41798870264)
+består med 3.607 appprøver/269 filer og 1.910 DB-kontroller/28 filer,
+samtidighed, gendannelse, typecheck, lint og build. [Hosted 2ebb507c](field-task-handoff-staging-receipt-2026-11-04.json)
+består fra Mine opgaver som feltbruger uden can_plan: offlinefoto/jobkort,
+originalhash, UI-udførelse, to UI-koblinger og UI-aflevering, derefter SDK-
+review og rapport samt browser/PDF. Egne sessioner og midlertidige rettigheder
+er læst tilbage som lukket/ikke aktive. Aktiv staging er fortsat `4be325d`.
+
+**Næste reelle mangel:** Rapportgeneratoren mister dataBasis fra den frosne
+udførelse. Afleveringen er mærket synthetic, mens den genererede rapport
+ikke viser mærkningen. Ret og genprøv dette før samlet rapportaccept med
+bevarede gamle rapportversioner. Derefter samles PR47's manager/P9/P10-kode
+og supplerende ACL-/gendannelsesprøver med PR48's nyere felt-/offlinekode på
+én kandidat. Den parallelle leverance har kode `622cfcb` og dokumentation
+`9bfcfc8`, med særskilte kvitteringer; aktiv trafik må først flyttes efter
+den aftalte fælles prøve. Fælles opgavestatusprojektion, synlig kommune/sag,
+et tydeligt Dokumentation-trin og fysisk/uassisteret brugeraccept er fortsat åbne.
 
 **Arbejdspakkens oprindelige krav:** Genbrug den allerede udviklede feltindgang i Mine opgaver
 fra den parallelle, committede MyWorkOrders (3af288a/9af245d). En feltbruger
@@ -80,8 +90,8 @@ uden can_plan skal kunne åbne kamera og udførelse på den valgte opgave,
 når eksisterende getFieldJobAccess bekræfter samme aktør/projekt og bidragsadgang.
 Eksterne uden den adgang får ingen aktiv projektfotohandling. PR46s nyere
 opgaveskift, offlinekladder og fotobinding bevares. Test næste forløb fra
-Mine opgaver, ikke kun et direkte feltlink. Derefter integreres den afleverede
-mediefejlisolation 5228aade og de øvrige fælles brugeroplevelseskrav.
+Mine opgaver, ikke kun et direkte feltlink. Handoff og mediefejlisolation
+5228aade er nu genbrugt og efterprøvet i PR48; fælles brugeroplevelseskrav følger.
 Faglige metodeprofiler, fysisk telefon, kunde- og driftsaccept er fortsat åbne.
 
 **Seneste tekniske leverance, 4. november:** [Den fælles opgavefotoindgang](OPGAVE_FOTO_FELTINDGANG.md)

@@ -46,27 +46,66 @@ dokumentation i rapportforhåndsvisningen.
 
 | Regel | Gentagelig prøve | Status |
 | --- | --- | --- |
-| Feltbruger uden can_plan finder feltindgangen med præcis opgaveidentitet | MyWorkOrders.test.tsx og hosted prøve fra /opgaver | Komponentprøve består; hosted afventer |
+| Feltbruger uden can_plan finder feltindgangen med præcis opgaveidentitet | MyWorkOrders.test.tsx og hosted prøve fra /opgaver | Består på kandidat 3ba51b1 |
 | Aktør-/projektmismatch, fejl og tilbagekaldt adgang lukker feltlinket | MyWorkOrders.test.tsx: fejl, genforsøg og baggrundsgenkontrol | Består lokalt |
 | Kladde, paginering og igangværende overtagelse er beskyttet | MyWorkOrders.test.tsx: routeblokering og tabt overtagelsessvar | Består lokalt |
 | Status opfindes ikke | Liste/tavle med faktisk og manglende status | Består lokalt |
 | Syntetisk udførelse bevares som syntetisk | ActionExecutionPanel.test.tsx: valg og tidligere version | Består lokalt |
 | Mediefejl lukker ikke opgaven og opfinder ikke tomt rapportgrundlag | project-media-isolation, customer-project-route-integrity og ProjectPhotoAtlasAvailability | Består lokalt |
-| Mine opgaver → foto/jobkort → offline genåbning → udførelse → dokumentation → aflevering | scripts/test-field-task-photos-staging.mjs på eksakt kandidat | Udvidet prøveprogram skrevet; hosted afventer |
+| Mine opgaver → foto/jobkort → offline genåbning → udførelse → dokumentation → aflevering | scripts/test-field-task-photos-staging.mjs på eksakt kandidat | Hosted 2ebb507c består |
 
-105 målrettede prøver i syv filer består lokalt. Strict typecheck består.
-Første lint fandt kun formatering i prøveprogrammet; formateringen er rettet,
-og lint-genprøven afventes. Fuld CI, stagingbuild og browserkvittering
-registreres efter faktisk kørsel. Aktive staginglinks viser fortsat 4be325d.
+105 målrettede prøver i syv filer, strict typecheck og lint består lokalt.
+Første lint fandt kun formatering i prøveprogrammet; genprøven består efter
+rettelsen. [CI 41798870264](https://github.com/JESRI-C/freyra-hub/actions/runs/41798870264)
+består på `3ba51b16f4c34128613972e5fe5708fdc76e2e3b`: 3.607 appprøver i 269
+filer, 1.910 databasekontroller i 28 filer, faktisk samtidighed, frisk
+migrationsafspilning og database-restore. Runtime-audit viser nul kendte
+sårbarheder. Det er afgrænset bevis på denne gren; den parallelle grens
+supplerende ACL-/P9-gendannelsesprøver er endnu ikke integreret her.
+
+Stagingbuild med GOMAXPROCS=2 består. Den separate Worker-version
+`0ebf0053-0e34-438c-9b02-b43297da20c7` viser samme kilde.
+[Prøv Mine opgaver](https://0ebf0053-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/opgaver)
+efter normalt login på samme adresse. Aktiv deployment `700e62c8` og
+Worker `94906bdf` er læst uændret tilbage på 100 % før og efter upload.
+Ingen `versions deploy` er udført.
+
+Den [hosted kvittering](field-task-handoff-staging-receipt-2026-11-04.json)
+viser præcise id'er og browser-/SDK-afgrænsning. Browseren fandt opgaven
+gennem Mine opgaver som feltbruger uden can_plan, fulgte feltlinket og
+bevarede originalen og to krævede jobkort gennem kold offline genåbning og
+tabt uploadsvar. Genforsøg gav én original. Den samme browser åbnede
+originalen med identisk SHA-256, gemte syntetisk udførelse, oprettede to
+eksplicitte dokumentationskoblinger og gemte og indsendte afleveringen.
+Planlægningens livscyklusovergange, uafhængigt teknisk review og idempotent
+rapportoprettelse blev udført gennem SDK. Rapportvisning ved 390/1280 px og
+PDF-download består. Fire viewportoptagelser er visuelt kontrolleret under
+`docs/screens/field-task-handoff`.
+
+Database-readback bekræfter én original, to koblinger, synthetic i den frosne
+udførelse, nul egne testsessioner, nul midlertidige feltmedlemskaber og en
+inaktiv reviewgrant version 2. Historik og syntetiske testresultater bevares.
+
+**Fund til næste rettelse:** Rapportgeneratoren fører ikke udførelsens
+dataBasis videre. Den gemte testaflevering har synthetic, mens rapporten
+hverken har workflowSnapshot eller en synlig syntetisk markering. Dette er
+bekræftet ved database-readback på rapport `c0533856` og ved kildekontrol af
+`20261103191842_show_frozen_indicator_target_in_work_order_report.sql`.
+Browserprøvens PASS godkender teknikforløbet, ikke rapportens faglige eller
+datamæssige godkendelse. Ret mærkning i ny rapportgenerering/visning med
+bevaret historik og reproducerbar eksport før samlet produktaccept.
 
 ## Åbne grænser
 
-Pakken er under efterprøvning. Fysisk kamera/GPS/HEIC, et uassisteret
+Teknikforløbet er efterprøvet; den samlede produktaccept er åben. Fysisk kamera/GPS/HEIC, et uassisteret
 kommunalt brugerforløb, faglig metodegodkendelse, fuld Skyhost-paritet og
 drifts-/salgsaccept er fortsat åbne. En samlet kandidat skal også medtage og
 efterprøve den parallelle gren. Kommunens og sagens navn i den personlige
 opgaveliste kræver stadig en snæver, autoriseret præsentationskilde;
 der indlæses ikke projektbrede data for eksterne alene for at vise en label.
+Dokumentationskoblingen bør også være et selvstændigt næste trin før
+Aflevering; den ligger nu under Dokumentation. Det skal indgå i næste
+brugeroplevelsesprøve sammen med forståelige rapportstatusser og kildenavne.
 
 Ingen merge eller produktionsændring. En separat stagingversions-URL bruges
 først, så den klargjorte telefonprøve på den aktive version kan fortsætte.
