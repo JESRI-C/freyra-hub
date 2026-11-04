@@ -94,7 +94,7 @@ SELECT is((SELECT count(*) FROM public.list_work_order_evidence_sources(pg_temp.
 SELECT is(public.get_work_order_captured_photo_original(pg_temp.k(52),pg_temp.k(31),pg_temp.k(11),pg_temp.k(21))#>>'{original,workOrder,planVersionId}',(SELECT id::text FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(31) AND version=1),'signer input retains the captured historical plan');
 SELECT lives_ok($$SELECT pg_temp.save_evidence(171,0,181,31,pg_temp.observation(),52)$$,'existing observation/evidence association reuses the canonical original');
 SELECT is((SELECT original_snapshot->'workOrder' FROM public.work_order_evidence_versions WHERE evidence_id=pg_temp.k(171)),(SELECT payload->'workOrder' FROM public.field_photo_uploads WHERE id=pg_temp.k(52)),'frozen evidence preserves original capture provenance');
-SELECT lives_ok($SELECT pg_temp.save_evidence(171,1,183,31,pg_temp.observation(),52,'withdrawn','Synthetic capture association withdrawal')$,'withdrawal preserves capture source rather than regenerating it');
+SELECT lives_ok($$SELECT pg_temp.save_evidence(171,1,183,31,pg_temp.observation(),52,'withdrawn','Synthetic capture association withdrawal')$$,'withdrawal preserves capture source rather than regenerating it');
 SELECT is((SELECT original_snapshot FROM public.work_order_evidence_versions WHERE evidence_id=pg_temp.k(171) AND version=2),(SELECT original_snapshot FROM public.work_order_evidence_versions WHERE evidence_id=pg_temp.k(171) AND version=1),'capture and checksum remain identical in the withdrawn historical version');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((SELECT count(*) FROM public.field_photo_uploads),0::bigint,'external task reader gains no project-wide upload table access');

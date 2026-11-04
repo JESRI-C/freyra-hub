@@ -851,6 +851,11 @@ describe("mobile field local save feedback", () => {
     const file = new File(["raw"], "task.png", { type: "image/png" });
     Object.defineProperty(camera, "files", { value: [file] });
     await act(async () => camera.dispatchEvent(new Event("change", { bubbles: true })));
+    const photos = host.querySelector('section[aria-label="Feltfotos på telefonen"]')!;
+    const cardSelector = host.querySelector('select[aria-label="Jobkort i opgavepakken"]')!;
+    expect(
+      photos.compareDocumentPosition(cardSelector) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(f.photo.mock.calls[0][5]).toEqual({
       schema: "freyra.field-photo-work-order/v1",
       organizationId: source.organizationId,

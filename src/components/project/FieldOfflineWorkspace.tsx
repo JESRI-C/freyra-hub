@@ -1,6 +1,14 @@
 import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 import { programPageGuide } from "@/lib/program-map";
-import { useCallback, useEffect, useId, useRef, useState, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { Camera, CloudUpload, Download, LockKeyhole, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -468,6 +476,24 @@ export function FieldOfflineWorkspace({
               onSaved={() =>
                 void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
               }
+              photos={
+                <OfflinePhotos
+                  key={actor + projectId}
+                  actorId={actor}
+                  pack={pack}
+                  job={selectedJob}
+                  taskUnavailable={!!selectedActionId && !selectedJob}
+                  store={store}
+                  ready={shellReady && !jobDirty && !busy}
+                  onSaved={() =>
+                    void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
+                  }
+                  onBusy={(value) => {
+                    if (actorRef.current === actor && projectRef.current === projectId)
+                      setPhotoBusy(value);
+                  }}
+                />
+              }
               onDirty={(value) => {
                 if (actorRef.current === actor && projectRef.current === projectId)
                   setJobDirty(value);
@@ -476,22 +502,7 @@ export function FieldOfflineWorkspace({
           ) : (
             <p role="status">Henter gemte feltkladder…</p>
           )}
-          <OfflinePhotos
-            key={actor + projectId}
-            actorId={actor}
-            pack={pack}
-            job={selectedJob}
-            taskUnavailable={!!selectedActionId && !selectedJob}
-            store={store}
-            ready={shellReady && !jobDirty && !busy}
-            onSaved={() =>
-              void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
-            }
-            onBusy={(value) => {
-              if (actorRef.current === actor && projectRef.current === projectId)
-                setPhotoBusy(value);
-            }}
-          />
+
           <section className={card} aria-label="Telefonens feltkø">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-semibold">
@@ -901,7 +912,9 @@ function OfflineJobs({
   onDirty,
   actionId,
   onSelect,
+  photos,
 }: {
+  photos: ReactNode;
   disabled: boolean;
   pack: FieldWorkPack;
   store: FieldOfflineStore;
@@ -917,6 +930,7 @@ function OfflineJobs({
     setDirty(value);
     onDirty(value);
   };
+  const job = pack.jobs.find((row) => row.actionId === actionId);
   return (
     <section className={card} aria-label="Jobkort på telefonen">
       <h2 className="font-semibold">Jobkort i felten</h2>
@@ -949,6 +963,30 @@ function OfflineJobs({
             ))}
           </select>
         </label>
+        {job &&
+          (job.plan ? (
+            <WorkOrderPlanSummary row={job.plan} />
+          ) : (
+            job.requirements && (
+              <>
+                <p className="text-sm">
+                  Dokumentationskrav fra planversion {job.requirements.planVersion}. Opgavepakken er
+                  gemt {new Date(pack.savedAt).toLocaleString("da-DK")}.
+                </p>
+                <RequiredJobCards
+                  cards={job.requirements.cards.map((card) => ({
+                    templateVersionId: card.id,
+                    templateId: card.template_id,
+                    version: card.version,
+                    definition: card.definition,
+                  }))}
+                />
+              </>
+            )
+          ))}
+      </fieldset>
+      {photos}
+      <fieldset disabled={disabled} className="min-w-0 space-y-3 border-0 p-0">
         {dirty && (
           <button
             className={button}
@@ -1093,26 +1131,6 @@ function OfflineJobEditor({
   }
   return (
     <div className="space-y-3">
-      {job.plan ? (
-        <WorkOrderPlanSummary row={job.plan} />
-      ) : (
-        job.requirements && (
-          <>
-            <p className="text-sm">
-              Dokumentationskrav fra planversion {job.requirements.planVersion}. Opgavepakken er
-              gemt {new Date(pack.savedAt).toLocaleString("da-DK")}.
-            </p>
-            <RequiredJobCards
-              cards={job.requirements.cards.map((card) => ({
-                templateVersionId: card.id,
-                templateId: card.template_id,
-                version: card.version,
-                definition: card.definition,
-              }))}
-            />
-          </>
-        )
-      )}
       <label className="block space-y-2 text-sm">
         Jobkort i opgavepakken
         <select
