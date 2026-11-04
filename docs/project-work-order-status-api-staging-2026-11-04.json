@@ -1,0 +1,56 @@
+{
+  "schema": "freyra.project-work-order-status-api-staging/v1",
+  "observedAt": "2026-11-04",
+  "result": "PASS",
+  "method": "Read-only authenticated SDK probes of the project action projection and an existing external account's project scope; sanitized summary",
+  "implementationSourceRevision": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
+  "implementationRevisionStatus": "Probed working-tree implementation subsequently committed at this revision",
+  "baseRevision": "025d6b409f240e089ad4e2186ca1a036e2bd2fc5",
+  "stagingRef": "xdvqdzdpyceojbdknofi",
+  "authorizedProjectProjection": {
+    "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+    "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+    "transportRowsRead": 64,
+    "visibleWorkOrderIdentities": 57,
+    "withoutVisibleWorkOrderIdentity": 7,
+    "rowCountScope": "Rows returned by this project read; not a global total or performance benchmark",
+    "orderRelationShape": "array with zero or one item",
+    "latestEmbeddedVersionsBounded": true,
+    "matchingCanonicalStateId": true,
+    "selectedStatus": "draft",
+    "selectedLegacyStatus": "Åben",
+    "noPlan": {
+      "actionId": "2346aa36-ceef-4bd4-a18c-c005c42b4c09",
+      "latestLifecycleIdMatches": true,
+      "planAbsent": true,
+      "status": "draft",
+      "legacyStatus": "Åben"
+    },
+    "multiVersionLatestLifecycleMatches": {
+      "actionId": "088d0ea5-b70c-4962-9bc6-1d418eeeeaff",
+      "version": 11,
+      "idMatches": true
+    }
+  },
+  "externalProjectScope": {
+    "result": "PASS",
+    "projectScopeDenied": true,
+    "projectionAttempted": false,
+    "ownedSdkSessionClosed": true,
+    "boundary": "Project scope was denied before projection; this does not claim an executed external projection read"
+  },
+  "boundaries": {
+    "businessWrites": 0,
+    "serviceRoleUsed": false,
+    "usersCreated": 0,
+    "grantsCreated": 0,
+    "credentialsStored": false,
+    "contextFreshnessClaimed": false,
+    "historicalLifecycleCanRemainVisible": true,
+    "detailContextGuardChanged": false,
+    "browserAcceptance": "pending",
+    "physicalPhone": false,
+    "ciAcceptance": "pending; full CI 41804794881 in progress",
+    "combinedProductAcceptance": false
+  }
+}
