@@ -1,8 +1,56 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.8 · 3. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.9 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
-**Aktuelt SaaS-mål og bevis:** [50-brugerprøven](SAAS_50_BRUGERE_2026-11-03.md)
+**Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
+kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
+driftsarbejde. Én sammenhængende sag viser, hvad der skal gøres og hvorfor,
+hvad der faktisk er gjort, hvordan naturen udvikler sig, og hvad der skal
+følges op på. Grundlaget er Jespers arbejdsinstruks **GoFreyra – slutmål og
+arbejdsinstruks med RES (Reverse Engineering)** i denne udviklingstråd.
+
+Projektlederen kan afgrænse området, beskrive førtilstand og mål, planlægge
+og tildele arbejdet og følge status. Feltmedarbejderen kan finde opgaven og
+stedet på telefonen, læse instruktioner og tjeklister og gemme stedfæstede
+originalfotos, observationer og målinger på samme opgave. Afbrudt forbindelse
+og genforsøg bevarer registreringer uden dubletter. Fagpersonen kan følge
+udviklingen over tid, sammenholde førtilstand, udførelse og efterfølgende
+observationer og aflevere en godkendt, genskabelig rapport med opfølgning.
+
+Arts- og habitatregistreringer, felt- og dronebilleder, GIS, offentlige kilder
+og sensormålinger samles på sagen med metode, sted, tid, kilde og datakvalitet.
+Direkte observation, måling, beregning, model-/AI-forslag og faglig godkendelse
+skal kunne skelnes. Manglende data og usikkerhed skal vises; en observeret
+ændring er ikke i sig selv dokumentation for indsatsens effekt. Fagligt egnede
+metoder og konkrete biodiversitetsmål skal efterprøves i S06–S08.
+
+Den fulde kortlagte Skyhost Jobs-/Geotag-funktionalitet og Freyras eksisterende
+fagmoduler indgår fortsat. Kode, data, kladder, historik, originaler og gamle
+links bevares. Computer og telefon bruger samme betydning, opgaveindgang og
+kommune-/sags-/opgavekontekst. Nye brugere skal selv kunne finde næste handling.
+Detaljeret brugeropsætning, invitationer og rolleadministration behandles
+særskilt; adgangskontrol og adskillelse af kommunernes data indgår her.
+
+Det tidligere krav om hjælpere, der har kundens ryg, bevares også: kildebunden
+hjælp i arbejdsgangen og afgrænsede autonome agenter med ejer, mandat,
+stopmulighed, adgangskontrol og historik. Eksisterende planlægningshjælp og
+planlagt baggrundskørsel har særskilt status i [agentforløbet](#freyra-hjælper-kunden-undervejs).
+
+**Godkendelse af slutmålet:** [Kommunens acceptforløb](#kommunens-acceptforløb)
+forbinder roller og krav med gentagelige prøver. Teknisk godkendelse, faglig
+godkendelse, kommunens brugeraccept og beslutningen om produktionssætning
+registreres hver for sig med ansvarlig, omfang og bevis. Teknikprøverne samles
+på samme identificerede kandidat, inklusive adgang, fejlhåndtering, rapporters
+kildespor og gendannelse af både database og originalfiler. Kundens opstart,
+supportvej og leverede arbejdsgange skal være dokumenteret før salg og drift.
+
+**Næste kodepakke:** S04/D05c's versionsbundne dokumentationskrav, derefter
+samlet accept af aflevering → faglig gennemgang → rapport → opfølgning.
+Eksisterende implementeringer og delprøver genbruges. Kontrollen af slutmålet
+ændrer ingen tidligere prøves status og er ingen ny teknisk eller faglig
+godkendelse; samlet fysisk mobil-, kunde- og driftsaccept er fortsat åben.
+
+**Tidligere teknisk delprøve:** [50-brugerprøven](SAAS_50_BRUGERE_2026-11-03.md)
 afprøvede 50 forskellige konti i otte organisationer. Den fandt og rettede
 en reel spærring for den tildelte feltmedarbejders udførelse. Alle otte
 forløb når nu uafhængig gennemgang på staging, og adgangsgrænserne er genprøvet.
@@ -25,8 +73,6 @@ opgavetotal og afgrænsningen af den faste Haderslev-rapportskabelon. Kilde
 computer og telefonbredder; syv indgange har kun bevis frem til projektvalg,
 fordi den anvendte konto mangler bygge-/lavbundsprojekter. Der opfindes ingen
 fagdata. Fuld faglig datavisning, fysisk telefon og brugeraccept er fortsat åbne.
-
-**Mål:** Freyra skal dække den fulde kortlagte funktionalitet i Skyhost Jobs og Geotag og samle den med Freyras eksisterende fagmoduler. Kunden kan planlægge, fordele, udføre, kontrollere og dokumentere et naturprojekt i ét sammenhængende program, inklusive de kortlagte driftsfunktioner. Eksisterende kode genbruges med samme projekt-, opgave-, fil- og versionsidentitet på computer og telefon. Alle eksisterende fagområder bevares og får en tydelig plads; funktioner åbnes i takt med dokumenteret anvendelighed.
 
 Dette er den samlende leveranceplan. Den erstatter ikke fagkravene i F01–F29 eller Jobs/Geotags D00–D10 og 68 eksisterende krav. [Skyhost-paritet og restarbejde](SKYHOST_PARITET_OG_RESTARBEJDE_2026-11-02.md) præciserer det fulde mål efter Jespers korrektion: kalender, gentagelser, timer, materialer, booking, ruter og opsætning indgår i den samlede leverance. De eksisterende kravregistre er acceptgrundlag; planen her styrer rækkefølge, integration, navigation, genbrug og oprydning. Den starter ikke en ny implementering af allerede løste krav.
 
