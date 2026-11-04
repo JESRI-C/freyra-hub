@@ -24,7 +24,16 @@ try {
 } catch (error) {
   if (error.code !== "ENOENT") throw error;
 }
-const base = "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev";
+const base =
+  process.env.FREYRA_FIELD_PHOTO_QA_BASE ??
+  "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev";
+const target = new URL(base);
+assert.equal(target.protocol, "https:");
+assert.equal(target.origin, base);
+assert.match(
+  target.hostname,
+  /^(?:[a-f0-9]{8}-)?gofreyra-p0-staging\.gofreyra-jesri-staging\.workers\.dev$/,
+);
 const dbUrl = "https://xdvqdzdpyceojbdknofi.supabase.co";
 assert.equal(
   (await fetch(base + "/freyra-build.json").then((r) => r.json())).sourceRevision,
@@ -188,6 +197,30 @@ async function loginPage(identity) {
   state.sessions.browser = session;
   await persist();
 }
+async function openMyTask() {
+  await page.goto(base + "/opgaver", { waitUntil: "domcontentloaded" });
+  await page.getByRole("searchbox", { name: "Find opgave efter titel" }).fill(fixture.run);
+  await page.getByRole("button", { name: "Søg", exact: true }).click();
+  const card = page.getByRole("article").filter({
+    has: page.getByRole("heading", {
+      name: "TEST · To krævede jobkort " + fixture.run,
+      exact: true,
+    }),
+  });
+  await expect(card).toHaveCount(1);
+  await card.getByRole("button", { name: "Åbn opgave", exact: true }).click();
+  await expect(
+    card.getByRole("region", { name: "Opgavens instruktion", exact: true }),
+  ).toBeVisible();
+  return card;
+}
+async function documentation(card) {
+  const toggle = card.locator("summary").filter({ hasText: /^Dokumentation$/ });
+  await toggle.click();
+  const panel = card.getByRole("region", { name: "Opgavens dokumentation", exact: true });
+  await expect(panel).toBeVisible();
+  return panel;
+}
 try {
   const ownerLogin = ok(
     await owner.auth.signInWithPassword({
@@ -236,7 +269,37 @@ try {
   page.setDefaultTimeout(30000);
   page.on("pageerror", (e) => errors.push(e.name));
   await loginPage(source.external);
-  await page.goto(fieldUrl, { waitUntil: "domcontentloaded" });
+  const ownTasks = await rpc(worker, "search_my_work_orders", {
+    p_after_action_id: null,
+    p_page_size: 20,
+    p_filter: "all",
+    p_search: fixture.run,
+  });
+  const assignedTask = ownTasks.find((row) => row.action_id === fixture.actionId);
+  assert(assignedTask);
+  assert.equal(assignedTask.can_execute, true);
+  assert.equal(assignedTask.can_plan, false);
+  const initialTask = await openMyTask();
+  await expect(
+    initialTask.getByRole("link", { name: "Fotos og jobkort på opgaven", exact: true }),
+  ).toBeVisible();
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+      false,
+    );
+    await initialTask.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: dir + "/my-task-" + width + ".png" });
+  }
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await initialTask.getByRole("link", { name: "Fotos og jobkort på opgaven", exact: true }).click();
+  await page.waitForURL(
+    (u) =>
+      u.pathname === "/felt" &&
+      u.searchParams.get("task") === fixture.actionId &&
+      u.searchParams.get("project") === fixture.projectId,
+  );
   await page.getByRole("button", { name: "Klargør sagen til offlinebrug", exact: true }).click();
   await expect(
     page.getByText("Programfiler til offlinebrug er gemt.", { exact: true }),
@@ -381,14 +444,8 @@ try {
   assert.equal(records.length, 2);
   assert.equal(records[0].values.count, 0);
   assert.equal(records[0].values.checked, false);
-  await page.goto(
-    base +
-      "/app/projects/" +
-      fixture.projectId +
-      "?tab=handlinger&task=" +
-      fixture.actionId +
-      "&work=evidence",
-  );
+  let myTask = await openMyTask();
+  let evidencePanel = await documentation(myTask);
   await expect(
     page.getByRole("region", { name: "Fotos optaget til opgaven", exact: true }),
   ).toContainText(capture.payload.title);
@@ -415,50 +472,76 @@ try {
       "Assignment",
     ),
   );
-  const execution = first(
-    await rpc(worker, "save_work_order_execution", {
-      ...scope,
-      p_plan_version_id: fixture.plan1,
-      p_expected_plan_version: 1,
-      p_expected_version: 0,
-      p_execution: {
-        schema: "freyra.action-execution/v1",
-        actionId: fixture.actionId,
-        surveyRoundId: null,
-        dataBasis: "synthetic",
-        workType: "other",
-        stage: "performed",
-        actualDate: "2026-11-04",
-        actualEndDate: null,
-        method: "TEST · Softwareprøve",
-        reach: "TEST · Syntetisk område",
-        performedBy: "TEST · Feltkonto",
-        sourceReference: "TEST · Offline optagelse",
-        evidenceIds: [],
-        deviation: "",
-        correctionReason: "",
-        coverage: "limited",
-        coverageDescription: "TEST · Kun syntetiske data",
-      },
-      p_performed_by_id: source.external.userId,
-      p_deviation_reason: "",
-      p_request_id: randomUUID(),
-      p_expected_assignment_version_id: assignment.id,
-      p_expected_assignment_version: assignment.version,
-    }),
+  await myTask.getByRole("link", { name: "Registrér udført arbejde", exact: true }).click();
+  await page.waitForURL(
+    (u) =>
+      u.searchParams.get("task") === fixture.actionId && u.searchParams.get("work") === "execution",
   );
-  for (const record of records)
-    await rpc(worker, "save_work_order_evidence", {
-      ...scope,
-      p_evidence_id: randomUUID(),
-      p_expected_version: 0,
-      p_observation_version_id: record.id,
-      p_upload_id: capture.id,
-      p_execution_revision_id: execution.workspace_entry_id,
-      p_state: "attached",
-      p_reason: "TEST · Opgavefoto underbygger gemt registrering",
-      p_request_id: randomUUID(),
-    });
+  const executionPanel = page.getByRole("region", { name: "Faktisk udførelse", exact: true });
+  await executionPanel
+    .getByRole("button", { name: "Åbn udførelsesregistrering", exact: true })
+    .click();
+  await executionPanel
+    .getByRole("combobox", { name: /^Registreringstype/ })
+    .selectOption("synthetic");
+  await executionPanel.getByRole("combobox", { name: /^Status/ }).selectOption("performed");
+  await executionPanel.getByRole("combobox", { name: /^Indsats/ }).selectOption("other");
+  await executionPanel.getByLabel("Faktisk startdato", { exact: true }).fill("2026-11-04");
+  await executionPanel
+    .getByLabel("Faktisk metode – tomt felt betyder uafklaret", { exact: true })
+    .fill("TEST · Softwareprøve");
+  await executionPanel
+    .getByLabel("Udført delstrækning og stedreference", { exact: true })
+    .fill("TEST · Syntetisk område");
+  await executionPanel
+    .getByLabel("Arbejdslog, feltregistrering eller anden udførelseskilde", { exact: true })
+    .fill("TEST · Offline optagelse");
+  await executionPanel
+    .getByRole("combobox", { name: /^Faktisk undersøgelsesdækning/ })
+    .selectOption("limited");
+  await executionPanel
+    .getByLabel("Faktisk dækning, metode og begrænsninger", { exact: true })
+    .fill("TEST · Kun syntetiske data");
+  await executionPanel.getByRole("button", { name: "Gem udførelsesversion", exact: true }).click();
+  await expect(
+    executionPanel.getByText(/^Udførelsesregistrering gemt som version 1\./),
+  ).toBeVisible();
+  const execution = first(
+    ok(
+      await worker
+        .from("work_order_execution_bindings")
+        .select("*")
+        .eq("action_id", fixture.actionId)
+        .eq("project_id", fixture.projectId),
+      "Browser execution binding",
+    ),
+  );
+  assert.equal(execution.performed_by_id, source.external.userId);
+  assert.equal(execution.plan_version_id, fixture.plan1);
+  myTask = await openMyTask();
+  evidencePanel = await documentation(myTask);
+  for (const record of records) {
+    await evidencePanel
+      .getByRole("button", { name: "Knyt til registrering: " + capture.payload.title, exact: true })
+      .click();
+    await evidencePanel
+      .getByRole("combobox", { name: /^Gemt feltregistrering/ })
+      .selectOption(record.id);
+    await expect(
+      evidencePanel.getByRole("combobox", { name: /^Verificeret originalfoto/ }),
+    ).toHaveValue(capture.id);
+    await evidencePanel
+      .getByRole("combobox", { name: /^Udført arbejde/ })
+      .selectOption(execution.workspace_entry_id);
+    await evidencePanel
+      .getByLabel("Begrundelse", { exact: true })
+      .fill("TEST · Opgavefoto underbygger gemt registrering");
+    await evidencePanel.getByRole("button", { name: "Gem dokumentation", exact: true }).click();
+    await expect(
+      evidencePanel.getByRole("heading", { name: "Ny kobling", exact: true }),
+    ).toHaveCount(0);
+  }
+  await mark("execution_and_evidence_saved_in_browser");
   for (const status of ["draft", "planned", "assigned", "started", "performed"]) {
     const c = first(await rpc(owner, "get_work_order_lifecycle_context"));
     await rpc(
@@ -486,13 +569,20 @@ try {
   }
   const ready = await rpc(worker, "get_work_order_submission_context");
   assert.deepEqual(ready.gaps, []);
+  myTask = await openMyTask();
+  await myTask.getByRole("button", { name: "Gå til aflevering", exact: true }).click();
+  await myTask
+    .getByLabel("Bemærkning til afleveringen", { exact: true })
+    .fill("TEST · Offlinefoto og to krævede jobkort");
+  await myTask.getByRole("button", { name: "Gem afleveringsversion", exact: true }).click();
+  await expect(
+    myTask.getByRole("heading", { name: "Afleveringsversion 1", exact: true }),
+  ).toBeVisible();
   const submission = first(
-    await rpc(worker, "save_work_order_submission", {
+    await rpc(worker, "list_work_order_submissions", {
       ...scope,
-      p_expected_version: 0,
-      p_basis_hash: ready.basis_hash,
-      p_note: "TEST · Offlinefoto og to krævede jobkort",
-      p_request_id: randomUUID(),
+      p_before_version: null,
+      p_page_size: 5,
     }),
   );
   for (const evidence of submission.snapshot.evidence) {
@@ -501,20 +591,14 @@ try {
   }
   const toSubmit = await rpc(worker, "get_work_order_review_context");
   assert.equal(toSubmit.can_submit, true);
-  await rpc(worker, "mutate_work_order_lifecycle", {
-    ...scope,
-    p_expected_version: toSubmit.state.version,
-    p_request_id: randomUUID(),
-    p_values: {
-      operation: "submit",
-      targetStatus: "submitted",
-      reason: "TEST · Send det fastholdte grundlag til teknisk gennemgang",
-      submissionVersionId: submission.id,
-      planVersionId: submission.plan_version_id,
-      assignmentVersionId: submission.assignment_version_id,
-      executionRevisionId: submission.execution_revision_id,
-    },
-  });
+  await myTask.getByRole("button", { name: "Aflevér til gennemgang", exact: true }).click();
+  await myTask
+    .getByLabel("Begrundelse for afleveringshandlingen", { exact: true })
+    .fill("TEST · Send det fastholdte grundlag til teknisk gennemgang");
+  await myTask.getByRole("button", { name: "Gem afleveringshandling", exact: true }).click();
+  await expect
+    .poll(async () => (await rpc(worker, "get_work_order_review_context")).state.status)
+    .toBe("submitted");
   await mark("submitted");
   const previousReview = await rpc(owner, "get_work_order_access_history", {
     ...scope,
@@ -637,6 +721,11 @@ try {
     schema: "freyra.field-task-photo-staging/v1",
     result: "PASS",
     sourceRevision: revision,
+    testedBase: base,
+    entry: "my-work-orders",
+    fieldUserWithoutPlanningAccess: true,
+    browserExecutionAndEvidence: true,
+    browserSubmission: true,
     run: fixture.run,
     projectId: fixture.projectId,
     actionId: fixture.actionId,

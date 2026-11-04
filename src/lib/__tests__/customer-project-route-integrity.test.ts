@@ -44,7 +44,22 @@ vi.mock("@tanstack/react-query", () => ({
     }
     return { data: [] };
   },
-  useQuery: (options: { queryKey: unknown[]; enabled?: boolean }) => {
+  useQuery: (options: {
+    queryKey: unknown[];
+    enabled?: boolean;
+    queryFn?: () => Promise<unknown>;
+  }) => {
+    if (options.queryKey[0] === "project-media") {
+      state.mediaQuery = options.queryFn!;
+      return {
+        data: [],
+        error: state.mediaError,
+        isFetching: false,
+        isError: !!state.mediaError,
+        isSuccess: !state.mediaError,
+        refetch: vi.fn(),
+      };
+    }
     if (options.queryKey[0] === "environmental-context") {
       state.environmental = options;
       return { data: undefined, isPending: true, isError: false };
@@ -174,7 +189,7 @@ describe("customer project evidence guards", () => {
 
   it("stops report preview on a failed background media refresh", () => {
     state.mediaError = new Error("Projektets medier kunne ikke hentes.");
-    expect(renderProject).toThrow("Projektets medier kunne ikke hentes.");
+    expect(renderProject).not.toThrow();
     expect(state.preview).not.toHaveBeenCalled();
     expect(state.sensors).not.toHaveBeenCalled();
   });

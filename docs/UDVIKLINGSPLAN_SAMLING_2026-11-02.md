@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.12 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.13 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
 kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
@@ -63,7 +63,18 @@ på samme identificerede kandidat, inklusive adgang, fejlhåndtering, rapporters
 kildespor og gendannelse af både database og originalfiler. Kundens opstart,
 supportvej og leverede arbejdsgange skal være dokumenteret før salg og drift.
 
-**Næste kodepakke:** Genbrug den allerede udviklede feltindgang i Mine opgaver
+**Igangværende kodepakke:** [Mine opgavers feltforløb](MINE_OPGAVER_FELTFORLOEB_2026-11-04.md)
+samler nu den allerede udviklede handoff og mediefejlisolation med PR46's
+opgavefotos og offlinepakke i `codex/field-task-handoff`. 105 målrettede
+komponent-/serviceprøver i syv filer og strict typecheck består lokalt.
+Aktiv staging ændres først efter en separat kandidats browserprøve og
+koordinering med den parallelle gren. Det udvidede hosted prøveprogram
+starter fra Mine opgaver og bruger UI til udførelse, dokumentation og
+aflevering; det er endnu ikke kørt på kandidaten. Fuld CI og browserbevis
+registreres efter kørsel. Den parallelle chat ejer kompakt valgt-opgavevisning
+og P9's supplerende SQL-/gendannelsesprøver.
+
+**Arbejdspakkens oprindelige krav:** Genbrug den allerede udviklede feltindgang i Mine opgaver
 fra den parallelle, committede MyWorkOrders (3af288a/9af245d). En feltbruger
 uden can_plan skal kunne åbne kamera og udførelse på den valgte opgave,
 når eksisterende getFieldJobAccess bekræfter samme aktør/projekt og bidragsadgang.
