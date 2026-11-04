@@ -1099,72 +1099,87 @@ function OfflineJobEditor({
           ))}
         </dl>
       </details>
-      {local?.kind === "job" && (local.state === "conflict" || planChanged) && (
-        <div className="space-y-2 rounded-xl border bg-muted/40 p-3 text-sm">
-          <h3 className="font-medium">Sammenlign den lokale registrering med opgavepakken</h3>
-          {local.template.id !== template.id ? (
-            <p>
-              Skabelonen er ændret. Brug de bevarede svar nedenfor til at udfylde den nye skabelon.
-            </p>
-          ) : serverVersion <= local.payload.expectedVersion && !planChanged ? (
-            <p>Opdater sagen med net, så opgavepakken indeholder den nyere serverversion.</p>
-          ) : (
-            <p>
-              Vælg, hvilke svar du vil gemme som en ny version. Angiv en begrundelse, før du gemmer.
-            </p>
-          )}
-          <ul className="space-y-2">
-            {local.template.definition.fields.map((field) => {
-              const savedAnswer = offlineJobAnswer(latest?.values[field.key]);
-              const localAnswer = offlineJobAnswer(local.payload.values[field.key]);
-              return (
-                <li
-                  key={field.key}
-                  className="rounded-lg border bg-background p-2 [overflow-wrap:anywhere]"
-                >
-                  <p className="font-medium">
-                    {field.label}
-                    {field.unit ? ` (${field.unit})` : ""}
-                  </p>
-                  <dl className="grid gap-1 sm:grid-cols-2">
-                    {local.template.id === template?.id && (
-                      <div>
-                        <dt className="text-muted-foreground">I opgavepakken</dt>
-                        <dd className="whitespace-pre-wrap">{savedAnswer}</dd>
-                      </div>
-                    )}
-                    <div>
-                      <dt className="text-muted-foreground">På telefonen</dt>
-                      <dd className="whitespace-pre-wrap">{localAnswer}</dd>
-                    </div>
-                  </dl>
-                </li>
-              );
-            })}
-          </ul>
-          {local.template.id === template.id &&
-            (serverVersion > local.payload.expectedVersion || planChanged) &&
-            !taskItems.some(
-              (item) =>
-                item.supersedesId === local.id && !["blocked", "conflict"].includes(item.state),
-            ) &&
-            writable && (
-              <button
-                type="button"
-                className={button}
-                disabled={busy || !writable}
-                onClick={() => {
-                  setValues(local.payload.values);
-                  setStatus(local.payload.status);
-                  setSupersedesId(local.id);
-                  markDirty(true);
-                }}
-              >
-                Brug den bevarede registrering som ny kladde
-              </button>
+      {local?.kind === "job" &&
+        (local.state === "conflict" || local.state === "blocked" || planChanged) && (
+          <div className="space-y-2 rounded-xl border bg-muted/40 p-3 text-sm">
+            <h3 className="font-medium">Sammenlign den lokale registrering med opgavepakken</h3>
+            {local.state === "blocked" ? (
+              <p>
+                Afklar adgangen eller fejlen, før du prøver den samme registrering igen. De bevarede
+                svar kan læses og hentes her.
+              </p>
+            ) : planChanged && !["complete", "conflict"].includes(local.state) ? (
+              <p>
+                Synkronisér den bevarede registrering med net, før du opretter en rettelse efter den
+                nye plan. Den gamle registrering bevares.
+              </p>
+            ) : local.template.id !== template.id ? (
+              <p>
+                Skabelonen er ændret. Brug de bevarede svar nedenfor til at udfylde den nye
+                skabelon.
+              </p>
+            ) : serverVersion <= local.payload.expectedVersion && !planChanged ? (
+              <p>Opdater sagen med net, så opgavepakken indeholder den nyere serverversion.</p>
+            ) : (
+              <p>
+                Vælg, hvilke svar du vil gemme som en ny version. Angiv en begrundelse, før du
+                gemmer.
+              </p>
             )}
-        </div>
-      )}
+            <ul className="space-y-2">
+              {local.template.definition.fields.map((field) => {
+                const savedAnswer = offlineJobAnswer(latest?.values[field.key]);
+                const localAnswer = offlineJobAnswer(local.payload.values[field.key]);
+                return (
+                  <li
+                    key={field.key}
+                    className="rounded-lg border bg-background p-2 [overflow-wrap:anywhere]"
+                  >
+                    <p className="font-medium">
+                      {field.label}
+                      {field.unit ? ` (${field.unit})` : ""}
+                    </p>
+                    <dl className="grid gap-1 sm:grid-cols-2">
+                      {local.template.id === template?.id && (
+                        <div>
+                          <dt className="text-muted-foreground">I opgavepakken</dt>
+                          <dd className="whitespace-pre-wrap">{savedAnswer}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt className="text-muted-foreground">På telefonen</dt>
+                        <dd className="whitespace-pre-wrap">{localAnswer}</dd>
+                      </div>
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
+            {local.template.id === template.id &&
+              (local.state === "conflict" || (local.state === "complete" && planChanged)) &&
+              local.lastError !== "cancelled" &&
+              (serverVersion > local.payload.expectedVersion || planChanged) &&
+              !taskItems.some(
+                (item) =>
+                  item.supersedesId === local.id && !["blocked", "conflict"].includes(item.state),
+              ) &&
+              writable && (
+                <button
+                  type="button"
+                  className={button}
+                  disabled={busy || !writable}
+                  onClick={() => {
+                    setValues(local.payload.values);
+                    setStatus(local.payload.status);
+                    setSupersedesId(local.state === "conflict" ? local.id : undefined);
+                    markDirty(true);
+                  }}
+                >
+                  Brug den bevarede registrering som ny kladde
+                </button>
+              )}
+          </div>
+        )}
       <RequiredFieldJobProgress
         definition={template.definition}
         values={values}

@@ -847,11 +847,15 @@
         "src/lib/work-order-plan.ts",
         "src/lib/work-order-submission.ts",
         "src/components/project/RequiredJobCards.tsx",
-        "src/components/project/WorkOrderPlansPanel.tsx"
+        "src/components/project/WorkOrderPlansPanel.tsx",
+        "src/components/project/FieldOfflineWorkspace.tsx",
+        "src/services/field-offline-service.ts",
+        "src/services/field-offline-store.ts"
       ],
       "migrations": [
         "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
-        "supabase/migrations/20261104024837_work_order_required_job_cards.sql"
+        "supabase/migrations/20261104024837_work_order_required_job_cards.sql",
+        "supabase/migrations/20261104034102_offline_required_job_card_plan_binding.sql"
       ],
       "tests": [
         "src/lib/__tests__/field-job-cards.test.ts",
@@ -862,9 +866,14 @@
         "supabase/tests/database/work_order_required_job_cards.test.sql",
         "scripts/test-work-order-submission-staging.mjs",
         "scripts/test-required-job-card-plan-staging.mjs",
-        "scripts/test-required-job-card-review-staging.mjs"
+        "scripts/test-required-job-card-review-staging.mjs",
+        "src/services/__tests__/field-offline-service.test.ts",
+        "src/services/__tests__/field-offline-store.test.ts",
+        "src/components/project/__tests__/FieldOfflineWorkspace.test.tsx",
+        "supabase/tests/database/offline_required_job_card_plan.test.sql",
+        "scripts/test-offline-required-cards-staging.mjs"
       ],
-      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
+      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed; plan-bound offline cards staged at 8aff043; CI 41773137955 passed; hosted and physical phone acceptance open",
       "remaining": "Planens eksplicit valgte jobkortversioner og nødvendige svar kontrolleres på serveren. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md."
     },
     {
@@ -940,13 +949,17 @@
         "src/lib/work-order-plan.ts",
         "src/lib/work-order-submission.ts",
         "src/components/project/RequiredJobCards.tsx",
-        "src/components/project/WorkOrderPlansPanel.tsx"
+        "src/components/project/WorkOrderPlansPanel.tsx",
+        "src/components/project/FieldOfflineWorkspace.tsx",
+        "src/services/field-offline-service.ts",
+        "src/services/field-offline-store.ts"
       ],
       "migrations": [
         "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
         "supabase/migrations/20261102180652_work_order_submission_packets.sql",
         "supabase/migrations/20261102213116_work_order_submission_review.sql",
-        "supabase/migrations/20261104024837_work_order_required_job_cards.sql"
+        "supabase/migrations/20261104024837_work_order_required_job_cards.sql",
+        "supabase/migrations/20261104034102_offline_required_job_card_plan_binding.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
@@ -962,9 +975,14 @@
         "supabase/tests/database/work_order_required_job_cards.test.sql",
         "scripts/test-work-order-submission-staging.mjs",
         "scripts/test-required-job-card-plan-staging.mjs",
-        "scripts/test-required-job-card-review-staging.mjs"
+        "scripts/test-required-job-card-review-staging.mjs",
+        "src/services/__tests__/field-offline-service.test.ts",
+        "src/services/__tests__/field-offline-store.test.ts",
+        "src/components/project/__tests__/FieldOfflineWorkspace.test.tsx",
+        "supabase/tests/database/offline_required_job_card_plan.test.sql",
+        "scripts/test-offline-required-cards-staging.mjs"
       ],
-      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
+      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed; plan-bound offline cards staged at 8aff043; CI 41773137955 passed; hosted and physical phone acceptance open",
       "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05."
     },
     {

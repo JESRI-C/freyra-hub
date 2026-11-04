@@ -384,6 +384,113 @@ describe("mobile field local save feedback", () => {
     expect(host.textContent).toContain("Skabelonversion 1");
     expect(host.textContent).toContain("ikke automatisk opgavedokumentation");
   });
+  it("reuses an already received card after a plan change without treating it as a conflict draft", async () => {
+    const source = requiredPack(),
+      card = source.jobs[0].requirements!.cards[0];
+    f.packs.mockResolvedValue([source]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        kind: "job",
+        state: "complete",
+        projectId: f.project,
+        template: card,
+        payload: {
+          actionId: f.action,
+          templateVersionId: card.id,
+          requiredPlanVersionId: crypto.randomUUID(),
+          expectedVersion: 0,
+          values: { count: 4, seen: false },
+          status: "recorded",
+        },
+      },
+    ]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const copy = [...host.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Brug den bevarede registrering som ny kladde"),
+    )!;
+    await act(async () => copy.click());
+    await inputValue(inputWithLabel("Begrundelse"), "Svar gennemgået efter ny plan");
+    const save = [...host.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("Gem registrering på telefonen"),
+    )!;
+    await act(async () => save.click());
+    expect(f.prepare.mock.calls.at(-1)![2]).toMatchObject({
+      values: { count: 4, seen: false },
+      supersedesId: undefined,
+    });
+  });
+  it("shows the preserved answers of a blocked card and offers no new conflict correction", async () => {
+    const source = requiredPack(),
+      card = source.jobs[0].requirements!.cards[0];
+    f.packs.mockResolvedValue([source]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        kind: "job",
+        state: "blocked",
+        projectId: f.project,
+        template: card,
+        payload: {
+          actionId: f.action,
+          templateVersionId: card.id,
+          requiredPlanVersionId: source.jobs[0].requirements!.planVersionId,
+          expectedVersion: 0,
+          values: { count: 5, seen: false },
+          status: "recorded",
+        },
+      },
+    ]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    expect(host.textContent).toContain("På telefonen");
+    expect(host.textContent).toContain("Afklar adgangen");
+    expect(
+      [...host.querySelectorAll("button")].some((b) =>
+        b.textContent?.includes("Brug den bevarede registrering som ny kladde"),
+      ),
+    ).toBe(false);
+  });
+  it("waits for an unsent old-plan card before offering a new correction", async () => {
+    const source = requiredPack(),
+      card = source.jobs[0].requirements!.cards[0];
+    f.packs.mockResolvedValue([source]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        kind: "job",
+        state: "queued",
+        projectId: f.project,
+        template: card,
+        payload: {
+          actionId: f.action,
+          templateVersionId: card.id,
+          requiredPlanVersionId: crypto.randomUUID(),
+          expectedVersion: 0,
+          values: { count: 6, seen: false },
+          status: "recorded",
+        },
+      },
+    ]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    expect(host.textContent).toContain("Synkronisér den bevarede registrering");
+    expect(
+      [...host.querySelectorAll("button")].some((b) =>
+        b.textContent?.includes("Brug den bevarede registrering som ny kladde"),
+      ),
+    ).toBe(false);
+  });
   it("links back to evidence on the exact requested job only when online", async () => {
     const round = "44444444-4444-4444-8444-444444444444";
     await act(async () =>
