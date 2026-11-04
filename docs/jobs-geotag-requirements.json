@@ -552,7 +552,7 @@
       ],
       "migrations": [
         "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
-        "supabase/migrations/20261104054235_field_photo_work_order_context.sql"
+        "supabase/migrations/20261104064006_field_photo_work_order_context.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
@@ -563,8 +563,8 @@
         "src/services/__tests__/work-order-evidence-original.test.ts",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open; selected-task photo capture implemented on isolated field-task-photos branch; local checks only, DB CI and hosted acceptance pending",
-      "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler. Ny opgavefotoindgang: database-CI, samme offlineforløb gennem rapport og fysisk telefon afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+      "coverage": "partial, acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+      "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
     },
     {
       "id": "OBS-03",
@@ -603,7 +603,7 @@
       "migrations": [
         "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
         "supabase/migrations/20261104034102_offline_required_job_card_plan_binding.sql",
-        "supabase/migrations/20261104054235_field_photo_work_order_context.sql"
+        "supabase/migrations/20261104064006_field_photo_work_order_context.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
@@ -615,8 +615,8 @@
         "src/services/__tests__/work-order-evidence-original.test.ts",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; project original queue preserved and plan-bound job cards staged at 90f0196; physical acceptance open; selected-task photo capture implemented on isolated field-task-photos branch; local checks only, DB CI and hosted acceptance pending",
-      "remaining": "Mobil originalkø og planbundne jobkort findes. To jobkort er teknisk genprøvet ved browserlukning, netbrud og planskift. Automatisk opgave-/kategoribinding af fotos, metadata/flerfoto-status, fysisk kamera/GPS og samlet feltaccept mangler. Ny opgavefotoindgang: database-CI, samme offlineforløb gennem rapport og fysisk telefon afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+      "coverage": "partial; project original queue preserved and plan-bound job cards staged at 90f0196; physical acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+      "remaining": "Mobil originalkø og planbundne jobkort findes. To jobkort er teknisk genprøvet ved browserlukning, netbrud og planskift. Automatisk opgave-/kategoribinding af fotos, metadata/flerfoto-status, fysisk kamera/GPS og samlet feltaccept mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
     },
     {
       "id": "OBS-05",
@@ -654,7 +654,7 @@
       ],
       "migrations": [
         "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
-        "supabase/migrations/20261104054235_field_photo_work_order_context.sql"
+        "supabase/migrations/20261104064006_field_photo_work_order_context.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
@@ -665,8 +665,8 @@
         "src/services/__tests__/work-order-evidence-original.test.ts",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open; selected-task photo capture implemented on isolated field-task-photos branch; local checks only, DB CI and hosted acceptance pending",
-      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret. Ny opgavefotoindgang: database-CI, samme offlineforløb gennem rapport og fysisk telefon afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+      "coverage": "partial, acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
     },
     {
       "id": "OBS-07",
@@ -746,7 +746,7 @@
       ],
       "migrations": [
         "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
-        "supabase/migrations/20261104054235_field_photo_work_order_context.sql"
+        "supabase/migrations/20261104064006_field_photo_work_order_context.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
@@ -757,8 +757,8 @@
         "src/services/__tests__/work-order-evidence-original.test.ts",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "not fully assessed; later phase; selected-task photo capture implemented on isolated field-task-photos branch; local checks only, DB CI and hosted acceptance pending",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept. Ny opgavefotoindgang: database-CI, samme offlineforløb gennem rapport og fysisk telefon afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+      "coverage": "not fully assessed; later phase; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
     },
     {
       "id": "MAP-01",

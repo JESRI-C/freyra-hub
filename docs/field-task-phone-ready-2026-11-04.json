@@ -1,0 +1,25 @@
+{
+  "schema": "freyra.field-phone-ready/v1",
+  "sourceRevision": "4be325d7253f02c915d5089ecb418d7e9e4d72ac",
+  "projectId": "d379eca2-9101-4e5f-b1e0-cb3a9c7d7bcd",
+  "actionId": "7a66b13b-e91a-433c-9ee7-a71fabdb677d",
+  "projectName": "TEST · Telefonprøve – opgavefotos",
+  "taskTitle": "TEST · Dokumentér arbejdet på telefonen",
+  "planVersion": 2,
+  "assignmentVersion": 2,
+  "fieldUrl": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/felt?project=d379eca2-9101-4e5f-b1e0-cb3a9c7d7bcd&task=7a66b13b-e91a-433c-9ee7-a71fabdb677d",
+  "taskUrl": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/projects/d379eca2-9101-4e5f-b1e0-cb3a9c7d7bcd?tab=handlinger&task=7a66b13b-e91a-433c-9ee7-a71fabdb677d&work=field",
+  "physicalPhoneAccepted": false,
+  "offlineUiReopened": true,
+  "phoneCameraEnabled": true,
+  "horizontalOverflow": false,
+  "noFieldResultsCreated": true,
+  "screens": [
+    "phone-context-390.png",
+    "phone-camera-390.png",
+    "phone-card-390.png",
+    "phone-queue-390.png"
+  ],
+  "ownSessionsRevoked": true,
+  "temporaryFieldMembershipsRemaining": 0
+}
