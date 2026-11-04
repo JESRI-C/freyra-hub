@@ -88,8 +88,8 @@ vi.mock("@/lib/report-engine", () => ({
   getRecommendedNextAction: m.recommend,
 }));
 vi.mock("@/components/project/ProjectHeader", () => ({
-  ProjectHeader: ({ actionsCount }: { actionsCount: number }) => (
-    <header>Registrerede åbne handlinger: {actionsCount}</header>
+  ProjectHeader: ({ actionsCount, compact }: { actionsCount: number; compact?: boolean }) => (
+    <header data-compact={compact}>Registrerede åbne handlinger: {actionsCount}</header>
   ),
 }));
 vi.mock("@/components/project/MunicipalCaseWorkspace", () => ({
@@ -164,6 +164,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
   m.tab = "handlinger";
+  m.task = "00000000-0000-4000-8000-000000000003";
   m.media.mockResolvedValue({ data: [], error: null });
   host = document.createElement("div");
   document.body.append(host);
@@ -191,6 +192,25 @@ afterEach(async () => {
   host.remove();
 });
 describe("project route during signed media outage", () => {
+  it("focuses only a selected job and returns to full project context without remounting visited drafts", async () => {
+    await render();
+    expect(host.querySelector("header[data-compact]")?.getAttribute("data-compact")).toBe("true");
+    expect(host.querySelector('[aria-label="Formål og resultat"]')?.closest("details")?.open).toBe(
+      false,
+    );
+    await edit("Arbejdsordrekladde", "Bevar valgt jobs kladde");
+    const editor = host.querySelector('input[aria-label="Arbejdsordrekladde"]')!;
+    m.tab = "rapporter";
+    await render();
+    expect(host.querySelector("header[data-compact]")?.getAttribute("data-compact")).toBe("false");
+    m.tab = "handlinger";
+    m.task = "";
+    await render();
+    expect(host.querySelector("header[data-compact]")?.getAttribute("data-compact")).toBe("false");
+    expect(host.querySelector('input[aria-label="Arbejdsordrekladde"]')).toBe(editor);
+    expect((editor as HTMLInputElement).value).toBe("Bevar valgt jobs kladde");
+    expect(host.querySelector('[aria-label="Formål og resultat"]')?.closest("details")).toBeNull();
+  });
   it("does not hold the task editor behind a pending media request or invent an empty report input", async () => {
     let finish!: (value: unknown) => void;
     m.media.mockReturnValue(

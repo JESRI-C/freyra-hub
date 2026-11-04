@@ -3,6 +3,7 @@ import React, { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { emptyWorkOrderPlan, type WorkOrderFollowUpSource } from "@/lib/work-order-plan";
 const m = vi.hoisted(() => ({
   access: vi.fn(),
   actions: vi.fn(),
@@ -123,6 +124,7 @@ vi.mock("../WorkOrderPlansPanel", () => ({
       suggestedStart?: string;
       onOpenExecution?: () => void;
       onOpenSubmission?: () => void;
+      onFollowUp?: (source: WorkOrderFollowUpSource) => void;
     },
   ) => (
     <>
@@ -136,6 +138,21 @@ vi.mock("../WorkOrderPlansPanel", () => ({
       <button type="button" onClick={props.onOpenSubmission}>
         Kontrollér afleveringsgrundlaget
       </button>
+      {props.onFollowUp && (
+        <button
+          type="button"
+          onClick={() =>
+            props.onFollowUp?.({
+              id: "plan-version",
+              action_id: props.selectedActionId,
+              version: 2,
+              plan: emptyWorkOrderPlan("Oprindelig plejeopgave"),
+            })
+          }
+        >
+          Opret opfølgning fra planen
+        </button>
+      )}
     </>
   ),
 }));
@@ -769,6 +786,79 @@ it("keeps the time search and overrun filter when returning from an opened task"
   expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
 });
 describe("one task across the project workspaces", () => {
+  it("presents the chosen job heading and next action before the editor, with help and switching secondary", async () => {
+    await render("second");
+    expect(host.querySelector("h2")?.textContent).toBe("Anden opgave");
+    expect(
+      [...host.querySelectorAll("button")].some(
+        (button) => button.textContent === "Opret arbejdsopgave",
+      ),
+    ).toBe(false);
+    const editor = host.querySelector('[aria-label="Plan"]')!;
+    const next = [...host.querySelectorAll("button")].find(
+      (button) => button.textContent === "Videre til feltregistrering →",
+    )!;
+    expect(next.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const chooser = host.querySelector('[aria-label="Valgt arbejdsopgave"]')!.closest("details")!;
+    expect(chooser.open).toBe(false);
+    const help = host
+      .querySelector('summary[aria-label="Hjælp til arbejdsgrundlag"]')!
+      .closest("details")!;
+    expect(help.open).toBe(false);
+    await fill("Plan kladde", "Bevar den fokuserede opgave");
+    const draft = host.querySelector<HTMLInputElement>('[aria-label="Plan"] input')!;
+    await act(async () => {
+      help.open = true;
+    });
+    expect(host.querySelector('[aria-label="Plan"] input')).toBe(draft);
+    expect(
+      [...host.querySelectorAll<HTMLButtonElement>("button")].find(
+        (button) => button.textContent === "Tilbage til opgaveliste",
+      )!.disabled,
+    ).toBe(true);
+    await click("Fortryd Plan");
+  });
+
+  it("uses the compact mobile part selector without dropping an existing plan draft", async () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+    await render("first");
+    await fill("Plan kladde", "Bevar mobilens planudkast");
+    const draft = host.querySelector<HTMLInputElement>('[aria-label="Plan"] input')!;
+    const selector = [...host.querySelectorAll("label")]
+      .find((label) => label.firstChild?.textContent?.trim() === "Del af arbejdsopgaven")!
+      .querySelector("select")!;
+    await act(async () => {
+      selector.value = "field";
+      selector.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await settle();
+    expect(draft.closest("[hidden]")).not.toBeNull();
+    await act(async () => {
+      selector.value = "plan";
+      selector.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await settle();
+    expect(host.querySelector('[aria-label="Plan"] input')).toBe(draft);
+    expect(draft.value).toBe("Bevar mobilens planudkast");
+    await click("Kontrollér afleveringsgrundlaget");
+    expect(document.activeElement).toBe(selector);
+    expect(selector.value).toBe("submission");
+  });
+  it("keeps an opened follow-up creation form while the source task remains selected", async () => {
+    await render("first", true, true);
+    await click("Opret opfølgning fra planen");
+    const form = host.querySelector("form")!;
+    await fill("Hvad skal der udføres?", "Min ugemte opfølgning");
+    await click("Feltregistrering");
+    expect(host.querySelector("form")).toBe(form);
+    expect(form.querySelector("input")?.value).toBe("Min ugemte opfølgning");
+    expect(host.querySelector("h2")?.textContent).toBe("Første opgave");
+    expect(
+      host.querySelector('[aria-label="Valgt arbejdsopgave"]')?.getAttribute("disabled"),
+    ).not.toBeNull();
+    expect(m.create).not.toHaveBeenCalled();
+    await click("Fortryd");
+  });
   it("guides an unselected delivery link to the chosen task's submission", async () => {
     await render(undefined, true, true, "submission");
     expect(host.textContent).toContain("Vælg en arbejdsopgave for at åbne dens aflevering");
@@ -861,7 +951,7 @@ describe("one task across the project workspaces", () => {
   it("opens the exact deep-linked task in all views and retains the round in photo navigation", async () => {
     await render("second");
     expect(host.textContent).toContain("Plan · second");
-    expect(host.querySelectorAll("select")).toHaveLength(1);
+    expect(host.querySelectorAll("select")).toHaveLength(2);
     expect(host.querySelector('[aria-label="Felt"]')).toBeNull();
     await click("Feltregistrering");
     await click("Arbejdsgrundlag");
@@ -976,7 +1066,7 @@ describe("one task across the project workspaces", () => {
         m.actions.mockResolvedValue([...tasks, { id, title, status: "Åben" }]);
         return { id, title };
       });
-    await render("first", true, true);
+    await render(undefined, true, true);
     await click("Opret arbejdsopgave");
     await fill("Hvad skal der udføres?", "Ny kontrolopgave");
     const submit = async () => {

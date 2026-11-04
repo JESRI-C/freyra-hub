@@ -60,11 +60,13 @@ function Origin({
   const origin = query.data;
   if (!origin) return null;
   return (
-    <section
+    <details
       aria-label="Arbejdsordrens fastholdte observationsgrundlag"
       className="space-y-3 rounded-xl border p-4"
     >
-      <h3 className="font-semibold">Oprettet fra feltobservationer</h3>
+      <summary className="min-h-11 cursor-pointer font-semibold">
+        Oprettet fra feltobservationer · {origin.sources.length} kilder
+      </summary>
       <p className="text-sm text-muted-foreground">
         Fastholdt ved oprettelsen {observationTime(origin.created_at)}. Kilderne nedenfor viser
         grundlaget dengang. Opgavens aktuelle status følger arbejdsordren.
@@ -75,6 +77,6 @@ function Origin({
           <WorkOrderObservationSourceDetails key={source.observation_id} source={source} />
         ))}
       </div>
-    </section>
+    </details>
   );
 }

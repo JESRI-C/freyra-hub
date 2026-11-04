@@ -29,6 +29,7 @@ interface ProjectHeaderProps {
   activeDataSourcesCount: number;
   actionsCount: number;
   showDescription?: boolean;
+  compact?: boolean;
 }
 
 export function ProjectHeader({
@@ -38,6 +39,7 @@ export function ProjectHeader({
   activeDataSourcesCount,
   actionsCount,
   showDescription = true,
+  compact = false,
 }: ProjectHeaderProps) {
   const queryClient = useQueryClient();
   const [statusOpen, setStatusOpen] = useState(false);
@@ -86,15 +88,46 @@ export function ProjectHeader({
   }
 
   return (
-    <div className="min-w-0 rounded-2xl bg-card border shadow-soft p-4 sm:p-6 space-y-4">
+    <div
+      className={`min-w-0 rounded-2xl bg-card border shadow-soft ${compact ? "px-4 py-2" : "p-4 sm:p-6 space-y-4"}`}
+    >
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex min-w-0 max-w-full items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-leaf/20 grid place-items-center text-leaf shrink-0">
+          <div
+            hidden={compact}
+            className={
+              compact
+                ? "hidden"
+                : "h-12 w-12 rounded-xl bg-leaf/20 grid place-items-center text-leaf shrink-0"
+            }
+          >
             <Leaf className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <h1 className="break-words text-xl font-semibold tracking-tight">{project.name}</h1>
-            <div className="flex flex-wrap items-center gap-2 mt-0.5 text-sm text-muted-foreground">
+            {compact && (
+              <p className="break-words text-xs text-muted-foreground">
+                {[
+                  "Projekt",
+                  project.municipality,
+                  project.location_name !== project.municipality ? project.location_name : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+            <h1
+              className={`break-words font-semibold tracking-tight ${compact ? "text-base" : "text-xl"}`}
+            >
+              {project.name}
+            </h1>
+            <div
+              hidden={compact}
+              className={
+                compact
+                  ? "hidden"
+                  : "flex flex-wrap items-center gap-2 mt-0.5 text-sm text-muted-foreground"
+              }
+            >
               {project.project_type && <span>{project.project_type}</span>}
               {project.location_name && (
                 <>
@@ -112,7 +145,7 @@ export function ProjectHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div hidden={compact} className={compact ? "hidden" : "flex items-center gap-2"}>
           {/* Status dropdown */}
           <div className="relative" ref={statusRef}>
             <button
@@ -159,10 +192,17 @@ export function ProjectHeader({
       </div>
 
       {showDescription && project.description && (
-        <p className="text-sm text-muted-foreground">{project.description}</p>
+        <p hidden={compact} className="text-sm text-muted-foreground">
+          {project.description}
+        </p>
       )}
 
-      <div className="flex flex-wrap gap-4 pt-2 border-t text-sm text-muted-foreground">
+      <div
+        hidden={compact}
+        className={
+          compact ? "hidden" : "flex flex-wrap gap-4 pt-2 border-t text-sm text-muted-foreground"
+        }
+      >
         {(project.start_date || project.end_date) && (
           <div className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />

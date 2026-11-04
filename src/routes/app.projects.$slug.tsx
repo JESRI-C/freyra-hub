@@ -203,6 +203,7 @@ function ProjectPage() {
     <ProjectWorkspaceShell
       key={`${user?.id ?? "anonymous"}:${slug}`}
       view={view}
+      taskFocused={view.kind === "tab" && view.id === "handlinger" && !!search.task}
       onNavigate={(next) => void navigate({ search: projectViewSearch(search, next) })}
       renderTab={(tab) => <ProjectDetailPage activeTab={tab} />}
       renderStep={(step) => <MunicipalProjectPage step={step} />}
@@ -481,9 +482,13 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
       ? getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors)
       : null;
   const sensorActions = suggestSensorActions(sensors);
+  const taskFocused = activeTab === "handlinger" && !!search.task;
   return (
-    <main className="min-w-0 p-3 sm:p-6 max-w-[1200px] w-full mx-auto space-y-4 sm:space-y-5 pb-16">
+    <main
+      className={`min-w-0 px-3 pb-16 sm:px-6 max-w-[1200px] w-full mx-auto space-y-4 sm:space-y-5 ${taskFocused ? "pt-0" : "pt-3 sm:pt-6"}`}
+    >
       <ProjectHeader
+        compact={taskFocused}
         showDescription={activeTab !== "overblik"}
         canEdit={canEdit}
         project={project}

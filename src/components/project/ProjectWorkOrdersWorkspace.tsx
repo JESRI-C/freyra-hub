@@ -388,15 +388,25 @@ function WorkOrders({
     <section aria-label="Arbejdsopgaver" className="min-w-0 space-y-4 [overflow-wrap:anywhere]">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Arbejdsopgaver</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Planlæg en konkret indsats, følg det udførte arbejde, og saml den dokumentation, der
-            hører til opgaven.
-          </p>
+          <h2 className={`${actionId ? "text-2xl leading-tight" : "text-xl"} font-semibold`}>
+            {authorized && !actions.isError && selected
+              ? selected.title
+              : actionId
+                ? "Arbejdsopgave"
+                : "Arbejdsopgaver"}
+          </h2>
+          {!actionId && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Planlæg en konkret indsats, følg det udførte arbejde, og saml den dokumentation, der
+              hører til opgaven.
+            </p>
+          )}
         </div>
-        <Link to="/opgaver" className={button}>
-          Mine opgaver
-        </Link>
+        {!actionId && (
+          <Link to="/opgaver" className={button}>
+            Mine opgaver
+          </Link>
+        )}
       </header>
       {!actorId && <p>Log ind for at åbne arbejdsopgaver.</p>}
       {(access.isPending || (authorized && actions.isPending)) && actorId && (
@@ -420,7 +430,7 @@ function WorkOrders({
       )}
       {sameAccess && actions.data && (
         <div className="space-y-4" hidden={!authorized || actions.isError}>
-          {!creating && canEdit && access.data?.canConfigure && (
+          {!creating && !actionId && canEdit && access.data?.canConfigure && (
             <button
               type="button"
               className={button + " bg-primary text-primary-foreground"}
@@ -487,39 +497,54 @@ function WorkOrders({
           )}
           {error && <p role="alert">{error}</p>}
           {actionId ? (
-            <div className="space-y-3 rounded-2xl border bg-card p-4">
-              <label className="block text-sm font-medium">
-                Opgave
-                <select
-                  aria-label="Valgt arbejdsopgave"
-                  className={control}
-                  value={actionId}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-start gap-2">
+                <button
+                  type="button"
+                  className={button}
                   disabled={locked}
-                  onChange={(e) => select(e.target.value)}
+                  onClick={() => select("")}
                 >
-                  <option value="">Til opgavelisten</option>
-                  {!selected && (
-                    <option value={actionId}>Opgaven findes ikke i dette udvalg</option>
-                  )}
-                  {actions.data.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button type="button" className={button} disabled={locked} onClick={() => select("")}>
-                Tilbage til{" "}
-                {listView === "calendar"
-                  ? "kalender"
-                  : listView === "schedule"
-                    ? "planoversigt"
-                    : listView === "time"
-                      ? "timer"
-                      : listView === "bookings"
-                        ? "bookingoversigt"
-                        : "opgaveliste"}
-              </button>
+                  Tilbage til{" "}
+                  {listView === "calendar"
+                    ? "kalender"
+                    : listView === "schedule"
+                      ? "planoversigt"
+                      : listView === "time"
+                        ? "timer"
+                        : listView === "bookings"
+                          ? "bookingoversigt"
+                          : "opgaveliste"}
+                </button>
+                <details className="min-w-0 flex-1 rounded-xl border bg-card px-3">
+                  <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
+                    Skift opgave
+                  </summary>
+                  <label className="block pb-3 text-sm font-medium">
+                    Opgave
+                    <select
+                      aria-label="Valgt arbejdsopgave"
+                      className={control}
+                      value={actionId}
+                      disabled={locked}
+                      onChange={(e) => select(e.target.value)}
+                    >
+                      <option value="">Til opgavelisten</option>
+                      {!selected && (
+                        <option value={actionId}>Opgaven findes ikke i dette udvalg</option>
+                      )}
+                      {actions.data.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Link to="/opgaver" className={button + " mb-3"} disabled={locked}>
+                    Mine opgaver
+                  </Link>
+                </details>
+              </div>
               {locked && (
                 <p role="status" className="text-sm">
                   Gem eller fortryd dine ændringer, før du vælger en anden opgave. Du kan skifte
@@ -1380,31 +1405,71 @@ function TaskWorkspace({
   }
   function openPartWithFocus(id: Part, note?: WorkOrderCorrectionNote) {
     openPart(id, note);
-    document.getElementById(navigationId + id)?.focus();
+    const mobile =
+      typeof window.matchMedia === "function" && !window.matchMedia("(min-width: 640px)").matches;
+    document.getElementById(navigationId + (mobile ? "mobile" : id))?.focus();
   }
   return (
     <div className="min-w-0 space-y-4">
-      <nav aria-label="Arbejd med opgaven" className="grid grid-cols-1 gap-2 sm:grid-cols-5">
-        {parts.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            id={navigationId + item.id}
-            aria-pressed={part === item.id}
-            onClick={() => openPart(item.id)}
-            className={
-              button + (part === item.id ? " bg-primary text-primary-foreground" : " bg-card")
-            }
+      <nav aria-label="Arbejd med opgaven">
+        <label className="block text-sm font-medium sm:hidden">
+          Del af arbejdsopgaven
+          <select
+            id={navigationId + "mobile"}
+            className={control}
+            value={part}
+            onChange={(event) => openPart(event.target.value as Part)}
           >
-            {item.label}
-          </button>
-        ))}
+            {parts.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="hidden gap-2 sm:grid sm:grid-cols-5">
+          {parts.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              id={navigationId + item.id}
+              aria-pressed={part === item.id}
+              onClick={() => openPart(item.id)}
+              className={
+                button + (part === item.id ? " bg-primary text-primary-foreground" : " bg-card")
+              }
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </nav>
-      <WorkspaceGuide
-        question={current.question}
-        purpose={current.purpose}
-        output={current.output}
-      />
+      <div className="flex flex-wrap items-start gap-2">
+        {next && (
+          <button
+            type="button"
+            className={button + " bg-primary text-primary-foreground"}
+            onClick={() => openPart(next.id)}
+          >
+            Videre til {next.label.toLowerCase()} →
+          </button>
+        )}
+        <details className="min-w-0 flex-1 rounded-xl border bg-card px-3">
+          <summary
+            aria-label={`Hjælp til ${current.label.toLowerCase()}`}
+            className="min-h-11 cursor-pointer py-3 text-sm font-medium"
+          >
+            Hjælp
+          </summary>
+          <div className="pb-3">
+            <WorkspaceGuide
+              question={current.question}
+              purpose={current.purpose}
+              output={current.output}
+            />
+          </div>
+        </details>
+      </div>
       {correctionNote && (canEdit || canContribute) && (
         <aside
           aria-label="Mangler ved afleveringen"
