@@ -935,7 +935,7 @@
       "followUps": [
         {
           "package": "P9",
-          "state": "scoped P9 acceptance passed at 9af245d2be8e1bc248c66f6259b6554327e23e41; 124 targeted tests across separate runs, typecheck/lint/build/preflight passed; local creation/first-plan save/reload and read-only hosted manager/origin checks passed; full rollback SQL, controlled phantom and new physical acceptance remain open",
+          "state": "normal P9 manager path verified at 9af245d2be8e1bc248c66f6259b6554327e23e41; package acceptance remains open; 124 targeted tests across separate runs, typecheck/lint/build/preflight passed; local creation/first-plan save/reload and read-only hosted manager/origin checks passed; full rollback SQL, controlled phantom and new physical acceptance remain open",
           "basis": "OBS-09 requirement register; direct Skyhost GeoTag selectors observed but saved relation/create-job behavior not observed",
           "code": [
             "src/lib/work-order-observation-drafts.ts",
@@ -1068,7 +1068,7 @@
               "overallProductAcceptance": "open"
             }
           },
-          "remaining": "Scoped P9 acceptance passed; overall OBS-09 remains partial. Full rollback SQL suite and controlled two-session new-media phantom probe are not run; SDK fixture had no media references. New physical phone acceptance, saved Skyhost GeoTag relation/create behavior, full product-owner PR45/PR46 integration, generic GeoTag, offline creation, full OBS-02 and report-wide source/count binding remain open. Source metadata snapshots are not verified original bytes or execution/submission evidence.",
+          "remaining": "Normal P9 manager path verified; package acceptance remains open and overall OBS-09 remains partial. Full rollback SQL suite and controlled two-session new-media phantom probe are not run; SDK fixture had no media references. New physical phone acceptance, saved Skyhost GeoTag relation/create behavior, full product-owner PR45/PR46 integration, generic GeoTag, offline creation, full OBS-02 and report-wide source/count binding remain open. Source metadata snapshots are not verified original bytes or execution/submission evidence.",
           "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
           "historicalBaseline": {
             "coverage": "partial, acceptance open",

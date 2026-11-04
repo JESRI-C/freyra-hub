@@ -140,7 +140,7 @@ P8's browsertrin står i [den lokale browserkvittering](manager-map-browser-loca
 
 **Ejer og levering.** Denne tråd ejer den afstemte, smalle medieisolation i projektets route og Atlas. Ved P8-prøven stod produkttrådens særskilte PR45 på `9104a74`; den og den senere PR46 er ikke flettet ind i denne testversion. Der er ikke overtaget ejerskab for offlinejobkort, feltkontrakter eller fotoopgaven. P6–P8 var på dette prøvetidspunkt kun lokalt bygget og browserprøvet; den senere separate P9-upload og dens begrænsede hosted managerprøve står nedenfor. Ny mobil-/fysisk prøve, live pinnet vandløb og de øvrige P7-restkrav er fortsat åbne.
 
-## P9 · Eksisterende feltobservationer til arbejdsordrekladde · 4. november · afgrænset accept bestået
+## P9 · Eksisterende feltobservationer til arbejdsordrekladde · 4. november · normalt managerforløb efterprøvet, samlet accept åben
 
 **Krav → produktregel.** P9 udspringer af kravregisterets **OBS-09**, observation til opgave. Den nye [læsende GeoTag-observation](skyhost-geotag-observation-2026-11-04.json) fulgte banneret Geotag til `POI.aspx` og viste Map/List, statusvalgene Alle/Ny/Jobkort/Lukket, **Vælg jobkort →** og **Ingen job relation**. Listen havde bl.a. Log, Historik, Billede, Ref. og Kommentar. Både Ny og Jobkort var tomme under kategori **1.1 Afsætning**; en gemt jobrelation eller oprettelse af job fra GeoTag blev derfor ikke observeret. Der udledes ingen GoFreyra-livscyklus fra Skyhosts GeoTag-status Jobkort. Andre kategorier blev ikke undersøgt. Den oprindelige Ny/Map-visning blev gendannet, og der blev skrevet nul forretningsdata i Skyhost.
 
