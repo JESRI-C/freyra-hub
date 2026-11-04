@@ -27,7 +27,10 @@ import {
 import { listManagerWorkOrders } from "@/lib/manager-work-orders.functions";
 import { WorkOrderObservationDraftDialog } from "./WorkOrderObservationDraftDialog";
 import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
-import { workOrderStatusDestination } from "@/lib/work-order-navigation";
+import {
+  WORK_ORDER_ENTRY_ANCHOR,
+  workOrderStatusDestination,
+} from "@/lib/work-order-navigation";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import {
   ManagerWorkOrderMap,
@@ -168,6 +171,8 @@ function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean
             to="/app/projects/$slug"
             params={{ slug: task.project_id }}
             search={search}
+            hash={WORK_ORDER_ENTRY_ANCHOR}
+            hashScrollIntoView={{ block: "start", behavior: "auto" }}
             className="rounded hover:text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
           >
             {task.title}
@@ -225,6 +230,8 @@ function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean
           to="/app/projects/$slug"
           params={{ slug: task.project_id }}
           search={search}
+          hash={WORK_ORDER_ENTRY_ANCHOR}
+          hashScrollIntoView={{ block: "start", behavior: "auto" }}
           aria-label={`${opensSubmission ? "Åbn aflevering" : "Åbn arbejdsgrundlag"} for ${task.title}`}
           className={
             button +
@@ -240,6 +247,8 @@ function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean
             to="/app/projects/$slug"
             params={{ slug: task.project_id }}
             search={{ ...search, work: "plan" }}
+            hash={WORK_ORDER_ENTRY_ANCHOR}
+            hashScrollIntoView={{ block: "start", behavior: "auto" }}
             aria-label={`Åbn arbejdsgrundlag for ${task.title}`}
             className={button + (compact ? " w-full" : "")}
           >

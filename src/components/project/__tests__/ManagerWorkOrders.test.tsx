@@ -56,18 +56,24 @@ vi.mock("@tanstack/react-router", () => ({
     to,
     params,
     search,
+    hash,
+    hashScrollIntoView,
     children,
     ...props
   }: {
     to: string;
     params?: unknown;
     search?: unknown;
+    hash?: string;
+    hashScrollIntoView?: ScrollIntoViewOptions | boolean;
     children: React.ReactNode;
   }) => (
     <a
-      href={to}
+      href={to + (hash ? `#${hash}` : "")}
       data-params={JSON.stringify(params)}
       data-search={JSON.stringify(search)}
+      data-hash={hash}
+      data-hash-scroll={JSON.stringify(hashScrollIntoView)}
       {...props}
     >
       {children}
@@ -452,6 +458,11 @@ describe("manager work orders across projects", () => {
         const title = card.querySelector("h3 a")!;
         const primary = card.querySelector("a[aria-label]")!;
         for (const link of [title, primary]) {
+          expect(link.getAttribute("data-hash")).toBe("workspace-content");
+          expect(JSON.parse(link.getAttribute("data-hash-scroll")!)).toEqual({
+            block: "start",
+            behavior: "auto",
+          });
           expect(JSON.parse(link.getAttribute("data-params")!)).toEqual({ slug: task.project_id });
           expect(JSON.parse(link.getAttribute("data-search")!)).toEqual({
             tab: "handlinger",
@@ -466,6 +477,7 @@ describe("manager work orders across projects", () => {
             'a[aria-label="Åbn arbejdsgrundlag for Pleje langs åen"]',
           )!;
           expect(JSON.parse(plan.getAttribute("data-search")!).work).toBe("plan");
+          expect(plan.getAttribute("data-hash")).toBe("workspace-content");
         }
       };
       checkCard(host.querySelector("article")!);

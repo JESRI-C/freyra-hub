@@ -1,5 +1,8 @@
 import type { WorkOrderStatus } from "./work-order-lifecycle";
 
+// The existing app-shell target stays mounted while the project route is loading.
+export const WORK_ORDER_ENTRY_ANCHOR = "workspace-content";
+
 /** Shared presentation and deep links; authorization remains in the existing services. */
 export const WORK_ORDER_PARTS = [
   {
