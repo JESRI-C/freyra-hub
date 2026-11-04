@@ -315,6 +315,7 @@ export function WorkOrderReviewControls({
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId, scope] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId, scope] }),
         cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId] }),
+        cache.invalidateQueries({ queryKey: ["field-job-actions", actorId] }),
         cache.invalidateQueries({ queryKey: ["audit", scope.projectId] }),
       ]);
     } catch (failure) {

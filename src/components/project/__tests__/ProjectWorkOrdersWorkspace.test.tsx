@@ -59,7 +59,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.access }));
 vi.mock("@/services/field-job-cards-service", () => ({
-  listFieldJobActions: m.actions,
+  listFieldJobActionsForActor: m.actions,
   listFieldJobSchedule: m.schedule,
 }));
 vi.mock("@/services/indicators-service", () => ({ getIndicatorsByProject: m.indicators }));
@@ -786,6 +786,143 @@ it("keeps the time search and overrun filter when returning from an opened task"
   expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
 });
 describe("one task across the project workspaces", () => {
+  it("shows the recorded status of the same no-plan job in the list, selected context, chooser and schedule", async () => {
+    m.actions.mockResolvedValue([
+      {
+        ...tasks[0],
+        status: "Åben",
+        workOrderStatus: {
+          state: "recorded",
+          initialized: true,
+          status: "submitted",
+          version: 4,
+          blocked: false,
+        },
+      },
+      {
+        ...tasks[1],
+        workOrderStatus: {
+          state: "missing",
+          initialized: false,
+          status: null,
+          version: null,
+          blocked: false,
+        },
+      },
+    ]);
+    m.schedule.mockResolvedValue({});
+    await render(undefined, true, true);
+    expect(m.actions).toHaveBeenCalledWith(scope, "actor", expect.any(AbortSignal));
+    const card = [...host.querySelectorAll("button")].find(
+      (button) =>
+        button.textContent?.includes("Første opgave") && button.textContent.includes("Åbn →"),
+    )!;
+    expect(card.textContent).toContain("Senest registreret: Afleveret");
+    expect(card.textContent).not.toContain("Tidligere status");
+    expect(host.textContent).toContain("Jobstatus mangler");
+    expect(host.textContent).toContain("Tidligere status: Åben");
+    await act(async () => card.click());
+    await settle();
+    expect(host.querySelector("header")?.textContent).toContain(
+      "Første opgaveSenest registreret: Afleveret",
+    );
+    expect(
+      host.querySelector('[aria-label="Valgt arbejdsopgave"] option[value="first"]')?.textContent,
+    ).toContain("Første opgave · Senest registreret: Afleveret");
+    await fill("Plan kladde", "Bevar arbejdsgrundlaget ved statusopdatering");
+    const draft = host.querySelector<HTMLInputElement>('[aria-label="Plan"] input')!;
+    m.actions.mockResolvedValue([
+      {
+        ...tasks[0],
+        workOrderStatus: {
+          state: "recorded",
+          initialized: true,
+          status: "returned",
+          version: 5,
+          blocked: true,
+        },
+      },
+      tasks[1],
+    ]);
+    await act(async () => cache.invalidateQueries({ queryKey: ["field-job-actions", "actor"] }));
+    await settle();
+    expect(host.querySelector('[aria-label="Plan"] input')).toBe(draft);
+    expect(draft.value).toBe("Bevar arbejdsgrundlaget ved statusopdatering");
+    expect(host.querySelector("header")?.textContent).toContain("Senest registreret: Returneret");
+    expect(host.querySelector("header")?.textContent).toContain("Blokeret");
+    await click("Fortryd Plan");
+    await click("Tilbage til opgaveliste");
+    await click("Planoversigt");
+    expect(host.textContent).toContain("Senest registreret: Returneret");
+    expect(host.textContent).toContain("Se hvad der skal rettes");
+    expect(host.textContent).toContain("Ingen planlagt dato");
+  });
+  it("keeps cancelled jobs without a plan visible but excludes them from undated planning and calendar counts", async () => {
+    m.actions.mockResolvedValue([
+      {
+        ...tasks[0],
+        workOrderStatus: {
+          state: "recorded",
+          initialized: true,
+          status: "cancelled",
+          version: 2,
+          blocked: false,
+        },
+      },
+      {
+        ...tasks[1],
+        workOrderStatus: {
+          state: "missing",
+          initialized: false,
+          status: null,
+          version: null,
+          blocked: false,
+        },
+      },
+    ]);
+    m.schedule.mockResolvedValue({});
+    await render();
+    expect(host.textContent).toContain("Senest registreret: Annulleret");
+    await click("Planoversigt");
+    expect(host.textContent).toContain("1 opgave mangler en startdato");
+    await click("Se opgaver uden startdato i hele projektet");
+    expect(host.textContent).not.toContain("Første opgave");
+    expect(host.textContent).toContain("Anden opgave");
+    await click("Kalender");
+    expect(host.textContent).toContain("Se opgaver uden planlagt dato (1)");
+  });
+  it("distinguishes an old cached projection from a genuinely missing or unrecognized job status", async () => {
+    m.actions.mockResolvedValue([
+      tasks[0],
+      {
+        ...tasks[1],
+        workOrderStatus: {
+          state: "unrecognized",
+          initialized: true,
+          status: null,
+          version: 2,
+          blocked: false,
+        },
+      },
+      {
+        id: "third",
+        title: "Ingen registreret status",
+        status: null,
+        workOrderStatus: {
+          state: "missing",
+          initialized: true,
+          status: null,
+          version: null,
+          blocked: false,
+        },
+      },
+    ]);
+    await render();
+    expect(host.textContent).toContain("Status ikke hentet");
+    expect(host.textContent).toContain("Ukendt jobstatus");
+    expect(host.textContent).toContain("Jobstatus mangler");
+    expect(host.textContent).not.toContain("Senest registreret: Kladde");
+  });
   it("presents the chosen job heading and next action before the editor, with help and switching secondary", async () => {
     await render("second");
     expect(host.querySelector("h2")?.textContent).toBe("Anden opgave");

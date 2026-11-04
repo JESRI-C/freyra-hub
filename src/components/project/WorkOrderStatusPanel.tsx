@@ -290,6 +290,7 @@ function StatusPanel({
         cache.invalidateQueries({ queryKey: contextKey }),
         cache.invalidateQueries({ queryKey: logKey }),
         cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId] }),
+        cache.invalidateQueries({ queryKey: ["field-job-actions", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-prerequisite", actorId] }),
         cache.invalidateQueries({ queryKey: ["my-work-orders", actorId] }),
       ]);

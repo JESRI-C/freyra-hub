@@ -187,6 +187,30 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile operation status and canonical logbook", () => {
+  it("makes the actor's job-list projection stale after a successful status change without touching another actor's cache", async () => {
+    cache.setQueryDefaults(["field-job-actions"], { gcTime: Infinity });
+    const ownKey = [
+      "field-job-actions",
+      actor,
+      { organizationId: scope.organizationId, projectId: scope.projectId },
+    ];
+    const otherKey = [
+      "field-job-actions",
+      id(90),
+      { organizationId: scope.organizationId, projectId: scope.projectId },
+    ];
+    cache.setQueryData(ownKey, [{ id: scope.actionId, status: "assigned" }]);
+    cache.setQueryData(otherKey, [{ id: scope.actionId, status: "assigned" }]);
+    m.change.mockResolvedValue({});
+    await render();
+    await click("Sæt afventer");
+    await fill("Årsag til afventer", "Adgang til stedet mangler");
+    await fill("Næste handling", "Aftal adgang med ejeren");
+    await save();
+    expect(host.textContent).toContain("Din registrering er gemt som ny version");
+    expect(cache.getQueryState(ownKey)?.isInvalidated).toBe(true);
+    expect(cache.getQueryState(otherKey)?.isInvalidated).toBe(false);
+  });
   it("offers the submission check when work has been confirmed performed", async () => {
     const onOpenSubmission = vi.fn();
     await render(actor, { onOpenSubmission });

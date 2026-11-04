@@ -23,7 +23,7 @@ import {
   type WorkOrderFollowUpSource,
 } from "@/lib/work-order-plan";
 import {
-  listFieldJobActions,
+  listFieldJobActionsForActor,
   listFieldJobSchedule,
   listFieldJobTemplates,
 } from "@/services/field-job-cards-service";
@@ -46,6 +46,7 @@ import { WorkOrderAccessPanel } from "./WorkOrderAccessPanel";
 import { WorkOrderAssignmentPanel } from "./WorkOrderAssignmentPanel";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
+import { projectWorkOrderOptionLabel } from "./project-work-order-status-presentation";
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
@@ -105,7 +106,7 @@ function WorkOrderPlans({
   const enabled = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
-    queryFn: ({ signal }) => listFieldJobActions(scope, signal),
+    queryFn: ({ signal }) => listFieldJobActionsForActor(scope, actorId!, signal),
     enabled,
     retry: false,
   });
@@ -152,7 +153,7 @@ function WorkOrderPlans({
                 <option value="">Vælg opgave</option>
                 {actions.data.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.title}
+                    {projectWorkOrderOptionLabel(a)}
                   </option>
                 ))}
               </select>

@@ -70,7 +70,7 @@ vi.mock("@/lib/work-order-observation-drafts.functions", () => ({
   getWorkOrderObservationDraft: m.origin,
 }));
 vi.mock("@/services/field-job-cards-service", () => ({
-  listFieldJobActions: m.actions,
+  listFieldJobActionsForActor: m.actions,
   listFieldJobTemplates: m.templates,
   listFieldJobSchedule: m.schedule,
 }));
@@ -271,6 +271,27 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("binds the fallback plan picker to the actor and displays the recorded job status", async () => {
+    m.actions.mockResolvedValue([
+      {
+        id: actionId,
+        title: "Synthetic visit",
+        status: "Åben",
+        workOrderStatus: {
+          state: "recorded",
+          initialized: true,
+          status: "approved",
+          version: 7,
+          blocked: false,
+        },
+      },
+    ]);
+    await open(false);
+    expect(m.actions).toHaveBeenCalledWith(scope, actor, expect.any(AbortSignal));
+    expect(host.querySelector("select")?.selectedOptions[0].textContent).toBe(
+      "Synthetic visit · Senest registreret: Godkendt",
+    );
+  });
   it("carries the checked observation draft description into the first manager plan and save", async () => {
     m.access.mockResolvedValue({
       userId: actor,

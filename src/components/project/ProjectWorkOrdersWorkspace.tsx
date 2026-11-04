@@ -23,7 +23,12 @@ import type { WorkOrderFollowUpSource } from "@/lib/work-order-plan";
 import { rememberFollowUpSource } from "@/lib/work-order-follow-up-draft";
 import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
-import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
+import {
+  listFieldJobActionsForActor,
+  listFieldJobSchedule,
+} from "@/services/field-job-cards-service";
+import { ProjectWorkOrderStatus } from "./ProjectWorkOrderStatus";
+import { projectWorkOrderOptionLabel } from "./project-work-order-status-presentation";
 import { getIndicatorsByProject } from "@/services/indicators-service";
 import { createProjectAction, type ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
@@ -177,7 +182,7 @@ function WorkOrders({
   const authorized = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
-    queryFn: ({ signal }) => listFieldJobActions(scope, signal),
+    queryFn: ({ signal }) => listFieldJobActionsForActor(scope, actorId!, signal),
     enabled: authorized,
     retry: false,
     refetchOnWindowFocus: !locked,
@@ -205,6 +210,19 @@ function WorkOrders({
   const filter =
     canEdit && (responsible === "unassigned" || names.has(responsible)) ? responsible : "";
   const dates = schedule.data;
+  function isCancelled(action: NonNullable<typeof actions.data>[number]) {
+    return action.workOrderStatus
+      ? action.workOrderStatus.status === "cancelled"
+      : !!dates?.[action.id]?.cancelled;
+  }
+  function reviewFor(action: NonNullable<typeof actions.data>[number]) {
+    const status = action.workOrderStatus
+      ? action.workOrderStatus.status
+      : dates?.[action.id]?.reviewStatus;
+    return status === "submitted" || status === "returned" || status === "reopened"
+      ? reviewAttention[status]
+      : undefined;
+  }
   const orderedActions =
     showSchedule && dates
       ? (actions.data ?? [])
@@ -223,33 +241,35 @@ function WorkOrders({
   const createDate = listView === "calendar" && day ? from : undefined;
   const through = calendarKey(day ?? endOfMonth(month));
   const undatedCount = (orderedActions ?? []).filter(
-    ({ id }) => !dates?.[id]?.cancelled && !dates?.[id]?.start,
+    (action) => !isCancelled(action) && !dates?.[action.id]?.start,
   ).length;
   const waitingCount = (actions.data ?? []).filter(
-    ({ id }) => dates?.[id]?.waitingForActionIds?.length,
+    (action) => !isCancelled(action) && dates?.[action.id]?.waitingForActionIds?.length,
   ).length;
-  const unassignedPlannedCount = (actions.data ?? []).filter(({ id }) => {
-    const plan = dates?.[id];
-    return plan?.start && !plan.cancelled && !plan.responsibleId;
+  const unassignedPlannedCount = (actions.data ?? []).filter((action) => {
+    const plan = dates?.[action.id];
+    return plan?.start && !isCancelled(action) && !plan.responsibleId;
   }).length;
   const undatedTaskCount =
     listView === "schedule" && schedule.isSuccess
-      ? (actions.data ?? []).filter(({ id }) => !dates?.[id]?.cancelled && !dates?.[id]?.start)
+      ? (actions.data ?? []).filter((action) => !isCancelled(action) && !dates?.[action.id]?.start)
           .length
       : 0;
   const calendarActions =
     listView === "calendar"
-      ? orderedActions?.filter(({ id }) => {
-          const plan = dates?.[id];
+      ? orderedActions?.filter((action) => {
+          const plan = dates?.[action.id];
           return (
-            !plan?.cancelled &&
+            !isCancelled(action) &&
             plan?.start &&
             plan.start <= through &&
             (plan.end ?? plan.start) >= from
           );
         })
       : undefined;
-  const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
+  const scheduledPeriods = (orderedActions ?? []).flatMap((action) =>
+    isCancelled(action) ? [] : (dates?.[action.id] ?? []),
+  );
   const daySummaries = new Map<string, { total: number; waiting: number; overlap: Set<string> }>();
   function daySummary(key: string) {
     const cached = daySummaries.get(key);
@@ -278,23 +298,25 @@ function WorkOrders({
     (task) =>
       (listView !== "schedule" ||
         !onlyUndated ||
-        (!dates?.[task.id]?.cancelled && !dates?.[task.id]?.start)) &&
-      (!showSchedule || !onlyWaiting || !!dates?.[task.id]?.waitingForActionIds?.length) &&
-      (!showSchedule || !onlyReviewAttention || !!dates?.[task.id]?.reviewStatus) &&
+        (!isCancelled(task) && !dates?.[task.id]?.start)) &&
+      (!showSchedule ||
+        !onlyWaiting ||
+        (!isCancelled(task) && !!dates?.[task.id]?.waitingForActionIds?.length)) &&
+      (!showSchedule || !onlyReviewAttention || !!reviewFor(task)) &&
       (!onlyOverlaps || dayOverlap.has(dates?.[task.id]?.responsibleId ?? "")) &&
       task.title.toLocaleLowerCase("da").includes(searchTerm),
   );
   const usesTaskList = listView !== "time" && listView !== "bookings";
   const visibleCount = usesTaskList ? (visibleActions?.length ?? 0) : 0;
   const estimates = new Map(
-    (calendarActions ?? visibleActions ?? []).map(({ id }) => {
-      const plan = dates?.[id];
-      const hours = plan?.cancelled
+    (calendarActions ?? visibleActions ?? []).map((action) => {
+      const plan = dates?.[action.id];
+      const hours = isCancelled(action)
         ? null
         : listView === "calendar" && plan
           ? workOrderHoursInPeriod(plan, from, through)
           : (plan?.estimatedHours ?? null);
-      return [id, hours];
+      return [action.id, hours];
     }),
   );
   const knownEstimates = (visibleActions ?? [])
@@ -395,6 +417,12 @@ function WorkOrders({
                 ? "Arbejdsopgave"
                 : "Arbejdsopgaver"}
           </h2>
+          {actionId && authorized && !actions.isError && selected && (
+            <ProjectWorkOrderStatus
+              projection={selected.workOrderStatus}
+              legacyStatus={selected.status}
+            />
+          )}
           {!actionId && (
             <p className="mt-1 text-sm text-muted-foreground">
               Planlæg en konkret indsats, følg det udførte arbejde, og saml den dokumentation, der
@@ -535,7 +563,7 @@ function WorkOrders({
                       )}
                       {actions.data.map((a) => (
                         <option key={a.id} value={a.id}>
-                          {a.title}
+                          {projectWorkOrderOptionLabel(a)}
                         </option>
                       ))}
                     </select>
@@ -952,22 +980,25 @@ function WorkOrders({
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const plan = dates?.[a.id];
-                  const review = plan?.reviewStatus
-                    ? reviewAttention[plan.reviewStatus]
-                    : undefined;
+                  const review = reviewFor(a);
                   const estimate = estimates.get(a.id);
-                  const prerequisiteIds = dates?.[a.id]?.waitingForActionIds ?? [];
+                  const prerequisiteIds = isCancelled(a)
+                    ? []
+                    : (dates?.[a.id]?.waitingForActionIds ?? []);
                   const prerequisites = prerequisiteIds.flatMap((id) => {
                     const task = actions.data.find((candidate) => candidate.id === id);
                     return task ? [task] : [];
                   });
                   const prerequisiteEndDates = prerequisites.map(({ id }) => {
                     const prerequisite = dates?.[id];
-                    return prerequisite?.cancelled ? null : (prerequisite?.end ?? null);
+                    const prerequisiteAction = actions.data.find((action) => action.id === id);
+                    return prerequisiteAction && isCancelled(prerequisiteAction)
+                      ? null
+                      : (prerequisite?.end ?? null);
                   });
                   const latestPrerequisiteEnd =
                     plan &&
-                    !plan.cancelled &&
+                    !isCancelled(a) &&
                     !plan.start &&
                     prerequisiteEndDates.length === prerequisiteIds.length &&
                     prerequisiteEndDates.length > 0 &&
@@ -987,10 +1018,11 @@ function WorkOrders({
                   const responsibleId = plan?.responsibleId;
                   const conflictingTasks =
                     canEdit && suggestedDate && responsibleId
-                      ? actions.data.filter(({ id }) => {
-                          const otherPlan = dates?.[id];
+                      ? actions.data.filter((action) => {
+                          const otherPlan = dates?.[action.id];
                           return (
-                            id !== a.id &&
+                            action.id !== a.id &&
+                            !isCancelled(action) &&
                             otherPlan?.responsibleId === responsibleId &&
                             workOrderPlanOverlaps(
                               otherPlan,
@@ -1043,15 +1075,19 @@ function WorkOrders({
                       >
                         <span className="min-w-0">
                           <span className="block font-medium">{a.title}</span>
+                          <ProjectWorkOrderStatus
+                            projection={a.workOrderStatus}
+                            legacyStatus={a.status}
+                          />
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
-                              {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
+                              {isCancelled(a) ? "Aflyst" : scheduleLabel(dates?.[a.id])}
                               {review && (
                                 <span className="block font-medium text-foreground">
                                   {review.status}
                                 </span>
                               )}
-                              {canEdit && plan?.start && !plan.cancelled && !plan.responsibleId && (
+                              {canEdit && plan?.start && !isCancelled(a) && !plan.responsibleId && (
                                 <span className="block">Mangler ansvarlig i planen</span>
                               )}
                               {prerequisiteIds.length > 0 && (
@@ -1194,7 +1230,7 @@ function WorkOrders({
                       )}
                       {showSchedule &&
                         plan?.planVersionId &&
-                        !plan.cancelled &&
+                        !isCancelled(a) &&
                         canEdit &&
                         access.data?.canConfigure && (
                           <button
