@@ -8,6 +8,7 @@ import { emptyWorkOrderPlan, emptyWorkOrderWatercourse } from "@/lib/work-order-
 const m = vi.hoisted(() => ({
   access: vi.fn(),
   actions: vi.fn(),
+  templates: vi.fn(),
   history: vi.fn(),
   save: vi.fn(),
   createSeries: vi.fn(),
@@ -66,6 +67,7 @@ vi.mock("@/lib/work-order-plan.functions", () => ({
 }));
 vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: m.actions,
+  listFieldJobTemplates: m.templates,
   listFieldJobSchedule: m.schedule,
 }));
 vi.mock("../useWorkOrderPeople", () => ({
@@ -214,6 +216,7 @@ beforeEach(() => {
   m.sites.mockResolvedValue([]);
   m.centerlines.mockResolvedValue([]);
   m.schedule.mockResolvedValue({});
+  m.templates.mockResolvedValue([]);
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -222,6 +225,47 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("saves the chosen existing template version and preserves it if template loading fails later", async () => {
+    const definition = {
+      schema: "freyra.field-job-template/v1",
+      title: "Habitatbesøg",
+      domain: "nature",
+      fields: [{ key: "count", label: "Antal", type: "number", required: true, unit: "stk." }],
+    };
+    m.templates.mockResolvedValue([{ id: id(90), template_id: id(91), version: 2, definition }]);
+    m.save.mockImplementation(async ({ data }) => {
+      const saved = { ...row(), version: 2, plan: data.plan };
+      m.history.mockResolvedValue({ items: [saved], nextBeforeVersion: null });
+      return saved;
+    });
+    await open();
+    await settle();
+    const select = [...host.querySelectorAll("label")]
+      .find((label) => label.textContent?.startsWith("Tilføj påkrævet jobkort"))!
+      .querySelector("select")!;
+    await act(async () => {
+      select.value = id(90);
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(host.textContent).toContain("Habitatbesøg · version 2");
+    await fill("Årsag til planændring", "Krav valgt til besøget");
+    await save();
+    expect(m.save.mock.calls[0][0].data.plan.requiredJobCards).toEqual([
+      { templateVersionId: id(90), templateId: id(91), version: 2, definition },
+    ]);
+    await act(async () =>
+      Array.from(host.querySelectorAll("button"))
+        .find((b) => b.textContent?.includes("Rediger plan som ny version"))!
+        .click(),
+    );
+    m.templates.mockRejectedValue(new Error("Unavailable"));
+    await act(async () => cache.invalidateQueries({ queryKey: ["field-job-templates"] }));
+    expect(host.textContent).toContain("Planens gemte krav bevares");
+    await fill("Årsag til planændring", "Bevar krav trods netfejl");
+    await save();
+    expect(m.save.mock.calls.at(-1)![0].data.plan.requiredJobCards).toHaveLength(1);
+    expect(host.textContent).toContain("Jobkort der kræves ved aflevering");
+  });
   it("previews monthly repeats from the original day after a short month", async () => {
     const source = row();
     source.plan = { ...source.plan, plannedStart: "2026-12-01" };

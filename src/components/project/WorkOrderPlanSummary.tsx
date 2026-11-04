@@ -4,6 +4,7 @@ import {
   type WorkOrderPlanVersion,
 } from "@/lib/work-order-plan";
 import type { WorkOrderPerson } from "@/lib/work-order-assignments";
+import { RequiredJobCards } from "./RequiredJobCards";
 export function WorkOrderPlanSummary({
   row,
   members = [],
@@ -47,6 +48,7 @@ export function WorkOrderPlanSummary({
       )}
       {plan.description && <p>{plan.description}</p>}
       {plan.instructions && <p>Instruktion: {plan.instructions}</p>}
+      <RequiredJobCards cards={plan.requiredJobCards} />
       {plan.watercourse && (
         <dl className="grid grid-cols-2 gap-2">
           {Object.entries(plan.watercourse).map(([key, value]) => (

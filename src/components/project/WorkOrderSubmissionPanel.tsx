@@ -10,6 +10,7 @@ import {
 } from "@/lib/work-order-submission.functions";
 import { getProjectWorkOrderEvidenceOriginal } from "@/lib/work-order-evidence.functions";
 import { submissionGapLabels } from "@/lib/work-order-submission";
+import { RequiredJobCards } from "./RequiredJobCards";
 import { workOrderProfileLabels } from "@/lib/work-order-plan";
 import { WorkOrderRequestError } from "@/lib/work-order-access";
 import type { ProjectScope } from "@/services/project-workspace-service";
@@ -29,6 +30,7 @@ const gapDestination: Record<keyof typeof submissionGapLabels, WorkOrderView> = 
   lifecycle_basis_changed: "plan",
   observation_needs_review: "evidence",
   observation_incomplete: "evidence",
+  required_job_card_missing: "evidence",
   original_unavailable: "evidence",
   evidence_missing: "evidence",
   too_many_evidence: "evidence",
@@ -367,6 +369,7 @@ export function WorkOrderSubmissionPanel({
                     })}
                   </ol>
                   {(c.gaps.includes("observation_incomplete") ||
+                    c.gaps.includes("required_job_card_missing") ||
                     c.gaps.includes("observation_needs_review")) && (
                     <p className="mt-2 text-sm">
                       Se den tilknyttede version under Dokumentation. Hvis du gemmer en rettelse i
@@ -514,6 +517,7 @@ export function WorkOrderSubmissionPanel({
                       <p>Planlagt metode ved aflevering · {row.snapshot.plan.plan.plannedMethod}</p>
                     )}
                     <p className="whitespace-pre-wrap">{row.snapshot.plan.plan.instructions}</p>
+                    <RequiredJobCards cards={row.snapshot.plan.plan.requiredJobCards} />
                     {row.snapshot.indicatorTarget && (
                       <div>
                         <h5 className="font-medium">Mål ved aflevering</h5>

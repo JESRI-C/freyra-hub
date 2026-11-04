@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FieldJobTemplateDefinitionSchema } from "./field-job-cards";
 import { CalendarDate } from "./action-execution";
 import { WorkOrderActionIdSchema, WorkOrderScopeSchema } from "./work-order-access";
 const uuid = z.string().uuid();
@@ -99,12 +100,23 @@ export const WorkOrderEstimatedHoursSchema = z
     "Timeestimatet kan have op til to decimaler.",
   );
 
+export const RequiredJobCardSchema = z
+  .object({
+    templateVersionId: z.string().uuid(),
+    templateId: z.string().uuid(),
+    version: z.number().int().positive().max(2147483647),
+    definition: FieldJobTemplateDefinitionSchema,
+  })
+  .strict();
+export type RequiredJobCard = z.infer<typeof RequiredJobCardSchema>;
+
 export const WorkOrderPlanSchema = z
   .object({
     schema: z.literal("freyra.work-order-plan/v1"),
     title: z.string().trim().min(1).max(160),
     description: z.string().trim().max(4000),
     instructions: z.string().trim().max(4000),
+    requiredJobCards: z.array(RequiredJobCardSchema).max(10).optional(),
     profile: z.enum(["general", "watercourse", "nature", "construction", "grazing"]).nullable(),
     responsibleId: uuid.nullable(),
     siteId: uuid.nullable(),
@@ -130,6 +142,13 @@ export const WorkOrderPlanSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    const required = value.requiredJobCards ?? [];
+    if (new Set(required.map((card) => card.templateId.toLowerCase())).size !== required.length)
+      ctx.addIssue({
+        code: "custom",
+        path: ["requiredJobCards"],
+        message: "Vælg kun én version af hvert påkrævet jobkort.",
+      });
     const siteIds = (value.visitStops ?? []).map((stop) => stop.siteId.toLowerCase());
     if (
       new Set(siteIds).size !== siteIds.length ||

@@ -239,6 +239,8 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 
 ### S04 — Versionsbundet aflevering og faglig kontrol
 
+**Aktuel kodepakke, 4. november:** [Eksplicit valg af jobkortversioner som dokumentationskrav](OPGAVE_DOKUMENTATIONSKRAV.md) samler plan, tildelt feltregistrering og afleveringskontrol. Implementeret i udviklingsgrenen; database-/stagingaccept afventes. Tidligere delprøver og de øvrige fagkrav bevarer deres status.
+
 **Afhænger af:** S02. **Genbrug:** D05, F07/F08/F10, work-order lifecycle, checks og audit. **Skøn:** 3–5 dage.
 
 **Udført del:** [Fastholdt afleveringsgrundlag](OPGAVE_AFLEVERING_SAMLING.md)

@@ -22,7 +22,12 @@ import {
   type WorkOrderPlanVersion,
   type WorkOrderFollowUpSource,
 } from "@/lib/work-order-plan";
-import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
+import {
+  listFieldJobActions,
+  listFieldJobSchedule,
+  listFieldJobTemplates,
+} from "@/services/field-job-cards-service";
+import { RequiredJobCards } from "./RequiredJobCards";
 import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
@@ -265,6 +270,12 @@ function PlanWorkspace({
     [lifecycleEditing, setLifecycleEditing] = useState(false),
     [busy, setBusy] = useState(false);
   const [datesOnly, setDatesOnly] = useState(false);
+  const templates = useQuery({
+    queryKey: ["field-job-templates", actorId, scope],
+    queryFn: () => listFieldJobTemplates(scope),
+    enabled: canPlan && !!draft && !datesOnly,
+    retry: false,
+  });
   const [hoursText, setHoursText] = useState("");
   const [meters, setMeters] = useState<Record<string, string>>({});
   const saving = useRef(false),
@@ -1052,6 +1063,79 @@ function PlanWorkspace({
                     onChange={(e) => set("instructions", e.target.value)}
                   />
                 </label>
+                <fieldset className="min-w-0 space-y-3 rounded-xl border p-3">
+                  <legend className="px-1 text-sm font-medium">Dokumentationskrav</legend>
+                  <p className="text-sm text-muted-foreground">
+                    Vælg de gemte jobkort, der skal dokumenteres på opgaven. Den valgte version
+                    fastholdes i planen og kontrolleres ved aflevering. En ny skabelonversion ændrer
+                    ikke kravet automatisk.
+                  </p>
+                  {templates.isFetching && <p role="status">Henter gemte jobkort…</p>}
+                  {templates.error && (
+                    <p role="alert">
+                      Jobkort kunne ikke hentes: {templates.error.message}. Planens gemte krav
+                      bevares.
+                    </p>
+                  )}
+                  <label className="block text-sm">
+                    Tilføj påkrævet jobkort
+                    <select
+                      className={control}
+                      value=""
+                      disabled={!templates.isSuccess || (draft.requiredJobCards?.length ?? 0) >= 10}
+                      onChange={(event) => {
+                        const template = templates.data?.find((t) => t.id === event.target.value);
+                        if (template)
+                          set("requiredJobCards", [
+                            ...(draft.requiredJobCards ?? []),
+                            {
+                              templateVersionId: template.id,
+                              templateId: template.template_id,
+                              version: template.version,
+                              definition: template.definition,
+                            },
+                          ]);
+                      }}
+                    >
+                      <option value="">Vælg gemt jobkort og version</option>
+                      {templates.data
+                        ?.filter(
+                          (t) =>
+                            !draft.requiredJobCards?.some(
+                              (card) => card.templateId === t.template_id,
+                            ),
+                        )
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.definition.title} · version {t.version}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  {templates.isSuccess && !templates.data.length && (
+                    <p className="text-sm">
+                      Gem først en skabelon under Feltregistrering på opgaven.
+                    </p>
+                  )}
+                  <RequiredJobCards cards={draft.requiredJobCards} />
+                  {draft.requiredJobCards?.map((card) => (
+                    <button
+                      type="button"
+                      className={button}
+                      key={card.templateVersionId}
+                      onClick={() =>
+                        set(
+                          "requiredJobCards",
+                          draft.requiredJobCards?.filter(
+                            (item) => item.templateVersionId !== card.templateVersionId,
+                          ),
+                        )
+                      }
+                    >
+                      Fjern krav: {card.definition.title} · version {card.version}
+                    </button>
+                  ))}
+                </fieldset>
                 <label className="block text-sm">
                   Sted eller delstrækning
                   <input

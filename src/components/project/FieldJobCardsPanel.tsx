@@ -3,6 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
+import { getProjectWorkOrderPlanHistory } from "@/lib/work-order-plan.functions";
+import { getProjectWorkOrderAccess } from "@/lib/work-order-access.functions";
+import { RequiredJobCards } from "./RequiredJobCards";
 import {
   FIELD_JOB_STARTER_TEMPLATES,
   FieldJobTemplateDefinitionSchema,
@@ -155,6 +158,22 @@ function JobCardEditor({
   onSaved?: JobCardsProps["onSaved"];
 }) {
   const cache = useQueryClient();
+  const loadPlan = useServerFn(getProjectWorkOrderPlanHistory);
+  const loadAccess = useServerFn(getProjectWorkOrderAccess);
+  const plan = useQuery({
+    queryKey: ["work-order-plan-history", actorId, scope, actionId],
+    queryFn: () => loadPlan({ data: { ...scope, actionId, beforeVersion: null, pageSize: 20 } }),
+    retry: false,
+  });
+  const required = plan.data?.items[0]?.plan.requiredJobCards ?? [];
+  const capabilities = useQuery({
+    queryKey: ["work-order-capabilities", actorId, { ...scope, actionId }],
+    queryFn: () => loadAccess({ data: { ...scope, actionId } }),
+    enabled: canContribute && !canConfigure && required.length > 0,
+    retry: false,
+  });
+  const canUseRequired =
+    !plan.isError && !capabilities.isError && capabilities.data?.can_execute === true;
   const history = useQuery({
     queryKey: ["field-job-versions", actorId, scope, actionId],
     queryFn: () => listFieldJobVersions(scope, actionId),
@@ -196,7 +215,12 @@ function JobCardEditor({
     }
   }, [history.data]);
   const selected = templates.find((t) => t.id === templateId);
-  const writable = canContribute && (!!base || canConfigure);
+  const selectedIsRequired = required.some((card) => card.templateVersionId === templateId);
+  const writable =
+    canContribute &&
+    (canConfigure ||
+      (!!base && base.template_version_id === templateId) ||
+      (canUseRequired && selectedIsRequired));
   function requestId(payload: unknown) {
     const text = JSON.stringify(payload);
     if (request.current.payload !== text)
@@ -303,10 +327,24 @@ function JobCardEditor({
     (t) =>
       !templates.some((other) => other.template_id === t.template_id && other.version > t.version),
   );
-  const options =
+  const usualOptions =
     selected && !latestTemplates.some((t) => t.id === selected.id)
       ? [selected, ...latestTemplates]
       : latestTemplates;
+  const options = canConfigure
+    ? [
+        ...usualOptions,
+        ...templates.filter(
+          (t) =>
+            required.some((card) => card.templateVersionId === t.id) &&
+            !usualOptions.some((option) => option.id === t.id),
+        ),
+      ]
+    : templates.filter(
+        (t) =>
+          t.id === base?.template_version_id ||
+          (canUseRequired && required.some((card) => card.templateVersionId === t.id)),
+      );
   const inputPrefix = useId();
   return (
     <fieldset
@@ -319,15 +357,24 @@ function JobCardEditor({
     >
       {history.isFetching && <p role="status">Henter registreringshistorik…</p>}
       {history.error && <p role="alert">{history.error.message}</p>}
+      {plan.error && (
+        <p role="alert">Dokumentationskrav kunne ikke kontrolleres: {plan.error.message}</p>
+      )}
+      {capabilities.error && (
+        <p role="alert">
+          Adgang til påkrævede jobkort kunne ikke kontrolleres: {capabilities.error.message}
+        </p>
+      )}
+      <RequiredJobCards cards={required} />
       {!canContribute && <p>Du har læseadgang til jobkortet.</p>}
-      {canContribute && !canConfigure && !base && (
+      {canContribute && !canConfigure && !base && !canUseRequired && (
         <p>En redaktør skal først tilknytte en skabelon til opgaven.</p>
       )}
       <label className="block">
         Skabelon
         <select
           className={control}
-          disabled={!canConfigure || busy}
+          disabled={(!canConfigure && !canUseRequired) || busy}
           value={templateId}
           onChange={(e) => {
             setTemplateId(e.target.value);

@@ -11,7 +11,12 @@ const revision = process.env.FREYRA_TEST_REVISION ?? "06c438b8f78fb4827a5f29a0b6
 const env = loadEnv("staging", process.cwd(), "");
 assert.equal(env.SUPABASE_URL, url);
 const checkIndicatorTarget = process.argv.includes("--indicator-target");
-const dir = checkIndicatorTarget ? "tmp/submission-target-hosted" : "tmp/submission-hosted";
+const checkRequiredCards = process.argv.includes("--required-job-cards");
+const dir = checkRequiredCards
+  ? "tmp/submission-required-hosted"
+  : checkIndicatorTarget
+    ? "tmp/submission-target-hosted"
+    : "tmp/submission-hosted";
 await fs.mkdir(dir, { recursive: true });
 const credentials = JSON.parse(
   await fs.readFile("tmp/private-release/jesper-test-short-login.private.json", "utf8"),
@@ -117,6 +122,50 @@ try {
       "Create test indicator",
     );
   }
+  let requiredCards;
+  if (checkRequiredCards) {
+    state.requiredTemplateId ??= randomUUID();
+    await save();
+    const originalTemplate = ok(
+      await client
+        .from("field_job_template_versions")
+        .select("definition")
+        .eq("id", source.templateVersionId)
+        .eq("project_id", task.projectId)
+        .single(),
+      "Source template",
+    );
+    let templates = ok(
+      await client
+        .from("field_job_template_versions")
+        .select("*")
+        .eq("template_id", state.requiredTemplateId)
+        .eq("project_id", task.projectId)
+        .order("version"),
+      "Required templates",
+    );
+    if (!templates.length)
+      templates = await rpc("save_field_job_template_version", {
+        p_organization_id: task.organizationId,
+        p_project_id: task.projectId,
+        p_template_id: state.requiredTemplateId,
+        p_expected_version: 0,
+        p_definition: {
+          ...originalTemplate.definition,
+          title: "TEST · Påkrævet jobkort " + state.run,
+        },
+        p_request_id: await req("required-template"),
+      });
+    const template = templates[0];
+    requiredCards = [
+      {
+        templateVersionId: template.id,
+        templateId: template.template_id,
+        version: template.version,
+        definition: template.definition,
+      },
+    ];
+  }
   let action = ok(
     await client
       .from("actions")
@@ -181,6 +230,7 @@ try {
         priority: null,
         plannedMethod: "TEST · Visuel prøve",
         watercourse: null,
+        ...(checkRequiredCards ? { requiredJobCards: requiredCards } : {}),
       },
       p_correction_reason: "",
       p_request_id: await req("plan"),
@@ -251,7 +301,7 @@ try {
   let jobs = ok(
     await client
       .from("field_job_versions")
-      .select("id")
+      .select("id,version,template_version_id")
       .eq("action_id", task.actionId)
       .order("version", { ascending: false })
       .limit(1),
@@ -336,6 +386,39 @@ try {
       },
       p_request_id: await req("state-" + status),
     });
+  }
+  if (checkRequiredCards && jobs[0].template_version_id !== requiredCards[0].templateVersionId) {
+    const missing = await rpc("get_work_order_submission_context", scope);
+    assert(missing.gaps.includes("required_job_card_missing"));
+    const rejected = await client.rpc("save_work_order_submission", {
+      ...scope,
+      p_expected_version: 0,
+      p_basis_hash: missing.basis_hash,
+      p_note: "TEST · Missing required card",
+      p_request_id: await req("rejected-requirement"),
+    });
+    assert.equal(rejected.error?.code, "22023");
+    jobs = await rpc("save_field_job_version", {
+      p_organization_id: task.organizationId,
+      p_project_id: task.projectId,
+      p_action_id: task.actionId,
+      p_template_version_id: requiredCards[0].templateVersionId,
+      p_expected_version: jobs[0].version,
+      p_values: { note: "TEST · Krævet registrering", count: 0, checked: false },
+      p_status: "recorded",
+      p_correction_reason: "TEST · Brug valgt jobkortversion",
+      p_request_id: await req("required-observation"),
+    });
+    evidence = [
+      await attach(
+        evidence[0].version,
+        "attached",
+        "TEST · Tilknyt valgt jobkortversion",
+        await req("required-evidence"),
+      ),
+    ];
+    state.missingRequiredCardRejected = true;
+    await save();
   }
   const preflight = await rpc("get_work_order_submission_context", scope);
   assert.deepEqual(preflight.gaps, []);
@@ -465,6 +548,61 @@ try {
   });
   assert.equal(JSON.stringify(rows.at(-1)), frozen);
   state.historyPreserved = true;
+  if (checkRequiredCards) {
+    assert.equal(rows[0].snapshot.ruleSet, "freyra.submission-requirements/v1");
+    assert.deepEqual(rows[0].snapshot.plan.plan.requiredJobCards, requiredCards);
+    assert.equal(
+      rows[0].snapshot.evidence[0].observation_snapshot.templateVersionId,
+      requiredCards[0].templateVersionId,
+    );
+    const templates = ok(
+      await client
+        .from("field_job_template_versions")
+        .select("version")
+        .eq("template_id", state.requiredTemplateId)
+        .order("version", { ascending: false })
+        .limit(1),
+      "Required template history",
+    );
+    const before = await rpc("get_work_order_submission_context", scope);
+    if (templates[0].version === 1)
+      await rpc("save_field_job_template_version", {
+        p_organization_id: task.organizationId,
+        p_project_id: task.projectId,
+        p_template_id: state.requiredTemplateId,
+        p_expected_version: 1,
+        p_definition: {
+          ...requiredCards[0].definition,
+          title: "TEST · Ny skabelon, gammelt krav bevaret",
+        },
+        p_request_id: await req("new-required-template"),
+      });
+    const after = await rpc("get_work_order_submission_context", scope);
+    assert.equal(after.basis_hash, before.basis_hash);
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.reload();
+      await page.getByRole("button", { name: "Aflevering", exact: true }).click();
+      const current = page.getByRole("region", {
+        name: "Opgavens afleveringsgrundlag",
+        exact: true,
+      });
+      const details = current.locator("article details").first();
+      await details.locator("summary").first().click();
+      await current
+        .getByText("Jobkort der kræves ved aflevering", { exact: true })
+        .first()
+        .waitFor();
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+        false,
+      );
+      await page.screenshot({ path: dir + "/requirements-" + width + ".png", fullPage: true });
+    }
+    state.requiredJobCardsVerified = [1280, 390];
+    await save();
+  }
+
   const article = panel.locator("article").first();
   await article.getByText("Se det fastholdte grundlag", { exact: true }).click();
   if (checkIndicatorTarget) {
