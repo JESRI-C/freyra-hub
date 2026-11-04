@@ -57,7 +57,40 @@ En efterfølgende prøve brugte et nyt isoleret testprojekt og to forskellige ko
 | LOC-02/03, OPS-03/04 · booking og ruter | Produkttråden, S15. | Besøgssteder og booking findes. Bookingkonflikt, historik og frigivelse er særskilt prøvet. | Serviceintervaller, samlet besøgskontrol og faktisk ruteoptimering. |
 | ORG-01–04, QA-02/03, OPS-06, REP-01–05, IMP-01–05, SYS-01–10 | Produkttråden, herunder særskilt brugeropsætning, rapport, import, integration og drift. | Individuel kode, prøve og dækning står pr. id i [68-kravsregisteret](jobs-geotag-requirements.json). Nyere særskilte stagingprøver står i [udviklingsplanen](UDVIKLINGSPLAN_SAMLING_2026-11-02.md). | Ingen ny accept af disse krav i denne arbejdspakke. |
 
-## Fysisk accept
+## P6 · Projektlederens arbejdsordrer og farvet tavle · 4. november
+
+**Observation → regel.** Skyhosts Jobs-liste viser statusindgange og filtre for bl.a. udfører, ansvarlig og dato på tværs af jobs. Det er direkte set i den læsende gennemgang; selve ændringen af et job er ikke afprøvet i Skyhost. GoFreyras **Mine opgaver** er en modtagerindbakke. Den nye **Arbejdsordrer** under Arbejdsflow viser derfor alle almindelige opgaver i den valgte organisations projekter, som den aktuelle bruger har projektlederrettighed til. Opgaver uden plan, tildeling eller initialiseret arbejdsordre bevares. Læsning opretter ingen arbejdsordreversion.
+
+**Kode → accept.** `/app/work-orders` bruger `ManagerWorkOrders`, den autentificerede `listManagerWorkOrders` og den nye læseprojektion `list_manager_work_orders`. Migrationen er `20261104042234_manager_work_order_overview.sql`. Samme serverresultat bruges i liste og Kanban. Status kommer fra seneste livscyklusversion; en ældre handlingsstatus fortolkes ikke som en ny jobstatus. Faktisk udfører, puljeovertager og planens ansvarlige vises særskilt. Tildeling til en tidligere planversion markeres udtrykkeligt. Projekt, status, blokering/forudsætninger, tildeling, udfører, tekst og frist filtreres før UUID-baseret sideinddeling. Tavlens tal gælder de indlæste resultater og kaldes **vist**. Flere resultater kan hentes.
+
+Farverne understøtter tekstetiketterne: blå for I gang, turkis for Udført, violet for Afleveret, grøn for Godkendt og ravgul for Afventer og rettelser. Returneret og Genåbnet bevarer deres præcise status på kortet. Kortets plan- og afleveringslinks sender samme projekt-id og opgave-id til de eksisterende arbejdsrum. Anvendte filtre og liste/tavlevalg bevares i browserens sessionslager, afgrænset pr. aktør og organisation. Ingen opgavedata eller personnavne gemmes dér.
+
+**Ejer.** Denne tråd ejer P6 og de nye `manager-work-orders*`-filer. Den anden chat ejer fortsat igangværende offlineunderstøttelse af obligatoriske jobkort. Denne pakke ændrer ikke dennes filer, dataformat eller kø.
+
+**Efterprøvet.** 31 serviceprøver, 11 komponentprøver og den samlede målrettede kørsel på 72 prøver bestod. På staging bestod 76 databaseassertioner i en transaktion, som blev rullet tilbage. De dækker bl.a. person/pulje, gammel plantildeling, ikke-tildelte og planløse opgaver, ældre UUID'er, kanonisk status, filtre før sidegrænse, kataloger, særskilt reviewrettighed, organisationsgrænse og fjernet projektlederadgang. Felt, viewer, editor og ekstern faglig gennemgår fik ikke lederoversigten. Funktionen kører med kalderens RLS, ingen service-nøgle og uden anonym adgang. Efter prøven var ingen syntetiske prøvebrugere bevaret.
+
+**Åbent.** Den nye oversigt er endnu ikke visuelt efterprøvet i den faktiske browser. Browserforbindelsen til de åbne faner er utilgængelig; den native Windows-visning viste låst skærm. De tidligere browserbeviser ovenfor gælder de angivne tidligere builds. En fælles arbejdsordrekortvisning med samme filtre og identiteter er næste selvstændige hul (JOB-06, MAP-01/02, QA-04), og er ikke leveret af denne tavle. Opgaver uden gemt position skal bevares udtrykkeligt ved en senere kortvisning.
+
+### Ejerskab og resterende arbejdsområder
+
+Alle 68 eksisterende krav har nu en særskilt ejerskabsnote i JSON-registeret. Registerets oprindelige `coverage` og `remaining` er historiske; de er ikke ommærket til ny accept. Nuværende kilde og daterede prøver læses sammen med [udviklingsplanens senere kvitteringer](UDVIKLINGSPLAN_SAMLING_2026-11-02.md).
+
+| Kravgruppe | Ejer og faktisk grundlag | Resterende afgrænset arbejde |
+|---|---|---|
+| D01 · ORG/SYS-adgang og drift | Produkttrådens rolle-, versions-, fil- og retrykontrakter. Denne tråd har prøvet rolleadgang i overdragelse og P6. | Ekstern task-only ny feltregistrering, nyere fysisk jobkortaccept, stor datamængde og samlet database-/filrestore. |
+| D02 · JOB/LOC-01 | Produkttrådens kerne; denne tråd P1–P6 og modtagerindgange. | Samme objektmængde i kort og liste; leverede modtagerbeskeder er ikke bevist. |
+| D03 · OBS | Produkttrådens felt-/filkontrakter; denne tråd opgavenavigation. | Generisk GeoTag-observation, flere originaler, GPS-undtagelser og observation → idempotent opgaveudkast. |
+| D04 · MAP | Produkttrådens kort; næste mulige pakke i denne tråd er endnu ikke implementeret. | Arbejdsordrer på kortet med fælles filtre, identiteter og optælling; stor datamængde/aggregering. |
+| D05 · FORM/QA | Produkttråden; anden chat arbejder aktuelt på flere obligatoriske jobkort offline. | Flere felttyper/profiler, kategoriarkiv og selvstændige afvigelser med ejer, frist og lukningsbevis. |
+| D06 · IMP | Produkttråden. Domæneimport findes; samlet Skyhost-import er ikke accepteret. | Repræsentativ Skyhost-eksport, batchpreview, stabil ekstern identitet, konflikter og originalpakke. |
+| D07 · REP | Produkttråden. Godkendt afleveringsversion → samme rapportkladde og PDF har nyere stagingbevis. | Komplet originalmanifest, genindlæsning og vedvarende eksportjob. |
+| D08 · OPS-06 | Produkttråden og denne tråd for interne hændelser. Ingen mail/SMS er afsendt af denne pakke. | Levering og modtagerkontrol kræver særskilt prøvet integration. |
+| D09 · plan, timer, materialer, besøg | Produkttrådens S13–S16; nyere stagingkvitteringer går længere end det oprindelige register. | Tværprojektkapacitet, gentagelse ved afslutning, serviceintervaller, aktivitetsstruktur/stempelur og samlet driftsaccept. |
+| D10 · booking, ruter, økonomi | Produkttråden. Bookingkonflikt/historik, besøgsrækkefølge og gemt time/materiale-CSV er prøvet særskilt. | Klokkeslætsbooking, faktisk køretid/ruteoptimering samt økonomi-/lønconnectorer. |
+
+Kunder/leverandører, kontakter, sagsopgaver, jobtyper, ekstra felter, nummerserier og aktivitets-/løntyper kræver supplerende sporbare krav under S16. At en Skyhost-fane findes, beviser ikke dens skrive-, rolle-, offline- eller integrationsadfærd.
+
+## Fysisk accept (oprindelig prøvevejledning)
 
 1. En projektleder opretter og tildeler en ny syntetisk opgave i GoFreyra på computer. Notér opgave-id, gemt periode, valgt sted og tildelt rolle.
 2. En anden person åbner Mine opgaver på en fysisk telefon, finder samme id og læser tid, sted og instruktion. Registrér et testfoto med kamera og GPS eller en stedfæstet note.

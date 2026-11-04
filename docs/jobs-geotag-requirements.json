@@ -44,7 +44,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Arbejdsordre, plan og udførelse har databasebundne relationer; observationer, tjeklister og rapport/eksport følger."
+      "remaining": "Arbejdsordre, plan og udførelse har databasebundne relationer; observationer, tjeklister og rapport/eksport følger.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "ORG-02",
@@ -69,7 +75,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Bevar eksisterende RLS/Storage. Test den nye opgaveadgang og dens API særskilt."
+      "remaining": "Bevar eksisterende RLS/Storage. Test den nye opgaveadgang og dens API særskilt.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "ORG-03",
@@ -110,7 +122,13 @@
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Konkret tildeling, status og logbog håndhæver aktuel opgaveadgang uden projektbred ekstern adgang. D03 mangler den konkrete eksterne observations-/udførelses-/filvej."
+      "remaining": "Konkret tildeling, status og logbog håndhæver aktuel opgaveadgang uden projektbred ekstern adgang. D03 mangler den konkrete eksterne observations-/udførelses-/filvej.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "ORG-04",
@@ -151,7 +169,13 @@
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Aktør-/scopebundet status, logbog og noter skjules ved adgangsfejl/kontoskift. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
+      "remaining": "Aktør-/scopebundet status, logbog og noter skjules ved adgangsfejl/kontoskift. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-01",
@@ -182,7 +206,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Planrevision og adskilt ansvarlig findes; eksplicit tildeling, livscyklus og kobling til faktisk udfører følger i D02b."
+      "remaining": "Planrevision og adskilt ansvarlig findes; eksplicit tildeling, livscyklus og kobling til faktisk udfører følger i D02b.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-02",
@@ -213,7 +243,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Typed vandløbsprofil og filtrerbare måleprojektioner findes; D04 fælles filtre og faktisk udførelseskobling afventer."
+      "remaining": "Typed vandløbsprofil og filtrerbare måleprojektioner findes; D04 fælles filtre og faktisk udførelseskobling afventer.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-03",
@@ -243,7 +279,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Samme eksisterende udførelsesrevision bindes til plan og faktisk udfører; status, felt-/ekstern skrivevej, bilagskrav før aflevering og rapporteksport følger."
+      "remaining": "Samme eksisterende udførelsesrevision bindes til plan og faktisk udfører; status, felt-/ekstern skrivevej, bilagskrav før aflevering og rapporteksport følger.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-04",
@@ -288,7 +330,13 @@
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding findes. Modtagerspecifik tildelingsnotifikation/indbakke og fysisk telefon-/feltprøve er fortsat åbne."
+      "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding findes. Modtagerspecifik tildelingsnotifikation/indbakke og fysisk telefon-/feltprøve er fortsat åbne.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-05",
@@ -327,7 +375,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Afleveret/Godkendt/Returneret/Genåbnet er nu prøvet på frosne afleveringsversioner i staging. Profilspecifikke, versionsbundne dokumentationskrav og samlet brugeraccept mangler."
+      "remaining": "Afleveret/Godkendt/Returneret/Genåbnet er nu prøvet på frosne afleveringsversioner i staging. Profilspecifikke, versionsbundne dokumentationskrav og samlet brugeraccept mangler.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-06",
@@ -348,7 +402,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Fælles filtreret snapshot, keyset-pagination og samstemmende status-/korttotaler mangler."
+      "remaining": "Fælles filtreret snapshot, keyset-pagination og samstemmende status-/korttotaler mangler.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-07",
@@ -369,7 +429,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-08",
@@ -390,7 +456,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-09",
@@ -429,7 +501,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Eksisterende logbog viser nu afleveringsversion, reviewomfang, forfatter og returnering/godkendelse med bevaret historik. Samlet visning af øvrige bilag og hele D03s restarbejde er fortsat åbent."
+      "remaining": "Eksisterende logbog viser nu afleveringsversion, reviewomfang, forfatter og returnering/godkendelse med bevaret historik. Samlet visning af øvrige bilag og hele D03s restarbejde er fortsat åbent.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-10",
@@ -450,7 +528,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "LOC-01",
@@ -478,7 +562,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes; kortinteraktion og fysisk prøve afventer."
+      "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes; kortinteraktion og fysisk prøve afventer.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "LOC-02",
@@ -496,7 +586,13 @@
         "src/services/__tests__/watercourse-geometry.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "LOC-03",
@@ -514,7 +610,13 @@
         "src/services/__tests__/watercourse-geometry.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-01",
@@ -535,7 +637,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Originalfotoer bevarer ukendt optagetid. Generiske field_observations bruger defaulttid; operationelle observationer kræver version og eksplicit tidspræcision."
+      "remaining": "Originalfotoer bevarer ukendt optagetid. Generiske field_observations bruger defaulttid; operationelle observationer kræver version og eksplicit tidspræcision.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-02",
@@ -556,7 +664,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler."
+      "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-03",
@@ -577,7 +691,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Direkte relation og geografiske forslag skal få separate serverforespørgsler og UI-lister."
+      "remaining": "Direkte relation og geografiske forslag skal få separate serverforespørgsler og UI-lister.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-04",
@@ -598,7 +718,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Mobil originalkø findes på projektet. Opgave-/kategoribinding og metadata/flerfoto-status mangler."
+      "remaining": "Mobil originalkø findes på projektet. Opgave-/kategoribinding og metadata/flerfoto-status mangler.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-05",
@@ -619,7 +745,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Original GPS og 50 m-rettelser findes. Tilføj eksplicit CRS, positionskilde/nøjagtighed og begrundet GPS-undtagelse."
+      "remaining": "Original GPS og 50 m-rettelser findes. Tilføj eksplicit CRS, positionskilde/nøjagtighed og begrundet GPS-undtagelse.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-06",
@@ -640,7 +772,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret."
+      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-07",
@@ -661,7 +799,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Genbrug execution-bundne beskrivende sammenligninger; fase på observation og modstridende faktisk dato skal håndhæves."
+      "remaining": "Genbrug execution-bundne beskrivende sammenligninger; fase på observation og modstridende faktisk dato skal håndhæves.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-08",
@@ -682,7 +826,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-09",
@@ -703,7 +853,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Idempotent opgaveudkast fra udvalgte observationer mangler; ingen ekstra originalkopier."
+      "remaining": "Idempotent opgaveudkast fra udvalgte observationer mangler; ingen ekstra originalkopier.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-10",
@@ -724,7 +880,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "MAP-01",
@@ -742,7 +904,13 @@
         "src/services/__tests__/project-media-originals.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Delte serverfiltre og ens objektmængde/totaler mangler for nye opgaver og registreringer."
+      "remaining": "Delte serverfiltre og ens objektmængde/totaler mangler for nye opgaver og registreringer.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kort i produkttråden. Fælles autoriseret arbejdsordremængde i kort/liste er næste kortlagte pakke, endnu ikke implementeret.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "MAP-02",
@@ -760,7 +928,13 @@
         "src/services/__tests__/project-media-originals.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Nuværende atlas indlæser projektets poster. Afgrænset serverudsnit/aggregering og 100.000-fixture mangler."
+      "remaining": "Nuværende atlas indlæser projektets poster. Afgrænset serverudsnit/aggregering og 100.000-fixture mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kort i produkttråden. Fælles autoriseret arbejdsordremængde i kort/liste er næste kortlagte pakke, endnu ikke implementeret.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "MAP-03",
@@ -778,7 +952,13 @@
         "src/services/__tests__/project-media-originals.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "MAP-04",
@@ -796,7 +976,13 @@
         "src/services/__tests__/project-media-originals.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Genbrug eksisterende kilde-/lagadaptere; afprøv fejlstatus og CRS i operationelt forløb."
+      "remaining": "Genbrug eksisterende kilde-/lagadaptere; afprøv fejlstatus og CRS i operationelt forløb.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kort i produkttråden. Fælles autoriseret arbejdsordremængde i kort/liste er næste kortlagte pakke, endnu ikke implementeret.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-01",
@@ -815,7 +1001,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "V1-skabeloner/svar er immutable. Arkivering og operationelle kategori-/skemaversioner mangler."
+      "remaining": "V1-skabeloner/svar er immutable. Arkivering og operationelle kategori-/skemaversioner mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-02",
@@ -834,7 +1026,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "V1 har tekst/tal/dato/bool/enkelvalg. Min/max, heltal, flervalg, foto, datotid og eksplicit undersøgelsestilstand mangler."
+      "remaining": "V1 har tekst/tal/dato/bool/enkelvalg. Min/max, heltal, flervalg, foto, datotid og eksplicit undersøgelsestilstand mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-03",
@@ -865,7 +1063,13 @@
         "scripts/test-required-job-card-review-staging.mjs"
       ],
       "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
-      "remaining": "Planens eksplicit valgte jobkortversioner og nødvendige svar kontrolleres på serveren. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md."
+      "remaining": "Planens eksplicit valgte jobkortversioner og nødvendige svar kontrolleres på serveren. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-04",
@@ -884,7 +1088,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Vandløbsstartskabelon findes. Tilføj krav og ikke-undersøgt/ukendt uden falsk nul."
+      "remaining": "Vandløbsstartskabelon findes. Tilføj krav og ikke-undersøgt/ukendt uden falsk nul.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-05",
@@ -903,7 +1113,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-06",
@@ -922,7 +1138,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "QA-01",
@@ -965,7 +1187,13 @@
         "scripts/test-required-job-card-review-staging.mjs"
       ],
       "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
-      "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05."
+      "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "QA-02",
@@ -996,7 +1224,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Returnering med konkret mangel, begrundet genåbning, rettelse og ny aflevering bevarer historikken. Selvstændige afvigelsers alvor, ejer, frist og lukningsbevis mangler stadig."
+      "remaining": "Returnering med konkret mangel, begrundet genåbning, rettelse og ny aflevering bevarer historikken. Selvstændige afvigelsers alvor, ejer, frist og lukningsbevis mangler stadig.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "QA-03",
@@ -1027,7 +1261,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Ny godkendelse er afgrænset til registreret udførelse og vedlagt dokumentation; naturvirkning afvises som reviewScope. Metode-/effektvurdering og samlet faglig accept er fortsat særskilt arbejde."
+      "remaining": "Ny godkendelse er afgrænset til registreret udførelse og vedlagt dokumentation; naturvirkning afvises som reviewScope. Metode-/effektvurdering og samlet faglig accept er fortsat særskilt arbejde.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "QA-04",
@@ -1058,7 +1298,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Afleveringen fastholder plan, tildeling, udførelse, registreringer/skabeloner og originalreferencer på samme opgave. Filtrering, rapportbinding og sammenhængende totaler på tværs af alle visninger mangler."
+      "remaining": "Afleveringen fastholder plan, tildeling, udførelse, registreringer/skabeloner og originalreferencer på samme opgave. Filtrering, rapportbinding og sammenhængende totaler på tværs af alle visninger mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-01",
@@ -1076,7 +1322,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-02",
@@ -1094,7 +1346,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-03",
@@ -1112,7 +1370,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-04",
@@ -1130,7 +1394,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-05",
@@ -1148,7 +1418,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-06",
@@ -1166,7 +1442,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Ingen udsendelse er tilladt. Nye mutationer skal kun skabe intern audit/outbox; negativ test for indirekte sendekald."
+      "remaining": "Ingen udsendelse er tilladt. Nye mutationer skal kun skabe intern audit/outbox; negativ test for indirekte sendekald.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for interne hændelser",
+        "scope": "Ingen e-mail eller SMS sendt. En kø eller statusvisning er ikke bevis for beskedlevering.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-07",
@@ -1184,7 +1466,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-01",
@@ -1204,7 +1492,13 @@
         "src/services/__tests__/report-assets.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Genbrug workflow- og municipal-rapportspor. Tilføj arbejdsordre-/afleveringsversioner uden ny rapportmotor."
+      "remaining": "Genbrug workflow- og municipal-rapportspor. Tilføj arbejdsordre-/afleveringsversioner uden ny rapportmotor.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-02",
@@ -1224,7 +1518,13 @@
         "src/services/__tests__/report-assets.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Genbrug eksisterende ZIP og originale filreferencer. Komplet operationel pakke/dictionary/genindlæsning mangler."
+      "remaining": "Genbrug eksisterende ZIP og originale filreferencer. Komplet operationel pakke/dictionary/genindlæsning mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-03",
@@ -1244,7 +1544,13 @@
         "src/services/__tests__/report-assets.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Vedvarende fotojobs findes; asynkront eksportjob med snapshot, genoptagelse og adgang mangler."
+      "remaining": "Vedvarende fotojobs findes; asynkront eksportjob med snapshot, genoptagelse og adgang mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-04",
@@ -1264,7 +1570,13 @@
         "src/services/__tests__/report-assets.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-05",
@@ -1284,7 +1596,13 @@
         "src/services/__tests__/report-assets.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Metode-/kildebegrænsninger findes. Tilføj operationelle reviewomfang og dokumentationsmangler."
+      "remaining": "Metode-/kildebegrænsninger findes. Tilføj operationelle reviewomfang og dokumentationsmangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-01",
@@ -1302,7 +1620,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Eksisterende import er domænespecifik. Batchforhåndsvisning med enheder/CRS/tidszone mangler."
+      "remaining": "Eksisterende import er domænespecifik. Batchforhåndsvisning med enheder/CRS/tidszone mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-02",
@@ -1320,7 +1644,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Ny unik importidentitet pr. destinationstenant/konto/type/kilde-ID mangler."
+      "remaining": "Ny unik importidentitet pr. destinationstenant/konto/type/kilde-ID mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-03",
@@ -1338,7 +1668,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Faktisk Skyhost-filpakke mangler. Syntetiske referencer uden filer skal give eksplicit mangel."
+      "remaining": "Faktisk Skyhost-filpakke mangler. Syntetiske referencer uden filer skal give eksplicit mangel.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-04",
@@ -1356,7 +1692,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Importens versions-/konfliktpolitik skal beskytte lokale rettelser."
+      "remaining": "Importens versions-/konfliktpolitik skal beskytte lokale rettelser.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-05",
@@ -1374,7 +1716,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-01",
@@ -1392,7 +1740,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "baseline verified",
-      "remaining": "Eksisterende React/TanStack/Supabase, npm/lockfile genbruges. Ingen framework- eller auth-omskrivning."
+      "remaining": "Eksisterende React/TanStack/Supabase, npm/lockfile genbruges. Ingen framework- eller auth-omskrivning.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-02",
@@ -1433,7 +1787,13 @@
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Plan, adgang, gruppe, tildeling, overtagelse, udførelse, status og noter har atomisk audit og idempotens. Versionsbundet aflevering/review og eksport følger."
+      "remaining": "Plan, adgang, gruppe, tildeling, overtagelse, udførelse, status og noter har atomisk audit og idempotens. Versionsbundet aflevering/review og eksport følger.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-03",
@@ -1474,7 +1834,13 @@
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Status og noter har forventet version og request-ID samt faktisk PostgreSQL-samtidighed og HTTP 409. Observationsrelationer og afleverings-/eksportkontrakt følger."
+      "remaining": "Status og noter har forventet version og request-ID samt faktisk PostgreSQL-samtidighed og HTTP 409. Observationsrelationer og afleverings-/eksportkontrakt følger.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-04",
@@ -1499,7 +1865,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Genbrug audit_events. Serveraktør, korrelation og objektversion skal fastlægges ved nye mutationer."
+      "remaining": "Genbrug audit_events. Serveraktør, korrelation og objektversion skal fastlægges ved nye mutationer.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-05",
@@ -1517,7 +1889,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Fejl/ukendt/manglende må ikke blive nul. Nye lister og afleveringer kræver eksplicitte tilstande."
+      "remaining": "Fejl/ukendt/manglende må ikke blive nul. Nye lister og afleveringer kræver eksplicitte tilstande.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-06",
@@ -1535,7 +1913,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Holdbar upload og serverhash findes. Indholds-/MIME-kontrol samt operationelle bilagsbindinger afprøves i D03."
+      "remaining": "Holdbar upload og serverhash findes. Indholds-/MIME-kontrol samt operationelle bilagsbindinger afprøves i D03.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-07",
@@ -1570,7 +1954,13 @@
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Mobil status/note, dirty-lock, starttid/kilde, bilagsmangler og fejl bevarer kladden i automatiske UI-prøver. Fysisk telefon-/kamera-/offline-/tastaturprøve og samlet aflevering er fortsat åbne."
+      "remaining": "Mobil status/note, dirty-lock, starttid/kilde, bilagsmangler og fejl bevarer kladden i automatiske UI-prøver. Fysisk telefon-/kamera-/offline-/tastaturprøve og samlet aflevering er fortsat åbne.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-08",
@@ -1588,7 +1978,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "p95 og 100.000/10.000/10-bruger benchmark er krav, ikke målte resultater. Ny query- og belastningsprøve mangler."
+      "remaining": "p95 og 100.000/10.000/10-bruger benchmark er krav, ikke målte resultater. Ny query- og belastningsprøve mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-09",
@@ -1606,7 +2002,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "CI-databasegenoprettelse findes. Faktiske filer, aftalt retention og samlet stagingrestore er ikke accepteret."
+      "remaining": "CI-databasegenoprettelse findes. Faktiske filer, aftalt retention og samlet stagingrestore er ikke accepteret.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-10",
@@ -1624,7 +2026,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     }
   ],
   "packageEvidence": {
@@ -1687,5 +2095,8 @@
       "physicalMobileAcceptance": false
     }
   },
-  "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json"
+  "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json",
+  "ownershipReviewedAt": "2026-11-04",
+  "currentEvidenceRegister": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+  "historicalCoverageNote": "coverage og remaining er bevaret historik. Nyere daterede prøvebeviser og afgrænsninger står i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md."
 }

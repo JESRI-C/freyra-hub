@@ -67,6 +67,12 @@ export const PROGRAM_PAGES: ProgramFeature[] = [
   ]),
   ...pages("tasks", "Hvem skal gøre hvad på opgaven?", [
     [
+      "/app/work-orders",
+      "Arbejdsordrer",
+      "Find og følg arbejdsordrer på tværs af de projekter, du leder i den valgte organisation.",
+      "En fælles liste eller tavle med status, plan og tildeling samt adgang til den samme arbejdsordre.",
+    ],
+    [
       "/opgaver",
       "Mine opgaver",
       "Læs dine tildelte instruktioner, status, dokumentation og gemte afleveringsversioner.",
