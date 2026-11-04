@@ -12,7 +12,12 @@ import {
   type WorkOrderStatus,
 } from "@/lib/work-order-lifecycle";
 import { WorkOrderRequestError, type WorkOrderScope } from "@/lib/work-order-access";
-import type { WorkOrderReviewAction, WorkOrderReviewContext } from "@/lib/work-order-review";
+import type {
+  ApprovedFollowUpBasis,
+  WorkOrderReviewAction,
+  WorkOrderReviewContext,
+  WorkOrderCorrectionNote,
+} from "@/lib/work-order-review";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
 const button = "min-h-11 rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -43,6 +48,9 @@ export function WorkOrderReviewControls({
   active,
   onEditing,
   onPhase,
+  onOpenSubmissionVersion,
+  onInspectSubmission,
+  onOpenCorrection,
   onOpenFollowUpPlan,
   onCreateApprovedFollowUp,
 }: {
@@ -56,8 +64,11 @@ export function WorkOrderReviewControls({
   active: boolean;
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
+  onOpenSubmissionVersion?: (version: number) => void;
+  onInspectSubmission?: (id: string, origin: HTMLAnchorElement) => boolean;
+  onOpenCorrection?: (part: "execution" | "evidence", note?: WorkOrderCorrectionNote) => void;
   onOpenFollowUpPlan?: () => void;
-  onCreateApprovedFollowUp?: (packet: NonNullable<WorkOrderReviewContext["packet"]>) => void;
+  onCreateApprovedFollowUp?: (packet: ApprovedFollowUpBasis) => void;
 }) {
   const load = useServerFn(getProjectWorkOrderReviewContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
@@ -109,6 +120,17 @@ export function WorkOrderReviewControls({
     c.project_id === scope.projectId &&
     c.organization_id === scope.organizationId;
   const phase = authorized ? c?.state?.status : undefined;
+  const returnedReview =
+    phase === "reopened" && c?.state?.submission_version_id
+      ? c.recent_reviews.find(
+          ({ state }) =>
+            state.status === "returned" &&
+            state.submission_version_id === c.state?.submission_version_id,
+        )
+      : undefined;
+  const correctionNote = returnedReview
+    ? { submissionVersion: returnedReview.submission_version, reason: returnedReview.state.reason }
+    : undefined;
   useEffect(() => {
     if (authorized) onPhase(phase);
   }, [authorized, phase, onPhase]);
@@ -147,6 +169,40 @@ export function WorkOrderReviewControls({
   }
   const currentApproval =
     c?.state?.status === "approved" && c.state.operation === "review" ? c.state : undefined;
+
+  function submissionLink(version: number, inspectId?: string) {
+    return (
+      <Link
+        className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-2"
+        to="/app/projects/$slug"
+        params={{ slug: scope.projectId }}
+        search={(previous) => ({
+          ...previous,
+          tab: "handlinger",
+          task: scope.actionId,
+          work: "submission",
+          submissionVersion: version,
+        })}
+        onClick={(event) => {
+          if (
+            event.button === 0 &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey
+          ) {
+            if (inspectId && onInspectSubmission?.(inspectId, event.currentTarget)) {
+              event.preventDefault();
+              return;
+            }
+            onOpenSubmissionVersion?.(version);
+          }
+        }}
+      >
+        Se afleveringsversion {version}
+      </Link>
+    );
+  }
 
   function reportAction(reviewId: string, submissionId: string, version: number) {
     if (report?.content.workOrderApproval?.reviewId === reviewId) {
@@ -258,6 +314,7 @@ export function WorkOrderReviewControls({
         cache.invalidateQueries({ queryKey: key }),
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId, scope] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId, scope] }),
+        cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId] }),
         cache.invalidateQueries({ queryKey: ["audit", scope.projectId] }),
       ]);
     } catch (failure) {
@@ -295,6 +352,10 @@ export function WorkOrderReviewControls({
             Status: {phase ? workOrderStatusLabels[phase] : "Ikke fastlagt"}
             {c?.packet ? ` · afleveringsversion ${c.packet.version}` : ""}
           </p>
+          {c?.packet &&
+            !locked &&
+            !disabledByParent &&
+            submissionLink(c.packet.version, phase === "submitted" ? c.packet.id : undefined)}
           {c?.state?.reason &&
             ["submitted", "approved", "returned", "reopened"].includes(phase ?? "") && (
               <p className="whitespace-pre-wrap text-sm">Begrundelse: {c.state.reason}</p>
@@ -326,10 +387,41 @@ export function WorkOrderReviewControls({
             </p>
           )}
           {phase === "reopened" && (
-            <p className="text-sm">
-              Ret de relevante oplysninger, og bekræft udført status under Arbejdsgrundlag. Fasthold
-              derefter en ny afleveringsversion.
-            </p>
+            <div className="space-y-2 rounded-lg border p-3 text-sm">
+              <h4 className="font-medium">Ret den genåbnede aflevering</h4>
+              {returnedReview && (
+                <>
+                  <p className="font-medium">
+                    Mangler i afleveringsversion {returnedReview.submission_version}
+                  </p>
+                  <p className="whitespace-pre-wrap">{returnedReview.state.reason}</p>
+                </>
+              )}
+              <p>
+                Ret udførelsen eller dokumentationen, og bekræft udført status under
+                Arbejdsgrundlag. Fasthold derefter en ny afleveringsversion.
+              </p>
+              {!readOnly && onOpenCorrection && !draft && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={locked || disabledByParent || query.isFetching}
+                    onClick={() => onOpenCorrection("execution", correctionNote)}
+                  >
+                    Åbn udførelsen
+                  </button>
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={locked || disabledByParent || query.isFetching}
+                    onClick={() => onOpenCorrection("evidence", correctionNote)}
+                  >
+                    Åbn dokumentationen
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {c?.state?.blocked && (
             <p className="text-sm">
@@ -433,6 +525,28 @@ export function WorkOrderReviewControls({
                     </p>
                     <p className="whitespace-pre-wrap">{entry.state.reason}</p>
                     <p>Omfang: Registreret udførelse og vedlagt dokumentation.</p>
+                    {!locked && !disabledByParent && submissionLink(entry.submission_version)}
+                    {onCreateApprovedFollowUp &&
+                      !locked &&
+                      entry.state.status === "approved" &&
+                      entry.state.id !== currentApproval?.id &&
+                      entry.state.submission_version_id &&
+                      entry.state.plan_version_id && (
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={disabledByParent || query.isFetching}
+                          onClick={() =>
+                            onCreateApprovedFollowUp({
+                              id: entry.state.submission_version_id!,
+                              version: entry.submission_version,
+                              plan_version_id: entry.state.plan_version_id!,
+                            })
+                          }
+                        >
+                          Opret opfølgning fra afleveringsversion {entry.submission_version}
+                        </button>
+                      )}
                     {canCreateReport &&
                       !draft &&
                       entry.state.status === "approved" &&

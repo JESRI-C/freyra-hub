@@ -9,13 +9,33 @@ const m = vi.hoisted(() => ({
   schedule: vi.fn(),
   indicators: vi.fn(),
   time: vi.fn(),
+  availability: vi.fn(),
+  equipment: vi.fn(),
+  equipmentAvailability: vi.fn(),
   create: vi.fn(),
   blocker: vi.fn(),
   navigate: vi.fn(),
   actor: "actor" as string | null,
 }));
 vi.mock("@/lib/supabase/client", () => ({
-  createActorBoundSupabaseClient: () => ({ rpc: () => ({ abortSignal: m.time }) }),
+  createActorBoundSupabaseClient: () => ({
+    rpc: (name: string, args: unknown) => ({
+      abortSignal:
+        name === "is_work_order_equipment_available" ? () => m.equipmentAvailability(args) : m.time,
+    }),
+    from: () => {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        ilike: () => query,
+        then: (resolve: (result: unknown) => void) => Promise.resolve(m.equipment()).then(resolve),
+        order: () => query,
+        limit: () => query,
+        maybeSingle: m.availability,
+      };
+      return query;
+    },
+  }),
 }));
 vi.mock("../WorkOrderTimeSummary", () => ({
   WorkOrderTimeSummary: ({ reviewDate }: { reviewDate?: string }) => (
@@ -101,6 +121,8 @@ vi.mock("../WorkOrderPlansPanel", () => ({
       openBooking?: boolean;
       openReschedule?: boolean;
       suggestedStart?: string;
+      onOpenExecution?: () => void;
+      onOpenSubmission?: () => void;
     },
   ) => (
     <>
@@ -108,6 +130,12 @@ vi.mock("../WorkOrderPlansPanel", () => ({
       {props.suggestedStart && <p>Forslag: {props.suggestedStart}</p>}
       {props.openBooking && <p>Bookingpanelet er åbent</p>}
       {props.openReschedule && <p>Datoformularen er åben</p>}
+      <button type="button" onClick={props.onOpenExecution}>
+        Åbn udførelsesregistreringen
+      </button>
+      <button type="button" onClick={props.onOpenSubmission}>
+        Kontrollér afleveringsgrundlaget
+      </button>
     </>
   ),
 }));
@@ -131,9 +159,23 @@ import { ProjectWorkOrdersWorkspace, type WorkOrderView } from "../ProjectWorkOr
 vi.mock("../WorkOrderSubmissionPanel", () => ({
   WorkOrderSubmissionPanel: ({
     actionId,
+    onOpenPart,
     ...props
-  }: { actionId: string } & Omit<Parameters<typeof Editor>[0], "selectedActionId">) => (
-    <Editor {...props} selectedActionId={actionId} label="Aflevering" />
+  }: {
+    actionId: string;
+    onOpenPart?: (part: WorkOrderView, note: { submissionVersion: number; reason: string }) => void;
+  } & Omit<Parameters<typeof Editor>[0], "selectedActionId">) => (
+    <>
+      <Editor {...props} selectedActionId={actionId} label="Aflevering" />
+      <button
+        type="button"
+        onClick={() =>
+          onOpenPart?.("evidence", { submissionVersion: 2, reason: "Tilføj foto af afslutningen." })
+        }
+      >
+        Ret dokumentationen
+      </button>
+    </>
   ),
 }));
 const scope = { organizationId: "org", projectId: "project" };
@@ -313,6 +355,32 @@ it("guides project managers from a scheduled task without a responsible person t
   expect(m.navigate).toHaveBeenCalledWith("first");
 });
 
+it.each([
+  ["returned", "Returneret · Afventer rettelse", "Se hvad der skal rettes"],
+  ["reopened", "Genåbnet · Klar til rettelse", "Fortsæt rettelsen"],
+] as const)(
+  "shows %s in the review filter and opens the matching submission",
+  async (reviewStatus, statusLabel, action) => {
+    m.schedule.mockResolvedValue({
+      first: { start: "2099-01-02", end: null, reviewStatus },
+      second: { start: "2099-01-03", end: null },
+    });
+    await render();
+    await click("Planoversigt");
+    expect(host.textContent).toContain(statusLabel);
+    const filter = [...host.querySelectorAll("label")]
+      .find((label) =>
+        label.textContent?.includes("Kun afleveringer til gennemgang eller rettelse"),
+      )!
+      .querySelector("input")!;
+    await act(async () => filter.click());
+    expect(host.textContent).not.toContain(tasks[1].title);
+    expect(host.textContent).toContain(tasks[0].title);
+    await click(action);
+    expect(host.querySelector('[aria-label="Aflevering"]')?.textContent).toContain("first");
+  },
+);
+
 it("opens the prerequisite plan directly from a waiting task", async () => {
   m.schedule.mockResolvedValue({
     first: { start: "2099-01-02", end: "2099-01-03" },
@@ -327,6 +395,122 @@ it("opens the prerequisite plan directly from a waiting task", async () => {
   expect(shortcut.getAttribute("aria-label")).toContain(tasks[0].title);
   await act(async () => shortcut.click());
   expect(m.navigate).toHaveBeenCalledWith("first");
+});
+
+it("shows a known responsible-person overlap before the date suggestion is accepted", async () => {
+  m.actions.mockResolvedValue([
+    ...tasks,
+    { id: "conflict", title: "Tilsyn i mosen", status: "Åben" },
+    { id: "cancelled", title: "Aflyst besøg", status: "Åben" },
+  ]);
+  m.schedule.mockResolvedValue({
+    first: { start: "2099-01-02", end: "2099-01-03" },
+    second: {
+      start: null,
+      end: "2099-01-05",
+      responsibleId: "person",
+      waitingForActionIds: ["first"],
+    },
+    conflict: { start: "2099-01-05", end: null, responsibleId: "person" },
+    cancelled: { start: "2099-01-04", end: null, responsibleId: "person", cancelled: true },
+  });
+  await render();
+  await click("Planoversigt");
+  await click("Se afventende opgaver i hele projektet (1)");
+  expect(host.textContent).toContain("Forslag til startdato: 4. jan. 2099");
+  const overlap = [...host.querySelectorAll("details")].find(
+    (node) =>
+      node.querySelector("summary")?.textContent === "Den ansvarlige har én overlappende opgave",
+  );
+  expect(overlap?.textContent).toContain("Tilsyn i mosen");
+  expect(overlap?.textContent).not.toContain("Aflyst besøg");
+  await click("Åbn Tilsyn i mosen");
+  expect(m.navigate).toHaveBeenCalledWith("conflict");
+});
+
+it("compares a suggested start day with recorded capacity only when opened", async () => {
+  m.access.mockResolvedValue({
+    userId: "actor",
+    projectId: "project",
+    canConfigure: true,
+    canManageAvailability: true,
+  });
+  m.schedule.mockResolvedValue({
+    first: { start: "2099-01-02", end: "2099-01-03" },
+    second: {
+      start: null,
+      end: null,
+      estimatedHours: 3,
+      responsibleId: "responsible-person",
+      waitingForActionIds: ["first"],
+    },
+  });
+  m.availability.mockResolvedValue({
+    error: null,
+    data: { id: "00000000-0000-4000-8000-000000000012", version: 1, hours: 0 },
+  });
+  await render();
+  await click("Planoversigt");
+  expect(m.availability).not.toHaveBeenCalled();
+  const details = [...host.querySelectorAll("details")].find(
+    (node) =>
+      node.querySelector("summary")?.textContent ===
+      "Se tilgængelig tid på den foreslåede startdag",
+  )!;
+  await act(async () => {
+    details.open = true;
+    details.dispatchEvent(new Event("toggle"));
+  });
+  await settle();
+  expect(details.textContent).toContain("0 timer til rådighed");
+  expect(details.textContent).toContain("3 timer over de tilgængelige timer");
+  expect(details.textContent).not.toContain("Angiv tilgængelige timer");
+});
+
+it("checks selected equipment on the proposed date without a reservation form", async () => {
+  const equipmentId = "00000000-0000-4000-8000-000000000012";
+  m.access.mockResolvedValue({
+    userId: "actor",
+    projectId: "project",
+    canConfigure: true,
+    canManageAvailability: true,
+  });
+  m.schedule.mockResolvedValue({
+    first: { start: "2099-01-02", end: "2099-01-03" },
+    second: { start: null, end: null, waitingForActionIds: ["first"] },
+  });
+  m.equipment.mockReturnValue({
+    error: null,
+    data: [{ id: equipmentId, name: "Gravemaskine", kind: "machine" }],
+  });
+  m.equipmentAvailability.mockResolvedValue({ error: null, data: false });
+  await render();
+  await click("Planoversigt");
+  expect(m.equipment).not.toHaveBeenCalled();
+  const details = [...host.querySelectorAll("details")].find(
+    (node) => node.querySelector("summary")?.textContent === "Kontrollér udstyr for datoforslaget",
+  )!;
+  await act(async () => {
+    details.open = true;
+    details.dispatchEvent(new Event("toggle"));
+  });
+  await settle();
+  const select = details.querySelector("select")!;
+  await act(async () => {
+    select.value = equipmentId;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await settle();
+  expect(m.equipmentAvailability).toHaveBeenCalledWith({
+    p_organization_id: scope.organizationId,
+    p_project_id: scope.projectId,
+    p_action_id: "second",
+    p_equipment_id: equipmentId,
+    p_starts_on: "2099-01-04",
+    p_ends_on: "2099-01-04",
+  });
+  expect(details.textContent).toContain("Optaget i den valgte periode");
+  expect(details.querySelector('button[type="submit"]')).toBeNull();
 });
 
 it("shows a task spanning the month boundary and filters it by a planned day", async () => {
@@ -446,9 +630,14 @@ it("filters the dated and undated tasks by plan responsibility", async () => {
 it("marks only overlapping days for the same responsible person", async () => {
   const now = new Date();
   const month = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0")].join("-");
+  m.actions.mockResolvedValue([
+    ...tasks,
+    { id: "third", title: "Opgave uden overlap", status: "Åben" },
+  ]);
   m.schedule.mockResolvedValue({
     first: { start: month + "-02", end: month + "-04", responsibleId: "responsible-person" },
     second: { start: month + "-04", end: null, responsibleId: "responsible-person" },
+    third: { start: month + "-04", end: null, responsibleId: "other-person" },
   });
   await render();
   await click("Kalender");
@@ -457,11 +646,22 @@ it("marks only overlapping days for the same responsible person", async () => {
   );
   expect(overlaps).toHaveLength(1);
   await act(async () => overlaps[0].click());
-  expect(host.textContent).toContain("2 planlagte opgaver på den valgte dato");
+  expect(host.textContent).toContain("3 planlagte opgaver på den valgte dato");
   const flags = [...host.querySelectorAll("span")].filter(
     (node) => node.textContent === "Flere opgaver samme dag",
   );
   expect(flags).toHaveLength(2);
+  const overlapFilter = [...host.querySelectorAll("label")]
+    .find((label) => label.textContent?.includes("Vis kun overlappende opgaver på dagen"))!
+    .querySelector<HTMLInputElement>("input")!;
+  await act(async () => overlapFilter.click());
+  expect(host.textContent).toContain("2 planlagte opgaver på den valgte dato");
+  expect(host.textContent).not.toContain("Opgave uden overlap");
+  expect(
+    host.querySelectorAll('button[aria-label*="flere opgaver for samme ansvarlige"]'),
+  ).toHaveLength(1);
+  await act(async () => overlapFilter.click());
+  expect(host.textContent).toContain("Opgave uden overlap");
   const filter = host.querySelector<HTMLSelectElement>("select")!;
   await act(async () => {
     filter.value = "unassigned";
@@ -645,13 +845,28 @@ describe("one task across the project workspaces", () => {
         ?.getAttribute("aria-pressed"),
     ).toBe("true");
   });
+  it("keeps the return reason visible while correcting the same task", async () => {
+    await render("second", true, false, "submission");
+    await click("Ret dokumentationen");
+    expect(document.activeElement?.textContent).toBe("Dokumentation");
+    const note = () => host.querySelector('aside[aria-label="Mangler ved afleveringen"]');
+    expect(note()?.textContent).toContain("Mangler i afleveringsversion 2");
+    expect(note()?.textContent).toContain("Tilføj foto af afslutningen.");
+    await click("Feltregistrering");
+    expect(note()).not.toBeNull();
+    await click("Tilbage til afleveringen");
+    expect(document.activeElement?.textContent).toBe("Aflevering");
+    expect(note()).toBeNull();
+  });
   it("opens the exact deep-linked task in all views and retains the round in photo navigation", async () => {
     await render("second");
     expect(host.textContent).toContain("Plan · second");
     expect(host.querySelectorAll("select")).toHaveLength(1);
     expect(host.querySelector('[aria-label="Felt"]')).toBeNull();
     await click("Feltregistrering");
-    await click("Udført arbejde");
+    await click("Arbejdsgrundlag");
+    await click("Åbn udførelsesregistreringen");
+    expect(document.activeElement?.textContent).toBe("Udført arbejde");
     expect(host.querySelector('[aria-label="Felt"]')?.textContent).toContain("second");
     expect(host.querySelector('[aria-label="Udførelse"]')?.textContent).toContain("second");
     expect(host.querySelector('a[href*="tab=medier"]')?.getAttribute("href")).toContain(
@@ -660,6 +875,10 @@ describe("one task across the project workspaces", () => {
     expect(host.querySelector('a[href*="tab=medier"]')?.getAttribute("href")).toContain(
       "round=exact-round",
     );
+    await click("Arbejdsgrundlag");
+    await click("Kontrollér afleveringsgrundlaget");
+    expect(document.activeElement?.textContent).toBe("Aflevering");
+    expect(host.querySelector('[aria-label="Aflevering"]')?.textContent).toContain("second");
   });
   it("keeps drafts mounted across views, blocks changing task, then releases the lock on cancel", async () => {
     await render("first");

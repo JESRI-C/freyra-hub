@@ -4,7 +4,7 @@
 
 Det afgrænsede jobflow har browserbevis for oprettelse og persontildeling gennem brugerfladen, modtagelse hos en særskilt feltkonto, præcis fotokobling, aflevering, idempotent genforsøg og projektlederens læsning af samme version. Brugeren har bekræftet det almindelige iPhone-forløb og den efterfølgende offlineprøve. De daterede prøveafsnit nedenfor beskriver de enkelte trin og deres daværende begrænsninger.
 
-Efter den funktionelle prøve er mobilens primære handlinger flyttet op, kamera og synkronisering samlet, og Mine opgaver har fået en Kanban-visning, som bruger serverens status. De ændringer er browserprøvet ved 390 og 1280 px. Seneste særskilte tavleversion er `df6a5ca`. Produkttrådens nyere krav om obligatoriske jobkort skal samles med leverancen før fælles integration.
+Efter den funktionelle prøve er mobilens primære handlinger flyttet op, kamera og synkronisering samlet, og Mine opgaver har fået en Kanban-visning, som bruger serverens status. De ændringer er browserprøvet ved 390 og 1280 px. Tavleversionen `df6a5ca` har særskilt browserbevis. Produkttrådens stabile ændringer frem til `d4f57b9`, herunder obligatoriske jobkort, er samlet i denne branch. Den samlede ændring bestod 162 målrettede tests på tværs af ni prøvesuiter. Produkttrådens igangværende offlinekrav til jobkort har sin egen branch.
 
 3. november 2026. Observationerne er fra det eksisterende testjob i den åbne Skyhost-portal. Kontoen viste rollen Administrator. Der er kun åbnet visninger og faner. Observationerne er taget fra browserens synlige brugerflade. Registerhenvisningerne nedenfor beskriver krav og tidligere prøver.
 

@@ -23,6 +23,12 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@/lib/report-draft.functions", () => ({ generateEvidenceReportDraft: vi.fn() }));
+vi.mock("@/lib/work-order-evidence.functions", () => ({
+  getProjectWorkOrderEvidenceOriginal: vi.fn(),
+}));
+vi.mock("@/components/project/WorkOrderFollowUps", () => ({
+  WorkOrderFollowUps: () => null,
+}));
 vi.mock("@tanstack/react-query", () => ({
   useQuery: state.query,
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
@@ -96,5 +102,53 @@ describe("municipal report customer boundaries", () => {
     expect(html.split('href="/app/reports/new"').length - 1).toBe(4);
     expect(html).toContain("Manglende");
     expect(html).not.toContain("Godkendt");
+  });
+});
+
+describe("saved report source navigation", () => {
+  it("links to the frozen decision and only to sources present in the saved report", async () => {
+    const { ReportPreview } = await import("@/components/reports/ReportWorkspace");
+    const { newReportContent } = await import("@/lib/report-document");
+    const content = {
+      ...newReportContent("Syntetisk projekt", "Testorganisation", "Feltindsats", "Fagperson"),
+      workOrderApproval: {
+        actionId: "00000000-0000-4000-8000-000000000001",
+        submissionId: "00000000-0000-4000-8000-000000000002",
+        submissionVersion: 3,
+        reviewId: "00000000-0000-4000-8000-000000000003",
+        basisHash: "a".repeat(64),
+      },
+      sections: [
+        {
+          id: "review",
+          title: "Godkendt afleveringsgrundlag",
+          text: "Den gemte begrundelse",
+          reviewed: false,
+          basis: "documented" as const,
+          sourceIds: ["photo-v1", "missing-source"],
+        },
+      ],
+      sources: [
+        {
+          id: "photo-v1",
+          title: "Originalfoto fra feltbesoeg",
+          kind: "photo",
+          capturedAt: null,
+          checksum: null,
+          position: null,
+          method: "Feltfoto",
+          version: "1",
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(<ReportPreview content={content} />);
+    expect(html).toContain('href="#report-work-order-review"');
+    expect(html).toContain('id="report-work-order-review"');
+    expect(html).toContain('href="#report-source-0"');
+    expect(html).toContain('id="report-source-0"');
+    expect(html).toContain("Originalfoto fra feltbesoeg</a>");
+    expect(html).toContain("missing-source</span>");
+    expect(html).not.toContain('href="#missing-source"');
+    expect(html).toContain("Den gemte begrundelse");
   });
 });

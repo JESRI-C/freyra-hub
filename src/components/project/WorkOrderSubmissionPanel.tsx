@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker } from "@tanstack/react-router";
 import {
+  hasProjectWorkOrderSubmissionApproval,
   getProjectWorkOrderSubmissionContext,
   listProjectWorkOrderSubmissions,
   saveProjectWorkOrderSubmission,
 } from "@/lib/work-order-submission.functions";
 import { getProjectWorkOrderEvidenceOriginal } from "@/lib/work-order-evidence.functions";
 import { submissionGapLabels } from "@/lib/work-order-submission";
+import { RequiredJobCards } from "./RequiredJobCards";
+import { workOrderProfileLabels } from "@/lib/work-order-plan";
 import { WorkOrderRequestError } from "@/lib/work-order-access";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { WorkOrderExecutionReference } from "./WorkOrderExecutionReference";
@@ -27,6 +30,7 @@ const gapDestination: Record<keyof typeof submissionGapLabels, WorkOrderView> = 
   lifecycle_basis_changed: "plan",
   observation_needs_review: "evidence",
   observation_incomplete: "evidence",
+  required_job_card_missing: "evidence",
   original_unavailable: "evidence",
   evidence_missing: "evidence",
   too_many_evidence: "evidence",
@@ -55,15 +59,19 @@ export function WorkOrderSubmissionPanel({
   active?: boolean;
   requestedVersion?: number;
   onEditing?: (value: boolean) => void;
-  onOpenPart?: (part: WorkOrderView) => void;
+  onOpenPart?: (part: WorkOrderView, correction?: WorkOrderCorrectionNote) => void;
   onFollowUp?: (source: WorkOrderFollowUpSource) => void;
 }) {
   const cache = useQueryClient();
   const contextFn = useServerFn(getProjectWorkOrderSubmissionContext);
+  const approvalFn = useServerFn(hasProjectWorkOrderSubmissionApproval);
   const historyFn = useServerFn(listProjectWorkOrderSubmissions);
   const saveFn = useServerFn(saveProjectWorkOrderSubmission);
   const originalFn = useServerFn(getProjectWorkOrderEvidenceOriginal);
   const [note, setNote] = useState("");
+  const evidenceDetailsId = useId();
+  const [inspectedId, setInspectedId] = useState<string>();
+  const inspectOrigin = useRef<HTMLAnchorElement | null>(null);
   const [busy, setBusy] = useState(false),
     [opening, setOpening] = useState(false);
   const [error, setError] = useState(""),
@@ -113,9 +121,11 @@ export function WorkOrderSubmissionPanel({
     c.action_id === actionId &&
     c.project_id === scope.projectId &&
     c.organization_id === scope.organizationId;
-  const writable = authorized && !!c?.can_prepare && !readOnly;
   const [showAllForVersion, setShowAllForVersion] = useState<number>();
   const selectedVersion = showAllForVersion === requestedVersion ? undefined : requestedVersion;
+  const canFollowUpFromSavedVersion =
+    authorized && !!selectedVersion && canCreateReport && !readOnly && !!onFollowUp;
+  const writable = authorized && !!c?.can_prepare && !readOnly && !selectedVersion;
   const history = useInfiniteQuery({
     queryKey: [...key, "history", selectedVersion],
     initialPageParam: selectedVersion && selectedVersion < 2147483647 ? selectedVersion + 1 : null,
@@ -131,6 +141,35 @@ export function WorkOrderSubmissionPanel({
   const visibleVersions = history.data?.pages
     .flatMap((page) => page.items)
     .filter((row) => !selectedVersion || row.version === selectedVersion);
+  const savedVersion = selectedVersion && !history.isError ? visibleVersions?.[0] : undefined;
+  const savedApproval = useQuery({
+    queryKey: [...key, "saved-approval", savedVersion?.id, savedVersion?.plan_version_id],
+    queryFn: () => {
+      if (!savedVersion) throw new WorkOrderRequestError("unavailable");
+      return approvalFn({
+        data: {
+          ...task,
+          submissionId: savedVersion.id,
+          planVersionId: savedVersion.plan_version_id,
+        },
+      });
+    },
+    enabled: canFollowUpFromSavedVersion && active && !!savedVersion,
+    retry: false,
+    refetchOnWindowFocus: !locked,
+    refetchOnReconnect: !locked,
+  });
+  function inspectSubmission(id: string, origin: HTMLAnchorElement) {
+    const details = document.getElementById(evidenceDetailsId + id);
+    const summary = details?.querySelector("summary");
+    if (!authorized || locked || !(details instanceof HTMLDetailsElement) || !summary) return false;
+    details.open = true;
+    summary.focus();
+    inspectOrigin.current = origin;
+    setInspectedId(id);
+    return true;
+  }
+
   async function save() {
     if (
       !writable ||
@@ -205,7 +244,7 @@ export function WorkOrderSubmissionPanel({
       if (alive.current) setOpening(false);
     }
   }
-  async function prepareFollowUp(packet: NonNullable<WorkOrderReviewContext["packet"]>) {
+  async function prepareFollowUp(packet: ApprovedFollowUpBasis) {
     if (!authorized || locked || !active || !onFollowUp || inFlight.current) return;
     inFlight.current = true;
     setOpening(true);
@@ -244,8 +283,9 @@ export function WorkOrderSubmissionPanel({
       <header>
         <h3 className="text-lg font-semibold">Afleveringsgrundlag</h3>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Fasthold den plan, udførelse og dokumentation, der skal gennemgås. Senere rettelser ændrer
-          ikke de gemte afleveringsversioner.
+          {selectedVersion
+            ? `Du ser den gemte afleveringsversion ${selectedVersion}. Vis alle afleveringsversioner for at arbejde videre med opgaven.`
+            : "Fasthold den plan, udførelse og dokumentation, der skal gennemgås. Senere rettelser ændrer ikke de gemte afleveringsversioner."}
         </p>
       </header>
       {(context.isPending || context.isFetching) && (
@@ -261,26 +301,33 @@ export function WorkOrderSubmissionPanel({
         disabled={busy || opening || uncertain || reviewEditing || context.isFetching}
         onClick={() => void cache.invalidateQueries({ queryKey: key })}
       >
-        Hent aktuelt grundlag
+        {selectedVersion ? "Genindlæs afleveringsversion" : "Hent aktuelt grundlag"}
       </button>
-      <WorkOrderReviewControls
-        scope={task}
-        actorId={actorId}
-        active={active}
-        readOnly={readOnly}
-        allowReview={!readOnly || allowReviewInReadOnly}
-        parentAuthorized={authorized}
-        canCreateReport={canCreateReport}
-        disabledByParent={!authorized || !!note || busy || opening || uncertain}
-        onEditing={setReviewEditing}
-        onPhase={setReviewPhase}
-        onOpenFollowUpPlan={
-          canCreateReport && !readOnly && onOpenPart ? () => onOpenPart("plan") : undefined
-        }
-        onCreateApprovedFollowUp={
-          canCreateReport && !readOnly && onFollowUp ? prepareFollowUp : undefined
-        }
-      />
+      {!selectedVersion && (
+        <WorkOrderReviewControls
+          scope={task}
+          actorId={actorId}
+          active={active}
+          readOnly={readOnly}
+          allowReview={!readOnly || allowReviewInReadOnly}
+          parentAuthorized={authorized}
+          canCreateReport={canCreateReport}
+          disabledByParent={!authorized || !!note || busy || opening || uncertain}
+          onEditing={setReviewEditing}
+          onPhase={setReviewPhase}
+          onInspectSubmission={inspectSubmission}
+          onOpenCorrection={!readOnly ? onOpenPart : undefined}
+          onOpenSubmissionVersion={(version) => {
+            if (version === requestedVersion) setShowAllForVersion(undefined);
+          }}
+          onOpenFollowUpPlan={
+            canCreateReport && !readOnly && onOpenPart ? () => onOpenPart("plan") : undefined
+          }
+          onCreateApprovedFollowUp={
+            canCreateReport && !readOnly && onFollowUp ? prepareFollowUp : undefined
+          }
+        />
+      )}
       {authorized && (
         <>
           {writable && (!reviewClosed || !!note) && (
@@ -322,6 +369,7 @@ export function WorkOrderSubmissionPanel({
                     })}
                   </ol>
                   {(c.gaps.includes("observation_incomplete") ||
+                    c.gaps.includes("required_job_card_missing") ||
                     c.gaps.includes("observation_needs_review")) && (
                     <p className="mt-2 text-sm">
                       Se den tilknyttede version under Dokumentation. Hvis du gemmer en rettelse i
@@ -428,19 +476,48 @@ export function WorkOrderSubmissionPanel({
                 <p className="text-sm text-muted-foreground">
                   Gemt {new Date(row.created_at).toLocaleString("da-DK")} · Fastholdt grundlag
                 </p>
+                {canFollowUpFromSavedVersion &&
+                  !savedApproval.isError &&
+                  savedApproval.data === true &&
+                  savedVersion?.id === row.id && (
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={locked || context.isFetching || savedApproval.isFetching}
+                      onClick={() =>
+                        void prepareFollowUp({
+                          id: row.id,
+                          version: row.version,
+                          plan_version_id: row.plan_version_id,
+                        })
+                      }
+                    >
+                      Opret opfølgning fra denne aflevering
+                    </button>
+                  )}
                 <p className="whitespace-pre-wrap text-sm">{row.note}</p>
                 <p className="text-sm">
                   Planversion {row.snapshot.plan.version} · udførelsesversion{" "}
                   {row.snapshot.execution.binding.version} · {row.snapshot.evidence.length}{" "}
                   dokumentationskoblinger
                 </p>
-                <details>
+                <details id={evidenceDetailsId + row.id}>
                   <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
                     Se det fastholdte grundlag
                   </summary>
                   <div className="space-y-3 text-sm">
                     <h5 className="font-medium">{row.snapshot.plan.plan.title}</h5>
+                    {row.snapshot.plan.plan.profile && (
+                      <p>
+                        Metodeprofil ved aflevering ·{" "}
+                        {workOrderProfileLabels[row.snapshot.plan.plan.profile]}
+                      </p>
+                    )}
+                    {row.snapshot.plan.plan.plannedMethod && (
+                      <p>Planlagt metode ved aflevering · {row.snapshot.plan.plan.plannedMethod}</p>
+                    )}
                     <p className="whitespace-pre-wrap">{row.snapshot.plan.plan.instructions}</p>
+                    <RequiredJobCards cards={row.snapshot.plan.plan.requiredJobCards} />
                     {row.snapshot.indicatorTarget && (
                       <div>
                         <h5 className="font-medium">Mål ved aflevering</h5>
@@ -511,6 +588,18 @@ export function WorkOrderSubmissionPanel({
                     </p>
                   </div>
                 </details>
+                {!selectedVersion && inspectedId === row.id && (
+                  <button
+                    type="button"
+                    className={button}
+                    onClick={() => {
+                      inspectOrigin.current?.focus();
+                      setInspectedId(undefined);
+                    }}
+                  >
+                    Tilbage til faglig gennemgang
+                  </button>
+                )}
               </article>
             ))}
           {history.hasNextPage && (
@@ -529,4 +618,4 @@ export function WorkOrderSubmissionPanel({
   );
 }
 import type { WorkOrderFollowUpSource } from "@/lib/work-order-plan";
-import type { WorkOrderReviewContext } from "@/lib/work-order-review";
+import type { ApprovedFollowUpBasis, WorkOrderCorrectionNote } from "@/lib/work-order-review";

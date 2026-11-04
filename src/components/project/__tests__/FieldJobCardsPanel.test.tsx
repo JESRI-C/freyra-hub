@@ -9,11 +9,17 @@ const mocks = vi.hoisted(() => ({
   templates: vi.fn(),
   history: vi.fn(),
   save: vi.fn(),
+  plan: vi.fn(),
+  capabilities: vi.fn(),
 }));
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: { id: "actor" } }) }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({ useBlocker: vi.fn() }));
 vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: mocks.access }));
+vi.mock("@/lib/work-order-plan.functions", () => ({ getProjectWorkOrderPlanHistory: mocks.plan }));
+vi.mock("@/lib/work-order-access.functions", () => ({
+  getProjectWorkOrderAccess: mocks.capabilities,
+}));
 vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: mocks.actions,
   listFieldJobTemplates: mocks.templates,
@@ -94,6 +100,8 @@ describe("job card editor", () => {
     mocks.actions.mockResolvedValue([{ id: "action", title: "Tilsyn", status: "Åben" }]);
     mocks.templates.mockResolvedValue([newer, old]);
     mocks.history.mockResolvedValue([row]);
+    mocks.plan.mockResolvedValue({ items: [] });
+    mocks.capabilities.mockResolvedValue({ can_execute: true });
     mocks.save.mockResolvedValue({ ...row, version: 2 });
   });
   afterEach(async () => {
@@ -118,6 +126,79 @@ describe("job card editor", () => {
     expect(missingNote).toBeDefined();
     await act(async () => missingNote?.click());
     expect(document.activeElement?.closest("label")?.textContent).toContain("Faglig note");
+  });
+  it("lets the assigned field worker open and save the exact required version without editor privileges", async () => {
+    mocks.access.mockResolvedValue({
+      userId: "actor",
+      projectId: "project",
+      canConfigure: false,
+      canContribute: true,
+    });
+    mocks.history.mockResolvedValue([]);
+    mocks.plan.mockResolvedValue({
+      items: [
+        {
+          plan: {
+            requiredJobCards: [
+              { templateVersionId: "old", templateId: "stable", version: 1, definition },
+            ],
+          },
+        },
+      ],
+    });
+    mocks.save.mockResolvedValue({ ...row, version: 1 });
+    await open();
+    await settle();
+    const select = [...host.querySelectorAll("label")]
+      .find((label) => label.textContent?.startsWith("Skabelon"))!
+      .querySelector("select")!;
+    expect(select.disabled).toBe(false);
+    expect([...select.options].map((option) => option.value)).toEqual(["", "old"]);
+    await act(async () => {
+      select.value = "old";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const save = [...host.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Gem registreringsversion"),
+    )!;
+    expect(save.disabled).toBe(false);
+    await act(async () => save.click());
+    expect(mocks.save).toHaveBeenCalledWith(
+      scope,
+      expect.objectContaining({ templateVersionId: "old", expectedVersion: 0 }),
+    );
+    expect(host.textContent).not.toContain("Opret eller tilpas skabelon");
+  });
+  it("does not activate required-template selection without execution access", async () => {
+    mocks.access.mockResolvedValue({
+      userId: "actor",
+      projectId: "project",
+      canConfigure: false,
+      canContribute: true,
+    });
+    mocks.history.mockResolvedValue([]);
+    mocks.plan.mockResolvedValue({
+      items: [
+        {
+          plan: {
+            requiredJobCards: [
+              { templateVersionId: "old", templateId: "stable", version: 1, definition },
+            ],
+          },
+        },
+      ],
+    });
+    mocks.capabilities.mockResolvedValue({ can_execute: false });
+    await open();
+    await settle();
+    const select = [...host.querySelectorAll("label")]
+      .find((label) => label.textContent?.startsWith("Skabelon"))!
+      .querySelector("select")!;
+    expect(select.disabled).toBe(true);
+    expect([...select.options].map((option) => option.value)).toEqual([""]);
+    expect(host.textContent).toContain("Du har ikke udførelsesadgang");
+    expect(host.textContent).not.toContain("En redaktør skal først tilknytte");
+    expect(mocks.save).not.toHaveBeenCalled();
   });
   it("keeps viewer forms read only", async () => {
     mocks.access.mockResolvedValue({

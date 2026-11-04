@@ -55,6 +55,7 @@ export const EvidenceVersionSchema = z
       id: uuid,
       version: z.number().int().positive(),
       template: FieldJobTemplateDefinitionSchema,
+      templateVersionId: uuid.optional(),
       values: FieldJobValuesSchema,
       status: z.enum(["recorded", "needs_review"]),
       recordedAt: z.string().datetime({ offset: true }),

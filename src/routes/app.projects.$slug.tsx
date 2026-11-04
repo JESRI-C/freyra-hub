@@ -135,6 +135,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
     task?: string;
     work?: WorkOrderView;
     taskList?: WorkOrderListView;
+    reviewOnly?: true;
     submissionVersion?: number;
     indicator?: string;
   } => ({
@@ -154,6 +155,7 @@ export const Route = createFileRoute("/app/projects/$slug")({
       : {}),
     ...(isWorkOrderView(search.work) ? { work: search.work as WorkOrderView } : {}),
     ...(isWorkOrderListView(search.taskList) ? { taskList: search.taskList } : {}),
+    ...(search.reviewOnly === true ? { reviewOnly: true as const } : {}),
     ...(typeof search.indicator === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.indicator)
       ? { indicator: search.indicator.toLowerCase() }
@@ -228,6 +230,10 @@ function MunicipalProjectPage({ step }: { step: MunicipalStep }) {
       selectedActionId={search.task}
       initialWorkOrderView={search.work}
       initialTaskList={search.taskList}
+      reviewOnly={!!search.reviewOnly}
+      onReviewOnly={(value) =>
+        void navigate({ search: { ...search, reviewOnly: value || undefined }, replace: true })
+      }
       submissionVersion={search.submissionVersion}
       onTaskList={(taskList) => void navigate({ search: { ...search, taskList }, replace: true })}
       onSelectAction={(task, view) =>
@@ -532,6 +538,16 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                   description={project.description}
                   onEditPurpose={canEdit ? () => setEditingPurpose(true) : undefined}
                   onChoose={(id) => void navigate({ search: projectJourneySearch(id, search) })}
+                  onOpenReviewQueue={() =>
+                    void navigate({
+                      search: {
+                        tab: "handlinger",
+                        round: search.round,
+                        taskList: "schedule",
+                        reviewOnly: true,
+                      },
+                    })
+                  }
                 />
                 <details className="rounded-xl border bg-card p-4">
                   <summary className="min-h-11 cursor-pointer py-3 font-medium">
@@ -696,6 +712,13 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                     selectedActionId={search.task}
                     initialView={search.work}
                     initialListView={search.taskList}
+                    reviewOnly={!!search.reviewOnly}
+                    onReviewOnly={(value) =>
+                      void navigate({
+                        search: { ...search, reviewOnly: value || undefined },
+                        replace: true,
+                      })
+                    }
                     submissionVersion={search.submissionVersion}
                     onListView={(taskList) =>
                       void navigate({ search: { ...search, taskList }, replace: true })

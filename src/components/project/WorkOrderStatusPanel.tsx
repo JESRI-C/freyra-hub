@@ -34,6 +34,10 @@ type Props = {
   actorId: string;
   onEditing?: (value: boolean) => void;
   manageNavigation?: boolean;
+  onOpenPlan?: () => void;
+  onOpenAssignment?: () => void;
+  onOpenExecution?: () => void;
+  onOpenSubmission?: () => void;
 };
 type Target = NonNullable<LifecycleRequest["targetStatus"]>;
 type StatusDraft = {
@@ -77,7 +81,16 @@ export function WorkOrderStatusPanel(props: Props) {
     />
   );
 }
-function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Props) {
+function StatusPanel({
+  scope,
+  actorId,
+  onEditing,
+  manageNavigation = true,
+  onOpenPlan,
+  onOpenAssignment,
+  onOpenExecution,
+  onOpenSubmission,
+}: Props) {
   const load = useServerFn(getProjectWorkOrderLifecycleContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
     loadLog = useServerFn(getProjectWorkOrderLog),
@@ -380,9 +393,16 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
             </p>
           )}
           {s?.status === "performed" && (
-            <p className="text-sm">
-              Udført arbejde er endnu ikke afleveret eller fagligt godkendt.
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm">
+                Under Aflevering kan du kontrollere, om dokumentationen er klar til gennemgang.
+              </p>
+              {!draft && onOpenSubmission && (
+                <button type="button" className={button} disabled={busy} onClick={onOpenSubmission}>
+                  Kontrollér afleveringsgrundlaget
+                </button>
+              )}
+            </div>
           )}
           {!!current.basis.documentationGaps.length && s?.status === "performed" && (
             <ul className="list-disc space-y-1 pl-5 text-sm">
@@ -471,11 +491,37 @@ function StatusPanel({ scope, actorId, onEditing, manageNavigation = true }: Pro
             </div>
           )}
           {!draft && canNext && !!nextGaps.length && (
-            <ul className="list-disc space-y-1 pl-5 text-sm">
-              {nextGaps.map((g) => (
-                <li key={g}>{g}</li>
-              ))}
-            </ul>
+            <div className="space-y-2">
+              <ul className="list-disc space-y-1 pl-5 text-sm">
+                {nextGaps.map((g) => (
+                  <li key={g}>{g}</li>
+                ))}
+              </ul>
+              {current.can_manage && (
+                <div className="flex flex-wrap gap-2">
+                  {!!current.basis.planGaps.length && onOpenPlan && (
+                    <button type="button" className={button} disabled={busy} onClick={onOpenPlan}>
+                      Ret arbejdsplanen
+                    </button>
+                  )}
+                  {next !== "planned" && !current.basis.assignmentValid && onOpenAssignment && (
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={busy}
+                      onClick={onOpenAssignment}
+                    >
+                      Kontrollér arbejdsfordelingen
+                    </button>
+                  )}
+                </div>
+              )}
+              {next === "performed" && !!current.basis.executionGaps.length && onOpenExecution && (
+                <button type="button" className={button} disabled={busy} onClick={onOpenExecution}>
+                  Åbn udførelsesregistreringen
+                </button>
+              )}
+            </div>
           )}
         </>
       )}

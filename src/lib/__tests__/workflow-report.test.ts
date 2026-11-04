@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { WorkflowReportSnapshotSchema } from "../workflow-report";
 import { emptyExecution } from "../action-execution";
 import { newReportContent, reportIssues, type ReportRevision } from "../report-document";
-import { buildWorkflowReportPackage } from "../workflow-report-package";
+import {
+  buildWorkflowReportPackage,
+  buildWorkOrderReportPackage,
+} from "../workflow-report-package";
 const uuid = (n: number) => "00000000-0000-4000-8000-" + String(n).padStart(12, "0");
 function fixture(): ReportRevision {
   const entry = {
@@ -131,5 +134,92 @@ describe("frozen workflow report", () => {
     }
     expect(await buildWorkflowReportPackage(JSON.parse(original))).toEqual(bytes);
     expect(JSON.stringify(report)).toBe(original);
+  });
+  it("exports an opgave report with its pinned approval, source references and checksums", async () => {
+    const report = fixture();
+    delete report.content.workflowSnapshot;
+    const approval = {
+      actionId: "00000000-0000-4000-8000-000000000001",
+      submissionId: "00000000-0000-4000-8000-000000000002",
+      submissionVersion: 3,
+      reviewId: "00000000-0000-4000-8000-000000000003",
+      basisHash: "a".repeat(64),
+    };
+    report.content.workOrderApproval = approval;
+    const bytes = await buildWorkOrderReportPackage(report);
+    expect(await buildWorkOrderReportPackage(JSON.parse(JSON.stringify(report)))).toEqual(bytes);
+    const contents = files(bytes);
+    const decoder = new TextDecoder();
+    expect(decoder.decode(contents["rapport.pdf"].slice(0, 5))).toBe("%PDF-");
+    expect(JSON.parse(decoder.decode(contents["inputversioner.json"]))).toEqual(approval);
+    expect(JSON.parse(decoder.decode(contents["rapportversion.json"]))).toEqual(report);
+    expect(JSON.parse(decoder.decode(contents["originalreferencer.json"]))).toEqual(
+      report.content.sources,
+    );
+    const manifest = JSON.parse(decoder.decode(contents["manifest.json"]));
+    expect(manifest).toMatchObject({
+      schema: "freyra.work-order-report-package/v1",
+      reportId: report.report_id,
+      revisionId: report.id,
+      version: report.version,
+    });
+    for (const file of manifest.files) {
+      const data = contents[file.name];
+      const hash = await crypto.subtle.digest("SHA-256", data.slice().buffer);
+      expect(file.sha256).toBe(Buffer.from(hash).toString("hex"));
+      expect(file.bytes).toBe(data.length);
+    }
+  });
+  it("includes only verified originals and refuses a mismatch or oversized download", async () => {
+    const report = fixture();
+    delete report.content.workflowSnapshot;
+    report.content.workOrderApproval = {
+      actionId: uuid(41),
+      submissionId: uuid(42),
+      submissionVersion: 3,
+      reviewId: uuid(43),
+      basisHash: "a".repeat(64),
+    };
+    const id = uuid(44);
+    const original = new Uint8Array([255, 216, 255, 217]);
+    const checksum = Buffer.from(await crypto.subtle.digest("SHA-256", original)).toString("hex");
+    report.content.sources = [
+      {
+        id: "task-original:" + id,
+        title: "Originalfoto",
+        kind: "Originalfoto",
+        capturedAt: null,
+        checksum,
+        position: null,
+        method: "Feltfoto",
+        version: "1",
+      },
+    ];
+    const signed = { url: "https://example.test/signed?token=private", sha256: checksum };
+    const sign = vi.fn(async () => signed);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(original, { headers: { "content-type": "image/jpeg" } }))
+      .mockResolvedValueOnce(new Response(new Uint8Array([0])))
+      .mockResolvedValueOnce(new Response(new Uint8Array(25 * 1024 * 1024 + 1)));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const bytes = await buildWorkOrderReportPackage(report, sign);
+      const contents = files(bytes);
+      const path = "originaler/" + id + ".jpg";
+      expect(sign).toHaveBeenCalledExactlyOnceWith(id);
+      expect(contents[path]).toEqual(original);
+      const manifest = JSON.parse(new TextDecoder().decode(contents["manifest.json"]));
+      expect(manifest.files).toContainEqual({
+        name: path,
+        bytes: original.length,
+        sha256: checksum,
+      });
+      expect(new TextDecoder().decode(bytes)).not.toContain(signed.url);
+      await expect(buildWorkOrderReportPackage(report, sign)).rejects.toThrow("kontrolsum");
+      await expect(buildWorkOrderReportPackage(report, sign)).rejects.toThrow("25 MiB");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

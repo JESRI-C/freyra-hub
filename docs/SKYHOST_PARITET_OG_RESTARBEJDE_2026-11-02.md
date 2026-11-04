@@ -56,6 +56,8 @@ at der ingen genbrugelig kode findes.
 | Opsætning og integration | Jobtyper, ekstra felter, kunder/leverandører, løn-/aktivitetstyper, nummerserier, materialer, deling og beskedopsætning skal kortlægges til eksisterende modeller. Økonomi-/lønsystemer og dagsrapport har egne afprøvningskrav. Der er ikke aktiveret mail/SMS eller betalte integrationer. | D09/D10, S16 |
 | Mobil og drift | Browserprøver, adgangskontrol, samtidighed og CI-restore findes. Rigtig telefon/kamera/HEIC, fysisk browserlukning/offline, belastning, samlet fil+DB-gendannelse, fejlalarmer, support og kundeprøve er fortsat åbne. | D08, S11/S12 |
 
+Udstyrskontrol ved datoforslag er samlet med den eksisterende booking på kilde af90267. Projektlederen kan kontrollere valgt udstyr for den foreslåede periode. Browserprøven ved 390 og 1280 px dækkede ledigt → reservation → optaget → aflysning → ledigt. Opslagene ændrede ingen reservationer, og aflysningshistorikken blev bevaret. Øvrige Booking-, besøgs- og rutekrav følger fortsat kravregistret. [Leverancebevis](UDVIKLINGSPLAN_SAMLING_2026-11-02.md)
+
 ## Rækkefølge for arbejdet
 
 1. **Forståeligt projekt og samlet jobkort.** Brug projektlederens nye

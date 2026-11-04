@@ -211,7 +211,7 @@ export async function generateReportFile(
   let mime: string;
   if (format === "pdf") {
     const pdf = new jsPDF();
-    if (revision.content.workflowSnapshot) {
+    if (revision.content.workflowSnapshot || revision.content.workOrderApproval) {
       // Stable exports from the frozen revision; historical generators are untouched.
       pdf.setCreationDate(new Date(revision.created_at));
       pdf.setFileId(revision.id.replaceAll("-", "").toUpperCase());

@@ -1,12 +1,10 @@
-import { formatWorkOrderHours, type WorkOrderPlanVersion } from "@/lib/work-order-plan";
+import {
+  formatWorkOrderHours,
+  workOrderProfileLabels,
+  type WorkOrderPlanVersion,
+} from "@/lib/work-order-plan";
 import type { WorkOrderPerson } from "@/lib/work-order-assignments";
-const profiles = {
-  general: "Generel opgave",
-  watercourse: "Vandløb",
-  nature: "Natur",
-  construction: "Byggeri og natur",
-  grazing: "Græsningspleje",
-};
+import { RequiredJobCards } from "./RequiredJobCards";
 export function WorkOrderPlanSummary({
   row,
   members = [],
@@ -21,7 +19,7 @@ export function WorkOrderPlanSummary({
         {plan.title} · plan version {row.version}
       </p>
       <p>
-        {plan.profile ? profiles[plan.profile] : "Metodeprofil uafklaret"} ·{" "}
+        {plan.profile ? workOrderProfileLabels[plan.profile] : "Metodeprofil uafklaret"} ·{" "}
         {plan.plannedStart ?? "Start uafklaret"}
         {plan.plannedEnd ? ` til ${plan.plannedEnd}` : ""}
       </p>
@@ -50,6 +48,7 @@ export function WorkOrderPlanSummary({
       )}
       {plan.description && <p>{plan.description}</p>}
       {plan.instructions && <p>Instruktion: {plan.instructions}</p>}
+      <RequiredJobCards cards={plan.requiredJobCards} />
       {plan.watercourse && (
         <dl className="grid grid-cols-2 gap-2">
           {Object.entries(plan.watercourse).map(([key, value]) => (

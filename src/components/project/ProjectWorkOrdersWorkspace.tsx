@@ -3,7 +3,11 @@ import {
   type WorkOrderView,
   type WorkOrderListView,
 } from "@/lib/work-order-navigation";
-import { formatWorkOrderHours, workOrderHoursInPeriod } from "@/lib/work-order-plan";
+import {
+  formatWorkOrderHours,
+  workOrderHoursInPeriod,
+  workOrderPlanOverlaps,
+} from "@/lib/work-order-plan";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import { Calendar } from "@/components/ui/calendar";
 import { addDays, endOfMonth, format, parseISO, startOfMonth } from "date-fns";
@@ -28,12 +32,14 @@ import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
 import { WorkOrderPlansPanel, type PlanDateEditorRequest } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ProjectEquipmentBookings } from "./ProjectEquipmentBookings";
+import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
 import { ProjectWorkTimeOverview } from "./ProjectWorkTimeOverview";
 import { ProjectMaterialCatalog, WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
 import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
+import type { WorkOrderCorrectionNote } from "@/lib/work-order-review";
 
 type Props = {
   scope: ProjectScope;
@@ -44,6 +50,8 @@ type Props = {
   initialView?: WorkOrderView;
   submissionVersion?: number;
   initialListView?: WorkOrderListView;
+  reviewOnly?: boolean;
+  onReviewOnly?: (value: boolean) => void;
   onListView?: (view: WorkOrderListView) => void;
 };
 export type { WorkOrderView } from "@/lib/work-order-navigation";
@@ -51,6 +59,11 @@ type Part = WorkOrderView;
 type Editor = Part | "material-catalog";
 const parts = WORK_ORDER_PARTS;
 const taskPageSize = 40;
+const reviewAttention = {
+  submitted: { status: "Afleveret · Afventer faglig gennemgang", action: "Se afleveringen" },
+  returned: { status: "Returneret · Afventer rettelse", action: "Se hvad der skal rettes" },
+  reopened: { status: "Genåbnet · Klar til rettelse", action: "Fortsæt rettelsen" },
+} as const;
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background p-3 text-base";
@@ -77,6 +90,8 @@ function WorkOrders({
   submissionVersion,
   initialListView,
   onListView,
+  reviewOnly,
+  onReviewOnly,
 }: Props & { actorId?: string }) {
   const cache = useQueryClient();
   const loadAccess = useServerFn(getFieldJobAccess);
@@ -91,12 +106,19 @@ function WorkOrders({
   const [day, setDay] = useState<Date>();
   const [responsible, setResponsible] = useState("");
   const [availabilityEditing, setAvailabilityEditing] = useState(false);
+  const [openSuggestionCapacity, setOpenSuggestionCapacity] = useState(() => new Set<string>());
   const [onlyUndated, setOnlyUndated] = useState(false);
   const [onlyWaiting, setOnlyWaiting] = useState(false);
+  const [localReviewOnly, setLocalReviewOnly] = useState(false);
+  const onlyReviewAttention = reviewOnly ?? localReviewOnly;
+  const [overlapFilterDate, setOverlapFilterDate] = useState<string>();
   const [taskSearch, setTaskSearch] = useState("");
   const [taskLimit, setTaskLimit] = useState(taskPageSize);
   const showSchedule = listView === "schedule" || listView === "calendar";
-  const [scheduleActionId, setScheduleActionId] = useState<string>();
+  const [requestedTaskView, setRequestedTaskView] = useState<{
+    actionId: string;
+    view: WorkOrderView;
+  }>();
   const [dateEditor, setDateEditor] = useState<{
     actionId: string;
     request: PlanDateEditorRequest;
@@ -227,6 +249,30 @@ function WorkOrders({
           );
         })
       : undefined;
+  const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
+  const daySummaries = new Map<string, { total: number; waiting: number; overlap: Set<string> }>();
+  function daySummary(key: string) {
+    const cached = daySummaries.get(key);
+    if (cached) return cached;
+    let total = 0;
+    let waiting = 0;
+    const assigned = new Set<string>();
+    const overlap = new Set<string>();
+    for (const plan of scheduledPeriods) {
+      if (!workOrderPlanOverlaps(plan, key, key)) continue;
+      total++;
+      if (plan.waitingForActionIds?.length) waiting++;
+      if (canEdit && plan.responsibleId) {
+        if (assigned.has(plan.responsibleId)) overlap.add(plan.responsibleId);
+        assigned.add(plan.responsibleId);
+      }
+    }
+    const summary = { total, waiting, overlap };
+    daySummaries.set(key, summary);
+    return summary;
+  }
+  const dayOverlap = day ? daySummary(from).overlap : undefined;
+  const onlyOverlaps = listView === "calendar" && !!dayOverlap?.size && overlapFilterDate === from;
   const searchTerm = taskSearch.trim().toLocaleLowerCase("da");
   const visibleActions = (listView === "calendar" ? calendarActions : orderedActions)?.filter(
     (task) =>
@@ -234,6 +280,8 @@ function WorkOrders({
         !onlyUndated ||
         (!dates?.[task.id]?.cancelled && !dates?.[task.id]?.start)) &&
       (!showSchedule || !onlyWaiting || !!dates?.[task.id]?.waitingForActionIds?.length) &&
+      (!showSchedule || !onlyReviewAttention || !!dates?.[task.id]?.reviewStatus) &&
+      (!onlyOverlaps || dayOverlap.has(dates?.[task.id]?.responsibleId ?? "")) &&
       task.title.toLocaleLowerCase("da").includes(searchTerm),
   );
   const usesTaskList = listView !== "time" && listView !== "bookings";
@@ -254,30 +302,6 @@ function WorkOrders({
     .filter((hours) => hours !== null);
   const calendarEstimates = [...estimates.values()].filter((hours) => hours !== null);
   const totalEstimatedHours = knownEstimates.reduce((total, hours) => total + hours, 0);
-  const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
-  const daySummaries = new Map<string, { total: number; waiting: number; overlap: Set<string> }>();
-  function daySummary(key: string) {
-    const cached = daySummaries.get(key);
-    if (cached) return cached;
-    let total = 0;
-    let waiting = 0;
-    const assigned = new Set<string>();
-    const overlap = new Set<string>();
-    for (const plan of scheduledPeriods) {
-      if (plan.cancelled || !plan.start || plan.start > key || (plan.end ?? plan.start) < key)
-        continue;
-      total++;
-      if (plan.waitingForActionIds?.length) waiting++;
-      if (canEdit && plan.responsibleId) {
-        if (assigned.has(plan.responsibleId)) overlap.add(plan.responsibleId);
-        assigned.add(plan.responsibleId);
-      }
-    }
-    const summary = { total, waiting, overlap };
-    daySummaries.set(key, summary);
-    return summary;
-  }
-  const dayOverlap = day ? daySummary(from).overlap : undefined;
   function showProjectPlanningTasks(focus: "waiting" | "undated" | "unassigned") {
     setTaskSearch("");
     setResponsible(focus === "unassigned" ? "unassigned" : "");
@@ -305,7 +329,7 @@ function WorkOrders({
     if (locked) return;
     setTimeReview(reviewDate ? { actionId: id, date: reviewDate } : undefined);
     setLocalAction(id);
-    setScheduleActionId(view === "plan" ? id : undefined);
+    setRequestedTaskView(view ? { actionId: id, view } : undefined);
     setDateEditor(undefined);
     onSelectAction?.(id || undefined, view);
     setError("");
@@ -342,7 +366,8 @@ function WorkOrders({
         );
         setCopiedPlan(followUpSource ? { actionId: action.id, source: followUpSource } : undefined);
         setFollowUpSource(undefined);
-        if (createDate || followUpSource) setScheduleActionId(action.id);
+        if (createDate || followUpSource)
+          setRequestedTaskView({ actionId: action.id, view: "plan" });
         setCreatedActionId(action.id);
         createAttempt.current = undefined;
       }
@@ -433,8 +458,8 @@ function WorkOrders({
               )}
               {createDate && !followUpSource && (
                 <p className="text-sm text-muted-foreground">
-                  {scheduleDate.format(new Date(createDate))} foreslås som startdato, når du åbner
-                  arbejdsgrundlaget.
+                  Arbejdsgrundlaget åbner som kladde med {scheduleDate.format(new Date(createDate))}{" "}
+                  som foreslået startdato.
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
@@ -671,6 +696,21 @@ function WorkOrders({
                       Kun opgaver der afventer forudsætninger
                     </label>
                   )}
+                  {schedule.isSuccess && (
+                    <label className="flex min-h-11 items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={onlyReviewAttention}
+                        disabled={locked}
+                        onChange={(event) => {
+                          setLocalReviewOnly(event.target.checked);
+                          onReviewOnly?.(event.target.checked);
+                          setTaskLimit(taskPageSize);
+                        }}
+                      />
+                      Kun afleveringer til gennemgang eller rettelse
+                    </label>
+                  )}
                   {canEdit && schedule.isSuccess && (
                     <div className="flex flex-wrap items-end gap-2">
                       <label className="block min-w-0 text-sm font-medium">
@@ -787,6 +827,20 @@ function WorkOrders({
                       for at se opgaverne.
                     </p>
                   )}
+                  {!!dayOverlap?.size && (
+                    <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={onlyOverlaps}
+                        disabled={locked}
+                        onChange={(event) => {
+                          setOverlapFilterDate(event.target.checked ? from : undefined);
+                          setTaskLimit(taskPageSize);
+                        }}
+                      />
+                      Vis kun overlappende opgaver på dagen
+                    </label>
+                  )}
                   {day && actorId && access.data?.canManageAvailability && names.has(filter) && (
                     <ProjectWorkAvailability
                       key={filter + ":" + from}
@@ -808,7 +862,7 @@ function WorkOrders({
                   <p role="status" className="text-sm">
                     {visibleCount} {visibleCount === 1 ? "planlagt opgave" : "planlagte opgaver"}{" "}
                     {day ? "på den valgte dato" : "i måneden"}.
-                    {(searchTerm || onlyWaiting) &&
+                    {(searchTerm || onlyWaiting || onlyOverlaps) &&
                       " Filtrene ændrer listen. Kalenderens markeringer viser stadig planlagt arbejde."}
                     {day && <> Valgt dato: {scheduleDate.format(new Date(from))}.</>}
                   </p>
@@ -844,7 +898,13 @@ function WorkOrders({
                 usesTaskList &&
                 (!showSchedule || schedule.isSuccess) &&
                 !!actions.data.length &&
-                !visibleCount && <p role="status">Ingen opgaver matcher dit udvalg.</p>}
+                !visibleCount && (
+                  <p role="status">
+                    {showSchedule && onlyReviewAttention
+                      ? "Ingen afleveringer til gennemgang eller rettelse matcher dit udvalg."
+                      : "Ingen opgaver matcher dit udvalg."}
+                  </p>
+                )}
               {showSchedule && schedule.isSuccess && visibleCount > 0 && (
                 <p className="text-sm text-muted-foreground">
                   {listView === "calendar"
@@ -867,6 +927,9 @@ function WorkOrders({
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const plan = dates?.[a.id];
+                  const review = plan?.reviewStatus
+                    ? reviewAttention[plan.reviewStatus]
+                    : undefined;
                   const estimate = estimates.get(a.id);
                   const prerequisiteIds = dates?.[a.id]?.waitingForActionIds ?? [];
                   const prerequisites = prerequisiteIds.flatMap((id) => {
@@ -896,6 +959,50 @@ function WorkOrders({
                     (!plan?.end || proposedStart <= plan.end)
                       ? proposedStart
                       : null;
+                  const responsibleId = plan?.responsibleId;
+                  const conflictingTasks =
+                    canEdit && suggestedDate && responsibleId
+                      ? actions.data.filter(({ id }) => {
+                          const otherPlan = dates?.[id];
+                          return (
+                            id !== a.id &&
+                            otherPlan?.responsibleId === responsibleId &&
+                            workOrderPlanOverlaps(
+                              otherPlan,
+                              suggestedDate,
+                              plan.end ?? suggestedDate,
+                            )
+                          );
+                        })
+                      : [];
+                  const capacityKey = a.id + ":" + suggestedDate;
+                  const canReadCapacity = !!(
+                    actorId &&
+                    access.data?.canManageAvailability &&
+                    responsibleId &&
+                    suggestedDate
+                  );
+                  const suggestedDayEstimates =
+                    canReadCapacity && openSuggestionCapacity.has(capacityKey) && suggestedDate
+                      ? [
+                          workOrderHoursInPeriod(
+                            {
+                              start: suggestedDate,
+                              end: plan?.end ?? null,
+                              estimatedHours: plan?.estimatedHours,
+                            },
+                            suggestedDate,
+                            suggestedDate,
+                          ),
+                          ...conflictingTasks.flatMap(({ id }) => {
+                            const otherPlan = dates?.[id];
+                            return otherPlan &&
+                              workOrderPlanOverlaps(otherPlan, suggestedDate, suggestedDate)
+                              ? [workOrderHoursInPeriod(otherPlan, suggestedDate, suggestedDate)]
+                              : [];
+                          }),
+                        ]
+                      : [];
                   const dateAction = suggestedDate
                     ? "Brug datoforslag"
                     : plan?.start
@@ -914,6 +1021,11 @@ function WorkOrders({
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
                               {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
+                              {review && (
+                                <span className="block font-medium text-foreground">
+                                  {review.status}
+                                </span>
+                              )}
                               {canEdit && plan?.start && !plan.cancelled && !plan.responsibleId && (
                                 <span className="block">Mangler ansvarlig i planen</span>
                               )}
@@ -950,6 +1062,16 @@ function WorkOrders({
                         </span>
                         <span className="shrink-0 text-sm text-primary">Åbn →</span>
                       </button>
+                      {showSchedule && review && (
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={locked}
+                          onClick={() => select(a.id, "submission")}
+                        >
+                          {review.action}
+                        </button>
+                      )}
                       {showSchedule &&
                         prerequisites.map((prerequisite) => (
                           <button
@@ -964,11 +1086,86 @@ function WorkOrders({
                           </button>
                         ))}
                       {canEdit && suggestedDate && (
-                        <p className="rounded-lg bg-muted px-3 py-2 text-sm">
-                          Forslag til startdato: {scheduleDate.format(new Date(suggestedDate))}.
-                          Dagen efter den seneste planlagte slutdato for de opgaver, der stadig
-                          afventes. Tjek bemanding og udstyr, før du planlægger.
-                        </p>
+                        <div className="space-y-2 rounded-lg bg-muted px-3 py-2 text-sm">
+                          <p>
+                            Forslag til startdato: {scheduleDate.format(new Date(suggestedDate))}.
+                            Dagen efter den seneste planlagte slutdato for de opgaver, der stadig
+                            afventes.
+                          </p>
+                          {conflictingTasks.length > 0 && (
+                            <details>
+                              <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                                {conflictingTasks.length === 1
+                                  ? "Den ansvarlige har én overlappende opgave"
+                                  : "Den ansvarlige har " +
+                                    conflictingTasks.length +
+                                    " overlappende opgaver"}
+                              </summary>
+                              <ul className="space-y-1">
+                                {conflictingTasks.map((task) => (
+                                  <li key={task.id}>
+                                    <button
+                                      type="button"
+                                      className={button}
+                                      disabled={locked}
+                                      onClick={() => select(task.id, "plan")}
+                                    >
+                                      Åbn {task.title}
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
+                          {canReadCapacity && actorId && responsibleId && (
+                            <details
+                              key={capacityKey}
+                              onToggle={(event) => {
+                                const open = event.currentTarget.open;
+                                setOpenSuggestionCapacity((current) => {
+                                  if (current.has(capacityKey) === open) return current;
+                                  const next = new Set(current);
+                                  if (open) next.add(capacityKey);
+                                  else next.delete(capacityKey);
+                                  return next;
+                                });
+                              }}
+                            >
+                              <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                                Se tilgængelig tid på den foreslåede startdag
+                              </summary>
+                              {openSuggestionCapacity.has(capacityKey) && (
+                                <ProjectWorkAvailability
+                                  scope={scope}
+                                  actorId={actorId}
+                                  personId={responsibleId}
+                                  date={suggestedDate}
+                                  estimated={suggestedDayEstimates.reduce<number>(
+                                    (total, hours) => total + (hours ?? 0),
+                                    0,
+                                  )}
+                                  unknown={
+                                    suggestedDayEstimates.filter((hours) => hours === null).length
+                                  }
+                                  readOnly
+                                />
+                              )}
+                            </details>
+                          )}
+                          {actorId && access.data?.canManageAvailability && (
+                            <WorkOrderEquipmentBooking
+                              key={a.id + ":" + suggestedDate + ":" + (plan?.end ?? "")}
+                              scope={scope}
+                              actorId={actorId}
+                              actionId={a.id}
+                              plannedStart={suggestedDate}
+                              plannedEnd={plan?.end ?? null}
+                              disabled={locked}
+                              preview
+                            />
+                          )}
+                          <p>Tjek bemanding og udstyr, før du planlægger.</p>
+                        </div>
                       )}
                       {showSchedule &&
                         plan?.planVersionId &&
@@ -1103,8 +1300,8 @@ function WorkOrders({
               initialView={
                 timeReview?.actionId === actionId
                   ? "execution"
-                  : scheduleActionId === actionId
-                    ? "plan"
+                  : requestedTaskView?.actionId === actionId
+                    ? requestedTaskView.view
                     : initialView
               }
             />
@@ -1151,9 +1348,11 @@ function TaskWorkspace({
 }) {
   const [savedObservation, setSavedObservation] = useState<FieldJobVersion>();
   const [part, setPart] = useState<Part>(initialView ?? "plan");
+  const [correctionNote, setCorrectionNote] = useState<WorkOrderCorrectionNote>();
   const [opened, setOpened] = useState<Set<Part>>(() => new Set([initialView ?? "plan"]));
   useEffect(() => {
     if (!initialView) return;
+    setCorrectionNote(undefined);
     setOpened((old) => (old.has(initialView) ? old : new Set([...old, initialView])));
     setPart(initialView);
   }, [initialView]);
@@ -1174,12 +1373,13 @@ function TaskWorkspace({
   const navigationId = useId();
   const current = parts.find((item) => item.id === part)!;
   const next = parts[parts.indexOf(current) + 1];
-  function openPart(id: Part) {
+  function openPart(id: Part, note?: WorkOrderCorrectionNote) {
+    if (note || id === "submission") setCorrectionNote(note);
     setOpened((old) => new Set([...old, id]));
     setPart(id);
   }
-  function openPartWithFocus(id: Part) {
-    openPart(id);
+  function openPartWithFocus(id: Part, note?: WorkOrderCorrectionNote) {
+    openPart(id, note);
     document.getElementById(navigationId + id)?.focus();
   }
   return (
@@ -1205,6 +1405,20 @@ function TaskWorkspace({
         purpose={current.purpose}
         output={current.output}
       />
+      {correctionNote && (canEdit || canContribute) && (
+        <aside
+          aria-label="Mangler ved afleveringen"
+          className="space-y-2 rounded-xl border p-4 text-sm"
+        >
+          <h4 className="font-semibold">
+            Mangler i afleveringsversion {correctionNote.submissionVersion}
+          </h4>
+          <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{correctionNote.reason}</p>
+          <button type="button" className={button} onClick={() => openPartWithFocus("submission")}>
+            Tilbage til afleveringen
+          </button>
+        </aside>
+      )}
       {opened.has("plan") && (
         <div hidden={part !== "plan"}>
           <WorkOrderPlansPanel
@@ -1217,6 +1431,8 @@ function TaskWorkspace({
             onFollowUp={onFollowUp}
             suggestedStart={suggestedStart}
             onEditing={planEditing}
+            onOpenExecution={() => openPartWithFocus("execution")}
+            onOpenSubmission={() => openPartWithFocus("submission")}
           />
         </div>
       )}
@@ -1257,6 +1473,7 @@ function TaskWorkspace({
             selectedRoundId={round}
             selectedActionId={actionId}
             onEditing={executionEditing}
+            onOpenStatus={() => openPartWithFocus("plan")}
           />
         </div>
       )}

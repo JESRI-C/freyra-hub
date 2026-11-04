@@ -15,6 +15,7 @@ import {
 } from "@/services/__tests__/work-order-submission-fixture";
 const m = vi.hoisted(() => ({
   context: vi.fn(),
+  approval: vi.fn(),
   list: vi.fn(),
   save: vi.fn(),
   original: vi.fn(),
@@ -26,6 +27,7 @@ const m = vi.hoisted(() => ({
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@tanstack/react-router", () => ({ useBlocker: vi.fn() }));
 vi.mock("@/lib/work-order-submission.functions", () => ({
+  hasProjectWorkOrderSubmissionApproval: m.approval,
   getProjectWorkOrderSubmissionContext: m.context,
   listProjectWorkOrderSubmissions: m.list,
   saveProjectWorkOrderSubmission: m.save,
@@ -40,13 +42,29 @@ import { WorkOrderSubmissionPanel } from "../WorkOrderSubmissionPanel";
 vi.mock("../WorkOrderReviewControls", () => ({
   WorkOrderReviewControls: ({
     onCreateApprovedFollowUp,
+    onOpenSubmissionVersion,
+    onInspectSubmission,
   }: {
+    onOpenSubmissionVersion?: (version: number) => void;
+    onInspectSubmission?: (id: string, origin: HTMLAnchorElement) => boolean;
     onCreateApprovedFollowUp?: (packet: NonNullable<WorkOrderReviewContext["packet"]>) => void;
   }) =>
     m.approvedPacket && onCreateApprovedFollowUp ? (
-      <button onClick={() => onCreateApprovedFollowUp(m.approvedPacket!)}>
-        Forbered opfølgning
-      </button>
+      <>
+        <button onClick={() => onCreateApprovedFollowUp(m.approvedPacket!)}>
+          Forbered opfølgning
+        </button>
+        <button onClick={() => onOpenSubmissionVersion?.(1)}>Se afleveringsversion 1</button>
+        <a
+          href="#source"
+          onClick={(event) => {
+            if (onInspectSubmission?.(m.approvedPacket!.id, event.currentTarget))
+              event.preventDefault();
+          }}
+        >
+          Se aktuelt gennemgangsgrundlag
+        </a>
+      </>
     ) : null,
 }));
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
@@ -102,6 +120,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   m.approvedPacket = undefined;
   m.context.mockResolvedValue(context());
+  m.approval.mockResolvedValue(false);
   m.list.mockResolvedValue({ items: [], nextBeforeVersion: null });
   m.save.mockResolvedValue(submission());
   host = document.createElement("div");
@@ -116,6 +135,28 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("submission preparation on the existing task", () => {
+  it("opens the exact saved material without leaving the review and returns keyboard focus", async () => {
+    const reviewed = submission(2);
+    m.approvedPacket = {
+      id: reviewed.id,
+      version: reviewed.version,
+      plan_version_id: reviewed.plan_version_id,
+      assignment_version_id: reviewed.assignment_version_id,
+      execution_revision_id: reviewed.execution_revision_id,
+    };
+    m.list.mockResolvedValue({ items: [submission(3), reviewed], nextBeforeVersion: null });
+    await render();
+    const link = host.querySelector<HTMLAnchorElement>('a[href="#source"]')!;
+    await act(async () => link.click());
+    const [newer, exact] = host.querySelectorAll("article details");
+    expect(newer.hasAttribute("open")).toBe(false);
+    expect(exact.hasAttribute("open")).toBe(true);
+    expect(document.activeElement).toBe(exact.querySelector("summary"));
+    await click("Tilbage til faglig gennemgang");
+    expect(document.activeElement).toBe(link);
+    expect(host.textContent).toContain("Forbered opfølgning");
+  });
+
   it("prepares the follow-up from the approved packet's pinned plan", async () => {
     const approved = submission(2);
     m.approvedPacket = {
@@ -138,7 +179,47 @@ describe("submission preparation on the existing task", () => {
       action_id: scope.actionId,
     });
   });
+  it("starts a follow-up directly from the saved approved version, even with a newer packet", async () => {
+    const approved = submission(1);
+    const current = submission(8);
+    current.snapshot.plan.plan.instructions = "Nyere arbejdsinstruktion";
+    m.approvedPacket = {
+      id: current.id,
+      version: current.version,
+      plan_version_id: current.snapshot.plan.id,
+      assignment_version_id: current.snapshot.assignment.id,
+      execution_revision_id: current.execution_revision_id,
+    };
+    m.approval.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    m.list.mockImplementation(({ data }) =>
+      Promise.resolve({
+        items: [data.beforeVersion === 2 ? approved : current],
+        nextBeforeVersion: null,
+      }),
+    );
+    await render(true, true, 1);
+    expect(host.textContent).not.toContain("Opret opfølgning fra denne aflevering");
+    expect(m.approval).not.toHaveBeenCalled();
+    await render(false, true, 1);
+    expect(host.textContent).not.toContain("Opret opfølgning fra denne aflevering");
+    await click("Genindlæs afleveringsversion");
+    await click("Opret opfølgning fra denne aflevering");
+    expect(m.approval).toHaveBeenCalledWith({
+      data: { ...scope, submissionId: approved.id, planVersionId: approved.snapshot.plan.id },
+    });
+    expect(m.followUp).toHaveBeenCalledExactlyOnceWith({
+      ...approved.snapshot.plan,
+      action_id: scope.actionId,
+    });
+  });
   it("loads the report's exact submission directly and lets users return to full history", async () => {
+    m.approvedPacket = {
+      id: id(88),
+      version: 8,
+      plan_version_id: id(3),
+      assignment_version_id: id(4),
+      execution_revision_id: id(5),
+    };
     m.list.mockImplementation(({ data }) =>
       Promise.resolve({
         items: data.beforeVersion === 2 ? [submission(1)] : [submission(8)],
@@ -150,17 +231,33 @@ describe("submission preparation on the existing task", () => {
       data: expect.objectContaining({ actionId: scope.actionId, beforeVersion: 2, pageSize: 1 }),
     });
     expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 1");
+    expect(host.textContent).not.toContain("Forbered opfølgning");
+    expect(host.querySelector("textarea")).toBeNull();
     await click("Vis alle afleveringsversioner");
     expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 8");
+    expect(host.textContent).toContain("Forbered opfølgning");
+    await click("Se afleveringsversion 1");
+    expect(host.querySelector("article h4")?.textContent).toBe("Afleveringsversion 1");
+    expect(host.textContent).not.toContain("Forbered opfølgning");
   });
 
   it("shows required fields and units from each saved submission's own job card", async () => {
     const previous = submission();
     const current = submission(2);
+    previous.snapshot.plan.plan.plannedMethod = "Manuel optælling";
+    current.snapshot.plan.plan.profile = "grazing";
+    current.snapshot.plan.plan.plannedMethod = "Optælling langs transekt";
     const fields = current.snapshot.evidence[0].observation_snapshot.template.fields;
     fields[0] = { ...fields[0], label: "Optalte planter", unit: "stk.", required: false };
     m.list.mockResolvedValue({ items: [current, previous], nextBeforeVersion: null });
     await render();
+    const [latest, original] = host.querySelectorAll("article");
+    expect(latest.textContent).toContain("Metodeprofil ved aflevering · Græsningspleje");
+    expect(latest.textContent).toContain(
+      "Planlagt metode ved aflevering · Optælling langs transekt",
+    );
+    expect(original.textContent).toContain("Metodeprofil ved aflevering · Natur");
+    expect(original.textContent).toContain("Planlagt metode ved aflevering · Manuel optælling");
     const labels = [...host.querySelectorAll("dt")].map((label) => label.textContent);
     expect(labels).toContain("Optalte planter (stk.)");
     expect(labels).toContain("Antal · Nødvendigt felt");

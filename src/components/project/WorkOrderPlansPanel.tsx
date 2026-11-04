@@ -16,11 +16,19 @@ import {
   parseWorkOrderMetres,
   WorkOrderPlanSchema,
   workOrderPlanGaps,
+  workOrderPlanOverlaps,
+  workOrderProfileLabels,
   type WorkOrderPlan,
   type WorkOrderPlanVersion,
   type WorkOrderFollowUpSource,
 } from "@/lib/work-order-plan";
-import { listFieldJobActions, type listFieldJobSchedule } from "@/services/field-job-cards-service";
+import {
+  listFieldJobActions,
+  listFieldJobSchedule,
+  listFieldJobTemplates,
+} from "@/services/field-job-cards-service";
+import { RequiredJobCards } from "./RequiredJobCards";
+import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
 import { MoreWorkOrderPeople } from "./MoreWorkOrderPeople";
 import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
@@ -40,13 +48,6 @@ const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50";
-const profiles = {
-  general: "Generel opgave",
-  watercourse: "Vandløb",
-  nature: "Natur",
-  construction: "Byggeri og natur",
-  grazing: "Græsningspleje",
-};
 const nullable = (value: string) => (value.trim() ? value : null);
 type Page = { items: WorkOrderPlanVersion[]; nextBeforeVersion: number | null };
 export type PlanDateEditorRequest = boolean | { planVersionId: string; start: string };
@@ -58,6 +59,8 @@ type PlanPanelProps = {
   openReschedule?: PlanDateEditorRequest;
   planSource?: WorkOrderFollowUpSource;
   onFollowUp?: (source: WorkOrderFollowUpSource) => void;
+  onOpenExecution?: () => void;
+  onOpenSubmission?: () => void;
   suggestedStart?: string;
   onEditing?: (value: boolean) => void;
 };
@@ -81,6 +84,8 @@ function WorkOrderPlans({
   openReschedule,
   planSource,
   onFollowUp,
+  onOpenExecution,
+  onOpenSubmission,
   suggestedStart,
   onEditing,
 }: PlanPanelProps & {
@@ -174,6 +179,8 @@ function WorkOrderPlans({
               openReschedule={openReschedule}
               planSource={planSource}
               onFollowUp={onFollowUp}
+              onOpenExecution={onOpenExecution}
+              onOpenSubmission={onOpenSubmission}
               suggestedStart={suggestedStart}
               canBook={access.data?.canManageAvailability === true}
               onEditing={setEditing}
@@ -206,6 +213,8 @@ function PlanWorkspace({
   openReschedule,
   planSource,
   onFollowUp,
+  onOpenExecution,
+  onOpenSubmission,
   suggestedStart,
   onEditing,
 }: {
@@ -220,6 +229,8 @@ function PlanWorkspace({
   openReschedule?: PlanDateEditorRequest;
   planSource?: WorkOrderFollowUpSource;
   onFollowUp?: (source: WorkOrderFollowUpSource) => void;
+  onOpenExecution?: () => void;
+  onOpenSubmission?: () => void;
   suggestedStart?: string;
   onEditing: (value: boolean) => void;
 }) {
@@ -259,6 +270,12 @@ function PlanWorkspace({
     [lifecycleEditing, setLifecycleEditing] = useState(false),
     [busy, setBusy] = useState(false);
   const [datesOnly, setDatesOnly] = useState(false);
+  const templates = useQuery({
+    queryKey: ["field-job-templates", actorId, scope],
+    queryFn: () => listFieldJobTemplates(scope),
+    enabled: canPlan && !!draft && !datesOnly,
+    retry: false,
+  });
   const [hoursText, setHoursText] = useState("");
   const [meters, setMeters] = useState<Record<string, string>>({});
   const saving = useRef(false),
@@ -360,20 +377,25 @@ function PlanWorkspace({
     },
     [latest, onEditing, openReschedule, followUpSource, suggestedStart, title],
   );
-  const openedReschedule = useRef(false);
+  const openedRequestedEditor = useRef(false);
   useEffect(() => {
-    if (
-      !openReschedule ||
-      openedReschedule.current ||
-      !canPlan ||
-      !latest ||
-      history.isFetching ||
-      history.isError
-    )
+    if (openedRequestedEditor.current || !canPlan || !history.isSuccess || history.isFetching)
       return;
-    openedReschedule.current = true;
-    open(true);
-  }, [openReschedule, canPlan, latest, history.isFetching, history.isError, open]);
+    const datesOnly = !!openReschedule && !!latest;
+    if (!datesOnly && (latest || (!suggestedStart && !planSource))) return;
+    openedRequestedEditor.current = true;
+    if (!draft) open(datesOnly);
+  }, [
+    openReschedule,
+    suggestedStart,
+    planSource,
+    canPlan,
+    latest,
+    history.isSuccess,
+    history.isFetching,
+    draft,
+    open,
+  ]);
   async function submit() {
     if (!draft || !canPlan || saving.current) return;
     saving.current = true;
@@ -440,9 +462,7 @@ function PlanWorkspace({
       void cache.invalidateQueries({ queryKey: ["project-work-time", actorId, scope] });
       setDraft(null);
       onEditing(false);
-      setMessage(
-        `Plan version ${saved.version} er gemt. Det er ikke en registrering af udført arbejde.`,
-      );
+      setMessage(`Planversion ${saved.version} er gemt.`);
       setPages([]);
       await Promise.all([
         cache.invalidateQueries({ queryKey: key }),
@@ -488,6 +508,39 @@ function PlanWorkspace({
   const set = <K extends keyof WorkOrderPlan>(key: K, value: WorkOrderPlan[K]) =>
     setDraft((old) => (old ? { ...old, [key]: value } : old));
   const gaps = draft ? workOrderPlanGaps(draft) : [];
+  const assignmentSection = useRef<HTMLDivElement>(null);
+  const statusSection = useRef<HTMLDivElement>(null);
+  const planDraftHeading = useRef<HTMLLegendElement>(null);
+  const focusPlanDraft = useRef(false);
+  useEffect(() => {
+    if (!draft || !focusPlanDraft.current) return;
+    focusPlanDraft.current = false;
+    planDraftHeading.current?.focus();
+  }, [draft]);
+  const showAssignment =
+    latest && !draft && !seriesSaving && !bookingEditing && !accessEditing && !lifecycleEditing;
+  const draftStart = draft?.plannedStart;
+  const draftEnd = draft?.plannedEnd ?? draftStart;
+  const responsibleId = draft?.responsibleId;
+  const checkOverlap =
+    canPlan && !!responsibleId && !!draftStart && !!draftEnd && draftStart <= draftEnd;
+  const schedule = useQuery({
+    queryKey: ["field-job-schedule", actorId, scope],
+    queryFn: () => listFieldJobSchedule(scope),
+    enabled: checkOverlap,
+    retry: false,
+  });
+  const overlapping =
+    checkOverlap && schedule.isSuccess
+      ? Object.entries(schedule.data).filter(
+          ([id, plan]) =>
+            id !== actionId &&
+            plan.responsibleId === responsibleId &&
+            workOrderPlanOverlaps(plan, draftStart, draftEnd),
+        )
+      : [];
+  const overlappingCount = overlapping.length;
+  const candidateTitles = new Map(candidates.map(({ id, title }) => [id, title]));
   const dateFields = draft && (
     <>
       <label className="block text-sm">
@@ -508,6 +561,32 @@ function PlanWorkspace({
           onChange={(e) => set("plannedEnd", e.target.value || null)}
         />
       </label>
+      {checkOverlap && (overlappingCount > 0 || schedule.isError) && (
+        <div className="space-y-2 rounded-lg border p-3 text-sm sm:col-span-2">
+          <p role="status">
+            {schedule.isError
+              ? "Kalenderen kunne ikke kontrolleres for overlappende opgaver."
+              : `Den ansvarlige har ${overlappingCount === 1 ? "én anden opgave" : `${overlappingCount} andre opgaver`} i perioden. Kontrollér arbejdsfordelingen, før du gemmer.`}
+          </p>
+          {overlappingCount > 0 && (
+            <details>
+              <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                Se overlappende opgaver
+              </summary>
+              <ul className="space-y-2 [overflow-wrap:anywhere]">
+                {overlapping.map(([id, plan]) => (
+                  <li key={id}>
+                    <span className="block font-medium">
+                      {candidateTitles.get(id) ?? "Opgave uden tilgængelig titel"}
+                    </span>
+                    <span className="text-muted-foreground">{scheduleLabel(plan)}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
     </>
   );
   return (
@@ -519,9 +598,20 @@ function PlanWorkspace({
         </p>
       )}
       {message && (
-        <p role="status" className="text-sm">
-          {message}
-        </p>
+        <div className="space-y-2">
+          <p role="status" className="text-sm">
+            {message}
+          </p>
+          {showAssignment && canPlan && !history.isError && !history.isFetching && (
+            <button
+              type="button"
+              className={button}
+              onClick={() => assignmentSection.current?.focus()}
+            >
+              Gå til arbejdsfordeling
+            </button>
+          )}
+        </div>
       )}
       {(members.error || sites.error || centerlines.error) && (
         <p role="alert" className="text-sm">
@@ -730,7 +820,11 @@ function PlanWorkspace({
                 }
                 onClick={() => open()}
               >
-                {latest ? "Rediger plan som ny version" : "Opret arbejdsopgavens plan"}
+                {latest
+                  ? "Rediger plan som ny version"
+                  : followUpSource
+                    ? "Fortsæt med opfølgningsplanen"
+                    : "Opret arbejdsopgavens plan"}
               </button>
             </div>
           )}
@@ -776,39 +870,54 @@ function PlanWorkspace({
             }}
           />
         )}
-      {latest &&
-        !draft &&
-        !seriesSaving &&
-        !bookingEditing &&
-        !accessEditing &&
-        !lifecycleEditing && (
+      {showAssignment && (
+        <div ref={assignmentSection} tabIndex={-1} role="group" aria-label="Tildeling på opgaven">
           <WorkOrderAssignmentPanel
             scope={{ ...scope, actionId }}
             actorId={actorId}
             planId={latest.id}
             canManage={canPlan && !history.isError && !history.isFetching}
             people={members.data ?? []}
+            onOpenStatus={() => statusSection.current?.focus()}
             onEditing={(value) => {
               setAssignmentEditing(value);
               onEditing(value);
             }}
           />
-        )}
+        </div>
+      )}
       {latest &&
         !draft &&
         !seriesSaving &&
         !bookingEditing &&
         !accessEditing &&
         !assignmentEditing && (
-          <WorkOrderStatusPanel
-            scope={{ ...scope, actionId }}
-            actorId={actorId}
-            manageNavigation={false}
-            onEditing={(value) => {
-              setLifecycleEditing(value);
-              onEditing(value);
-            }}
-          />
+          <div ref={statusSection} tabIndex={-1} role="group" aria-label="Status på opgaven">
+            <WorkOrderStatusPanel
+              scope={{ ...scope, actionId }}
+              actorId={actorId}
+              manageNavigation={false}
+              onOpenExecution={onOpenExecution}
+              onOpenSubmission={onOpenSubmission}
+              onOpenPlan={
+                canPlan && history.isSuccess && !history.isFetching
+                  ? () => {
+                      focusPlanDraft.current = true;
+                      open();
+                    }
+                  : undefined
+              }
+              onOpenAssignment={
+                canPlan && showAssignment && !lifecycleEditing
+                  ? () => assignmentSection.current?.focus()
+                  : undefined
+              }
+              onEditing={(value) => {
+                setLifecycleEditing(value);
+                onEditing(value);
+              }}
+            />
+          </div>
         )}
       {draft && (
         <form
@@ -819,9 +928,15 @@ function PlanWorkspace({
           }}
         >
           <fieldset className="min-w-0 space-y-3" disabled={busy || !canPlan}>
-            <legend className="font-medium">
+            <legend ref={planDraftHeading} tabIndex={-1} className="font-medium">
               {datesOnly ? "Omplanlæg datoer" : base ? `Rediger plan version ${base}` : "Ny plan"}
             </legend>
+            {base === 0 && followUpSource && (
+              <p className="text-sm">
+                Arbejdsgrundlaget er hentet fra {followUpSource.plan.title}, planversion{" "}
+                {followUpSource.version}. Vælg datoer og ansvarlig for opfølgningen.
+              </p>
+            )}
             {datesOnly ? (
               <div className="grid gap-3 sm:grid-cols-2">{dateFields}</div>
             ) : (
@@ -871,7 +986,7 @@ function PlanWorkspace({
                       }}
                     >
                       <option value="">Uafklaret</option>
-                      {Object.entries(profiles).map(([v, label]) => (
+                      {Object.entries(workOrderProfileLabels).map(([v, label]) => (
                         <option key={v} value={v}>
                           {label}
                         </option>
@@ -948,6 +1063,79 @@ function PlanWorkspace({
                     onChange={(e) => set("instructions", e.target.value)}
                   />
                 </label>
+                <fieldset className="min-w-0 space-y-3 rounded-xl border p-3">
+                  <legend className="px-1 text-sm font-medium">Dokumentationskrav</legend>
+                  <p className="text-sm text-muted-foreground">
+                    Vælg de gemte jobkort, der skal dokumenteres på opgaven. Den valgte version
+                    fastholdes i planen og kontrolleres ved aflevering. En ny skabelonversion ændrer
+                    ikke kravet automatisk.
+                  </p>
+                  {templates.isFetching && <p role="status">Henter gemte jobkort…</p>}
+                  {templates.error && (
+                    <p role="alert">
+                      Jobkort kunne ikke hentes: {templates.error.message}. Planens gemte krav
+                      bevares.
+                    </p>
+                  )}
+                  <label className="block text-sm">
+                    Tilføj påkrævet jobkort
+                    <select
+                      className={control}
+                      value=""
+                      disabled={!templates.isSuccess || (draft.requiredJobCards?.length ?? 0) >= 10}
+                      onChange={(event) => {
+                        const template = templates.data?.find((t) => t.id === event.target.value);
+                        if (template)
+                          set("requiredJobCards", [
+                            ...(draft.requiredJobCards ?? []),
+                            {
+                              templateVersionId: template.id,
+                              templateId: template.template_id,
+                              version: template.version,
+                              definition: template.definition,
+                            },
+                          ]);
+                      }}
+                    >
+                      <option value="">Vælg gemt jobkort og version</option>
+                      {templates.data
+                        ?.filter(
+                          (t) =>
+                            !draft.requiredJobCards?.some(
+                              (card) => card.templateId === t.template_id,
+                            ),
+                        )
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.definition.title} · version {t.version}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  {templates.isSuccess && !templates.data.length && (
+                    <p className="text-sm">
+                      Gem først en skabelon under Feltregistrering på opgaven.
+                    </p>
+                  )}
+                  <RequiredJobCards cards={draft.requiredJobCards} />
+                  {draft.requiredJobCards?.map((card) => (
+                    <button
+                      type="button"
+                      className={button}
+                      key={card.templateVersionId}
+                      onClick={() =>
+                        set(
+                          "requiredJobCards",
+                          draft.requiredJobCards?.filter(
+                            (item) => item.templateVersionId !== card.templateVersionId,
+                          ),
+                        )
+                      }
+                    >
+                      Fjern krav: {card.definition.title} · version {card.version}
+                    </button>
+                  ))}
+                </fieldset>
                 <label className="block text-sm">
                   Sted eller delstrækning
                   <input

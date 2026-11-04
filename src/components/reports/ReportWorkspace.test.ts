@@ -18,6 +18,9 @@ const state = vi.hoisted(() => ({
 vi.mock("@/lib/auth", () => ({ useAuth: () => state.auth }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: () => vi.fn() }));
 vi.mock("@/lib/report-draft.functions", () => ({ generateEvidenceReportDraft: vi.fn() }));
+vi.mock("@/lib/work-order-evidence.functions", () => ({
+  getProjectWorkOrderEvidenceOriginal: vi.fn(),
+}));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, search }: { children: string; search?: { task?: string; work?: string } }) =>
     createElement("a", { "data-task": search?.task, "data-work": search?.work }, children),

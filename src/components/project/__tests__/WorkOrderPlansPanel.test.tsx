@@ -8,6 +8,7 @@ import { emptyWorkOrderPlan, emptyWorkOrderWatercourse } from "@/lib/work-order-
 const m = vi.hoisted(() => ({
   access: vi.fn(),
   actions: vi.fn(),
+  templates: vi.fn(),
   history: vi.fn(),
   save: vi.fn(),
   createSeries: vi.fn(),
@@ -66,6 +67,7 @@ vi.mock("@/lib/work-order-plan.functions", () => ({
 }));
 vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: m.actions,
+  listFieldJobTemplates: m.templates,
   listFieldJobSchedule: m.schedule,
 }));
 vi.mock("../useWorkOrderPeople", () => ({
@@ -143,6 +145,7 @@ async function open(
   edit = true,
   openReschedule: React.ComponentProps<typeof WorkOrderPlansPanel>["openReschedule"] = false,
   planSource?: ReturnType<typeof row>,
+  suggestedStart?: string,
 ) {
   await act(async () =>
     root.render(
@@ -151,6 +154,7 @@ async function open(
           scope={scope}
           openReschedule={openReschedule}
           planSource={planSource}
+          suggestedStart={suggestedStart}
         />
       </QueryClientProvider>,
     ),
@@ -211,6 +215,8 @@ beforeEach(() => {
   m.members.mockResolvedValue([]);
   m.sites.mockResolvedValue([]);
   m.centerlines.mockResolvedValue([]);
+  m.schedule.mockResolvedValue({});
+  m.templates.mockResolvedValue([]);
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -219,6 +225,47 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("saves the chosen existing template version and preserves it if template loading fails later", async () => {
+    const definition = {
+      schema: "freyra.field-job-template/v1",
+      title: "Habitatbesøg",
+      domain: "nature",
+      fields: [{ key: "count", label: "Antal", type: "number", required: true, unit: "stk." }],
+    };
+    m.templates.mockResolvedValue([{ id: id(90), template_id: id(91), version: 2, definition }]);
+    m.save.mockImplementation(async ({ data }) => {
+      const saved = { ...row(), version: 2, plan: data.plan };
+      m.history.mockResolvedValue({ items: [saved], nextBeforeVersion: null });
+      return saved;
+    });
+    await open();
+    await settle();
+    const select = [...host.querySelectorAll("label")]
+      .find((label) => label.textContent?.startsWith("Tilføj påkrævet jobkort"))!
+      .querySelector("select")!;
+    await act(async () => {
+      select.value = id(90);
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(host.textContent).toContain("Habitatbesøg · version 2");
+    await fill("Årsag til planændring", "Krav valgt til besøget");
+    await save();
+    expect(m.save.mock.calls[0][0].data.plan.requiredJobCards).toEqual([
+      { templateVersionId: id(90), templateId: id(91), version: 2, definition },
+    ]);
+    await act(async () =>
+      Array.from(host.querySelectorAll("button"))
+        .find((b) => b.textContent?.includes("Rediger plan som ny version"))!
+        .click(),
+    );
+    m.templates.mockRejectedValue(new Error("Unavailable"));
+    await act(async () => cache.invalidateQueries({ queryKey: ["field-job-templates"] }));
+    expect(host.textContent).toContain("Planens gemte krav bevares");
+    await fill("Årsag til planændring", "Bevar krav trods netfejl");
+    await save();
+    expect(m.save.mock.calls.at(-1)![0].data.plan.requiredJobCards).toHaveLength(1);
+    expect(host.textContent).toContain("Jobkort der kræves ved aflevering");
+  });
   it("previews monthly repeats from the original day after a short month", async () => {
     const source = row();
     source.plan = { ...source.plan, plannedStart: "2026-12-01" };
@@ -538,6 +585,13 @@ describe("work-order plan editor", () => {
         plan: { ...row().plan, estimatedHours: 2.75 },
       }),
     });
+    expect(host.textContent).toContain("Planversion 2 er gemt.");
+    const next = [...host.querySelectorAll("button")].find(
+      (button) => button.textContent === "Gå til arbejdsfordeling",
+    );
+    expect(next).toBeDefined();
+    await act(async () => next!.click());
+    expect(document.activeElement).toBe(host.querySelector('[aria-label="Tildeling på opgaven"]'));
   });
   it("opens the exact saved source plan only on request", async () => {
     const source = {
@@ -581,11 +635,8 @@ describe("work-order plan editor", () => {
     });
     m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
     await open(false, false, source);
-    await act(async () =>
-      [...host.querySelectorAll("button")]
-        .find((button) => button.textContent === "Opret arbejdsopgavens plan")!
-        .click(),
-    );
+    expect(host.querySelector("form")?.textContent).toContain("Vælg datoer og ansvarlig");
+    expect(m.save).not.toHaveBeenCalled();
     m.save.mockResolvedValue(row());
     await save();
     expect(m.save).toHaveBeenCalledWith({
@@ -616,7 +667,7 @@ describe("work-order plan editor", () => {
     await open(false);
     await act(async () =>
       [...host.querySelectorAll("button")]
-        .find((button) => button.textContent === "Opret arbejdsopgavens plan")!
+        .find((button) => button.textContent === "Fortsæt med opfølgningsplanen")!
         .click(),
     );
     m.save.mockResolvedValue(row());
@@ -631,6 +682,59 @@ describe("work-order plan editor", () => {
       }),
     });
     expect(readFollowUpSource(actor, { ...scope, actionId })).toBeUndefined();
+  });
+  it("opens the first calendar plan as an unsaved draft with the suggested date", async () => {
+    m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
+    await open(false, false, undefined, "2026-11-12");
+    expect(host.querySelector("form")?.textContent).toContain("Ny plan");
+    expect(host.querySelector<HTMLInputElement>('input[type="date"]')?.value).toBe("2026-11-12");
+    expect(m.save).not.toHaveBeenCalled();
+    const cancel = [...host.querySelectorAll("button")].find(
+      (button) => button.textContent === "Fortryd ændringer",
+    );
+    await act(async () => cancel!.click());
+    expect(host.querySelector("form")).toBeNull();
+  });
+  it("keeps a saved plan closed when the original calendar suggestion is still present", async () => {
+    await open(false, false, undefined, "2026-11-12");
+    expect(host.querySelector("form")).toBeNull();
+  });
+  it("warns about other scheduled work for the responsible person before rescheduling", async () => {
+    const plan = {
+      ...row().plan,
+      responsibleId: actor,
+      plannedStart: "2026-11-10",
+      plannedEnd: null,
+    };
+    m.history.mockResolvedValue({ items: [{ ...row(), plan }], nextBeforeVersion: null });
+    m.actions.mockResolvedValue([
+      { id: actionId, title: "Opgaven der redigeres", status: "Åben" },
+      { id: id(90), title: "Tilsyn i mosen", status: "Åben" },
+      { id: id(91), title: "Aflyst besøg", status: "Åben" },
+      { id: id(92), title: "Tilsyn med anden ansvarlig", status: "Åben" },
+    ]);
+    const scheduled = {
+      start: "2026-11-09",
+      end: "2026-11-10",
+      responsibleId: actor,
+      cancelled: false,
+    };
+    m.schedule.mockResolvedValue({
+      [actionId]: scheduled,
+      [id(90)]: scheduled,
+      [id(91)]: { ...scheduled, cancelled: true },
+      [id(92)]: { ...scheduled, responsibleId: id(99) },
+    });
+    await open(false, true);
+    expect(host.textContent).toContain("Den ansvarlige har én anden opgave i perioden.");
+    const details = [...host.querySelectorAll("details")].find(
+      (entry) => entry.querySelector("summary")?.textContent === "Se overlappende opgaver",
+    );
+    expect(details?.querySelectorAll("li")).toHaveLength(1);
+    expect(details?.textContent).toContain("Tilsyn i mosen");
+    expect(details?.textContent).toContain("9. nov. 2026 – 10. nov. 2026");
+    await fill("Planlagt fra", "2026-11-11");
+    expect(host.textContent).not.toContain("Den ansvarlige har én anden opgave i perioden.");
   });
   it("reschedules a saved plan without changing the work instructions or measurements", async () => {
     await open(false, true);

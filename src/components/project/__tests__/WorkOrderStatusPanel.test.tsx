@@ -116,11 +116,17 @@ async function flush() {
     await new Promise((r) => setTimeout(r, 15));
   });
 }
-async function render(actorId = actor) {
+async function render(
+  actorId = actor,
+  actions?: Pick<
+    React.ComponentProps<typeof WorkOrderStatusPanel>,
+    "onOpenPlan" | "onOpenAssignment" | "onOpenExecution" | "onOpenSubmission"
+  >,
+) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
-        <WorkOrderStatusPanel scope={scope} actorId={actorId} onEditing={m.editing} />
+        <WorkOrderStatusPanel scope={scope} actorId={actorId} onEditing={m.editing} {...actions} />
       </QueryClientProvider>,
     ),
   );
@@ -181,6 +187,48 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile operation status and canonical logbook", () => {
+  it("offers the submission check when work has been confirmed performed", async () => {
+    const onOpenSubmission = vi.fn();
+    await render(actor, { onOpenSubmission });
+    expect(host.textContent).not.toContain("Kontrollér afleveringsgrundlaget");
+    m.context.mockResolvedValue({
+      ...context,
+      state: { ...state, status: "performed" },
+      basis: { ...basis, executionGaps: [] },
+    });
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ["work-order-lifecycle"] });
+    });
+    await flush();
+    await click("Kontrollér afleveringsgrundlaget");
+    expect(onOpenSubmission).toHaveBeenCalledOnce();
+    expect(m.change).not.toHaveBeenCalled();
+  });
+  it("routes planning blockers to the existing plan and assignment only for a manager", async () => {
+    const incomplete = {
+      ...context,
+      basis: { ...basis, planGaps: ["instructions_missing"], assignmentValid: false },
+    };
+    m.context.mockResolvedValue(incomplete);
+    const onOpenPlan = vi.fn();
+    const onOpenAssignment = vi.fn();
+    await render(actor, { onOpenPlan, onOpenAssignment });
+    await click("Ret arbejdsplanen");
+    await click("Kontrollér arbejdsfordelingen");
+    expect(onOpenPlan).toHaveBeenCalledOnce();
+    expect(onOpenAssignment).toHaveBeenCalledOnce();
+    m.context.mockResolvedValue({ ...incomplete, can_manage: false });
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ["work-order-lifecycle"] });
+    });
+    await flush();
+    expect(host.textContent).not.toContain("Ret arbejdsplanen");
+    expect(
+      [...host.querySelectorAll("button")].some(
+        (button) => button.textContent === "Kontrollér arbejdsfordelingen",
+      ),
+    ).toBe(false);
+  });
   it("starts with an unknown actual time and requires an explicit source", async () => {
     await render();
     await click("Registrer start");
@@ -303,13 +351,16 @@ describe("mobile operation status and canonical logbook", () => {
       },
       basis: { ...basis, executionGaps: ["actual_method_unknown", "actual_coverage_unknown"] },
     });
-    await render();
+    const onOpenExecution = vi.fn();
+    await render(actor, { onOpenExecution });
     expect(
       [...host.querySelectorAll("button")].find((b) => b.textContent === "Bekræft udført")
         ?.disabled,
     ).toBe(true);
     expect(host.textContent).toContain("Faktisk metode mangler");
     expect(host.textContent).toContain("Faktisk dækning mangler");
+    await click("Åbn udførelsesregistreringen");
+    expect(onOpenExecution).toHaveBeenCalledOnce();
     expect(m.change).not.toHaveBeenCalled();
   });
   it("records an independent block with explicit owner, next action and unknown deadline", async () => {

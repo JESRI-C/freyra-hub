@@ -35,6 +35,7 @@ export type ProjectNavigationSearch = {
   task?: string;
   work?: WorkOrderView;
   taskList?: WorkOrderListView;
+  reviewOnly?: true;
 };
 type Destination = { label: string; view: ProjectView };
 export const PROJECT_AREAS: { id: string; label: string; destinations: Destination[] }[] = [
