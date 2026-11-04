@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.10 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.11 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
 kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
@@ -15,6 +15,18 @@ gemmestatus og vej videre efter en fejl skal kunne forstås uden udviklerhjælp.
 Fælles ordvalg, navigation, tilgængelighed og ydelse vurderes gennem de samme
 rolleforløb på computer og fysisk telefon. Dinero er en reference for enkel
 betjening; en bestået teknisk prøve dokumenterer ikke lighed i brugeroplevelse.
+
+**Kontrol af det nye slutmål, 4. november:** Det aktive mål gælder programmet
+i sin helhed. Acceptregnskabet skal derfor omfatte alle kortlagte arbejdsgange,
+Skyhost-krav og Freyra-fagmoduler. Hver del skal vise sin faktiske status,
+kravkilde, acceptkriterium, gentagelige prøve og bevis på den konkrete version.
+Planlagte, delvist samlede eller uprøvede dele forbliver åbne i slutmålet.
+En afgrænsning af den samlede leverance kræver en produktbeslutning fra Jesper.
+For hvert rolleforløb skal en ny bruger kunne finde næste handling, forstå
+status og gemt resultat, genoptage en kladde og komme videre efter en fejl
+uden udviklerhjælp. Det efterprøves på computer og fysisk telefon med bevaret
+sagskontekst, tastaturbetjening og læsbare statusser. Dinero bruges som
+kvalitetsreference; sammenlignelig brugervenlighed er endnu ikke dokumenteret.
 
 Projektlederen kan afgrænse området, beskrive førtilstand og mål, planlægge
 og tildele arbejdet og følge status. Feltmedarbejderen kan finde opgaven og
@@ -913,7 +925,14 @@ Slutmålet er, at en kommune selv kan gennemføre en natur- og driftssag fra afg
 
 Skyhost beskriver arbejdsplanlægning, timeregistrering og GPS-billeddokumentation som praktiske arbejdsopgaver. Freyras regel er, at registreringerne åbnes fra den relevante opgave og føres tilbage til samme sag. Dineros vejledning starter med konkrete arbejdsopgaver og adskiller bilag, der afventer handling, fra bogførte bilag. Freyras regel er at vise afventende handling og gemt status dér, hvor den aktuelle rolle arbejder. [Skyhost Jobs og Geotag](https://skyhost.dk/kundeservice-erhverv/) · [Dineros introduktion](https://dinero.dk/support/godt-i-gang/)
 
-Næste pakke på den kritiske vej er S04/D05c. Start med at spore eksisterende skabelonkrav til de fastholdte registreringer i afleveringen. Brug derefter den eksisterende afleveringskontrol til at føre brugeren til manglende dokumentation og fastholde det kontrollerede kravgrundlag. Prøven skal åbne en gammel aflevering efter ændrede krav og kontrollere, at en ny aflevering bruger det nye grundlag.
+Næste pakke på den kritiske vej er S02/D03: saml den aktuelt valgte opgave,
+feltregistreringen og originalfotoet i samme feltindgang. Genbrug den
+kanoniske uploader og dokumentationskobling, og bevar kladder og originaler
+ved opgaveskift, afbrudt net og genforsøg. De allerede leverede S04/D05c-dele
+om krævede jobkort og fastholdt kravgrundlag genbruges. Før derpå den samme
+offlineregistrering gennem udførelse, aflevering, uafhængig gennemgang og
+rapport på én kandidat. Metodeprofilernes faglige krav og kommunens samlede
+accept forbliver særskilte åbne opgaver.
 
 Registrér fire særskilte afgørelser med dato, ansvarlig, omfang og bevis. Teknikeren godkender system, adgang, fejlhåndtering og restore. Fagpersonen godkender metode, kilder og konklusioner. Kommunen godkender brugerforløb, fysisk mobil og opstart. Produktejeren træffer produktionsbeslutning med de tre godkendelser og dokumenteret supportberedskab som grundlag.
 

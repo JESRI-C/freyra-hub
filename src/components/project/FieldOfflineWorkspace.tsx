@@ -74,6 +74,10 @@ export function FieldOfflineWorkspace({
   const [actor, setActor] = useState<string | null>(null);
   const [packs, setPacks] = useState<FieldWorkPack[]>([]);
   const [projectId, setProject] = useState(requestedProject ?? "");
+  const [selectedTask, setSelectedTask] = useState({
+    projectId: requestedProject ?? "",
+    actionId: requestedActionId ?? "",
+  });
   const [queue, setQueue] = useState<{ actor: string; projectId: string; items: OfflineItem[] }>();
   const [online, setOnline] = useState(true);
   const [shellReady, setShellReady] = useState(false);
@@ -95,13 +99,18 @@ export function FieldOfflineWorkspace({
   const projectRef = useRef(projectId);
   projectRef.current = projectId;
   const pack = packs.find((p) => p.projectId === projectId);
+  const selectedActionId = selectedTask.projectId === projectId ? selectedTask.actionId : "";
+  const selectedJob = pack?.jobs.find((job) => job.actionId === selectedActionId);
+  const selectedRound =
+    projectId === requestedProject && selectedActionId === requestedActionId
+      ? requestedRound
+      : undefined;
   const canOpenWorkOrderEvidence =
     online &&
-    projectId === requestedProject &&
-    !!requestedActionId &&
+    !!selectedJob &&
     !!actor &&
     pack?.actorId === actor &&
-    pack.jobs.some((job) => job.actionId === requestedActionId);
+    pack.jobs.some((job) => job.actionId === selectedActionId);
   const queueReady = !!queue && queue.actor === actor && queue.projectId === projectId;
   const items = queueReady ? queue.items : [];
   const cancelledCount = items.filter((item) => item.lastError === "cancelled").length;
@@ -341,10 +350,10 @@ export function FieldOfflineWorkspace({
             to="/app/projects/$slug"
             params={{ slug: projectId }}
             search={{
-              tab: projectId === requestedProject && requestedActionId ? "handlinger" : "medier",
-              round: projectId === requestedProject ? requestedRound : undefined,
-              task: projectId === requestedProject ? requestedActionId : undefined,
-              work: projectId === requestedProject && requestedActionId ? "field" : undefined,
+              tab: selectedJob ? "handlinger" : "medier",
+              round: selectedRound,
+              task: selectedJob?.actionId,
+              work: selectedJob ? "field" : undefined,
             }}
             className="inline-block min-h-11 py-2 text-sm underline"
             onClick={guardDraftNavigation}
@@ -358,8 +367,8 @@ export function FieldOfflineWorkspace({
             params={{ slug: projectId }}
             search={{
               tab: "handlinger",
-              round: requestedRound,
-              task: requestedActionId,
+              round: selectedRound,
+              task: selectedActionId,
               work: "evidence",
             }}
             className={button}
@@ -452,7 +461,7 @@ export function FieldOfflineWorkspace({
             actorId={actor}
             pack={pack}
             store={store}
-            ready={shellReady}
+            ready={shellReady && !jobDirty && !busy}
             onSaved={() =>
               void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
             }
@@ -463,12 +472,13 @@ export function FieldOfflineWorkspace({
           />
           {queueReady ? (
             <OfflineJobs
-              disabled={busy}
+              disabled={busy || photoBusy || !shellReady}
               key={actor + projectId + pack.savedAt}
               pack={pack}
               store={store}
               items={items}
-              requestedActionId={projectId === requestedProject ? requestedActionId : undefined}
+              actionId={selectedActionId}
+              onSelect={(actionId) => setSelectedTask({ projectId, actionId })}
               onSaved={() =>
                 void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
               }
@@ -824,7 +834,8 @@ function OfflineJobs({
   items,
   onSaved,
   onDirty,
-  requestedActionId,
+  actionId,
+  onSelect,
 }: {
   disabled: boolean;
   pack: FieldWorkPack;
@@ -832,10 +843,10 @@ function OfflineJobs({
   items: OfflineItem[];
   onSaved: () => void;
   onDirty: (dirty: boolean) => void;
-  requestedActionId?: string;
+  actionId: string;
+  onSelect: (actionId: string) => void;
 }) {
-  const [actionId, setAction] = useState(requestedActionId ?? ""),
-    [dirty, setDirty] = useState(false),
+  const [dirty, setDirty] = useState(false),
     [reset, setReset] = useState(0);
   const changeDirty = (value: boolean) => {
     setDirty(value);
@@ -851,7 +862,7 @@ function OfflineJobs({
             eller vælg en tilgængelig opgave. Der er ikke valgt en erstatningsopgave.
           </p>
         )}
-        {requestedActionId && (
+        {actionId && (
           <p className="text-sm text-muted-foreground">
             Opgavevalget gælder jobkortet. Fotos i feltkøen er fortsat knyttet til projektet; de er
             ikke automatisk opgavedokumentation.
@@ -863,7 +874,7 @@ function OfflineJobs({
             className={control}
             value={actionId}
             disabled={dirty}
-            onChange={(e) => setAction(e.target.value)}
+            onChange={(e) => onSelect(e.target.value)}
           >
             <option value="">Vælg opgave</option>
             {pack.jobs.map((job) => (
