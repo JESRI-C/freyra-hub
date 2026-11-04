@@ -15,7 +15,7 @@ import {
   type FieldJobVersion,
 } from "@/lib/field-job-cards";
 import {
-  listFieldJobActions,
+  listFieldJobActionsForActor,
   listFieldJobTemplates,
   listFieldJobVersions,
   saveFieldJobTemplate,
@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { useBlocker } from "@tanstack/react-router";
 import { RequiredFieldJobProgress } from "./RequiredFieldJobProgress";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
+import { projectWorkOrderOptionLabel } from "./project-work-order-status-presentation";
 
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded border bg-background px-3 py-2 text-base sm:text-sm";
@@ -65,7 +66,7 @@ function JobCards({
   const enabled = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
-    queryFn: ({ signal }) => listFieldJobActions(scope, signal),
+    queryFn: ({ signal }) => listFieldJobActionsForActor(scope, actorId!, signal),
     enabled,
     retry: false,
   });
@@ -113,7 +114,7 @@ function JobCards({
                 <option value="">Vælg opgave</option>
                 {actions.data.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.title} · {a.status}
+                    {projectWorkOrderOptionLabel(a)}
                   </option>
                 ))}
               </select>

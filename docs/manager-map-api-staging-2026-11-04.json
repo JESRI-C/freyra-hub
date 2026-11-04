@@ -1,0 +1,83 @@
+{
+  "schema": "freyra.manager-map-api-smoke/v1",
+  "startedAt": "2026-11-04T05:16:44.106Z",
+  "environment": "staging",
+  "apiOnly": true,
+  "browserUsed": false,
+  "serviceRoleUsed": false,
+  "workflowWrites": 0,
+  "usersCreated": 0,
+  "grantsCreated": 0,
+  "checks": {
+    "managerAuthenticated": true,
+    "fullFilteredTotalsIndependentOfPageAndCursor": true,
+    "statusAndLaneSumsMatchFullSelection": true,
+    "selectionTokenStableAcrossPageSizeAndCursor": true,
+    "oldTenArgumentRpcCompatible": true,
+    "externalAuthenticatedAndNewEndpointDenied": {
+      "code": "42501",
+      "noRows": true
+    }
+  },
+  "cases": [
+    {
+      "kind": "scheduled",
+      "exactTaskAndPlan": true,
+      "planVersion": 6,
+      "canonicalStatus": null,
+      "mapLocations": 2,
+      "unavailableLocations": 2,
+      "unavailableReason": null,
+      "currentStoredCoordinatesMatched": true,
+      "centroidFirstSourceMatched": true,
+      "uniqueJobCountDespiteMultipleLocations": true,
+      "pinnedWatercourseLiveProof": "not_available_in_known_synthetic_fixture"
+    },
+    {
+      "kind": "required-approved",
+      "exactTaskAndPlan": true,
+      "planVersion": 1,
+      "canonicalStatus": "approved",
+      "mapLocations": 0,
+      "unavailableLocations": 0,
+      "unavailableReason": "no_location"
+    },
+    {
+      "kind": "legacy-submitted",
+      "exactTaskAndPlan": true,
+      "planVersion": 1,
+      "canonicalStatus": "submitted",
+      "mapLocations": 0,
+      "unavailableLocations": 0,
+      "unavailableReason": "no_location"
+    }
+  ],
+  "cleanup": {
+    "sessionsSignedOut": [
+      true,
+      true
+    ],
+    "noUsersOrGrantsToRemove": true
+  },
+  "concurrentSelectionRestarts": 0,
+  "stagingRefVerified": true,
+  "outcome": "passed",
+  "finishedAt": "2026-11-04T05:16:46.845Z",
+  "migrations": [
+    {
+      "file": "20261104051102_manager_work_order_map_projection.sql",
+      "sha256": "4634dd01a74748b8f9480a828649993c981e2851864817c01d2482a1f301f74d"
+    },
+    {
+      "file": "20261104051231_manager_work_order_site_position_precedence.sql",
+      "sha256": "e72c9615f9e13762195c350fa493cfd91114ce98dd7420f894654377981ae497"
+    }
+  ],
+  "metadataCollectedAt": "2026-11-04T05:17:24.396Z",
+  "preflightCommandPassed": true,
+  "apiBoundary": "Existing test users; normal authenticated supabase-js with publishable key; exact synthetic project/task filters; old and new RPC reads, stored source geometry read, session sign-out. No UI/browser, workflow mutation, service role, user or grant creation.",
+  "pinnedWatercourseEvidenceBoundary": "Known live synthetic project has no watercourse versions. Exact pinned-version and malformed-line behavior are covered by separate transactional SQL assertions, not this API receipt.",
+  "workingTreeBaseRevision": "7712e45ca8d65e577e6b4cf57034a1dbb6919f39",
+  "verifiedSourceRevision": "c4950453e8c38cf552a15dfba141b7c2e5df4289",
+  "sourceProvenance": "API smoke ran against the P7 working tree before commit. The migration file hashes in this receipt match the subsequent c495045 commit."
+}

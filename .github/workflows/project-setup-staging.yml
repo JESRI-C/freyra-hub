@@ -1,23 +1,32 @@
 name: Build project setup staging artifact
 on:
   pull_request:
-    branches: [codex/release-1.0]
+    branches: [codex/release-1.0, codex/saas-report-followup, codex/report-source-classification]
     paths:
-      - '.github/workflows/project-setup-staging.yml'
-      - 'src/**'
+      - ".github/workflows/project-setup-staging.yml"
+      - "src/**"
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   staging-artifact:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'codex/bykaer-pilot-v1'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.base_ref == 'codex/release-1.0' &&
+       github.head_ref == 'codex/bykaer-pilot-v1') ||
+      (github.base_ref == 'codex/saas-report-followup' &&
+       github.head_ref == 'codex/skyhost-job-handoff-v1' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.base_ref == 'codex/report-source-classification' &&
+       github.head_ref == 'codex/combined-municipal-workflow' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      CI: 'true'
+      CI: "true"
       CLOUDFLARE_ENV: staging
       FREYRA_BUILD_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
-      GOMAXPROCS: '2'
+      GOMAXPROCS: "2"
       NODE_OPTIONS: --max-old-space-size=5120
       # Browser-safe staging configuration, already exposed by the staging client.
       # No admin key, Datafordeler key, production settings or deploy permission.
@@ -35,6 +44,12 @@ jobs:
         with:
           node-version: 22.14.0
           cache: npm
+      - name: Install the repository's pinned npm
+        run: npm install --global npm@11.6.0
+      - name: Verify toolchain
+        run: |
+          node --version
+          npm --version
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: node node_modules/vitest/vitest.mjs run src/services/__tests__/place-search.test.ts src/services/__tests__/project-area-lookup.test.ts src/components/maps/__tests__/map-geometry.test.ts src/services/__tests__/geo-service-validation.test.ts src/services/baseline/__tests__/cadastral-source.test.ts src/services/baseline/__tests__/planting-polygon-sources.test.ts --maxWorkers=1 --no-file-parallelism

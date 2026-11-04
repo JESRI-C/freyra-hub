@@ -1,0 +1,55 @@
+{
+  "schema": "freyra.observation-draft-api/v1",
+  "startedAt": "2026-11-04T06:33:05.542Z",
+  "stagingRefVerified": true,
+  "serviceRoleUsed": false,
+  "usersCreated": 0,
+  "grantsCreated": 0,
+  "uploadedFiles": 0,
+  "checks": {
+    "concurrentSameRequestReturnedOneActionAndLifecycle": true,
+    "changedSourceAfterPreviewRejectedAtomically": true,
+    "committedRetryRetainedOriginalSnapshotAfterSourceEdit": true,
+    "reusedRequestWithDifferentContentRejected": true,
+    "readOriginMatchedExactInitialReceipt": true,
+    "existingExternalAccountDenied": {
+      "authenticated": true,
+      "testProjectRoles": [
+        "external"
+      ],
+      "list": true,
+      "create": true,
+      "get": true,
+      "code": "42501",
+      "noRows": true
+    }
+  },
+  "externalLocalSessionSignOutPassed": true,
+  "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+  "actionId": "2346aa36-ceef-4bd4-a18c-c005c42b4c09",
+  "requestId": "115572bb-5deb-4d28-bca7-d5b90202a935",
+  "observationIds": [
+    "8ff94397-a54d-4c41-8d29-b3403097a8bb",
+    "8719ffc7-830c-4e0a-aa0f-0fe7aa1977e0"
+  ],
+  "sourceRefs": [
+    {
+      "observationId": "8719ffc7-830c-4e0a-aa0f-0fe7aa1977e0",
+      "sourceHash": "7ddeb8a890543110db6e5ee27c0513248e2f929583a5400e34a058aaba3a87da",
+      "mediaReferences": 0
+    },
+    {
+      "observationId": "8ff94397-a54d-4c41-8d29-b3403097a8bb",
+      "sourceHash": "e11e35db8536f2d800d97c80d627ac9526dd3b94641d9eded6b1fb4696e3ad96",
+      "mediaReferences": 0
+    }
+  ],
+  "workflowFixture": "One intentionally retained synthetic API work-order draft; source observations retained for normal browser acceptance.",
+  "outcome": "passed",
+  "localSessionSignOutPassed": true,
+  "finishedAt": "2026-11-04T06:33:09.056Z",
+  "verifiedSqlSourceRevision": "30794091f21813535b954a681e8d818eb4185a29",
+  "sourceProvenance": "Normal authenticated SDK calls against the P9 staging RPCs. SQL migration body matches source3079409; this receipt is API evidence, not browser or full rollback-suite evidence.",
+  "migration": "20261104061624_work_order_observation_drafts.sql",
+  "migrationSha256": "6cce6725e81b6e87873266fa4af1b9ddc16b368295a8a2d028adc9fd828e4ed2"
+}

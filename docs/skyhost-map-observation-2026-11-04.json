@@ -1,0 +1,40 @@
+{
+  "schema": "freyra.skyhost-read-observation/v1",
+  "observedAt": "2026-11-04",
+  "observationId": "SKY-04NOV-MAP-01",
+  "mode": "read-only authenticated UI",
+  "actions": [
+    "Open Jobs list",
+    "Filter to one existing test job",
+    "Open map button",
+    "Return to list"
+  ],
+  "sourcePaths": [
+    "/joblist.aspx",
+    "/JobListMap.aspx",
+    "/JobList.aspx"
+  ],
+  "observed": {
+    "filteredListJobs": 1,
+    "sameTextFilterOnMap": true,
+    "sameTextFilterOnListReturn": true,
+    "sameExistingJobIdOnListReturn": true,
+    "mapCanvasDrawn": false
+  },
+  "unknown": [
+    "Job marker placement",
+    "Map filtered count",
+    "Marker to exact job detail",
+    "Whether missing positions are included or hidden",
+    "Server pagination/aggregation"
+  ],
+  "workflowWrites": 0,
+  "privateJobOrPersonDataCopied": false,
+  "productRules": [
+    "All GoFreyra views use the same authorized selection and exact action identity",
+    "Saved positions are explicit; no project-centroid fallback",
+    "Missing/partially missing position remains visible and counted",
+    "Full filtered totals do not equal only loaded-page count",
+    "Changed selection must not silently mix paginated rows"
+  ]
+}

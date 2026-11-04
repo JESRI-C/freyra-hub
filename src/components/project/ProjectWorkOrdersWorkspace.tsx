@@ -1,5 +1,6 @@
 import {
   WORK_ORDER_PARTS,
+  workOrderStatusDestination,
   type WorkOrderView,
   type WorkOrderListView,
 } from "@/lib/work-order-navigation";
@@ -23,7 +24,12 @@ import type { WorkOrderFollowUpSource } from "@/lib/work-order-plan";
 import { rememberFollowUpSource } from "@/lib/work-order-follow-up-draft";
 import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
-import { listFieldJobActions, listFieldJobSchedule } from "@/services/field-job-cards-service";
+import {
+  listFieldJobActionsForActor,
+  listFieldJobSchedule,
+} from "@/services/field-job-cards-service";
+import { ProjectWorkOrderStatus } from "./ProjectWorkOrderStatus";
+import { projectWorkOrderOptionLabel } from "./project-work-order-status-presentation";
 import { getIndicatorsByProject } from "@/services/indicators-service";
 import { createProjectAction, type ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderPeople } from "./useWorkOrderPeople";
@@ -40,6 +46,7 @@ import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
 import type { WorkOrderCorrectionNote } from "@/lib/work-order-review";
+import type { WorkOrderStatus } from "@/lib/work-order-lifecycle";
 
 type Props = {
   scope: ProjectScope;
@@ -177,7 +184,7 @@ function WorkOrders({
   const authorized = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
-    queryFn: ({ signal }) => listFieldJobActions(scope, signal),
+    queryFn: ({ signal }) => listFieldJobActionsForActor(scope, actorId!, signal),
     enabled: authorized,
     retry: false,
     refetchOnWindowFocus: !locked,
@@ -205,6 +212,19 @@ function WorkOrders({
   const filter =
     canEdit && (responsible === "unassigned" || names.has(responsible)) ? responsible : "";
   const dates = schedule.data;
+  function isCancelled(action: NonNullable<typeof actions.data>[number]) {
+    return action.workOrderStatus
+      ? action.workOrderStatus.status === "cancelled"
+      : !!dates?.[action.id]?.cancelled;
+  }
+  function reviewFor(action: NonNullable<typeof actions.data>[number]) {
+    const status = action.workOrderStatus
+      ? action.workOrderStatus.status
+      : dates?.[action.id]?.reviewStatus;
+    return status === "submitted" || status === "returned" || status === "reopened"
+      ? reviewAttention[status]
+      : undefined;
+  }
   const orderedActions =
     showSchedule && dates
       ? (actions.data ?? [])
@@ -223,33 +243,35 @@ function WorkOrders({
   const createDate = listView === "calendar" && day ? from : undefined;
   const through = calendarKey(day ?? endOfMonth(month));
   const undatedCount = (orderedActions ?? []).filter(
-    ({ id }) => !dates?.[id]?.cancelled && !dates?.[id]?.start,
+    (action) => !isCancelled(action) && !dates?.[action.id]?.start,
   ).length;
   const waitingCount = (actions.data ?? []).filter(
-    ({ id }) => dates?.[id]?.waitingForActionIds?.length,
+    (action) => !isCancelled(action) && dates?.[action.id]?.waitingForActionIds?.length,
   ).length;
-  const unassignedPlannedCount = (actions.data ?? []).filter(({ id }) => {
-    const plan = dates?.[id];
-    return plan?.start && !plan.cancelled && !plan.responsibleId;
+  const unassignedPlannedCount = (actions.data ?? []).filter((action) => {
+    const plan = dates?.[action.id];
+    return plan?.start && !isCancelled(action) && !plan.responsibleId;
   }).length;
   const undatedTaskCount =
     listView === "schedule" && schedule.isSuccess
-      ? (actions.data ?? []).filter(({ id }) => !dates?.[id]?.cancelled && !dates?.[id]?.start)
+      ? (actions.data ?? []).filter((action) => !isCancelled(action) && !dates?.[action.id]?.start)
           .length
       : 0;
   const calendarActions =
     listView === "calendar"
-      ? orderedActions?.filter(({ id }) => {
-          const plan = dates?.[id];
+      ? orderedActions?.filter((action) => {
+          const plan = dates?.[action.id];
           return (
-            !plan?.cancelled &&
+            !isCancelled(action) &&
             plan?.start &&
             plan.start <= through &&
             (plan.end ?? plan.start) >= from
           );
         })
       : undefined;
-  const scheduledPeriods = (orderedActions ?? []).flatMap(({ id }) => dates?.[id] ?? []);
+  const scheduledPeriods = (orderedActions ?? []).flatMap((action) =>
+    isCancelled(action) ? [] : (dates?.[action.id] ?? []),
+  );
   const daySummaries = new Map<string, { total: number; waiting: number; overlap: Set<string> }>();
   function daySummary(key: string) {
     const cached = daySummaries.get(key);
@@ -278,23 +300,25 @@ function WorkOrders({
     (task) =>
       (listView !== "schedule" ||
         !onlyUndated ||
-        (!dates?.[task.id]?.cancelled && !dates?.[task.id]?.start)) &&
-      (!showSchedule || !onlyWaiting || !!dates?.[task.id]?.waitingForActionIds?.length) &&
-      (!showSchedule || !onlyReviewAttention || !!dates?.[task.id]?.reviewStatus) &&
+        (!isCancelled(task) && !dates?.[task.id]?.start)) &&
+      (!showSchedule ||
+        !onlyWaiting ||
+        (!isCancelled(task) && !!dates?.[task.id]?.waitingForActionIds?.length)) &&
+      (!showSchedule || !onlyReviewAttention || !!reviewFor(task)) &&
       (!onlyOverlaps || dayOverlap.has(dates?.[task.id]?.responsibleId ?? "")) &&
       task.title.toLocaleLowerCase("da").includes(searchTerm),
   );
   const usesTaskList = listView !== "time" && listView !== "bookings";
   const visibleCount = usesTaskList ? (visibleActions?.length ?? 0) : 0;
   const estimates = new Map(
-    (calendarActions ?? visibleActions ?? []).map(({ id }) => {
-      const plan = dates?.[id];
-      const hours = plan?.cancelled
+    (calendarActions ?? visibleActions ?? []).map((action) => {
+      const plan = dates?.[action.id];
+      const hours = isCancelled(action)
         ? null
         : listView === "calendar" && plan
           ? workOrderHoursInPeriod(plan, from, through)
           : (plan?.estimatedHours ?? null);
-      return [id, hours];
+      return [action.id, hours];
     }),
   );
   const knownEstimates = (visibleActions ?? [])
@@ -388,15 +412,31 @@ function WorkOrders({
     <section aria-label="Arbejdsopgaver" className="min-w-0 space-y-4 [overflow-wrap:anywhere]">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Arbejdsopgaver</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Planlæg en konkret indsats, følg det udførte arbejde, og saml den dokumentation, der
-            hører til opgaven.
-          </p>
+          <h2 className={`${actionId ? "text-2xl leading-tight" : "text-xl"} font-semibold`}>
+            {authorized && !actions.isError && selected
+              ? selected.title
+              : actionId
+                ? "Arbejdsopgave"
+                : "Arbejdsopgaver"}
+          </h2>
+          {actionId && authorized && !actions.isError && selected && (
+            <ProjectWorkOrderStatus
+              projection={selected.workOrderStatus}
+              legacyStatus={selected.status}
+            />
+          )}
+          {!actionId && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Planlæg en konkret indsats, følg det udførte arbejde, og saml den dokumentation, der
+              hører til opgaven.
+            </p>
+          )}
         </div>
-        <Link to="/opgaver" className={button}>
-          Mine opgaver
-        </Link>
+        {!actionId && (
+          <Link to="/opgaver" className={button}>
+            Mine opgaver
+          </Link>
+        )}
       </header>
       {!actorId && <p>Log ind for at åbne arbejdsopgaver.</p>}
       {(access.isPending || (authorized && actions.isPending)) && actorId && (
@@ -420,40 +460,126 @@ function WorkOrders({
       )}
       {sameAccess && actions.data && (
         <div className="space-y-4" hidden={!authorized || actions.isError}>
-          {actionId ? (
-            <div className="space-y-3 rounded-2xl border bg-card p-4">
-              <label className="block text-sm font-medium">
-                Opgave
-                <select
-                  aria-label="Valgt arbejdsopgave"
+          {!creating && !actionId && canEdit && access.data?.canConfigure && (
+            <button
+              type="button"
+              className={button + " bg-primary text-primary-foreground"}
+              disabled={locked}
+              onClick={() => setCreating(true)}
+            >
+              {createDate ? "Opret arbejdsopgave på valgt dato" : "Opret arbejdsopgave"}
+            </button>
+          )}
+          {creating && (
+            <form
+              className="space-y-3 rounded-xl border bg-card p-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void create();
+              }}
+            >
+              <label className="block">
+                Hvad skal der udføres?
+                <input
                   className={control}
-                  value={actionId}
-                  disabled={locked}
-                  onChange={(e) => select(e.target.value)}
-                >
-                  <option value="">Til opgavelisten</option>
-                  {!selected && (
-                    <option value={actionId}>Opgaven findes ikke i dette udvalg</option>
-                  )}
-                  {actions.data.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.title}
-                    </option>
-                  ))}
-                </select>
+                  required
+                  maxLength={followUpSource ? 160 : 200}
+                  autoFocus={!!followUpSource}
+                  value={title}
+                  disabled={busy}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
               </label>
-              <button type="button" className={button} disabled={locked} onClick={() => select("")}>
-                Tilbage til{" "}
-                {listView === "calendar"
-                  ? "kalender"
-                  : listView === "schedule"
-                    ? "planoversigt"
-                    : listView === "time"
-                      ? "timer"
-                      : listView === "bookings"
-                        ? "bookingoversigt"
-                        : "opgaveliste"}
-              </button>
+              {followUpSource && (
+                <p className="text-sm text-muted-foreground">
+                  Genbrug arbejdsgrundlaget fra {followUpSource.plan.title}, version{" "}
+                  {followUpSource.version}. Vælg nye datoer og ansvarlig i den nye plan.
+                </p>
+              )}
+              {createDate && !followUpSource && (
+                <p className="text-sm text-muted-foreground">
+                  Arbejdsgrundlaget åbner som kladde med {scheduleDate.format(new Date(createDate))}{" "}
+                  som foreslået startdato.
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={button + " bg-primary text-primary-foreground"}
+                  disabled={busy || !title.trim()}
+                >
+                  Opret opgave
+                </button>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={busy}
+                  onClick={() => {
+                    setCreating(false);
+                    setFollowUpSource(undefined);
+                    setTitle("");
+                    setError("");
+                  }}
+                >
+                  Fortryd
+                </button>
+              </div>
+            </form>
+          )}
+          {error && <p role="alert">{error}</p>}
+          {actionId ? (
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-start gap-2">
+                <button
+                  type="button"
+                  className={button}
+                  disabled={locked}
+                  onClick={() => select("")}
+                >
+                  Tilbage til{" "}
+                  {listView === "calendar"
+                    ? "kalender"
+                    : listView === "schedule"
+                      ? "planoversigt"
+                      : listView === "time"
+                        ? "timer"
+                        : listView === "bookings"
+                          ? "bookingoversigt"
+                          : "opgaveliste"}
+                </button>
+                {canEdit && access.data?.canManageAvailability && (
+                  <Link to="/app/work-orders" className={button} disabled={locked}>
+                    Til arbejdsordrer
+                  </Link>
+                )}
+                <details className="min-w-0 flex-1 rounded-xl border bg-card px-3">
+                  <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
+                    Skift opgave
+                  </summary>
+                  <label className="block pb-3 text-sm font-medium">
+                    Opgave
+                    <select
+                      aria-label="Valgt arbejdsopgave"
+                      className={control}
+                      value={actionId}
+                      disabled={locked}
+                      onChange={(e) => select(e.target.value)}
+                    >
+                      <option value="">Til opgavelisten</option>
+                      {!selected && (
+                        <option value={actionId}>Opgaven findes ikke i dette udvalg</option>
+                      )}
+                      {actions.data.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {projectWorkOrderOptionLabel(a)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Link to="/opgaver" className={button + " mb-3"} disabled={locked}>
+                    Mine opgaver
+                  </Link>
+                </details>
+              </div>
               {locked && (
                 <p role="status" className="text-sm">
                   Gem eller fortryd dine ændringer, før du vælger en anden opgave. Du kan skifte
@@ -861,22 +987,25 @@ function WorkOrders({
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const plan = dates?.[a.id];
-                  const review = plan?.reviewStatus
-                    ? reviewAttention[plan.reviewStatus]
-                    : undefined;
+                  const review = reviewFor(a);
                   const estimate = estimates.get(a.id);
-                  const prerequisiteIds = dates?.[a.id]?.waitingForActionIds ?? [];
+                  const prerequisiteIds = isCancelled(a)
+                    ? []
+                    : (dates?.[a.id]?.waitingForActionIds ?? []);
                   const prerequisites = prerequisiteIds.flatMap((id) => {
                     const task = actions.data.find((candidate) => candidate.id === id);
                     return task ? [task] : [];
                   });
                   const prerequisiteEndDates = prerequisites.map(({ id }) => {
                     const prerequisite = dates?.[id];
-                    return prerequisite?.cancelled ? null : (prerequisite?.end ?? null);
+                    const prerequisiteAction = actions.data.find((action) => action.id === id);
+                    return prerequisiteAction && isCancelled(prerequisiteAction)
+                      ? null
+                      : (prerequisite?.end ?? null);
                   });
                   const latestPrerequisiteEnd =
                     plan &&
-                    !plan.cancelled &&
+                    !isCancelled(a) &&
                     !plan.start &&
                     prerequisiteEndDates.length === prerequisiteIds.length &&
                     prerequisiteEndDates.length > 0 &&
@@ -896,10 +1025,11 @@ function WorkOrders({
                   const responsibleId = plan?.responsibleId;
                   const conflictingTasks =
                     canEdit && suggestedDate && responsibleId
-                      ? actions.data.filter(({ id }) => {
-                          const otherPlan = dates?.[id];
+                      ? actions.data.filter((action) => {
+                          const otherPlan = dates?.[action.id];
                           return (
-                            id !== a.id &&
+                            action.id !== a.id &&
+                            !isCancelled(action) &&
                             otherPlan?.responsibleId === responsibleId &&
                             workOrderPlanOverlaps(
                               otherPlan,
@@ -952,15 +1082,19 @@ function WorkOrders({
                       >
                         <span className="min-w-0">
                           <span className="block font-medium">{a.title}</span>
+                          <ProjectWorkOrderStatus
+                            projection={a.workOrderStatus}
+                            legacyStatus={a.status}
+                          />
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
-                              {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
+                              {isCancelled(a) ? "Aflyst" : scheduleLabel(dates?.[a.id])}
                               {review && (
                                 <span className="block font-medium text-foreground">
                                   {review.status}
                                 </span>
                               )}
-                              {canEdit && plan?.start && !plan.cancelled && !plan.responsibleId && (
+                              {canEdit && plan?.start && !isCancelled(a) && !plan.responsibleId && (
                                 <span className="block">Mangler ansvarlig i planen</span>
                               )}
                               {prerequisiteIds.length > 0 && (
@@ -1103,7 +1237,7 @@ function WorkOrders({
                       )}
                       {showSchedule &&
                         plan?.planVersionId &&
-                        !plan.cancelled &&
+                        !isCancelled(a) &&
                         canEdit &&
                         access.data?.canConfigure && (
                           <button
@@ -1166,72 +1300,6 @@ function WorkOrders({
                 />
               </div>
             )}
-          {!creating && canEdit && access.data?.canConfigure && (
-            <button
-              type="button"
-              className={button}
-              disabled={locked}
-              onClick={() => setCreating(true)}
-            >
-              {createDate ? "Opret arbejdsopgave på valgt dato" : "Opret arbejdsopgave"}
-            </button>
-          )}
-          {creating && (
-            <form
-              className="space-y-3 rounded-xl border bg-card p-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void create();
-              }}
-            >
-              <label className="block">
-                Hvad skal der udføres?
-                <input
-                  className={control}
-                  required
-                  maxLength={followUpSource ? 160 : 200}
-                  autoFocus={!!followUpSource}
-                  value={title}
-                  disabled={busy}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </label>
-              {followUpSource && (
-                <p className="text-sm text-muted-foreground">
-                  Genbrug arbejdsgrundlaget fra {followUpSource.plan.title}, version{" "}
-                  {followUpSource.version}. Vælg nye datoer og ansvarlig i den nye plan.
-                </p>
-              )}
-              {createDate && !followUpSource && (
-                <p className="text-sm text-muted-foreground">
-                  Arbejdsgrundlaget åbner som kladde med {scheduleDate.format(new Date(createDate))}{" "}
-                  som foreslået startdato.
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  className={button + " bg-primary text-primary-foreground"}
-                  disabled={busy || !title.trim()}
-                >
-                  Opret opgave
-                </button>
-                <button
-                  type="button"
-                  className={button}
-                  disabled={busy}
-                  onClick={() => {
-                    setCreating(false);
-                    setFollowUpSource(undefined);
-                    setTitle("");
-                    setError("");
-                  }}
-                >
-                  Fortryd
-                </button>
-              </div>
-            </form>
-          )}
-          {error && <p role="alert">{error}</p>}
           {authorized && actions.isSuccess && selected?.linked_indicator_id && (
             <section
               aria-label="Indikator for opgaven"
@@ -1279,6 +1347,7 @@ function WorkOrders({
               actionId={actionId}
               round={round}
               canEdit={canEdit}
+              recordedStatus={selected.workOrderStatus?.status}
               canContribute={!!access.data?.canContribute}
               timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
               openBooking={listView === "bookings"}
@@ -1317,6 +1386,7 @@ function TaskWorkspace({
   actionId,
   round,
   canEdit,
+  recordedStatus,
   canContribute,
   canManageTime,
   openBooking,
@@ -1334,6 +1404,7 @@ function TaskWorkspace({
   actionId: string;
   round?: string;
   canEdit: boolean;
+  recordedStatus?: WorkOrderStatus | null;
   canContribute: boolean;
   canManageTime: boolean;
   openBooking: boolean;
@@ -1373,6 +1444,14 @@ function TaskWorkspace({
   const navigationId = useId();
   const current = parts.find((item) => item.id === part)!;
   const next = parts[parts.indexOf(current) + 1];
+  const statusDestination = workOrderStatusDestination(recordedStatus);
+  const primaryDestination = statusDestination
+    ? statusDestination.view !== part
+      ? statusDestination
+      : undefined
+    : next
+      ? { view: next.id, label: `Videre til ${next.label.toLowerCase()} →` }
+      : undefined;
   function openPart(id: Part, note?: WorkOrderCorrectionNote) {
     if (note || id === "submission") setCorrectionNote(note);
     setOpened((old) => new Set([...old, id]));
@@ -1380,31 +1459,71 @@ function TaskWorkspace({
   }
   function openPartWithFocus(id: Part, note?: WorkOrderCorrectionNote) {
     openPart(id, note);
-    document.getElementById(navigationId + id)?.focus();
+    const mobile =
+      typeof window.matchMedia === "function" && !window.matchMedia("(min-width: 640px)").matches;
+    document.getElementById(navigationId + (mobile ? "mobile" : id))?.focus();
   }
   return (
     <div className="min-w-0 space-y-4">
-      <nav aria-label="Arbejd med opgaven" className="grid grid-cols-1 gap-2 sm:grid-cols-5">
-        {parts.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            id={navigationId + item.id}
-            aria-pressed={part === item.id}
-            onClick={() => openPart(item.id)}
-            className={
-              button + (part === item.id ? " bg-primary text-primary-foreground" : " bg-card")
-            }
+      <nav aria-label="Arbejd med opgaven">
+        <label className="block text-sm font-medium sm:hidden">
+          Del af arbejdsopgaven
+          <select
+            id={navigationId + "mobile"}
+            className={control}
+            value={part}
+            onChange={(event) => openPart(event.target.value as Part)}
           >
-            {item.label}
-          </button>
-        ))}
+            {parts.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="hidden gap-2 sm:grid sm:grid-cols-5">
+          {parts.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              id={navigationId + item.id}
+              aria-pressed={part === item.id}
+              onClick={() => openPart(item.id)}
+              className={
+                button + (part === item.id ? " bg-primary text-primary-foreground" : " bg-card")
+              }
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </nav>
-      <WorkspaceGuide
-        question={current.question}
-        purpose={current.purpose}
-        output={current.output}
-      />
+      <div className="flex flex-wrap items-start gap-2">
+        {primaryDestination && (
+          <button
+            type="button"
+            className={button + " bg-primary text-primary-foreground"}
+            onClick={() => openPart(primaryDestination.view)}
+          >
+            {primaryDestination.label}
+          </button>
+        )}
+        <details className="min-w-0 flex-1 rounded-xl border bg-card px-3">
+          <summary
+            aria-label={`Hjælp til ${current.label.toLowerCase()}`}
+            className="min-h-11 cursor-pointer py-3 text-sm font-medium"
+          >
+            Hjælp
+          </summary>
+          <div className="pb-3">
+            <WorkspaceGuide
+              question={current.question}
+              purpose={current.purpose}
+              output={current.output}
+            />
+          </div>
+        </details>
+      </div>
       {correctionNote && (canEdit || canContribute) && (
         <aside
           aria-label="Mangler ved afleveringen"
@@ -1505,13 +1624,13 @@ function TaskWorkspace({
           />
         </div>
       )}
-      {next && (
+      {primaryDestination && (
         <button
           type="button"
           className={button + " bg-primary text-primary-foreground"}
-          onClick={() => openPart(next.id)}
+          onClick={() => openPart(primaryDestination.view)}
         >
-          Videre til {next.label.toLowerCase()} →
+          {primaryDestination.label}
         </button>
       )}
       <Link

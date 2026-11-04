@@ -90,6 +90,7 @@ export function WorkOrderSeriesActions({
         : await shift({ data: { ...data, days: offset } });
       await Promise.all([
         cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId, scope] }),
+        cache.invalidateQueries({ queryKey: ["field-job-actions", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-plan-history", actorId, scope] }),
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId] }),

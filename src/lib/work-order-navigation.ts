@@ -1,3 +1,5 @@
+import type { WorkOrderStatus } from "./work-order-lifecycle";
+
 /** Shared presentation and deep links; authorization remains in the existing services. */
 export const WORK_ORDER_PARTS = [
   {
@@ -56,4 +58,25 @@ export function isWorkOrderListView(value: unknown): value is WorkOrderListView 
 export type WorkOrderView = (typeof WORK_ORDER_PARTS)[number]["id"];
 export function isWorkOrderView(value: unknown): value is WorkOrderView {
   return WORK_ORDER_PARTS.some((part) => part.id === value);
+}
+
+/** A recorded status suggests where to look; the destination still checks access and freshness. */
+export function workOrderStatusDestination(
+  status: WorkOrderStatus | null | undefined,
+): { view: WorkOrderView; label: string } | undefined {
+  switch (status) {
+    case "submitted":
+      return { view: "submission", label: "Åbn afleveringen" };
+    case "returned":
+    case "reopened":
+      return { view: "submission", label: "Se mangler" };
+    case "performed":
+      return { view: "submission", label: "Kontrollér afleveringen" };
+    case "approved":
+      return { view: "submission", label: "Se afleveringen" };
+    case "cancelled":
+      return { view: "plan", label: "Se arbejdsgrundlaget" };
+    default:
+      return undefined;
+  }
 }

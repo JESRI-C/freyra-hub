@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.14 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.15 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
 kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
@@ -86,14 +86,19 @@ frosne type. Den tidligere rapport har uændret række/indhold og identiske
 PDF-bytes efter genåbning. Egne sessioner og midlertidige rettigheder er
 ryddet op og efterkontrolleret. Aktiv apptrafik er fortsat `4be325d`.
 
-**Næste kodepakke:** Saml PR47's manager/P9/P10/P11 og supplerende ACL-/
-gendannelsesprøver med PR48/PR49's nyere felt-/offline-/rapportkode på én
-isoleret kandidat, og gentag de centrale rolleforløb på samme version.
-P10 har kilde `622cfcb`/kvitteringer `9bfcfc8`; P11's canonical-statuskode
-er `3c5c2f3` med grøn CI `41804794881`, mens hosted browserbevis endnu
-afventes. Den parallelle chat ejer P11 indtil afleveringen. Aktiv trafik
+**Aktuel kodepakke:** [Fælles kommunal kandidat](FAELLES_KANDIDAT_2026-11-04.md)
+samler nu PR47's manager/P9/P10/P11 og supplerende ACL-/gendannelsesprøver
+med PR48/PR49's nyere felt-/offline-/rapportkode på den isolerede gren
+`codex/combined-municipal-workflow`. Grundlag `20e58564` og `3c5c2f3`,
+inklusive den afleverede statusnavigation `b5cf82b`. De seks konflikter er
+løst med bevaret nyere feltkode og alle 68 krav. Kandidat `941fdb19` har
+bestået GitHub-CI `41810930503`: 3.868 appprøver/282 filer, 2.212 DB-kontroller/
+31 filer samt migrationsafspilning, faktisk samtidighed og ACL-restore.
+GitHub-stagingartifact og bundle-guard består. Separat Worker `5a4a3843`
+viser præcis samme kilde; aktiv `94906bdf` er læst uændret før/efter upload.
+Samlet hosted rolleprøve er fortsat åben. Aktiv trafik
 flyttes først efter den aftalte fælles prøve. Gamle læsere kan ignorere
-rapportklassifikationen; den nye rapportlæser skal med i kandidaten.
+rapportklassifikationen; den nye rapportlæser er bevaret i kandidaten.
 Synlig kommune/sag, et tydeligt Dokumentation-trin, forståelige
 rapportstatusser og fysisk/uassisteret brugeraccept er fortsat åbne.
 

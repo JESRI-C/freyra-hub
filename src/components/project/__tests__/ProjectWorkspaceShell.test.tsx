@@ -34,6 +34,32 @@ function Editor({ name }: { name: string }) {
   );
 }
 describe("shared project workspace", () => {
+  it("collapses general help for a selected task while preserving a mounted editor across focus changes", async () => {
+    const { host, render } = await mount();
+    const shell = (focused: boolean) => (
+      <ProjectWorkspaceShell
+        taskFocused={focused}
+        view={{ kind: "tab", id: "handlinger" }}
+        onNavigate={() => {}}
+        renderTab={() => <Editor name="handlinger" />}
+        renderStep={() => <div />}
+      />
+    );
+    await render(shell(false));
+    await act(async () =>
+      host.querySelector<HTMLButtonElement>('section[aria-label="handlinger"] button')!.click(),
+    );
+    const draft = host.querySelector('section[aria-label="handlinger"]')!;
+    await render(shell(true));
+    expect(host.querySelector('section[aria-label="handlinger"]')).toBe(draft);
+    expect(draft.querySelector("output")?.textContent).toBe("1");
+    const guide = host.querySelector('[aria-label="Formål og resultat"]')!;
+    expect(guide.closest("details")?.open).toBe(false);
+    expect(host.textContent).toContain("← Til projektets forløb");
+    await render(shell(false));
+    expect(host.querySelector('section[aria-label="handlinger"]')).toBe(draft);
+    expect(host.querySelector('[aria-label="Formål og resultat"]')?.closest("details")).toBeNull();
+  });
   it("keeps navigation and another tool available when a visited tool fails", async () => {
     const { host, render } = await mount();
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});

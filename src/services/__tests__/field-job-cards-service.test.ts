@@ -9,8 +9,14 @@ const state = vi.hoisted(() => ({
   error: null as null | { code: string },
 }));
 vi.mock("@/services/project-workspace-service", () => ({ assertProjectScope: state.assert }));
-vi.mock("@/lib/supabase/client", () => ({
-  supabase: {
+vi.mock("@/lib/supabase/client", () => {
+  const db = {
+    auth: {
+      getUser: async () => ({
+        data: { user: { id: "00000000-0000-4000-8000-000000000006" } },
+        error: null,
+      }),
+    },
     rpc: state.rpc,
     from: () => {
       const q = {
@@ -25,6 +31,13 @@ vi.mock("@/lib/supabase/client", () => ({
           state.filters.push(args);
           return q;
         },
+        maybeSingle: async () => ({
+          data: {
+            id: "00000000-0000-4000-8000-000000000001",
+            organization_id: "00000000-0000-4000-8000-000000000002",
+          },
+          error: null,
+        }),
         then: (resolve: (result: unknown) => void) =>
           Promise.resolve({ data: state.pages.shift() ?? state.rows, error: state.error }).then(
             resolve,
@@ -33,8 +46,9 @@ vi.mock("@/lib/supabase/client", () => ({
       };
       return q;
     },
-  },
-}));
+  };
+  return { supabase: db, createActorBoundSupabaseClient: () => db };
+});
 import {
   listFieldJobActions,
   listFieldJobSchedule,
@@ -85,7 +99,9 @@ describe("project scoped job card persistence", () => {
     const rows = Array.from({ length: 1002 }, (_, index) => ({
       id: id(index + 100),
       title: "Opgave " + index,
+      project_id: scope.projectId,
       status: null,
+      work_orders: [],
       action_type: index === 199 ? "workflow_followup" : null,
     }));
     state.pages = Array.from({ length: 6 }, (_, page) => rows.slice(page * 200, (page + 1) * 200));
@@ -98,15 +114,33 @@ describe("project scoped job card persistence", () => {
   });
   it("keeps a legacy task ID in the list and uses it as a paging cursor", async () => {
     const legacyId = "11111111-1111-c111-5111-111111111111";
-    const row = { id: legacyId, title: "Ældre opgave", status: null };
+    const row = {
+      id: legacyId,
+      project_id: scope.projectId,
+      title: "Ældre opgave",
+      status: null,
+      action_type: null,
+      work_orders: [],
+    };
     state.pages = [
       [...Array.from({ length: 199 }, (_, index) => ({ ...row, id: id(index + 100) })), row],
-      [{ ...row, id: id(400), title: "Nyere opgave" }],
+      [{ ...row, id: "22222222-2222-4222-8222-222222222222", title: "Nyere opgave" }],
     ];
 
     const actions = await listFieldJobActions(scope);
     expect(actions).toHaveLength(201);
-    expect(actions[199]).toEqual(row);
+    expect(actions[199]).toEqual({
+      id: legacyId,
+      title: row.title,
+      status: null,
+      workOrderStatus: {
+        state: "missing",
+        initialized: false,
+        status: null,
+        version: null,
+        blocked: false,
+      },
+    });
     expect(state.filters).toContainEqual(["id", legacyId]);
   });
   it("keeps a scheduled legacy task and resolves it as a completed prerequisite", async () => {

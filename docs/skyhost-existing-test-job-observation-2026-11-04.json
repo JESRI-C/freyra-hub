@@ -1,0 +1,119 @@
+{
+  "schema": "freyra.skyhost-existing-job-observation/v1",
+  "observationId": "SKY-04NOV-JOBVIEW-01",
+  "observedAt": "2026-11-04",
+  "method": "Direct read of authenticated visible screens and existing history; not an agent-performed change sequence",
+  "role": "Administrator",
+  "entry": "Jobs list test job; opened JobView URL read from the edit icon DOM onclick without editing or saving",
+  "url": "https://portal.skyhost.dk/JobView.aspx?id=8925745560",
+  "testJob": {
+    "listJobId": "1705339",
+    "title": "Sprøjte test",
+    "caseReference": "123457",
+    "caseTask": "1",
+    "headerStatus": "Tildelt"
+  },
+  "tabs": ["Detaljer", "Lokationer", "Kort", "Logbog", "Geotag", "Timer", "Materialer", "Booking", "Ruter", "Tjeklister"],
+  "details": {
+    "createdDisplayed": "2026-11-03 14:21",
+    "lastChangedDisplayed": "2026-11-03 14:22",
+    "description": "empty",
+    "startAndEndDates": "empty",
+    "duration": "empty",
+    "workingHoursDisplayed": ["08:00", "16:00"],
+    "priority": "Normal",
+    "selectedUsers": 1,
+    "selectedGroups": 0,
+    "poolEnabled": false,
+    "repeat": "Ingen gentagelse",
+    "nextJobStatus": "Tildelt",
+    "appVisibilityText": "UI states that a repeated job with status Ikke tildelt is not visible in the app",
+    "emailChecked": true,
+    "smsChecked": false
+  },
+  "logbook": {
+    "existingRowsDateDisplayed": "2026-11-03",
+    "rowsInDisplayOrder": [
+      { "time": "14:22", "event": "Job rettet" },
+      { "time": "14:22", "event": "Priority change", "value": "normal" },
+      { "time": "14:21", "event": "Status change", "value": "unassigned" },
+      { "time": "14:21", "event": "Job oprettet" },
+      { "time": "14:21", "event": "Status change", "value": "assigned" }
+    ],
+    "sourceLabelSeen": "jobs ios",
+    "unsavedForm": { "type": "Andet", "controls": ["file", "note", "Email", "SMS"] }
+  },
+  "geotag": {
+    "directRelationSection": "Linket til Job",
+    "directRelationRows": 0,
+    "directRelationColumns": ["Dato", "Kort", "Kategori", "Navn", "Status", "Oprettet af", "Åbn", "Slet"],
+    "areaSection": "Indenfor område",
+    "areaPeriodDisplayed": ["04-10", "04-11"],
+    "areaRows": 0
+  },
+  "checklists": {
+    "criterionStatus": "Afsluttet",
+    "selectedChecklists": "empty",
+    "completedChecklists": "empty",
+    "scopeText": "UI states that the criterion only applies to the selected status"
+  },
+  "time": {
+    "activityColumns": ["Nr", "Aktivitet", "Estimat", "Forbrug", "Rest", "Aktuel status", "Progress", "Kalc"],
+    "activityRows": 0,
+    "allocatedOrEstimatedDisplayed": "0",
+    "sumDisplayed": "0",
+    "registrationHistorySumDisplayed": "0",
+    "unopenedAction": "Opret registrering",
+    "scopeText": "UI describes limiting selected activities and a shared activity tree for all job cards on one case"
+  },
+  "materials": {
+    "itemPicker": "Vælg-->",
+    "quantityField": "Antal",
+    "controls": ["Tilføj", "Avanceret søgning"],
+    "searchText": "UI describes finding items by article number or title",
+    "itemsAdded": 0
+  },
+  "booking": {
+    "sections": [
+      { "name": "Køretøjer/Maskiner", "rows": 0 },
+      { "name": "Værktøj", "rows": 0 }
+    ],
+    "columns": ["Fra", "Til", "Emne", "Booket af", "Note", "Type", "Slet"],
+    "addIconsOpened": false
+  },
+  "routes": {
+    "heading": "Kørsel registreret på Jobkort",
+    "linkageText": "UI describes linking driving through time registration or a time clock",
+    "distanceDisplayed": "0 Km",
+    "durationDisplayed": "0:00",
+    "rowCountChoices": ["25", "100", "Alle"],
+    "drivingRegistered": false
+  },
+  "boundaries": {
+    "businessDataWrites": 0,
+    "savedForms": 0,
+    "messagesSent": 0,
+    "creationAssignmentStatusTransitions": "Only existing history was read; no transition was performed or replayed",
+    "timestampPrecision": "Displayed local date/minute only; timezone and ordering within a minute are not established",
+    "notificationDelivery": "Checkbox state only; no send or delivery tested",
+    "geotagRelationOrAreaMatching": "Separate empty sections observed; no saved relation, geographic match or job creation from GeoTag tested",
+    "checklistEnforcement": "Criterion controls/text only; no checklist answer, submission or status enforcement tested",
+    "fieldAndReviewRoles": "Not exercised by this administrator screen read",
+    "operationalModuleControlsOnly": "Time, materials, booking and routes were read as controls/empty states; no activity entry, item addition, reservation or driving was tested",
+    "beforeAfterDetailsRead": {
+      "sameListJobId": "1705339",
+      "titleUnchanged": true,
+      "headerStatus": "Tildelt",
+      "lastChangedUnchangedDisplayed": "2026-11-03 14:22"
+    },
+    "closedOwnReadTabIdsOnly": ["12", "13"],
+    "originalTabIdsUntouched": ["1", "2"],
+    "saveOrCloseAndUpdateClicked": false,
+    "personNamesStoredInStructuredReceipt": false,
+    "userCatalogStored": false,
+    "screenshotIncludesExistingTestJobActorName": true,
+    "gofreyraAcceptanceRaised": false
+  },
+  "requirementIds": ["JOB-01", "JOB-04", "JOB-05", "JOB-07", "JOB-09", "OBS-02", "OBS-03", "FORM-03", "OPS-01", "OPS-02", "OPS-03", "OPS-04", "OPS-06"],
+  "screenshot": "docs/evidence/skyhost-existing-test-job-log-2026-11-04.png"
+}

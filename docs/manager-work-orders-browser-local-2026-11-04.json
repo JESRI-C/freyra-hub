@@ -1,0 +1,42 @@
+{
+  "schema": "freyra.manager-work-orders-local-browser/v1",
+  "observedAt": "2026-11-04T04:57:30.897Z",
+  "environment": "local-worker-with-staging-data",
+  "origin": "http://127.0.0.1:8836",
+  "sourceRevision": "95215cf4982614e636ee027db737adbc747c60dd",
+  "priorNavigationSource": "5e6bb56fe95563ab7d2d06c0cec04a20072aed68",
+  "skyhostReadOnly": true,
+  "skyhostStatusColorsObserved": true,
+  "workflowWrites": 0,
+  "normalSidebarEntry": true,
+  "projectFilterApplied": true,
+  "listAndBoardSameThreeIds": true,
+  "exactSubmittedTaskOpened": true,
+  "submissionVersionObserved": 1,
+  "backPreservedProjectFilterAndList": true,
+  "finalDOM": {
+    "cards": 30,
+    "columns": [
+      "Åbne2 vist",
+      "I gang0 vist",
+      "Udført1 vist",
+      "Afleveret1 vist",
+      "Godkendt2 vist",
+      "Aflyste1 vist",
+      "Uden jobstatus23 vist"
+    ],
+    "overflow": false,
+    "rawPersonIdsVisible": false,
+    "width": 1280
+  },
+  "nameFallbackObserved": true,
+  "mobile": {
+    "requestedWidth": 390,
+    "actualWidth": 1280,
+    "verified": false
+  },
+  "hostedUpload": {
+    "completed": false,
+    "reason": "Automatic approval review rejected proprietary build export; specific Cloudflare staging approval pending"
+  }
+}
