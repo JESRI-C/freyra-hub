@@ -9,11 +9,13 @@ export function ProjectWorkspaceShell({
   onNavigate,
   renderTab,
   renderStep,
+  taskFocused = false,
 }: {
   view: ProjectView;
   onNavigate: (view: ProjectView) => void;
   renderTab: (tab: ProjectTab) => ReactNode;
   renderStep: (step: ProjectStep) => ReactNode;
+  taskFocused?: boolean;
 }) {
   const [opened, setOpened] = useState<{ tab?: ProjectTab; steps: ProjectStep[] }>(() =>
     view.kind === "tab" ? { tab: view.id, steps: [] } : { steps: [view.id] },
@@ -23,8 +25,8 @@ export function ProjectWorkspaceShell({
     setOpened({ ...opened, steps: [...opened.steps, view.id] });
   return (
     <div className="min-w-0">
-      <div className="mx-auto max-w-[1200px] p-3 sm:p-6">
-        <ProjectNavigation view={view} onNavigate={onNavigate} />
+      <div className={`mx-auto max-w-[1200px] px-3 py-3 sm:px-6 ${taskFocused ? "" : "sm:py-6"}`}>
+        <ProjectNavigation view={view} onNavigate={onNavigate} taskFocused={taskFocused} />
       </div>
       {opened.tab && (
         <div hidden={view.kind !== "tab"}>

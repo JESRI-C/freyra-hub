@@ -8,6 +8,7 @@ import {
   FieldPhotoUuid,
   parseFieldPhotoUpload,
   parseFieldPhotoReceipt,
+  fieldPhotoUploadFailure,
 } from "@/lib/field-photo-upload";
 import { verifyFieldPhoto } from "@/lib/field-photo-verification.functions";
 import { uploadWithTus } from "./monitoring/resumable-upload-service";
@@ -50,7 +51,8 @@ export async function uploadFieldPhoto(input: {
   const begun = await db.rpc("begin_field_photo_upload", { ...args, p_payload: payload });
   if (input.signal?.aborted) throw new Error("Uploaden er sat på pause. Behold originalfilen.");
   if (begun.error || !Array.isArray(begun.data) || begun.data.length !== 1)
-    throw new Error(
+    throw fieldPhotoUploadFailure(
+      begun.error,
       "Uploadopgaven kunne ikke åbnes. Kontrollér din adgang; ændrede oplysninger kræver en ny uploadopgave.",
     );
   let upload = parseFieldPhotoUpload(begun.data[0], projectId, uploadId);
@@ -82,7 +84,10 @@ export async function uploadFieldPhoto(input: {
       finalized = await db.rpc("finalize_field_photo_upload", args);
     }
     if (finalized.error || !Array.isArray(finalized.data) || finalized.data.length !== 1)
-      throw new Error("Overførslen er ikke kvitteret. Behold originalfilen og prøv igen.");
+      throw fieldPhotoUploadFailure(
+        finalized.error,
+        "Overførslen er ikke kvitteret. Behold originalfilen og prøv igen.",
+      );
     upload = parseFieldPhotoUpload(finalized.data[0], projectId, uploadId);
     if (!upload.received_at) throw new Error("Serveren har ikke bekræftet modtagelsen.");
   }

@@ -154,6 +154,7 @@ export const FieldJobVersionSchema = z.object({
   ...identityShape,
   action_id: WorkOrderActionIdSchema,
   template_version_id: z.string().uuid(),
+  required_plan_version_id: z.string().uuid().nullable().optional(),
   values: FieldJobValuesSchema,
   status: z.enum(["draft", "recorded", "needs_review"]),
   correction_reason: z.string().trim().max(2000).nullable(),

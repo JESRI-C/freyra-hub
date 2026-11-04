@@ -1,0 +1,59 @@
+{
+  "schema": "freyra.manager-map-browser/v1",
+  "verifiedAt": "2026-11-04T05:56:29.074Z",
+  "environment": "local-worker-with-staging-backend",
+  "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+  "origin": "http://127.0.0.1:8836",
+  "browser": "IAB via cua_repl",
+  "actualViewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "workflowWrites": 0,
+  "skyhostWrites": 0,
+  "checks": {
+    "sameFilteredSingleTaskInMapListAndKanban": true,
+    "storedMapMarkers": 2,
+    "unknownSiteReferences": 2,
+    "markerOpenedExactTask": true,
+    "exactPlanVersion": 6,
+    "jobRemainedUsableDuringActualMediaReadError": true,
+    "unsavedInstructionPreservedWhenNavigationBlocked": true,
+    "unsavedInstructionCancelledWithoutSaving": true,
+    "mediaRetryShowedLoadingThenExplicitError": true,
+    "backRestoredMapFilterViewAndSelection": true,
+    "projectPagination": {
+      "initial": 30,
+      "full": 58,
+      "fullFilteredTotal": 58,
+      "mappedJobs": 12,
+      "withoutPosition": 46,
+      "mapObjects": 24,
+      "uniqueBoardTaskIds": 58,
+      "uniqueListTaskIds": 58,
+      "mapSelectorTaskIds": 58,
+      "sameFullTaskSetInThreeViews": true
+    },
+    "noPositionJob": {
+      "actionId": "088d0ea5-b70c-4962-9bc6-1d418eeeeaff",
+      "sameJobOpened": true,
+      "status": "approved",
+      "submissionVersion": 2
+    },
+    "horizontalOverflow": false
+  },
+  "boundaries": {
+    "physicalPhone": "not tested in this run",
+    "requested390Viewport": "not effective; actual viewport remained 1280",
+    "pinnedWatercourse": "SQL and component evidence only; no known live synthetic fixture",
+    "skyhostMap": "filter roundtrip observed; markers not drawn",
+    "hostedNewBuild": "not uploaded; export approval pending",
+    "atlasDraftRetention": "actual portal unit test; not claimed as browser interaction"
+  },
+  "screenshots": [
+    "evidence/manager-work-orders-map-5228aad.png",
+    "evidence/manager-work-orders-kanban-5228aad.png",
+    "evidence/manager-work-orders-kanban-full-5228aad.png"
+  ],
+  "outcome": "passed_with_stated_boundaries"
+}

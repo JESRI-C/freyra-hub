@@ -1,0 +1,53 @@
+{
+  "schema": "freyra.skyhost-geotag-observation/v1",
+  "observedAt": "2026-11-04T06:53:53.067Z",
+  "method": "Read-only existing IAB session through visible controls",
+  "url": "https://portal.skyhost.dk/POI.aspx",
+  "role": "Administrator",
+  "businessDataWrites": 0,
+  "observed": {
+    "entry": "Geotag banner from Jobs",
+    "views": [
+      "Map",
+      "List"
+    ],
+    "statusFilterChoices": [
+      "Alle",
+      "Ny",
+      "Jobkort",
+      "Lukket"
+    ],
+    "jobFilter": "Vælg jobkort ->",
+    "noJobRelationFilter": "Ingen job relation",
+    "listColumns": [
+      "Nr.",
+      "ID",
+      "Kort",
+      "Værdier",
+      "Kategori",
+      "Navn",
+      "Postnr",
+      "Bynavn",
+      "Adresse",
+      "Log",
+      "Historik",
+      "Status",
+      "Billede",
+      "Ref.",
+      "Kommentar"
+    ],
+    "category": "1.1 Afsætning",
+    "newStatusSelection": "No data to display",
+    "jobkortStatusSelection": "No data to display"
+  },
+  "boundaries": {
+    "savedGeotagRelation": "not observed; displayed selections were empty",
+    "createJobFromGeotag": "not performed or inferred",
+    "otherCategories": "not examined in this run",
+    "statusSemantics": "No equivalence inferred between GeoTag Jobkort and a GoFreyra lifecycle state"
+  },
+  "cleanup": {
+    "originalNyFilterRestored": true,
+    "originalMapViewRestored": true
+  }
+}

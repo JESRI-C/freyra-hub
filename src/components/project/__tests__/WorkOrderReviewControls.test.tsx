@@ -167,6 +167,19 @@ describe("version-bound review on the existing task", () => {
     expect(host.textContent).toContain("En anden autoriseret reviewer");
   });
   it("allows stale material to be returned while blocking approval", async () => {
+    cache.setQueryDefaults(["field-job-actions"], { gcTime: Infinity });
+    const ownKey = [
+      "field-job-actions",
+      actorId,
+      { organizationId: scope.organizationId, projectId: scope.projectId },
+    ];
+    const otherKey = [
+      "field-job-actions",
+      id(90),
+      { organizationId: scope.organizationId, projectId: scope.projectId },
+    ];
+    cache.setQueryData(ownKey, [{ id: scope.actionId, status: "submitted" }]);
+    cache.setQueryData(otherKey, [{ id: scope.actionId, status: "submitted" }]);
     m.context.mockResolvedValue({ ...reviewContext(), packet_current: false });
     await render();
     expect(button("Godkend denne aflevering")?.disabled).toBe(true);
@@ -187,6 +200,8 @@ describe("version-bound review on the existing task", () => {
         }),
       }),
     });
+    expect(cache.getQueryState(ownKey)?.isInvalidated).toBe(true);
+    expect(cache.getQueryState(otherKey)?.isInvalidated).toBe(false);
   });
   it("keeps the exact receipt identity and note after a lost response, even when context refreshes", async () => {
     m.mutate.mockRejectedValueOnce(new Error("Lost response")).mockResolvedValueOnce({});

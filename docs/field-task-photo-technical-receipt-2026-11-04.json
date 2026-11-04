@@ -1,0 +1,93 @@
+{
+  "schema": "freyra.field-task-photo-technical/v1",
+  "recordedAt": "2026-11-04T06:49:38.450Z",
+  "status": "technical_slice_passed_staging_full_product_acceptance_open",
+  "runtimeRevision": "4be325d7253f02c915d5089ecb418d7e9e4d72ac",
+  "compatibleReaderRevision": "3ae95141f8b2f3d18419d71c4e0984de1f4f7b04",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/46",
+  "ci": {
+    "runId": 41785790191,
+    "conclusion": "success",
+    "applicationTests": 3587,
+    "applicationFiles": 267,
+    "databaseChecks": 1910,
+    "databaseFiles": 28,
+    "taskPhotoChecks": 38,
+    "freshReplay": true,
+    "realConcurrency": true,
+    "databaseRestore": true,
+    "databaseLint": true,
+    "build": true,
+    "runtimeAuditVulnerabilities": 0,
+    "newCaptureScenarios": [
+      "identical_task_photo_intent_retry",
+      "task_photo_cannot_be_retargeted_concurrently",
+      "membership_revocation_before_task_photo_intent"
+    ]
+  },
+  "earlierFailures": [
+    {
+      "runId": 41784780797,
+      "reason": "Capture provenance absent from frozen evidence snapshot; corrected."
+    },
+    {
+      "runId": 41785277633,
+      "reason": "SQL probe quote corrupted by JavaScript replacement string; corrected."
+    }
+  ],
+  "staging": {
+    "url": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+    "databaseProject": "xdvqdzdpyceojbdknofi",
+    "migrationVersion": "20261104064006",
+    "sqlFingerprintMd5": "ac712439ec632085a9d47aa8ebb45ebf",
+    "captureColumnsVerified": true,
+    "publicEntryPointsSecurityInvoker": true,
+    "appObservedRevision": "4be325d7253f02c915d5089ecb418d7e9e4d72ac",
+    "candidateAppDeployed": true,
+    "workerVersion": "94906bdf-e10d-4847-98c2-ad183b625b0f"
+  },
+  "securityAdvisories": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 3
+    },
+    {
+      "name": "rls_disabled_in_public",
+      "level": "ERROR",
+      "count": 1
+    },
+    {
+      "name": "extension_in_public",
+      "level": "WARN",
+      "count": 1
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "level": "WARN",
+      "count": 3
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 12
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "level": "WARN",
+      "count": 1
+    }
+  ],
+  "hostedWorkflow": {
+    "status": "PASS",
+    "run": "65d462fa",
+    "receipt": "field-task-photo-staging-receipt-2026-11-04.json",
+    "script": "scripts/test-field-task-photos-staging.mjs",
+    "browserAndSdkScopeSeparated": true
+  },
+  "physicalPhoneAcceptance": "open",
+  "professionalAcceptance": "open",
+  "municipalUserAcceptance": "open",
+  "productionDecision": "not_authorized",
+  "originalCheckoutEditsPreserved": true
+}

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { WorkOrderActionIdSchema } from "./work-order-access";
 import { getReportTemplate, REPORT_TEMPLATE_IDS, type ReportTemplateId } from "./report-templates";
 import { WorkflowReportSnapshotSchema } from "./workflow-report";
+import { ActionExecutionSchema } from "./action-execution";
 
 export const SourceSchema = z.object({
   filePath: z.string().nullable().optional(),
@@ -35,6 +36,15 @@ export const ReportContentSchema = z.object({
       submissionVersion: z.number().int().positive(),
       reviewId: z.string().uuid(),
       basisHash: z.string().regex(/^[a-f0-9]{64}$/),
+      executionRevisionId: z.string().uuid().optional(),
+      executionDataBasis: ActionExecutionSchema.shape.dataBasis.optional(),
+    })
+    .superRefine((pin, ctx) => {
+      if ((pin.executionRevisionId === undefined) !== (pin.executionDataBasis === undefined))
+        ctx.addIssue({
+          code: "custom",
+          message: "Udførelsens version og registreringstype skal følges ad.",
+        });
     })
     .optional(),
   workflowSnapshot: WorkflowReportSnapshotSchema.optional(),
@@ -80,6 +90,42 @@ export const BASIS_LABELS = {
   screening: "Screening",
   not_measured: "Ikke målt",
 };
+
+/** Classification is copied from the approved packet, never inferred from its review status. */
+export function reportWorkOrderDataBasis(content: ReportContent) {
+  const pin = content.workOrderApproval;
+  if (!pin) return undefined;
+  switch (pin.executionRevisionId ? pin.executionDataBasis : undefined) {
+    case "synthetic":
+      return {
+        kind: "synthetic" as const,
+        label: "Syntetiske prøvedata",
+        description:
+          "Udførelsen i den godkendte aflevering er mærket som en syntetisk prøve. Rapporten dokumenterer ikke en faktisk naturindsats eller natureffekt.",
+      };
+    case "demo":
+      return {
+        kind: "demo" as const,
+        label: "Demonstrationsdata",
+        description:
+          "Udførelsen i den godkendte aflevering er mærket som demonstration. Rapporten dokumenterer ikke en faktisk naturindsats eller natureffekt.",
+      };
+    case "real":
+      return {
+        kind: "real" as const,
+        label: "Udførelsesregistrering: Faktisk arbejde",
+        description:
+          "Udførelsen er registreret som faktisk arbejde. Mærkningen dokumenterer ikke i sig selv en målt natureffekt.",
+      };
+    default:
+      return {
+        kind: "unknown" as const,
+        label: "Registreringstype ikke gemt i rapportversionen",
+        description:
+          "Kontrollér den godkendte aflevering for udførelsens registreringstype. Historiske eksportfiler genskaber den gemte rapportversion.",
+      };
+  }
+}
 export function newReportContent(
   projectName: string,
   organizationName: string,
@@ -108,6 +154,13 @@ export function newReportContent(
 }
 export function reportIssues(content: ReportContent): string[] {
   const issues: string[] = [];
+  const source = reportWorkOrderDataBasis(content);
+  if (source?.kind === "unknown")
+    issues.push("Rapportversionen mangler udførelsens registreringstype.");
+  else if (source && source.kind !== "real")
+    issues.push(
+      "Udførelsen er prøve- eller demonstrationsdata og kan ikke godkendes som virkeligt datagrundlag.",
+    );
   if (
     content.workflowSnapshot &&
     (content.workflowSnapshot.review?.decision !== "accepted" ||

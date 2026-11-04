@@ -1,0 +1,138 @@
+{
+  "schema": "freyra.work-order-navigation-ci/v1",
+  "observedAt": "2026-11-04T10:00:22Z",
+  "method": "Read-only GitHub connector job summaries, decoded terminal job logs and commit/artifact metadata; no local test/build process or workflow invocation",
+  "sourceRevision": "4314bf9ca905bf376aa1cec07cc662ae7074644c",
+  "uiCodeRevision": "b5cf82b76fede2dd266f347a6cfb394bfff6f474",
+  "testedMergeRevision": "576413514703fc3a83c022fd64401fb993e0d42d",
+  "baseRevision": "d4f57b92d47a3c16870ee9074af09eb680d29aa2",
+  "checkoutBoundary": "P0 App Gates checked out GitHub pull/47/merge. This receipt distinguishes the PR head, its UI commit and the actual tested merge commit.",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/47",
+  "runId": 41810520288,
+  "runUrl": "https://github.com/JESRI-C/freyra-hub/actions/runs/41810520288",
+  "result": "PASS",
+  "app": {
+    "jobId": 126508317208,
+    "conclusion": "success",
+    "nodeVersion": "22.14.0",
+    "npmVersion": "11.6.0",
+    "testFiles": 278,
+    "tests": 3801,
+    "failedTests": 0,
+    "p12UiSuites": [
+      {
+        "path": "src/components/project/__tests__/ProjectWorkOrdersWorkspace.test.tsx",
+        "tests": 49,
+        "result": "PASS"
+      },
+      {
+        "path": "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "tests": 26,
+        "result": "PASS"
+      }
+    ],
+    "p12UiTests": 75,
+    "fullTypecheck": true,
+    "isolatedFieldPhotoWorkerTypecheck": true,
+    "isolatedFieldPhotoWorkerBundle": true,
+    "localImagesBindingSyntheticDecode": true,
+    "lint": true,
+    "runtimeDependencyAudit": true,
+    "runtimeVulnerabilities": 0,
+    "calculationSourceVerification": true,
+    "defaultCiBuild": true,
+    "stagingBuildVerifiedByThisRun": false
+  },
+  "database": {
+    "jobId": 126508317385,
+    "conclusion": "success",
+    "freshMigrationReplay": true,
+    "sqlFiles": 29,
+    "sqlAssertions": 2144,
+    "sqlResult": "PASS",
+    "observationDraftConcurrency": {
+      "schema": "freyra.observation-draft-local-concurrency/v1",
+      "result": "PASS",
+      "localOnly": true,
+      "authApiUsed": false,
+      "httpUsed": false,
+      "originalBytesWritten": false,
+      "scenariosPassed": 6,
+      "actualLockWaitsVerified": 3,
+      "simultaneousSameRequestOneJobAndReceipt": true,
+      "newMediaReferenceBothLockOrdersPassed": true,
+      "committedMediaMetadataInvalidatesPreview": true,
+      "committedRetryAfterSourceAndMediaDeletePreservedSnapshot": true,
+      "revokedManagerReplayAndReadDenied": true
+    },
+    "otherExistingConcurrencySuitesPassed": true,
+    "aclDumpRestore": true,
+    "restoreArtifactBodyIndependentlyDownloadedAndRead": false,
+    "databaseFunctionLint": true,
+    "disposableStackCleanup": true
+  },
+  "localChecks": {
+    "provenance": "Root-confirmed local results; the corresponding full CI results above were independently read through GitHub",
+    "singleCombinedTargetedRun": true,
+    "targetedFiles": 2,
+    "targetedTests": 75,
+    "earlierManagerOnlyLintPassed": true,
+    "finalLocalLintPassed": false,
+    "finalLocalLintSessionId": 27195,
+    "finalLocalLintExitCode": 1,
+    "finalLocalLintFailure": "Native Zone out of memory",
+    "fullCiLintPassedForSameUiCode": true,
+    "independentReview": "Editor-only manager return shortcut was corrected; top and bottom primary actions use the same destination; follow-up found no blocking findings"
+  },
+  "priorP11Evidence": {
+    "receipt": "docs/project-work-order-status-ci-2026-11-04.json",
+    "sourceRevision": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
+    "runId": 41804794881,
+    "historicalReceiptChanged": false
+  },
+  "laterWorkflowOnlyCommit": {
+    "abbreviatedRevision": "ef7",
+    "scope": "Pins npm 11.6.0 in the staging-artifact workflow; no lockfile change",
+    "ciAcceptanceClaimedByThisReceipt": false,
+    "boundary": "The passing PR47 run recorded here belongs to 4314bf9 and its tested merge, not to ef7."
+  },
+  "separateCommonCandidate": {
+    "sourceRevision": "941fdb1918bb4e308f5e11e9c35dd78470cfef6d",
+    "branch": "codex/combined-municipal-workflow",
+    "owner": "Product chat; root coordinates P11/P12 browser verification",
+    "stagingArtifactRunId": 41810930419,
+    "stagingArtifactJobId": 126509686289,
+    "stagingTypecheckStepPassed": true,
+    "stagingBuildStepPassed": true,
+    "artifactUploadStepPassed": true,
+    "artifact": {
+      "id": 13311732823,
+      "name": "project-setup-staging-build",
+      "digest": "sha256:00f96cea8e723ed158710d36b272b3ac2a135221d43c7006695a4db102e49892",
+      "sizeBytes": 7038801,
+      "createdAt": "2026-11-04T09:58:51Z"
+    },
+    "fullCiRunId": 41810930503,
+    "fullCiStatusAtObservation": "in_progress",
+    "appStatusAtObservation": "Test serially in_progress; Build pending",
+    "databaseJobStatusAtObservation": "completed success",
+    "fullCiAcceptanceClaimed": false,
+    "browserAcceptedByThisReceipt": false,
+    "uploadedPreviewClaimedByThisReceipt": false,
+    "boundary": "The common candidate is a separate source/build. Its artifact does not turn the 4314bf9 default CI build into a staging build or establish common browser/product acceptance."
+  },
+  "boundaries": {
+    "newMigration": false,
+    "newRoleOrGrant": false,
+    "remoteBusinessWritesByThisVerification": 0,
+    "newWorkflowRunInvoked": false,
+    "contextFreshnessComputed": false,
+    "physicalIphoneAcceptance": false,
+    "productionChanged": false,
+    "activeStagingTrafficChanged": false,
+    "fullHostedRecovery": false,
+    "originalStorageBytesRestored": false,
+    "combinedProductAcceptance": false,
+    "overallGoalComplete": false
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "schema": "freyra.project-work-order-status-ci/v1",
+  "sourceRevision": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/47",
+  "runId": 41804794881,
+  "runUrl": "https://github.com/JESRI-C/freyra-hub/actions/runs/41804794881",
+  "result": "PASS",
+  "app": {
+    "jobId": 126489039991,
+    "conclusion": "success",
+    "testFiles": 278,
+    "tests": 3784,
+    "failedTests": 0,
+    "fullTypecheck": true,
+    "isolatedFieldPhotoWorkerTypecheck": true,
+    "lint": true,
+    "runtimeDependencyAudit": true,
+    "calculationSourceVerification": true,
+    "localImagesBindingSyntheticDecode": true,
+    "defaultCiBuild": true,
+    "stagingBuildVerifiedByThisRun": false
+  },
+  "database": {
+    "jobId": 126489039655,
+    "conclusion": "success",
+    "freshMigrationReplay": true,
+    "sqlFiles": 29,
+    "sqlAssertions": 2144,
+    "sqlResult": "PASS",
+    "concurrency": {
+      "schema": "freyra.observation-draft-local-concurrency/v1",
+      "result": "PASS",
+      "localOnly": true,
+      "authApiUsed": false,
+      "httpUsed": false,
+      "originalBytesWritten": false,
+      "actualLockWaitsVerified": 3,
+      "originalReceiptSha256": "0ca309146504d7107ceee35395d63de54b7863de3a2d69cf6b3e48f15ee6a024",
+      "scenarios": [
+        {
+          "name": "simultaneous_same_request",
+          "actualLockVerified": true,
+          "sameReceipt": true,
+          "oneJobAndOriginAndDraftState": true
+        },
+        {
+          "name": "media_fk_key_share_before_source_for_update",
+          "actualLockVerified": true,
+          "staleSqlstate": "PT409",
+          "noPartialDraft": true
+        },
+        {
+          "name": "source_for_update_before_new_media_fk_key_share",
+          "actualLockVerified": true,
+          "snapshotExcludesLaterReference": true,
+          "laterReferencePreserved": true
+        },
+        {
+          "name": "committed_media_metadata_invalidates_preview",
+          "staleSqlstate": "PT409",
+          "noPartialDraft": true
+        },
+        {
+          "name": "committed_retry_after_source_and_media_delete",
+          "originalSnapshotAndReceiptPreserved": true
+        },
+        {
+          "name": "revoked_manager_cannot_replay_or_read_origin",
+          "deniedSqlstate": "42501",
+          "rlsHidesOrigins": true
+        }
+      ],
+      "after": {
+        "jobs": 2,
+        "origins": 2,
+        "draftStates": 2,
+        "plans": 0,
+        "assignments": 0,
+        "evidence": 0,
+        "storageObjects": 6
+      },
+      "fixtureRowsRetainedInDisposableStack": true,
+      "syntheticManagerRoleRestored": true
+    },
+    "aclDumpRestore": true,
+    "functionLint": true,
+    "disposableStackCleanup": true,
+    "artifacts": [
+      {
+        "id": 13309706949,
+        "name": "release-restore-evidence",
+        "digest": "sha256:927dac23b0ac1b390315d6b52efb71ed6c12d46b4374ea622132e3db007dddfa"
+      },
+      {
+        "id": 13309597273,
+        "name": "local-database-concurrency-evidence",
+        "digest": "sha256:541b8808e372129212be917f16b6757fd6473ef32d4a3edb0a7ea2657331f3a1"
+      },
+      {
+        "id": 13309028927,
+        "name": "local-database-lint-evidence",
+        "digest": "sha256:8968fc804de856a5e19ae5a2d23d73c8b3fb5e875d9af6f2aef09543edac43f0"
+      }
+    ]
+  },
+  "localChecks": {
+    "singleCombinedTargetedRun": true,
+    "targetedFiles": 10,
+    "targetedTests": 171,
+    "fullStrictTypecheck": true,
+    "independentServiceReview": "no concrete blocking findings",
+    "independentUiReview": "series-cancellation invalidation omission found and fixed; independent follow-up found no blocking issues",
+    "seriesCancellationRegressionTests": 2
+  },
+  "priorDocsOnlyCi": {
+    "sourceRevision": "9bfcfc8a495eebc955b54700798bbf190e56efa0",
+    "runId": 41800761064,
+    "appPassedTests": 3719,
+    "appFailedTests": 1,
+    "databasePassed": true,
+    "cause": "Template-read failure assertion ran before deferred query observer notification committed to DOM",
+    "testFixCommit": "025d6b4",
+    "fix": "Wait for the actual error alert before unchanged saved-requirements and save assertions; no product behavior or assertion weakening",
+    "resolvedByThisFullRun": true
+  },
+  "boundaries": {
+    "businessDataWritesByP11Projection": false,
+    "newMigration": false,
+    "existingSignaturesAndLegacyFieldsPreserved": true,
+    "newRoleOrGrant": false,
+    "contextFreshnessComputed": false,
+    "physicalIphoneAcceptance": false,
+    "latestProductPr45Pr46Pr48Pr49Integrated": false,
+    "activeStagingTrafficChanged": false,
+    "productionChanged": false,
+    "overallGoalComplete": false
+  }
+}

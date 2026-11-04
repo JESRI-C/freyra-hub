@@ -66,3 +66,15 @@ export const getProjectWorkOrderEvidenceOriginal = createServerFn({ method: "POS
       data,
     );
   });
+export const getProjectWorkOrderCapturedPhotoOriginal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => parseWorkOrderInput(EvidenceOriginalInputSchema, raw))
+  .handler(async ({ data, context }) => {
+    const { signWorkOrderCapturedPhotoOriginal } =
+      await import("@/services/work-order-evidence-original.server");
+    return signWorkOrderCapturedPhotoOriginal(
+      context.supabase as unknown as WorkOrderRequestClient,
+      context.userId,
+      data,
+    );
+  });

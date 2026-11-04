@@ -21,7 +21,7 @@ vi.mock("@/lib/work-order-access.functions", () => ({
   getProjectWorkOrderAccess: mocks.capabilities,
 }));
 vi.mock("@/services/field-job-cards-service", () => ({
-  listFieldJobActions: mocks.actions,
+  listFieldJobActionsForActor: mocks.actions,
   listFieldJobTemplates: mocks.templates,
   listFieldJobVersions: mocks.history,
   saveFieldJobVersion: mocks.save,
@@ -126,6 +126,54 @@ describe("job card editor", () => {
     expect(missingNote).toBeDefined();
     await act(async () => missingNote?.click());
     expect(document.activeElement?.closest("label")?.textContent).toContain("Faglig note");
+  });
+  it("uses the actor-bound recorded job status in the fallback picker without resetting a field draft on refresh", async () => {
+    mocks.actions.mockResolvedValue([
+      {
+        id: "action",
+        title: "Tilsyn",
+        status: "Afsluttet",
+        workOrderStatus: {
+          state: "recorded",
+          initialized: true,
+          status: "returned",
+          version: 4,
+          blocked: true,
+        },
+      },
+    ]);
+    await open();
+    expect(mocks.actions).toHaveBeenCalledWith(scope, "actor", expect.any(AbortSignal));
+    const picker = host.querySelector("select")!;
+    expect(picker.selectedOptions[0].textContent).toBe(
+      "Tilsyn · Senest registreret: Returneret · Blokeret",
+    );
+    expect(picker.selectedOptions[0].textContent).not.toContain("Afsluttet");
+    const value = host.querySelector<HTMLInputElement>('input[type="number"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(value, "3");
+      value.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    mocks.actions.mockResolvedValue([
+      {
+        id: "action",
+        title: "Tilsyn",
+        status: "Åben",
+        workOrderStatus: {
+          state: "recorded",
+          initialized: true,
+          status: "reopened",
+          version: 5,
+          blocked: false,
+        },
+      },
+    ]);
+    await act(async () => cache.invalidateQueries({ queryKey: ["field-job-actions", "actor"] }));
+    await settle();
+    expect(host.querySelector('input[type="number"]')).toBe(value);
+    expect(value.value).toBe("3");
+    expect(picker.disabled).toBe(true);
+    expect(picker.selectedOptions[0].textContent).toBe("Tilsyn · Senest registreret: Genåbnet");
   });
   it("lets the assigned field worker open and save the exact required version without editor privileges", async () => {
     mocks.access.mockResolvedValue({

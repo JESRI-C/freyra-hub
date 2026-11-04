@@ -1,0 +1,177 @@
+{
+  "schema": "freyra.project-work-order-status-browser-common/v1",
+  "observedAt": "2026-11-04T10:22:04Z",
+  "result": "PASS_SCOPED",
+  "method": "Normal existing manager login and UI navigation through cua_repl, read-only rendered DOM measurements and screenshots; one temporary unsaved plan instruction explicitly cancelled",
+  "actor": "Existing Jesper Test manager account; no new user, role or grant",
+  "implementationRevisions": {
+    "P11": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
+    "P12": "b5cf82b76fede2dd266f347a6cfb394bfff6f474"
+  },
+  "runtime": {
+    "sourceRevision": "941fdb1918bb4e308f5e11e9c35dd78470cfef6d",
+    "previewUrl": "https://5a4a3843-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+    "workerVersionId": "5a4a3843-cee3-4225-9bc5-3847fd4c1cba",
+    "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/50",
+    "stagingRef": "xdvqdzdpyceojbdknofi",
+    "separatePreview": true,
+    "ownerDocumentCommit": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+    "ownerReceiptPath": "docs/combined-municipal-candidate-2026-11-04.json",
+    "ownerReceiptUrl": "https://github.com/JESRI-C/freyra-hub/blob/5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6/docs/combined-municipal-candidate-2026-11-04.json",
+    "ownerReceiptReadLocally": true,
+    "criticalSourceComparison": {
+      "scope": "Eleven P11/P12 source files only; not whole-repository identity",
+      "ourBaselineRevisionAtComparison": "ef7a1f9c6e697cfbe9dfbe42aebb2f8647815960",
+      "beforeLaterP13LayoutChanges": true,
+      "byteIdenticalFiles": 7,
+      "additionalTextIdenticalAfterCrLfNormalization": 4,
+      "allElevenMatched": true
+    }
+  },
+  "commonCi": {
+    "runId": 41810930503,
+    "result": "PASS",
+    "testedMergeRevision": "7f271773d9c9ce57bd10e442c3199560546d4604",
+    "testedAndHeadTree": "ea97067f0c0c825a824f36d3fb954e410fed1a97",
+    "appTests": 3868,
+    "appTestFiles": 282,
+    "databaseAssertions": 2212,
+    "databaseFiles": 31,
+    "provenance": "Root read completed/success job steps; exact counts and tree from owner's committed common receipt",
+    "stagingArtifactRunId": 41810930419,
+    "stagingArtifactId": 13311732823,
+    "stagingArtifactSha256": "00f96cea8e723ed158710d36b272b3ac2a135221d43c7006695a4db102e49892"
+  },
+  "project": {
+    "id": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+    "synthetic": true,
+    "normalEntry": [
+      "Existing manager login",
+      "Select Telefonprøve TEST 4e5de449 project",
+      "Project journey: Åbn plan og opgaver",
+      "Project task search",
+      "Open exact job",
+      "Return through normal project and manager links"
+    ]
+  },
+  "projectStatus": {
+    "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+    "search": "f9c31445 · browser",
+    "recordedStatus": "draft",
+    "visibleStatus": "Senest registreret: Kladde",
+    "sameStatusInProjectListChooserSelectedJobAndSchedule": true,
+    "legacyOpenDidNotReplaceCanonicalDraft": true,
+    "existingLegacyRowShowedMissingJobStatusAndSeparatePreviousOpen": true,
+    "savedPlanVersionVisible": 1,
+    "creationSourceCountVisible": 2,
+    "originalDescriptionVisible": true,
+    "searchRetainedOnProjectReturnAndScheduleSwitch": true,
+    "detailStillDescribedHistoricalStatusWithChangedBasis": true,
+    "noPlan": {
+      "actionId": "2346aa36-ceef-4bd4-a18c-c005c42b4c09",
+      "search": "f9c31445 · API race",
+      "foundInSchedule": true,
+      "sameActionOpened": true,
+      "recordedStatus": "draft",
+      "visibleStatus": "Senest registreret: Kladde",
+      "visiblePlanMessage": "Arbejdsgrundlaget er endnu ikke gemt som plan.",
+      "createPlanControlActivated": false
+    }
+  },
+  "draftRetention": {
+    "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+    "temporaryInstruction": "TEST · P12 kladdebevaring · må ikke gemmes",
+    "desktopFieldSwitchAndReturnPreservedInstruction": true,
+    "mobileNativeSelectFieldAndReturnPreservedInstruction": true,
+    "projectReturnDisabledWhileEditing": true,
+    "managerReturnHadNullHrefAndAriaDisabledWhileEditing": true,
+    "cancelledWithNormalFortrydAendringer": true,
+    "temporaryInstructionAbsentAfterCancel": true,
+    "originalPlanVersion1StillVisible": true,
+    "managerReturnReenabledAfterCancel": true,
+    "savedPlanVersion": false,
+    "apiPlanCountReadbackPerformed": false
+  },
+  "layout": {
+    "desktop": {
+      "actualDomViewport": { "width": 1280, "height": 720 },
+      "jobHeadingTop": 199.9875030517578,
+      "horizontalPageOverflow": false
+    },
+    "responsive": {
+      "actualDomViewport": { "width": 390, "height": 844 },
+      "jobHeadingTop": 203.9875030517578,
+      "jobHeadingBottom": 263.9875030517578,
+      "partSelectorTop": 449.5750122070313,
+      "partSelectorBottom": 498.3750114440918,
+      "nextActionBottom": 558.375,
+      "horizontalPageOverflow": false,
+      "jobAndNextActionAboveFold": true,
+      "physicalPhone": false
+    },
+    "temporaryViewportOverrideReset": true,
+    "transientObservation": "An immediate capture after cancel plus Control+Home was blank with stale negative heading geometry. A separate subsequent DOM measurement and screenshot confirmed the stable layout. This is not a no-jank or performance acceptance."
+  },
+  "managerBoard": {
+    "normalEntry": "Selected job: Til arbejdsordrer",
+    "exactProjectFilter": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+    "loadedBeforeFetchMore": 30,
+    "loadedAfterFetchMore": 60,
+    "totalInSelection": 60,
+    "renderedCardsAfterFetchMore": 60,
+    "displayedSpatialTotals": { "jobsWithPosition": 12, "jobsWithoutPosition": 48, "mapObjects": 24 },
+    "spatialAccuracyOrPerformanceBenchmarkClaimed": false,
+    "submittedJob": {
+      "actionId": "fb31109d-b153-44dd-a06e-e39866c13df7",
+      "normalEntry": "Kanban job title: TEST · Bykær REA manuel fotokobling 3ce44704",
+      "titleAndPrimaryLinkTargetSameJobSubmission": true,
+      "titleLinkActuallyOpened": true,
+      "selectedPart": "Aflevering",
+      "urlWorkParameter": "submission",
+      "visibleStatus": "Senest registreret: Afleveret",
+      "savedSubmissionVersionVisible": 1,
+      "pinnedPlanVersionVisible": 1,
+      "pinnedExecutionVersionVisible": 1,
+      "pinnedEvidenceLinksVisible": 1,
+      "separateReviewerRequirementVisible": true,
+      "oldNextFieldRegistrationCtaAbsent": true,
+      "reviewOrSubmissionMutationActivated": false
+    },
+    "normalManagerReturnPreservedProjectFilterAnd60LoadedCards": true,
+    "allProjectActionCountsAndManagerCountsDeclaredIdentical": false,
+    "followUpFindings": [
+      "The 46 untracked jobs in one unbounded column produce an approximately 18000px page with large blank areas in adjacent columns; next independent layout package is needed.",
+      "Project overview displayed 63 legacy-open actions while the manager selection displayed 60 work orders. A subsequent same-actor SDK comparison found 64 raw actions, four workflow_followup metadata rows and identical sets of 60 ordinary work-order IDs in both projections. Source review confirms the overview counter uses the separate raw-status getOpenActionsByProject list, including metadata, rather than the canonical job selection; no cache defect was proven. See work-order-action-set-staging-2026-11-04.json.",
+      "Opening the submitted job from the scrolled board showed the lower submission panels; the saved submission screenshot does not establish that the job heading lands above the fold on that entry. Review scroll navigation separately."
+    ]
+  },
+  "evidence": [
+    "docs/evidence/work-order-common-941-desktop.jpg",
+    "docs/evidence/work-order-common-941-mobile-390.jpg",
+    "docs/evidence/work-order-common-941-kanban.jpg",
+    "docs/evidence/work-order-common-941-submission.jpg"
+  ],
+  "relatedEvidence": [
+    "docs/project-work-order-status-api-staging-2026-11-04.json",
+    "docs/project-work-order-status-ci-2026-11-04.json",
+    "docs/work-order-navigation-ci-2026-11-04.json",
+    "docs/work-order-action-set-staging-2026-11-04.json",
+    "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+    "docs/jobs-geotag-requirements.json"
+  ],
+  "boundaries": {
+    "remoteBusinessMutationControlsActivated": 0,
+    "rolesOrGrantsChanged": false,
+    "globalSignOutPerformed": false,
+    "unknownFutureStatusOrReadFailureForcedInBrowser": false,
+    "statusReviewOrSeriesMutationRetestedInBrowser": false,
+    "newPhysicalIphoneAcceptance": false,
+    "commonFieldAndReportBrowserStartedByOwner": false,
+    "commonFieldAndReportBrowserPendingBecauseOwnerChatPaused": true,
+    "activeTrafficBoundary": "Owner's committed before/after receipt retains deployment 700e62c8-aaa0-4dff-8d5f-abb88ca52838 and version 94906bdf-e10d-4847-98c2-ad183b625b0f at 100%",
+    "productionChanged": false,
+    "underlyingRequirementsComplete": false,
+    "combinedProductAcceptance": false,
+    "overallGoalComplete": false
+  }
+}

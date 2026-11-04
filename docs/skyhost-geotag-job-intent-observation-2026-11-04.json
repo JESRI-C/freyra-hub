@@ -1,0 +1,62 @@
+{
+  "schema": "freyra.skyhost-geotag-job-intent-observation/v1",
+  "observedAt": "2026-11-04",
+  "method": "Read-only visible UI and DOM action text in the existing authenticated session",
+  "globalPath": "/POI.aspx",
+  "detailPathWithoutOpaqueId": "/poiview.aspx",
+  "observed": {
+    "category": "1.1 Afsætning",
+    "globalStatusSelection": "Alle",
+    "globalView": "Liste",
+    "visibleRowsAtLeast": 1,
+    "visibleExistingRowStatus": "Lukket",
+    "totalCountInferred": false,
+    "earlierNySelectionWasEmpty": true,
+    "multiSelectHelp": "Vælg flere geotags til at oprette et nyt jobkort eller sætte på et eksisterende",
+    "rowCreateJobAction": {
+      "confirmationTextReadFromOnclick": "Er du HELT sikker på, at du vil oprette et job?",
+      "clicked": false,
+      "confirmed": false
+    },
+    "detailOpenedThroughReadControl": true,
+    "existingDetailStatus": "Lukket",
+    "embeddedMapVisible": true,
+    "attributes": [
+      { "name": "Billede", "type": "image" },
+      { "name": "Ref.", "type": "text" },
+      { "name": "Kommentar", "type": "text" }
+    ],
+    "detailStatusChoices": ["Åben", "Jobkort", "Lukket"],
+    "globalStatusChoices": ["Alle", "Ny", "Jobkort", "Lukket"]
+  },
+  "cleanup": {
+    "detailStatusRecheckedUnchanged": "Lukket",
+    "globalStatusFilterRestored": "Ny",
+    "originalMapViewRestoration": "Ny and Map verified in a fresh owned read tab after clicking only Map",
+    "mapRestorationVerification": {
+      "selectedStatus": "Ny",
+      "listNotRendered": true,
+      "renderedMapHeightOver200": true,
+      "rendererAttributionSeen": ["Leaflet", "OpenStreetMap"]
+    },
+    "earlierReadTab16Cleanup": "uncertain after CDP timeout",
+    "originalUserTabIdsUntouched": ["1", "2"]
+  },
+  "boundaries": {
+    "businessWrites": 0,
+    "statusChanged": false,
+    "jobCreated": false,
+    "jobRelationSaved": false,
+    "savedRelationshipOrCardinalityVerified": false,
+    "mapAccuracyOrPositionVerified": false,
+    "originalFileVerified": false,
+    "nyEqualsAabenInferred": false,
+    "workOrderLifecycleEquivalenceInferred": false,
+    "recordNameAuthorAddressCoordinatesIdOrOpaqueUrlStored": false,
+    "realRecordScreenshotsStored": false,
+    "observationAttributeValuesStored": false,
+    "observation02Or09AcceptanceRaised": false
+  },
+  "requirementIds": ["OBS-02", "OBS-09"],
+  "basis": "Directly observed UI intent and existence of an already closed record; not an executed create/link/status workflow"
+}

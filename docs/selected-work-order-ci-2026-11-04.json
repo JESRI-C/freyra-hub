@@ -1,0 +1,125 @@
+{
+  "schema": "freyra.selected-work-order-ci/v1",
+  "sourceRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/47",
+  "runId": 41797803182,
+  "runUrl": "https://github.com/JESRI-C/freyra-hub/actions/runs/41797803182",
+  "result": "PASS",
+  "app": {
+    "jobId": 126465968758,
+    "conclusion": "success",
+    "testFiles": 274,
+    "tests": 3720,
+    "failedTests": 0,
+    "fullTypecheck": true,
+    "isolatedFieldPhotoWorkerTypecheck": true,
+    "lint": true,
+    "runtimeDependencyAudit": true,
+    "calculationSourceVerification": true,
+    "localImagesBindingSyntheticDecode": true,
+    "defaultCiBuild": true,
+    "stagingBuildVerifiedByThisRun": false
+  },
+  "database": {
+    "jobId": 126465969036,
+    "conclusion": "success",
+    "freshMigrationReplay": true,
+    "sqlFiles": 29,
+    "sqlAssertions": 2144,
+    "sqlResult": "PASS",
+    "observationDraftSuiteIncluded": true,
+    "concurrency": {
+      "schema": "freyra.observation-draft-local-concurrency/v1",
+      "result": "PASS",
+      "localOnly": true,
+      "authApiUsed": false,
+      "httpUsed": false,
+      "originalBytesWritten": false,
+      "actualLockWaitsVerified": 3,
+      "originalReceiptSha256": "78663d866a8da7b0ddfcc3413a52c319faebe52c6466507ea8236ecdd7e3794b",
+      "scenarios": [
+        {
+          "name": "simultaneous_same_request",
+          "actualLockVerified": true,
+          "sameReceipt": true,
+          "oneJobAndOriginAndDraftState": true
+        },
+        {
+          "name": "media_fk_key_share_before_source_for_update",
+          "actualLockVerified": true,
+          "staleSqlstate": "PT409",
+          "noPartialDraft": true
+        },
+        {
+          "name": "source_for_update_before_new_media_fk_key_share",
+          "actualLockVerified": true,
+          "snapshotExcludesLaterReference": true,
+          "laterReferencePreserved": true
+        },
+        {
+          "name": "committed_media_metadata_invalidates_preview",
+          "staleSqlstate": "PT409",
+          "noPartialDraft": true
+        },
+        {
+          "name": "committed_retry_after_source_and_media_delete",
+          "originalSnapshotAndReceiptPreserved": true
+        },
+        {
+          "name": "revoked_manager_cannot_replay_or_read_origin",
+          "deniedSqlstate": "42501",
+          "rlsHidesOrigins": true
+        }
+      ],
+      "after": {
+        "jobs": 2,
+        "origins": 2,
+        "draftStates": 2,
+        "plans": 0,
+        "assignments": 0,
+        "evidence": 0,
+        "storageObjects": 6
+      },
+      "fixtureRowsRetainedInDisposableStack": true,
+      "syntheticManagerRoleRestored": true
+    },
+    "aclDumpRestore": true,
+    "functionLint": true,
+    "disposableStackCleanup": true,
+    "artifacts": [
+      {
+        "id": 13306531228,
+        "name": "release-restore-evidence",
+        "digest": "sha256:68be26a3d169669c539cf8771f09fd164819f290f80cbac201729e949f1136c3"
+      },
+      {
+        "id": 13306391565,
+        "name": "local-database-lint-evidence",
+        "digest": "sha256:d15790ab67aa7c4bd1c94854eb997b4c62209c423ad28fb0ca14b05b7180d355"
+      },
+      {
+        "id": 13306217007,
+        "name": "local-database-concurrency-evidence",
+        "digest": "sha256:25ffe2bb5b5306e35bf7a6cf8dd92e0db9407c0c2cee51b62f91146be95ccf99"
+      }
+    ]
+  },
+  "localTargetedChecks": {
+    "p10ComponentAndRouteFiles": 6,
+    "p10ComponentAndRouteTests": 96,
+    "compactMunicipalityHeaderRechecked": true,
+    "exactMenuExpectationFixTests": 70,
+    "fullStrictTypecheck": true,
+    "independentCodeReview": "no concrete blocking findings"
+  },
+  "boundaries": {
+    "browserAcceptanceInSeparateReceipt": true,
+    "physicalIphoneAcceptance": false,
+    "latestPr45And46Integrated": false,
+    "productionChanged": false,
+    "activeStagingTrafficChanged": false,
+    "fullHostedRecovery": false,
+    "originalStorageBytesRestored": false,
+    "overallGoalComplete": false
+  }
+}

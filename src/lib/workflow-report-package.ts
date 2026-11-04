@@ -1,4 +1,4 @@
-import type { ReportRevision } from "./report-document";
+import { reportWorkOrderDataBasis, type ReportRevision } from "./report-document";
 import type { ReportImage } from "@/services/report-assets";
 import { WorkflowReportSnapshotSchema } from "./workflow-report";
 import { generateReportFile, zipFiles } from "./report-export";
@@ -34,6 +34,8 @@ export async function buildWorkOrderReportPackage(
 ) {
   const approval = revision.content.workOrderApproval;
   if (!approval) throw new Error("Rapporten mangler en fastholdt faglig godkendelse.");
+  const source = reportWorkOrderDataBasis(revision.content);
+  const classified = source && source.kind !== "unknown";
   const originals: Record<string, Uint8Array> = {};
   if (signOriginal) {
     if (!revision.content.sources.length || revision.content.sources.length > 100)
@@ -90,13 +92,16 @@ export async function buildWorkOrderReportPackage(
   return buildReportPackage(
     revision,
     [],
-    "freyra.work-order-report-package/v1",
+    classified ? "freyra.work-order-report-package/v2" : "freyra.work-order-report-package/v1",
     approval,
     "Pakken indeholder den gemte rapport, referencer til aflevering og gennemgang samt originalernes kildereferencer.\n" +
       (signOriginal
         ? "Originalmappen indeholder de verificerede filer navngivet efter dokumentationsreferencen.\n"
         : "Originalfilerne åbnes via opgaven i GoFreyra med aktuel adgang.\n") +
-      "Rapportens egen status fremgår af PDF og rapportversionen.\n",
+      "Rapportens egen status fremgår af PDF og rapportversionen.\n" +
+      (classified
+        ? `${source.label}. ${source.description}\nUdførelseskilde: ${approval.executionRevisionId}\n`
+        : ""),
     originals,
   );
 }
@@ -104,7 +109,10 @@ export async function buildWorkOrderReportPackage(
 async function buildReportPackage(
   revision: ReportRevision,
   images: ReportImage[],
-  schema: "freyra.workflow-package/v1" | "freyra.work-order-report-package/v1",
+  schema:
+    | "freyra.workflow-package/v1"
+    | "freyra.work-order-report-package/v1"
+    | "freyra.work-order-report-package/v2",
   inputs: NonNullable<
     ReportRevision["content"]["workflowSnapshot"] | ReportRevision["content"]["workOrderApproval"]
   >,

@@ -5,6 +5,7 @@ import { useBlocker } from "@tanstack/react-router";
 import { getProjectWorkOrderAccess } from "@/lib/work-order-access.functions";
 import {
   getProjectWorkOrderEvidenceOriginal,
+  getProjectWorkOrderCapturedPhotoOriginal,
   listProjectWorkOrderEvidence,
   listProjectWorkOrderEvidenceSources,
   listProjectWorkOrderEvidenceExecutions,
@@ -54,6 +55,7 @@ export function WorkOrderEvidencePanel({
   const executionsFn = useServerFn(listProjectWorkOrderEvidenceExecutions);
   const saveFn = useServerFn(saveProjectWorkOrderEvidence);
   const originalFn = useServerFn(getProjectWorkOrderEvidenceOriginal);
+  const capturedOriginalFn = useServerFn(getProjectWorkOrderCapturedPhotoOriginal);
   const task = { ...scope, actionId };
   const key = ["work-order-evidence", actorId, scope.organizationId, scope.projectId, actionId];
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -97,21 +99,23 @@ export function WorkOrderEvidencePanel({
     refetchOnWindowFocus: !locked,
     refetchOnReconnect: !locked,
   });
-  function useSources(kind: "observation" | "photo") {
+  function useSources(kind: "observation" | "photo" | "task_photo") {
     return useInfiniteQuery({
       queryKey: [...key, "sources", kind],
       initialPageParam: null as string | null,
       queryFn: ({ pageParam }) =>
         sourcesFn({ data: { ...task, kind, afterId: pageParam, pageSize: 20 } }),
       getNextPageParam: (page) => page.nextAfterId ?? undefined,
-      enabled: writable && !!draft && draft.state === "attached",
+      enabled:
+        kind === "task_photo" ? authorized : writable && !!draft && draft.state === "attached",
       retry: false,
       refetchOnWindowFocus: !locked,
       refetchOnReconnect: !locked,
     });
   }
   const observations = useSources("observation"),
-    photos = useSources("photo");
+    photos = useSources("photo"),
+    capturedPhotos = useSources("task_photo");
   const executions = useInfiniteQuery({
     queryKey: ["work-order-evidence-executions", actorId, task],
     initialPageParam: null as string | null,
@@ -141,13 +145,14 @@ export function WorkOrderEvidencePanel({
     row?: EvidenceVersion,
     withdraw = false,
     observationVersionId = row?.observation_version_id ?? "",
+    uploadId = row?.upload_id ?? "",
   ) {
     if (!writable || locked) return;
     setDraft({
       evidenceId: row?.evidence_id ?? crypto.randomUUID(),
       expectedVersion: row?.version ?? 0,
       observationVersionId,
-      uploadId: row?.upload_id ?? "",
+      uploadId,
       executionRevisionId: row?.execution_revision_id ?? null,
       state: withdraw ? "withdrawn" : "attached",
       reason: "",
@@ -191,13 +196,15 @@ export function WorkOrderEvidencePanel({
       if (alive.current) setBusy(false);
     }
   }
-  async function openOriginal(row: EvidenceVersion) {
+  async function openOriginal(row: { id: string }, captured = false) {
     if (!authorized || inFlight.current) return;
     inFlight.current = true;
     setOpening(true);
     setError("");
     try {
-      const result = await originalFn({ data: { ...task, id: row.id, expectedActorId: actorId } });
+      const result = await (captured ? capturedOriginalFn : originalFn)({
+        data: { ...task, id: row.id, expectedActorId: actorId },
+      });
       if (!alive.current) return;
       // The URL is short-lived and never placed in query storage, persistent state or metadata.
       const link = document.createElement("a");
@@ -240,6 +247,75 @@ export function WorkOrderEvidencePanel({
             Kontrollér igen
           </button>
         </div>
+      )}
+      {authorized && (
+        <section aria-label="Fotos optaget til opgaven" className="space-y-3 rounded-xl border p-3">
+          <h4 className="font-medium">Fotos optaget til opgaven</h4>
+          <p className="text-sm text-muted-foreground">
+            Her vises modtagne og kontrollerede originaler fra opgavens feltindgang. Vælg en gemt
+            registrering for at bruge et foto i afleveringen.
+          </p>
+          {capturedPhotos.isPending && <p role="status">Henter opgavens fotos…</p>}
+          {capturedPhotos.isError ? (
+            <div>
+              <p role="alert">
+                Opgavens fotos kunne ikke hentes. Tidligere fotos og en åben kladde bevares.
+              </p>
+              <button
+                className={button}
+                disabled={locked}
+                onClick={() => void capturedPhotos.refetch()}
+              >
+                Hent opgavens fotos igen
+              </button>
+            </div>
+          ) : (
+            <>
+              {capturedPhotos.isSuccess && !capturedPhotos.data.pages[0].items.length && (
+                <p className="text-sm">
+                  Ingen modtagne opgavefotos endnu. Fotos i telefonens kø vises her efter
+                  synkronisering og kontrol.
+                </p>
+              )}
+              <ul className="space-y-2">
+                {capturedPhotos.data?.pages
+                  .flatMap((page) => page.items)
+                  .map((photo) => (
+                    <li key={photo.id} className="space-y-2 rounded-lg border p-3">
+                      <p className="font-medium">{photo.label}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          className={button}
+                          disabled={locked}
+                          onClick={() => void openOriginal(photo, true)}
+                        >
+                          Åbn optaget original: {photo.label}
+                        </button>
+                        {writable && (
+                          <button
+                            className={button}
+                            disabled={locked || history.isError || history.isPending}
+                            onClick={() => edit(undefined, false, correction?.id ?? "", photo.id)}
+                          >
+                            Knyt til registrering: {photo.label}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+              {capturedPhotos.hasNextPage && (
+                <button
+                  className={button}
+                  disabled={locked || capturedPhotos.isFetching}
+                  onClick={() => void capturedPhotos.fetchNextPage()}
+                >
+                  Flere opgavefotos
+                </button>
+              )}
+            </>
+          )}
+        </section>
       )}
       {authorized && !history.isError && (
         <div className="space-y-4">

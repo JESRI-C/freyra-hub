@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.9 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.15 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
 kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
@@ -8,6 +8,25 @@ driftsarbejde. Én sammenhængende sag viser, hvad der skal gøres og hvorfor,
 hvad der faktisk er gjort, hvordan naturen udvikler sig, og hvad der skal
 følges op på. Grundlaget er Jespers arbejdsinstruks **GoFreyra – slutmål og
 arbejdsinstruks med RES (Reverse Engineering)** i denne udviklingstråd.
+
+**Kvalitetsmål for helheden:** Programmet skal være gennemarbejdet i funktion,
+design og brug på niveau med førende SaaS-systemer. Formål, næste handling,
+gemmestatus og vej videre efter en fejl skal kunne forstås uden udviklerhjælp.
+Fælles ordvalg, navigation, tilgængelighed og ydelse vurderes gennem de samme
+rolleforløb på computer og fysisk telefon. Dinero er en reference for enkel
+betjening; en bestået teknisk prøve dokumenterer ikke lighed i brugeroplevelse.
+
+**Kontrol af det nye slutmål, 4. november:** Det aktive mål gælder programmet
+i sin helhed. Acceptregnskabet skal derfor omfatte alle kortlagte arbejdsgange,
+Skyhost-krav og Freyra-fagmoduler. Hver del skal vise sin faktiske status,
+kravkilde, acceptkriterium, gentagelige prøve og bevis på den konkrete version.
+Planlagte, delvist samlede eller uprøvede dele forbliver åbne i slutmålet.
+En afgrænsning af den samlede leverance kræver en produktbeslutning fra Jesper.
+For hvert rolleforløb skal en ny bruger kunne finde næste handling, forstå
+status og gemt resultat, genoptage en kladde og komme videre efter en fejl
+uden udviklerhjælp. Det efterprøves på computer og fysisk telefon med bevaret
+sagskontekst, tastaturbetjening og læsbare statusser. Dinero bruges som
+kvalitetsreference; sammenlignelig brugervenlighed er endnu ikke dokumenteret.
 
 Projektlederen kan afgrænse området, beskrive førtilstand og mål, planlægge
 og tildele arbejdet og følge status. Feltmedarbejderen kan finde opgaven og
@@ -44,12 +63,88 @@ på samme identificerede kandidat, inklusive adgang, fejlhåndtering, rapporters
 kildespor og gendannelse af både database og originalfiler. Kundens opstart,
 supportvej og leverede arbejdsgange skal være dokumenteret før salg og drift.
 
-**Næste kodepakke:** Før de valgte dokumentationskrav gennem feltets offlineforløb
-(S02/S04/D05c), og afstem metodeprofilernes krav med dokumenterede fagkilder.
-Derefter samlet kommunal accept af aflevering → faglig gennemgang → rapport → opfølgning.
-Eksisterende implementeringer og delprøver genbruges. Kontrollen af slutmålet
-ændrer ingen tidligere prøves status og er ingen ny teknisk eller faglig
-godkendelse; samlet fysisk mobil-, kunde- og driftsaccept er fortsat åben.
+**Seneste afprøvede kandidat:** [Mine opgavers feltforløb](MINE_OPGAVER_FELTFORLOEB_2026-11-04.md)
+samler eksisterende handoff og mediefejlisolation med PR46's opgavefotos og
+offlinepakke. Kilde `3ba51b1`, draft PR48 og separat Worker `0ebf0053`.
+[CI 41798870264](https://github.com/JESRI-C/freyra-hub/actions/runs/41798870264)
+består med 3.607 appprøver/269 filer og 1.910 DB-kontroller/28 filer,
+samtidighed, gendannelse, typecheck, lint og build. [Hosted 2ebb507c](field-task-handoff-staging-receipt-2026-11-04.json)
+består fra Mine opgaver som feltbruger uden can_plan: offlinefoto/jobkort,
+originalhash, UI-udførelse, to UI-koblinger og UI-aflevering, derefter SDK-
+review og rapport samt browser/PDF. Egne sessioner og midlertidige rettigheder
+er læst tilbage som lukket/ikke aktive. Aktiv staging er fortsat `4be325d`.
+
+**Seneste afprøvede rapportkandidat:** [Registreringstype fra den frosne aflevering](RAPPORT_REGISTRERINGSTYPE_2026-11-04.md)
+er rettet i PR49 oven på PR48. Nye rapporter fastholder synthetic/demo/real og
+præcis udførelsesversion i UI/eksport; ældre rapporter og eksportbytes bevares.
+Kilde `12d348b1`, separat Worker `6b7b1177` og stagingmigration `20261104091051`
+med SQL-MD5 `adbc58e3d1285347e6d6b626379d97fc`. CI `41804257496` består:
+3.623 appprøver/270 filer og 1.915 DB-kontroller/28 filer inkl. faktisk
+samtidighed og gendannelse. [Hosted bc2887fb](report-source-classification-staging-receipt-2026-11-04.json)
+består fra Mine opgaver til rapport. UI 390/1280 px og faktisk PDF viser den
+frosne type. Den tidligere rapport har uændret række/indhold og identiske
+PDF-bytes efter genåbning. Egne sessioner og midlertidige rettigheder er
+ryddet op og efterkontrolleret. Aktiv apptrafik er fortsat `4be325d`.
+
+**Aktuel kodepakke:** [Fælles kommunal kandidat](FAELLES_KANDIDAT_2026-11-04.md)
+samler nu PR47's manager/P9/P10/P11 og supplerende ACL-/gendannelsesprøver
+med PR48/PR49's nyere felt-/offline-/rapportkode på den isolerede gren
+`codex/combined-municipal-workflow`. Grundlag `20e58564` og `3c5c2f3`,
+inklusive den afleverede statusnavigation `b5cf82b`. De seks konflikter er
+løst med bevaret nyere feltkode og alle 68 krav. Kandidat `941fdb19` har
+bestået GitHub-CI `41810930503`: 3.868 appprøver/282 filer, 2.212 DB-kontroller/
+31 filer samt migrationsafspilning, faktisk samtidighed og ACL-restore.
+GitHub-stagingartifact og bundle-guard består. Separat Worker `5a4a3843`
+viser præcis samme kilde; aktiv `94906bdf` er læst uændret før/efter upload.
+Samlet hosted rolleprøve er fortsat åben. Aktiv trafik
+flyttes først efter den aftalte fælles prøve. Gamle læsere kan ignorere
+rapportklassifikationen; den nye rapportlæser er bevaret i kandidaten.
+Synlig kommune/sag, et tydeligt Dokumentation-trin, forståelige
+rapportstatusser og fysisk/uassisteret brugeraccept er fortsat åbne.
+
+**Arbejdspakkens oprindelige krav:** Genbrug den allerede udviklede feltindgang i Mine opgaver
+fra den parallelle, committede MyWorkOrders (3af288a/9af245d). En feltbruger
+uden can_plan skal kunne åbne kamera og udførelse på den valgte opgave,
+når eksisterende getFieldJobAccess bekræfter samme aktør/projekt og bidragsadgang.
+Eksterne uden den adgang får ingen aktiv projektfotohandling. PR46s nyere
+opgaveskift, offlinekladder og fotobinding bevares. Test næste forløb fra
+Mine opgaver, ikke kun et direkte feltlink. Handoff og mediefejlisolation
+5228aade er nu genbrugt og efterprøvet i PR48; fælles brugeroplevelseskrav følger.
+Faglige metodeprofiler, fysisk telefon, kunde- og driftsaccept er fortsat åbne.
+
+**Seneste tekniske leverance, 4. november:** [Den fælles opgavefotoindgang](OPGAVE_FOTO_FELTINDGANG.md)
+er på staging som appkilde `4be325d`, Worker
+`94906bdf-e10d-4847-98c2-ad183b625b0f` og migration `20261104064006`.
+[CI 41785790191](https://github.com/JESRI-C/freyra-hub/actions/runs/41785790191)
+består med 3.587 appprøver og 1.910 databasekontroller, inklusive faktisk
+samtidighed og database-restore. Den [hosted tekniske prøve](field-task-photo-staging-receipt-2026-11-04.json)
+består på samme kandidat: synlig opgave og svar efter offline luk/genåbn,
+mistet uploadsvar uden dublet, to krævede jobkort, originalåbning med samme
+SHA-256, udførelse, dokumentation, eksplicit aflevering, uafhængigt teknisk
+review og rapport/PDF. Browser- og API-trin er angivet særskilt. Fire egne
+sessioner og de midlertidige rettigheder er læst tilbage som lukket/ikke aktive.
+Ingen merge eller produktion. [Teknisk kvittering](field-task-photo-technical-receipt-2026-11-04.json).
+
+En [særskilt telefonprøve](field-task-phone-ready-2026-11-04.json) er klargjort
+til Jespers eksisterende testkonto med plan og tildeling version 2. Der er
+ingen feltsvar, fotos eller udførelse. En læsende offlinegenåbning og fire
+viewportoptagelser ved 390 px består. [Telefonvejledningen](TELEFONPROEVE_OPGAVER_2026-11-02.md)
+har de konkrete indgange. Fysisk kamera/GPS/HEIC og et uassisteret feltforløb
+fra Mine opgaver er fortsat åbne.
+
+**Tidligere teknisk leverance, 4. november:** [Offlinepakken med krævede jobkort](OPGAVE_DOKUMENTATIONSKRAV.md#offlinepakken-under-samling)
+er på staging som appkilde `90f0196`, Worker `4e90dcd9-055a-44c5-a336-36bc2f7e512c`
+og migration `20261104034102`. CI 41777119984 består med 3.562 appprøver og
+1.872 databasekontroller, inklusive faktisk samtidighed og database-restore.
+Alle 43 afgrænsede offlineprøver består. Den hosted genprøve med separat
+feltkonto bestod to jobkort, browserluk/genåbning, mistet svar uden dublet,
+ændret plan, bevaret konfliktkladde, genbrug af modtagne svar og tilbagekaldt
+adgang med læsbar blokeret kladde. Fire serverversioner og seks lokale
+registreringer er bevaret. Nul midlertidige feltmedlemskaber er læst tilbage.
+[Kvitteringen](offline-required-cards-staging-receipt-2026-11-04.json) afgrænser
+prøven og bevarer henvisning til fejl før rettelserne. Draft PR45 er ikke merget.
+Den samlede SaaS-brugeroplevelse kræver fortsat uassisterede rolleforløb på
+computer og fysisk telefon; tekniske delprøver erstatter ikke den accept.
 
 **Tidligere teknisk delprøve:** [50-brugerprøven](SAAS_50_BRUGERE_2026-11-03.md)
 afprøvede 50 forskellige konti i otte organisationer. Den fandt og rettede
@@ -889,7 +984,13 @@ Slutmålet er, at en kommune selv kan gennemføre en natur- og driftssag fra afg
 
 Skyhost beskriver arbejdsplanlægning, timeregistrering og GPS-billeddokumentation som praktiske arbejdsopgaver. Freyras regel er, at registreringerne åbnes fra den relevante opgave og føres tilbage til samme sag. Dineros vejledning starter med konkrete arbejdsopgaver og adskiller bilag, der afventer handling, fra bogførte bilag. Freyras regel er at vise afventende handling og gemt status dér, hvor den aktuelle rolle arbejder. [Skyhost Jobs og Geotag](https://skyhost.dk/kundeservice-erhverv/) · [Dineros introduktion](https://dinero.dk/support/godt-i-gang/)
 
-Næste pakke på den kritiske vej er S04/D05c. Start med at spore eksisterende skabelonkrav til de fastholdte registreringer i afleveringen. Brug derefter den eksisterende afleveringskontrol til at føre brugeren til manglende dokumentation og fastholde det kontrollerede kravgrundlag. Prøven skal åbne en gammel aflevering efter ændrede krav og kontrollere, at en ny aflevering bruger det nye grundlag.
+Næste pakke på den kritiske vej er S02/D03's naturlige feltindgang fra Mine
+opgaver for en udfører uden planlægningsadgang. Genbrug den committede og
+prøvede parallelle indgang med aktør-/projektbundet getFieldJobAccess.
+PR46s nye fotobinding og offlineversion bevares. Det direkte feltforløb er
+teknisk prøvet til rapport; næste brugerprøve skal begynde i opgavelisten.
+Derefter følger fælles mediefejlhåndtering, metodeprofilernes faglige krav
+og kommunens samlede accept.
 
 Registrér fire særskilte afgørelser med dato, ansvarlig, omfang og bevis. Teknikeren godkender system, adgang, fejlhåndtering og restore. Fagpersonen godkender metode, kilder og konklusioner. Kommunen godkender brugerforløb, fysisk mobil og opstart. Produktejeren træffer produktionsbeslutning med de tre godkendelser og dokumenteret supportberedskab som grundlag.
 

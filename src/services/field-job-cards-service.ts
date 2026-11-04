@@ -3,7 +3,11 @@ import { WorkOrderEstimatedHoursSchema } from "@/lib/work-order-plan";
 import { CalendarDate } from "@/lib/action-execution";
 import { WorkOrderActionIdSchema } from "@/lib/work-order-access";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase/client";
+import { createActorBoundSupabaseClient, supabase } from "@/lib/supabase/client";
+import {
+  parseProjectWorkOrderAction,
+  type ProjectWorkOrderAction,
+} from "@/lib/project-work-order-status";
 import { assertProjectScope, type ProjectScope } from "./project-workspace-service";
 import {
   FieldJobTemplateDefinitionSchema,
@@ -39,35 +43,91 @@ function scopeRow<T extends { project_id: string; organization_id: string }>(
     throw new Error("Jobkortet tilhører en anden sag.");
   return row;
 }
-const fieldJobAction = z.object({
-  id: WorkOrderActionIdSchema,
-  title: z.string(),
-  status: z.string().nullable(),
-  linked_indicator_id: z.string().uuid().nullish(),
-});
+async function verifiedFieldJobActor(expectedActorId?: string, signal?: AbortSignal) {
+  signal?.throwIfAborted();
+  if (!supabase) throw new Error("Database er ikke konfigureret.");
+  const { data, error } = await supabase.auth.getUser();
+  signal?.throwIfAborted();
+  if (error || !data.user || (expectedActorId && data.user.id !== expectedActorId))
+    throw new Error("Sessionen er ændret. Hent opgaverne igen med den aktuelle bruger.");
+  return uuid.parse(data.user.id);
+}
 
+/** Compatibility entry: derive the verified actor, never a caller-supplied session identity. */
 export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSignal) {
-  const db = await client(scope);
-  const actions: z.infer<typeof fieldJobAction>[] = [];
+  const actorId = await verifiedFieldJobActor(undefined, signal);
+  return listVerifiedFieldJobActions(scope, actorId, signal);
+}
+
+export async function listFieldJobActionsForActor(
+  scope: ProjectScope,
+  actorId: string,
+  signal?: AbortSignal,
+) {
+  uuid.parse(actorId);
+  await verifiedFieldJobActor(actorId, signal);
+  return listVerifiedFieldJobActions(scope, actorId, signal);
+}
+
+async function listVerifiedFieldJobActions(
+  scope: ProjectScope,
+  actorId: string,
+  signal?: AbortSignal,
+) {
+  uuid.parse(scope.organizationId);
+  uuid.parse(scope.projectId);
+  signal?.throwIfAborted();
+  const db = createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
+  let projectQuery = db
+    .from("projects")
+    .select("id,organization_id")
+    .eq("id", scope.projectId)
+    .eq("organization_id", scope.organizationId);
+  if (signal) projectQuery = projectQuery.abortSignal(signal);
+  const project = await projectQuery.maybeSingle();
+  signal?.throwIfAborted();
+  const projectRow = z.object({ id: uuid, organization_id: uuid }).safeParse(project.data);
+  if (
+    project.error ||
+    !projectRow.success ||
+    projectRow.data.id !== scope.projectId ||
+    projectRow.data.organization_id !== scope.organizationId
+  )
+    throw new Error("Projektet findes ikke i den valgte organisation, eller adgang mangler.");
+  const actions: ProjectWorkOrderAction[] = [];
   const pageSize = 200;
   let afterId: string | undefined;
   for (;;) {
     signal?.throwIfAborted();
     let query = db
       .from("actions")
-      .select("id,title,status,action_type,linked_indicator_id")
+      .select(
+        "id,project_id,title,status,action_type,linked_indicator_id,work_orders(action_id,organization_id,project_id,life:work_order_lifecycle_versions(id,action_id,organization_id,project_id,version,status,blocked))",
+      )
       .eq("project_id", scope.projectId)
+      .eq("work_orders.organization_id", scope.organizationId)
+      .eq("work_orders.project_id", scope.projectId)
       .order("id")
-      .limit(pageSize);
+      .limit(pageSize)
+      .order("version", { referencedTable: "work_orders.life", ascending: false })
+      .limit(1, { referencedTable: "work_orders.life" });
     if (afterId) query = query.gt("id", afterId);
     if (signal) query = query.abortSignal(signal);
     const { data, error } = await query;
+    signal?.throwIfAborted();
     if (error) failure(error);
-    for (const row of data ?? []) {
-      if (row.action_type !== "workflow_followup") actions.push(fieldJobAction.parse(row));
+    if (!Array.isArray(data) || data.length > pageSize)
+      throw new Error("Arbejdsopgavernes status kunne ikke verificeres.");
+    for (const row of data) {
+      const action = parseProjectWorkOrderAction(row, scope);
+      if (afterId && action.id.toLowerCase() <= afterId.toLowerCase())
+        throw new Error("Arbejdsopgavernes rækkefølge kunne ikke verificeres.");
+      afterId = action.id;
+      if (row.action_type !== "workflow_followup") actions.push(action);
     }
-    if (!data || data.length < pageSize) return actions;
-    afterId = WorkOrderActionIdSchema.parse(data[data.length - 1].id);
+    if (data.length < pageSize) {
+      return actions;
+    }
   }
 }
 const scheduleRow = z.object({

@@ -329,6 +329,125 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
+  // Same local sessions and real lock witness, on an independent task.
+  const offlineAction = q(randomUUID());
+  const [offlineTemplate] = await query(
+    "SELECT json_build_object('id',id,'templateId',template_id,'version',version,'definition',definition) FROM public.field_job_template_versions WHERE id=" +
+      q(templateVersion) +
+      ";",
+  );
+  const offlinePlan = {
+    ...planValue,
+    requiredJobCards: [
+      {
+        templateVersionId: offlineTemplate.id,
+        templateId: offlineTemplate.templateId,
+        version: offlineTemplate.version,
+        definition: offlineTemplate.definition,
+      },
+    ],
+  };
+  const offlinePlanCall = (expected, reason) =>
+    "public.save_work_order_plan(" +
+    offlineAction +
+    "," +
+    org +
+    "," +
+    project +
+    "," +
+    expected +
+    "," +
+    q(JSON.stringify({ ...offlinePlan, instructions: reason })) +
+    "::jsonb," +
+    q(reason) +
+    "," +
+    q(randomUUID()) +
+    ")";
+  const [initialOfflinePlan] = await query(
+    "BEGIN; " +
+      login +
+      " INSERT INTO public.actions(id,project_id,title) VALUES(" +
+      offlineAction +
+      "," +
+      project +
+      ",'Synthetic offline concurrency'); SELECT * FROM public.initialize_work_order(" +
+      offlineAction +
+      "," +
+      org +
+      "," +
+      project +
+      ",0," +
+      q(randomUUID()) +
+      "); SELECT json_build_object('id',id) FROM " +
+      offlinePlanCall(0, "Synthetic first plan") +
+      "; COMMIT;",
+  );
+  const offlineRequest = randomUUID();
+  const offlineCall = (planId, request) =>
+    "public.save_field_job_version_for_plan(" +
+    org +
+    "," +
+    project +
+    "," +
+    offlineAction +
+    "," +
+    q(templateVersion) +
+    ",0,'{}'::jsonb,'draft','Synthetic offline visit'," +
+    q(request) +
+    "," +
+    q(planId) +
+    ")";
+  const changingPlan = await transaction(
+    "SELECT json_build_object('id',id) FROM " + offlinePlanCall(1, "Synthetic changed plan") + ";",
+    "OFFLINE_PLAN_HELD",
+  );
+  await changingPlan.marker("OFFLINE_PLAN_HELD");
+  const staleOffline = await transaction(
+    capture(offlineCall(initialOfflinePlan.id, randomUUID())),
+    "OFFLINE_STALE_DONE",
+  );
+  await actualLock(staleOffline, changingPlan);
+  await commit(changingPlan);
+  await staleOffline.marker("OFFLINE_STALE_DONE");
+  assert.equal(staleOffline.rows().find((row) => row.result)?.result, "PT409");
+  await commit(staleOffline);
+  const planTwo = changingPlan.rows().find((row) => row.id).id;
+  const acceptedOffline = await transaction(
+    "SELECT json_build_object('id',id) FROM " + offlineCall(planTwo, offlineRequest) + ";",
+    "OFFLINE_WRITE_HELD",
+  );
+  await acceptedOffline.marker("OFFLINE_WRITE_HELD");
+  const laterPlan = await transaction(
+    "SELECT json_build_object('id',id) FROM " + offlinePlanCall(2, "Synthetic later plan") + ";",
+    "OFFLINE_LATER_PLAN",
+  );
+  await actualLock(laterPlan, acceptedOffline);
+  await commit(acceptedOffline);
+  await laterPlan.marker("OFFLINE_LATER_PLAN");
+  await commit(laterPlan);
+  const recovered = await transaction(
+    "SELECT json_build_object('id',id) FROM " + offlineCall(planTwo, offlineRequest) + ";",
+    "OFFLINE_REPLY_RECOVERED",
+  );
+  await recovered.marker("OFFLINE_REPLY_RECOVERED");
+  assert.equal(
+    recovered.rows().find((row) => row.id).id,
+    acceptedOffline.rows().find((row) => row.id).id,
+  );
+  await commit(recovered);
+  const [offlineAfter] = await query(
+    "SELECT json_build_object('versions',count(*),'plan',min(required_plan_version_id::text)) FROM public.field_job_versions WHERE action_id=" +
+      offlineAction +
+      ";",
+  );
+  assert.deepEqual(offlineAfter, { versions: 1, plan: planTwo });
+  scenarios.push({
+    name: "offline_required_plan_change",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+    acceptedSourcePlanRetained: true,
+    lostReplyRecovered: true,
+  });
   const execution = {
     schema: "freyra.action-execution/v1",
     actionId: action.slice(1, -1),
@@ -637,6 +756,65 @@ try {
       initialPosition: { lat: 55, lng: 10 },
       correctionReason: "Synthetic manual position",
     },
+  });
+  const capturedTask = randomUUID(),
+    capturedUpload = randomUUID();
+  await query(`INSERT INTO public.actions(id,project_id,title) VALUES(${q(capturedTask)},${project},'Synthetic capture conflict task');
+    BEGIN;${login} SELECT * FROM public.initialize_work_order(${q(capturedTask)},${org},${project},0,${q(randomUUID())});COMMIT;`);
+  const capturedPayload = (task) =>
+    JSON.stringify({
+      ...JSON.parse(photoPayload),
+      workOrder: {
+        schema: "freyra.field-photo-work-order/v1",
+        organizationId: org.slice(1, -1),
+        actionId: task,
+        planVersionId: null,
+      },
+    });
+  const captureCall = (uploadId, task) =>
+    `public.begin_field_photo_upload(${project},${q(uploadId)},${q(capturedPayload(task))}::jsonb)`;
+  const capturedWinner = await transaction(
+    `SELECT json_build_object('id',id) FROM ${captureCall(capturedUpload, capturedTask)};`,
+    "CAPTURE_HELD",
+  );
+  await capturedWinner.marker("CAPTURE_HELD");
+  const capturedRetry = await transaction(
+    `SELECT json_build_object('id',id) FROM ${captureCall(capturedUpload, capturedTask)};`,
+    "CAPTURE_RETRY_DONE",
+  );
+  await actualLock(capturedRetry, capturedWinner);
+  await commit(capturedWinner);
+  await capturedRetry.marker("CAPTURE_RETRY_DONE");
+  assert.equal(capturedRetry.rows().find((row) => row.id)?.id, capturedUpload);
+  await commit(capturedRetry);
+  scenarios.push({
+    name: "identical_task_photo_intent_retry",
+    actualLockVerified: true,
+    oneOriginal: true,
+  });
+  const competingUpload = randomUUID();
+  const capturedFirst = await transaction(
+    `SELECT id FROM ${captureCall(competingUpload, capturedTask)};`,
+    "CAPTURE_TARGET_HELD",
+  );
+  await capturedFirst.marker("CAPTURE_TARGET_HELD");
+  const capturedOther = await transaction(
+    capture(captureCall(competingUpload, action.slice(1, -1))),
+    "CAPTURE_OTHER_DONE",
+  );
+  await actualLock(capturedOther, capturedFirst);
+  await commit(capturedFirst);
+  await capturedOther.marker("CAPTURE_OTHER_DONE");
+  assert.equal(capturedOther.rows().find((row) => row.result)?.result, "22023");
+  await commit(capturedOther);
+  const [captureCount] = await query(
+    `SELECT json_build_object('count',count(*)) FROM public.field_photo_uploads WHERE id IN(${q(capturedUpload)},${q(competingUpload)});`,
+  );
+  assert.equal(captureCount.count, 2);
+  scenarios.push({
+    name: "task_photo_cannot_be_retargeted_concurrently",
+    actualLockVerified: true,
+    rejectedSqlstate: "22023",
   });
   const evidenceSetup = await query(`BEGIN; ${login}
     SELECT json_build_object('observationId',id) FROM public.save_field_job_version(${org},${project},${action},${q(templateVersion)},2,'{"note":"Synthetic recorded observation"}','recorded','Synthetic recorded correction',${q(randomUUID())});
@@ -1170,6 +1348,11 @@ try {
     "SUBMISSION_REVOKED_DONE",
   );
   await actualLock(revokedSubmission, revoke);
+  const revokedCapture = await transaction(
+    capture(captureCall(randomUUID(), capturedTask)),
+    "CAPTURE_REVOKED_DONE",
+  );
+  await actualLock(revokedCapture, revoke);
   await commit(revoke);
   await revokedWrite.marker("EVIDENCE_REVOKED_DONE");
   assert.equal(revokedWrite.rows().find((row) => row.result)?.result, "42501");
@@ -1184,6 +1367,14 @@ try {
   });
   scenarios.push({
     name: "membership_revocation_before_evidence_commit",
+    actualLockVerified: true,
+    deniedSqlstate: "42501",
+  });
+  await revokedCapture.marker("CAPTURE_REVOKED_DONE");
+  assert.equal(revokedCapture.rows().find((row) => row.result)?.result, "42501");
+  await commit(revokedCapture);
+  scenarios.push({
+    name: "membership_revocation_before_task_photo_intent",
     actualLockVerified: true,
     deniedSqlstate: "42501",
   });

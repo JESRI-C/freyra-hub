@@ -1,0 +1,93 @@
+{
+  "schema": "freyra.field-task-photo-staging/v1",
+  "result": "PASS",
+  "sourceRevision": "4be325d7253f02c915d5089ecb418d7e9e4d72ac",
+  "run": "65d462fa",
+  "projectId": "47f7c02f-1942-44b2-bc79-5b99da2e4ac8",
+  "actionId": "857eb632-e6ab-42be-9d96-0cd71e64503c",
+  "uploadId": "939cbfee-740e-436d-9914-6deae1ea99b7",
+  "capturedPlanId": "9838b9ad-cfec-4dfd-811d-05acbb94ef84",
+  "sha256": "36e87d203f6f0e07464741c767494fa280c3dbe02eca01e3a96af4d572b94beb",
+  "offlineCloseReopen": true,
+  "offlineTaskVisibleBeforeReconnect": true,
+  "lostUploadReplyRecoveredOnce": true,
+  "fieldAccountDistinct": true,
+  "originalOpenedAndHashMatched": true,
+  "requiredCards": 2,
+  "submissionId": "7a38d201-4cc4-4391-9b44-403ccd6e721c",
+  "reportId": "84a7e3ac-02b1-493d-b313-6f642fcfdcfa",
+  "reportWidths": [390, 1280],
+  "pdfSha256": "a4c6b4752949db93d32397e9e81c0d7d51491ee33878a9708f98bbf14c8cb6ec",
+  "physicalPhoneAccepted": false,
+  "temporaryFieldMembershipsRemaining": 0,
+  "temporaryReviewGrantsRemaining": 0,
+  "ownSessionsRevoked": true,
+  "workerVersion": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+  "databaseMigration": "20261104064006",
+  "databaseSqlFingerprintMd5": "ac712439ec632085a9d47aa8ebb45ebf",
+  "cleanupVerifiedByDatabase": {
+    "fieldMemberships": 0,
+    "activeReviewGrants": 0,
+    "ownSessions": 0
+  },
+  "interactionScope": {
+    "browser": [
+      "normal login",
+      "download exact offline pack",
+      "capture synthetic PNG via file input",
+      "complete two required job cards",
+      "close and reopen browser offline",
+      "visible selected task, zero/false and three queue entries before reconnect",
+      "lose finalization response after accepted upload",
+      "retry same photo once",
+      "open exact original and compare SHA-256",
+      "open same report version at 390/1280 px",
+      "download PDF"
+    ],
+    "sdk": [
+      "synthetic fixture and assignment",
+      "actual execution record",
+      "two explicit evidence associations",
+      "lifecycle transitions and explicit submission",
+      "independent technical review",
+      "idempotent saved report"
+    ]
+  },
+  "notAccepted": [
+    "physical camera/GPS/HEIC",
+    "unassisted municipal user journey",
+    "external upload without project contribution",
+    "professional validity of nature methods",
+    "full product and production acceptance"
+  ],
+  "earlierAttempts": [
+    {
+      "run": "29a21fe3",
+      "result": "browser login navigation aborted; own cleanup completed"
+    },
+    {
+      "run": "13ffddc9",
+      "result": "probe used an incorrect exact accessible name for Status; original retained locally; own cleanup completed"
+    },
+    {
+      "run": "37d390a6",
+      "result": "offline-to-packet passed; fixture lacked explicit reviewer permission; own cleanup completed"
+    },
+    {
+      "run": "be42bc68",
+      "result": "probe omitted explicit submit and mishandled history lookahead; corrective cleanup verified zero own sessions/temporary memberships and inactive review grant"
+    },
+    {
+      "run": "3133c842",
+      "result": "whole technical workflow passed; offline screenshot was before paint"
+    },
+    {
+      "run": "66fc7f7e",
+      "result": "test Chrome launch timed out before capture; own cleanup completed"
+    },
+    {
+      "run": "7f7a971f",
+      "result": "offline UI loaded; probe used an incorrect exact accessible name for task selector; own cleanup completed"
+    }
+  ]
+}

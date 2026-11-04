@@ -1,0 +1,40 @@
+{
+  "schema": "freyra.observation-draft-server-readback/v1",
+  "sourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+  "method": "Read-only database queries before and after normal UI first-plan save; separate from SDK authorization evidence.",
+  "checks": {
+    "exactTask": true,
+    "onePlan": true,
+    "oneJob": true,
+    "twoSources": true,
+    "sameSourceHashes": true,
+    "sameDescription": true
+  },
+  "before": {
+    "planVersions": 0,
+    "lifecycleVersions": 1,
+    "canonicalStatus": "draft"
+  },
+  "after": {
+    "title": "TEST · Observation til arbejdsordre f9c31445 · browser",
+    "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+    "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+    "sourceCount": 2,
+    "planVersions": 1,
+    "canonicalStatus": "draft",
+    "evidenceVersions": 0,
+    "savedDescription": "Syntetisk brugerprøve. Planlæg en besigtigelse ud fra de to valgte feltobservationer; afklar sted før udførelse. Ingen faktisk naturindsats.",
+    "sourceReferences": [
+      {
+        "sourceHash": "7ddeb8a890543110db6e5ee27c0513248e2f929583a5400e34a058aaba3a87da",
+        "observationId": "8719ffc7-830c-4e0a-aa0f-0fe7aa1977e0"
+      },
+      {
+        "sourceHash": "4ead14c1a32f3256f479a7a79cb1f5f22775664a6d28488dce64fe0765065caa",
+        "observationId": "8ff94397-a54d-4c41-8d29-b3403097a8bb"
+      }
+    ],
+    "latestPlanVersion": 1,
+    "matchingTitleJobs": 1
+  }
+}

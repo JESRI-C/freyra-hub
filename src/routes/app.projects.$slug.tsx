@@ -93,6 +93,7 @@ import { generateProjectReportPreview, getRecommendedNextAction } from "@/lib/re
 import { listProjectMedia } from "@/services/project-media-service";
 import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
 import { ProjectMediaGallery } from "@/components/project-workspace/ProjectMediaGallery";
+import { ProjectMediaAvailabilityNotice } from "@/components/project-workspace/ProjectMediaAvailabilityNotice";
 import { ProjectPhotoAtlas } from "@/components/project-workspace/ProjectPhotoAtlas";
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
@@ -202,6 +203,7 @@ function ProjectPage() {
     <ProjectWorkspaceShell
       key={`${user?.id ?? "anonymous"}:${slug}`}
       view={view}
+      taskFocused={view.kind === "tab" && view.id === "handlinger" && !!search.task}
       onNavigate={(next) => void navigate({ search: projectViewSearch(search, next) })}
       renderTab={(tab) => <ProjectDetailPage activeTab={tab} />}
       renderStep={(step) => <MunicipalProjectPage step={step} />}
@@ -369,18 +371,27 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
   // A project has "real" geometry only when a polygon has been drawn or uploaded —
   // a centroid alone (from location name) is not enough to run area-based analyses.
   const hasRealGeometry = validateProjectPolygon(project?.geometry_polygon).valid;
-  const {
-    data: mediaItems,
-    error: mediaError,
-    isFetching: mediaLoading,
-  } = useSuspenseQuery({
-    queryKey: ["project-media", projectId],
+  const mediaQuery = useQuery({
+    queryKey: ["project-media", projectId, accessUser?.id, project?.organization_id],
+    enabled: !!projectId,
+    retry: false,
+    throwOnError: false,
     queryFn: async () => {
       const result = await listProjectMedia(projectId);
-      if (result.error) throw new Error("Projektets medier kunne ikke hentes. Prøv igen senere.");
-      return result.data ?? [];
+      if (result.error || result.data === null)
+        throw new Error("Projektets medier kunne ikke hentes. Prøv igen senere.");
+      return result.data;
     },
   });
+  const mediaItems = mediaQuery.data;
+  const mediaReady = mediaQuery.isSuccess && !mediaQuery.isError && !mediaQuery.isFetching;
+  const mediaNotice = (
+    <ProjectMediaAvailabilityNotice
+      failed={mediaQuery.isError}
+      fetching={mediaQuery.isFetching}
+      onRetry={() => void mediaQuery.refetch()}
+    />
+  );
   const droneUploadsQuery = useQuery({
     queryKey: ["drone-upload-map-overview", projectId],
     queryFn: () => getDroneUploadMapOverview(projectId),
@@ -412,8 +423,6 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
     setSelectedIndicatorId(ind.id);
     setIndicatorDetailOpen(true);
   };
-  // A failed background media refresh must not feed stale/empty evidence to the report preview.
-  if (mediaError) throw mediaError;
   if (!project) {
     return <div className="p-6 text-center text-muted-foreground">Projekt ikke fundet.</div>;
   }
@@ -453,29 +462,33 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
   // Generated sensor readings are available only in explicit offline demo.
   const sensors: ReturnType<typeof getProjectSensors> = [];
   // Report preview
-  const reportPreview = generateProjectReportPreview({
-    project,
-    sites,
-    dataSources,
-    indicators,
-    observations,
-    actions: localActions,
-    auditEvents,
-    evidenceFiles,
-    mediaItems,
-    sensors,
-  });
-  const nextAction = getRecommendedNextAction(
-    project,
-    indicators,
-    localActions,
-    mediaItems,
-    sensors,
-  );
+  const reportPreview =
+    mediaReady && mediaItems !== undefined
+      ? generateProjectReportPreview({
+          project,
+          sites,
+          dataSources,
+          indicators,
+          observations,
+          actions: localActions,
+          auditEvents,
+          evidenceFiles,
+          mediaItems,
+          sensors,
+        })
+      : null;
+  const nextAction =
+    mediaReady && mediaItems !== undefined
+      ? getRecommendedNextAction(project, indicators, localActions, mediaItems, sensors)
+      : null;
   const sensorActions = suggestSensorActions(sensors);
+  const taskFocused = activeTab === "handlinger" && !!search.task;
   return (
-    <main className="min-w-0 p-3 sm:p-6 max-w-[1200px] w-full mx-auto space-y-4 sm:space-y-5 pb-16">
+    <main
+      className={`min-w-0 px-3 pb-16 sm:px-6 max-w-[1200px] w-full mx-auto space-y-4 sm:space-y-5 ${taskFocused ? "pt-0" : "pt-3 sm:pt-6"}`}
+    >
       <ProjectHeader
+        compact={taskFocused}
         showDescription={activeTab !== "overblik"}
         canEdit={canEdit}
         project={project}
@@ -566,7 +579,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                       <Activity className="h-5 w-5 text-primary shrink-0" />
                       <div>
                         <div className="text-xs text-muted-foreground">Anbefalet næste skridt</div>
-                        <div className="text-sm font-medium">{nextAction}</div>
+                        <div className="text-sm font-medium">{nextAction ?? mediaNotice}</div>
                       </div>
                     </Card>
 
@@ -937,6 +950,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
             {/* ── Medier ─────────────────────────────────────────────────── */}
             {active === "medier" && (
               <>
+                {!mediaReady && mediaNotice}
                 <Link
                   to="/felt"
                   search={{ project: projectId, round: search.round, task: search.task }}
@@ -972,7 +986,8 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                         organizationName={currentOrg?.name ?? "Organisation ikke valgt"}
                         purpose={project.description ?? ""}
                         canEdit={canEdit}
-                        media={mediaItems}
+                        media={mediaItems ?? []}
+                        mediaAvailable={mediaReady}
                       />
                     ) : (
                       <p className="rounded-lg border p-4">
@@ -987,12 +1002,14 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                         geometry={geometry}
                         projectName={project.name}
                         height={280}
-                        mediaItems={mediaItems.filter((m) => !!m.coordinates)}
+                        mediaItems={
+                          mediaReady ? mediaItems?.filter((m) => !!m.coordinates) : undefined
+                        }
                       />
                     </div>
                   )}
                   <div className="min-w-0 lg:col-start-1">
-                    <ProjectMediaGallery items={mediaItems} isLoading={mediaLoading} />
+                    {mediaReady && mediaItems && <ProjectMediaGallery items={mediaItems} />}
                   </div>
                 </div>
               </>
@@ -1033,7 +1050,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                   </summary>
                   <div className="mt-4 space-y-4">
                     <ProjectReportRecords projectId={projectId} reports={reports} />
-                    <ReportPreviewCard preview={reportPreview} />
+                    {reportPreview ? <ReportPreviewCard preview={reportPreview} /> : mediaNotice}
                     <DokumentationTab
                       projectId={projectId}
                       project={project}
@@ -1086,6 +1103,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
             {/* ── Livekort ────────────────────────────────────────────────── */}
             {active === "livekort" && (
               <div className="space-y-4">
+                {!mediaReady && mediaNotice}
                 {environmentalQuery.isError && (
                   <div role="alert" className="space-y-2">
                     <p>
@@ -1116,7 +1134,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                   projectName={project.name}
                   projectId={projectId}
                   height={500}
-                  mediaItems={mediaItems}
+                  mediaItems={mediaReady ? mediaItems : undefined}
                   droneUploadPoints={droneUploadOverview?.points ?? []}
                   sensors={sensors}
                   dmiData={

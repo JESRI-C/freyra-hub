@@ -1,0 +1,91 @@
+{
+  "schema": "freyra.manager-queue-api-smoke/v1",
+  "startedAt": "2026-11-04T04:33:33.408Z",
+  "environment": "staging",
+  "stagingRefVerified": true,
+  "apiOnly": true,
+  "browserUsed": false,
+  "serviceRoleUsed": false,
+  "workflowWrites": 0,
+  "grantsCreated": 0,
+  "authUsersCreated": 0,
+  "checks": {
+    "managerAuthenticated": true,
+    "queueScopeAndActor": true,
+    "projectsAndPeoplePresent": true,
+    "nonAssigneeScheduleIncluded": true,
+    "pagination": {
+      "sentinel": true,
+      "exclusiveCursor": true,
+      "noSkippedOrRepeatedTask": true,
+      "catalogStable": true
+    },
+    "literalSearch": [
+      {
+        "character": "%",
+        "onlyLiteralMatches": true,
+        "returned": 0
+      },
+      {
+        "character": "_",
+        "onlyLiteralMatches": true,
+        "returned": 0
+      },
+      {
+        "character": "\\",
+        "onlyLiteralMatches": true,
+        "returned": 0
+      }
+    ],
+    "canonicalStatusFilters": true,
+    "externalAuthenticated": true,
+    "externalManagerQueueDenied": {
+      "code": "42501",
+      "noRowsReturned": true
+    }
+  },
+  "cases": [
+    {
+      "kind": "required-card-approved",
+      "exactTaskMatched": true,
+      "latestPlanMatched": true,
+      "latestAssignmentMatched": true,
+      "canonicalStatus": "approved",
+      "notAssignedToManager": false,
+      "syntheticTitleChecked": true
+    },
+    {
+      "kind": "legacy-submitted",
+      "exactTaskMatched": true,
+      "latestPlanMatched": true,
+      "latestAssignmentMatched": true,
+      "canonicalStatus": "submitted",
+      "notAssignedToManager": false,
+      "syntheticTitleChecked": true
+    },
+    {
+      "kind": "scheduled",
+      "exactTaskMatched": true,
+      "latestPlanMatched": true,
+      "latestAssignmentMatched": true,
+      "canonicalStatus": null,
+      "notAssignedToManager": true,
+      "syntheticTitleChecked": true
+    }
+  ],
+  "cleanup": {
+    "sessionsSignedOut": [
+      true,
+      true
+    ],
+    "noUsersOrGrantsToRemove": true
+  },
+  "outcome": "passed",
+  "finishedAt": "2026-11-04T04:33:39.558Z",
+  "preflightCommandPassed": true,
+  "sourceRevision": "5e6bb56fe95563ab7d2d06c0cec04a20072aed68",
+  "migrationFile": "supabase/migrations/20261104042234_manager_work_order_overview.sql",
+  "migrationFileSha256": "dacfce120836847e00b7f384d4c8e2a99ff295096391daa97272a3e5f1e46e0d",
+  "metadataCollectedAt": "2026-11-04T04:34:41.763Z",
+  "apiBoundary": "Normal authenticated supabase-js createClient with staging publishable key; existing-user sign-in, read-only RPCs, local-session sign-out; no service role, browser, grant or workflow mutation."
+}
