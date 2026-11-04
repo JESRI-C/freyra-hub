@@ -335,23 +335,31 @@ it("guides project managers from a scheduled task without a responsible person t
   expect(m.navigate).toHaveBeenCalledWith("first");
 });
 
-it("shows review attention in the plan overview and opens the matching submission", async () => {
-  m.schedule.mockResolvedValue({
-    first: { start: "2099-01-02", end: null, reviewStatus: "returned" },
-    second: { start: "2099-01-03", end: null },
-  });
-  await render();
-  await click("Planoversigt");
-  expect(host.textContent).toContain("Returneret · Afventer rettelse");
-  const filter = [...host.querySelectorAll("label")]
-    .find((label) => label.textContent?.includes("Kun afleveringer til gennemgang eller rettelse"))!
-    .querySelector("input")!;
-  await act(async () => filter.click());
-  expect(host.textContent).not.toContain(tasks[1].title);
-  expect(host.textContent).toContain(tasks[0].title);
-  await click("Se hvad der skal rettes");
-  expect(host.querySelector('[aria-label="Aflevering"]')?.textContent).toContain("first");
-});
+it.each([
+  ["returned", "Returneret · Afventer rettelse", "Se hvad der skal rettes"],
+  ["reopened", "Genåbnet · Klar til rettelse", "Fortsæt rettelsen"],
+] as const)(
+  "shows %s in the review filter and opens the matching submission",
+  async (reviewStatus, statusLabel, action) => {
+    m.schedule.mockResolvedValue({
+      first: { start: "2099-01-02", end: null, reviewStatus },
+      second: { start: "2099-01-03", end: null },
+    });
+    await render();
+    await click("Planoversigt");
+    expect(host.textContent).toContain(statusLabel);
+    const filter = [...host.querySelectorAll("label")]
+      .find((label) =>
+        label.textContent?.includes("Kun afleveringer til gennemgang eller rettelse"),
+      )!
+      .querySelector("input")!;
+    await act(async () => filter.click());
+    expect(host.textContent).not.toContain(tasks[1].title);
+    expect(host.textContent).toContain(tasks[0].title);
+    await click(action);
+    expect(host.querySelector('[aria-label="Aflevering"]')?.textContent).toContain("first");
+  },
+);
 
 it("opens the prerequisite plan directly from a waiting task", async () => {
   m.schedule.mockResolvedValue({

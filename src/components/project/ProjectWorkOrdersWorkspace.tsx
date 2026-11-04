@@ -58,6 +58,11 @@ type Part = WorkOrderView;
 type Editor = Part | "material-catalog";
 const parts = WORK_ORDER_PARTS;
 const taskPageSize = 40;
+const reviewAttention = {
+  submitted: { status: "Afleveret · Afventer faglig gennemgang", action: "Se afleveringen" },
+  returned: { status: "Returneret · Afventer rettelse", action: "Se hvad der skal rettes" },
+  reopened: { status: "Genåbnet · Klar til rettelse", action: "Fortsæt rettelsen" },
+} as const;
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
 const control = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background p-3 text-base";
@@ -854,6 +859,9 @@ function WorkOrders({
                 (!showSchedule || schedule.isSuccess) &&
                 visibleActions?.slice(0, taskLimit).map((a) => {
                   const plan = dates?.[a.id];
+                  const review = plan?.reviewStatus
+                    ? reviewAttention[plan.reviewStatus]
+                    : undefined;
                   const estimate = estimates.get(a.id);
                   const prerequisiteIds = dates?.[a.id]?.waitingForActionIds ?? [];
                   const prerequisites = prerequisiteIds.flatMap((id) => {
@@ -901,11 +909,9 @@ function WorkOrders({
                           {showSchedule && (
                             <span className="block text-sm text-muted-foreground">
                               {dates?.[a.id]?.cancelled ? "Aflyst" : scheduleLabel(dates?.[a.id])}
-                              {plan?.reviewStatus && (
+                              {review && (
                                 <span className="block font-medium text-foreground">
-                                  {plan.reviewStatus === "submitted"
-                                    ? "Afleveret · Afventer faglig gennemgang"
-                                    : "Returneret · Afventer rettelse"}
+                                  {review.status}
                                 </span>
                               )}
                               {canEdit && plan?.start && !plan.cancelled && !plan.responsibleId && (
@@ -944,16 +950,14 @@ function WorkOrders({
                         </span>
                         <span className="shrink-0 text-sm text-primary">Åbn →</span>
                       </button>
-                      {showSchedule && plan?.reviewStatus && (
+                      {showSchedule && review && (
                         <button
                           type="button"
                           className={button}
                           disabled={locked}
                           onClick={() => select(a.id, "submission")}
                         >
-                          {plan.reviewStatus === "submitted"
-                            ? "Se afleveringen"
-                            : "Se hvad der skal rettes"}
+                          {review.action}
                         </button>
                       )}
                       {showSchedule &&
