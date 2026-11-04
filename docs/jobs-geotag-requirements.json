@@ -587,18 +587,21 @@
       "code": [
         "src/services/field-photo-upload-service.ts",
         "src/services/field-photo-position-service.ts",
-        "src/services/field-offline-service.ts"
+        "src/services/field-offline-service.ts",
+        "src/components/project/FieldOfflineWorkspace.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
+        "supabase/migrations/20261104034102_offline_required_job_card_plan_binding.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
-        "src/services/__tests__/field-offline-sync.test.ts"
+        "src/services/__tests__/field-offline-sync.test.ts",
+        "scripts/test-offline-required-cards-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Mobil originalkø findes på projektet. Opgave-/kategoribinding og metadata/flerfoto-status mangler."
+      "coverage": "partial; project original queue preserved and plan-bound job cards staged at 90f0196; physical acceptance open",
+      "remaining": "Mobil originalkø og planbundne jobkort findes. To jobkort er teknisk genprøvet ved browserlukning, netbrud og planskift. Automatisk opgave-/kategoribinding af fotos, metadata/flerfoto-status, fysisk kamera/GPS og samlet feltaccept mangler."
     },
     {
       "id": "OBS-05",
@@ -873,8 +876,8 @@
         "supabase/tests/database/offline_required_job_card_plan.test.sql",
         "scripts/test-offline-required-cards-staging.mjs"
       ],
-      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed; plan-bound offline cards staged at 8aff043; CI 41773137955 passed; hosted and physical phone acceptance open",
-      "remaining": "Planens eksplicit valgte jobkortversioner og nødvendige svar kontrolleres på serveren. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md."
+      "coverage": "partial; explicit requirements and plan-bound offline cards staged at 90f0196; CI 41777119984 and hosted two-card offline/retry/plan-change/revocation passed",
+      "remaining": "Planens valgte jobkortversioner og nødvendige svar kontrolleres på serveren. To jobkort, kold offline-genåbning, genforsøg, planskift og tilbagekaldelse er teknisk efterprøvet. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, direkte opgave-/fotobinding, samlet aflevering/rapport fra offlinegrundlaget og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md."
     },
     {
       "id": "FORM-04",
@@ -982,7 +985,7 @@
         "supabase/tests/database/offline_required_job_card_plan.test.sql",
         "scripts/test-offline-required-cards-staging.mjs"
       ],
-      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed; plan-bound offline cards staged at 8aff043; CI 41773137955 passed; hosted and physical phone acceptance open",
+      "coverage": "partial; prior staged review/report evidence preserved; offline plan provenance staged at 90f0196; CI 41777119984 and hosted offline history/retry/plan-change checks passed",
       "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05."
     },
     {
@@ -1705,5 +1708,5 @@
       "physicalMobileAcceptance": false
     }
   },
-  "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json"
+  "currentStagingReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json"
 }

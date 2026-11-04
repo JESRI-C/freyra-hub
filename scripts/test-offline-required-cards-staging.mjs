@@ -401,6 +401,11 @@ try {
     await waitLocal((rows) => rows.length === 2 && rows.every((r) => r.state === "queued"));
     console.log(JSON.stringify({ stage: "two_cards_local" }));
     assert.equal((await records()).length, 0);
+    // Chromium can restore a persistent app tab before Playwright applies offline
+    // emulation. Close from a neutral page so no startup tab can claim the queue
+    // before the controlled offline navigation. The committed IDB/cache stay intact.
+    await page.goto("about:blank", { waitUntil: "domcontentloaded" });
+    for (const other of context.pages()) if (other !== page) await other.close();
     await context.close();
     context = await launch(true);
     context.on("request", (request) => {
