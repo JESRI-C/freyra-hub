@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FieldPhotoUuid } from "@/lib/field-photo-upload";
+import { WorkOrderActionIdSchema } from "@/lib/work-order-access";
 import { FieldOfflineWorkspace } from "@/components/project/FieldOfflineWorkspace";
 
 export const Route = createFileRoute("/felt")({
@@ -10,7 +11,7 @@ export const Route = createFileRoute("/felt")({
   ): { project?: string; round?: string; task?: string } => {
     const parsed = FieldPhotoUuid.safeParse(raw.project);
     const round = FieldPhotoUuid.safeParse(raw.round);
-    const task = FieldPhotoUuid.safeParse(raw.task);
+    const task = WorkOrderActionIdSchema.safeParse(raw.task);
     return {
       ...(parsed.success ? { project: parsed.data } : {}),
       ...(round.success ? { round: round.data } : {}),

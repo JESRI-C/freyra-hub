@@ -123,7 +123,9 @@ export async function listWorkOrderEvidenceSources(
     i.afterId,
     i.pageSize,
     (r) => {
-      if (i.kind === "photo" ? !r.sha256 || r.version !== null : !r.version || r.sha256 !== null)
+      if (
+        i.kind !== "observation" ? !r.sha256 || r.version !== null : !r.version || r.sha256 !== null
+      )
         throw new WorkOrderRequestError("unavailable");
     },
   );

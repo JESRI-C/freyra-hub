@@ -2,13 +2,14 @@ import { z } from "zod";
 import { WorkOrderActionIdSchema, WorkOrderScopeSchema } from "./work-order-access";
 import { FieldJobTemplateDefinitionSchema, FieldJobValuesSchema } from "./field-job-cards";
 import { PhotoCaptureSchema } from "./field-photo-position";
+import { FieldPhotoWorkOrderSchema } from "./field-photo-upload";
 const uuid = z.string().uuid();
 export const EvidencePageSchema = WorkOrderScopeSchema.extend({
   afterId: uuid.nullable(),
   pageSize: z.number().int().min(1).max(50),
 }).strict();
 export const EvidenceSourcesSchema = EvidencePageSchema.extend({
-  kind: z.enum(["observation", "photo"]),
+  kind: z.enum(["observation", "photo", "task_photo"]),
 }).strict();
 export const SaveEvidenceSchema = WorkOrderScopeSchema.extend({
   expectedActorId: uuid,
@@ -36,6 +37,7 @@ export const OriginalPinSchema = z.object({
   storagePath: z.string(),
   capturedAt: z.string().datetime({ offset: true }).nullable(),
   capture: PhotoCaptureSchema,
+  workOrder: FieldPhotoWorkOrderSchema.optional(),
 });
 export const EvidenceVersionSchema = z
   .object({

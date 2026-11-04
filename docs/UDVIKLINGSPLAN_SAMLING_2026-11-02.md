@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.10 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.12 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
 kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
@@ -15,6 +15,18 @@ gemmestatus og vej videre efter en fejl skal kunne forstås uden udviklerhjælp.
 Fælles ordvalg, navigation, tilgængelighed og ydelse vurderes gennem de samme
 rolleforløb på computer og fysisk telefon. Dinero er en reference for enkel
 betjening; en bestået teknisk prøve dokumenterer ikke lighed i brugeroplevelse.
+
+**Kontrol af det nye slutmål, 4. november:** Det aktive mål gælder programmet
+i sin helhed. Acceptregnskabet skal derfor omfatte alle kortlagte arbejdsgange,
+Skyhost-krav og Freyra-fagmoduler. Hver del skal vise sin faktiske status,
+kravkilde, acceptkriterium, gentagelige prøve og bevis på den konkrete version.
+Planlagte, delvist samlede eller uprøvede dele forbliver åbne i slutmålet.
+En afgrænsning af den samlede leverance kræver en produktbeslutning fra Jesper.
+For hvert rolleforløb skal en ny bruger kunne finde næste handling, forstå
+status og gemt resultat, genoptage en kladde og komme videre efter en fejl
+uden udviklerhjælp. Det efterprøves på computer og fysisk telefon med bevaret
+sagskontekst, tastaturbetjening og læsbare statusser. Dinero bruges som
+kvalitetsreference; sammenlignelig brugervenlighed er endnu ikke dokumenteret.
 
 Projektlederen kan afgrænse området, beskrive førtilstand og mål, planlægge
 og tildele arbejdet og følge status. Feltmedarbejderen kan finde opgaven og
@@ -51,17 +63,37 @@ på samme identificerede kandidat, inklusive adgang, fejlhåndtering, rapporters
 kildespor og gendannelse af både database og originalfiler. Kundens opstart,
 supportvej og leverede arbejdsgange skal være dokumenteret før salg og drift.
 
-**Næste kodepakke:** Saml valgt opgave, feltregistrering og originalfoto i én
-tydelig feltindgang (S02/D03). Genbrug den kanoniske uploader og den eksisterende
-dokumentationskobling. Kontrollér, at genveje følger den aktuelt valgte opgave,
-og før det samme offlinegrundlag videre gennem udførelse, aflevering,
-gennemgang og rapport. Afstem metodeprofilernes krav med dokumenterede fagkilder.
-Derefter samlet kommunal accept af rapport og opfølgning.
-Eksisterende implementeringer og delprøver genbruges. Kontrollen af slutmålet
-ændrer ingen tidligere prøves status og er ingen ny teknisk eller faglig
-godkendelse; samlet fysisk mobil-, kunde- og driftsaccept er fortsat åben.
+**Næste kodepakke:** Genbrug den allerede udviklede feltindgang i Mine opgaver
+fra den parallelle, committede MyWorkOrders (3af288a/9af245d). En feltbruger
+uden can_plan skal kunne åbne kamera og udførelse på den valgte opgave,
+når eksisterende getFieldJobAccess bekræfter samme aktør/projekt og bidragsadgang.
+Eksterne uden den adgang får ingen aktiv projektfotohandling. PR46s nyere
+opgaveskift, offlinekladder og fotobinding bevares. Test næste forløb fra
+Mine opgaver, ikke kun et direkte feltlink. Derefter integreres den afleverede
+mediefejlisolation 5228aade og de øvrige fælles brugeroplevelseskrav.
+Faglige metodeprofiler, fysisk telefon, kunde- og driftsaccept er fortsat åbne.
 
-**Seneste tekniske leverance, 4. november:** [Offlinepakken med krævede jobkort](OPGAVE_DOKUMENTATIONSKRAV.md#offlinepakken-under-samling)
+**Seneste tekniske leverance, 4. november:** [Den fælles opgavefotoindgang](OPGAVE_FOTO_FELTINDGANG.md)
+er på staging som appkilde `4be325d`, Worker
+`94906bdf-e10d-4847-98c2-ad183b625b0f` og migration `20261104064006`.
+[CI 41785790191](https://github.com/JESRI-C/freyra-hub/actions/runs/41785790191)
+består med 3.587 appprøver og 1.910 databasekontroller, inklusive faktisk
+samtidighed og database-restore. Den [hosted tekniske prøve](field-task-photo-staging-receipt-2026-11-04.json)
+består på samme kandidat: synlig opgave og svar efter offline luk/genåbn,
+mistet uploadsvar uden dublet, to krævede jobkort, originalåbning med samme
+SHA-256, udførelse, dokumentation, eksplicit aflevering, uafhængigt teknisk
+review og rapport/PDF. Browser- og API-trin er angivet særskilt. Fire egne
+sessioner og de midlertidige rettigheder er læst tilbage som lukket/ikke aktive.
+Ingen merge eller produktion. [Teknisk kvittering](field-task-photo-technical-receipt-2026-11-04.json).
+
+En [særskilt telefonprøve](field-task-phone-ready-2026-11-04.json) er klargjort
+til Jespers eksisterende testkonto med plan og tildeling version 2. Der er
+ingen feltsvar, fotos eller udførelse. En læsende offlinegenåbning og fire
+viewportoptagelser ved 390 px består. [Telefonvejledningen](TELEFONPROEVE_OPGAVER_2026-11-02.md)
+har de konkrete indgange. Fysisk kamera/GPS/HEIC og et uassisteret feltforløb
+fra Mine opgaver er fortsat åbne.
+
+**Tidligere teknisk leverance, 4. november:** [Offlinepakken med krævede jobkort](OPGAVE_DOKUMENTATIONSKRAV.md#offlinepakken-under-samling)
 er på staging som appkilde `90f0196`, Worker `4e90dcd9-055a-44c5-a336-36bc2f7e512c`
 og migration `20261104034102`. CI 41777119984 består med 3.562 appprøver og
 1.872 databasekontroller, inklusive faktisk samtidighed og database-restore.
@@ -913,7 +945,13 @@ Slutmålet er, at en kommune selv kan gennemføre en natur- og driftssag fra afg
 
 Skyhost beskriver arbejdsplanlægning, timeregistrering og GPS-billeddokumentation som praktiske arbejdsopgaver. Freyras regel er, at registreringerne åbnes fra den relevante opgave og føres tilbage til samme sag. Dineros vejledning starter med konkrete arbejdsopgaver og adskiller bilag, der afventer handling, fra bogførte bilag. Freyras regel er at vise afventende handling og gemt status dér, hvor den aktuelle rolle arbejder. [Skyhost Jobs og Geotag](https://skyhost.dk/kundeservice-erhverv/) · [Dineros introduktion](https://dinero.dk/support/godt-i-gang/)
 
-Næste pakke på den kritiske vej er S04/D05c. Start med at spore eksisterende skabelonkrav til de fastholdte registreringer i afleveringen. Brug derefter den eksisterende afleveringskontrol til at føre brugeren til manglende dokumentation og fastholde det kontrollerede kravgrundlag. Prøven skal åbne en gammel aflevering efter ændrede krav og kontrollere, at en ny aflevering bruger det nye grundlag.
+Næste pakke på den kritiske vej er S02/D03's naturlige feltindgang fra Mine
+opgaver for en udfører uden planlægningsadgang. Genbrug den committede og
+prøvede parallelle indgang med aktør-/projektbundet getFieldJobAccess.
+PR46s nye fotobinding og offlineversion bevares. Det direkte feltforløb er
+teknisk prøvet til rapport; næste brugerprøve skal begynde i opgavelisten.
+Derefter følger fælles mediefejlhåndtering, metodeprofilernes faglige krav
+og kommunens samlede accept.
 
 Registrér fire særskilte afgørelser med dato, ansvarlig, omfang og bevis. Teknikeren godkender system, adgang, fejlhåndtering og restore. Fagpersonen godkender metode, kilder og konklusioner. Kommunen godkender brugerforløb, fysisk mobil og opstart. Produktejeren træffer produktionsbeslutning med de tre godkendelser og dokumenteret supportberedskab som grundlag.
 

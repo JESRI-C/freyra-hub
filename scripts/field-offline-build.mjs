@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 const worker = readFileSync(new URL("./field-offline-worker.js", import.meta.url), "utf8");
+const protocol = JSON.parse(
+  readFileSync(new URL("../src/lib/field-offline-protocol.json", import.meta.url), "utf8"),
+);
 export function fieldOfflineBuildPlugin() {
   return {
     name: "freyra-field-offline-assets",
@@ -19,10 +22,17 @@ export function fieldOfflineBuildPlugin() {
       ].sort();
       if (!assets.length) throw new Error("Offline assets missing");
       const hash = createHash("sha256").update(worker).update(JSON.stringify(assets));
+      const queueVersions = protocol.queueVersions;
+      hash.update(JSON.stringify(queueVersions));
       for (const font of fonts)
         hash.update(readFileSync(new URL("../public" + font, import.meta.url)));
       const revision = hash.digest("hex").slice(0, 24);
-      const manifest = { schema: "freyra.field-offline-assets/v1", revision, assets };
+      const manifest = {
+        schema: "freyra.field-offline-assets/v1",
+        revision,
+        assets,
+        queueVersions,
+      };
       this.emitFile({
         type: "asset",
         fileName: "field-offline-manifest.json",

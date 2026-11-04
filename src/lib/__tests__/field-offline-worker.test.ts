@@ -54,7 +54,7 @@ function harness(badAsset = false) {
   runInNewContext(
     source.replace(
       "const manifest = __FREYRA_FIELD_PRECACHE__;",
-      `const manifest = ${JSON.stringify({ revision: "test", assets })};`,
+      `const manifest = ${JSON.stringify({ revision: "test", assets, queueVersions: [1, 2] })};`,
     ),
     {
       URL,
@@ -123,7 +123,7 @@ describe("field shell cache", () => {
     expect(await response.text()).toBe("<html>Neutral field shell</html>");
     const status = vi.fn();
     await h.dispatch("message", { data: "FIELD_OFFLINE_STATUS", ports: [{ postMessage: status }] });
-    expect(status).toHaveBeenCalledWith({ revision: "test", ready: true });
+    expect(status).toHaveBeenCalledWith({ revision: "test", ready: true, queueVersions: [1, 2] });
   });
   it("never intercepts APIs, storage links, mutations or foreign origins", async () => {
     const h = harness();
@@ -141,7 +141,7 @@ describe("field shell cache", () => {
     await expect(h.dispatch("install")).rejects.toThrow("Offline asset unavailable");
     const status = vi.fn();
     await h.dispatch("message", { data: "FIELD_OFFLINE_STATUS", ports: [{ postMessage: status }] });
-    expect(status).toHaveBeenCalledWith({ revision: "test", ready: false });
+    expect(status).toHaveBeenCalledWith({ revision: "test", ready: false, queueVersions: [1, 2] });
   });
   it("removes only obsolete field caches on activation", async () => {
     const h = harness();

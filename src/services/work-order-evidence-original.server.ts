@@ -26,11 +26,28 @@ export async function signWorkOrderEvidenceOriginal(
   raw: unknown,
   deps?: { signer: () => Promise<Signer>; origin: string },
 ) {
+  return signOriginal(client, actorId, raw, "get_work_order_evidence_original", deps);
+}
+export async function signWorkOrderCapturedPhotoOriginal(
+  client: WorkOrderRequestClient,
+  actorId: string,
+  raw: unknown,
+  deps?: { signer: () => Promise<Signer>; origin: string },
+) {
+  return signOriginal(client, actorId, raw, "get_work_order_captured_photo_original", deps);
+}
+async function signOriginal(
+  client: WorkOrderRequestClient,
+  actorId: string,
+  raw: unknown,
+  rpcName: "get_work_order_evidence_original" | "get_work_order_captured_photo_original",
+  deps?: { signer: () => Promise<Signer>; origin: string },
+) {
   const i = parseWorkOrderInput(EvidenceOriginalInputSchema, raw);
   checkActor(actorId, i.expectedActorId);
   try {
     const read = async () => {
-      const { data, error } = await client.rpc("get_work_order_evidence_original", {
+      const { data, error } = await client.rpc(rpcName, {
         p_id: i.id,
         p_action_id: i.actionId,
         p_organization_id: i.organizationId,
@@ -47,6 +64,13 @@ export async function signWorkOrderEvidenceOriginal(
         r.organizationId !== i.organizationId ||
         r.actorId !== actorId ||
         r.original.storagePath !== `${i.projectId}/field-uploads/${r.original.uploadId}/original`
+      )
+        throw new WorkOrderRequestError("access");
+      if (
+        rpcName === "get_work_order_captured_photo_original" &&
+        (r.original.uploadId !== i.id ||
+          r.original.workOrder?.actionId !== i.actionId ||
+          r.original.workOrder.organizationId !== i.organizationId)
       )
         throw new WorkOrderRequestError("access");
       return r;

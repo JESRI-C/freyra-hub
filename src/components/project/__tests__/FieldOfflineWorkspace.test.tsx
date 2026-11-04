@@ -382,7 +382,7 @@ describe("mobile field local save feedback", () => {
         .value,
     ).toBe(f.action);
     expect(host.textContent).toContain("Skabelonversion 1");
-    expect(host.textContent).toContain("ikke automatisk opgavedokumentation");
+    expect(host.textContent).toContain("Jobkort og opgavefotos bruger samme valg");
   });
   it("reuses an already received card after a plan change without treating it as a conflict draft", async () => {
     const source = requiredPack(),
@@ -519,6 +519,90 @@ describe("mobile field local save feedback", () => {
     expect(evidenceLink()).toBeUndefined();
     vi.restoreAllMocks();
   });
+  it("follows the selected task instead of the original URL when opening documentation", async () => {
+    const source = pack(),
+      next = "55555555-5555-4555-8555-555555555555";
+    source.jobs.push({
+      ...source.jobs[0],
+      actionId: next,
+      title: "Næste feltopgave",
+      latest: { ...source.jobs[0].latest!, action_id: next },
+    });
+    f.packs.mockResolvedValue([source]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace
+          requestedProject={f.project}
+          requestedActionId={f.action}
+          requestedRound="44444444-4444-4444-8444-444444444444"
+        />,
+      ),
+    );
+    const select = host.querySelector<HTMLSelectElement>(
+      'section[aria-label="Jobkort på telefonen"] select',
+    )!;
+    await act(async () => {
+      select.value = next;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const link = [...host.querySelectorAll("a")].find((a) =>
+      a.textContent?.includes("Knyt dokumentation til opgaven"),
+    )!;
+    expect(JSON.parse(link.dataset.search!)).toEqual({
+      tab: "handlinger",
+      task: next,
+      work: "evidence",
+    });
+    const back = [...host.querySelectorAll("a")].find((a) =>
+      a.textContent?.includes("Tilbage til sagen"),
+    )!;
+    expect(JSON.parse(back.dataset.search!)).toEqual({
+      tab: "handlinger",
+      task: next,
+      work: "field",
+    });
+  });
+  it("opens documentation for a task selected in another saved project", async () => {
+    const first = pack(),
+      second = pack(),
+      nextProject = "55555555-5555-4555-8555-555555555555",
+      nextTask = "66666666-6666-4666-8666-666666666666";
+    second.projectId = nextProject;
+    second.projectName = "Anden testsag";
+    second.jobs[0].actionId = nextTask;
+    second.jobs[0].template!.project_id = nextProject;
+    second.jobs[0].latest!.project_id = nextProject;
+    second.jobs[0].latest!.action_id = nextTask;
+    f.packs.mockResolvedValue([first, second]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const project = [...host.querySelectorAll("label")]
+      .find((l) => l.textContent?.trim().startsWith("Gemt sag"))!
+      .querySelector("select")!;
+    await act(async () => {
+      project.value = nextProject;
+      project.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const task = host.querySelector<HTMLSelectElement>(
+      'section[aria-label="Jobkort på telefonen"] select',
+    )!;
+    await act(async () => {
+      task.value = nextTask;
+      task.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const link = [...host.querySelectorAll("a")].find((a) =>
+      a.textContent?.includes("Knyt dokumentation til opgaven"),
+    )!;
+    expect(JSON.parse(link.dataset.params!)).toEqual({ slug: nextProject });
+    expect(JSON.parse(link.dataset.search!)).toEqual({
+      tab: "handlinger",
+      task: nextTask,
+      work: "evidence",
+    });
+  });
   it("waits for the local queue before opening a saved jobcard", async () => {
     const savedPack = pack();
     f.packs.mockResolvedValue([savedPack]);
@@ -645,8 +729,15 @@ describe("mobile field local save feedback", () => {
     expect(host.textContent).not.toContain("Skabelonversion 1");
     expect(host.textContent).not.toContain("Knyt dokumentation til opgaven");
     expect(f.prepare).not.toHaveBeenCalled();
+    expect(
+      [...host.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Tag foto")
+        ?.disabled,
+    ).toBe(true);
   });
   it("retains a rejected camera file for download and retry instead of discarding the selection", async () => {
+    const source = requiredPack();
+    source.jobs[0].photoCaptureAllowed = true;
+    f.packs.mockResolvedValue([source]);
     f.photo.mockResolvedValue({ id: "photo" });
     f.enqueue.mockRejectedValue(new DOMException("Full", "QuotaExceededError"));
     await act(async () =>
@@ -661,6 +752,11 @@ describe("mobile field local save feedback", () => {
     await act(async () => camera.dispatchEvent(new Event("change", { bubbles: true })));
     expect(host.textContent).toContain("1 originaler er endnu ikke gemt");
     expect(host.textContent).toContain("Hent ikke-gemt original: camera.png");
+    expect(
+      host
+        .querySelector<HTMLSelectElement>('section[aria-label="Jobkort på telefonen"] select')!
+        .matches(":disabled"),
+    ).toBe(true);
     expect(f.blocker.mock.calls.at(-1)?.[0].enableBeforeUnload).toBe(true);
     const evidence = [...host.querySelectorAll("a")].find((link) =>
       link.textContent?.includes("Knyt dokumentation til opgaven"),
@@ -722,5 +818,72 @@ describe("mobile field local save feedback", () => {
     expect(Array.from(host.querySelectorAll("input")).some((i) => i.value === "Feltbesøg")).toBe(
       true,
     );
+  });
+
+  it("captures the currently selected task and instructions without requiring a prior job card", async () => {
+    const source = requiredPack();
+    source.jobs[0].photoCaptureAllowed = true;
+    const second = {
+      ...source.jobs[0],
+      actionId: crypto.randomUUID(),
+      title: "Andet tilsyn",
+      plan: { ...source.jobs[0].plan!, id: crypto.randomUUID(), version: 3 },
+    };
+    source.jobs.push(second);
+    f.packs.mockResolvedValue([source]);
+    f.photo.mockResolvedValue({ id: "photo" });
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const select = host.querySelector<HTMLSelectElement>(
+      'section[aria-label="Jobkort på telefonen"] select',
+    )!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(
+        select,
+        second.actionId,
+      );
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    const camera = host.querySelector<HTMLInputElement>('input[capture="environment"]')!;
+    const file = new File(["raw"], "task.png", { type: "image/png" });
+    Object.defineProperty(camera, "files", { value: [file] });
+    await act(async () => camera.dispatchEvent(new Event("change", { bubbles: true })));
+    const photos = host.querySelector('section[aria-label="Feltfotos på telefonen"]')!;
+    const cardSelector = host.querySelector('select[aria-label="Jobkort i opgavepakken"]')!;
+    expect(
+      photos.compareDocumentPosition(cardSelector) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(f.photo.mock.calls[0][5]).toEqual({
+      schema: "freyra.field-photo-work-order/v1",
+      organizationId: source.organizationId,
+      actionId: second.actionId,
+      planVersionId: second.plan.id,
+    });
+    expect(f.enqueue).toHaveBeenCalledWith(expect.anything(), file);
+    expect(host.textContent).toContain("Andet tilsyn · arbejdsgrundlag version 3");
+  });
+  it("requires refresh for a legacy task pack while keeping explicit general project capture", async () => {
+    f.photo.mockResolvedValue({ id: "photo" });
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const captureButton = [...host.querySelectorAll("button")].find(
+      (b) => b.textContent?.trim() === "Tag foto",
+    )!;
+    expect(captureButton.disabled).toBe(true);
+    const projectRadio = [...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')][1];
+    await act(async () => projectRadio.click());
+    expect(captureButton.disabled).toBe(false);
+    const camera = host.querySelector<HTMLInputElement>('input[capture="environment"]')!;
+    Object.defineProperty(camera, "files", {
+      value: [new File(["raw"], "case.png", { type: "image/png" })],
+    });
+    await act(async () => camera.dispatchEvent(new Event("change", { bubbles: true })));
+    expect(f.photo.mock.calls[0][5]).toBeUndefined();
   });
 });

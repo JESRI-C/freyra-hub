@@ -1,11 +1,55 @@
 import { z } from "zod";
 import { PhotoCaptureSchema } from "./field-photo-position";
+import { WorkOrderActionIdSchema } from "./work-order-access";
 
 export const FieldPhotoUuid = z
   .string()
   .uuid()
   .transform((s) => s.toLowerCase());
 export const MAX_FIELD_PHOTO_BYTES = 50 * 1024 * 1024;
+export const FieldPhotoWorkOrderSchema = z
+  .object({
+    schema: z.literal("freyra.field-photo-work-order/v1"),
+    organizationId: FieldPhotoUuid,
+    actionId: WorkOrderActionIdSchema.transform((value) => value.toLowerCase()),
+    planVersionId: FieldPhotoUuid.nullable(),
+  })
+  .strict();
+export type FieldPhotoWorkOrder = z.infer<typeof FieldPhotoWorkOrderSchema>;
+export class FieldPhotoUploadError extends Error {
+  constructor(
+    readonly disposition: "blocked" | "conflict" | "cancelled",
+    message: string,
+  ) {
+    super(message);
+  }
+}
+export function fieldPhotoUploadFailure(
+  error: { code?: string } | null | undefined,
+  message: string,
+): Error {
+  if (error?.code === "42501")
+    return new FieldPhotoUploadError(
+      "blocked",
+      "Din adgang til fotoets sag eller opgave er ændret. Originalen er bevaret.",
+    );
+  if (error?.code === "PT410")
+    return new FieldPhotoUploadError(
+      "cancelled",
+      "Opgaven er aflyst. Originalen er bevaret på telefonen.",
+    );
+  if (error?.code === "PT409")
+    return new FieldPhotoUploadError(
+      "conflict",
+      "Fotoets opgavegrundlag er ændret. Originalen er bevaret.",
+    );
+  if (error?.code === "22023" || error?.code === "23514")
+    return new FieldPhotoUploadError(
+      "blocked",
+      "Fotoets gemte oplysninger kræver afklaring. Originalen er bevaret.",
+    );
+  return new Error(message);
+}
 export const FieldPhotoVerificationInput = z
   .object({
     projectId: FieldPhotoUuid,
@@ -39,6 +83,7 @@ export const FieldPhotoUploadPayload = z
     mimeType: z.string().regex(/^image\/[a-zA-Z0-9.+-]+$/),
     capturedAt: z.string().datetime({ offset: true }).nullable(),
     capture: PhotoCaptureSchema,
+    workOrder: FieldPhotoWorkOrderSchema.optional(),
   })
   .strict();
 export const FieldPhotoUploadSchema = z.object({
@@ -52,6 +97,9 @@ export const FieldPhotoUploadSchema = z.object({
   object_id: FieldPhotoUuid.nullable(),
   object_version: z.string().nullable(),
   object_updated_at: z.string().nullable(),
+  captured_action_id: WorkOrderActionIdSchema.nullable().optional(),
+  captured_organization_id: FieldPhotoUuid.nullable().optional(),
+  captured_plan_version_id: FieldPhotoUuid.nullable().optional(),
 });
 export type FieldPhotoUpload = z.infer<typeof FieldPhotoUploadSchema>;
 export const FieldPhotoReceiptSchema = z.object({
@@ -81,6 +129,13 @@ export function parseFieldPhotoUpload(
     row.storage_path !== `${projectId}/field-uploads/${uploadId}/original`
   )
     throw new Error("Uploadkvitteringen matcher ikke det valgte foto og projekt.");
+  const context = row.payload.workOrder;
+  if (
+    (row.captured_action_id ?? null) !== (context?.actionId ?? null) ||
+    (row.captured_organization_id ?? null) !== (context?.organizationId ?? null) ||
+    (row.captured_plan_version_id ?? null) !== (context?.planVersionId ?? null)
+  )
+    throw new Error("Fotoets opgavekvittering matcher ikke den gemte opgavekontekst.");
   return row;
 }
 export function parseFieldPhotoReceipt(raw: unknown, upload: FieldPhotoUpload): FieldPhotoReceipt {

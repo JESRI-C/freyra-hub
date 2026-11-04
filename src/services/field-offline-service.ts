@@ -3,7 +3,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import { getProjectWorkOrderAccess } from "@/lib/work-order-access.functions";
 import { WorkOrderPlanVersionSchema } from "@/lib/work-order-plan";
-import { FieldPhotoUploadPayload } from "@/lib/field-photo-upload";
+import {
+  FieldPhotoUploadPayload,
+  FieldPhotoWorkOrderSchema,
+  type FieldPhotoWorkOrder,
+} from "@/lib/field-photo-upload";
 import {
   FieldJobTemplateVersionSchema,
   FieldJobVersionSchema,
@@ -133,6 +137,7 @@ export async function downloadFieldWorkPack(
         latest,
         template,
         registrations,
+        photoCaptureAllowed: false,
         ...(plan ? { plan: { id: plan.id, version: plan.version, plan: plan.plan } } : {}),
         ...(cards.length && plan
           ? {
@@ -152,7 +157,7 @@ export async function downloadFieldWorkPack(
     Array.from({ length: Math.min(4, jobs.length) }, async () => {
       while (cursor < jobs.length) {
         const job = jobs[cursor++];
-        if (!job.requirements) continue;
+        if (!job.plan && !job.requirements) continue;
         const access = await getProjectWorkOrderAccess({
           data: { actionId: job.actionId, projectId, organizationId: project.data.organization_id },
         });
@@ -163,7 +168,26 @@ export async function downloadFieldWorkPack(
           access.organization_id !== project.data.organization_id
         )
           throw new Error("Opgavens adgang kunne ikke kontrolleres. Pakken blev ikke opdateret.");
-        job.requirements.canRecord = access.can_execute;
+        if (job.requirements) job.requirements.canRecord = access.can_execute;
+        const capture = await db.rpc("get_work_order_photo_capture_access", {
+          p_action_id: job.actionId,
+          p_organization_id: project.data.organization_id,
+          p_project_id: projectId,
+        });
+        const c = capture.data;
+        if (
+          capture.error ||
+          !c ||
+          c.actionId !== job.actionId ||
+          c.organizationId !== project.data.organization_id ||
+          c.projectId !== projectId ||
+          c.actorId !== actorId ||
+          typeof c.canCapture !== "boolean"
+        )
+          throw new Error(
+            "Fotoets opgaveadgang kunne ikke kontrolleres. Pakken blev ikke opdateret.",
+          );
+        job.photoCaptureAllowed = !!job.plan && access.can_execute && c.canCapture;
       }
     }),
   );
@@ -199,7 +223,10 @@ export async function prepareOfflinePhoto(
   file: File,
   title: string,
   description: string,
+  workOrder?: FieldPhotoWorkOrder,
 ): Promise<OfflinePhotoItem> {
+  // Freeze the selected task before any asynchronous metadata/hash operation.
+  const context = workOrder ? FieldPhotoWorkOrderSchema.parse(workOrder) : undefined;
   const metadata = await readOriginalMetadata(file);
   const original =
     metadata.latitude !== null && metadata.longitude !== null
@@ -215,6 +242,7 @@ export async function prepareOfflinePhoto(
     sizeBytes: file.size,
     mimeType: file.type,
     capturedAt: metadata.capturedAt,
+    ...(context ? { workOrder: context } : {}),
     capture: {
       schema: "freyra.field-photo/v1",
       originalPosition: original,

@@ -27,6 +27,7 @@ export const FieldWorkPackSchema = z
         title: z.string(),
         template: FieldJobTemplateVersionSchema.nullable(),
         latest: FieldJobVersionSchema.nullable(),
+        photoCaptureAllowed: z.boolean().optional(),
         plan: z
           .object({
             id: FieldPhotoUuid,
@@ -54,6 +55,7 @@ export const FieldWorkPackSchema = z
       });
     if (new Set(pack.jobs.map((job) => job.actionId)).size !== pack.jobs.length) fail();
     for (const job of pack.jobs) {
+      if (job.photoCaptureAllowed && !job.plan) fail();
       if (
         job.plan &&
         job.requirements &&

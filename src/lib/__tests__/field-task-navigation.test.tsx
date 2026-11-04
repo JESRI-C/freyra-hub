@@ -21,6 +21,8 @@ describe("field task deep links", () => {
       task?: string;
     };
     expect(validate({ project, task: task.toUpperCase() })).toEqual({ project, task });
+    const legacy = "a1b2c3d4-5678-abcd-0123-456789abcdef";
+    expect(validate({ project, task: legacy })).toEqual({ project, task: legacy });
     expect(validate({ task })).toEqual({});
     expect(validate({ project, task: "not-a-task" })).toEqual({ project });
     expect(validate({ project: "not-a-project", task })).toEqual({});
