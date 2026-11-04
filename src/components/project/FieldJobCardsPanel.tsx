@@ -356,6 +356,9 @@ function JobCardEditor({
       }}
     >
       {history.isFetching && <p role="status">Henter registreringshistorik…</p>}
+      {!base && (plan.isFetching || capabilities.isFetching) && (
+        <p role="status">Kontrollerer opgavens dokumentationskrav og din adgang…</p>
+      )}
       {history.error && <p role="alert">{history.error.message}</p>}
       {plan.error && (
         <p role="alert">Dokumentationskrav kunne ikke kontrolleres: {plan.error.message}</p>
@@ -367,9 +370,17 @@ function JobCardEditor({
       )}
       <RequiredJobCards cards={required} />
       {!canContribute && <p>Du har læseadgang til jobkortet.</p>}
-      {canContribute && !canConfigure && !base && !canUseRequired && (
+      {canContribute && !canConfigure && !base && plan.isSuccess && required.length === 0 && (
         <p>En redaktør skal først tilknytte en skabelon til opgaven.</p>
       )}
+      {canContribute &&
+        !canConfigure &&
+        !base &&
+        required.length > 0 &&
+        capabilities.isSuccess &&
+        !capabilities.data.can_execute && (
+          <p>Du har ikke udførelsesadgang til opgavens påkrævede jobkort.</p>
+        )}
       <label className="block">
         Skabelon
         <select

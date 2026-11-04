@@ -196,6 +196,8 @@ describe("job card editor", () => {
       .querySelector("select")!;
     expect(select.disabled).toBe(true);
     expect([...select.options].map((option) => option.value)).toEqual([""]);
+    expect(host.textContent).toContain("Du har ikke udførelsesadgang");
+    expect(host.textContent).not.toContain("En redaktør skal først tilknytte");
     expect(mocks.save).not.toHaveBeenCalled();
   });
   it("keeps viewer forms read only", async () => {
