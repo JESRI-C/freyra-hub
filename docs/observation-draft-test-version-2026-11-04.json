@@ -1,0 +1,63 @@
+{
+  "schema": "freyra.test-version-upload/v1",
+  "sourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+  "worker": "gofreyra-p0-staging",
+  "versionId": "431999b8-df07-4dd3-b68c-8e148d5e2697",
+  "url": "https://431999b8-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "command": "wrangler versions upload --config wrangler.json --env staging --keep-vars --strict --no-upload-source-maps",
+  "humanApprovalReceived": true,
+  "activeBefore": {
+    "id": "700e62c8-aaa0-4dff-8d5f-abb88ca52838",
+    "created_on": "2026-11-04T06:50:39.86406Z",
+    "versions": [
+      {
+        "version_id": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+        "percentage": 100
+      }
+    ]
+  },
+  "activeAfter": {
+    "id": "700e62c8-aaa0-4dff-8d5f-abb88ca52838",
+    "created_on": "2026-11-04T06:50:39.86406Z",
+    "versions": [
+      {
+        "version_id": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+        "percentage": 100
+      }
+    ]
+  },
+  "trafficUnchanged": true,
+  "verifiedAt": "2026-11-04T07:36:03.1170937Z",
+  "metadataVerified": true,
+  "browser": {
+    "normalLoginAndWorkspaceSelection": true,
+    "normalMenuToManager": true,
+    "kanbanAvailable": true,
+    "observationCreationEntryAvailable": true,
+    "exactJobSearchReturnedOneDraft": true,
+    "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+    "sourceCards": 2,
+    "planVersion": 1,
+    "savedDescriptionPreserved": true,
+    "danishLabels": true,
+    "actualWidth": 1280,
+    "horizontalOverflow": false,
+    "hostedWorkflowWrites": 0,
+    "projectKanban": {
+      "loaded": 30,
+      "total": 60,
+      "mapped": 12,
+      "unmapped": 48,
+      "mapObjects": 24
+    },
+    "screenshot": "evidence/manager-work-orders-hosted-431999b8.png"
+  },
+  "boundaries": {
+    "latestProductOwnerFieldPhotoPackageIntegrated": false,
+    "productOwnerRuntime": "4be325d7253f02c915d5089ecb418d7e9e4d72ac",
+    "physicalPhoneRetested": false,
+    "fullRollbackRoleSuiteRan": false,
+    "controlledMediaPhantomTestRan": false,
+    "scope": "Separate manager/OBS09 test version; active field-photo acceptance and traffic preserved. New UI action was created locally at3079409; first plan saved and reloaded at9af245d, then read through normal hosted UI."
+  }
+}

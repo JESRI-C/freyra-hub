@@ -186,7 +186,7 @@
       "followUps": [
         {
           "package": "P8",
-          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no new hosted or mobile acceptance",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
           "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
           "code": [
             "src/routes/app.projects.$slug.tsx",
@@ -200,7 +200,8 @@
             "src/lib/__tests__/customer-project-route-integrity.test.ts"
           ],
           "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
-          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
         }
       ]
     },
@@ -442,17 +443,17 @@
         "src/components/project/__tests__/manager-work-order-map-data.test.ts"
       ],
       "coverage": "partial; P7 shared manager selection, stored geometry and full totals passed automated tests, staging SQL/API and local integrated browser at 5228aad; broader requirement acceptance open",
-      "remaining": "P7 viser samme arbejdsordrer i Liste/Kanban/Kort med fuldtotaler før cursor og præcis opgavenavigation. Generiske observationer, øvrigt projektkort og rapport-/eksportudvalg samt ny hosted/mobil accept står åbne. Udvalgsreferencen er ikke et vedvarende historiksnapshot.",
+      "remaining": "P7 viser samme arbejdsordrer i Liste/Kanban/Kort med fuldtotaler før cursor og præcis opgavenavigation. Generiske observationer, øvrigt projektkort og rapport-/eksportudvalg samt ny fysisk mobilaccept står fortsat åben; senere hosted manager/P9-læsning er særskilt prøvet på 431999b8 og er ikke fuld produktaccept. Udvalgsreferencen er ikke et vedvarende historiksnapshot.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
-        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ingen ny hosted version.",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ved den oprindelige prøve ingen ny hosted version; senere særskilt manager/P9-testversion 431999b8 er uploadet og læseprøvet, uden ny fysisk eller samlet produktaccept.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       },
       "followUps": [
         {
           "package": "P7",
-          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no new hosted or mobile acceptance",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
           "code": [
             "src/lib/manager-work-orders.ts",
             "src/services/manager-work-orders-service.ts",
@@ -476,7 +477,8 @@
           "sourceRevision": "c495045",
           "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
           "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
-          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
         }
       ]
     },
@@ -922,14 +924,158 @@
         "supabase/tests/database/field_photo_uploads.test.sql",
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Idempotent opgaveudkast fra udvalgte observationer mangler; ingen ekstra originalkopier.",
+      "coverage": "partial; scoped P9 local creation/first-plan save/reload and hosted manager/origin read passed on 9af245d; wider acceptance remains open",
+      "remaining": "P9 creates a manager-only draft from existing field_observations with immutable source metadata snapshots and no file copies. Full rollback SQL suite, controlled concurrent media-reference probe, new physical phone acceptance and saved Skyhost GeoTag relation/create behavior remain open. Generic GeoTag, offline creation and full OBS-02/report binding are separate.",
       "ownership": {
-        "owner": "Produkttråden; denne tråd for opgavenavigation",
-        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "owner": "Denne tråd for P9; produkttråden for fælles felt-/offlinekontrakter",
+        "scope": "P9: manager-only arbejdsordrekladde fra eksisterende field_observations med privat, fastholdt kilde-/mediereferencesnapshot. Smalt ejerskab bekræftet i læst produktchatstatus; dens svarafsendelse mislykkedes. Fælles guards/hjælpere og aktive feltfoto-/offlinefiler ændres ikke. Generisk GeoTag-model, offlineoprettelse og fuld OBS-02 er ikke accepteret af P9.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "followUps": [
+        {
+          "package": "P9",
+          "state": "scoped P9 acceptance passed at 9af245d2be8e1bc248c66f6259b6554327e23e41; 124 targeted tests across separate runs, typecheck/lint/build/preflight passed; local creation/first-plan save/reload and read-only hosted manager/origin checks passed; full rollback SQL, controlled phantom and new physical acceptance remain open",
+          "basis": "OBS-09 requirement register; direct Skyhost GeoTag selectors observed but saved relation/create-job behavior not observed",
+          "code": [
+            "src/lib/work-order-observation-drafts.ts",
+            "src/lib/work-order-observation-drafts.functions.ts",
+            "src/services/work-order-observation-drafts-service.ts",
+            "src/components/project/ManagerWorkOrders.tsx",
+            "src/components/project/WorkOrderObservationDraftDialog.tsx",
+            "src/components/project/WorkOrderObservationOrigin.tsx",
+            "src/components/project/useWorkOrderObservationOrigin.ts",
+            "src/components/project/WorkOrderObservationSourceDetails.tsx",
+            "src/components/project/WorkOrderPlansPanel.tsx"
+          ],
+          "migrations": [
+            "supabase/migrations/20261104061624_work_order_observation_drafts.sql"
+          ],
+          "tests": [
+            "src/lib/__tests__/work-order-observation-drafts.test.ts",
+            "src/services/__tests__/work-order-observation-drafts-service.test.ts",
+            "src/components/project/__tests__/WorkOrderObservationDraftDialog.test.tsx",
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/components/project/__tests__/WorkOrderPlansPanel.test.tsx",
+            "supabase/tests/database/work_order_observation_drafts.test.sql"
+          ],
+          "verification": {
+            "baselineCombinedRun": {
+              "sourceRevision": "30794091f21813535b954a681e8d818eb4185a29",
+              "testsPassed": 113,
+              "testFiles": 5,
+              "stagingBuild": "passed on rerun with unchanged code after initial OOM during parallel typecheck"
+            },
+            "currentPartialRuns": {
+              "sourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+              "libraryAndServicePassed": 58,
+              "managerPassed": 17,
+              "firstPlanAndDialogPassed": 49,
+              "firstPlanAndDialogFiles": 2,
+              "totalTestsAcrossRuns": 124,
+              "testFiles": 5,
+              "singleCombined124Run": false
+            },
+            "fullTypecheck": "passed on current source with fresh incremental cache and same full project scope",
+            "targetedLint": "passed",
+            "independentReview": "no findings",
+            "securityAdvisors": {
+              "before": 21,
+              "after": 21,
+              "new": 0
+            },
+            "stagingMigrationApplied": true,
+            "stagingApi": "passed scoped SDK checks: concurrent same-request identity, stale-source conflict with zero actions, committed retry after source edit, changed-request conflict, origin read, external list/create/get denied",
+            "stagingApiReceipt": "docs/observation-draft-api-staging-2026-11-04.json",
+            "stagingApiSqlSourceRevision": "30794091f21813535b954a681e8d818eb4185a29",
+            "stagingApiSourceBoundary": "normal authenticated SDK without service-role; existing same-project external role; two source observations had zero media references",
+            "stagingCatalogInspection": "private origin RLS, no authenticated UPDATE/DELETE, no source FK cascade, immediate media FK; all three RPCs security invoker with empty search_path and UTC; authenticated execute only, anon/service-role execute denied; zero ee900000 fixture users",
+            "fullRollbackSqlSuite": "not run; connector confirmation expired twice; no local Docker or psql",
+            "retainedApiFixtures": "two synthetic field_observations and one created work order; no new users, grants or files",
+            "sourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+            "stagingBuild": "passed on final 9af245d source with staging preflight",
+            "browserAcceptance": "passed with stated boundaries: normal local creation on 3079409; exact description automatically prefilled, first plan saved/reloaded on 9af245d; normal hosted login/workspace/menu/exact-job/plan-and-two-sources read passed without hosted workflow writes",
+            "browserCreatedDraft": {
+              "sourceRevision": "30794091f21813535b954a681e8d818eb4185a29",
+              "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+              "selectedSources": 2,
+              "readbackTitleMatches": 1,
+              "readbackDraftLifecycleVersions": 1,
+              "readbackPlansBeforeFinalSave": 0,
+              "readbackExecutionEvidence": 0,
+              "originMatchedSelectedSourcesAndRequest": true,
+              "initialEmptyDescriptionPlanCancelledWithoutSave": true,
+              "finalReadback": {
+                "sourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+                "titleMatches": 1,
+                "planVersions": 1,
+                "latestPlanVersion": 1,
+                "lifecycleVersions": 1,
+                "canonicalStatus": "draft",
+                "evidenceVersions": 0,
+                "exactCreationDescriptionPreserved": true,
+                "manualDescriptionCopyRequired": false,
+                "sourceIdsAndHashesUnchanged": true
+              }
+            },
+            "firstPlanDescriptionFix": "passed: shared origin hook; first manager plan waits for origin and automatically prefills exact creation description; save/reload retains description and both source references; existing/followup behavior covered by targeted tests",
+            "skyhostObservationReceipt": "docs/skyhost-geotag-observation-2026-11-04.json",
+            "skyhostObserved": "Geotag banner to POI.aspx; Map/List, Alle/Ny/Jobkort/Lukket status choices, select-job link, no-job-relation filter, Log/History/Image/Ref/Comment columns",
+            "skyhostBoundary": "Ny and Jobkort empty within 1.1 Afsætning; other categories not examined; saved relation and job creation not observed; no lifecycle equivalence inferred; Ny/Map restored and zero business writes",
+            "localBrowserReceipt": "docs/observation-draft-browser-local-2026-11-04.json",
+            "serverReadbackReceipt": "docs/observation-draft-server-readback-2026-11-04.json",
+            "testVersionReceipt": "docs/observation-draft-test-version-2026-11-04.json",
+            "testVersion": {
+              "versionId": "431999b8-df07-4dd3-b68c-8e148d5e2697",
+              "url": "https://431999b8-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/work-orders",
+              "userApprovalReceived": true,
+              "uploadMode": "versions upload only --keep-vars --strict --no-upload-source-maps; no versions deploy",
+              "metadataVerified": true,
+              "metadataSourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+              "metadataEnvironment": "staging/customerDataOnly",
+              "activeTrafficUnchanged": true,
+              "activeDeploymentId": "700e62c8-aaa0-4dff-8d5f-abb88ca52838",
+              "activeWorkerVersionId": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+              "activeWorkerPercentage": 100
+            },
+            "hostedRead": {
+              "normalLoginWorkspaceAndMenu": true,
+              "exactJobSearch": "1/1 draft with the same action id",
+              "planVersion": 1,
+              "savedDescriptionPreserved": true,
+              "sourceCards": 2,
+              "workflowWrites": 0,
+              "actualWidth": 1280,
+              "horizontalOverflow": false,
+              "kanban": {
+                "loaded": 30,
+                "total": 60,
+                "mapped": 12,
+                "unmapped": 48,
+                "mapObjects": 24
+              },
+              "screenshot": "docs/evidence/manager-work-orders-hosted-431999b8.png"
+            },
+            "integrationBoundary": {
+              "branchBase": "3af288a / d4f57b9",
+              "productOwnerPR45Integrated": false,
+              "productOwnerPR46Integrated": false,
+              "productOwnerRuntime": "4be325d7253f02c915d5089ecb418d7e9e4d72ac",
+              "productOwnerSeparateAcceptance": "1910 database assertions / 3587 application tests are separate, not full integration proof for this preview",
+              "physicalPhoneRetested": false,
+              "assignmentExecutionOrReviewAcceptedByP9": false,
+              "plan": "incomplete draft; responsibility/method/instruction/date/place not invented",
+              "overallProductAcceptance": "open"
+            }
+          },
+          "remaining": "Scoped P9 acceptance passed; overall OBS-09 remains partial. Full rollback SQL suite and controlled two-session new-media phantom probe are not run; SDK fixture had no media references. New physical phone acceptance, saved Skyhost GeoTag relation/create behavior, full product-owner PR45/PR46 integration, generic GeoTag, offline creation, full OBS-02 and report-wide source/count binding remain open. Source metadata snapshots are not verified original bytes or execution/submission evidence.",
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "historicalBaseline": {
+            "coverage": "partial, acceptance open",
+            "remaining": "Idempotent opgaveudkast fra udvalgte observationer mangler; ingen ekstra originalkopier."
+          }
+        }
+      ]
     },
     {
       "id": "OBS-10",
@@ -987,17 +1133,17 @@
         "src/components/project/__tests__/manager-work-order-map-data.test.ts"
       ],
       "coverage": "partial; P7 shared manager selection, stored geometry and full totals passed automated tests, staging SQL/API and local integrated browser at 5228aad; broader requirement acceptance open",
-      "remaining": "P7 arbejdsordreoversigt er lokalt browserprøvet med fælles filtre og identiteter, 58 unikke opgaver, 12 med position, 46 uden og 24 kortobjekter. Generiske registreringer, øvrigt projektkort, rapport-/eksportudvalg og ny hosted/mobil accept står åbne.",
+      "remaining": "P7 arbejdsordreoversigt er lokalt browserprøvet med fælles filtre og identiteter, 58 unikke opgaver, 12 med position, 46 uden og 24 kortobjekter. Generiske registreringer, øvrigt projektkort, rapport-/eksportudvalg og ny fysisk mobilaccept står fortsat åben; senere hosted manager/P9-læsning er særskilt prøvet på 431999b8 og er ikke fuld produktaccept.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
-        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ingen ny hosted version.",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ved den oprindelige prøve ingen ny hosted version; senere særskilt manager/P9-testversion 431999b8 er uploadet og læseprøvet, uden ny fysisk eller samlet produktaccept.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       },
       "followUps": [
         {
           "package": "P7",
-          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no new hosted or mobile acceptance",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
           "code": [
             "src/lib/manager-work-orders.ts",
             "src/services/manager-work-orders-service.ts",
@@ -1021,7 +1167,8 @@
           "sourceRevision": "c495045",
           "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
           "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
-          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
         }
       ]
     },
@@ -1427,14 +1574,14 @@
       "remaining": "Afleveringen fastholder opgavens kilder. P7 har fælles optælling af arbejdsordrer i Liste/Kanban/Kort, uafhængigt af cursor, med lokal browserprøve til alle 58 indlæste opgaver. Samme udvalg og totaler på tværs af generiske observationer, rapport og eksport er fortsat åbne.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
-        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ingen ny hosted version.",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ved den oprindelige prøve ingen ny hosted version; senere særskilt manager/P9-testversion 431999b8 er uploadet og læseprøvet, uden ny fysisk eller samlet produktaccept.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       },
       "followUps": [
         {
           "package": "P7",
-          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no new hosted or mobile acceptance",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
           "code": [
             "src/lib/manager-work-orders.ts",
             "src/services/manager-work-orders-service.ts",
@@ -1458,7 +1605,8 @@
           "sourceRevision": "c495045",
           "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
           "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
-          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
         }
       ]
     },
@@ -2062,7 +2210,7 @@
       "followUps": [
         {
           "package": "P8",
-          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no new hosted or mobile acceptance",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
           "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
           "code": [
             "src/routes/app.projects.$slug.tsx",
@@ -2076,7 +2224,8 @@
             "src/lib/__tests__/customer-project-route-integrity.test.ts"
           ],
           "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
-          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
         }
       ]
     },
@@ -2154,7 +2303,7 @@
       "followUps": [
         {
           "package": "P8",
-          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no new hosted or mobile acceptance",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
           "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
           "code": [
             "src/routes/app.projects.$slug.tsx",
@@ -2168,7 +2317,8 @@
             "src/lib/__tests__/customer-project-route-integrity.test.ts"
           ],
           "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
-          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
         }
       ]
     },
@@ -2314,7 +2464,9 @@
         "canonicalStatus": "approved",
         "submissionVersion": 2,
         "historicalReturnedVersion": 1
-      }
+      },
+      "hostedStatusScope": "newHostedVersionUploaded=false records the original local verification; later separate manager/P9 preview is documented in laterManagerPreviewReceipt",
+      "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
     },
     "P8": {
       "codeRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
@@ -2348,7 +2500,34 @@
       "scope": "Afstemt smal medieisolation i projektets route og Atlas; separat PR45, offlinekontrakter og aktiv fotoindgang er ikke overtaget.",
       "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
       "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
-      "atlasDraftRetentionEvidence": "Actual Radix portal unit test; no separate browser Atlas interaction claimed."
+      "atlasDraftRetentionEvidence": "Actual Radix portal unit test; no separate browser Atlas interaction claimed.",
+      "hostedStatusScope": "newHostedVersionUploaded=false records the original local verification; later separate manager/P9 preview is documented in laterManagerPreviewReceipt",
+      "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+    },
+    "P9": {
+      "codeRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+      "requirement": "OBS-09",
+      "coverage": "partial",
+      "normalManagerPathPassed": true,
+      "packageAcceptanceComplete": false,
+      "targetedTestsAcrossSeparateRuns": 124,
+      "singleCombined124Run": false,
+      "stagingBuildAndPreflightPassed": true,
+      "localCreationAndFirstPlanSaveReloadPassed": true,
+      "hostedReadPassed": true,
+      "hostedWorkflowWrites": 0,
+      "uploadedVersionId": "431999b8-df07-4dd3-b68c-8e148d5e2697",
+      "activeTrafficUnchanged": true,
+      "productOwnerPR45PR46Integrated": false,
+      "fullRollbackSqlSuiteRan": false,
+      "controlledMediaPhantomProbeRan": false,
+      "newPhysicalPhoneAcceptance": false,
+      "apiReceipt": "docs/observation-draft-api-staging-2026-11-04.json",
+      "localBrowserReceipt": "docs/observation-draft-browser-local-2026-11-04.json",
+      "serverReadbackReceipt": "docs/observation-draft-server-readback-2026-11-04.json",
+      "testVersionReceipt": "docs/observation-draft-test-version-2026-11-04.json",
+      "skyhostObservationReceipt": "docs/skyhost-geotag-observation-2026-11-04.json",
+      "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
     }
   },
   "evidence": {
@@ -2392,5 +2571,6 @@
   "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json",
   "ownershipReviewedAt": "2026-11-04",
   "currentEvidenceRegister": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
-  "historicalCoverageNote": "Oprindelige coverage-, remaining- og evidensfelter er dateret historik. P7/P8-relaterede krav har opdateret coverage/remaining og særskilte followUps/packageEvidence med eksplicit lokal, staging-API og SQL-afgrænsning. Øvrige nyere beviser læses i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md; currentStagingReceipt er den historiske stagingkvittering og er ikke en ny hosted P6–P8-version."
+  "historicalCoverageNote": "Oprindelige coverage-, remaining- og evidensfelter er dateret historik. P7/P8/P9 har nyere coverage/remaining og særskilte followUps/packageEvidence med eksplicit lokal, staging-API, hosted preview og SQL-afgrænsning. OBS-09s oprindelige felter er fastholdt i P9 historicalBaseline. currentStagingReceipt er den historiske stagingkvittering; den særskilte nye manager/P9-version står i currentManagerTestVersionReceipt og flytter ikke aktiv trafik eller dokumenterer fuld PR45/PR46-integration. Øvrige beviser læses i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md.",
+  "currentManagerTestVersionReceipt": "docs/observation-draft-test-version-2026-11-04.json"
 }
