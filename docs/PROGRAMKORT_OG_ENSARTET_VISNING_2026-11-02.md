@@ -6,8 +6,10 @@
 integrerer nu den eksisterende liste/tavle og handoff med PR46's opgavefotos.
 Feltbrugerens fotos, jobkort, udførelse, eksplicitte dokumentation og aflevering
 har samme opgaveindgang. CI og kandidatens hosted teknikprøve består på
-`3ba51b1`/Worker `0ebf0053`. Samlet brugeraccept og rapportens datamærkning
-er fortsat åbne. Inventartællingerne nedenfor er det
+`3ba51b1`/Worker `0ebf0053`. [Rapportens registreringstype](RAPPORT_REGISTRERINGSTYPE_2026-11-04.md)
+har nu en særskilt efterprøvet kandidat `12d348b1`/Worker `6b7b1177` med
+bevarede historiske eksporter. Samlet bruger-/faglig accept er fortsat åben.
+Inventartællingerne nedenfor er det
 daterede grundlag fra 2. november, ikke en ny fuld kodeoptælling.
 
 ## Hvad er kortlagt?

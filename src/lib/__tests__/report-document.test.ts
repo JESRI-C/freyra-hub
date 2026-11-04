@@ -4,6 +4,8 @@ import {
   moveSection,
   reportIssues,
   validateReportRevision,
+  ReportContentSchema,
+  reportWorkOrderDataBasis,
   type ReportRevision,
 } from "../report-document";
 import {
@@ -22,7 +24,56 @@ const revision = (): ReportRevision => ({
   created_by: "u1",
   content: content(),
 });
+const approval = {
+  actionId: "00000000-0000-4000-8000-000000000001",
+  submissionId: "00000000-0000-4000-8000-000000000002",
+  submissionVersion: 1,
+  reviewId: "00000000-0000-4000-8000-000000000003",
+  basisHash: "a".repeat(64),
+};
 describe("evidence-based report document", () => {
+  it.each([
+    ["synthetic", "Syntetiske prøvedata"],
+    ["demo", "Demonstrationsdata"],
+    ["real", "Udførelsesregistrering: Faktisk arbejde"],
+  ] as const)(
+    "retains the frozen %s classification independently of the approval",
+    (executionDataBasis, label) => {
+      const parsed = ReportContentSchema.parse({
+        ...content(),
+        workOrderApproval: {
+          ...approval,
+          executionDataBasis,
+          executionRevisionId: "00000000-0000-4000-8000-000000000004",
+        },
+      });
+      expect(reportWorkOrderDataBasis(parsed)).toMatchObject({ kind: executionDataBasis, label });
+      expect(reportWorkOrderDataBasis(parsed)?.description).toContain("natureffekt");
+      expect(
+        reportIssues(parsed).some((issue) => issue.includes("prøve- eller demonstrationsdata")),
+      ).toBe(executionDataBasis !== "real");
+    },
+  );
+  it("keeps a historical report readable while explicitly treating absent classification as unknown", () => {
+    const parsed = ReportContentSchema.parse({ ...content(), workOrderApproval: approval });
+    expect(parsed.workOrderApproval).toEqual(approval);
+    expect(reportWorkOrderDataBasis(parsed)?.kind).toBe("unknown");
+    expect(reportIssues(parsed)).toContain(
+      "Rapportversionen mangler udførelsens registreringstype.",
+    );
+    expect(reportWorkOrderDataBasis(content())).toBeUndefined();
+  });
+  it.each([
+    { executionDataBasis: "synthetic" },
+    { executionRevisionId: "00000000-0000-4000-8000-000000000004" },
+    { executionDataBasis: "invented", executionRevisionId: "00000000-0000-4000-8000-000000000004" },
+    { executionDataBasis: "real", executionRevisionId: "not-a-version" },
+  ])("rejects a malformed or unpaired classification (%j)", (pin) => {
+    expect(
+      ReportContentSchema.safeParse({ ...content(), workOrderApproval: { ...approval, ...pin } })
+        .success,
+    ).toBe(false);
+  });
   it("does not claim readiness without sources or review", () => {
     const c = content();
     expect(reportIssues(c)).toContain("Rapporten mangler kilder.");

@@ -648,6 +648,8 @@ try {
   const reportInput = { ...scope, p_submission_id: submission.id, p_review_id: approved.state.id };
   const report = await rpc(owner, "save_approved_work_order_report", reportInput);
   assert.deepEqual(await rpc(owner, "save_approved_work_order_report", reportInput), report);
+  assert.equal(report.content.workOrderApproval.executionDataBasis, "synthetic");
+  assert.equal(report.content.workOrderApproval.executionRevisionId, execution.workspace_entry_id);
   assert.equal(report.content.workOrderApproval.submissionId, submission.id);
   assert.equal(report.content.sources.length, 2);
   assert(report.content.sources.every((s) => s.checksum === sha256));
@@ -697,6 +699,12 @@ try {
       new RegExp("^Grundlag · Godkendt afleveringsversion " + submission.version + "(?![0-9])"),
     )
     .waitFor();
+  const classification = page.getByRole("status", {
+    name: "Udførelsens datagrundlag",
+    exact: true,
+  });
+  await expect(classification).toContainText("Syntetiske prøvedata");
+  await expect(classification).toContainText("ikke en faktisk naturindsats");
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 1000 });
     assert.equal(
@@ -704,6 +712,8 @@ try {
       false,
     );
     await page.screenshot({ path: dir + "/report-" + width + ".png" });
+    await classification.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: dir + "/report-classification-" + width + ".png" });
   }
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "PDF", exact: true }).click();
@@ -711,6 +721,41 @@ try {
   const pdfBytes = await fs.readFile(await pdf.path());
   assert.equal(pdfBytes.subarray(0, 5).toString(), "%PDF-");
   await pdf.saveAs(dir + "/report.pdf");
+  const legacy = await json("docs/field-task-handoff-staging-receipt-2026-11-04.json");
+  assert.notEqual(legacy.reportId, report.report_id);
+  const legacyRows = async () =>
+    ok(
+      await owner.from("report_revisions").select("*").eq("report_id", legacy.reportId),
+      "Historical report readback",
+    );
+  const legacyBefore = first(await legacyRows());
+  assert.equal(legacyBefore.content.workOrderApproval.executionDataBasis, undefined);
+  await page.goto(
+    base +
+      "/app/projects/" +
+      legacy.projectId +
+      "?tab=handlinger&task=" +
+      legacy.actionId +
+      "&work=submission",
+  );
+  await page
+    .getByRole("button", { name: "Klargør rapportkladde for afleveringsversion 1", exact: true })
+    .click();
+  await page.getByRole("link", { name: "Åbn den gemte rapport", exact: true }).click();
+  await page.waitForURL(
+    (u) =>
+      u.pathname === "/app/reports/preview" && u.searchParams.get("report") === legacy.reportId,
+  );
+  await expect(
+    page.getByRole("status", { name: "Udførelsens datagrundlag", exact: true }),
+  ).toContainText("Registreringstype ikke gemt i rapportversionen");
+  const oldDownloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "PDF", exact: true }).click();
+  const oldPdf = await oldDownloading;
+  const oldBytes = await fs.readFile(await oldPdf.path());
+  assert.equal(createHash("sha256").update(oldBytes).digest("hex"), legacy.pdfSha256);
+  assert.deepEqual(first(await legacyRows()), legacyBefore);
+  await oldPdf.saveAs(dir + "/historical-report.pdf");
   assert.equal(
     (await fetch(base + "/freyra-build.json", { cache: "no-store" }).then((r) => r.json()))
       .sourceRevision,
@@ -726,6 +771,11 @@ try {
     fieldUserWithoutPlanningAccess: true,
     browserExecutionAndEvidence: true,
     browserSubmission: true,
+    reportExecutionDataBasis: report.content.workOrderApproval.executionDataBasis,
+    reportExecutionRevisionId: report.content.workOrderApproval.executionRevisionId,
+    historicalReportId: legacy.reportId,
+    historicalReportUnchanged: true,
+    historicalPdfSha256: legacy.pdfSha256,
     run: fixture.run,
     projectId: fixture.projectId,
     actionId: fixture.actionId,

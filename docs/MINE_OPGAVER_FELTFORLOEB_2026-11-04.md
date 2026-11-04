@@ -95,6 +95,12 @@ Browserprøvens PASS godkender teknikforløbet, ikke rapportens faglige eller
 datamæssige godkendelse. Ret mærkning i ny rapportgenerering/visning med
 bevaret historik og reproducerbar eksport før samlet produktaccept.
 
+**Efterfølgende rettelse på denne gren:** [Rapportens registreringstype](RAPPORT_REGISTRERINGSTYPE_2026-11-04.md)
+er nu efterprøvet på `12d348b1`/Worker `6b7b1177`, migration `20261104091051`.
+Nye rapporter viser den frosne type, og den tidligere rapport/PDF er genåbnet
+med uændret indhold og identiske bytes. Kvitteringen ovenfor bevarer det
+oprindelige fund fra 3ba51b1; den omskrives ikke til en historisk PASS.
+
 ## Åbne grænser
 
 Teknikforløbet er efterprøvet; den samlede produktaccept er åben. Fysisk kamera/GPS/HEIC, et uassisteret

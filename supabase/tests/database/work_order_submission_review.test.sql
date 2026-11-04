@@ -153,6 +153,15 @@ CREATE FUNCTION pg_temp.work_order_report() RETURNS jsonb LANGUAGE sql AS $$
  SELECT public.save_approved_work_order_report(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
    (pg_temp.rc()->'packet'->>'id')::uuid,(pg_temp.rc()->'state'->>'id')::uuid)
 $$;
+-- A newer normal execution revision must not relabel the approved historical packet.
+SELECT saved.*
+FROM (SELECT * FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1) p
+CROSS JOIN (SELECT * FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1) a
+CROSS JOIN (SELECT * FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1) b
+JOIN public.project_workspace_entries e ON e.id=b.workspace_entry_id
+CROSS JOIN LATERAL public.save_work_order_execution(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),p.id,p.version,b.version,
+  (e.payload->>'decision')::jsonb || jsonb_build_object('dataBasis','real','correctionReason','TEST · Nyere registrering efter godkendt prøve'),
+  b.performed_by_id,'',pg_temp.k(241),a.id,a.version) saved;
 INSERT INTO pg_temp.saved VALUES ('work-order-report', pg_temp.work_order_report()::text);
 SELECT is(pg_temp.work_order_report(),(SELECT value::jsonb FROM pg_temp.saved WHERE name='work-order-report'),
   'retry returns exactly the same stored report');
@@ -160,6 +169,16 @@ SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'submissionVers
   FROM pg_temp.saved WHERE name='work-order-report'),'3','report is bound to approved submission version 3');
 SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'reviewId'
   FROM pg_temp.saved WHERE name='work-order-report'),pg_temp.rc()->'state'->>'id','report pins exact review');
+SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'executionDataBasis'
+  FROM pg_temp.saved WHERE name='work-order-report'),'synthetic','report keeps frozen synthetic classification despite a newer real execution');
+SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'executionRevisionId'
+  FROM pg_temp.saved WHERE name='work-order-report'),
+  (SELECT execution_revision_id::text FROM public.work_order_submission_versions WHERE action_id=pg_temp.k(31) AND version=3),
+  'report classification pins the approved execution revision');
+SELECT isnt((SELECT value::jsonb->'content'->'workOrderApproval'->>'executionRevisionId'
+  FROM pg_temp.saved WHERE name='work-order-report'),
+  (SELECT workspace_entry_id::text FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31) ORDER BY version DESC LIMIT 1),
+  'report classification does not follow the current execution');
 SELECT ok((SELECT value::jsonb->'content'->'sections'->0->>'text'
   FROM pg_temp.saved WHERE name='work-order-report') LIKE '%Mål ved aflevering: Synthetic indicator · højst 0 stk.',
   'report shows the approved target even when the current target was changed before report creation');
@@ -187,5 +206,7 @@ SELECT throws_ok($$SELECT pg_temp.review(14,'review','approved',3,217)$$,'42501'
 RESET ROLE;
 SELECT ok(NOT has_function_privilege('anon','public.get_work_order_review_context(uuid,uuid,uuid)','EXECUTE'),'anonymous role cannot read review state');
 SELECT ok(NOT has_function_privilege('service_role','public.get_work_order_review_context(uuid,uuid,uuid)','EXECUTE'),'service role cannot masquerade as reviewer');
+SELECT ok(NOT has_function_privilege('authenticated','private.bind_work_order_report()','EXECUTE'),'report trigger is not a callable authenticated API');
+SELECT ok(NOT (SELECT prosecdef FROM pg_proc WHERE oid='private.bind_work_order_report()'::regprocedure),'report classification retains invoker security');
 SELECT * FROM finish();
 ROLLBACK;

@@ -194,6 +194,7 @@ describe("real report editor draft hydration", () => {
     await render("preview");
     expect(host.textContent).toContain("Rapportkladde · Version 1");
     expect(host.textContent).toContain("Godkendt afleveringsversion 3");
+    expect(host.textContent).toContain("Registreringstype ikke gemt i rapportversionen");
     expect(host.querySelector('[data-task="task-a"][data-work="submission"]')).not.toBeNull();
     expect(
       host.querySelector(
@@ -208,6 +209,43 @@ describe("real report editor draft hydration", () => {
     expect(host.querySelector("[data-follow-ups]")).toBeNull();
     expect(host.querySelector('[data-task="task-a"][data-work="submission"]')).not.toBeNull();
   });
+  it.each([
+    ["synthetic", "Syntetiske prøvedata"],
+    ["demo", "Demonstrationsdata"],
+    ["real", "Udførelsesregistrering: Faktisk arbejde"],
+  ] as const)(
+    "shows the frozen %s classification separately from an approved packet",
+    async (executionDataBasis, label) => {
+      state.search = { report: "report-a", version: 1 };
+      state.revisions = [
+        {
+          id: "revision-a",
+          report_id: "report-a",
+          version: 1,
+          status: "draft",
+          created_at: "2026-11-04T08:00:00Z",
+          created_by: "user-a",
+          content: {
+            ...newReportContent("TEST", "TEST", "Udførelse", "TEST"),
+            workOrderApproval: {
+              actionId: "task-a",
+              submissionId: "submission-a",
+              submissionVersion: 1,
+              reviewId: "review-a",
+              basisHash: "a".repeat(64),
+              executionRevisionId: "00000000-0000-4000-8000-000000000004",
+              executionDataBasis,
+            },
+          },
+        },
+      ];
+      await render("preview");
+      const notice = host.querySelector('[aria-label="Udførelsens datagrundlag"]');
+      expect(notice?.textContent).toContain(label);
+      expect(notice?.textContent).toContain("natureffekt");
+      expect(host.textContent).toContain("Godkendt afleveringsversion 1");
+    },
+  );
   it("loads a deliberately selected different report revision", async () => {
     state.search = { report: "report-a", version: 1 };
     const content = newReportContent("Projekt A", "Organisation A", "Baseline", "Kunde");
