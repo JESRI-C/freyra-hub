@@ -1,5 +1,11 @@
 # Skyhost Jobs og GeoTag i GoFreyra
 
+## Status 4. november 2026
+
+Det afgrænsede jobflow har browserbevis for oprettelse og persontildeling gennem brugerfladen, modtagelse hos en særskilt feltkonto, præcis fotokobling, aflevering, idempotent genforsøg og projektlederens læsning af samme version. Brugeren har bekræftet det almindelige iPhone-forløb og den efterfølgende offlineprøve. De daterede prøveafsnit nedenfor beskriver de enkelte trin og deres daværende begrænsninger.
+
+Efter den funktionelle prøve er mobilens primære handlinger flyttet op, kamera og synkronisering samlet, og Mine opgaver har fået en Kanban-visning, som bruger serverens status. De ændringer er browserprøvet ved 390 og 1280 px. Seneste særskilte tavleversion er `df6a5ca`. Produkttrådens nyere krav om obligatoriske jobkort skal samles med leverancen før fælles integration.
+
 3. november 2026. Observationerne er fra det eksisterende testjob i den åbne Skyhost-portal. Kontoen viste rollen Administrator. Der er kun åbnet visninger og faner. Observationerne er taget fra browserens synlige brugerflade. Registerhenvisningerne nedenfor beskriver krav og tidligere prøver.
 
 ## Det observerede jobflow
@@ -57,6 +63,19 @@ En efterfølgende prøve brugte et nyt isoleret testprojekt og to forskellige ko
 4. Projektlederen åbner samme opgave, læser status og original og gennemfører den aftalte opfølgning. En bruger uden opgaveadgang skal få afvist opslag. Registrér enhed, browser, roller, build og udfald for hvert trin.
 
 ### Selvbetjent prøve på iPhone
+
+**Udfald.** Brugeren bekræftede først det almindelige iPhone-forløb fra foto til visning på samme arbejdsordre på computer og bekræftede derefter den beskrevne offlineprøve. Offlineprøven omfattede foto uden net, genåbning af Safari, synkronisering efter genforbindelse og visning af foto og aflevering på samme opgave. Det er brugerens accept, uden særskilt serveropslag på et opgave-id. Tab af svar under selve afsendelsen er særskilt verificeret i browser med ét statusskift og én afleveringspakke efter genforsøg.
+
+Brug [testversion 477282f](https://042adac5-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/opgaver). De supplerende browserprøver på den version og den lokale Worker med samme genveje dækker følgende dele af accepten:
+
+| Trin | Efterprøvet i browser | Mangler for fysisk accept |
+|---|---|---|
+| Opret, planlæg og tildel | Projektlederen oprettede én syntetisk opgave, gemte todagesplan, sted og instruktion og tildelte den via brugerfladen. En anden feltkonto fandt samme opgave. | Gentag på den opgave, iPhone-prøven skal følge til ende. |
+| Registrér dokumentation | Browseren viste den præcise fotogenvej og den opgavebundne retur til dokumentationspanelet. En kladde blokerede navigation. | Tag et foto på den fysiske iPhone, kontrollér sted og genåbn feltkøen uden forbindelse. |
+| Aflever ved afbrudt svar | Serveren gennemførte afsendelsen, mens browseren fik afbrudt svar. Genforsøg fra samme skærm bevarede én afleveringspakke og ét statusskift. Projektlederen fandt samme version og status. | Afbryd telefonens forbindelse i forløbet, og gennemfør genforsøget på samme arbejdsordre. |
+| Følg op | Projektlederens opfølgningsformular åbnede fra en godkendt testaflevering med den fastholdte planversion som kilde. Formularen blev lukket uden gemning. | Kontrollér opfølgningsgrundlaget på arbejdsordren fra den fysiske prøve. |
+
+Hvis prøven stopper, er det nok at notere opgave-id, trin, den viste status og fejlteksten. Ved en afbrudt aflevering skal man først prøve igen fra det åbne panel. Hvis Safari allerede er lukket, åbnes opgavens historik, så projektlederen og feltudføreren kan kontrollere, om serveren nåede at registrere afleveringen.
 
 Brug samme HTTPS-testversion på computer og i Safari på iPhone. Brug et særskilt testprojekt og to eksisterende testkonti, som har henholdsvis projektlederens og feltudførerens rolle. Brug et testmotiv og en syntetisk lokalitet.
 
