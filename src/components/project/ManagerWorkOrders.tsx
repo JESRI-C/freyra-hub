@@ -83,11 +83,22 @@ function laneFor(task: ManagerWorkOrder): Lane {
   return "open";
 }
 
+function personName(name: string | null | undefined, personId: string) {
+  const value = name?.trim();
+  return !value ||
+    value.toLowerCase() === personId.toLowerCase() ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+    ? "Navn ikke tilgængeligt"
+    : value;
+}
+
 function assignmentLabel(task: ManagerWorkOrder) {
   if (task.assignment_mode === "unassigned") return "Ikke tildelt";
   if (!task.assignment_is_current) return "Tildeling skal fornyes";
-  if (task.claimed_by) return "Overtaget af " + (task.claimed_by_name || "medarbejder");
-  const people = task.candidate_names.join(", ") || "Udfører registreret";
+  if (task.claimed_by) return "Overtaget af " + personName(task.claimed_by_name, task.claimed_by);
+  const people = task.candidate_user_ids
+    .map((id, index) => personName(task.candidate_names[index], id))
+    .join(", ");
   if (task.assignment_mode === "pool") return "Pulje · afventer overtagelse";
   return (task.assignment_mode === "group" ? "Gruppe: " : "Tildelt: ") + people;
 }
@@ -154,7 +165,7 @@ function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean
         </p>
         {task.plan_responsible_id && (
           <p className="text-xs">
-            Ansvarlig i planen: {task.plan_responsible_name || "Registreret"}
+            Ansvarlig i planen: {personName(task.plan_responsible_name, task.plan_responsible_id)}
           </p>
         )}
         {(task.site_name || task.location_note) && (
@@ -390,7 +401,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
                 <option value="">Alle udførere</option>
                 {catalog.assignees.map((person) => (
                   <option key={person.id} value={person.id}>
-                    {person.name}
+                    {personName(person.name, person.id)}
                   </option>
                 ))}
               </select>

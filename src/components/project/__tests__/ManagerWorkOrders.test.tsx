@@ -361,6 +361,46 @@ describe("manager work orders across projects", () => {
     );
   });
 
+  it("uses human name fallbacks for unreadable candidate, responsible and claimant profiles without changing assignment meaning", async () => {
+    m.load.mockResolvedValue({
+      ...page([
+        {
+          ...task,
+          assignment_mode: "group",
+          candidate_user_ids: [id(15), id(16), id(17)],
+          candidate_names: [id(15), " ", "Frida Felt"],
+          plan_responsible_name: id(13),
+        },
+        {
+          ...task,
+          action_id: id(20),
+          title: "Overtaget uden profilnavn",
+          assignment_mode: "pool",
+          claimed_by: id(15),
+          claimed_by_name: null,
+          plan_responsible_name: id(99),
+        },
+      ]),
+      assignees: [{ id: id(15), name: id(15) }],
+    });
+    await render();
+    const assigned = host.querySelector('article[aria-label="Pleje langs åen"]')!;
+    expect(assigned.textContent).toContain(
+      "Gruppe: Navn ikke tilgængeligt, Navn ikke tilgængeligt, Frida Felt",
+    );
+    expect(assigned.textContent).toContain("Ansvarlig i planen: Navn ikke tilgængeligt");
+    const claimed = host.querySelector('article[aria-label="Overtaget uden profilnavn"]')!;
+    expect(claimed.textContent).toContain("Overtaget af Navn ikke tilgængeligt");
+    expect(claimed.textContent).not.toContain("afventer overtagelse");
+    expect(host.textContent).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
+    expect(field("Udfører").querySelector(`option[value="${id(15)}"]`)?.textContent).toBe(
+      "Navn ikke tilgængeligt",
+    );
+    expect(m.load).toHaveBeenCalledTimes(1);
+  });
+
   it("clears previously loaded organization data when the selected organization changes", async () => {
     await render();
     expect(host.textContent).toContain("Pleje langs åen");
