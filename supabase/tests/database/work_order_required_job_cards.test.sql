@@ -81,12 +81,12 @@ SELECT is(pg_temp.hash(),(SELECT value FROM pg_temp.saved WHERE name='ready_hash
 -- Same title/fields in another template cannot satisfy the selected template.
 SELECT * FROM public.save_field_job_template_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(607),0,(SELECT definition FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47) AND version=1),pg_temp.k(608));
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
-SELECT throws_ok($SELECT public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(32),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47) AND version=1),0,'{}','draft','',pg_temp.k(609))$,'42501',NULL,'unassigned task cannot bind a template');
+SELECT throws_ok($$SELECT public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(32),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47) AND version=1),0,'{}','draft','',pg_temp.k(609))$$,'42501',NULL,'unassigned task cannot bind a template');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT * FROM public.save_work_order_plan(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(619));
 SELECT * FROM public.configure_work_order_assignment(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),0,(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(32)),'person',ARRAY[pg_temp.k(2)],NULL,'Synthetic required card assignee',pg_temp.k(620));
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
-SELECT lives_ok($SELECT public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(32),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47) AND version=1),0,'{}','draft','',pg_temp.k(621))$,'assigned field worker may save the first mandated card as a draft');
+SELECT lives_ok($$SELECT public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(32),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47) AND version=1),0,'{}','draft','',pg_temp.k(621))$$,'assigned field worker may save the first mandated card as a draft');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(607)),2,'{"count":0,"checked":false}','recorded','Synthetic other form',pg_temp.k(610));
 SELECT pg_temp.attach(2,3,611);
