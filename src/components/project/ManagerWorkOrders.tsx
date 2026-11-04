@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -272,6 +272,7 @@ export function ManagerWorkOrders() {
 
 function ManagerOrders({ actorId, organizationId }: { actorId: string; organizationId: string }) {
   const load = useServerFn(listManagerWorkOrders);
+  const boardHintId = useId();
   const [saved] = useState(() => readOverview(actorId, organizationId));
   const [view, setView] = useState(saved.view);
   const [selection, setSelection] = useState(saved.selection);
@@ -652,39 +653,57 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             ))}
           </div>
         ) : (
-          <div
-            aria-label="Arbejdsordretavle"
-            className="grid min-w-0 items-start gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"
-          >
-            {lanes.map(({ id, label }, index) => {
-              const orders = items.filter((task) => laneFor(task) === id);
-              if (index >= 5 && orders.length === 0 && !laneTotals?.[id]) return null;
-              return (
-                <section
-                  key={id}
-                  aria-label={label}
-                  className="min-w-0 rounded-2xl border bg-muted/30"
-                >
-                  <h2
-                    className={`flex items-center justify-between gap-2 rounded-t-2xl px-4 py-3 text-sm font-semibold ${colors[id]}`}
-                  >
-                    <span>{label}</span>
-                    <span className="whitespace-nowrap text-xs font-normal">
-                      {laneTotals
-                        ? `${laneTotals[id]} i udvalget · ${orders.length} indlæst`
-                        : `${orders.length} vist`}
-                    </span>
-                  </h2>
-                  <div className="space-y-3 p-2">
-                    {orders.length ? (
-                      orders.map((task) => <OrderCard key={task.action_id} task={task} compact />)
-                    ) : (
-                      <p className="p-3 text-sm text-muted-foreground">Ingen viste arbejdsordrer</p>
-                    )}
-                  </div>
-                </section>
-              );
-            })}
+          <div className="min-w-0 space-y-2">
+            <p id={boardHintId} className="text-xs text-muted-foreground">
+              Rul vandret mellem statuskolonnerne og lodret i hver kolonne.
+            </p>
+            <div
+              role="region"
+              aria-label="Arbejdsordretavle"
+              aria-describedby={boardHintId}
+              tabIndex={0}
+              className="min-w-0 w-full max-w-full overflow-x-auto overscroll-x-contain rounded-2xl border p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              <div className="flex w-max min-w-full items-start gap-3">
+                {lanes.map(({ id, label }) => {
+                  const orders = items.filter((task) => laneFor(task) === id);
+                  return (
+                    <section
+                      key={id}
+                      aria-label={label}
+                      className="flex h-[65dvh] max-h-[38rem] w-[19rem] max-w-[calc(100vw-3rem)] shrink-0 flex-col overflow-hidden rounded-2xl border bg-muted/30"
+                    >
+                      <h2
+                        className={`flex shrink-0 items-center justify-between gap-2 rounded-t-2xl px-4 py-3 text-sm font-semibold ${colors[id]}`}
+                      >
+                        <span>{label}</span>
+                        <span className="whitespace-nowrap text-xs font-normal">
+                          {laneTotals
+                            ? `${laneTotals[id]} i udvalget · ${orders.length} indlæst`
+                            : `${orders.length} vist`}
+                        </span>
+                      </h2>
+                      <div
+                        role="region"
+                        aria-label={`Opgaver · ${label}`}
+                        tabIndex={0}
+                        className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-y-contain p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                      >
+                        {orders.length ? (
+                          orders.map((task) => (
+                            <OrderCard key={task.action_id} task={task} compact />
+                          ))
+                        ) : (
+                          <p className="p-3 text-sm text-muted-foreground">
+                            Ingen viste arbejdsordrer
+                          </p>
+                        )}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         ))}
       {hasMore && (

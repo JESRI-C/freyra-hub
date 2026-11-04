@@ -308,10 +308,62 @@ describe("manager work orders across projects", () => {
     expect(card.textContent).toContain("4. nov. 2026");
     expect(card.textContent).toContain("Frist: 7. nov. 2026");
     expect(card.textContent).toContain("Engen");
-    expect(host.querySelector('section[aria-label="Aflyste"]')).toBeNull();
+    expect(host.querySelector('section[aria-label="Aflyste"] h2')?.textContent).toContain(
+      "0 i udvalget · 0 indlæst",
+    );
     expect(host.querySelector('a[href="/app/projects"]')?.textContent).toContain(
       "Opret i et projekt",
     );
+  });
+
+  it("keeps all sixty paged jobs reachable in named keyboard regions with lane counts outside each task region", async () => {
+    const all: ManagerWorkOrder[] = Array.from({ length: 60 }, (_, index) => ({
+      ...task,
+      action_id: id(100 + index),
+      title: `Opgave ${index + 1}`,
+      task_status: index < 46 ? null : "assigned",
+    }));
+    m.load
+      .mockResolvedValueOnce(page(all.slice(0, 30), all[29].action_id, all))
+      .mockResolvedValueOnce(page(all.slice(30), null, all));
+    await render();
+    await click("Hent flere arbejdsordrer");
+    await flush();
+    const board = host.querySelector<HTMLElement>('[aria-label="Arbejdsordretavle"]')!;
+    expect(board.getAttribute("role")).toBe("region");
+    expect(board.tabIndex).toBe(0);
+    expect(document.getElementById(board.getAttribute("aria-describedby")!)?.textContent).toContain(
+      "Rul vandret",
+    );
+    expect(board.querySelectorAll("article")).toHaveLength(60);
+    expect([...board.querySelectorAll("article h3")].map((title) => title.textContent).sort()).toEqual(
+      all.map((task) => task.title).sort(),
+    );
+    expect(board.querySelectorAll("section[aria-label]")).toHaveLength(9);
+    for (const lane of board.querySelectorAll("section[aria-label]")) {
+      const tasks = lane.querySelector<HTMLElement>('[role="region"]')!;
+      expect(tasks.tabIndex).toBe(0);
+      expect(tasks.getAttribute("aria-label")).toBe(`Opgaver · ${lane.getAttribute("aria-label")}`);
+      expect(tasks.contains(lane.querySelector("h2"))).toBe(false);
+    }
+    const untracked = board.querySelector('section[aria-label="Uden jobstatus"]')!;
+    expect(untracked.querySelectorAll("article")).toHaveLength(46);
+    expect(untracked.querySelector("h2")?.textContent).toContain("46 i udvalget · 46 indlæst");
+    expect(board.querySelector('section[aria-label="I gang"] h2')?.textContent).toContain(
+      "0 i udvalget · 0 indlæst",
+    );
+    const last = untracked.querySelectorAll<HTMLAnchorElement>("h3 a")[45];
+    await act(async () => last.focus());
+    expect(document.activeElement).toBe(last);
+    expect(JSON.parse(last.getAttribute("data-search")!)).toEqual({
+      tab: "handlinger",
+      task: all[45].action_id,
+      work: "plan",
+    });
+    await click("Liste");
+    expect(host.querySelector('[aria-label="Arbejdsordretavle"]')).toBeNull();
+    expect(host.querySelectorAll('[aria-label="Arbejdsordreliste"] article')).toHaveLength(60);
+    expect(m.load).toHaveBeenCalledTimes(2);
   });
 
   it("opens the same project task in its plan or submission and keeps list and board in parity", async () => {
