@@ -891,6 +891,22 @@ function WorkOrders({
                     (!plan?.end || proposedStart <= plan.end)
                       ? proposedStart
                       : null;
+                  const responsibleId = plan?.responsibleId;
+                  const conflictingTasks =
+                    canEdit && suggestedDate && responsibleId
+                      ? actions.data.filter(({ id }) => {
+                          const otherPlan = dates?.[id];
+                          return (
+                            id !== a.id &&
+                            otherPlan?.responsibleId === responsibleId &&
+                            workOrderPlanOverlaps(
+                              otherPlan,
+                              suggestedDate,
+                              plan.end ?? suggestedDate,
+                            )
+                          );
+                        })
+                      : [];
                   const dateAction = suggestedDate
                     ? "Brug datoforslag"
                     : plan?.start
@@ -974,11 +990,39 @@ function WorkOrders({
                           </button>
                         ))}
                       {canEdit && suggestedDate && (
-                        <p className="rounded-lg bg-muted px-3 py-2 text-sm">
-                          Forslag til startdato: {scheduleDate.format(new Date(suggestedDate))}.
-                          Dagen efter den seneste planlagte slutdato for de opgaver, der stadig
-                          afventes. Tjek bemanding og udstyr, før du planlægger.
-                        </p>
+                        <div className="space-y-2 rounded-lg bg-muted px-3 py-2 text-sm">
+                          <p>
+                            Forslag til startdato: {scheduleDate.format(new Date(suggestedDate))}.
+                            Dagen efter den seneste planlagte slutdato for de opgaver, der stadig
+                            afventes.
+                          </p>
+                          {conflictingTasks.length > 0 && (
+                            <details>
+                              <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                                {conflictingTasks.length === 1
+                                  ? "Den ansvarlige har én overlappende opgave"
+                                  : "Den ansvarlige har " +
+                                    conflictingTasks.length +
+                                    " overlappende opgaver"}
+                              </summary>
+                              <ul className="space-y-1">
+                                {conflictingTasks.map((task) => (
+                                  <li key={task.id}>
+                                    <button
+                                      type="button"
+                                      className={button}
+                                      disabled={locked}
+                                      onClick={() => select(task.id, "plan")}
+                                    >
+                                      Åbn {task.title}
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
+                          <p>Tjek bemanding og udstyr, før du planlægger.</p>
+                        </div>
                       )}
                       {showSchedule &&
                         plan?.planVersionId &&

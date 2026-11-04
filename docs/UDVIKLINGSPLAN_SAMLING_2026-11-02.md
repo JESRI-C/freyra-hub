@@ -427,8 +427,10 @@ ikke aktiveret af denne planændring. Eget estimat følger.
 | Trin | Første forløb i arbejdsplanlægningen | Status |
 |---|---|---|
 | Opdag og forklar | Find opgaver uden startdato og opgaver med uafklarede forudsætninger. Forklar konsekvensen og åbn arbejdsgrundlaget. | Findes i Planoversigt |
-| Forbered | Foreslå en startdato ud fra gemte forudsætninger. Vis dato, grundlag og hvad der stadig skal afklares. | Afgrænset datokladde findes. Kapacitet og udstyr mangler i forslaget |
+| Forbered | Foreslå en startdato ud fra gemte forudsætninger. Vis dato, grundlag og hvad der stadig skal afklares. | Afgrænset datokladde findes. Kendt overlap for planens ansvarlige vises. Ledig kapacitet og udstyr kræver yderligere kontrol |
 | Arbejd autonomt | Genkontrollér planen i baggrunden ved relevante ændringer. Registrér ét internt opfølgningspunkt for en bekræftet konflikt, og luk punktet, når konflikten er løst. | Planlagt som første afgrænsede mandat |
+
+Ved forslag til startdato viser Planoversigt kendte overlap for den samme ansvarlige i den foreslåede periode. Brugeren kan åbne den overlappende opgaves plan fra forklaringen. Aflyste opgaver udelades. Appprøven dækker overlap ved periodens slutning og genvejen til den konkrete opgave. Stagingprøve afventes.
 
 **Genbrug og grænser.** Start med Planoversigts regler og projektets eksisterende læsninger. Bind hvert fund til organisation, projekt, opgave-ID og grundlagets version. Brug projektassistenten til kildebundne forklaringer, hvor det giver værdi. Eksisterende tjenester afgør dato-, forudsætnings- og adgangsregler. Projektlederen godkender ændringer af datoer, tildeling og reservationer. Faglig godkendelse følger den eksisterende gennemgang. En agent bruger Freyras serverhandlinger og versionskontroller inden for et mandat med en ejer og en stopmulighed.
 

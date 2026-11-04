@@ -377,6 +377,37 @@ it("opens the prerequisite plan directly from a waiting task", async () => {
   expect(m.navigate).toHaveBeenCalledWith("first");
 });
 
+it("shows a known responsible-person overlap before the date suggestion is accepted", async () => {
+  m.actions.mockResolvedValue([
+    ...tasks,
+    { id: "conflict", title: "Tilsyn i mosen", status: "Åben" },
+    { id: "cancelled", title: "Aflyst besøg", status: "Åben" },
+  ]);
+  m.schedule.mockResolvedValue({
+    first: { start: "2099-01-02", end: "2099-01-03" },
+    second: {
+      start: null,
+      end: "2099-01-05",
+      responsibleId: "person",
+      waitingForActionIds: ["first"],
+    },
+    conflict: { start: "2099-01-05", end: null, responsibleId: "person" },
+    cancelled: { start: "2099-01-04", end: null, responsibleId: "person", cancelled: true },
+  });
+  await render();
+  await click("Planoversigt");
+  await click("Se afventende opgaver i hele projektet (1)");
+  expect(host.textContent).toContain("Forslag til startdato: 4. jan. 2099");
+  const overlap = [...host.querySelectorAll("details")].find(
+    (node) =>
+      node.querySelector("summary")?.textContent === "Den ansvarlige har én overlappende opgave",
+  );
+  expect(overlap?.textContent).toContain("Tilsyn i mosen");
+  expect(overlap?.textContent).not.toContain("Aflyst besøg");
+  await click("Åbn Tilsyn i mosen");
+  expect(m.navigate).toHaveBeenCalledWith("conflict");
+});
+
 it("shows a task spanning the month boundary and filters it by a planned day", async () => {
   const now = new Date();
   const key = (date: Date) =>
