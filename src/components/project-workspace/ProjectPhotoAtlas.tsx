@@ -49,6 +49,7 @@ type Props = {
   purpose: string;
   canEdit: boolean;
   media: ProjectMediaItem[];
+  mediaAvailable?: boolean;
 };
 export function ProjectPhotoAtlas({
   scope,
@@ -57,6 +58,7 @@ export function ProjectPhotoAtlas({
   purpose,
   canEdit,
   media,
+  mediaAvailable = true,
 }: Props) {
   const cache = useQueryClient();
   const [positionsOpen, setPositionsOpen] = useState(false);
@@ -138,6 +140,10 @@ export function ProjectPhotoAtlas({
   const active = photos.find((p) => p.id === activeId);
   const activeReview = active ? reviews.get(active.id) : undefined;
   async function run(label: string, action: () => Promise<void>) {
+    if (!mediaAvailable) {
+      setError("Sagens mediegrundlag skal kontrolleres, før du fortsætter. Din kladde er bevaret.");
+      return;
+    }
     setBusy(label);
     setError("");
     setMessage("");
@@ -151,6 +157,8 @@ export function ProjectPhotoAtlas({
     }
   }
   async function saveReport() {
+    if (!mediaAvailable)
+      throw new Error("Sagens mediegrundlag skal kontrolleres før rapporten kan samles.");
     if (!atlas.data) throw new Error("Vælg et indlæst fotoatlas.");
     if (!canEdit) throw new Error("Du har læseadgang. En projektmedarbejder skal gemme rapporten.");
     if (records.isPending || records.error)
@@ -185,6 +193,12 @@ export function ProjectPhotoAtlas({
           reference; en delstrækning skal afgrænses særskilt.
         </p>
       </div>
+      {!mediaAvailable && (
+        <p role="status" className="rounded-lg border p-3 text-sm">
+          Sagens medieoversigt afventer kontrol. Åbne kladder bevares; gemning og eksport afventer
+          kontrollen.
+        </p>
+      )}
       <button type="button" className={button} onClick={() => setPositionsOpen(!positionsOpen)}>
         {positionsOpen ? "Luk placeringshistorik" : "Feltfotos – placering og historik"}
       </button>
@@ -209,7 +223,7 @@ export function ProjectPhotoAtlas({
         <button
           type="button"
           className={button}
-          disabled={!!busy || !media.length}
+          disabled={!mediaAvailable || !!busy || !media.length}
           onClick={() =>
             void run("Bygger fotoatlas fra originaler", async () => {
               const { atlasFromProjectOriginals } =
@@ -261,7 +275,7 @@ export function ProjectPhotoAtlas({
             <input
               type="file"
               accept=".html,.htm,.json"
-              disabled={!!busy}
+              disabled={!mediaAvailable || !!busy}
               className="mt-1 block w-full"
               onChange={(e) => {
                 const candidate = e.target.files?.[0];
@@ -289,7 +303,7 @@ export function ProjectPhotoAtlas({
               <button
                 type="button"
                 className={button}
-                disabled={!!busy || !file}
+                disabled={!mediaAvailable || !!busy || !file}
                 onClick={() =>
                   void run("Gemmer fotoatlasset", async () => {
                     setUploadProgress(0);
@@ -456,7 +470,13 @@ export function ProjectPhotoAtlas({
                   <button
                     type="button"
                     className={button}
-                    disabled={!!busy || !filtered.length || records.isPending || !!records.error}
+                    disabled={
+                      !mediaAvailable ||
+                      !!busy ||
+                      !filtered.length ||
+                      records.isPending ||
+                      !!records.error
+                    }
                     onClick={() => {
                       const data = { ...atlas.data!, photos: filtered };
                       downloadAtlasBlob(
@@ -472,7 +492,13 @@ export function ProjectPhotoAtlas({
                   <button
                     type="button"
                     className={button}
-                    disabled={!!busy || !filtered.length || records.isPending || !!records.error}
+                    disabled={
+                      !mediaAvailable ||
+                      !!busy ||
+                      !filtered.length ||
+                      records.isPending ||
+                      !!records.error
+                    }
                     onClick={() =>
                       downloadAtlasBlob(
                         new Blob(
@@ -507,7 +533,11 @@ export function ProjectPhotoAtlas({
                         type="button"
                         className={button}
                         disabled={
-                          !!busy || !filtered.length || records.isPending || !!records.error
+                          !mediaAvailable ||
+                          !!busy ||
+                          !filtered.length ||
+                          records.isPending ||
+                          !!records.error
                         }
                         onClick={() =>
                           void run("Gemmer rapportkladden", async () => {
@@ -524,7 +554,11 @@ export function ProjectPhotoAtlas({
                         type="button"
                         className={button}
                         disabled={
-                          !!busy || !filtered.length || records.isPending || !!records.error
+                          !mediaAvailable ||
+                          !!busy ||
+                          !filtered.length ||
+                          records.isPending ||
+                          !!records.error
                         }
                         onClick={() =>
                           void run("Samler PDF med kort og fotoatlas", async () => {
@@ -618,12 +652,17 @@ export function ProjectPhotoAtlas({
           photos={photos}
           initial={activeReview?.review ?? initialAtlasReview(active)}
           media={media}
+          mediaAvailable={mediaAvailable}
           canEdit={canEdit && !records.isPending && !records.error}
           version={activeReview?.entry.version ?? 0}
           savedAt={activeReview?.entry.created_at}
           onClose={() => setActiveId(null)}
           onNavigate={setActiveId}
           onSave={async (review) => {
+            if (!mediaAvailable)
+              throw new Error(
+                "Sagens mediegrundlag skal kontrolleres før gennemgangen kan gemmes.",
+              );
             await savePhotoAtlasReview(scope, selected, active.id, review, activeReview?.entry);
             await cache.invalidateQueries({ queryKey: reviewKey });
             setActiveId(null);
@@ -660,6 +699,7 @@ function AtlasPhotoDialog({
   photos,
   initial,
   media,
+  mediaAvailable,
   canEdit,
   version,
   savedAt,
@@ -671,6 +711,7 @@ function AtlasPhotoDialog({
   photos: AtlasPhoto[];
   initial: AtlasReview;
   media: ProjectMediaItem[];
+  mediaAvailable: boolean;
   canEdit: boolean;
   version: number;
   savedAt?: string;
@@ -703,6 +744,12 @@ function AtlasPhotoDialog({
           {photo.watercourse || "Vandløbstilknytning uafklaret"} · {photoDateLabel(photo)}.
           Originalerne ændres ikke ved redigering af beskrivelsen.
         </DialogDescription>
+        {!mediaAvailable && (
+          <p role="status" className="rounded-lg border p-3 text-sm">
+            Sagens medieoversigt afventer kontrol. Din åbne vurdering er bevaret. Gemning og
+            originalhenvisninger bliver tilgængelige efter kontrollen.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -762,7 +809,7 @@ function AtlasPhotoDialog({
               Originalens registrerede SHA-256: {photo.sha256 || "Mangler"}. Denne import har ikke
               hentet/verificeret originalfilen; illustrationen erstatter den ikke.
             </p>
-            {source && (
+            {source && mediaAvailable && (
               <a
                 href={source}
                 target="_blank"
@@ -777,7 +824,7 @@ function AtlasPhotoDialog({
               <select
                 className={field}
                 value={draft.comparisonPhotoId}
-                disabled={!canEdit}
+                disabled={!canEdit || !mediaAvailable}
                 onChange={(e) => setDraft({ ...draft, comparisonPhotoId: e.target.value })}
               >
                 <option value="">Vælg et andet foto</option>
@@ -814,7 +861,7 @@ function AtlasPhotoDialog({
                 )}
               </div>
             )}
-            {media.length > 0 && (
+            {mediaAvailable && media.length > 0 && (
               <details>
                 <summary className="cursor-pointer text-sm">
                   Originaler og nærfotos på sagen
@@ -833,6 +880,7 @@ function AtlasPhotoDialog({
             className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
+              if (!canEdit || !mediaAvailable || busy) return;
               setError("");
               setBusy(true);
               void (async () => {
@@ -855,7 +903,7 @@ function AtlasPhotoDialog({
               Status for artsbestemmelse
               <select
                 className={field}
-                disabled={!canEdit || busy}
+                disabled={!canEdit || !mediaAvailable || busy}
                 value={draft.speciesStatus}
                 onChange={(e) =>
                   setDraft({
@@ -877,7 +925,7 @@ function AtlasPhotoDialog({
                     type="date"
                     className={field}
                     value={draft[f.key]}
-                    disabled={!canEdit || busy}
+                    disabled={!canEdit || !mediaAvailable || busy}
                     onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
                   />
                 ) : (
@@ -886,7 +934,7 @@ function AtlasPhotoDialog({
                     rows={f.key === "observation" ? 3 : 2}
                     value={draft[f.key]}
                     maxLength={4000}
-                    disabled={!canEdit || busy}
+                    disabled={!canEdit || !mediaAvailable || busy}
                     onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
                   />
                 )}
@@ -896,7 +944,7 @@ function AtlasPhotoDialog({
               Status for beplantning
               <select
                 className={field}
-                disabled={!canEdit || busy}
+                disabled={!canEdit || !mediaAvailable || busy}
                 value={draft.plantingStatus}
                 onChange={(e) =>
                   setDraft({
@@ -915,7 +963,7 @@ function AtlasPhotoDialog({
               </p>
             )}
             {canEdit ? (
-              <button type="submit" className={button} disabled={busy}>
+              <button type="submit" className={button} disabled={!mediaAvailable || busy}>
                 {busy ? "Gemmer…" : "Gem fotogennemgang som ny version"}
               </button>
             ) : (

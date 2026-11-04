@@ -88,7 +88,10 @@
         "src/components/project/MyWorkOrders.tsx",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/field-job-access.functions.ts"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -107,10 +110,11 @@
         "supabase/tests/database/work_order_groups_pools.test.sql",
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
-        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Konkret tildeling, status og logbog håndhæver aktuel opgaveadgang uden projektbred ekstern adgang. D03 mangler den konkrete eksterne observations-/udførelses-/filvej."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
+      "remaining": "Mine opgaver fører den tildelte projektbidragende feltbruger til samme opgaves fotos, jobkort, udførelse, eksplicitte dokumentation og aflevering. Eksterne med kun opgaveadgang beholder afgrænset læsning; ny fotooptagelse uden projektbidragsadgang er fortsat ikke leveret. Samlet tværgrens-kandidat og fysisk/kommunal accept er åbne."
     },
     {
       "id": "ORG-04",
@@ -129,7 +133,10 @@
         "src/components/project/MyWorkOrders.tsx",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/field-job-access.functions.ts"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -148,10 +155,11 @@
         "supabase/tests/database/work_order_groups_pools.test.sql",
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
-        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Aktør-/scopebundet status, logbog og noter skjules ved adgangsfejl/kontoskift. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
+      "remaining": "Aktør-/projektmismatch, baggrundsgenkontrol, fejl og tilbagekaldt feltadgang lukker aktive feltlinks i Mine opgaver. Mediefejl isoleres og giver ikke tomt rapportgrundlag; kladder bevares. Private original-links udløber og tilbagekaldes ikke øjeblikkeligt. Samlet offline-/rapport-/rolleaccept på fælles kandidat er fortsat åben."
     },
     {
       "id": "JOB-01",
@@ -263,7 +271,10 @@
         "src/components/project/MyWorkOrders.tsx",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/field-job-access.functions.ts"
       ],
       "migrations": [
         "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
@@ -285,10 +296,11 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs",
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
-        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding findes. Modtagerspecifik tildelingsnotifikation/indbakke og fysisk telefon-/feltprøve er fortsat åbne."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
+      "remaining": "Person, gruppe, puljeovertagelse og udførelsens tildelingsbinding genbruges i modtagerens liste/tavle og feltforløb. Serverstatus og ukendt status skelnes. Modtagerspecifik notifikation/indbakke, fysisk feltprøve og uassisteret kommunal accept er fortsat åbne."
     },
     {
       "id": "JOB-05",
@@ -1336,7 +1348,7 @@
         "src/services/__tests__/report-assets.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Metode-/kildebegrænsninger findes. Tilføj operationelle reviewomfang og dokumentationsmangler."
+      "remaining": "Versionsbundet afleveringsgrundlag, reviewomfang og originalkilder findes og er teknisk afprøvet. Ny konkret mangel, hosted 2ebb507c: synthetic i den frosne udførelse føres ikke videre til den godkendte arbejdsopgaves rapport. Ret synlig datamærkning og kildebegrænsninger i ny rapportgenerering uden at omskrive gamle rapportversioner. Faglig effekt- og rapportaccept er fortsat åben."
     },
     {
       "id": "IMP-01",
@@ -1603,7 +1615,10 @@
         "src/components/project/MyWorkOrders.tsx",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/field-job-access.functions.ts"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -1619,10 +1634,11 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs",
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
-        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Mobil status/note, dirty-lock, starttid/kilde, bilagsmangler og fejl bevarer kladden i automatiske UI-prøver. Fysisk telefon-/kamera-/offline-/tastaturprøve og samlet aflevering er fortsat åbne."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
+      "remaining": "Mine opgavers UI fører feltkonto uden can_plan gennem offlinefoto/jobkort, originalåbning, udførelse, dokumentationskobling og aflevering på kandidat 3ba51b1. Visning og rapport er prøvet ved 390/1280 px. Fysisk kamera/GPS/HEIC, fuld tastatur-/hjælpemiddelprøve, kontekstnavne og uassisteret brugeraccept er fortsat åbne."
     },
     {
       "id": "SYS-08",

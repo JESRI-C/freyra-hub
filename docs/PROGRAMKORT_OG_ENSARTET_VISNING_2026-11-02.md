@@ -2,6 +2,14 @@
 
 2. november 2026 · S00/S01/S11 og den samlede Skyhost-mapping.
 
+**Opdatering 4. november:** [Mine opgavers samlede feltforløb](MINE_OPGAVER_FELTFORLOEB_2026-11-04.md)
+integrerer nu den eksisterende liste/tavle og handoff med PR46's opgavefotos.
+Feltbrugerens fotos, jobkort, udførelse, eksplicitte dokumentation og aflevering
+har samme opgaveindgang. CI og kandidatens hosted teknikprøve består på
+`3ba51b1`/Worker `0ebf0053`. Samlet brugeraccept og rapportens datamærkning
+er fortsat åbne. Inventartællingerne nedenfor er det
+daterede grundlag fra 2. november, ikke en ny fuld kodeoptælling.
+
 ## Hvad er kortlagt?
 
 Alle 878 aktuelle JS-/TS-filer i `src`, deres statiske lokale imports og
