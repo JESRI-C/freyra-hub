@@ -51,6 +51,13 @@ Eksisterende implementeringer og delprøver genbruges. Kontrollen af slutmålet
 ændrer ingen tidligere prøves status og er ingen ny teknisk eller faglig
 godkendelse; samlet fysisk mobil-, kunde- og driftsaccept er fortsat åben.
 
+**Under samling, 4. november:** [Offlinepakken med krævede jobkort](OPGAVE_DOKUMENTATIONSKRAV.md#offlinepakken-under-samling)
+genbruger feltpakke og kø til flere præcise skabelonversioner, planens instruktion,
+første feltregistrering og kontrolleret håndtering af en ændret plan. 37 lokale
+offlineprøver består. Database- og hosted-prøve af denne pakke er endnu åbne.
+Den samlede SaaS-brugeroplevelse kræver fortsat uassisterede rolleforløb på
+computer og fysisk telefon; tekniske delprøver erstatter ikke den accept.
+
 **Tidligere teknisk delprøve:** [50-brugerprøven](SAAS_50_BRUGERE_2026-11-03.md)
 afprøvede 50 forskellige konti i otte organisationer. Den fandt og rettede
 en reel spærring for den tildelte feltmedarbejders udførelse. Alle otte

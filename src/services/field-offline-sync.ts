@@ -98,7 +98,7 @@ export async function drainFieldOfflineQueue(
       const disposition =
         error instanceof OfflineSyncError
           ? error.disposition
-          : /checksum|kvittering.*matcher|originalkvittering/i.test(
+          : /checksum|kvittering.*matcher|tidligere kladde.*matcher|originalkvittering/i.test(
                 error instanceof Error ? error.message : "",
               )
             ? "blocked"

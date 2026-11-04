@@ -106,6 +106,43 @@ export async function openFieldOfflineStore(
       };
     });
   }
+  function withSupersededSource(
+    tx: IDBTransaction,
+    item: OfflineItem,
+    work: (source: Extract<OfflineItem, { kind: "job" }> | null) => void,
+    fail: (error: Error) => void,
+    allowHandled = false,
+  ) {
+    if (item.kind !== "job" || !item.supersedesId) {
+      work(null);
+      return;
+    }
+    const replacement = item;
+    const request = tx.objectStore("items").get(key(item.actorId, item.supersedesId));
+    request.onsuccess = () => {
+      try {
+        const source = OfflineItemSchema.parse(request.result);
+        if (
+          source.kind !== "job" ||
+          source.actorId !== replacement.actorId ||
+          source.projectId !== replacement.projectId ||
+          source.payload.actionId !== replacement.payload.actionId ||
+          source.template.id !== replacement.template.id ||
+          source.state !== "conflict" ||
+          source.lastError === "cancelled" ||
+          (!allowHandled && source.supersededBy)
+        )
+          throw new Error("Den tidligere kladde matcher ikke denne rettelse.");
+        work(source);
+      } catch (error) {
+        fail(
+          error instanceof Error
+            ? error
+            : new Error("Den tidligere kladde kunne ikke kontrolleres."),
+        );
+      }
+    };
+  }
   return {
     close: () => db.close(),
     async putPack(raw: FieldWorkPack) {
@@ -177,6 +214,8 @@ export async function openFieldOfflineStore(
           blob.type !== item.payload.mimeType)
       )
         throw new Error("Originalfilen matcher ikke køregistreringen.");
+      if (item.kind === "job" && item.supersededBy)
+        throw new Error("En ny rettelse må ikke være markeret modtaget på forhånd.");
       if (item.kind === "job" && blob) throw new Error("Jobkort gemmes uden fotofil.");
       if (
         item.kind === "job" &&
@@ -192,24 +231,34 @@ export async function openFieldOfflineStore(
             fail(new Error("Registrerings-ID'et er allerede gemt. Den tidligere fil bevares."));
             return;
           }
-          const usage = tx.objectStore("usage").get("bytes");
-          usage.onsuccess = () => {
-            try {
-              const used = Number(usage.result ?? 0);
-              if (used + item.originalBytes > maxBytes) {
-                fail(new Error("Feltkøen har ikke plads. Send eksisterende originaler først."));
-                return;
-              }
-              tx.objectStore("items").add(item);
-              if (blob) tx.objectStore("blobs").add({ actorId: item.actorId, id: item.id, blob });
-              tx.objectStore("usage").put(used + item.originalBytes, "bytes");
-              result();
-            } catch (error) {
-              fail(
-                error instanceof Error ? error : new Error("Originalen kunne ikke gemmes lokalt."),
-              );
-            }
-          };
+          withSupersededSource(
+            tx,
+            item,
+            () => {
+              const usage = tx.objectStore("usage").get("bytes");
+              usage.onsuccess = () => {
+                try {
+                  const used = Number(usage.result ?? 0);
+                  if (used + item.originalBytes > maxBytes) {
+                    fail(new Error("Feltkøen har ikke plads. Send eksisterende originaler først."));
+                    return;
+                  }
+                  tx.objectStore("items").add(item);
+                  if (blob)
+                    tx.objectStore("blobs").add({ actorId: item.actorId, id: item.id, blob });
+                  tx.objectStore("usage").put(used + item.originalBytes, "bytes");
+                  result();
+                } catch (error) {
+                  fail(
+                    error instanceof Error
+                      ? error
+                      : new Error("Originalen kunne ikke gemmes lokalt."),
+                  );
+                }
+              };
+            },
+            fail,
+          );
         };
       });
     },
@@ -376,6 +425,8 @@ export async function openFieldOfflineStore(
               version.action_id !== row.payload.actionId ||
               version.request_id !== row.id ||
               version.template_version_id !== row.payload.templateVersionId ||
+              (version.required_plan_version_id ?? null) !==
+                (row.payload.requiredPlanVersionId ?? null) ||
               version.version !== row.payload.expectedVersion + 1 ||
               version.created_by !== actorId ||
               !sameOfflineValue(version.values, row.payload.values) ||
@@ -385,28 +436,41 @@ export async function openFieldOfflineStore(
               throw new Error("Jobkortkvitteringen matcher ikke den lokale registrering.");
             row.receipt = version;
           }
-          const usage = tx.objectStore("usage").get("bytes");
-          usage.onsuccess = () => {
-            try {
-              if (row.kind === "photo") tx.objectStore("blobs").delete(key(actorId, id));
-              tx.objectStore("usage").put(
-                Math.max(0, Number(usage.result ?? 0) - row.originalBytes),
-                "bytes",
-              );
-              row.state = "complete";
-              row.leaseId = null;
-              row.leaseUntil = 0;
-              row.updatedAt = now;
-              tx.objectStore("items").put(row);
-              result(true);
-            } catch (error) {
-              fail(
-                error instanceof Error
-                  ? error
-                  : new Error("Kvitteringen kunne ikke gemmes lokalt."),
-              );
-            }
-          };
+          withSupersededSource(
+            tx,
+            row,
+            (source) => {
+              if (source && !source.supersededBy) {
+                source.supersededBy = row.id;
+                source.updatedAt = now;
+                tx.objectStore("items").put(source);
+              }
+              const usage = tx.objectStore("usage").get("bytes");
+              usage.onsuccess = () => {
+                try {
+                  if (row.kind === "photo") tx.objectStore("blobs").delete(key(actorId, id));
+                  tx.objectStore("usage").put(
+                    Math.max(0, Number(usage.result ?? 0) - row.originalBytes),
+                    "bytes",
+                  );
+                  row.state = "complete";
+                  row.leaseId = null;
+                  row.leaseUntil = 0;
+                  row.updatedAt = now;
+                  tx.objectStore("items").put(row);
+                  result(true);
+                } catch (error) {
+                  fail(
+                    error instanceof Error
+                      ? error
+                      : new Error("Kvitteringen kunne ikke gemmes lokalt."),
+                  );
+                }
+              };
+            },
+            fail,
+            true,
+          );
         } catch (error) {
           fail(error instanceof Error ? error : new Error("Kvitteringen kunne ikke kontrolleres."));
         }

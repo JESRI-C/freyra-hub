@@ -3,6 +3,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FieldWorkPack } from "@/lib/field-offline";
+import { emptyWorkOrderPlan } from "@/lib/work-order-plan";
 const f = vi.hoisted(() => ({
   actor: "11111111-1111-4111-8111-111111111111",
   project: "22222222-2222-4222-8222-222222222222",
@@ -151,7 +152,225 @@ async function edit() {
     b.textContent?.includes("Gem registrering på telefonen"),
   )!;
 }
+function requiredPack() {
+  const source = pack(),
+    first = source.jobs[0].template!;
+  const second = {
+    ...first,
+    id: crypto.randomUUID(),
+    template_id: crypto.randomUUID(),
+    definition: {
+      ...first.definition,
+      title: "Habitatbesøg",
+      fields: [{ key: "habitat", label: "Habitat", type: "text" as const, required: true }],
+    },
+  };
+  source.jobs[0] = {
+    ...source.jobs[0],
+    template: null,
+    latest: null,
+    registrations: [],
+    requirements: {
+      planVersionId: crypto.randomUUID(),
+      planVersion: 1,
+      cards: [first, second],
+      canRecord: true,
+    },
+  };
+  source.jobs[0].plan = {
+    id: source.jobs[0].requirements!.planVersionId,
+    version: 1,
+    plan: {
+      ...emptyWorkOrderPlan("Feltinstruks"),
+      instructions: "Undersøg stedet efter den gemte instruks",
+      requiredJobCards: [first, second].map((card) => ({
+        templateVersionId: card.id,
+        templateId: card.template_id,
+        version: card.version,
+        definition: card.definition,
+      })),
+    },
+  };
+  return source;
+}
+async function inputValue(element: HTMLInputElement, value: string) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(element, value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+const inputWithLabel = (prefix: string) =>
+  [...host.querySelectorAll("label")]
+    .find((label) => label.textContent?.trim().startsWith(prefix))!
+    .querySelector<HTMLInputElement>("input")!;
 describe("mobile field local save feedback", () => {
+  it("retains the corrected source without counting it as an outstanding registration", async () => {
+    const source = pack(),
+      job = source.jobs[0],
+      received = crypto.randomUUID();
+    f.packs.mockResolvedValue([source]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        kind: "job",
+        state: "conflict",
+        projectId: f.project,
+        supersededBy: received,
+        template: job.template,
+        payload: { actionId: f.action, expectedVersion: 1, values: job.latest!.values },
+      },
+      {
+        id: received,
+        kind: "job",
+        state: "complete",
+        projectId: f.project,
+        template: job.template,
+        payload: { actionId: f.action, expectedVersion: 1, values: job.latest!.values },
+        receipt: { ...job.latest, version: 2 },
+      },
+    ]);
+    await act(async () => root!.render(<FieldOfflineWorkspace requestedProject={f.project} />));
+    const queue = host.querySelector('[aria-label="Telefonens feltkø"]')!;
+    expect(queue.textContent).toContain("0 afventer på denne sag");
+    expect(queue.textContent).toContain("1 tidligere kladder er bevaret");
+    expect(queue.textContent).toContain("Bevaret – rettet i nyere registrering");
+    expect(f.enqueue).not.toHaveBeenCalled();
+  });
+  it("saves a first required card and reopens each card's local answers without mixing them", async () => {
+    const source = requiredPack(),
+      cards = source.jobs[0].requirements!.cards;
+    const queue: unknown[] = [];
+    f.packs.mockResolvedValue([source]);
+    f.items.mockResolvedValue(queue);
+    f.prepare.mockImplementation((_pack, actionId, raw) => ({
+      id: crypto.randomUUID(),
+      actorId: f.actor,
+      projectId: f.project,
+      kind: "job",
+      state: "queued",
+      createdAt: Date.now(),
+      originalBytes: 0,
+      attempts: 0,
+      lastError: null,
+      receipt: null,
+      template: cards.find((card) => card.id === raw.templateVersionId),
+      payload: {
+        actionId,
+        templateVersionId: raw.templateVersionId,
+        requiredPlanVersionId: source.jobs[0].requirements!.planVersionId,
+        expectedVersion: queue.length,
+        ...raw,
+      },
+    }));
+    f.enqueue.mockImplementation(async (item) => {
+      queue.push(item);
+    });
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const selector = () =>
+      host.querySelector<HTMLSelectElement>('select[aria-label="Jobkort i opgavepakken"]')!;
+    expect(host.textContent).toContain("Den første registrering kan gemmes på telefonen");
+    expect(host.textContent).toContain("Undersøg stedet efter den gemte instruks");
+    await inputValue(host.querySelector<HTMLInputElement>('input[type="number"]')!, "0");
+    const yesNo = [...host.querySelectorAll("select")].find((select) =>
+      [...select.options].some((option) => option.value === "false"),
+    )!;
+    await act(async () => {
+      yesNo.value = "false";
+      yesNo.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(selector().disabled).toBe(true);
+    await inputValue(inputWithLabel("Begrundelse"), "Første kort");
+    const save = () =>
+      [...host.querySelectorAll("button")].find((button) =>
+        button.textContent?.includes("Gem registrering på telefonen"),
+      )!;
+    await act(async () => save().click());
+    expect(f.prepare.mock.calls[0][2]).toMatchObject({
+      templateVersionId: cards[0].id,
+      values: { count: 0, seen: false },
+    });
+    expect(selector().disabled).toBe(false);
+    await act(async () => {
+      selector().value = cards[1].id;
+      selector().dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(host.querySelector('input[type="number"]')).toBeNull();
+    expect(inputWithLabel("Habitat").value).toBe("");
+    await inputValue(inputWithLabel("Habitat"), "Eng");
+    await inputValue(inputWithLabel("Begrundelse"), "Andet kort");
+    await act(async () => save().click());
+    expect(f.prepare.mock.calls[1][2]).toMatchObject({
+      templateVersionId: cards[1].id,
+      values: { habitat: "Eng" },
+    });
+    await act(async () => {
+      selector().value = cards[0].id;
+      selector().dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(host.querySelector<HTMLInputElement>('input[type="number"]')!.value).toBe("0");
+    expect([...host.querySelectorAll("select")].some((select) => select.value === "false")).toBe(
+      true,
+    );
+    expect(queue).toHaveLength(2);
+  });
+  it("keeps required cards read-only when the downloaded capability does not allow execution", async () => {
+    const source = requiredPack();
+    source.jobs[0].requirements!.canRecord = false;
+    f.packs.mockResolvedValue([source]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    expect(host.querySelector<HTMLInputElement>('input[type="number"]')!.disabled).toBe(true);
+    expect(inputWithLabel("Begrundelse").disabled).toBe(true);
+    const save = [...host.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Gem registrering på telefonen"),
+    )!;
+    expect(save.disabled).toBe(true);
+    expect(f.enqueue).not.toHaveBeenCalled();
+  });
+  it("preserves a draft collected on another plan and requires explicit reuse of its answers", async () => {
+    const source = requiredPack(),
+      card = source.jobs[0].requirements!.cards[0];
+    source.jobs[0].requirements!.planVersion = 2;
+    source.jobs[0].plan!.version = 2;
+    f.packs.mockResolvedValue([source]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        kind: "job",
+        state: "conflict",
+        projectId: f.project,
+        template: card,
+        payload: {
+          actionId: f.action,
+          templateVersionId: card.id,
+          requiredPlanVersionId: crypto.randomUUID(),
+          expectedVersion: 0,
+          values: { count: 0, seen: false },
+          status: "recorded",
+        },
+      },
+    ]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    expect(host.textContent).toContain("anden planversion");
+    expect(host.querySelector<HTMLInputElement>('input[type="number"]')!.value).toBe("");
+    const copy = [...host.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Brug den bevarede registrering som ny kladde"),
+    )!;
+    await act(async () => copy.click());
+    expect(host.querySelector<HTMLInputElement>('input[type="number"]')!.value).toBe("0");
+    expect(f.enqueue).not.toHaveBeenCalled();
+  });
   it("opens the requested jobcard only when it belongs to the saved project pack", async () => {
     await act(async () =>
       root!.render(

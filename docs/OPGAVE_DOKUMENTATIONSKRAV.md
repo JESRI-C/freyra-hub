@@ -53,3 +53,17 @@ De private fixtures ligger under tmp/submission-required-hosted og er ikke i Git
 ## Fortsat åbent
 
 Fagpersonen skal fortsat fastlægge, hvilke jobkort og bilag en bestemt faglig metode kræver. Denne funktion gemmer projektlederens konkrete valg og tillægger det ingen faglig godkendelse. Kategoriregler, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept indgår i det resterende arbejde. Ekstern nyregistrering uden projektbidragsadgang udvides ikke af denne migration.
+
+## Offlinepakken under samling
+
+4. november 2026 · `codex/offline-required-job-cards`. Pakken er lokalt efterprøvet; database-, hosted- og fysisk mobilaccept af de nye ændringer er endnu åbne.
+
+Den eksisterende feltpakke henter nu den gemte plan med instruktioner og alle de præcise krævede jobkortversioner. Første registrering kræver dermed ikke længere et jobkort, som en redaktør allerede har udfyldt. Hvert jobkort viser sine egne seneste svar. Køen bruger fortsat én versionsrækkefølge på samme arbejdsopgave og bevarer eksisterende pakker, originalfiler og kladder.
+
+En lokal registrering af et krævet jobkort medsender den planversion, medarbejderen arbejdede efter. Den nye RPC `save_field_job_version_for_plan` og den eksisterende RPC deler samme kontrollerede gemmefunktion. Migration `20261104034102_offline_required_job_card_plan_binding.sql` tilføjer en valgfri, uforanderlig planreference med organisation-, projekt- og opgavebinding. En ny registrering under en ændret plan afvises som konflikt; et identisk genforsøg kan genhente en allerede gemt kvittering med sin oprindelige planreference, så længe brugeren stadig har adgang.
+
+Efter pakkeopdatering kan medarbejderen læse den aktuelle instruktion og sammenligne den bevarede lokale registrering med serverens svar. Genbrug kræver en udtrykkelig handling og en begrundelse. Originalkladden bevares. Først når en præcist matchende serverkvittering er kontrolleret, kædes den tidligere kladde lokalt til rettelsen og udgår af antallet af afventende registreringer. Den gamle registrerings tilstand, værdier og planreference overskrives ikke.
+
+37 lokale prøver består i offlinearbejdsrummet, service, IndexedDB-lager og synkronisering. De dækker adskilte svar på to krævede kort, nul/nej, manglende kilder, læseadgang, første registrering, versionsrækkefølge, planhenvisning i kvittering og atomisk bevaring af konfliktkladde og rettelse. Målrettet lint og JavaScript-syntakskontrol består. `offline_required_job_card_plan.test.sql` og den udvidede database-samtidighedsprøve er klargjort til frisk CI-database; de tæller først som beståede efter faktisk kørsel.
+
+Den gentagelige hosted-prøve skal omfatte to krævede jobkort uden tidligere svar, netafbrydelse, browserluk/genåbning, mistet serversvar, planskift, udtrykkeligt genbrug og adgangstilbagekaldelse. Kontroller antal rækker, planreferencer, bevarede kladder og nul/nej efter genforbindelse. Fotoets eksisterende manuelle kobling til opgaven og fysisk GPS/kamera er fortsat særskilt restarbejde. En ældre appversion kan ikke behandle den nye strikte køpayload; rollback kræver en kompatibel læser eller sikret genoptagelse af køen og må ikke slette den.

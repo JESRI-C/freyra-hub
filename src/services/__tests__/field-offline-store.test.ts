@@ -133,6 +133,89 @@ function jobReceipt(item: Extract<OfflineItem, { kind: "job" }>) {
   };
 }
 describe("durable field outbox", () => {
+  it("keeps the original conflict and marks it handled only with a valid replacement receipt", async () => {
+    const store = await openFieldOfflineStore(new IDBFactory()),
+      original = job();
+    original.payload.requiredPlanVersionId = crypto.randomUUID();
+    await store.enqueue(original);
+    const first = (await store.claim(actor, 2000))!;
+    await store.fail(actor, original.id, first.leaseId!, "conflict", 2100);
+    const wrong = {
+      ...original,
+      id: crypto.randomUUID(),
+      supersedesId: original.id,
+      payload: { ...original.payload, actionId: crypto.randomUUID() },
+    };
+    await expect(store.enqueue(wrong)).rejects.toThrow("matcher ikke");
+    const replacement = {
+      ...original,
+      id: crypto.randomUUID(),
+      createdAt: 3000,
+      supersedesId: original.id,
+      payload: { ...original.payload, requiredPlanVersionId: crypto.randomUUID() },
+    };
+    await store.enqueue(replacement);
+    expect((await store.items(actor)).find((item) => item.id === original.id)).not.toHaveProperty(
+      "supersededBy",
+    );
+    const claim = (await store.claim(actor, 4000))!;
+    expect(claim.id).toBe(replacement.id);
+    await expect(
+      store.complete(actor, claim.id, claim.leaseId!, jobReceipt(replacement), 5000),
+    ).rejects.toThrow("matcher ikke");
+    expect((await store.items(actor)).find((item) => item.id === original.id)).not.toHaveProperty(
+      "supersededBy",
+    );
+    await store.complete(
+      actor,
+      claim.id,
+      claim.leaseId!,
+      {
+        ...jobReceipt(replacement),
+        required_plan_version_id: replacement.payload.requiredPlanVersionId,
+      },
+      5000,
+    );
+    expect((await store.items(actor)).find((item) => item.id === original.id)).toMatchObject({
+      state: "conflict",
+      supersededBy: replacement.id,
+      payload: {
+        requiredPlanVersionId: original.payload.requiredPlanVersionId,
+        values: { seen: false, count: 0 },
+      },
+    });
+    expect((await store.items(actor)).find((item) => item.id === replacement.id)?.state).toBe(
+      "complete",
+    );
+    store.close();
+  });
+  it("preserves the source plan across local reopen and rejects a mismatched server receipt", async () => {
+    const factory = new IDBFactory(),
+      first = await openFieldOfflineStore(factory),
+      item = job();
+    item.payload.requiredPlanVersionId = crypto.randomUUID();
+    await first.enqueue(item);
+    first.close();
+    const reopened = await openFieldOfflineStore(factory);
+    expect((await reopened.items(actor))[0]).toMatchObject({
+      payload: { requiredPlanVersionId: item.payload.requiredPlanVersionId },
+    });
+    const claim = (await reopened.claim(actor, 2000))!;
+    await expect(
+      reopened.complete(actor, item.id, claim.leaseId!, jobReceipt(item), 3000),
+    ).rejects.toThrow("matcher ikke");
+    expect(
+      await reopened.complete(
+        actor,
+        item.id,
+        claim.leaseId!,
+        { ...jobReceipt(item), required_plan_version_id: item.payload.requiredPlanVersionId },
+        3000,
+      ),
+    ).toBe(true);
+    reopened.close();
+  });
+
   it("rolls back metadata and capacity when storing the original throws a quota error", async () => {
     const store = await openFieldOfflineStore(new IDBFactory()),
       item = photo();

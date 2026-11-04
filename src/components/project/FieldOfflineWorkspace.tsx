@@ -13,6 +13,8 @@ import {
 } from "@/lib/field-offline";
 import { FieldJobVersionSchema, type FieldJobValues } from "@/lib/field-job-cards";
 import { RequiredFieldJobProgress } from "./RequiredFieldJobProgress";
+import { RequiredJobCards } from "./RequiredJobCards";
+import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { openFieldOfflineStore, type FieldOfflineStore } from "@/services/field-offline-store";
 import { drainFieldOfflineQueue } from "@/services/field-offline-sync";
 import {
@@ -41,6 +43,9 @@ function bytes(size: number) {
   return size >= 1024 ** 3
     ? `${(size / 1024 ** 3).toFixed(1)} GB`
     : `${(size / 1024 ** 2).toFixed(1)} MB`;
+}
+function retainedAfterCorrection(item: OfflineItem) {
+  return item.kind === "job" && !!item.supersededBy;
 }
 function localSaveError(error: unknown) {
   if (error && typeof error === "object" && "name" in error && error.name === "QuotaExceededError")
@@ -100,8 +105,10 @@ export function FieldOfflineWorkspace({
   const queueReady = !!queue && queue.actor === actor && queue.projectId === projectId;
   const items = queueReady ? queue.items : [];
   const cancelledCount = items.filter((item) => item.lastError === "cancelled").length;
+  const correctedCount = items.filter(retainedAfterCorrection).length;
   const pendingCount = items.filter(
-    (item) => item.state !== "complete" && item.lastError !== "cancelled",
+    (item) =>
+      item.state !== "complete" && item.lastError !== "cancelled" && !retainedAfterCorrection(item),
   ).length;
 
   function guardDraftNavigation(event: MouseEvent<HTMLAnchorElement>) {
@@ -456,6 +463,7 @@ export function FieldOfflineWorkspace({
           />
           {queueReady ? (
             <OfflineJobs
+              disabled={busy}
               key={actor + projectId + pack.savedAt}
               pack={pack}
               store={store}
@@ -488,6 +496,12 @@ export function FieldOfflineWorkspace({
                   : `${cancelledCount} registreringer er bevaret på telefonen efter aflysning.`}
               </p>
             )}
+            {correctedCount > 0 && (
+              <p className="text-sm">
+                {correctedCount} tidligere kladder er bevaret efter en modtaget rettelse. De tæller
+                ikke som afventende.
+              </p>
+            )}
             <label className="flex min-h-11 items-center gap-3 text-sm">
               <input
                 type="checkbox"
@@ -517,9 +531,11 @@ export function FieldOfflineWorkspace({
                         "Jobkortregistrering")}
                   </p>
                   <p className="text-sm">
-                    {item.lastError === "cancelled"
-                      ? "Bevaret på telefonen – opgaven er aflyst"
-                      : labels[item.state]}
+                    {retainedAfterCorrection(item)
+                      ? "Bevaret – rettet i nyere registrering"
+                      : item.lastError === "cancelled"
+                        ? "Bevaret på telefonen – opgaven er aflyst"
+                        : labels[item.state]}
                     {item.dependsOn && item.state === "queued"
                       ? " · afventer tidligere registrering"
                       : ""}
@@ -583,7 +599,7 @@ export function FieldOfflineWorkspace({
                       </button>
                     )}
                   </div>
-                  {item.state === "conflict" && (
+                  {item.state === "conflict" && !retainedAfterCorrection(item) && (
                     <p className="text-sm">
                       Din registrering er bevaret. Opdater sagen med net, gennemgå serverens jobkort
                       og den gemte registrering, og gem en ny version med en begrundelse. Den gamle
@@ -802,6 +818,7 @@ function OfflinePhotos({
   );
 }
 function OfflineJobs({
+  disabled,
   pack,
   store,
   items,
@@ -809,6 +826,7 @@ function OfflineJobs({
   onDirty,
   requestedActionId,
 }: {
+  disabled: boolean;
   pack: FieldWorkPack;
   store: FieldOfflineStore;
   items: OfflineItem[];
@@ -826,56 +844,58 @@ function OfflineJobs({
   return (
     <section className={card} aria-label="Jobkort på telefonen">
       <h2 className="font-semibold">Jobkort i felten</h2>
-      {actionId && !pack.jobs.some((job) => job.actionId === actionId) && (
-        <p role="alert">
-          Den valgte opgave findes ikke i projektets gemte arbejdspakke. Opdatér pakken med net,
-          eller vælg en tilgængelig opgave. Der er ikke valgt en erstatningsopgave.
-        </p>
-      )}
-      {requestedActionId && (
-        <p className="text-sm text-muted-foreground">
-          Opgavevalget gælder jobkortet. Fotos i feltkøen er fortsat knyttet til projektet; de er
-          ikke automatisk opgavedokumentation.
-        </p>
-      )}
-      <label className="block space-y-2 text-sm">
-        Opgave
-        <select
-          className={control}
-          value={actionId}
-          disabled={dirty}
-          onChange={(e) => setAction(e.target.value)}
-        >
-          <option value="">Vælg opgave</option>
-          {pack.jobs.map((job) => (
-            <option key={job.actionId} value={job.actionId}>
-              {job.title}
-            </option>
-          ))}
-        </select>
-      </label>
-      {dirty && (
-        <button
-          className={button}
-          onClick={() => {
-            changeDirty(false);
-            setReset((n) => n + 1);
-          }}
-        >
-          Fortryd ikke-gemte ændringer
-        </button>
-      )}
-      {actionId && pack.jobs.some((job) => job.actionId === actionId) && (
-        <OfflineJobEditor
-          key={actionId + reset}
-          pack={pack}
-          actionId={actionId}
-          store={store}
-          items={items}
-          onSaved={onSaved}
-          onDirty={changeDirty}
-        />
-      )}
+      <fieldset disabled={disabled} className="min-w-0 space-y-3 border-0 p-0">
+        {actionId && !pack.jobs.some((job) => job.actionId === actionId) && (
+          <p role="alert">
+            Den valgte opgave findes ikke i projektets gemte arbejdspakke. Opdatér pakken med net,
+            eller vælg en tilgængelig opgave. Der er ikke valgt en erstatningsopgave.
+          </p>
+        )}
+        {requestedActionId && (
+          <p className="text-sm text-muted-foreground">
+            Opgavevalget gælder jobkortet. Fotos i feltkøen er fortsat knyttet til projektet; de er
+            ikke automatisk opgavedokumentation.
+          </p>
+        )}
+        <label className="block space-y-2 text-sm">
+          Opgave
+          <select
+            className={control}
+            value={actionId}
+            disabled={dirty}
+            onChange={(e) => setAction(e.target.value)}
+          >
+            <option value="">Vælg opgave</option>
+            {pack.jobs.map((job) => (
+              <option key={job.actionId} value={job.actionId}>
+                {job.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        {dirty && (
+          <button
+            className={button}
+            onClick={() => {
+              changeDirty(false);
+              setReset((n) => n + 1);
+            }}
+          >
+            Fortryd ikke-gemte ændringer
+          </button>
+        )}
+        {actionId && pack.jobs.some((job) => job.actionId === actionId) && (
+          <OfflineJobEditor
+            key={`${actionId}:${reset}:${pack.savedAt}`}
+            pack={pack}
+            actionId={actionId}
+            store={store}
+            items={items}
+            onSaved={onSaved}
+            onDirty={changeDirty}
+          />
+        )}
+      </fieldset>
     </section>
   );
 }
@@ -895,28 +915,70 @@ function OfflineJobEditor({
   onDirty: (dirty: boolean) => void;
 }) {
   const job = pack.jobs.find((j) => j.actionId === actionId)!;
-  const local = items
-    .filter((i) => i.kind === "job" && i.payload.actionId === actionId)
-    .sort(
-      (a, b) =>
-        (b.kind === "job" ? b.payload.expectedVersion : 0) -
-          (a.kind === "job" ? a.payload.expectedVersion : 0) || b.createdAt - a.createdAt,
-    )[0];
-  const [values, setValues] = useState<FieldJobValues>(
-    local?.kind === "job" &&
-      local.template.id === job.template?.id &&
-      !["conflict", "blocked"].includes(local.state) &&
-      local.payload.expectedVersion + 1 >= (job.latest?.version ?? 0)
-      ? local.payload.values
-      : (job.latest?.values ?? {}),
+  const serverVersion = job.latest?.version ?? 0;
+  const taskItems = items.filter(
+    (item): item is Extract<OfflineItem, { kind: "job" }> =>
+      item.kind === "job" && item.payload.actionId === actionId,
   );
+  const templates = [
+    ...(job.template ? [job.template] : []),
+    ...(job.requirements?.cards ?? []),
+    ...taskItems.map((item) => item.template),
+  ].filter((template, index, all) => all.findIndex((other) => other.id === template.id) === index);
+  const initialTemplateId =
+    job.requirements?.cards[0]?.id ?? job.template?.id ?? templates[0]?.id ?? "";
+  function readTemplate(id: string) {
+    const latest =
+      job.registrations?.find((row) => row.template_version_id === id) ??
+      (job.latest?.template_version_id === id ? job.latest : null);
+    const local = taskItems
+      .filter((item) => item.template.id === id && !item.supersededBy)
+      .sort(
+        (a, b) =>
+          b.payload.expectedVersion - a.payload.expectedVersion || b.createdAt - a.createdAt,
+      )[0];
+    const planId = job.requirements?.cards.some((card) => card.id === id)
+      ? job.requirements.planVersionId
+      : undefined;
+    const reuse =
+      local &&
+      !["conflict", "blocked"].includes(local.state) &&
+      (local.payload.requiredPlanVersionId ?? null) === (planId ?? null) &&
+      local.payload.expectedVersion + 1 >= serverVersion;
+    return {
+      latest,
+      local,
+      planId,
+      values: reuse ? local.payload.values : (latest?.values ?? {}),
+      status: reuse ? (local.payload.status ?? "draft") : (latest?.status ?? "draft"),
+    };
+  }
+  const [templateId, setTemplateId] = useState(initialTemplateId);
+  const template = templates.find((card) => card.id === templateId);
+  const { latest, local, planId } = readTemplate(templateId);
+  const planChanged =
+    !!local?.payload.requiredPlanVersionId && local.payload.requiredPlanVersionId !== planId;
+  const writable = job.requirements?.cards.some((card) => card.id === templateId)
+    ? job.requirements.canRecord
+    : job.template?.id === templateId;
+  const [values, setValues] = useState<FieldJobValues>(
+    () => readTemplate(initialTemplateId).values,
+  );
+  const [dirty, setDirty] = useState(false);
+  const markDirty = (value: boolean) => {
+    setDirty(value);
+    onDirty(value);
+  };
   const [reason, setReason] = useState("");
-  const [status, setStatus] = useState<"draft" | "recorded" | "needs_review">("draft");
+  const [supersedesId, setSupersedesId] = useState<string>();
+  const [status, setStatus] = useState<"draft" | "recorded" | "needs_review">(
+    () => readTemplate(initialTemplateId).status,
+  );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const saving = useRef(false);
   const inputPrefix = useId();
-  if (!job.template || !job.latest)
+  if (!template)
     return (
       <p className="text-sm">
         En redaktør skal først tilknytte en skabelon i dashboardet. Opdater derefter opgavepakken.
@@ -924,10 +986,10 @@ function OfflineJobEditor({
     );
   const setValue = (key: string, value: string | boolean | number | null) => {
     setValues((old) => ({ ...old, [key]: value }));
-    onDirty(true);
+    markDirty(true);
   };
   async function save() {
-    if (saving.current) return;
+    if (saving.current || !writable) return;
     saving.current = true;
     setBusy(true);
     setMessage("");
@@ -937,13 +999,14 @@ function OfflineJobEditor({
       const item = prepareOfflineJob(
         pack,
         actionId,
-        { values, status, correctionReason: reason },
+        { values, status, correctionReason: reason, templateVersionId: template!.id, supersedesId },
         current,
       );
       await store.enqueue(item);
       setMessage("Registreringen er gemt på telefonen. Serverkvittering afventer synkronisering.");
-      onDirty(false);
+      markDirty(false);
       setReason("");
+      setSupersedesId(undefined);
       onSaved();
     } catch (e) {
       setMessage(localSaveError(e));
@@ -954,32 +1017,96 @@ function OfflineJobEditor({
   }
   return (
     <div className="space-y-3">
+      {job.plan ? (
+        <WorkOrderPlanSummary row={job.plan} />
+      ) : (
+        job.requirements && (
+          <>
+            <p className="text-sm">
+              Dokumentationskrav fra planversion {job.requirements.planVersion}. Opgavepakken er
+              gemt {new Date(pack.savedAt).toLocaleString("da-DK")}.
+            </p>
+            <RequiredJobCards
+              cards={job.requirements.cards.map((card) => ({
+                templateVersionId: card.id,
+                templateId: card.template_id,
+                version: card.version,
+                definition: card.definition,
+              }))}
+            />
+          </>
+        )
+      )}
+      <label className="block space-y-2 text-sm">
+        Jobkort i opgavepakken
+        <select
+          aria-label="Jobkort i opgavepakken"
+          className={control}
+          value={templateId}
+          disabled={busy || dirty}
+          onChange={(event) => {
+            const id = event.target.value,
+              draft = readTemplate(id);
+            setTemplateId(id);
+            setValues(draft.values);
+            setStatus(draft.status);
+            setReason("");
+            setSupersedesId(undefined);
+            setMessage("");
+          }}
+        >
+          {templates.map((card) => (
+            <option key={card.id} value={card.id}>
+              {card.definition.title} · version {card.version}
+            </option>
+          ))}
+        </select>
+      </label>
+      {dirty && <p className="text-sm">Gem på telefonen eller fortryd, før du skifter jobkort.</p>}
+      {!writable && (
+        <p className="text-sm">
+          Denne version kan læses, men ikke gemmes fra den aktuelle opgavepakke. Opdatér pakken med
+          net, eller vælg et jobkort med udførelsesadgang.
+        </p>
+      )}
+      {!latest && writable && (
+        <p className="text-sm">
+          Der er endnu ingen serverregistrering til dette jobkort i opgavepakken. Den første
+          registrering kan gemmes på telefonen.
+        </p>
+      )}
+      {planChanged && (
+        <p className="text-sm">
+          Den bevarede registrering bygger på en anden planversion. Gennemgå den aktuelle plan, og
+          vælg udtrykkeligt, hvilke svar der skal bruges i en ny kladde.
+        </p>
+      )}
       <p className="text-sm">
-        Skabelonversion {job.template.version}. Manglende svar kan gemmes som synlige mangler.
+        Skabelonversion {template.version}. Manglende svar kan gemmes som synlige mangler.
       </p>
       <details>
         <summary className="min-h-11 cursor-pointer py-2 text-sm">
-          Serverversion i opgavepakken: {job.latest.version}
+          Serverversion i opgavepakken: {latest?.version ?? "Ingen gemt"}
         </summary>
         <dl className="space-y-2 text-sm">
-          {Object.entries(job.latest.values).map(([key, value]) => (
+          {Object.entries(latest?.values ?? {}).map(([key, value]) => (
             <div key={key}>
               <dt className="font-medium">
-                {job.template!.definition.fields.find((f) => f.key === key)?.label ?? key}
+                {template!.definition.fields.find((f) => f.key === key)?.label ?? key}
               </dt>
               <dd>{offlineJobAnswer(value)}</dd>
             </div>
           ))}
         </dl>
       </details>
-      {local?.kind === "job" && local.state === "conflict" && (
+      {local?.kind === "job" && (local.state === "conflict" || planChanged) && (
         <div className="space-y-2 rounded-xl border bg-muted/40 p-3 text-sm">
           <h3 className="font-medium">Sammenlign den lokale registrering med opgavepakken</h3>
-          {local.template.id !== job.template.id ? (
+          {local.template.id !== template.id ? (
             <p>
               Skabelonen er ændret. Brug de bevarede svar nedenfor til at udfylde den nye skabelon.
             </p>
-          ) : job.latest.version <= local.payload.expectedVersion ? (
+          ) : serverVersion <= local.payload.expectedVersion && !planChanged ? (
             <p>Opdater sagen med net, så opgavepakken indeholder den nyere serverversion.</p>
           ) : (
             <p>
@@ -988,7 +1115,7 @@ function OfflineJobEditor({
           )}
           <ul className="space-y-2">
             {local.template.definition.fields.map((field) => {
-              const savedAnswer = offlineJobAnswer(job.latest?.values[field.key]);
+              const savedAnswer = offlineJobAnswer(latest?.values[field.key]);
               const localAnswer = offlineJobAnswer(local.payload.values[field.key]);
               return (
                 <li
@@ -1000,7 +1127,7 @@ function OfflineJobEditor({
                     {field.unit ? ` (${field.unit})` : ""}
                   </p>
                   <dl className="grid gap-1 sm:grid-cols-2">
-                    {local.template.id === job.template?.id && (
+                    {local.template.id === template?.id && (
                       <div>
                         <dt className="text-muted-foreground">I opgavepakken</dt>
                         <dd className="whitespace-pre-wrap">{savedAnswer}</dd>
@@ -1015,16 +1142,22 @@ function OfflineJobEditor({
               );
             })}
           </ul>
-          {local.template.id === job.template.id &&
-            job.latest.version > local.payload.expectedVersion && (
+          {local.template.id === template.id &&
+            (serverVersion > local.payload.expectedVersion || planChanged) &&
+            !taskItems.some(
+              (item) =>
+                item.supersedesId === local.id && !["blocked", "conflict"].includes(item.state),
+            ) &&
+            writable && (
               <button
                 type="button"
                 className={button}
-                disabled={busy}
+                disabled={busy || !writable}
                 onClick={() => {
                   setValues(local.payload.values);
                   setStatus(local.payload.status);
-                  onDirty(true);
+                  setSupersedesId(local.id);
+                  markDirty(true);
                 }}
               >
                 Brug den bevarede registrering som ny kladde
@@ -1033,12 +1166,12 @@ function OfflineJobEditor({
         </div>
       )}
       <RequiredFieldJobProgress
-        definition={job.template.definition}
+        definition={template.definition}
         values={values}
         inputPrefix={inputPrefix}
-        disabled={busy}
+        disabled={busy || !writable}
       />
-      {job.template.definition.fields.map((field) => (
+      {template.definition.fields.map((field) => (
         <label className="block space-y-2 text-sm" key={field.key}>
           {field.label}
           {field.unit ? ` (${field.unit})` : ""}
@@ -1050,7 +1183,7 @@ function OfflineJobEditor({
             <select
               id={inputPrefix + field.key}
               className={control}
-              disabled={busy}
+              disabled={busy || !writable}
               value={
                 values[field.key] === null || values[field.key] === undefined
                   ? ""
@@ -1080,7 +1213,7 @@ function OfflineJobEditor({
             <textarea
               id={inputPrefix + field.key}
               className={control}
-              disabled={busy}
+              disabled={busy || !writable}
               maxLength={4000}
               value={String(values[field.key] ?? "")}
               onChange={(e) => setValue(field.key, e.target.value)}
@@ -1089,7 +1222,7 @@ function OfflineJobEditor({
             <input
               id={inputPrefix + field.key}
               className={control}
-              disabled={busy}
+              disabled={busy || !writable}
               type={field.type === "date" ? "date" : field.type === "number" ? "number" : "text"}
               step={field.type === "number" ? "any" : undefined}
               value={String(values[field.key] ?? "")}
@@ -1112,9 +1245,10 @@ function OfflineJobEditor({
         <select
           className={control}
           value={status}
+          disabled={busy || !writable}
           onChange={(e) => {
             setStatus(e.target.value as typeof status);
-            onDirty(true);
+            markDirty(true);
           }}
         >
           <option value="draft">Kladde</option>
@@ -1127,14 +1261,19 @@ function OfflineJobEditor({
         <input
           className={control}
           value={reason}
+          disabled={busy || !writable}
           maxLength={2000}
           onChange={(e) => {
             setReason(e.target.value);
-            onDirty(true);
+            markDirty(true);
           }}
         />
       </label>
-      <button className={primary} disabled={busy || !reason.trim()} onClick={() => void save()}>
+      <button
+        className={primary}
+        disabled={busy || !writable || !reason.trim()}
+        onClick={() => void save()}
+      >
         <CloudUpload className="h-4 w-4" />
         {busy ? "Gemmer lokalt…" : "Gem registrering på telefonen"}
       </button>
