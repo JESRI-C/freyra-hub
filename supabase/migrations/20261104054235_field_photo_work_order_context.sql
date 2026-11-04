@@ -235,8 +235,7 @@ BEGIN
    IF previous.id IS NULL OR previous.state='withdrawn' OR NEW.observation_version_id IS DISTINCT FROM previous.observation_version_id OR NEW.upload_id IS DISTINCT FROM previous.upload_id OR NEW.execution_revision_id IS DISTINCT FROM previous.execution_revision_id
    THEN RAISE EXCEPTION 'Invalid evidence withdrawal' USING ERRCODE='22023'; END IF;
    NEW.observation_snapshot:=previous.observation_snapshot; NEW.original_snapshot:=previous.original_snapshot;
-   IF upload.payload ? 'workOrder' THEN NEW.original_snapshot:=NEW.original_snapshot||jsonb_build_object('workOrder',upload.payload->'workOrder'); END IF;
- RETURN NEW;
+   RETURN NEW;
  END IF;
  SELECT * INTO observation FROM public.field_job_versions WHERE id=NEW.observation_version_id AND action_id=NEW.action_id AND organization_id=NEW.organization_id AND project_id=NEW.project_id;
  IF observation.id IS NULL OR observation.status='draft' THEN RAISE EXCEPTION 'A recorded task observation is required' USING ERRCODE='22023'; END IF;
@@ -253,6 +252,7 @@ BEGIN
  THEN RAISE EXCEPTION 'Verified original is unavailable or changed' USING ERRCODE='22023'; END IF;
  NEW.observation_snapshot:=jsonb_build_object('schema','freyra.task-observation-pin/v1','id',observation.id,'version',observation.version,'template',template.definition,'values',observation.values,'status',observation.status,'recordedAt',observation.created_at,'recordedBy',observation.created_by);
  NEW.original_snapshot:=jsonb_build_object('schema','freyra.task-original-pin/v1','uploadId',upload.id,'sha256',receipt.sha256,'sizeBytes',receipt.size_bytes,'objectId',receipt.object_id,'objectVersion',receipt.object_version,'objectUpdatedAt',receipt.object_updated_at,'storagePath',upload.storage_path,'capturedAt',upload.payload->'capturedAt','capture',upload.payload->'capture');
+ IF upload.payload ? 'workOrder' THEN NEW.original_snapshot:=NEW.original_snapshot||jsonb_build_object('workOrder',upload.payload->'workOrder'); END IF;
  RETURN NEW;
 END $$;
 

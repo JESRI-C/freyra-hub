@@ -339,7 +339,9 @@
         "src/services/action-execution-service.ts",
         "src/services/field-job-cards-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
@@ -358,7 +360,9 @@
         "src/services/action-execution-service.ts",
         "src/services/field-job-cards-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
@@ -377,7 +381,9 @@
         "src/services/action-execution-service.ts",
         "src/services/field-job-cards-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
@@ -435,7 +441,9 @@
         "src/services/action-execution-service.ts",
         "src/services/field-job-cards-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
@@ -477,9 +485,16 @@
       "priority": "P1",
       "title": "Serviceintervaller",
       "package": "D09",
-      "code": ["src/services/watercourse-service.ts", "src/services/project-workspace-service.ts"],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["src/services/__tests__/watercourse-geometry.test.ts"],
+      "code": [
+        "src/services/watercourse-service.ts",
+        "src/services/project-workspace-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/watercourse-geometry.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -488,9 +503,16 @@
       "priority": "P1",
       "title": "Besøgskontrol",
       "package": "D09",
-      "code": ["src/services/watercourse-service.ts", "src/services/project-workspace-service.ts"],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["src/services/__tests__/watercourse-geometry.test.ts"],
+      "code": [
+        "src/services/watercourse-service.ts",
+        "src/services/project-workspace-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/watercourse-geometry.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -504,7 +526,9 @@
         "src/services/field-photo-position-service.ts",
         "src/services/field-offline-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029100658_field_photo_upload_receipts.sql"],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
@@ -552,7 +576,9 @@
         "src/services/field-photo-position-service.ts",
         "src/services/field-offline-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029100658_field_photo_upload_receipts.sql"],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
@@ -602,7 +628,9 @@
         "src/services/field-photo-position-service.ts",
         "src/services/field-offline-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029100658_field_photo_upload_receipts.sql"],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
@@ -650,7 +678,9 @@
         "src/services/field-photo-position-service.ts",
         "src/services/field-offline-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029100658_field_photo_upload_receipts.sql"],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
@@ -669,7 +699,9 @@
         "src/services/field-photo-position-service.ts",
         "src/services/field-offline-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029100658_field_photo_upload_receipts.sql"],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
@@ -688,7 +720,9 @@
         "src/services/field-photo-position-service.ts",
         "src/services/field-offline-service.ts"
       ],
-      "migrations": ["supabase/migrations/20261029100658_field_photo_upload_receipts.sql"],
+      "migrations": [
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+      ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
@@ -735,8 +769,12 @@
         "src/components/project-workspace/ProjectPhotoAtlas.tsx",
         "src/services/project-media-service.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["src/services/__tests__/project-media-originals.test.ts"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/project-media-originals.test.ts"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Delte serverfiltre og ens objektmængde/totaler mangler for nye opgaver og registreringer."
     },
@@ -749,8 +787,12 @@
         "src/components/project-workspace/ProjectPhotoAtlas.tsx",
         "src/services/project-media-service.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["src/services/__tests__/project-media-originals.test.ts"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/project-media-originals.test.ts"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Nuværende atlas indlæser projektets poster. Afgrænset serverudsnit/aggregering og 100.000-fixture mangler."
     },
@@ -763,8 +805,12 @@
         "src/components/project-workspace/ProjectPhotoAtlas.tsx",
         "src/services/project-media-service.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["src/services/__tests__/project-media-originals.test.ts"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/project-media-originals.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -777,8 +823,12 @@
         "src/components/project-workspace/ProjectPhotoAtlas.tsx",
         "src/services/project-media-service.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["src/services/__tests__/project-media-originals.test.ts"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/project-media-originals.test.ts"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Genbrug eksisterende kilde-/lagadaptere; afprøv fejlstatus og CRS i operationelt forløb."
     },
@@ -787,8 +837,13 @@
       "priority": "P0",
       "title": "Versionerede kategorier",
       "package": "D05",
-      "code": ["src/lib/field-job-cards.ts", "src/components/project/FieldJobCardsPanel.tsx"],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/field-job-cards.test.ts",
         "supabase/tests/database/field_job_versions.test.sql"
@@ -801,8 +856,13 @@
       "priority": "P0",
       "title": "Feltkontrakter",
       "package": "D05",
-      "code": ["src/lib/field-job-cards.ts", "src/components/project/FieldJobCardsPanel.tsx"],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/field-job-cards.test.ts",
         "supabase/tests/database/field_job_versions.test.sql"
@@ -855,8 +915,13 @@
       "priority": "P0",
       "title": "Basis vandløbsskema",
       "package": "D05",
-      "code": ["src/lib/field-job-cards.ts", "src/components/project/FieldJobCardsPanel.tsx"],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/field-job-cards.test.ts",
         "supabase/tests/database/field_job_versions.test.sql"
@@ -869,8 +934,13 @@
       "priority": "P1",
       "title": "Faskiner og øvrige profiler",
       "package": "D09",
-      "code": ["src/lib/field-job-cards.ts", "src/components/project/FieldJobCardsPanel.tsx"],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/field-job-cards.test.ts",
         "supabase/tests/database/field_job_versions.test.sql"
@@ -883,8 +953,13 @@
       "priority": "P1",
       "title": "Betingede felter og opfølgning",
       "package": "D09",
-      "code": ["src/lib/field-job-cards.ts", "src/components/project/FieldJobCardsPanel.tsx"],
-      "migrations": ["supabase/migrations/20261029072246_field_job_templates_and_versions.sql"],
+      "code": [
+        "src/lib/field-job-cards.ts",
+        "src/components/project/FieldJobCardsPanel.tsx"
+      ],
+      "migrations": [
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+      ],
       "tests": [
         "src/lib/__tests__/field-job-cards.test.ts",
         "supabase/tests/database/field_job_versions.test.sql"
@@ -1042,9 +1117,16 @@
       "priority": "P1",
       "title": "Timer og aktivitet",
       "package": "D09",
-      "code": ["src/services/workflow-followup-service.ts", "src/services/actions-service.ts"],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
-      "tests": ["src/services/__tests__/workflow-followup-service.test.ts"],
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -1053,9 +1135,16 @@
       "priority": "P1",
       "title": "Materialer og enheder",
       "package": "D09",
-      "code": ["src/services/workflow-followup-service.ts", "src/services/actions-service.ts"],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
-      "tests": ["src/services/__tests__/workflow-followup-service.test.ts"],
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -1064,9 +1153,16 @@
       "priority": "P2",
       "title": "Booking",
       "package": "D10",
-      "code": ["src/services/workflow-followup-service.ts", "src/services/actions-service.ts"],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
-      "tests": ["src/services/__tests__/workflow-followup-service.test.ts"],
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -1075,9 +1171,16 @@
       "priority": "P2",
       "title": "Besøgsrute",
       "package": "D10",
-      "code": ["src/services/workflow-followup-service.ts", "src/services/actions-service.ts"],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
-      "tests": ["src/services/__tests__/workflow-followup-service.test.ts"],
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -1086,9 +1189,16 @@
       "priority": "P1",
       "title": "Gentagelse og opfølgning",
       "package": "D09",
-      "code": ["src/services/workflow-followup-service.ts", "src/services/actions-service.ts"],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
-      "tests": ["src/services/__tests__/workflow-followup-service.test.ts"],
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -1097,9 +1207,16 @@
       "priority": "P0",
       "title": "Ingen e-mailafsendelse",
       "package": "D08",
-      "code": ["src/services/workflow-followup-service.ts", "src/services/actions-service.ts"],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
-      "tests": ["src/services/__tests__/workflow-followup-service.test.ts"],
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Ingen udsendelse er tilladt. Nye mutationer skal kun skabe intern audit/outbox; negativ test for indirekte sendekald."
     },
@@ -1108,9 +1225,16 @@
       "priority": "P2",
       "title": "Faktureringsgrundlag",
       "package": "D10",
-      "code": ["src/services/workflow-followup-service.ts", "src/services/actions-service.ts"],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
-      "tests": ["src/services/__tests__/workflow-followup-service.test.ts"],
+      "code": [
+        "src/services/workflow-followup-service.ts",
+        "src/services/actions-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
+      "tests": [
+        "src/services/__tests__/workflow-followup-service.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -1124,7 +1248,9 @@
         "src/lib/workflow-report-package.ts",
         "src/services/report-assets.ts"
       ],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
         "src/services/__tests__/report-assets.test.ts"
@@ -1142,7 +1268,9 @@
         "src/lib/workflow-report-package.ts",
         "src/services/report-assets.ts"
       ],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
         "src/services/__tests__/report-assets.test.ts"
@@ -1160,7 +1288,9 @@
         "src/lib/workflow-report-package.ts",
         "src/services/report-assets.ts"
       ],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
         "src/services/__tests__/report-assets.test.ts"
@@ -1178,7 +1308,9 @@
         "src/lib/workflow-report-package.ts",
         "src/services/report-assets.ts"
       ],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
         "src/services/__tests__/report-assets.test.ts"
@@ -1196,7 +1328,9 @@
         "src/lib/workflow-report-package.ts",
         "src/services/report-assets.ts"
       ],
-      "migrations": ["supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"],
+      "migrations": [
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+      ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
         "src/services/__tests__/report-assets.test.ts"
@@ -1209,9 +1343,16 @@
       "priority": "P0",
       "title": "Import med forhåndsvisning",
       "package": "D06",
-      "code": ["src/services/observations-service.ts", "src/services/map-export-service.ts"],
-      "migrations": ["supabase/migrations/20260913151422_ingest_observations_atomically.sql"],
-      "tests": ["src/lib/__tests__/observations-ingest-scope.test.ts"],
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Eksisterende import er domænespecifik. Batchforhåndsvisning med enheder/CRS/tidszone mangler."
     },
@@ -1220,9 +1361,16 @@
       "priority": "P0",
       "title": "Idempotent ekstern identitet",
       "package": "D06",
-      "code": ["src/services/observations-service.ts", "src/services/map-export-service.ts"],
-      "migrations": ["supabase/migrations/20260913151422_ingest_observations_atomically.sql"],
-      "tests": ["src/lib/__tests__/observations-ingest-scope.test.ts"],
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Ny unik importidentitet pr. destinationstenant/konto/type/kilde-ID mangler."
     },
@@ -1231,9 +1379,16 @@
       "priority": "P0",
       "title": "Fotos er særskilt leverance",
       "package": "D06",
-      "code": ["src/services/observations-service.ts", "src/services/map-export-service.ts"],
-      "migrations": ["supabase/migrations/20260913151422_ingest_observations_atomically.sql"],
-      "tests": ["src/lib/__tests__/observations-ingest-scope.test.ts"],
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Faktisk Skyhost-filpakke mangler. Syntetiske referencer uden filer skal give eksplicit mangel."
     },
@@ -1242,9 +1397,16 @@
       "priority": "P0",
       "title": "Importkonflikter og lokale rettelser",
       "package": "D06",
-      "code": ["src/services/observations-service.ts", "src/services/map-export-service.ts"],
-      "migrations": ["supabase/migrations/20260913151422_ingest_observations_atomically.sql"],
-      "tests": ["src/lib/__tests__/observations-ingest-scope.test.ts"],
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Importens versions-/konfliktpolitik skal beskytte lokale rettelser."
     },
@@ -1253,9 +1415,16 @@
       "priority": "P2",
       "title": "Dokumenterede connectorer",
       "package": "D10",
-      "code": ["src/services/observations-service.ts", "src/services/map-export-service.ts"],
-      "migrations": ["supabase/migrations/20260913151422_ingest_observations_atomically.sql"],
-      "tests": ["src/lib/__tests__/observations-ingest-scope.test.ts"],
+      "code": [
+        "src/services/observations-service.ts",
+        "src/services/map-export-service.ts"
+      ],
+      "migrations": [
+        "supabase/migrations/20260913151422_ingest_observations_atomically.sql"
+      ],
+      "tests": [
+        "src/lib/__tests__/observations-ingest-scope.test.ts"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     },
@@ -1268,8 +1437,12 @@
         "src/services/project-workspace-service.ts",
         "src/lib/__tests__/supabase-browser-client.test.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["supabase/tests/database/4dm_tenant_isolation.test.sql"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
       "coverage": "baseline verified",
       "remaining": "Eksisterende React/TanStack/Supabase, npm/lockfile genbruges. Ingen framework- eller auth-omskrivning."
     },
@@ -1389,8 +1562,12 @@
         "src/services/project-workspace-service.ts",
         "src/lib/__tests__/supabase-browser-client.test.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["supabase/tests/database/4dm_tenant_isolation.test.sql"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Fejl/ukendt/manglende må ikke blive nul. Nye lister og afleveringer kræver eksplicitte tilstande."
     },
@@ -1403,8 +1580,12 @@
         "src/services/project-workspace-service.ts",
         "src/lib/__tests__/supabase-browser-client.test.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["supabase/tests/database/4dm_tenant_isolation.test.sql"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "Holdbar upload og serverhash findes. Indholds-/MIME-kontrol samt operationelle bilagsbindinger afprøves i D03."
     },
@@ -1452,8 +1633,12 @@
         "src/services/project-workspace-service.ts",
         "src/lib/__tests__/supabase-browser-client.test.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["supabase/tests/database/4dm_tenant_isolation.test.sql"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "p95 og 100.000/10.000/10-bruger benchmark er krav, ikke målte resultater. Ny query- og belastningsprøve mangler."
     },
@@ -1466,8 +1651,12 @@
         "src/services/project-workspace-service.ts",
         "src/lib/__tests__/supabase-browser-client.test.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["supabase/tests/database/4dm_tenant_isolation.test.sql"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
       "coverage": "partial, acceptance open",
       "remaining": "CI-databasegenoprettelse findes. Faktiske filer, aftalt retention og samlet stagingrestore er ikke accepteret."
     },
@@ -1480,8 +1669,12 @@
         "src/services/project-workspace-service.ts",
         "src/lib/__tests__/supabase-browser-client.test.ts"
       ],
-      "migrations": ["supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"],
-      "tests": ["supabase/tests/database/4dm_tenant_isolation.test.sql"],
+      "migrations": [
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+      ],
+      "tests": [
+        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+      ],
       "coverage": "not fully assessed; later phase",
       "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
     }
