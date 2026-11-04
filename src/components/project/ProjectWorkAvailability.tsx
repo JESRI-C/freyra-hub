@@ -23,6 +23,7 @@ export function ProjectWorkAvailability({
   estimated,
   unknown,
   onEditing,
+  readOnly = false,
 }: {
   scope: ProjectScope;
   actorId: string;
@@ -30,7 +31,8 @@ export function ProjectWorkAvailability({
   date: string;
   estimated: number;
   unknown: number;
-  onEditing: (editing: boolean) => void;
+  onEditing?: (editing: boolean) => void;
+  readOnly?: boolean;
 }) {
   const cache = useQueryClient();
   const key = ["project-work-availability", actorId, scope, personId, date];
@@ -65,7 +67,7 @@ export function ProjectWorkAvailability({
   }, [editing]);
 
   async function save() {
-    if (!draft || inFlight.current || !current.isSuccess) return;
+    if (readOnly || !draft || inFlight.current || !current.isSuccess) return;
     const raw = draft.value.trim();
     const hours = Number(raw.replace(",", "."));
     if (!/^\d+(?:[.,]\d{1,2})?$/.test(raw) || hours > 24) {
@@ -147,7 +149,7 @@ export function ProjectWorkAvailability({
             : formatWorkOrderHours(available - estimated) + " ledig estimeret tid"}
         </p>
       )}
-      {current.isSuccess && !draft && (
+      {!readOnly && current.isSuccess && !draft && (
         <button
           type="button"
           className={button}
@@ -162,7 +164,7 @@ export function ProjectWorkAvailability({
           Angiv tilgængelige timer
         </button>
       )}
-      {draft && (
+      {!readOnly && draft && (
         <form
           className="space-y-2"
           onSubmit={(event) => {

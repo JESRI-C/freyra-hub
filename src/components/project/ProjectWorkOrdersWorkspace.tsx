@@ -105,6 +105,7 @@ function WorkOrders({
   const [day, setDay] = useState<Date>();
   const [responsible, setResponsible] = useState("");
   const [availabilityEditing, setAvailabilityEditing] = useState(false);
+  const [openSuggestionCapacity, setOpenSuggestionCapacity] = useState(() => new Set<string>());
   const [onlyUndated, setOnlyUndated] = useState(false);
   const [onlyWaiting, setOnlyWaiting] = useState(false);
   const [localReviewOnly, setLocalReviewOnly] = useState(false);
@@ -907,6 +908,34 @@ function WorkOrders({
                           );
                         })
                       : [];
+                  const capacityKey = a.id + ":" + suggestedDate;
+                  const canReadCapacity = !!(
+                    actorId &&
+                    access.data?.canManageAvailability &&
+                    responsibleId &&
+                    suggestedDate
+                  );
+                  const suggestedDayEstimates =
+                    canReadCapacity && openSuggestionCapacity.has(capacityKey) && suggestedDate
+                      ? [
+                          workOrderHoursInPeriod(
+                            {
+                              start: suggestedDate,
+                              end: plan?.end ?? null,
+                              estimatedHours: plan?.estimatedHours,
+                            },
+                            suggestedDate,
+                            suggestedDate,
+                          ),
+                          ...conflictingTasks.flatMap(({ id }) => {
+                            const otherPlan = dates?.[id];
+                            return otherPlan &&
+                              workOrderPlanOverlaps(otherPlan, suggestedDate, suggestedDate)
+                              ? [workOrderHoursInPeriod(otherPlan, suggestedDate, suggestedDate)]
+                              : [];
+                          }),
+                        ]
+                      : [];
                   const dateAction = suggestedDate
                     ? "Brug datoforslag"
                     : plan?.start
@@ -1019,6 +1048,41 @@ function WorkOrders({
                                   </li>
                                 ))}
                               </ul>
+                            </details>
+                          )}
+                          {canReadCapacity && actorId && responsibleId && (
+                            <details
+                              key={capacityKey}
+                              onToggle={(event) => {
+                                const open = event.currentTarget.open;
+                                setOpenSuggestionCapacity((current) => {
+                                  if (current.has(capacityKey) === open) return current;
+                                  const next = new Set(current);
+                                  if (open) next.add(capacityKey);
+                                  else next.delete(capacityKey);
+                                  return next;
+                                });
+                              }}
+                            >
+                              <summary className="min-h-11 cursor-pointer py-3 font-medium">
+                                Se tilgængelig tid på den foreslåede startdag
+                              </summary>
+                              {openSuggestionCapacity.has(capacityKey) && (
+                                <ProjectWorkAvailability
+                                  scope={scope}
+                                  actorId={actorId}
+                                  personId={responsibleId}
+                                  date={suggestedDate}
+                                  estimated={suggestedDayEstimates.reduce<number>(
+                                    (total, hours) => total + (hours ?? 0),
+                                    0,
+                                  )}
+                                  unknown={
+                                    suggestedDayEstimates.filter((hours) => hours === null).length
+                                  }
+                                  readOnly
+                                />
+                              )}
                             </details>
                           )}
                           <p>Tjek bemanding og udstyr, før du planlægger.</p>

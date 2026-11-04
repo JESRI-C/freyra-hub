@@ -9,13 +9,26 @@ const m = vi.hoisted(() => ({
   schedule: vi.fn(),
   indicators: vi.fn(),
   time: vi.fn(),
+  availability: vi.fn(),
   create: vi.fn(),
   blocker: vi.fn(),
   navigate: vi.fn(),
   actor: "actor" as string | null,
 }));
 vi.mock("@/lib/supabase/client", () => ({
-  createActorBoundSupabaseClient: () => ({ rpc: () => ({ abortSignal: m.time }) }),
+  createActorBoundSupabaseClient: () => ({
+    rpc: () => ({ abortSignal: m.time }),
+    from: () => {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        order: () => query,
+        limit: () => query,
+        maybeSingle: m.availability,
+      };
+      return query;
+    },
+  }),
 }));
 vi.mock("../WorkOrderTimeSummary", () => ({
   WorkOrderTimeSummary: ({ reviewDate }: { reviewDate?: string }) => (
@@ -406,6 +419,45 @@ it("shows a known responsible-person overlap before the date suggestion is accep
   expect(overlap?.textContent).not.toContain("Aflyst besøg");
   await click("Åbn Tilsyn i mosen");
   expect(m.navigate).toHaveBeenCalledWith("conflict");
+});
+
+it("compares a suggested start day with recorded capacity only when opened", async () => {
+  m.access.mockResolvedValue({
+    userId: "actor",
+    projectId: "project",
+    canConfigure: true,
+    canManageAvailability: true,
+  });
+  m.schedule.mockResolvedValue({
+    first: { start: "2099-01-02", end: "2099-01-03" },
+    second: {
+      start: null,
+      end: null,
+      estimatedHours: 3,
+      responsibleId: "responsible-person",
+      waitingForActionIds: ["first"],
+    },
+  });
+  m.availability.mockResolvedValue({
+    error: null,
+    data: { id: "00000000-0000-4000-8000-000000000012", version: 1, hours: 0 },
+  });
+  await render();
+  await click("Planoversigt");
+  expect(m.availability).not.toHaveBeenCalled();
+  const details = [...host.querySelectorAll("details")].find(
+    (node) =>
+      node.querySelector("summary")?.textContent ===
+      "Se tilgængelig tid på den foreslåede startdag",
+  )!;
+  await act(async () => {
+    details.open = true;
+    details.dispatchEvent(new Event("toggle"));
+  });
+  await settle();
+  expect(details.textContent).toContain("0 timer til rådighed");
+  expect(details.textContent).toContain("3 timer over de tilgængelige timer");
+  expect(details.textContent).not.toContain("Angiv tilgængelige timer");
 });
 
 it("shows a task spanning the month boundary and filters it by a planned day", async () => {
