@@ -31,6 +31,10 @@ vi.mock("@/lib/supabase/client", () => ({
         eq: () => query,
         order: () => query,
         single: async () => ({ data: state.project, error: null }),
+        maybeSingle: async () => ({
+          data: state.project,
+          error: state.fail === "projects" ? { code: "FETCH_ERROR" } : null,
+        }),
         range: async (start: number, end: number) => ({
           data: (state.tables[table] ?? []).slice(start, end + 1),
           error: state.fail === table ? { code: "42501" } : null,
@@ -44,6 +48,7 @@ import {
   downloadFieldWorkPack,
   prepareOfflineJob,
   offlineSyncDependencies,
+  requireOfflineProjectAccess,
 } from "../field-offline-service";
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const actor = id(1),
@@ -148,6 +153,27 @@ beforeEach(() => {
   state.rpc.mockReturnValue({ abortSignal: async () => ({ data: [{ id: id(30) }], error: null }) });
 });
 describe("required job cards in the existing offline workflow", () => {
+  it("blocks a revoked project after an opaque access failure is confirmed by an RLS read", async () => {
+    state.access.mockRejectedValueOnce(new Error("Opaque server-function failure"));
+    state.project = null;
+    await expect(requireOfflineProjectAccess(actor, project)).rejects.toMatchObject({
+      disposition: "blocked",
+    });
+  });
+  it("retries an indeterminate access failure while the actor can still read the project", async () => {
+    state.access.mockRejectedValueOnce(new Error("Opaque server-function failure"));
+    await expect(requireOfflineProjectAccess(actor, project)).rejects.toMatchObject({
+      disposition: "retry",
+    });
+  });
+  it("does not turn an unavailable confirmation read into a revoked-access claim", async () => {
+    state.access.mockRejectedValueOnce(new Error("Opaque server-function failure"));
+    state.project = null;
+    state.fail = "projects";
+    await expect(requireOfflineProjectAccess(actor, project)).rejects.toMatchObject({
+      disposition: "retry",
+    });
+  });
   it("downloads exact required versions before a first field registration exists", async () => {
     const result = await downloadFieldWorkPack(actor, project);
     expect(result.jobs[0]).toMatchObject({

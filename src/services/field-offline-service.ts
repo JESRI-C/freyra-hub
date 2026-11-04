@@ -34,7 +34,17 @@ export async function requireOfflineOnlineActor(expected?: string) {
 }
 export async function requireOfflineProjectAccess(actorId: string, projectId: string) {
   await requireOfflineOnlineActor(actorId);
-  const access = await getFieldJobAccess({ data: { projectId } });
+  const access = await getFieldJobAccess({ data: { projectId } }).catch(async () => {
+    // Server-function error serialization need not preserve the typed denial.
+    // Confirm missing current project access under this actor's RLS; never infer
+    // revocation from a transport failure or grant access through this fallback.
+    const result = await createActorBoundSupabaseClient(actorId)
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .maybeSingle();
+    throw new OfflineSyncError(result.error === null && result.data === null ? "blocked" : "retry");
+  });
   if (access.userId !== actorId || access.projectId !== projectId || !access.canContribute)
     throw new OfflineSyncError("blocked");
 }

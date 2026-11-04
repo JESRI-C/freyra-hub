@@ -9,6 +9,7 @@ import { loadEnv } from "vite";
 
 assert(process.argv.includes("--staging"), "Explicit staging flag required");
 const prepareOnly = process.argv.includes("--prepare");
+const checkAcceptedPlanChange = process.argv.includes("--accepted-plan-change");
 const base = "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev";
 const url = "https://xdvqdzdpyceojbdknofi.supabase.co";
 const sourceRoot = path.resolve("../freyra-hub-bykaer");
@@ -522,6 +523,49 @@ try {
     );
     state.explicitRebasePreservesOriginal = true;
     console.log(JSON.stringify({ stage: "correction_accepted" }));
+    let expectedServerVersions = 3;
+    if (checkAcceptedPlanChange) {
+      const nextPlan = (
+        await rpc("save_work_order_plan", {
+          ...scope,
+          p_expected_version: 2,
+          p_plan: {
+            ...updated[0].plan,
+            instructions: "TEST · Gennemgå allerede modtagne svar efter ny plan.",
+          },
+          p_correction_reason: "TEST · Ny plan efter modtaget registrering",
+          p_request_id: await request("plan3"),
+        })
+      )[0];
+      state.plan3 = nextPlan.id;
+      await saveState();
+      await page
+        .getByRole("button", { name: "Opdater sagen til offlinebrug", exact: true })
+        .click();
+      await expect(
+        panel().getByText("Instruktion: TEST · Gennemgå allerede modtagne svar efter ny plan.", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await panel()
+        .getByRole("button", { name: "Brug den bevarede registrering som ny kladde", exact: true })
+        .click();
+      await expect(panel().getByRole("spinbutton", { name: /Antal/ })).toHaveValue("4");
+      await save("TEST · Modtagne svar gennemgået efter endnu en plan");
+      await waitLocal(
+        (rows) => rows.length === 5 && rows.filter((r) => r.state === "complete").length === 4,
+      );
+      saved = await records();
+      assert.equal(saved.length, 4);
+      assert.equal(saved[3].required_plan_version_id, state.plan3);
+      const received = (await localRows()).find((r) => r.receipt?.id === saved[3].id);
+      assert.equal(received.supersedesId, undefined);
+      const earlierReceived = (await localRows()).find((r) => r.receipt?.id === saved[2].id);
+      assert.equal(earlierReceived.state, "complete");
+      assert.equal(earlierReceived.supersededBy, undefined);
+      expectedServerVersions = 4;
+      console.log(JSON.stringify({ stage: "received_card_reused_on_new_plan" }));
+    }
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 1000 });
       assert.equal(
@@ -533,7 +577,7 @@ try {
     await context.setOffline(true);
     await panel().getByRole("spinbutton", { name: /Antal/ }).fill("5");
     await save("TEST · Afvis efter tilbagekaldelse");
-    await waitLocal((rows) => rows.length === 5);
+    await waitLocal((rows) => rows.length === expectedServerVersions + 2);
     ok(
       await owner
         .from("project_members")
@@ -546,8 +590,13 @@ try {
     grantActive = false;
     await context.setOffline(false);
     await waitLocal((rows) => rows.some((r) => r.state === "blocked"));
-    assert.equal((await records()).length, 3);
+    assert.equal((await records()).length, expectedServerVersions);
     assert.equal((await localRows()).filter((r) => r.state === "blocked").length, 1);
+    await expect(panel().getByText(/Afklar adgangen eller fejlen/)).toBeVisible();
+    assert.equal(
+      (await (await fetch(base + "/freyra-build.json")).json()).sourceRevision,
+      meta.sourceRevision,
+    );
     assert.deepEqual(errors, []);
     acceptedReceipt = {
       schema: "freyra.offline-required-cards-staging/v1",
@@ -561,13 +610,14 @@ try {
       offlineCloseReopen: true,
       lostReplyRecoveredOnce: true,
       explicitRebasePreservesOriginal: true,
+      receivedCardReusedAfterPlanChange: checkAcceptedPlanChange,
       revocationPreservesBlockedDraft: true,
       serverVersions: saved.map((r) => ({
         id: r.id,
         version: r.version,
         planVersionId: r.required_plan_version_id,
       })),
-      localRows: 5,
+      localRows: expectedServerVersions + 2,
       expectedBlockedDrafts: 1,
       widths: [390, 1280],
       pageErrors: 0,

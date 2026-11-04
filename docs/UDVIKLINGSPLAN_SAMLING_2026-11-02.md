@@ -56,11 +56,13 @@ genbruger feltpakke og kø til flere præcise skabelonversioner, planens instruk
 første feltregistrering og kontrolleret håndtering af en ændret plan. 37 lokale
 offlineprøver samt CI 41773137955 med 3.556 appprøver og 1.872 databasekontroller
 består. Appkilde `8aff043` og migration `20261104034102` er på staging;
-hosted-prøven af denne pakke kører. Draft PR45 er ikke merget.
+hosted-prøven har gennemført genåbning, genforsøg og planskift. Draft PR45 er ikke merget.
 Tre efterfølgende UI-fejl i genbrug og læsning af bevarede registreringer er
 rettet lokalt med før-/efterprøver; 40 afgrænsede offlineprøver består.
-Den samlede hosted-genforbindelse er endnu ikke bestået, og de sidste
-UI-rettelser er endnu ikke udrullet. Se pakkens konkrete førbevis og restarbejde.
+Den samlede hosted-prøve fandt forkert klassificering efter tilbagekaldt
+adgang. Kladden og serverhistorikken er bevaret. Fejlklassen er rettet
+lokalt med tre nye før-/efterprøver; alle 43 afgrænsede offlineprøver består.
+De sidste rettelser skal gennem ny CI, build og hosted-genprøve. Se pakkens konkrete førbevis og restarbejde.
 Den samlede SaaS-brugeroplevelse kræver fortsat uassisterede rolleforløb på
 computer og fysisk telefon; tekniske delprøver erstatter ikke den accept.
 
