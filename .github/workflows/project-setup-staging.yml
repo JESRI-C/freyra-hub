@@ -1,23 +1,29 @@
 name: Build project setup staging artifact
 on:
   pull_request:
-    branches: [codex/release-1.0]
+    branches: [codex/release-1.0, codex/saas-report-followup]
     paths:
-      - '.github/workflows/project-setup-staging.yml'
-      - 'src/**'
+      - ".github/workflows/project-setup-staging.yml"
+      - "src/**"
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   staging-artifact:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'codex/bykaer-pilot-v1'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.base_ref == 'codex/release-1.0' &&
+       github.head_ref == 'codex/bykaer-pilot-v1') ||
+      (github.base_ref == 'codex/saas-report-followup' &&
+       github.head_ref == 'codex/skyhost-job-handoff-v1' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      CI: 'true'
+      CI: "true"
       CLOUDFLARE_ENV: staging
       FREYRA_BUILD_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
-      GOMAXPROCS: '2'
+      GOMAXPROCS: "2"
       NODE_OPTIONS: --max-old-space-size=5120
       # Browser-safe staging configuration, already exposed by the staging client.
       # No admin key, Datafordeler key, production settings or deploy permission.
