@@ -3,7 +3,12 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { emptyManagerWorkOrderFilters, type ManagerWorkOrder } from "@/lib/manager-work-orders";
+import {
+  emptyManagerWorkOrderFilters,
+  MANAGER_SELECTION_CHANGED_MESSAGE,
+  type ManagerWorkOrder,
+} from "@/lib/manager-work-orders";
+import { WorkOrderRequestError } from "@/lib/work-order-access";
 
 const m = vi.hoisted(() => ({
   load: vi.fn(),
@@ -22,6 +27,27 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@/lib/manager-work-orders.functions", () => ({ listManagerWorkOrders: m.load }));
+vi.mock("../ManagerWorkOrderMapCanvas", () => ({
+  default: ({
+    features,
+    onSelect,
+  }: {
+    features: Array<{ key: string; actionId: string; projectId: string; title: string }>;
+    onSelect: (actionId: string, projectId: string) => void;
+  }) => (
+    <div aria-label="Synthetic map">
+      {features.map((feature) => (
+        <button
+          key={feature.key}
+          data-map-task={feature.actionId}
+          onClick={() => onSelect(feature.actionId, feature.projectId)}
+        >
+          Markering: {feature.title}
+        </button>
+      ))}
+    </div>
+  ),
+}));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
     to,
@@ -75,6 +101,21 @@ const task: ManagerWorkOrder = {
   claimed_by: null,
   claimed_by_name: null,
   assignment_is_current: true,
+  map_locations: [
+    {
+      id: "site:main",
+      source: "plan_site",
+      source_id: id(12),
+      source_version_id: null,
+      name: "Engen",
+      coordinate_source: "site_point",
+      sequence: 0,
+      archived: false,
+      geometry: { type: "Point", coordinates: [9, 55] },
+    },
+  ],
+  map_unavailable_reason: null,
+  map_unavailable_locations: 0,
 };
 const projects = [
   { id: id(3), name: "Bykær" },
@@ -84,12 +125,58 @@ const assignees = [
   { id: id(15), name: "Frederik Felt" },
   { id: id(16), name: "Frida Felt" },
 ];
-const page = (items: ManagerWorkOrder[], nextCursor: string | null = null) => ({
-  items,
-  projects,
-  assignees,
-  nextCursor,
-});
+const token = "a".repeat(64);
+const page = (
+  items: ManagerWorkOrder[],
+  nextCursor: string | null = null,
+  allItems?: ManagerWorkOrder[],
+) => {
+  const all = allItems ?? items;
+  const unseen = nextCursor && !allItems ? 1 : 0;
+  const laneTotals = {
+    open: 0,
+    started: 0,
+    performed: 0,
+    submitted: 0,
+    approved: 0,
+    waiting: 0,
+    correction: 0,
+    cancelled: 0,
+    untracked: unseen,
+  };
+  for (const item of all) {
+    const lane =
+      item.task_status === "cancelled"
+        ? "cancelled"
+        : item.blocked || item.waiting_for_prerequisites
+          ? "waiting"
+          : item.task_status === null
+            ? "untracked"
+            : item.task_status === "returned" || item.task_status === "reopened"
+              ? "correction"
+              : ["started", "performed", "submitted", "approved"].includes(item.task_status)
+                ? (item.task_status as "started" | "performed" | "submitted" | "approved")
+                : "open";
+    laneTotals[lane]++;
+  }
+  const mapped = all.filter((item) => item.map_locations.length > 0).length;
+  return {
+    items,
+    projects,
+    assignees,
+    nextCursor,
+    selectionToken: token,
+    laneTotals,
+    totals: {
+      matchingJobs: all.length + unseen,
+      mappedJobs: mapped,
+      unmappedJobs: all.length - mapped + unseen,
+      positions: all.reduce((count, item) => count + item.map_locations.length, 0),
+    },
+    statusTotals: [],
+    waitingJobs: laneTotals.waiting,
+  };
+};
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function flush() {
   await act(async () => {
@@ -210,7 +297,7 @@ describe("manager work orders across projects", () => {
       "Tidligere status: Afsluttet i tidligere system",
     );
     expect(host.querySelector('section[aria-label="Afventer"]')?.textContent).toContain("Blokeret");
-    expect(host.textContent).toContain("9 arbejdsordrer vist");
+    expect(host.textContent).toContain("9 af 10 arbejdsordrer indlæst");
     expect(host.textContent).toContain("Der er flere resultater");
     const card = host.querySelector('article[aria-label="Pleje langs åen"]')!;
     expect(card.textContent).toContain("Tildelt: Frederik Felt");
@@ -269,6 +356,7 @@ describe("manager work orders across projects", () => {
         organizationId: id(2),
         cursor: null,
         pageSize: 30,
+        selectionToken: null,
         filters: {
           projectId: id(4),
           status: "waiting",
@@ -299,24 +387,26 @@ describe("manager work orders across projects", () => {
   });
 
   it("appends cursor pages without implying that loaded counts are totals", async () => {
-    m.load.mockResolvedValueOnce(page([task], task.action_id)).mockResolvedValueOnce(
-      page([
-        {
-          ...task,
-          action_id: id(20),
-          title: "Andet projekt",
-          project_id: id(4),
-          project_name: "Mosen",
-        },
-      ]),
-    );
+    const next = {
+      ...task,
+      action_id: id(20),
+      title: "Andet projekt",
+      project_id: id(4),
+      project_name: "Mosen",
+    };
+    m.load
+      .mockResolvedValueOnce(page([task], task.action_id, [task, next]))
+      .mockResolvedValueOnce(page([next]));
     await render();
     await click("Hent flere arbejdsordrer");
     expect(m.load.mock.calls[1][0].data.cursor).toBe(task.action_id);
+    expect(m.load.mock.calls[1][0].data.selectionToken).toBe(token);
     expect(host.querySelectorAll("article")).toHaveLength(2);
-    expect(host.textContent).toContain("2 arbejdsordrer vist");
+    expect(host.textContent).toContain("2 af 2 arbejdsordrer indlæst");
     expect(host.textContent).not.toContain("Der er flere resultater");
-    expect(host.querySelector('section[aria-label="Åbne"] h2')?.textContent).toContain("2 vist");
+    expect(host.querySelector('section[aria-label="Åbne"] h2')?.textContent).toContain(
+      "2 i udvalget · 2 indlæst",
+    );
     await click("Liste");
     expect(host.querySelectorAll("article")).toHaveLength(2);
   });
@@ -414,6 +504,7 @@ describe("manager work orders across projects", () => {
         filters: emptyManagerWorkOrderFilters(),
         cursor: null,
         pageSize: 30,
+        selectionToken: null,
       },
     });
     expect(host.textContent).not.toContain("Pleje langs åen");
@@ -436,6 +527,7 @@ describe("manager work orders across projects", () => {
     expect(stored).toEqual({
       filters: { ...emptyManagerWorkOrderFilters(), projectId: id(3), status: "submitted" },
       view: "list",
+      selection: null,
     });
     expect(JSON.stringify(stored)).not.toContain("Frederik");
     m.org = id(30);
@@ -455,6 +547,145 @@ describe("manager work orders across projects", () => {
     await render();
     expect(m.load.mock.calls[0][0].data.filters).toEqual(emptyManagerWorkOrderFilters());
     expect(host.querySelector('button[aria-pressed="true"]')?.textContent).toContain("Kanban");
+  });
+
+  it("uses the same jobs in all three views, counts multi-position jobs once, and opens a marker's exact task", async () => {
+    const multi = {
+      ...task,
+      task_status: "submitted" as const,
+      map_unavailable_locations: 2,
+      map_locations: [
+        ...task.map_locations,
+        {
+          ...task.map_locations[0],
+          id: "visit:one",
+          source: "plan_visit_stop" as const,
+          sequence: 1,
+          name: "Andet stop",
+        },
+      ],
+    };
+    const unknown = {
+      ...task,
+      action_id: id(20),
+      title: "Opgave uden sted",
+      map_locations: [],
+      map_unavailable_reason: "no_location" as const,
+    };
+    m.load.mockResolvedValue(page([multi, unknown]));
+    await render();
+    await click("Kort");
+    expect(host.textContent).toContain(
+      "1 arbejdsordrer på kort · 1 uden kortposition · 2 kortobjekter",
+    );
+    expect(host.querySelectorAll("[data-map-task]")).toHaveLength(2);
+    expect(
+      host.querySelector('[aria-label="Arbejdsordrer uden kortposition"]')?.textContent,
+    ).toContain("Opgave uden sted");
+    await click("Markering: Pleje langs åen");
+    const selected = host.querySelector('[aria-label="Valgt arbejdsordre"]')!;
+    expect(selected.textContent).toContain(
+      "2 tilknyttede lokaliteter mangler en brugbar kortposition",
+    );
+    const link = selected.querySelector('a[aria-label="Åbn aflevering for Pleje langs åen"]')!;
+    expect(JSON.parse(link.getAttribute("data-search")!)).toEqual({
+      tab: "handlinger",
+      task: task.action_id,
+      work: "submission",
+    });
+    await act(async () => root.render(<div />));
+    await render();
+    expect(host.querySelector('button[aria-pressed="true"]')?.textContent).toContain("Kort");
+    expect(host.querySelector('[aria-label="Valgt arbejdsordre"]')?.textContent).toContain(
+      task.title,
+    );
+    await click("Liste");
+    expect(host.querySelectorAll('[aria-label="Arbejdsordreliste"] article')).toHaveLength(2);
+    const saved = JSON.parse(
+      sessionStorage.getItem(`freyra-manager-work-orders/v1:${id(1)}:${id(2)}`)!,
+    );
+    expect(saved.selection).toEqual({ actionId: task.action_id, projectId: task.project_id });
+    expect(JSON.stringify(saved)).not.toContain("coordinates");
+    expect(m.load).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows filtered server totals and top pagination even when the first page has no map positions", async () => {
+    const unknown = {
+      ...task,
+      map_locations: [],
+      map_unavailable_reason: "coordinates_missing_or_invalid" as const,
+    };
+    const known = { ...task, action_id: id(20) };
+    m.load.mockResolvedValue(page([unknown], task.action_id, [unknown, known]));
+    await render();
+    await click("Kort");
+    expect(host.textContent).toContain("1 af 2 arbejdsordrer indlæst");
+    expect(host.textContent).toContain("Hele udvalget: 1 opgaver med kortposition · 1 uden");
+    expect(host.textContent).toContain(
+      "Ingen af de indlæste arbejdsordrer har en brugbar kortposition",
+    );
+    const pagination = [...host.querySelectorAll("button")].filter(
+      (button) => button.textContent === "Hent flere arbejdsordrer",
+    );
+    expect(pagination).toHaveLength(2);
+    expect(
+      pagination[0].compareDocumentPosition(
+        host.querySelector('[aria-label="Kortvisning af arbejdsordrer"]')!,
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it.each([new WorkOrderRequestError("conflict"), new Error(MANAGER_SELECTION_CHANGED_MESSAGE)])(
+    "restarts the same filtered selection after a continuation conflict and never appends stale jobs (%s)",
+    async (failure) => {
+      const replacement = { ...task, action_id: id(30), title: "Ny arbejdsordre" };
+      m.load
+        .mockResolvedValueOnce(page([task], task.action_id))
+        .mockRejectedValueOnce(failure)
+        .mockResolvedValueOnce(page([replacement]));
+      await render();
+      await click("Kort");
+      await click("Markering: Pleje langs åen");
+      await click("Hent flere arbejdsordrer");
+      await flush();
+      expect(m.load).toHaveBeenCalledTimes(3);
+      expect(m.load.mock.calls[1][0].data).toMatchObject({
+        cursor: task.action_id,
+        selectionToken: token,
+      });
+      expect(m.load.mock.calls[2][0].data).toEqual({
+        ...m.load.mock.calls[0][0].data,
+        cursor: null,
+        selectionToken: null,
+      });
+      expect(host.textContent).toContain("Udvalget ændrede sig");
+      expect(host.querySelector('[aria-label="Valgt arbejdsordre"]')).toBeNull();
+      expect(host.textContent).toContain(
+        "Den tidligere valgte arbejdsordre er ikke i de indlæste resultater",
+      );
+      expect(host.textContent).not.toContain("Pleje langs åen");
+      expect(host.textContent).toContain("Ny arbejdsordre");
+    },
+  );
+
+  it("hides prior rows, geometry and catalogs after access is revoked during pagination", async () => {
+    m.load
+      .mockResolvedValueOnce(page([task], task.action_id))
+      .mockRejectedValueOnce(new WorkOrderRequestError("access"));
+    await render();
+    await click("Kort");
+    await click("Markering: Pleje langs åen");
+    await click("Hent flere arbejdsordrer");
+    expect(host.querySelector('[aria-label="Kortvisning af arbejdsordrer"]')).toBeNull();
+    expect(host.querySelectorAll("article")).toHaveLength(0);
+    expect(host.querySelectorAll("[data-map-task]")).toHaveLength(0);
+    expect(field("Projekt").querySelectorAll("option")).toHaveLength(1);
+    expect(field("Udfører").querySelectorAll("option")).toHaveLength(1);
+    expect(host.textContent).not.toContain("Hele udvalget:");
+    const saved = JSON.parse(
+      sessionStorage.getItem(`freyra-manager-work-orders/v1:${id(1)}:${id(2)}`)!,
+    );
+    expect(saved.selection).toBeNull();
   });
 
   it("does not load work orders until authentication and organization selection are available", async () => {

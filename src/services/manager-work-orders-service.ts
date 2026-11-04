@@ -1,6 +1,7 @@
 import {
   ManagerWorkOrderInputSchema,
   ManagerWorkOrderReceiptSchema,
+  MANAGER_SELECTION_CHANGED_MESSAGE,
   type ManagerWorkOrderPage,
 } from "@/lib/manager-work-orders";
 import { parseWorkOrderInput, WorkOrderRequestError } from "@/lib/work-order-access";
@@ -14,8 +15,9 @@ export async function listManagedWorkOrders(
 ): Promise<ManagerWorkOrderPage> {
   const input = parseWorkOrderInput(ManagerWorkOrderInputSchema, raw);
   checkActor(actorId, input.expectedActorId);
-  const parsed = ManagerWorkOrderReceiptSchema.safeParse(
-    await request(client, "list_manager_work_orders", {
+  let response: unknown;
+  try {
+    response = await request(client, "list_manager_work_orders", {
       p_organization_id: input.organizationId,
       p_project_id: input.filters.projectId,
       p_status: input.filters.status,
@@ -26,12 +28,34 @@ export async function listManagedWorkOrders(
       p_due_through: input.filters.dueThrough,
       p_after_action_id: input.cursor,
       p_page_size: input.pageSize,
-    }),
-  );
+      p_selection_token: input.selectionToken,
+    });
+  } catch (error) {
+    if (error instanceof WorkOrderRequestError && error.code === "conflict")
+      error.message = MANAGER_SELECTION_CHANGED_MESSAGE;
+    throw error;
+  }
+  const parsed = ManagerWorkOrderReceiptSchema.safeParse(response);
   if (!parsed.success) throw new WorkOrderRequestError("unavailable");
   const page = parsed.data;
   if (page.organization_id !== input.organizationId || page.user_id !== actorId)
     throw new WorkOrderRequestError("access");
+  if (input.selectionToken !== null && page.selectionToken !== input.selectionToken) {
+    const error = new WorkOrderRequestError("conflict");
+    error.message = MANAGER_SELECTION_CHANGED_MESSAGE;
+    throw error;
+  }
+  if (
+    page.totals.mappedJobs + page.totals.unmappedJobs !== page.totals.matchingJobs ||
+    page.totals.positions < page.totals.mappedJobs ||
+    page.items.length > page.totals.matchingJobs ||
+    page.waitingJobs > page.totals.matchingJobs ||
+    Object.values(page.laneTotals).reduce((sum, value) => sum + value, 0) !==
+      page.totals.matchingJobs ||
+    page.statusTotals.reduce((sum, value) => sum + value.count, 0) !== page.totals.matchingJobs ||
+    new Set(page.statusTotals.map((value) => value.status)).size !== page.statusTotals.length
+  )
+    throw new WorkOrderRequestError("unavailable");
   const projectIds = new Set(page.projects.map((project) => project.id));
   if (
     projectIds.size !== page.projects.length ||
@@ -56,5 +80,10 @@ export async function listManagedWorkOrders(
     projects: page.projects,
     assignees: page.assignees,
     nextCursor: page.items.length > input.pageSize ? items.at(-1)!.action_id : null,
+    totals: page.totals,
+    statusTotals: page.statusTotals,
+    waitingJobs: page.waitingJobs,
+    laneTotals: page.laneTotals,
+    selectionToken: page.selectionToken,
   };
 }

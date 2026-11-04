@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   emptyManagerWorkOrderFilters,
   ManagerWorkOrderInputSchema,
+  MANAGER_SELECTION_CHANGED_MESSAGE,
   type ManagerWorkOrder,
+  type ManagerWorkOrderMapLocation,
 } from "@/lib/manager-work-orders";
 import { listManagedWorkOrders } from "../manager-work-orders-service";
 
@@ -11,12 +13,14 @@ const actor = id(1),
   organization = id(2),
   project = id(3),
   performer = id(4);
+const token = "a".repeat(64);
 const input = {
   organizationId: organization,
   expectedActorId: actor,
   filters: emptyManagerWorkOrderFilters(),
   cursor: null,
   pageSize: 2,
+  selectionToken: null,
 };
 const row = (n = 10): ManagerWorkOrder => ({
   action_id: id(n),
@@ -45,6 +49,9 @@ const row = (n = 10): ManagerWorkOrder => ({
   claimed_by: null,
   claimed_by_name: null,
   assignment_is_current: false,
+  map_locations: [],
+  map_unavailable_reason: "no_location",
+  map_unavailable_locations: 0,
 });
 const receipt = (items: ManagerWorkOrder[] = [row()]) => ({
   user_id: actor,
@@ -55,6 +62,58 @@ const receipt = (items: ManagerWorkOrder[] = [row()]) => ({
     { id: id(5), name: "Synthetic zero-task project" },
   ],
   assignees: [{ id: performer, name: "Synthetic field worker" }],
+  totals: {
+    matchingJobs: items.length,
+    mappedJobs: items.filter((row) => row.map_locations.length).length,
+    unmappedJobs: items.filter((row) => !row.map_locations.length).length,
+    positions: items.reduce((sum, row) => sum + row.map_locations.length, 0),
+  },
+  statusTotals: [...new Set(items.map((row) => row.task_status ?? "untracked"))].map((status) => ({
+    status,
+    count: items.filter((row) => (row.task_status ?? "untracked") === status).length,
+  })),
+  waitingJobs: items.filter((row) => row.blocked || row.waiting_for_prerequisites).length,
+  laneTotals: Object.fromEntries(
+    [
+      "open",
+      "started",
+      "performed",
+      "submitted",
+      "approved",
+      "waiting",
+      "correction",
+      "cancelled",
+      "untracked",
+    ].map((lane) => [
+      lane,
+      items.filter(
+        (row) =>
+          (row.task_status === "cancelled"
+            ? "cancelled"
+            : row.blocked || row.waiting_for_prerequisites
+              ? "waiting"
+              : !row.task_status
+                ? "untracked"
+                : row.task_status === "returned" || row.task_status === "reopened"
+                  ? "correction"
+                  : ["started", "performed", "submitted", "approved"].includes(row.task_status)
+                    ? row.task_status
+                    : "open") === lane,
+      ).length,
+    ]),
+  ),
+  selectionToken: token,
+});
+const point = (n = 50): ManagerWorkOrderMapLocation => ({
+  id: `action_site:0:${id(n)}`,
+  source: "action_site",
+  source_id: id(n),
+  source_version_id: null,
+  name: "Synthetic stored place",
+  archived: false,
+  coordinate_source: "site_point",
+  sequence: 0,
+  geometry: { type: "Point", coordinates: [9.5, 55.3] },
 });
 
 describe("manager work-order read boundary", () => {
@@ -82,6 +141,7 @@ describe("manager work-order read boundary", () => {
       p_due_through: null,
       p_after_action_id: null,
       p_page_size: 2,
+      p_selection_token: null,
     });
   });
 
@@ -96,7 +156,12 @@ describe("manager work-order read boundary", () => {
       dueThrough: "2026-11-30",
     };
     rpc.mockResolvedValue({ data: [receipt([])], error: null });
-    await listManagedWorkOrders(client, actor, { ...input, filters, cursor: id(8) });
+    await listManagedWorkOrders(client, actor, {
+      ...input,
+      filters,
+      cursor: id(8),
+      selectionToken: token,
+    });
     expect(rpc).toHaveBeenCalledWith("list_manager_work_orders", {
       p_organization_id: organization,
       p_project_id: project,
@@ -108,6 +173,7 @@ describe("manager work-order read boundary", () => {
       p_due_through: "2026-11-30",
       p_after_action_id: id(8),
       p_page_size: 2,
+      p_selection_token: token,
     });
   });
 
@@ -118,7 +184,13 @@ describe("manager work-order read boundary", () => {
       nextCursor: id(11),
     });
     rpc.mockResolvedValue({ data: [receipt([row(12)])], error: null });
-    expect(await listManagedWorkOrders(client, actor, { ...input, cursor: id(11) })).toMatchObject({
+    expect(
+      await listManagedWorkOrders(client, actor, {
+        ...input,
+        cursor: id(11),
+        selectionToken: token,
+      }),
+    ).toMatchObject({
       items: [row(12)],
       nextCursor: null,
     });
@@ -216,7 +288,7 @@ describe("manager work-order read boundary", () => {
 
   it("rejects a row at or before the supplied cursor", async () => {
     await expect(
-      listManagedWorkOrders(client, actor, { ...input, cursor: id(10) }),
+      listManagedWorkOrders(client, actor, { ...input, cursor: id(10), selectionToken: token }),
     ).rejects.toMatchObject({ statusCode: 503 });
   });
 
@@ -238,7 +310,7 @@ describe("manager work-order read boundary", () => {
 
   it("keeps an empty authorized result and its independent catalogs", async () => {
     rpc.mockResolvedValue({ data: [receipt([])], error: null });
-    expect(await listManagedWorkOrders(client, actor, input)).toEqual({
+    expect(await listManagedWorkOrders(client, actor, input)).toMatchObject({
       items: [],
       projects: receipt().projects,
       assignees: receipt().assignees,
@@ -256,6 +328,138 @@ describe("manager work-order read boundary", () => {
       error: { code, message: "Synthetic private database detail" },
     });
     await expect(listManagedWorkOrders(client, actor, input)).rejects.toMatchObject({ statusCode });
+  });
+
+  it("preserves a full filter total instead of deriving it from one loaded page", async () => {
+    const page = receipt([row()]);
+    rpc.mockResolvedValue({
+      data: [
+        {
+          ...page,
+          totals: { matchingJobs: 120, mappedJobs: 70, unmappedJobs: 50, positions: 95 },
+          statusTotals: [{ status: "untracked", count: 120 }],
+          laneTotals: { ...page.laneTotals, untracked: 120 },
+        },
+      ],
+      error: null,
+    });
+    expect(await listManagedWorkOrders(client, actor, input)).toMatchObject({
+      items: [row()],
+      totals: { matchingJobs: 120, mappedJobs: 70, unmappedJobs: 50, positions: 95 },
+    });
+  });
+
+  it("keeps unique mapped jobs distinct from multiple exact locations", async () => {
+    const mapped = {
+      ...row(),
+      initialized: true,
+      plan_version_id: id(70),
+      site_id: id(50),
+      map_unavailable_reason: null,
+      map_locations: [
+        { ...point(), source: "plan_site" as const },
+        { ...point(51), source: "plan_visit_stop" as const, sequence: 1 },
+      ],
+    };
+    rpc.mockResolvedValue({ data: [receipt([mapped])], error: null });
+    const page = await listManagedWorkOrders(client, actor, input);
+    expect(page.totals).toEqual({ matchingJobs: 1, mappedJobs: 1, unmappedJobs: 0, positions: 2 });
+    expect(page.items[0].map_locations).toHaveLength(2);
+  });
+
+  it.each([
+    { type: "Point", coordinates: [Infinity, 55] },
+    { type: "Point", coordinates: [9.5, 91] },
+    { type: "Point", coordinates: ["9.5", 55] },
+    { type: "Point", coordinates: [] },
+    {
+      type: "LineString",
+      coordinates: [
+        [9.5, 55],
+        [9.5, 55],
+      ],
+    },
+  ])("retains a legitimate job while making malformed geometry explicit %j", async (geometry) => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          ...receipt(),
+          items: [{ ...row(), site_id: id(50), map_locations: [{ ...point(), geometry }] }],
+        },
+      ],
+      error: null,
+    });
+    const page = await listManagedWorkOrders(client, actor, input);
+    expect(page.items[0]).toMatchObject({
+      action_id: row().action_id,
+      map_locations: [],
+      map_unavailable_reason: "coordinates_missing_or_invalid",
+      map_unavailable_locations: 1,
+    });
+  });
+
+  it("does not restore a cleared plan site through a legacy action-site location", async () => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          ...receipt(),
+          items: [
+            { ...row(), initialized: true, plan_version_id: id(71), map_locations: [point()] },
+          ],
+        },
+      ],
+      error: null,
+    });
+    expect((await listManagedWorkOrders(client, actor, input)).items[0]).toMatchObject({
+      map_locations: [],
+      map_unavailable_locations: 1,
+    });
+  });
+
+  it("requires a continuation token before the RPC", async () => {
+    await expect(
+      listManagedWorkOrders(client, actor, { ...input, cursor: id(8) }),
+    ).rejects.toMatchObject({ statusCode: 422 });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects a changed receipt token instead of appending mixed rows", async () => {
+    await expect(
+      listManagedWorkOrders(client, actor, {
+        ...input,
+        cursor: id(8),
+        selectionToken: "b".repeat(64),
+      }),
+    ).rejects.toMatchObject({ statusCode: 409, message: MANAGER_SELECTION_CHANGED_MESSAGE });
+  });
+
+  it("preserves a stable selection-change message through the transport error", async () => {
+    rpc.mockResolvedValue({
+      data: null,
+      error: { code: "PT409", message: "Private database detail" },
+    });
+    await expect(listManagedWorkOrders(client, actor, input)).rejects.toMatchObject({
+      code: "conflict",
+      statusCode: 409,
+      message: MANAGER_SELECTION_CHANGED_MESSAGE,
+    });
+  });
+
+  it.each([
+    { totals: { matchingJobs: 2, mappedJobs: 1, unmappedJobs: 0, positions: 1 } },
+    { waitingJobs: 2 },
+    {
+      statusTotals: [
+        { status: "untracked", count: 1 },
+        { status: "untracked", count: 0 },
+      ],
+    },
+    { laneTotals: { ...receipt().laneTotals, waiting: 1 } },
+  ])("rejects contradictory full-selection summaries %j", async (change) => {
+    rpc.mockResolvedValue({ data: [{ ...receipt(), ...change }], error: null });
+    await expect(listManagedWorkOrders(client, actor, input)).rejects.toMatchObject({
+      statusCode: 503,
+    });
   });
 
   it.each([

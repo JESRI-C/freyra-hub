@@ -404,11 +404,35 @@
       "coverage": "partial, acceptance open",
       "remaining": "Fælles filtreret snapshot, keyset-pagination og samstemmende status-/korttotaler mangler.",
       "ownership": {
-        "owner": "Produkttråden; denne tråd for P1–P6",
-        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
+        "scope": "P7: autoriseret fælles udvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Generiske observationer og rapporttotaler er fortsat særskilt.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "followUps": [
+        {
+          "package": "P7",
+          "state": "implemented; automated and staging database tested; integrated browser pending",
+          "code": [
+            "src/lib/manager-work-orders.ts",
+            "src/services/manager-work-orders-service.ts",
+            "src/components/project/ManagerWorkOrders.tsx",
+            "src/components/project/ManagerWorkOrderMap.tsx",
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx"
+          ],
+          "migrations": [
+            "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+            "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
+          ],
+          "tests": [
+            "supabase/tests/database/manager_work_order_map_projection.test.sql",
+            "src/services/__tests__/manager-work-orders-service.test.ts",
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+        }
+      ]
     },
     {
       "id": "JOB-07",
@@ -906,11 +930,35 @@
       "coverage": "partial, acceptance open",
       "remaining": "Delte serverfiltre og ens objektmængde/totaler mangler for nye opgaver og registreringer.",
       "ownership": {
-        "owner": "Produkttråden",
-        "scope": "Eksisterende kort i produkttråden. Fælles autoriseret arbejdsordremængde i kort/liste er næste kortlagte pakke, endnu ikke implementeret.",
+        "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
+        "scope": "P7: autoriseret fælles udvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Generiske observationer og rapporttotaler er fortsat særskilt.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "followUps": [
+        {
+          "package": "P7",
+          "state": "implemented; automated and staging database tested; integrated browser pending",
+          "code": [
+            "src/lib/manager-work-orders.ts",
+            "src/services/manager-work-orders-service.ts",
+            "src/components/project/ManagerWorkOrders.tsx",
+            "src/components/project/ManagerWorkOrderMap.tsx",
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx"
+          ],
+          "migrations": [
+            "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+            "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
+          ],
+          "tests": [
+            "supabase/tests/database/manager_work_order_map_projection.test.sql",
+            "src/services/__tests__/manager-work-orders-service.test.ts",
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+        }
+      ]
     },
     {
       "id": "MAP-02",
@@ -931,7 +979,7 @@
       "remaining": "Nuværende atlas indlæser projektets poster. Afgrænset serverudsnit/aggregering og 100.000-fixture mangler.",
       "ownership": {
         "owner": "Produkttråden",
-        "scope": "Eksisterende kort i produkttråden. Fælles autoriseret arbejdsordremængde i kort/liste er næste kortlagte pakke, endnu ikke implementeret.",
+        "scope": "P7 beregner fuldtotaler og gemte geometrier på læsetidspunktet; MAP-02 er stadig åben for indekseret serverudsnit, aggregering og 100.000/p95-prøve.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -1300,11 +1348,35 @@
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
       "remaining": "Afleveringen fastholder plan, tildeling, udførelse, registreringer/skabeloner og originalreferencer på samme opgave. Filtrering, rapportbinding og sammenhængende totaler på tværs af alle visninger mangler.",
       "ownership": {
-        "owner": "Produkttråden",
-        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
+        "scope": "P7: autoriseret fælles udvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Generiske observationer og rapporttotaler er fortsat særskilt.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "followUps": [
+        {
+          "package": "P7",
+          "state": "implemented; automated and staging database tested; integrated browser pending",
+          "code": [
+            "src/lib/manager-work-orders.ts",
+            "src/services/manager-work-orders-service.ts",
+            "src/components/project/ManagerWorkOrders.tsx",
+            "src/components/project/ManagerWorkOrderMap.tsx",
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx"
+          ],
+          "migrations": [
+            "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+            "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
+          ],
+          "tests": [
+            "supabase/tests/database/manager_work_order_map_projection.test.sql",
+            "src/services/__tests__/manager-work-orders-service.test.ts",
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+        }
+      ]
     },
     {
       "id": "OPS-01",

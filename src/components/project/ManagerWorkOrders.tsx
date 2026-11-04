@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,6 +9,7 @@ import {
   Filter,
   LayoutGrid,
   List,
+  Map,
   MapPin,
   Plus,
   RefreshCw,
@@ -18,6 +19,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import {
   emptyManagerWorkOrderFilters,
+  MANAGER_SELECTION_CHANGED_MESSAGE,
   ManagerWorkOrderFiltersSchema,
   type ManagerWorkOrder,
   type ManagerWorkOrderPage,
@@ -25,6 +27,11 @@ import {
 import { listManagerWorkOrders } from "@/lib/manager-work-orders.functions";
 import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
+import {
+  ManagerWorkOrderMap,
+  type ManagerMapSelection,
+  type ManagerMapViewport,
+} from "./ManagerWorkOrderMap";
 
 const button =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50";
@@ -59,17 +66,49 @@ function overviewKey(actorId: string, organizationId: string) {
 }
 
 function readOverview(actorId: string, organizationId: string) {
-  const fallback = { filters: emptyManagerWorkOrderFilters(), view: "board" as "board" | "list" };
+  const fallback = {
+    filters: emptyManagerWorkOrderFilters(),
+    view: "board" as "board" | "list" | "map",
+    selection: null as ManagerMapSelection | null,
+  };
   try {
     const raw = sessionStorage.getItem(overviewKey(actorId, organizationId));
     if (!raw) return fallback;
     const saved = JSON.parse(raw);
     const filters = ManagerWorkOrderFiltersSchema.safeParse(saved?.filters);
-    if (!filters.success || (saved.view !== "board" && saved.view !== "list")) return fallback;
-    return { filters: filters.data, view: saved.view as "board" | "list" };
+    if (!filters.success || !["board", "list", "map"].includes(saved.view)) return fallback;
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const selection =
+      typeof saved.selection?.actionId === "string" &&
+      uuid.test(saved.selection.actionId) &&
+      typeof saved.selection?.projectId === "string" &&
+      uuid.test(saved.selection.projectId)
+        ? { actionId: saved.selection.actionId, projectId: saved.selection.projectId }
+        : null;
+    return { filters: filters.data, view: saved.view as "board" | "list" | "map", selection };
   } catch {
     return fallback;
   }
+}
+
+function selectionConflict(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (("code" in error && error.code === "conflict") ||
+      ("statusCode" in error && error.statusCode === 409) ||
+      ("message" in error && error.message === MANAGER_SELECTION_CHANGED_MESSAGE))
+  );
+}
+
+function accessDenied(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (("code" in error && error.code === "access") ||
+      ("statusCode" in error && error.statusCode === 403) ||
+      ("message" in error && error.message === "Arbejdsopgaven er ikke tilgængelig."))
+  );
 }
 
 function laneFor(task: ManagerWorkOrder): Lane {
@@ -226,6 +265,10 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
   const load = useServerFn(listManagerWorkOrders);
   const [saved] = useState(() => readOverview(actorId, organizationId));
   const [view, setView] = useState(saved.view);
+  const [selection, setSelection] = useState(saved.selection);
+  const [mapViewport, setMapViewport] = useState<ManagerMapViewport | null>(null);
+  const [selectionRevision, setSelectionRevision] = useState(0);
+  const [selectionNotice, setSelectionNotice] = useState("");
   const [filters, setFilters] = useState(saved.filters);
   const [draft, setDraft] = useState(saved.filters);
   const [filterError, setFilterError] = useState("");
@@ -234,25 +277,53 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
     assignees: [],
   });
   const tasks = useInfiniteQuery({
-    queryKey: ["manager-work-orders", actorId, organizationId, filters],
-    initialPageParam: null as string | null,
+    queryKey: ["manager-work-orders", actorId, organizationId, filters, selectionRevision],
+    initialPageParam: { cursor: null as string | null, selectionToken: null as string | null },
     queryFn: ({ pageParam }) =>
       load({
         data: {
           organizationId,
           expectedActorId: actorId,
           filters,
-          cursor: pageParam,
+          cursor: pageParam.cursor,
+          selectionToken: pageParam.selectionToken,
           pageSize: 30,
         },
       }),
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    getNextPageParam: (page) =>
+      page.nextCursor
+        ? { cursor: page.nextCursor, selectionToken: page.selectionToken }
+        : undefined,
     retry: false,
   });
-  const items =
-    tasks.isError && !tasks.isFetchNextPageError
-      ? []
-      : (tasks.data?.pages.flatMap((page) => page.items) ?? []);
+  const conflict = tasks.isError && selectionConflict(tasks.error);
+  const denied = tasks.isError && accessDenied(tasks.error);
+  const items = useMemo(
+    () =>
+      conflict || denied || (tasks.isError && !tasks.isFetchNextPageError)
+        ? []
+        : (tasks.data?.pages.flatMap((page) => page.items) ?? []),
+    [conflict, denied, tasks.isError, tasks.isFetchNextPageError, tasks.data],
+  );
+  const totals = conflict || denied ? undefined : tasks.data?.pages[0]?.totals;
+  const laneTotals = conflict || denied ? undefined : tasks.data?.pages[0]?.laneTotals;
+  const visibleCatalog = denied ? { projects: [], assignees: [] } : catalog;
+  const hasMore = tasks.hasNextPage && !denied;
+  useEffect(() => {
+    if (denied) {
+      setSelection(null);
+      setMapViewport(null);
+      setCatalog({ projects: [], assignees: [] });
+    }
+  }, [denied]);
+  useEffect(() => {
+    if (!conflict) return;
+    setSelectionNotice(
+      "Udvalget ændrede sig, mens opgaverne blev hentet. Oversigten starter forfra med de samme filtre.",
+    );
+    setMapViewport(null);
+    setSelectionRevision((value) => value + 1);
+  }, [conflict]);
   useEffect(() => {
     const page = tasks.data?.pages[0];
     if (page) setCatalog({ projects: page.projects, assignees: page.assignees });
@@ -261,12 +332,12 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
     try {
       sessionStorage.setItem(
         overviewKey(actorId, organizationId),
-        JSON.stringify({ filters, view }),
+        JSON.stringify({ filters, view, selection }),
       );
     } catch {
       // The overview remains usable when browser storage is unavailable.
     }
-  }, [actorId, organizationId, filters, view]);
+  }, [actorId, organizationId, filters, view, selection]);
   const dateInvalid = !!draft.dueFrom && !!draft.dueThrough && draft.dueFrom > draft.dueThrough;
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(emptyManagerWorkOrderFilters());
   return (
@@ -280,11 +351,21 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             Alle projekter, du leder, i den valgte organisation.
           </p>
           <p role="status" aria-live="polite" className="mt-2 text-lg font-semibold">
-            {tasks.isPending ? "Henter arbejdsordrer…" : `${items.length} arbejdsordrer vist`}
+            {tasks.isPending
+              ? "Henter arbejdsordrer…"
+              : totals
+                ? `${items.length} af ${totals.matchingJobs} arbejdsordrer indlæst`
+                : `${items.length} arbejdsordrer vist`}
           </p>
-          {tasks.hasNextPage && (
+          {totals && (
             <p className="mt-1 text-xs text-muted-foreground">
-              Der er flere resultater. Hent flere nederst for at udvide overblikket.
+              Hele udvalget: {totals.mappedJobs} opgaver med kortposition · {totals.unmappedJobs}{" "}
+              uden · {totals.positions} kortobjekter.
+            </p>
+          )}
+          {hasMore && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Der er flere resultater. Hent flere for at udvide kort, liste og Kanban.
             </p>
           )}
         </div>
@@ -314,6 +395,8 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             return;
           }
           setFilterError("");
+          setSelectionNotice("");
+          setMapViewport(null);
           setFilters(parsed.data);
         }}
       >
@@ -337,7 +420,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
               onChange={(event) => setDraft({ ...draft, projectId: event.target.value || null })}
             >
               <option value="">Alle projekter</option>
-              {catalog.projects.map((project) => (
+              {visibleCatalog.projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
                 </option>
@@ -399,7 +482,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
                 onChange={(event) => setDraft({ ...draft, assigneeId: event.target.value || null })}
               >
                 <option value="">Alle udførere</option>
-                {catalog.assignees.map((person) => (
+                {visibleCatalog.assignees.map((person) => (
                   <option key={person.id} value={person.id}>
                     {personName(person.name, person.id)}
                   </option>
@@ -440,6 +523,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
               setDraft(emptyManagerWorkOrderFilters());
               setFilters(emptyManagerWorkOrderFilters());
               setFilterError("");
+              setMapViewport(null);
             }}
           >
             Nulstil filtre
@@ -457,6 +541,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             [
               ["board", "Kanban", LayoutGrid],
               ["list", "Liste", List],
+              ["map", "Kort", Map],
             ] as const
           ).map(([mode, label, Icon]) => (
             <button
@@ -475,16 +560,34 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className={button}
-          disabled={tasks.isFetching}
-          onClick={() => void tasks.refetch()}
-        >
-          <RefreshCw className="size-4" aria-hidden="true" />{" "}
-          {tasks.isFetching ? "Henter…" : "Opdater"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {hasMore && (
+            <button
+              type="button"
+              className={button}
+              disabled={tasks.isFetching}
+              onClick={() => void tasks.fetchNextPage()}
+            >
+              {tasks.isFetchingNextPage ? "Henter flere…" : "Hent flere arbejdsordrer"}
+            </button>
+          )}
+          <button
+            type="button"
+            className={button}
+            disabled={tasks.isFetching}
+            onClick={() => void tasks.refetch()}
+          >
+            <RefreshCw className="size-4" aria-hidden="true" />{" "}
+            {tasks.isFetching ? "Henter…" : "Opdater"}
+          </button>
+        </div>
       </div>
+
+      {selectionNotice && (
+        <p role="status" className="rounded-xl border bg-muted/30 p-3 text-sm">
+          {selectionNotice}
+        </p>
+      )}
 
       {tasks.isError && (
         <div role="alert" className="space-y-2 rounded-xl border p-4">
@@ -495,7 +598,9 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             type="button"
             className={button}
             onClick={() =>
-              void (tasks.isFetchNextPageError ? tasks.fetchNextPage() : tasks.refetch())
+              denied
+                ? setSelectionRevision((value) => value + 1)
+                : void (tasks.isFetchNextPageError ? tasks.fetchNextPage() : tasks.refetch())
             }
           >
             Prøv igen
@@ -511,7 +616,16 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
         </div>
       )}
       {items.length > 0 &&
-        (view === "list" ? (
+        (view === "map" ? (
+          <ManagerWorkOrderMap
+            items={items}
+            selection={selection}
+            onSelect={setSelection}
+            viewport={mapViewport}
+            onViewport={setMapViewport}
+            renderOrder={(task) => <OrderCard task={task} compact />}
+          />
+        ) : view === "list" ? (
           <div aria-label="Arbejdsordreliste" className="space-y-3">
             {items.map((task) => (
               <OrderCard key={task.action_id} task={task} compact={false} />
@@ -524,7 +638,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
           >
             {lanes.map(({ id, label }, index) => {
               const orders = items.filter((task) => laneFor(task) === id);
-              if (index >= 5 && orders.length === 0) return null;
+              if (index >= 5 && orders.length === 0 && !laneTotals?.[id]) return null;
               return (
                 <section
                   key={id}
@@ -536,7 +650,9 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
                   >
                     <span>{label}</span>
                     <span className="whitespace-nowrap text-xs font-normal">
-                      {orders.length} vist
+                      {laneTotals
+                        ? `${laneTotals[id]} i udvalget · ${orders.length} indlæst`
+                        : `${orders.length} vist`}
                     </span>
                   </h2>
                   <div className="space-y-3 p-2">
@@ -551,7 +667,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             })}
           </div>
         ))}
-      {tasks.hasNextPage && (
+      {hasMore && (
         <div className="flex flex-col items-center gap-2 border-t pt-5">
           <button
             type="button"
@@ -562,7 +678,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             {tasks.isFetchingNextPage ? "Henter flere…" : "Hent flere arbejdsordrer"}
           </button>
           <p className="text-xs text-muted-foreground">
-            Tavlen og listen viser de samme {items.length} indlæste arbejdsordrer.
+            Kort, liste og Kanban bruger de samme {items.length} indlæste arbejdsordrer.
           </p>
         </div>
       )}

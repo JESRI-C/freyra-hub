@@ -98,7 +98,23 @@ Alle 68 eksisterende krav har nu en særskilt ejerskabsnote i JSON-registeret. R
 
 Kunder/leverandører, kontakter, sagsopgaver, jobtyper, ekstra felter, nummerserier og aktivitets-/løntyper kræver supplerende sporbare krav under S16. At en Skyhost-fane findes, beviser ikke dens skrive-, rolle-, offline- eller integrationsadfærd.
 
-## Fysisk accept (oprindelig prøvevejledning)
+## P7 · Samme udvalg i kort, liste og tavle · 4. november
+
+**Observation → produktregel.** Den læsende Skyhost-prøve filtrerede Jobs til ét eksisterende testjob, åbnede `JobListMap.aspx` og vendte tilbage til listen. Tekstfilter og samme job blev bevaret. Kortfladen var grå og uden tegnede markører i sessionen. Ens markørtotaler og markør → job er derfor ikke observeret som Skyhost-adfærd. [Observationskvitteringen](skyhost-map-observation-2026-11-04.json) skelner dette fra GoFreyras eksisterende krav JOB-06, MAP-01 og QA-04.
+
+GoFreyra skal bruge samme autoriserede, filtrerede arbejdsordrer i alle tre visninger. En opgave uden kortposition skal fortsat være tilgængelig. En opgave med flere steder tæller én gang som arbejdsordre. Det samlede udvalg og de indlæste sider skal kunne skelnes. Når data ændres under sideinddeling, skal udvalget hentes på ny frem for at blande gamle og nye versioner.
+
+**Kode → efterprøvet resultat.** `ManagerWorkOrders` har nu **Kort** ved siden af Liste og Kanban og genbruger de samme rækker og opgavelinks. `ManagerWorkOrderMap`, `ManagerWorkOrderMapCanvas` og `manager-work-order-map-data` viser gemte lokalitetspunkter og præcis pinnet vandløbsversion. Vandløbslinjen kaldes **Gemt vandløbsgrundlag** og udgør ikke i sig selv en bestemt arbejdsstrækning eller udførelsesdækning. Samme sted med flere opgaver giver særskilte valg. Titler og lokalitetsnavne indgår som tekst, ikke HTML. Ukendte og delvist ukendte steder, arkiverede lokaliteter og kortfejl forbliver synlige.
+
+Den nye 11-parameterudgave af `list_manager_work_orders` bevarer den gamle 10-parameterudgave. Migrationerne er `20261104051102_manager_work_order_map_projection.sql` og `20261104051231_manager_work_order_site_position_precedence.sql`. Alle filtre, fuldtotaler og adskilte Kanban-totaler beregnes før cursor. En SHA256-reference til hele det aktuelle udvalg afviser ændringer mellem sider med 409. Den reference er ikke et vedvarende rapport- eller historiksnapshot. Klienten bevarer filtrene ved genstart af udvalget; adgangstab skjuler også tidligere hentet geometri. Der er adgang til **Hent flere** øverst.
+
+Kortets lokalitetsposition følger den eksisterende editors gemte centroid før et eventuelt ældre GeoJSON-punkt. Der beregnes ingen ny centroid. En eksplicit ryddet planlokalitet får ikke en tidligere lokalitet fra handlingen tilbage. Besøgsreferencer og vandløbsgeometri læses inden for samme projekt og organisation. Oprindelige planer, steddata, geometrier, registreringer og filer ændres ikke af læseprojektionen.
+
+72 målrettede service-, komponent- og renderprøver samt typekontrol bestod. På staging bestod 119 databaseassertioner i en tilbagerullet transaktion; ingen syntetiske prøvebrugere blev bevaret. De dækker bl.a. fire steder med to positioner, fuldtotaler uafhængigt af cursor, ulovlige koordinater, nøjagtig pinnet version, ændret position mellem sider, ryddet lokalitet, eksisterende projektbeskyttelse og de tidligere rollegrænser. Browserprøve af den samlede P7-build afventes ved dette commit.
+
+**Ejer og afgrænsning.** Denne tråd ejer P7 i manager-filerne. Den anden chat arbejder fortsat på offline obligatoriske jobkort; dens filer er ikke ændret af P7. JOB-06/MAP-01/QA-04 er udvidet for arbejdsordreoversigten. Generiske GeoTag-observationer og totaler på tværs af rapporter er stadig åbne. MAP-02 er ikke lukket: nuværende forespørgsel beregner geometri og reference for hele udvalget ved læsning. Indekseret geografisk serverudsnit, aggregering, 100.000 poster og målt p95 kræver en særskilt leverance. Lange originale linjer er bevaret frem for ommærket til manglende koordinater på grund af en vilkårlig størrelsesgrænse.
+
+## Fysisk accept (oprindelig prøvevejledning, fortsat)
 
 1. En projektleder opretter og tildeler en ny syntetisk opgave i GoFreyra på computer. Notér opgave-id, gemt periode, valgt sted og tildelt rolle.
 2. En anden person åbner Mine opgaver på en fysisk telefon, finder samme id og læser tid, sted og instruktion. Registrér et testfoto med kamera og GPS eller en stedfæstet note.
