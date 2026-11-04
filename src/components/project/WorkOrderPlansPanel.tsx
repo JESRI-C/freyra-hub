@@ -37,6 +37,7 @@ import { WorkOrderVisitMap } from "./WorkOrderVisitMap";
 import { WorkOrderSeries } from "./WorkOrderSeries";
 import { WorkOrderFollowUps } from "./WorkOrderFollowUps";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
+import { WorkOrderObservationOrigin } from "./WorkOrderObservationOrigin";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
 import { getWatercourseVersions } from "@/services/watercourse-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
@@ -591,6 +592,7 @@ function PlanWorkspace({
   );
   return (
     <div className="min-w-0 space-y-4">
+      <WorkOrderObservationOrigin scope={scope} actionId={actionId} enabled={canPlan && canBook} />
       {history.isFetching && <p role="status">Henter planhistorik…</p>}
       {(history.error || error) && (
         <p role="alert" className="rounded-xl border border-destructive p-3 text-sm">

@@ -27,6 +27,9 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@/lib/manager-work-orders.functions", () => ({ listManagerWorkOrders: m.load }));
+vi.mock("../WorkOrderObservationDraftDialog", () => ({
+  WorkOrderObservationDraftDialog: () => null,
+}));
 vi.mock("../ManagerWorkOrderMapCanvas", () => ({
   default: ({
     features,

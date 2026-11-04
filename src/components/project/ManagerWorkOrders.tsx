@@ -25,6 +25,7 @@ import {
   type ManagerWorkOrderPage,
 } from "@/lib/manager-work-orders";
 import { listManagerWorkOrders } from "@/lib/manager-work-orders.functions";
+import { WorkOrderObservationDraftDialog } from "./WorkOrderObservationDraftDialog";
 import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import {
@@ -369,12 +370,23 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             </p>
           )}
         </div>
-        <Link
-          to="/app/projects"
-          className={button + " bg-primary text-primary-foreground hover:bg-primary/90"}
-        >
-          <Plus className="size-4" aria-hidden="true" /> Opret i et projekt
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <WorkOrderObservationDraftDialog
+            organizationId={organizationId}
+            projects={visibleCatalog.projects}
+            initialProjectId={filters.projectId}
+            onCreated={() => {
+              setSelectionNotice("Arbejdsordrekladden er gemt. Dine filtre er bevaret.");
+              setSelectionRevision((value) => value + 1);
+            }}
+          />
+          <Link
+            to="/app/projects"
+            className={button + " bg-primary text-primary-foreground hover:bg-primary/90"}
+          >
+            <Plus className="size-4" aria-hidden="true" /> Opret i et projekt
+          </Link>
+        </div>
       </div>
 
       <form

@@ -101,6 +101,7 @@ vi.mock("@/services/watercourse-service", () => ({ getWatercourseVersions: m.cen
 vi.mock("../WorkOrderAccessPanel", () => ({ WorkOrderAccessPanel: () => null }));
 vi.mock("../WorkOrderAssignmentPanel", () => ({ WorkOrderAssignmentPanel: () => null }));
 vi.mock("../WorkOrderStatusPanel", () => ({ WorkOrderStatusPanel: () => null }));
+vi.mock("../WorkOrderObservationOrigin", () => ({ WorkOrderObservationOrigin: () => null }));
 vi.mock("@/components/maps/MapEditorMap", () => ({
   MapEditorMap: ({
     locationPoints,
