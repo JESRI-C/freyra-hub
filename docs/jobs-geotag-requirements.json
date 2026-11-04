@@ -1258,17 +1258,25 @@
       "code": [
         "src/services/workflow-report-service.ts",
         "src/lib/workflow-report-package.ts",
-        "src/services/report-assets.ts"
+        "src/services/report-assets.ts",
+        "src/lib/report-document.ts",
+        "src/lib/report-export.ts",
+        "src/components/reports/ReportWorkspace.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261104091051_work_order_report_execution_data_basis.sql"
       ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
-        "src/services/__tests__/report-assets.test.ts"
+        "src/services/__tests__/report-assets.test.ts",
+        "src/lib/__tests__/work-order-report-classification.test.ts",
+        "src/components/reports/ReportWorkspace.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Genbrug workflow- og municipal-rapportspor. Tilføj arbejdsordre-/afleveringsversioner uden ny rapportmotor."
+      "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+      "remaining": "Arbejdsopgavens godkendte afleveringsversion genbruger den eksisterende rapportmotor. Nye rapporter bevarer udførelsens registreringstype og kilde-id. Faglige metode-/domæneprofiler og samlet kommunal rapportaccept er fortsat åbne."
     },
     {
       "id": "REP-02",
@@ -1278,17 +1286,25 @@
       "code": [
         "src/services/workflow-report-service.ts",
         "src/lib/workflow-report-package.ts",
-        "src/services/report-assets.ts"
+        "src/services/report-assets.ts",
+        "src/lib/report-document.ts",
+        "src/lib/report-export.ts",
+        "src/components/reports/ReportWorkspace.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261104091051_work_order_report_execution_data_basis.sql"
       ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
-        "src/services/__tests__/report-assets.test.ts"
+        "src/services/__tests__/report-assets.test.ts",
+        "src/lib/__tests__/work-order-report-classification.test.ts",
+        "src/components/reports/ReportWorkspace.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Genbrug eksisterende ZIP og originale filreferencer. Komplet operationel pakke/dictionary/genindlæsning mangler."
+      "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+      "remaining": "Eksisterende kildepakke v1 og historiske eksporter bevares. Nye klassificerede arbejdsopgaverapporter får kildepakke v2 med frossen registreringstype og udførelses-id; unit-output og checksums er efterprøvet. Hosted ZIP-v2-download, større leverancer, komplet operationel dictionary og fuld genindlæsning er fortsat åbne."
     },
     {
       "id": "REP-03",
@@ -1338,17 +1354,25 @@
       "code": [
         "src/services/workflow-report-service.ts",
         "src/lib/workflow-report-package.ts",
-        "src/services/report-assets.ts"
+        "src/services/report-assets.ts",
+        "src/lib/report-document.ts",
+        "src/lib/report-export.ts",
+        "src/components/reports/ReportWorkspace.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261104091051_work_order_report_execution_data_basis.sql"
       ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
-        "src/services/__tests__/report-assets.test.ts"
+        "src/services/__tests__/report-assets.test.ts",
+        "src/lib/__tests__/work-order-report-classification.test.ts",
+        "src/components/reports/ReportWorkspace.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Versionsbundet afleveringsgrundlag, reviewomfang og originalkilder findes og er teknisk afprøvet. Ny konkret mangel, hosted 2ebb507c: synthetic i den frosne udførelse føres ikke videre til den godkendte arbejdsopgaves rapport. Ret synlig datamærkning og kildebegrænsninger i ny rapportgenerering uden at omskrive gamle rapportversioner. Faglig effekt- og rapportaccept er fortsat åben."
+      "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+      "remaining": "Fejlen fra hosted 2ebb507c er rettet for nye rapporter: synthetic/demo/real og udførelsesversion følger den godkendte aflevering til visning og eksport. Hosted bc2887fb bevarer samtidig det tidligere rapportindhold og identiske PDF-bytes. Ældre rapporter viser ukendt type i UI uden omskrevet eksport. Klassifikation af øvrige målinger/observationer/AI, metodeusikkerhed og faglig effekt-/rapportaccept er fortsat åbne."
     },
     {
       "id": "IMP-01",

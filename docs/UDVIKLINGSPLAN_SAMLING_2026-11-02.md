@@ -74,19 +74,28 @@ originalhash, UI-udførelse, to UI-koblinger og UI-aflevering, derefter SDK-
 review og rapport samt browser/PDF. Egne sessioner og midlertidige rettigheder
 er læst tilbage som lukket/ikke aktive. Aktiv staging er fortsat `4be325d`.
 
-**Næste reelle mangel:** Rapportgeneratoren mister dataBasis fra den frosne
-udførelse. Afleveringen er mærket synthetic, mens den genererede rapport
-ikke viser mærkningen. Ret og genprøv dette før samlet rapportaccept med
-bevarede gamle rapportversioner. [Rettelsen er i gang](RAPPORT_REGISTRERINGSTYPE_2026-11-04.md)
-i `codex/report-source-classification` oven på PR48/bd2930a: frossen
-klassifikation og udførelses-id, synlig mærkning og nye kildepakker v2.
-36 lokale prøver og visuel PDF-kontrol består; fuld CI, SQL og hosted prøve
-afventer. Migrationen er endnu ikke anvendt i staging. Derefter samles PR47's manager/P9/P10-kode
-og supplerende ACL-/gendannelsesprøver med PR48's nyere felt-/offlinekode på
-én kandidat. Den parallelle leverance har kode `622cfcb` og dokumentation
-`9bfcfc8`, med særskilte kvitteringer; aktiv trafik må først flyttes efter
-den aftalte fælles prøve. Fælles opgavestatusprojektion, synlig kommune/sag,
-et tydeligt Dokumentation-trin og fysisk/uassisteret brugeraccept er fortsat åbne.
+**Seneste afprøvede rapportkandidat:** [Registreringstype fra den frosne aflevering](RAPPORT_REGISTRERINGSTYPE_2026-11-04.md)
+er rettet i PR49 oven på PR48. Nye rapporter fastholder synthetic/demo/real og
+præcis udførelsesversion i UI/eksport; ældre rapporter og eksportbytes bevares.
+Kilde `12d348b1`, separat Worker `6b7b1177` og stagingmigration `20261104091051`
+med SQL-MD5 `adbc58e3d1285347e6d6b626379d97fc`. CI `41804257496` består:
+3.623 appprøver/270 filer og 1.915 DB-kontroller/28 filer inkl. faktisk
+samtidighed og gendannelse. [Hosted bc2887fb](report-source-classification-staging-receipt-2026-11-04.json)
+består fra Mine opgaver til rapport. UI 390/1280 px og faktisk PDF viser den
+frosne type. Den tidligere rapport har uændret række/indhold og identiske
+PDF-bytes efter genåbning. Egne sessioner og midlertidige rettigheder er
+ryddet op og efterkontrolleret. Aktiv apptrafik er fortsat `4be325d`.
+
+**Næste kodepakke:** Saml PR47's manager/P9/P10/P11 og supplerende ACL-/
+gendannelsesprøver med PR48/PR49's nyere felt-/offline-/rapportkode på én
+isoleret kandidat, og gentag de centrale rolleforløb på samme version.
+P10 har kilde `622cfcb`/kvitteringer `9bfcfc8`; P11's canonical-statuskode
+er `3c5c2f3` med grøn CI `41804794881`, mens hosted browserbevis endnu
+afventes. Den parallelle chat ejer P11 indtil afleveringen. Aktiv trafik
+flyttes først efter den aftalte fælles prøve. Gamle læsere kan ignorere
+rapportklassifikationen; den nye rapportlæser skal med i kandidaten.
+Synlig kommune/sag, et tydeligt Dokumentation-trin, forståelige
+rapportstatusser og fysisk/uassisteret brugeraccept er fortsat åbne.
 
 **Arbejdspakkens oprindelige krav:** Genbrug den allerede udviklede feltindgang i Mine opgaver
 fra den parallelle, committede MyWorkOrders (3af288a/9af245d). En feltbruger

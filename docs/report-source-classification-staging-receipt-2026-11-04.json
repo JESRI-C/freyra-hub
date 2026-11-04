@@ -1,0 +1,172 @@
+{
+  "schema": "freyra.report-source-classification-staging/v1",
+  "result": "PASS",
+  "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+  "testedBase": "https://6b7b1177-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "entry": "my-work-orders",
+  "fieldUserWithoutPlanningAccess": true,
+  "browserExecutionAndEvidence": true,
+  "browserSubmission": true,
+  "reportExecutionDataBasis": "synthetic",
+  "reportExecutionRevisionId": "26e1d069-e991-4433-8ffe-cd74688edf3e",
+  "historicalReportId": "c0533856-354c-4fe0-a7f5-fa0193889263",
+  "historicalReportUnchanged": true,
+  "historicalPdfSha256": "23f2953c0aa80c8681dfdd58bf1a41fcdb78c32c256237ee5471f98c1b0df5f5",
+  "run": "bc2887fb",
+  "projectId": "531fe1ae-a4dd-499f-a282-a3e909c7f858",
+  "actionId": "7f5e88a0-c0d1-4adb-9257-203704818507",
+  "uploadId": "18c9c8cb-3f86-42e2-909d-16702acee643",
+  "capturedPlanId": "e0db30da-8463-4624-9b0a-b6b316ec090c",
+  "sha256": "36e87d203f6f0e07464741c767494fa280c3dbe02eca01e3a96af4d572b94beb",
+  "offlineCloseReopen": true,
+  "offlineTaskVisibleBeforeReconnect": true,
+  "lostUploadReplyRecoveredOnce": true,
+  "fieldAccountDistinct": true,
+  "originalOpenedAndHashMatched": true,
+  "requiredCards": 2,
+  "submissionId": "d313fd0e-6212-4436-879b-9377f3ac27cc",
+  "reportId": "78ac3720-edeb-4008-9ca6-c2a45da9a1e1",
+  "reportWidths": [390, 1280],
+  "pdfSha256": "c0621ad91681d6dcc0a18a8df2a73374fa929eb6005ee8b6274669aaa70f40ef",
+  "physicalPhoneAccepted": false,
+  "temporaryFieldMembershipsRemaining": 0,
+  "temporaryReviewGrantsRemaining": 0,
+  "ownSessionsRevoked": true,
+  "recordedAt": "2026-11-04T09:29:51.823Z",
+  "acceptance": "technical_candidate_passed_full_product_acceptance_open",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/49",
+  "workerVersion": "6b7b1177-dfa3-496a-b94c-0b5347a9381b",
+  "migration": {
+    "version": "20261104091051",
+    "originalCliVersion": "20261104084455",
+    "normalizedSqlMd5": "adbc58e3d1285347e6d6b626379d97fc",
+    "bindingFunctionMd5": "d1bc2202fcd22a6a4131ef613295e5d7",
+    "invoker": true,
+    "authenticatedCanCallDirectly": false
+  },
+  "ci": {
+    "runId": 41804257496,
+    "conclusion": "success",
+    "applicationTests": 3623,
+    "applicationFiles": 270,
+    "databaseChecks": 1915,
+    "databaseFiles": 28,
+    "freshReplay": true,
+    "realConcurrency": true,
+    "databaseRestore": true,
+    "typecheck": true,
+    "lint": true,
+    "build": true,
+    "knownRuntimeVulnerabilities": 0
+  },
+  "local": {
+    "tests": 36,
+    "files": 4,
+    "legacyFixtureFormats": ["pdf", "docx", "csv", "geojson", "zip"],
+    "legacyFixtureFingerprintsUnchanged": true,
+    "classifiedPdfTimezoneReplay": true,
+    "lintErrors": 0,
+    "existingLintWarnings": 1
+  },
+  "legacyDatabase": {
+    "reportId": "c0533856-354c-4fe0-a7f5-fa0193889263",
+    "revisionId": "f068335e-2232-455e-82d0-0c50771b0255",
+    "contentMd5BeforeAndAfter": "4e22699baa0f3bf5a0a6b60ae80b0e23",
+    "rowMd5BeforeAndAfter": "cd9d327b99ee820e5b4bf9dd895c2d52",
+    "versionsBeforeAndAfter": 1
+  },
+  "hostedPdf": {
+    "pages": 2,
+    "classificationTextExtracted": true,
+    "pinnedExecutionIdExtracted": true,
+    "allPagesRenderedAndVisuallyReviewed": true
+  },
+  "cleanupVerifiedByDatabase": {
+    "ownAuthSessions": 0,
+    "temporaryFieldMemberships": 0,
+    "reviewGrantVersion": 2,
+    "reviewGrantActive": false,
+    "reviewGrantCanReview": false
+  },
+  "rollout": {
+    "activeTrafficChanged": false,
+    "activeDeployment": "700e62c8-aaa0-4dff-8d5f-abb88ca52838",
+    "activeWorkerVersion": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+    "activeAppRevision": "4be325d7253f02c915d5089ecb418d7e9e4d72ac",
+    "previewOnly": true
+  },
+  "security": {
+    "findingsUnchangedExcludingObservationTime": true,
+    "remainingCategories": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 3,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "rls_disabled_in_public",
+        "level": "ERROR",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0013_rls_disabled_in_public"
+      },
+      {
+        "name": "extension_in_public",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "level": "WARN",
+        "count": 3,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 12,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+      }
+    ]
+  },
+  "interactionScope": {
+    "browser": [
+      "normal field login without can_plan",
+      "Mine opgaver to exact task/photo/job cards",
+      "cold offline close/reopen",
+      "lost upload reply and same retry",
+      "original SHA-256 verification",
+      "synthetic execution editor",
+      "explicit observation/photo/execution associations",
+      "save and submit packet",
+      "new report classification at 390/1280 px",
+      "download new PDF",
+      "reopen older report and download identical older PDF"
+    ],
+    "sdk": [
+      "synthetic fixture/assignment",
+      "lifecycle transitions",
+      "independent technical review",
+      "idempotent report generation",
+      "scoped cleanup/readback"
+    ]
+  },
+  "limits": [
+    "physical camera/GPS/HEIC on this version not accepted",
+    "unassisted municipal UX not accepted",
+    "ZIP v2/Word/CSV/GeoJSON verified by unit output; hosted browser download not repeated here",
+    "classification concerns execution only; observation/measurement/model provenance remains separate",
+    "historical reports lacking classification disclose unknown in UI; historical export bytes remain unchanged",
+    "combined PR47/P11 candidate and ACL restore not accepted here",
+    "existing database/Auth advisories remain open",
+    "professional effect/production/operations acceptance open"
+  ],
+  "screenshots": ["report-390.png", "report-1280.png", "pdf-1.png", "pdf-2.png"]
+}
