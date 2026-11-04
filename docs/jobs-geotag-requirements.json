@@ -841,13 +841,14 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; project original queue preserved and plan-bound job cards staged at 90f0196; physical acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
-      "remaining": "Mobil originalkø og planbundne jobkort findes. To jobkort er teknisk genprøvet ved browserlukning, netbrud og planskift. Automatisk opgave-/kategoribinding af fotos, metadata/flerfoto-status, fysisk kamera/GPS og samlet feltaccept mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben.",
+      "remaining": "Mobil originalkø, planbundne jobkort og opgavefotos findes. Fotoets sag, opgave og arbejdsgrundlag fastholdes ved optagelse; historiske køposter bevares. To krævede jobkort er teknisk prøvet ved browserlukning, netbrud og planskift. Fotospecifik kategoribinding, samlet metadata-/flerfotostatus, fysisk kamera/GPS/HEIC og uassisteret feltaccept er fortsat åbne. Ekstern ny upload uden projektbidragsadgang er ikke leveret. Den fælles kandidat er under hosted prøve; se OPGAVE_FOTO_FELTINDGANG.md og FAELLES_KANDIDAT_2026-11-04.md.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for opgavenavigation",
         "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "historicalRemainingBeforeCombined": "Mobil originalkø og planbundne jobkort findes. To jobkort er teknisk genprøvet ved browserlukning, netbrud og planskift. Automatisk opgave-/kategoribinding af fotos, metadata/flerfoto-status, fysisk kamera/GPS og samlet feltaccept mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
     },
     {
       "id": "OBS-05",
@@ -2517,7 +2518,7 @@
         "src/lib/__tests__/customer-project-route-integrity.test.ts"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json; P8 media-failure isolation and draft preservation locally verified at 5228aad; combined candidate acceptance pending",
-      "remaining": "Mine opgavers UI fører feltkonto uden can_plan gennem offlinefoto/jobkort, originalåbning, udførelse, dokumentationskobling og aflevering på kandidat 3ba51b1. Visning og rapport er prøvet ved 390/1280 px. Fysisk kamera/GPS/HEIC, fuld tastatur-/hjælpemiddelprøve, kontekstnavne og uassisteret brugeraccept er fortsat åbne. P8's separate local plan-cancel/navigation and actual Atlas portal checks are retained; their evidence is not a new physical-phone or combined-candidate acceptance.",
+      "remaining": "Mine opgavers UI fører feltkonto uden can_plan gennem offlinefoto/jobkort, originalåbning, udførelse, dokumentationskobling og aflevering på kandidat 3ba51b1. Visning og rapport er prøvet ved 390/1280 px. Fysisk kamera/GPS/HEIC, fuld tastatur-/hjælpemiddelprøve, kontekstnavne og uassisteret brugeraccept er fortsat åbne. P8's særskilte lokale prøver af Fortryd, navigation og Atlas-portalen bevares som tidligere bevis; de godkender ikke fysisk telefon eller den fælles kandidat.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
         "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
@@ -2923,7 +2924,12 @@
     "branch": "codex/combined-municipal-workflow",
     "productSource": "20e58564e82011a692e8b46fae4802219b6f3a61",
     "managerSource": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
-    "state": "source-integrated; candidate CI and hosted acceptance pending",
-    "evidence": "docs/FAELLES_KANDIDAT_2026-11-04.md"
+    "state": "CI passed; separate preview uploaded; combined hosted acceptance in progress",
+    "evidence": "docs/FAELLES_KANDIDAT_2026-11-04.md",
+    "sourceRevision": "941fdb1918bb4e308f5e11e9c35dd78470cfef6d",
+    "managerNavigationSource": "b5cf82b76fede2dd266f347a6cfb394bfff6f474",
+    "ciRun": 41810930503,
+    "artifactRun": 41810930419,
+    "receipt": "docs/combined-municipal-candidate-2026-11-04.json"
   }
 }

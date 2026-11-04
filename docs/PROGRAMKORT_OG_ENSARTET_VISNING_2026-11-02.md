@@ -8,7 +8,11 @@ Feltbrugerens fotos, jobkort, udførelse, eksplicitte dokumentation og afleverin
 har samme opgaveindgang. CI og kandidatens hosted teknikprøve består på
 `3ba51b1`/Worker `0ebf0053`. [Rapportens registreringstype](RAPPORT_REGISTRERINGSTYPE_2026-11-04.md)
 har nu en særskilt efterprøvet kandidat `12d348b1`/Worker `6b7b1177` med
-bevarede historiske eksporter. Samlet bruger-/faglig accept er fortsat åben.
+bevarede historiske eksporter. [Fælles kandidat](FAELLES_KANDIDAT_2026-11-04.md)
+`941fdb19` samler nu lederens kort/liste/tavle, observationskladder og fokuseret
+jobstatus med dette felt-/rapportgrundlag. CI består med 3.868 appprøver og
+2.212 databasekontroller. Separat Worker `5a4a3843` afventer samlet browseraccept;
+aktiv trafik er uændret. Samlet bruger-/faglig accept er fortsat åben.
 Inventartællingerne nedenfor er det
 daterede grundlag fra 2. november, ikke en ny fuld kodeoptælling.
 

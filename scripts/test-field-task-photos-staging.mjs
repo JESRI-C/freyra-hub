@@ -721,6 +721,44 @@ try {
   const pdfBytes = await fs.readFile(await pdf.path());
   assert.equal(pdfBytes.subarray(0, 5).toString(), "%PDF-");
   await pdf.saveAs(dir + "/report.pdf");
+  const reportExports = {};
+  for (const [format, label] of [
+    ["docx", "DOCX"],
+    ["csv", "CSV"],
+    ["geojson", "GEOJSON"],
+    ["references.zip", "Hent PDF og kildepakke fra denne version"],
+    ["originals.zip", "Hent ZIP med verificerede originalfotos"],
+  ]) {
+    const completed = page.waitForEvent("download");
+    await page.getByRole("button", { name: label, exact: true }).click();
+    const downloaded = await completed;
+    assert.equal(await downloaded.failure(), null);
+    const bytes = await fs.readFile(await downloaded.path());
+    assert(bytes.length > 0 && bytes.length < 27 * 1024 * 1024);
+    await downloaded.saveAs(dir + "/report." + format);
+    reportExports[format] = {
+      bytes: bytes.length,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+    };
+  }
+  await fs.writeFile(
+    dir + "/report-export-expected.json",
+    JSON.stringify(
+      {
+        reportId: report.report_id,
+        revisionId: report.id,
+        executionRevisionId: execution.workspace_entry_id,
+        dataBasis: "synthetic",
+        approval: report.content.workOrderApproval,
+        sources: report.content.sources,
+        originalSha256: sha256,
+        pdfSha256: createHash("sha256").update(pdfBytes).digest("hex"),
+        downloaded: reportExports,
+      },
+      null,
+      2,
+    ),
+  );
   const legacy = await json("docs/field-task-handoff-staging-receipt-2026-11-04.json");
   assert.notEqual(legacy.reportId, report.report_id);
   const legacyRows = async () =>
@@ -792,6 +830,8 @@ try {
     reportId: report.report_id,
     reportWidths: [390, 1280],
     pdfSha256: createHash("sha256").update(pdfBytes).digest("hex"),
+    browserDownloadedExports: reportExports,
+    independentExportValidation: "pending scripts/check-work-order-report-exports.py",
     physicalPhoneAccepted: false,
   };
 } catch (error) {

@@ -1,0 +1,124 @@
+{
+  "schema": "freyra.combined-municipal-candidate/v1",
+  "sourceRevision": "941fdb1918bb4e308f5e11e9c35dd78470cfef6d",
+  "productSource": "20e58564e82011a692e8b46fae4802219b6f3a61",
+  "managerSource": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
+  "managerNavigationSource": "b5cf82b76fede2dd266f347a6cfb394bfff6f474",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/50",
+  "branch": "codex/combined-municipal-workflow",
+  "result": "CI_PASS_HOSTED_ACCEPTANCE_IN_PROGRESS",
+  "preview": "https://5a4a3843-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "workerVersion": "5a4a3843-cee3-4225-9bc5-3847fd4c1cba",
+  "buildArtifact": {
+    "runId": 41810930419,
+    "artifactId": 13311732823,
+    "sha256": "00f96cea8e723ed158710d36b272b3ac2a135221d43c7006695a4db102e49892",
+    "bytes": 7038801,
+    "files": 769,
+    "crcVerified": true,
+    "sourceRevisionVerified": true,
+    "stagingBundleGuardPassed": true,
+    "localBuildUsed": false
+  },
+  "ci": {
+    "runId": 41810930503,
+    "conclusion": "success",
+    "applicationTests": 3868,
+    "applicationFiles": 282,
+    "databaseChecks": 2212,
+    "databaseFiles": 31,
+    "typecheck": true,
+    "lint": true,
+    "build": true,
+    "knownRuntimeVulnerabilities": 0,
+    "freshMigrationReplay": true,
+    "realConcurrency": true,
+    "observationDraftActualLockWaits": 3,
+    "aclPreservingDatabaseRestore": true,
+    "disposableCleanup": true,
+    "fullHostedRecovery": false,
+    "storageOriginalBytesRestored": false,
+    "testedPullRequestMerge": "7f271773d9c9ce57bd10e442c3199560546d4604",
+    "previewAndMergeTree": "ea97067f0c0c825a824f36d3fb954e410fed1a97",
+    "exactSourceTreeVerified": true
+  },
+  "migrations": [
+    {
+      "version": "20261104042234",
+      "name": "manager_work_order_overview",
+      "statement_count": 1,
+      "normalized_sql_md5": "bccb41c7b8f2aeb0c4b53619e0e954f0"
+    },
+    {
+      "version": "20261104051102",
+      "name": "manager_work_order_map_projection",
+      "statement_count": 1,
+      "normalized_sql_md5": "da0ff096642a84ed6680e5446944d217"
+    },
+    {
+      "version": "20261104051231",
+      "name": "manager_work_order_site_position_precedence",
+      "statement_count": 1,
+      "normalized_sql_md5": "335ffc10e80a1ef1843368bc00c4b33f"
+    },
+    {
+      "version": "20261104061624",
+      "name": "work_order_observation_drafts",
+      "statement_count": 1,
+      "normalized_sql_md5": "bbc4ef802a1726213e97e96503217ab0"
+    },
+    {
+      "version": "20261104064006",
+      "name": "field_photo_work_order_context",
+      "statement_count": 1,
+      "normalized_sql_md5": "ac712439ec632085a9d47aa8ebb45ebf"
+    },
+    {
+      "version": "20261104091051",
+      "name": "work_order_report_execution_data_basis",
+      "statement_count": 1,
+      "normalized_sql_md5": "adbc58e3d1285347e6d6b626379d97fc"
+    }
+  ],
+  "migrationFingerprintNormalization": "LF, trailing whitespace removed, one final LF; local files matched all six recorded staging SQL statements",
+  "activeStaging": {
+    "unchangedBeforeAndAfterUpload": true,
+    "deploymentId": "700e62c8-aaa0-4dff-8d5f-abb88ca52838",
+    "workerVersion": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+    "percentage": 100,
+    "sourceRevision": "4be325d7253f02c915d5089ecb418d7e9e4d72ac"
+  },
+  "preservation": {
+    "requirements": 68,
+    "uniqueRequirementIds": 68,
+    "criticalFieldAndReportRuntimeUnchangedFromProductSource": true,
+    "originalCheckoutUntouched": true,
+    "originalDirtyFileNumstatUnchanged": true,
+    "olderLinksAndDraftLocksRetained": true
+  },
+  "localTypecheck": {
+    "result": "cancelled_without_result",
+    "reason": "host memory pressure; git allocation also failed",
+    "sessionTerminal": true
+  },
+  "hosted": {
+    "manager": null,
+    "fieldAndReport": null,
+    "browserExports": null
+  },
+  "acceptance": {
+    "physicalPhone": false,
+    "unassistedMunicipalUser": false,
+    "professionalNatureEffect": false,
+    "fullParity": false,
+    "overallSecurity": false,
+    "operations": false,
+    "production": false
+  },
+  "recordedAt": "2026-11-04T10:06:59.850Z",
+  "originalLocalEditsReviewed": {
+    "FieldOfflineWorkspace": "same-scope online evidence link and draft guard retained; newer selected-task and capture-access checks preserved",
+    "MyWorkOrders": "plan window/location, actor-bound contribution check, writable evidence/submission and exact-task actions retained with stricter refetch/navigation guards",
+    "testCases": "original added evidence-link and field-user cases retained in the newer regression suites"
+  }
+}
