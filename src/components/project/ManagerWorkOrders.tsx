@@ -27,10 +27,7 @@ import {
 import { listManagerWorkOrders } from "@/lib/manager-work-orders.functions";
 import { WorkOrderObservationDraftDialog } from "./WorkOrderObservationDraftDialog";
 import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
-import {
-  WORK_ORDER_ENTRY_ANCHOR,
-  workOrderStatusDestination,
-} from "@/lib/work-order-navigation";
+import { WORK_ORDER_ENTRY_ANCHOR, workOrderStatusDestination } from "@/lib/work-order-navigation";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import {
   ManagerWorkOrderMap,

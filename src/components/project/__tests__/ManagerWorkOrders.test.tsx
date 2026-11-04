@@ -342,9 +342,9 @@ describe("manager work orders across projects", () => {
       "Rul vandret",
     );
     expect(board.querySelectorAll("article")).toHaveLength(60);
-    expect([...board.querySelectorAll("article h3")].map((title) => title.textContent).sort()).toEqual(
-      all.map((task) => task.title).sort(),
-    );
+    expect(
+      [...board.querySelectorAll("article h3")].map((title) => title.textContent).sort(),
+    ).toEqual(all.map((task) => task.title).sort());
     expect(board.querySelectorAll("section[aria-label]")).toHaveLength(9);
     for (const lane of board.querySelectorAll("section[aria-label]")) {
       const tasks = lane.querySelector<HTMLElement>('[role="region"]')!;
