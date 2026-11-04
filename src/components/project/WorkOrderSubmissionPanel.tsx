@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker } from "@tanstack/react-router";
@@ -67,6 +67,9 @@ export function WorkOrderSubmissionPanel({
   const saveFn = useServerFn(saveProjectWorkOrderSubmission);
   const originalFn = useServerFn(getProjectWorkOrderEvidenceOriginal);
   const [note, setNote] = useState("");
+  const evidenceDetailsId = useId();
+  const [inspectedId, setInspectedId] = useState<string>();
+  const inspectOrigin = useRef<HTMLAnchorElement | null>(null);
   const [busy, setBusy] = useState(false),
     [opening, setOpening] = useState(false);
   const [error, setError] = useState(""),
@@ -154,6 +157,17 @@ export function WorkOrderSubmissionPanel({
     refetchOnWindowFocus: !locked,
     refetchOnReconnect: !locked,
   });
+  function inspectSubmission(id: string, origin: HTMLAnchorElement) {
+    const details = document.getElementById(evidenceDetailsId + id);
+    const summary = details?.querySelector("summary");
+    if (!authorized || locked || !(details instanceof HTMLDetailsElement) || !summary) return false;
+    details.open = true;
+    summary.focus();
+    inspectOrigin.current = origin;
+    setInspectedId(id);
+    return true;
+  }
+
   async function save() {
     if (
       !writable ||
@@ -299,6 +313,7 @@ export function WorkOrderSubmissionPanel({
           disabledByParent={!authorized || !!note || busy || opening || uncertain}
           onEditing={setReviewEditing}
           onPhase={setReviewPhase}
+          onInspectSubmission={inspectSubmission}
           onOpenCorrection={!readOnly ? onOpenPart : undefined}
           onOpenSubmissionVersion={(version) => {
             if (version === requestedVersion) setShowAllForVersion(undefined);
@@ -483,7 +498,7 @@ export function WorkOrderSubmissionPanel({
                   {row.snapshot.execution.binding.version} · {row.snapshot.evidence.length}{" "}
                   dokumentationskoblinger
                 </p>
-                <details>
+                <details id={evidenceDetailsId + row.id}>
                   <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
                     Se det fastholdte grundlag
                   </summary>
@@ -569,6 +584,18 @@ export function WorkOrderSubmissionPanel({
                     </p>
                   </div>
                 </details>
+                {!selectedVersion && inspectedId === row.id && (
+                  <button
+                    type="button"
+                    className={button}
+                    onClick={() => {
+                      inspectOrigin.current?.focus();
+                      setInspectedId(undefined);
+                    }}
+                  >
+                    Tilbage til faglig gennemgang
+                  </button>
+                )}
               </article>
             ))}
           {history.hasNextPage && (

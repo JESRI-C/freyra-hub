@@ -49,6 +49,7 @@ export function WorkOrderReviewControls({
   onEditing,
   onPhase,
   onOpenSubmissionVersion,
+  onInspectSubmission,
   onOpenCorrection,
   onOpenFollowUpPlan,
   onCreateApprovedFollowUp,
@@ -64,6 +65,7 @@ export function WorkOrderReviewControls({
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
   onOpenSubmissionVersion?: (version: number) => void;
+  onInspectSubmission?: (id: string, origin: HTMLAnchorElement) => boolean;
   onOpenCorrection?: (part: "execution" | "evidence", note?: WorkOrderCorrectionNote) => void;
   onOpenFollowUpPlan?: () => void;
   onCreateApprovedFollowUp?: (packet: ApprovedFollowUpBasis) => void;
@@ -168,7 +170,7 @@ export function WorkOrderReviewControls({
   const currentApproval =
     c?.state?.status === "approved" && c.state.operation === "review" ? c.state : undefined;
 
-  function submissionLink(version: number) {
+  function submissionLink(version: number, inspectId?: string) {
     return (
       <Link
         className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-2"
@@ -188,8 +190,13 @@ export function WorkOrderReviewControls({
             !event.ctrlKey &&
             !event.shiftKey &&
             !event.altKey
-          )
+          ) {
+            if (inspectId && onInspectSubmission?.(inspectId, event.currentTarget)) {
+              event.preventDefault();
+              return;
+            }
             onOpenSubmissionVersion?.(version);
+          }
         }}
       >
         Se afleveringsversion {version}
@@ -345,7 +352,10 @@ export function WorkOrderReviewControls({
             Status: {phase ? workOrderStatusLabels[phase] : "Ikke fastlagt"}
             {c?.packet ? ` · afleveringsversion ${c.packet.version}` : ""}
           </p>
-          {c?.packet && !locked && !disabledByParent && submissionLink(c.packet.version)}
+          {c?.packet &&
+            !locked &&
+            !disabledByParent &&
+            submissionLink(c.packet.version, phase === "submitted" ? c.packet.id : undefined)}
           {c?.state?.reason &&
             ["submitted", "approved", "returned", "reopened"].includes(phase ?? "") && (
               <p className="whitespace-pre-wrap text-sm">Begrundelse: {c.state.reason}</p>

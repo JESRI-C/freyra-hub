@@ -43,8 +43,10 @@ vi.mock("../WorkOrderReviewControls", () => ({
   WorkOrderReviewControls: ({
     onCreateApprovedFollowUp,
     onOpenSubmissionVersion,
+    onInspectSubmission,
   }: {
     onOpenSubmissionVersion?: (version: number) => void;
+    onInspectSubmission?: (id: string, origin: HTMLAnchorElement) => boolean;
     onCreateApprovedFollowUp?: (packet: NonNullable<WorkOrderReviewContext["packet"]>) => void;
   }) =>
     m.approvedPacket && onCreateApprovedFollowUp ? (
@@ -53,6 +55,15 @@ vi.mock("../WorkOrderReviewControls", () => ({
           Forbered opfølgning
         </button>
         <button onClick={() => onOpenSubmissionVersion?.(1)}>Se afleveringsversion 1</button>
+        <a
+          href="#source"
+          onClick={(event) => {
+            if (onInspectSubmission?.(m.approvedPacket!.id, event.currentTarget))
+              event.preventDefault();
+          }}
+        >
+          Se aktuelt gennemgangsgrundlag
+        </a>
       </>
     ) : null,
 }));
@@ -124,6 +135,28 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("submission preparation on the existing task", () => {
+  it("opens the exact saved material without leaving the review and returns keyboard focus", async () => {
+    const reviewed = submission(2);
+    m.approvedPacket = {
+      id: reviewed.id,
+      version: reviewed.version,
+      plan_version_id: reviewed.plan_version_id,
+      assignment_version_id: reviewed.assignment_version_id,
+      execution_revision_id: reviewed.execution_revision_id,
+    };
+    m.list.mockResolvedValue({ items: [submission(3), reviewed], nextBeforeVersion: null });
+    await render();
+    const link = host.querySelector<HTMLAnchorElement>('a[href="#source"]')!;
+    await act(async () => link.click());
+    const [newer, exact] = host.querySelectorAll("article details");
+    expect(newer.hasAttribute("open")).toBe(false);
+    expect(exact.hasAttribute("open")).toBe(true);
+    expect(document.activeElement).toBe(exact.querySelector("summary"));
+    await click("Tilbage til faglig gennemgang");
+    expect(document.activeElement).toBe(link);
+    expect(host.textContent).toContain("Forbered opfølgning");
+  });
+
   it("prepares the follow-up from the approved packet's pinned plan", async () => {
     const approved = submission(2);
     m.approvedPacket = {
