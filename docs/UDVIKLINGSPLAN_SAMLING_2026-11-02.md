@@ -44,8 +44,9 @@ på samme identificerede kandidat, inklusive adgang, fejlhåndtering, rapporters
 kildespor og gendannelse af både database og originalfiler. Kundens opstart,
 supportvej og leverede arbejdsgange skal være dokumenteret før salg og drift.
 
-**Næste kodepakke:** S04/D05c's versionsbundne dokumentationskrav, derefter
-samlet accept af aflevering → faglig gennemgang → rapport → opfølgning.
+**Næste kodepakke:** Før de valgte dokumentationskrav gennem feltets offlineforløb
+(S02/S04/D05c), og afstem metodeprofilernes krav med dokumenterede fagkilder.
+Derefter samlet kommunal accept af aflevering → faglig gennemgang → rapport → opfølgning.
 Eksisterende implementeringer og delprøver genbruges. Kontrollen af slutmålet
 ændrer ingen tidligere prøves status og er ingen ny teknisk eller faglig
 godkendelse; samlet fysisk mobil-, kunde- og driftsaccept er fortsat åben.
@@ -239,7 +240,7 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 
 ### S04 — Versionsbundet aflevering og faglig kontrol
 
-**Aktuel kodepakke, 4. november:** [Eksplicit valg af jobkortversioner som dokumentationskrav](OPGAVE_DOKUMENTATIONSKRAV.md) samler plan, tildelt feltregistrering og afleveringskontrol. Implementeret i udviklingsgrenen; database-/stagingaccept afventes. Tidligere delprøver og de øvrige fagkrav bevarer deres status.
+**Aktuel kodepakke, 4. november:** [Eksplicit valg af jobkortversioner som dokumentationskrav](OPGAVE_DOKUMENTATIONSKRAV.md) samler plan, tildelt feltregistrering og afleveringskontrol. På staging på appkilde `fcf3f8f` og Worker `378972d6-1d4b-4c5f-8811-409fe899058f`, migration `20261104024837`. CI 41766083814 består med 3.543 appprøver og 1.847 databasekontroller. Hosted-forløbet dækker forkert/rigtigt jobkort, fastholdt krav efter ny skabelon, mistet svar/genforsøg, original, tilbagekaldelse, særskilt reviewer, samme rapport ved genforsøg, PDF og retur til afleveringsversion 3. Planens versionsvalg og Fortryd bestod ved 390 og 1280 px. Midlertidig reviewadgang er tilbagekaldt. Samlet offline-/fysisk mobilprøve og fagligt definerede profilkrav er næste rest i S04/D05c. Tidligere delprøver og øvrige fagkrav bevarer deres status.
 
 **Afhænger af:** S02. **Genbrug:** D05, F07/F08/F10, work-order lifecycle, checks og audit. **Skøn:** 3–5 dage.
 
