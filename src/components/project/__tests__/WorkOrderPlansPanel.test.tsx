@@ -437,6 +437,14 @@ describe("work-order plan editor", () => {
     );
     m.templates.mockRejectedValue(new Error("Unavailable"));
     await act(async () => cache.invalidateQueries({ queryKey: ["field-job-templates"] }));
+    await vi.waitFor(async () => {
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+        "Jobkort kunne ikke hentes: Unavailable.",
+      );
+    });
     expect(host.textContent).toContain("Planens gemte krav bevares");
     await fill("Årsag til planændring", "Bevar krav trods netfejl");
     await save();
