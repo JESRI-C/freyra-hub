@@ -13,6 +13,7 @@ import {
   moveSection,
   newReportContent,
   reportIssues,
+  reportWorkOrderDataBasis,
   type ReportContent,
   type ReportRevision,
   type ReportStatus,
@@ -861,6 +862,7 @@ export function ReportPreview({
   );
   const hasApprovalSection =
     content.workOrderApproval && content.sections.some((section) => section.id === "review");
+  const dataBasis = reportWorkOrderDataBasis(content);
   return (
     <Card className="mx-auto max-w-4xl space-y-6 p-4 sm:p-8">
       <header>
@@ -890,6 +892,21 @@ export function ReportPreview({
           </p>
         )}
       </header>
+      {dataBasis && (
+        <section
+          aria-label="Udførelsens datagrundlag"
+          role="status"
+          className={
+            "space-y-2 rounded-xl border p-4 text-sm [overflow-wrap:anywhere] " +
+            (dataBasis.kind === "real"
+              ? "bg-muted/30"
+              : "border-amber-600/40 bg-amber-50 text-amber-950 dark:bg-amber-950 dark:text-amber-100")
+          }
+        >
+          <h2 className="font-semibold">{dataBasis.label}</h2>
+          <p>{dataBasis.description}</p>
+        </section>
+      )}
       {content.sections.map((s) => (
         <section
           key={s.id}

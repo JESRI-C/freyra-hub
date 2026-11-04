@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.13 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.14 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
 kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
@@ -77,7 +77,11 @@ er læst tilbage som lukket/ikke aktive. Aktiv staging er fortsat `4be325d`.
 **Næste reelle mangel:** Rapportgeneratoren mister dataBasis fra den frosne
 udførelse. Afleveringen er mærket synthetic, mens den genererede rapport
 ikke viser mærkningen. Ret og genprøv dette før samlet rapportaccept med
-bevarede gamle rapportversioner. Derefter samles PR47's manager/P9/P10-kode
+bevarede gamle rapportversioner. [Rettelsen er i gang](RAPPORT_REGISTRERINGSTYPE_2026-11-04.md)
+i `codex/report-source-classification` oven på PR48/bd2930a: frossen
+klassifikation og udførelses-id, synlig mærkning og nye kildepakker v2.
+36 lokale prøver og visuel PDF-kontrol består; fuld CI, SQL og hosted prøve
+afventer. Migrationen er endnu ikke anvendt i staging. Derefter samles PR47's manager/P9/P10-kode
 og supplerende ACL-/gendannelsesprøver med PR48's nyere felt-/offlinekode på
 én kandidat. Den parallelle leverance har kode `622cfcb` og dokumentation
 `9bfcfc8`, med særskilte kvitteringer; aktiv trafik må først flyttes efter
