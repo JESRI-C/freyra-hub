@@ -249,7 +249,7 @@ BEGIN
  PERFORM private.validate_work_order_plan(NEW.plan);
  PERFORM pg_advisory_xact_lock(hashtextextended('work-order-plan:'||NEW.action_id::text,0));
  SELECT max(v.version) INTO latest FROM public.work_order_plan_versions v WHERE v.action_id=NEW.action_id;
- IF NEW.version IS DISTINCT FROM coalesce(latest,0)+1 THEN RAISE EXCEPTION 'Work-order plan changed; reload before saving' USING ERRCODE='40001'; END IF;
+ IF NEW.version IS DISTINCT FROM coalesce(latest,0)+1 THEN RAISE EXCEPTION 'Work-order plan changed; reload before saving' USING ERRCODE='PT409'; END IF;
  IF NEW.version>1 AND length(btrim(NEW.correction_reason))=0 THEN RAISE EXCEPTION 'Plan correction reason is required' USING ERRCODE='22023'; END IF;
  NEW.responsible_id:=(NEW.plan->>'responsibleId')::uuid;NEW.site_id:=(NEW.plan->>'siteId')::uuid;NEW.centerline_version_id:=(NEW.plan->>'watercourseVersionId')::uuid;
  NEW.planned_start:=(NEW.plan->>'plannedStart')::date;NEW.planned_end:=(NEW.plan->>'plannedEnd')::date;

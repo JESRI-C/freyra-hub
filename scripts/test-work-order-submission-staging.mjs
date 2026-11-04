@@ -598,6 +598,7 @@ try {
         false,
       );
       await page.screenshot({ path: dir + "/requirements-" + width + ".png", fullPage: true });
+      await details.locator("summary").first().click();
     }
     state.requiredJobCardsVerified = [1280, 390];
     await save();
