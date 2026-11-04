@@ -1,0 +1,96 @@
+{
+  "schema": "freyra.selected-work-order-browser/v1",
+  "sourceRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
+  "observedAt": "2026-11-04",
+  "method": "Normal authenticated UI through cua_repl; read-only DOM measurements; a temporary unsaved synthetic plan instruction was explicitly cancelled",
+  "actor": "Existing Jesper Test manager account; no new users or grants",
+  "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+  "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+  "local": {
+    "origin": "http://127.0.0.1:8836",
+    "desktop": {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "jobHeadingTop": 199.9875,
+      "nextActionBottom": 411.5875,
+      "horizontalOverflow": false,
+      "initialHelpCollapsed": true,
+      "initialSourceDetailsCollapsed": true,
+      "jobAndNextActionAboveFold": true
+    },
+    "draftRetention": {
+      "instruction": "TEST · P10 kladdebevaring · må ikke gemmes",
+      "fieldSwitchAndReturnPreservedInstruction": true,
+      "openingHelpPreservedInstruction": true,
+      "backToTaskListDisabledDuringDraft": true,
+      "cancelledThroughNormalUi": true,
+      "savedPlanVersion": false
+    },
+    "mobile": {
+      "actualDomViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollY": 0,
+      "jobHeadingTop": 172.7875,
+      "jobHeadingBottom": 232.7875,
+      "partSelectorTop": 310.3875,
+      "partSelectorBottom": 383.1875,
+      "nextActionBottom": 443.1875,
+      "horizontalOverflow": false,
+      "nativePartSelectorSwitchedToFieldAndBack": true,
+      "temporaryViewportOverrideReset": true,
+      "physicalPhone": false
+    },
+    "normalProjectEntry": {
+      "returnedToTaskList": true,
+      "searchedExactSyntheticTitle": true,
+      "reopenedSameActionId": true
+    }
+  },
+  "hosted": {
+    "previewUrl": "https://091e7098-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+    "normalPath": [
+      "Existing test login",
+      "Select existing project",
+      "Main menu: Arbejdsordrer",
+      "Search f9c31445 · browser, apply Vis resultater",
+      "Kanban result 1 of 1",
+      "Open exact action link"
+    ],
+    "sameActionIdConfirmed": true,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "jobHeadingTop": 199.9875,
+    "nextActionBottom": 411.5875,
+    "horizontalOverflow": false,
+    "planVersionVisible": 1,
+    "preservedSourceCountVisible": 2,
+    "originalDescriptionVisible": true,
+    "temporaryTestInstructionAbsent": true,
+    "workflowWritesPerformed": 0
+  },
+  "evidence": [
+    "docs/evidence/selected-work-order-622cfcb-desktop.png",
+    "docs/evidence/selected-work-order-622cfcb-mobile-390.png",
+    "docs/evidence/selected-work-order-hosted-091e7098.png"
+  ],
+  "relatedEvidence": [
+    "docs/selected-work-order-ci-2026-11-04.json",
+    "docs/selected-work-order-test-version-2026-11-04.json"
+  ],
+  "boundaries": {
+    "directApiPlanCountReadbackPerformed": false,
+    "physicalIphoneAcceptance": false,
+    "latestPr45And46Integrated": false,
+    "fieldOfflinePhotoOrSubmissionRetestedByThisReceipt": false,
+    "rolePermissionsChanged": false,
+    "activeStagingTrafficChanged": false,
+    "productionChanged": false,
+    "overallGoalComplete": false
+  }
+}
