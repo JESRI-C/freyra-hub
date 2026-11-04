@@ -65,6 +65,7 @@ self.addEventListener("message", (event) => {
         const paths = new Set(keys.map((key) => new URL(key.url).pathname));
         event.ports[0]?.postMessage({
           revision: manifest.revision,
+          queueVersions: manifest.queueVersions ?? [],
           ready: paths.has("/felt") && manifest.assets.every((path) => paths.has(path)),
         });
       })(),

@@ -1,3 +1,4 @@
+import { fieldPhotoUploadFailure } from "@/lib/field-photo-upload";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { openFieldOfflineStore } from "../field-offline-store";
@@ -179,6 +180,44 @@ describe("offline synchronization", () => {
     await drainFieldOfflineQueue(store, actor, deps, new AbortController().signal);
     expect(deps.sendPhoto).not.toHaveBeenCalled();
     expect((await store.items(actor))[0].state).toBe("blocked");
+    store.close();
+  });
+
+  it.each([
+    ["42501", "blocked"],
+    ["PT410", "blocked"],
+  ])("retains original bytes for typed task denial %s", async (code, state) => {
+    const f = await fixture(),
+      store = await openFieldOfflineStore(new IDBFactory()),
+      deps = dependencies();
+    await store.enqueue(f.item, f.blob);
+    deps.sendPhoto = vi.fn(async () => {
+      throw fieldPhotoUploadFailure({ code }, "fallback");
+    });
+    await drainFieldOfflineQueue(store, actor, deps, new AbortController().signal);
+    const [saved] = await store.items(actor);
+    expect(saved.state).toBe(state);
+    expect(saved.lastError).toBe(code === "PT410" ? "cancelled" : "blocked");
+    expect(await store.original(actor, f.item.id)).not.toBeNull();
+    store.close();
+  });
+  it("retains task metadata and bytes if the server omits the capture binding", async () => {
+    const f = await fixture(),
+      store = await openFieldOfflineStore(new IDBFactory()),
+      deps = dependencies();
+    f.item.payload.workOrder = {
+      schema: "freyra.field-photo-work-order/v1",
+      organizationId: crypto.randomUUID(),
+      actionId: crypto.randomUUID(),
+      planVersionId: null,
+    };
+    await store.enqueue(f.item, f.blob);
+    deps.sendPhoto = vi.fn(async () => f.result);
+    await drainFieldOfflineQueue(store, actor, deps, new AbortController().signal);
+    const [saved] = await store.items(actor);
+    expect(saved.state).toBe("blocked");
+    expect(saved.kind === "photo" && saved.payload.workOrder).toEqual(f.item.payload.workOrder);
+    expect(await store.original(actor, f.item.id)).not.toBeNull();
     store.close();
   });
 });

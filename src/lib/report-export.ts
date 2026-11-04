@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import { REPORT_FONT } from "./fonts/report-font";
 import type { ReportImage } from "@/services/report-assets";
-import { BASIS_LABELS, type ReportRevision } from "./report-document";
+import { BASIS_LABELS, reportWorkOrderDataBasis, type ReportRevision } from "./report-document";
 
 export type ReportFormat = "pdf" | "docx" | "csv" | "geojson";
 const encoder = new TextEncoder();
@@ -72,6 +72,7 @@ export function zipFiles(files: Record<string, string | Uint8Array>): Uint8Array
 }
 export function reportLines(revision: ReportRevision): string[] {
   const c = revision.content;
+  const source = reportWorkOrderDataBasis(c);
   return [
     "FREYRA",
     c.title,
@@ -82,6 +83,15 @@ export function reportLines(revision: ReportRevision): string[] {
     `Scope: ${c.scope}`,
     `Målgruppe: ${c.audience}`,
     "",
+    ...(source && source.kind !== "unknown"
+      ? [
+          "Udførelsens datagrundlag",
+          source.label,
+          source.description,
+          `Udførelseskilde: ${c.workOrderApproval!.executionRevisionId}`,
+          "",
+        ]
+      : []),
     ...c.sections.flatMap((s) => [
       s.title,
       `Grundlag: ${BASIS_LABELS[s.basis]}`,
@@ -115,10 +125,12 @@ export function reportLines(revision: ReportRevision): string[] {
   ];
 }
 export function buildDocx(revision: ReportRevision, images: ReportImage[] = []): Uint8Array {
+  const source = reportWorkOrderDataBasis(revision.content);
   const headings = new Set([
     revision.content.title,
     ...revision.content.sections.map((s) => s.title),
     "Kilderegister",
+    ...(source && source.kind !== "unknown" ? ["Udførelsens datagrundlag", source.label] : []),
   ]);
   const paragraphs = reportLines(revision)
     .map(
@@ -147,6 +159,9 @@ export function buildDocx(revision: ReportRevision, images: ReportImage[] = []):
   return zipFiles(files);
 }
 export function buildReportCsv(revision: ReportRevision): string {
+  const source = reportWorkOrderDataBasis(revision.content);
+  const classified = source && source.kind !== "unknown";
+  const pin = revision.content.workOrderApproval;
   const cell = (v: unknown) =>
     `"${String(v ?? "")
       .replace(/^[=+@-]/, "'$&")
@@ -164,6 +179,7 @@ export function buildReportCsv(revision: ReportRevision): string {
       "method",
       "source_version",
       "original_sha256",
+      ...(classified ? ["execution_data_basis", "execution_revision_id"] : []),
     ],
   ];
   for (const s of revision.content.sources)
@@ -179,14 +195,23 @@ export function buildReportCsv(revision: ReportRevision): string {
       s.method,
       s.version,
       s.checksum,
+      ...(classified ? [pin!.executionDataBasis, pin!.executionRevisionId] : []),
     ]);
   return "\ufeff" + rows.map((r) => r.map(cell).join(";")).join("\r\n");
 }
 export function buildReportGeoJSON(revision: ReportRevision) {
+  const source = reportWorkOrderDataBasis(revision.content);
+  const pin = revision.content.workOrderApproval;
   return {
     type: "FeatureCollection",
     report_id: revision.report_id,
     version: revision.version,
+    ...(source && source.kind !== "unknown"
+      ? {
+          execution_data_basis: pin!.executionDataBasis,
+          execution_revision_id: pin!.executionRevisionId,
+        }
+      : {}),
     features: revision.content.sources
       .filter((s) => s.position)
       .map((s) => ({
@@ -213,7 +238,12 @@ export async function generateReportFile(
     const pdf = new jsPDF();
     if (revision.content.workflowSnapshot || revision.content.workOrderApproval) {
       // Stable exports from the frozen revision; historical generators are untouched.
-      pdf.setCreationDate(new Date(revision.created_at));
+      const source = reportWorkOrderDataBasis(revision.content);
+      if (source && source.kind !== "unknown") {
+        // Classified work-order exports use UTC; legacy exports retain their existing bytes.
+        const utc = new Date(revision.created_at).toISOString().slice(0, 19).replace(/[-:T]/g, "");
+        pdf.setCreationDate(`D:${utc}+00'00'`);
+      } else pdf.setCreationDate(new Date(revision.created_at));
       pdf.setFileId(revision.id.replaceAll("-", "").toUpperCase());
     }
     pdf.addFileToVFS("FreyraReport.ttf", REPORT_FONT);
@@ -224,6 +254,10 @@ export async function generateReportFile(
       revision.content.title,
       ...revision.content.sections.map((s) => s.title),
       "Kilderegister",
+      ...(revision.content.workOrderApproval?.executionRevisionId &&
+      revision.content.workOrderApproval.executionDataBasis
+        ? ["Udførelsens datagrundlag", reportWorkOrderDataBasis(revision.content)!.label]
+        : []),
     ]);
     for (const paragraph of reportLines(revision)) {
       const heading = headings.has(paragraph);

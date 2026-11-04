@@ -75,8 +75,8 @@ export const PROGRAM_PAGES: ProgramFeature[] = [
     [
       "/opgaver",
       "Mine opgaver",
-      "Læs dine tildelte instruktioner, status, dokumentation og gemte afleveringsversioner.",
-      "Et afgrænset arbejdsrum for dine opgaver.",
+      "Åbn en tildelt opgave, læs instruktionen, og fortsæt med fotos, jobkort, udførelse og aflevering efter din adgang.",
+      "Status og dokumentation samlet på den samme opgave.",
     ],
   ]),
   ...pages("foundation", "Hvilke oplysninger kender vi om området?", [

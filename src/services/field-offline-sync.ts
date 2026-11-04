@@ -1,6 +1,7 @@
 import type { FieldOfflineStore } from "./field-offline-store";
 import type { OfflineItem, OfflinePhotoItem } from "@/lib/field-offline";
 import { sha256 } from "./monitoring/drone-ingest";
+import { FieldPhotoUploadError } from "@/lib/field-photo-upload";
 
 export class OfflineSyncError extends Error {
   constructor(readonly disposition: "retry" | "blocked" | "conflict" | "cancelled") {
@@ -96,9 +97,9 @@ export async function drainFieldOfflineQueue(
     } catch (error) {
       // Store only bounded classifications, never server text, tokens, private URLs or image data.
       const disposition =
-        error instanceof OfflineSyncError
+        error instanceof OfflineSyncError || error instanceof FieldPhotoUploadError
           ? error.disposition
-          : /checksum|kvittering.*matcher|originalkvittering/i.test(
+          : /checksum|kvittering.*matcher|tidligere kladde.*matcher|originalkvittering/i.test(
                 error instanceof Error ? error.message : "",
               )
             ? "blocked"

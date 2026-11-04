@@ -1,7 +1,7 @@
 import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 import { programPageGuide } from "@/lib/program-map";
 import { useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useBlocker } from "@tanstack/react-router";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
@@ -59,11 +59,13 @@ const boardLanes = [
     color: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
   },
   { id: "cancelled", label: "Aflyste", color: "bg-muted text-muted-foreground" },
+  { id: "unknown", label: "Status ikke oplyst", color: "bg-muted text-muted-foreground" },
 ] as const;
 
 function boardLaneFor(task: MyWorkOrder): (typeof boardLanes)[number]["id"] {
   if (task.cancelled || task.task_status === "cancelled") return "cancelled";
   if (task.waiting_for_prerequisites) return "waiting";
+  if (!task.task_status) return "unknown";
   switch (task.task_status) {
     case "started":
     case "performed":
@@ -91,7 +93,8 @@ function WorkOrderBoard({
     >
       {boardLanes.map(({ id, label, color }) => {
         const tasks = items.filter((task) => boardLaneFor(task) === id);
-        if ((id === "waiting" || id === "cancelled") && tasks.length === 0) return null;
+        if ((id === "waiting" || id === "cancelled" || id === "unknown") && tasks.length === 0)
+          return null;
         return (
           <section key={id} aria-label={label} className="min-w-0 rounded-xl border bg-muted/30">
             <h2 className={`rounded-t-xl px-3 py-2 text-sm font-semibold ${color}`}>
@@ -167,6 +170,10 @@ function MyTasks({ actorId }: { actorId: string }) {
   const [filter, setFilter] = useState<(typeof taskFilters)[number][0]>("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  useBlocker({
+    shouldBlockFn: () => editors.size > 0,
+    enableBeforeUnload: editors.size > 0,
+  });
   const tasks = useInfiniteQuery({
     queryKey: ["my-work-orders", actorId, filter, search],
     initialPageParam: null as string | null,
@@ -299,7 +306,11 @@ function MyTasks({ actorId }: { actorId: string }) {
           Gem eller fortryd din kladde, før du opdaterer listen eller overtager en anden opgave.
         </p>
       )}
-      <Link to="/select" className="inline-flex min-h-11 items-center text-sm underline">
+      <Link
+        to="/select"
+        disabled={editors.size > 0}
+        className="inline-flex min-h-11 items-center text-sm underline"
+      >
         Åbn projektoversigten
       </Link>
       {tasks.isPending && <p role="status">Henter dine opgaver…</p>}
@@ -343,7 +354,7 @@ function MyTasks({ actorId }: { actorId: string }) {
           />
         </div>
       ))}
-      {tasks.hasNextPage && !tasks.isError && (
+      {!activeTaskId && tasks.hasNextPage && !tasks.isError && (
         <button
           className={button}
           disabled={tasks.isFetching || editors.size > 0}
@@ -388,6 +399,7 @@ function TaskCard({
     canExecute &&
     !task.waiting_for_prerequisites &&
     fieldAccess.isSuccess &&
+    !fieldAccess.isFetching &&
     fieldAccess.data.userId === actorId &&
     fieldAccess.data.projectId === task.project_id &&
     fieldAccess.data.canContribute;
@@ -421,6 +433,7 @@ function TaskCard({
     if (inFlight.current || !task.can_claim || task.cancelled || locked || !active) return;
     inFlight.current = true;
     setBusy(true);
+    reportEditing("claim", true);
     setError("");
     setMessage("");
     try {
@@ -447,11 +460,16 @@ function TaskCard({
     } finally {
       inFlight.current = false;
       setBusy(false);
+      reportEditing("claim", false);
     }
   }
   return (
     <article className="min-w-0 space-y-3 rounded-2xl border bg-card p-4">
       <h2 className="text-lg font-semibold">{task.plan.title}</h2>
+      <p className="text-sm font-medium">
+        {task.task_status ? workOrderStatusLabels[task.task_status] : "Status ikke oplyst"}
+        {` · Arbejdsgrundlag version ${task.plan_version}`}
+      </p>
       <p className="text-sm">
         {task.assignment_mode ? assignmentModeLabels[task.assignment_mode] : "Direkte opgaveadgang"}
         {task.assignment_mode === "pool"
@@ -504,7 +522,39 @@ function TaskCard({
               "Der er endnu ikke angivet en instruktion. Kontakt projektansvarlig, før arbejdet udføres."}
           </p>
         </section>
-        {(canPlan || canContributeField) && (
+        {active && canExecute && !task.waiting_for_prerequisites && (
+          <>
+            {fieldAccess.isFetching && (
+              <p role="status" className="text-sm">
+                Kontrollerer adgang til feltregistrering…
+              </p>
+            )}
+            {fieldAccess.isError && (
+              <div role="alert" className="space-y-2 rounded-xl border p-3 text-sm">
+                <p>
+                  Adgangen til feltregistrering kunne ikke kontrolleres. Prøv igen med
+                  netforbindelse.
+                </p>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={locked || busy || fieldAccess.isFetching}
+                  onClick={() => void fieldAccess.refetch()}
+                >
+                  Kontrollér feltadgang igen
+                </button>
+              </div>
+            )}
+            {fieldAccess.isSuccess && !fieldAccess.isFetching && !canContributeField && (
+              <p role="status" className="rounded-xl border p-3 text-sm">
+                Feltregistrering er ikke tilgængelig med din aktuelle adgang til sagen. Du kan
+                fortsat læse instruktioner og den dokumentation, du har adgang til. Kontakt den
+                projektansvarlige, hvis du skal registrere fotos og jobkort.
+              </p>
+            )}
+          </>
+        )}
+        {(canPlan || canExecute) && (
           <section
             aria-labelledby={`workflow-${task.action_id}`}
             className="space-y-3 rounded-xl border p-3"
@@ -513,35 +563,52 @@ function TaskCard({
               Udfør og aflever
             </h3>
             <ol className="list-decimal space-y-2 pl-5 marker:text-sm marker:text-muted-foreground">
-              <li>
-                <Link
-                  to="/app/projects/$slug"
-                  params={{ slug: task.project_id }}
-                  search={{ step: "udfoerelse", task: task.action_id, work: "execution" }}
-                  className={button + " w-full justify-start gap-2 text-left"}
-                  disabled={locked || busy}
-                >
-                  Registrér udført arbejde
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/felt"
-                  search={{ project: task.project_id, task: task.action_id }}
-                  className={button + " w-full justify-start gap-2 text-left"}
-                  disabled={locked || busy}
-                >
-                  Tag fotos på projektet
-                </Link>
-              </li>
-              {canExecute && (
+              {canContributeField && (
+                <>
+                  <li>
+                    <Link
+                      to="/felt"
+                      search={{ project: task.project_id, task: task.action_id }}
+                      className={
+                        button +
+                        " w-full justify-start gap-2 bg-primary text-left text-primary-foreground"
+                      }
+                      disabled={locked || busy}
+                    >
+                      Fotos og jobkort på opgaven
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/app/projects/$slug"
+                      params={{ slug: task.project_id }}
+                      search={{ step: "udfoerelse", task: task.action_id, work: "execution" }}
+                      className={button + " w-full justify-start gap-2 text-left"}
+                      disabled={locked || busy}
+                    >
+                      Registrér udført arbejde
+                    </Link>
+                  </li>
+                </>
+              )}
+              {canPlan && !canContributeField && (
+                <li>
+                  <Link
+                    to="/app/projects/$slug"
+                    params={{ slug: task.project_id }}
+                    search={{ tab: "handlinger", task: task.action_id, work: "plan" }}
+                    className={button + " w-full justify-start text-left"}
+                    disabled={locked || busy}
+                  >
+                    Åbn arbejdsgrundlag
+                  </Link>
+                </li>
+              )}
+              {canExecute && !task.waiting_for_prerequisites && (
                 <li>
                   <button
                     type="button"
-                    className={
-                      button +
-                      " w-full justify-start gap-2 bg-primary text-left text-primary-foreground"
-                    }
+                    className={button + " w-full justify-start gap-2 text-left"}
                     disabled={locked || busy}
                     onClick={() => {
                       if (!submissionDetails.current) return;

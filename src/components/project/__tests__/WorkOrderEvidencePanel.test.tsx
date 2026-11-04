@@ -31,6 +31,7 @@ vi.mock("@/lib/work-order-evidence.functions", () => ({
   listProjectWorkOrderEvidenceExecutions: m.executions,
   saveProjectWorkOrderEvidence: m.save,
   getProjectWorkOrderEvidenceOriginal: m.original,
+  getProjectWorkOrderCapturedPhotoOriginal: m.original,
 }));
 vi.mock("@/lib/work-order-execution.functions", () => ({
   readProjectWorkOrderExecutionBinding: m.readExecution,
@@ -107,11 +108,14 @@ beforeEach(() => {
   });
   m.readExecution.mockResolvedValue(execution());
   m.sources.mockImplementation(async ({ data }) => ({
-    items: [
-      data.kind === "photo"
-        ? { id: id(51), label: "Bækfoto", version: null, sha256: "a".repeat(64) }
-        : { id: id(47), label: "Besigtigelse", version: 1, sha256: null },
-    ],
+    items:
+      data.kind === "task_photo"
+        ? []
+        : [
+            data.kind === "photo"
+              ? { id: id(51), label: "Bækfoto", version: null, sha256: "a".repeat(64) }
+              : { id: id(47), label: "Besigtigelse", version: 1, sha256: null },
+          ],
     nextAfterId: null,
   }));
   m.save.mockResolvedValue(version());
@@ -201,7 +205,7 @@ describe("task documentation UI", () => {
       "Nej",
       "Ukendt",
     ]);
-    expect(m.sources).not.toHaveBeenCalled();
+    expect(m.sources.mock.calls.every(([input]) => input.data.kind === "task_photo")).toBe(true);
     expect(host.textContent).not.toContain("Afklar denne registrering før aflevering");
   });
   it("identifies missing required answers and review on the pinned registration", async () => {
@@ -315,7 +319,7 @@ describe("task documentation UI", () => {
     expect(m.original).toHaveBeenCalledWith({
       data: { ...scope, id: version().id, expectedActorId: actor },
     });
-    expect(m.sources).not.toHaveBeenCalled();
+    expect(m.sources.mock.calls.every(([input]) => input.data.kind === "task_photo")).toBe(true);
     expect(host.textContent).toContain("Originalen er tilbagekaldt");
   });
   it("does not reuse another actor's cache or open draft", async () => {
@@ -331,7 +335,7 @@ describe("task documentation UI", () => {
   it("uses a new withdrawal revision without altering the pinned sources", async () => {
     await render();
     await click("Træk kobling tilbage");
-    expect(m.sources).not.toHaveBeenCalled();
+    expect(m.sources.mock.calls.every(([input]) => input.data.kind === "task_photo")).toBe(true);
     await fill("Begrundelse", "Forkert sammenhæng");
     await submit();
     expect(m.save.mock.calls[0][0].data).toMatchObject({
@@ -348,5 +352,43 @@ describe("task documentation UI", () => {
     expect(host.textContent).toContain("Kilden kunne ikke læses");
     expect(button("Gem dokumentation").disabled).toBe(true);
     expect(host.textContent).not.toContain("Der er ingen verificerede feltfotos");
+  });
+
+  it("prefills a captured original in the existing evidence form without inventing an observation", async () => {
+    const previous = m.sources.getMockImplementation()!;
+    m.sources.mockImplementation((input) =>
+      input.data.kind === "task_photo"
+        ? Promise.resolve({
+            items: [{ id: id(51), label: "Opgavefoto", version: null, sha256: "a".repeat(64) }],
+            nextAfterId: null,
+          })
+        : previous(input),
+    );
+    await render();
+    await click("Knyt til registrering: Opgavefoto");
+    const photo = [...host.querySelectorAll("label")]
+      .find((l) => l.textContent?.includes("Verificeret originalfoto"))!
+      .querySelector("select")!;
+    const observation = [...host.querySelectorAll("label")]
+      .find((l) => l.textContent?.includes("Gemt feltregistrering"))!
+      .querySelector("select")!;
+    expect(photo.value).toBe(id(51));
+    expect(observation.value).toBe("");
+    expect(m.save).not.toHaveBeenCalled();
+  });
+  it("hides stale captured photos after a failed refetch and offers retry", async () => {
+    m.sources.mockResolvedValue({
+      items: [{ id: id(51), label: "Opgavefoto", version: null, sha256: "a".repeat(64) }],
+      nextAfterId: null,
+    });
+    await render(false);
+    expect(button("Åbn optaget original: Opgavefoto")).toBeTruthy();
+    m.sources.mockRejectedValue(new Error("Adgang ændret"));
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ["work-order-evidence", actor] });
+    });
+    await flush();
+    expect(button("Åbn optaget original: Opgavefoto")).toBeUndefined();
+    expect(button("Hent opgavens fotos igen")).toBeTruthy();
   });
 });

@@ -168,6 +168,40 @@ afterEach(async () => {
   host.remove();
 });
 describe("existing actual-execution editor bound to work-order plan", () => {
+  it.each(["synthetic", "demo"] as const)(
+    "saves an explicitly selected %s registration without rewriting its earlier version",
+    async (dataBasis) => {
+      const original = {
+        ...entry,
+        payload: {
+          ...entry.payload,
+          decision: JSON.stringify({ ...execution, dataBasis: "real" }),
+        },
+      };
+      m.history.mockResolvedValue([original]);
+      await render();
+      await open();
+      const type = [...host.querySelectorAll("select")].find((select) =>
+        select.querySelector('option[value="synthetic"]'),
+      )!;
+      expect(type.value).toBe("real");
+      await act(async () => {
+        type.value = dataBasis;
+        type.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      await correction("TEST · Ret registreringens datagrundlag");
+      await save();
+      expect(m.saveBound.mock.lastCall?.[0].data.execution).toMatchObject({
+        dataBasis,
+        actualDate: execution.actualDate,
+        method: execution.method,
+      });
+      expect(JSON.parse(original.payload.decision).dataBasis).toBe("real");
+      expect(host.textContent).toContain(
+        "Prøve- og demonstrationsdata dokumenterer ikke en faktisk naturindsats",
+      );
+    },
+  );
   it("requires pool takeover, preserves typed corrections on retry and saves the claimed assignment version", async () => {
     const assignment = { id: id(20), version: 3, mode: "pool", claimed_by: null };
     m.loadContext.mockResolvedValue({

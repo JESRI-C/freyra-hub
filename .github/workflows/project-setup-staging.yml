@@ -1,7 +1,7 @@
 name: Build project setup staging artifact
 on:
   pull_request:
-    branches: [codex/release-1.0, codex/saas-report-followup]
+    branches: [codex/release-1.0, codex/saas-report-followup, codex/report-source-classification]
     paths:
       - ".github/workflows/project-setup-staging.yml"
       - "src/**"
@@ -16,6 +16,9 @@ jobs:
        github.head_ref == 'codex/bykaer-pilot-v1') ||
       (github.base_ref == 'codex/saas-report-followup' &&
        github.head_ref == 'codex/skyhost-job-handoff-v1' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.base_ref == 'codex/report-source-classification' &&
+       github.head_ref == 'codex/combined-municipal-workflow' &&
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 25

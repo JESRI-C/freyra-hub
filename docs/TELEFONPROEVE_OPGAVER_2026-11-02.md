@@ -3,6 +3,36 @@
 2. november 2026 · Kun Freyras testmiljø. Testsagen indeholder syntetiske
 oplysninger og dokumenterer ingen faktisk naturindsats.
 
+## Aktuel telefonprøve, 4. november
+
+Brug dit eksisterende testlogin i [testmiljøet](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/login).
+Åbn derefter [den klargjorte feltopgave](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/felt?project=d379eca2-9101-4e5f-b1e0-cb3a9c7d7bcd&task=7a66b13b-e91a-433c-9ee7-a71fabdb677d) på telefonen.
+Sagen hedder **TEST · Telefonprøve – opgavefotos**, og opgaven hedder **TEST · Dokumentér arbejdet på telefonen**.
+Plan og tildeling er version 2. Den er adskilt fra den allerede teknisk
+gennemgåede sag og rapport.
+
+1. Med net: tryk **Klargør sagen til offlinebrug** eller **Opdater sagen til
+   offlinebrug**. Vent på beskeden om gemte programfiler.
+2. Kontrollér opgavens navn og instruktion. Under **Hvad dokumenterer fotoet?**
+   skal **Opgaven: TEST · Dokumentér arbejdet på telefonen** være valgt.
+3. Tryk **Tag foto** eller **Vælg fotos**, og brug et ufølsomt prøvebillede.
+   Vent på beskeden om, at originalen er gemt på telefonen, før du forlader siden.
+4. Prøv eventuelt flytilstand: gem et jobkort, luk og genåbn siden uden net.
+   Kontrollér, at samme opgave, svar og kø kan genfindes. Dette er en prøve;
+   registreringerne dokumenterer ingen faktisk naturindsats.
+5. Slå nettet til igen. Køen skal vise serverkvittering. Åbn opgavens
+   **Dokumentation**, find **Fotos optaget til opgaven**, og åbn originalen.
+   **Knyt til registrering** vælger fotoet i den eksisterende formular.
+   Vælg registreringen og eventuel udførelsesversion, og gem med begrundelse.
+
+Der er endnu ingen fotos, jobkortsvar eller udførelse på denne særskilte sag.
+Det er efterprøvet ved klargøringen. [Klargøring og grænser](field-task-phone-ready-2026-11-04.json).
+Browserprøven fra offlinefoto til rapport/PDF består på kilde 4be325d.
+Fysisk kamera, GPS, HEIC og telefonens forbindelse og lager afventes.
+
+De følgende eksempler er tidligere referenceprøver. Deres data, links og
+historik er bevaret.
+
 **Visningskontrol 3. november:** [Programoverblik](https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/program)
 viser alle 115 kortpunkter med aktuel status. Mobilmenuen har 18 indgange.
 Modulnavne følger programkortet, og kortlinket i Data og metoder bruger det

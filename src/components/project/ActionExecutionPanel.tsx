@@ -496,6 +496,28 @@ function ExecutionPanel({
               </>
             )}
             <label className="block">
+              Registreringstype
+              <select
+                className={inputClass}
+                value={draft.dataBasis}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    dataBasis: event.target.value as ActionExecution["dataBasis"],
+                  })
+                }
+              >
+                <option value="real">Faktisk arbejde</option>
+                <option value="synthetic">Syntetisk prøve</option>
+                <option value="demo">Demonstration</option>
+              </select>
+            </label>
+            {draft.dataBasis !== "real" && (
+              <p className="text-sm">
+                Prøve- og demonstrationsdata dokumenterer ikke en faktisk naturindsats.
+              </p>
+            )}
+            <label className="block">
               Status
               <select
                 className={inputClass}

@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   load: vi.fn(),
   claim: vi.fn(),
   fieldAccess: vi.fn(),
+  blocker: vi.fn(),
   actor: "00000000-0000-4000-8000-000000000001" as string | null,
 }));
 vi.mock("@/lib/auth", () => ({
@@ -20,6 +21,7 @@ vi.mock("@/lib/work-order-assignments.functions", () => ({
 }));
 vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.fieldAccess }));
 vi.mock("@tanstack/react-router", () => ({
+  useBlocker: m.blocker,
   Link: ({
     to,
     children,
@@ -209,7 +211,7 @@ describe("mobile personal tasks", () => {
     const board = host.querySelector('section[aria-label="Opgavetavle"]')!;
     const lane = (label: string) => board.querySelector(`section[aria-label="${label}"]`);
     expect(lane("Åbne")?.textContent).toContain("Returneret");
-    expect(lane("Åbne")?.textContent).toContain("Tidligere opgave");
+    expect(lane("Status ikke oplyst")?.textContent).toContain("Tidligere opgave");
     expect(lane("I gang")?.textContent).toContain("I felten");
     expect(lane("Afleveret")?.textContent).toContain("Sendt til gennemgang");
     expect(lane("Godkendt")?.textContent).toContain("Gennemgået");
@@ -333,7 +335,7 @@ describe("mobile personal tasks", () => {
     expect(host.textContent).toContain("Status og logbog");
     expect(host.textContent).not.toContain("Overtag opgaven");
     expect(host.textContent).not.toContain("Registrér arbejdstid");
-    expect(host.textContent).not.toContain("Tag fotos på projektet");
+    expect(host.textContent).not.toContain("Fotos og jobkort på opgaven");
   });
 
   it("shows waiting status before opening a task and keeps its instructions accessible", async () => {
@@ -364,7 +366,7 @@ describe("mobile personal tasks", () => {
     await openTask();
     expect(m.fieldAccess).toHaveBeenCalledWith({ data: { projectId: task.project_id } });
     const photo = host.querySelector('a[href="/felt"]')!;
-    expect(photo.textContent).toBe("Tag fotos på projektet");
+    expect(photo.textContent).toBe("Fotos og jobkort på opgaven");
     expect(JSON.parse(photo.getAttribute("data-search")!)).toEqual({
       project: task.project_id,
       task: task.action_id,
@@ -413,7 +415,7 @@ describe("mobile personal tasks", () => {
     m.fieldAccess.mockResolvedValue(access);
     await render();
     await openTask();
-    expect(host.textContent).not.toContain("Tag fotos på projektet");
+    expect(host.textContent).not.toContain("Fotos og jobkort på opgaven");
     expect(host.textContent).not.toContain("Registrér udført arbejde");
     const evidence = [...host.querySelectorAll("details")].find(
       (d) => d.querySelector("summary")?.textContent === "Se dokumentation",
@@ -649,7 +651,7 @@ describe("mobile personal tasks", () => {
     });
     expect(host.textContent).toContain("Synthetic next task");
   });
-  it("opens one task with immediate instructions and carries its exact identity to execution", async () => {
+  it("opens an unclaimed pool task for planning without offering unavailable field actions", async () => {
     m.load.mockResolvedValue({ items: [{ ...task, can_plan: true }], nextAfterActionId: null });
     await render();
     expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
@@ -664,13 +666,140 @@ describe("mobile personal tasks", () => {
     );
     expect(
       JSON.parse(host.querySelector('a[href="/app/projects/$slug"]')!.getAttribute("data-search")!),
-    ).toEqual({ step: "udfoerelse", task: id(2), work: "execution" });
-    expect(JSON.parse(host.querySelector('a[href="/felt"]')!.getAttribute("data-search")!)).toEqual(
-      { project: id(4), task: id(2) },
-    );
+    ).toEqual({ tab: "handlinger", task: id(2), work: "plan" });
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    expect(host.textContent).not.toContain("Registrér udført arbejde");
     await click("← Tilbage til opgavelisten");
     expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
       true,
     );
+  });
+
+  it("keeps task context visible while field access is pending and provides a working retry after failure", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, assignment_mode: "person", can_claim: false, can_execute: true }],
+      nextAfterActionId: null,
+    });
+    let fail: (error: Error) => void = () => {};
+    m.fieldAccess.mockReturnValue(
+      new Promise((_, reject) => {
+        fail = reject;
+      }),
+    );
+    await render();
+    await openTask();
+    expect(host.textContent).toContain("Kontrollerer adgang til feltregistrering");
+    expect(host.textContent).toContain("Synthetic instructions");
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    await act(async () => fail(new Error("Sensitive backend detail")));
+    await flush();
+    expect(host.textContent).not.toContain("Sensitive backend detail");
+    expect(host.textContent).toContain("Adgangen til feltregistrering kunne ikke kontrolleres");
+    m.fieldAccess.mockResolvedValue({
+      userId: task.user_id,
+      projectId: task.project_id,
+      canContribute: true,
+    });
+    await click("Kontrollér feltadgang igen");
+    expect(host.querySelector('a[href="/felt"]')).not.toBeNull();
+    expect(host.textContent).not.toContain("Adgangen til feltregistrering kunne ikke kontrolleres");
+  });
+
+  it("closes cached field actions during a background access check and after access is revoked", async () => {
+    m.load.mockResolvedValue({ items: [{ ...task, can_execute: true }], nextAfterActionId: null });
+    m.fieldAccess.mockResolvedValue({
+      userId: task.user_id,
+      projectId: task.project_id,
+      canContribute: true,
+    });
+    await render();
+    await openTask();
+    expect(host.querySelector('a[href="/felt"]')).not.toBeNull();
+    let finish: (value: unknown) => void = () => {};
+    m.fieldAccess.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    let refresh: Promise<void> = Promise.resolve();
+    await act(async () => {
+      refresh = cache.invalidateQueries({
+        queryKey: ["field-job-access", task.user_id, task.project_id],
+      });
+    });
+    await flush();
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    await act(async () => {
+      finish({ userId: task.user_id, projectId: task.project_id, canContribute: false });
+      await refresh;
+    });
+    await flush();
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    expect(host.textContent).toContain("Feltregistrering er ikke tilgængelig");
+  });
+
+  it("retains instructions but never enables field capture or submission while prerequisites are pending", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, can_execute: true, waiting_for_prerequisites: true }],
+      nextAfterActionId: null,
+    });
+    m.fieldAccess.mockResolvedValue({
+      userId: task.user_id,
+      projectId: task.project_id,
+      canContribute: true,
+    });
+    await render();
+    await openTask();
+    expect(m.fieldAccess).not.toHaveBeenCalled();
+    expect(host.querySelector('a[href="/felt"]')).toBeNull();
+    expect(host.textContent).not.toContain("Gå til aflevering");
+    expect(host.textContent).toContain("Synthetic instructions");
+  });
+
+  it("blocks route changes and project navigation while a nested editor is active, without loading more tasks", async () => {
+    m.load.mockResolvedValue({ items: [task], nextAfterActionId: task.action_id });
+    await render();
+    await openTask();
+    expect(host.textContent).not.toContain("Hent flere opgaver");
+    const status = [...host.querySelectorAll("details")].find(
+      (d) => d.querySelector("summary")?.textContent === "Status og logbog",
+    )!;
+    await act(async () => {
+      status.open = true;
+      status.dispatchEvent(new Event("toggle"));
+    });
+    await flush();
+    await click("Synthetic edit status");
+    const projectLink = [...host.querySelectorAll("a")].find(
+      (link) => link.textContent === "Åbn projektoversigten",
+    )!;
+    expect(projectLink.getAttribute("aria-disabled")).toBe("true");
+    expect(projectLink.getAttribute("href")).toBeNull();
+    expect(m.blocker.mock.lastCall?.[0].shouldBlockFn()).toBe(true);
+    expect(m.blocker.mock.lastCall?.[0].enableBeforeUnload).toBe(true);
+    await click("Synthetic cancel status");
+    expect(m.blocker.mock.lastCall?.[0].shouldBlockFn()).toBe(false);
+    expect(host.querySelector('a[href="/select"]')).not.toBeNull();
+  });
+
+  it("locks navigation during a claim request and releases it when the request fails", async () => {
+    let fail: (error: Error) => void = () => {};
+    m.claim.mockReturnValue(
+      new Promise((_, reject) => {
+        fail = reject;
+      }),
+    );
+    await render();
+    await openTask();
+    await click("Overtag opgaven");
+    expect(m.blocker.mock.lastCall?.[0].shouldBlockFn()).toBe(true);
+    expect(
+      [...host.querySelectorAll("button")].find(
+        (button) => button.textContent === "← Tilbage til opgavelisten",
+      )?.disabled,
+    ).toBe(true);
+    await act(async () => fail(new Error("Synthetic claim failure")));
+    await flush();
+    expect(m.blocker.mock.lastCall?.[0].shouldBlockFn()).toBe(false);
   });
 });

@@ -1,3 +1,5 @@
+import { FIELD_OFFLINE_QUEUE_VERSION } from "@/lib/field-offline-protocol";
+
 async function workerReady(active: ServiceWorker | null): Promise<boolean> {
   if (!active || new URL(active.scriptURL).pathname !== "/field-sw.js") return false;
   return new Promise((resolve) => {
@@ -8,7 +10,12 @@ async function workerReady(active: ServiceWorker | null): Promise<boolean> {
       resolve(ready);
     };
     const timeout = setTimeout(() => finish(false), 10_000);
-    channel.port1.onmessage = (event) => finish(event.data?.ready === true);
+    channel.port1.onmessage = (event) =>
+      finish(
+        event.data?.ready === true &&
+          Array.isArray(event.data.queueVersions) &&
+          event.data.queueVersions.includes(FIELD_OFFLINE_QUEUE_VERSION),
+      );
     try {
       active.postMessage("FIELD_OFFLINE_STATUS", [channel.port2]);
     } catch {

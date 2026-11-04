@@ -1,0 +1,89 @@
+{
+  "schema": "freyra.offline-required-cards-staging/v1",
+  "result": "PASS",
+  "sourceRevision": "90f0196b7c8927b02b23b2b660df39c8f2b30887",
+  "run": "349d8f10",
+  "projectId": "533f8c08-0450-487c-8e05-eeaeebcedd64",
+  "actionId": "d2222658-8a80-4551-9ec1-8fc362683edb",
+  "fieldAccountDistinct": true,
+  "cards": 2,
+  "offlineCloseReopen": true,
+  "lostReplyRecoveredOnce": true,
+  "explicitRebasePreservesOriginal": true,
+  "receivedCardReusedAfterPlanChange": true,
+  "revocationPreservesBlockedDraft": true,
+  "serverVersions": [
+    {
+      "id": "6d28546e-c8e7-4e91-88c8-19f276e68795",
+      "version": 1,
+      "planVersionId": "30ec009f-3f22-4a48-9eaf-b67537e17a19"
+    },
+    {
+      "id": "79e79640-3bf8-4d52-bcce-f71ab1726499",
+      "version": 2,
+      "planVersionId": "30ec009f-3f22-4a48-9eaf-b67537e17a19"
+    },
+    {
+      "id": "b8d8fe5a-17fa-4364-9420-a01d9ed73671",
+      "version": 3,
+      "planVersionId": "fe38882a-2b50-4cb2-a856-167017ccf289"
+    },
+    {
+      "id": "586d7002-d98d-4536-8810-9331fedd947a",
+      "version": 4,
+      "planVersionId": "fd6c812b-a783-435e-b3b4-b2cb793f98bd"
+    }
+  ],
+  "localRows": 6,
+  "expectedBlockedDrafts": 1,
+  "widths": [390, 1280],
+  "pageErrors": 0,
+  "physicalPhone": false,
+  "temporaryFieldMembershipsRemaining": 0,
+  "ownBrowserSessionRevoked": true,
+  "date": "2026-11-04",
+  "workerVersion": "4e90dcd9-055a-44c5-a336-36bc2f7e512c",
+  "environment": "https://gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "ci": {
+    "runId": 41777119984,
+    "sourceRevision": "90f0196b7c8927b02b23b2b660df39c8f2b30887",
+    "appTests": 3562,
+    "appTestFiles": 265,
+    "databaseAssertions": 1872,
+    "databaseTestFiles": 27,
+    "localOfflineTests": 43,
+    "freshReplay": true,
+    "realConcurrency": true,
+    "databaseRestore": true,
+    "bothJobsPassed": true
+  },
+  "databaseMigration": {
+    "version": "20261104034102",
+    "name": "offline_required_job_card_plan_binding",
+    "statementsMd5": "9ceedc78c0d8abec19a3f012a00982ed",
+    "stagingMigrationCount": 93,
+    "stagingMigrationIndexMd5": "3008a27df3f8cc1cb2ed712f5ca82f24"
+  },
+  "offlineRestartTest": "Committed queue and cache retained across complete persistent-browser close; restart from neutral tab, then navigate to cached field page with offline emulation already active.",
+  "acceptance": {
+    "technicalScope": "The described two-card offline registration, plan changes, retry, history and revocation scenarios passed on the identified staging version.",
+    "professional": false,
+    "municipalUserAcceptance": false,
+    "physicalPhone": false,
+    "production": false
+  },
+  "remaining": [
+    "Automatic task/photo binding and full offline-to-reviewed-report acceptance",
+    "Physical phone with camera/GPS and unassisted role workflows",
+    "Professional method/category requirements and additional evidence types",
+    "Rollback to a compatible offline consumer and complete original-file restore",
+    "Full Skyhost parity and remaining SaaS release gates"
+  ],
+  "priorFailures": {
+    "revocationClassifiedAsRetryFixed": true,
+    "acceptedCardRebaseFixed": true,
+    "blockedAnswersVisibilityFixed": true,
+    "unsentPlanCorrectionFixed": true,
+    "harnessLongProfileAndStartupRaceCorrected": true
+  }
+}

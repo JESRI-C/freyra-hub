@@ -100,7 +100,10 @@
         "src/components/project/MyWorkOrders.tsx",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/field-job-access.functions.ts"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -119,16 +122,45 @@
         "supabase/tests/database/work_order_groups_pools.test.sql",
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
-        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Konkret tildeling, status og logbog håndhæver aktuel opgaveadgang uden projektbred ekstern adgang. D03 mangler den konkrete eksterne observations-/udførelses-/filvej.",
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
+      "remaining": "Mine opgaver fører den tildelte projektbidragende feltbruger til samme opgaves fotos, jobkort, udførelse, eksplicitte dokumentation og aflevering. Eksterne med kun opgaveadgang beholder afgrænset læsning; ny fotooptagelse uden projektbidragsadgang er fortsat ikke leveret. Samlet tværgrens-kandidat og fysisk/kommunal accept er åbne.",
       "ownership": {
         "owner": "Produkttråden",
         "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+          "remaining": "Konkret tildeling, status og logbog håndhæver aktuel opgaveadgang uden projektbred ekstern adgang. D03 mangler den konkrete eksterne observations-/udførelses-/filvej."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
+          "remaining": "Mine opgaver fører den tildelte projektbidragende feltbruger til samme opgaves fotos, jobkort, udførelse, eksplicitte dokumentation og aflevering. Eksterne med kun opgaveadgang beholder afgrænset læsning; ny fotooptagelse uden projektbidragsadgang er fortsat ikke leveret. Samlet tværgrens-kandidat og fysisk/kommunal accept er åbne."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "ORG-04",
@@ -150,7 +182,10 @@
         "src/components/project/WorkOrderStatusPanel.tsx",
         "src/routes/app.projects.$slug.tsx",
         "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
-        "src/components/project-workspace/ProjectPhotoAtlas.tsx"
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/field-job-access.functions.ts"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -173,10 +208,11 @@
         "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
         "src/routes/__tests__/project-media-isolation.test.tsx",
         "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
-        "src/lib/__tests__/customer-project-route-integrity.test.ts"
+        "src/lib/__tests__/customer-project-route-integrity.test.ts",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; P8 local media-failure isolation and draft preservation passed at 5228aad",
-      "remaining": "Aktør-/scopebundet status, logbog og noter skjules ved adgangsfejl/kontoskift. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt.",
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json; P8 media-failure isolation and draft preservation locally verified at 5228aad; combined candidate acceptance pending",
+      "remaining": "Aktør-/projektmismatch, baggrundsgenkontrol, fejl og tilbagekaldt feltadgang lukker aktive feltlinks i Mine opgaver. Mediefejl isoleres og giver ikke tomt rapportgrundlag; kladder bevares. Private original-links udløber og tilbagekaldes ikke øjeblikkeligt. Samlet offline-/rapport-/rolleaccept på fælles kandidat er fortsat åben.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
         "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
@@ -203,13 +239,43 @@
           "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
           "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
         }
+      ],
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; P8 local media-failure isolation and draft preservation passed at 5228aad",
+          "remaining": "Aktør-/scopebundet status, logbog og noter skjules ved adgangsfejl/kontoskift. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json; P8 media-failure isolation and draft preservation locally verified at 5228aad; combined candidate acceptance pending",
+          "remaining": "Aktør-/projektmismatch, baggrundsgenkontrol, fejl og tilbagekaldt feltadgang lukker aktive feltlinks i Mine opgaver. Mediefejl isoleres og giver ikke tomt rapportgrundlag; kladder bevares. Private original-links udløber og tilbagekaldes ikke øjeblikkeligt. Samlet offline-/rapport-/rolleaccept på fælles kandidat er fortsat åben."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
       ]
     },
     {
       "id": "JOB-01",
       "priority": "P0",
       "title": "Opret og rediger arbejdsopgave",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D02",
       "code": [
         "src/services/actions-service.ts",
@@ -320,7 +386,9 @@
       "id": "JOB-04",
       "priority": "P0",
       "title": "Tildeling og grupper",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D02",
       "code": [
         "src/services/actions-service.ts",
@@ -335,7 +403,10 @@
         "src/components/project/MyWorkOrders.tsx",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/field-job-access.functions.ts"
       ],
       "migrations": [
         "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
@@ -357,22 +428,53 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs",
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
-        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding findes. Modtagerspecifik tildelingsnotifikation/indbakke og fysisk telefon-/feltprøve er fortsat åbne.",
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
+      "remaining": "Person, gruppe, puljeovertagelse og udførelsens tildelingsbinding genbruges i modtagerens liste/tavle og feltforløb. Serverstatus og ukendt status skelnes. Modtagerspecifik notifikation/indbakke, fysisk feltprøve og uassisteret kommunal accept er fortsat åbne.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P1–P6",
         "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+          "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding findes. Modtagerspecifik tildelingsnotifikation/indbakke og fysisk telefon-/feltprøve er fortsat åbne."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
+          "remaining": "Person, gruppe, puljeovertagelse og udførelsens tildelingsbinding genbruges i modtagerens liste/tavle og feltforløb. Serverstatus og ukendt status skelnes. Modtagerspecifik notifikation/indbakke, fysisk feltprøve og uassisteret kommunal accept er fortsat åbne."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "JOB-05",
       "priority": "P0",
       "title": "Status og afslutningskrav",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D02",
       "code": [
         "src/services/actions-service.ts",
@@ -489,7 +591,9 @@
       "id": "JOB-07",
       "priority": "P1",
       "title": "Kopi og gentagelse",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D09",
       "code": [
         "src/services/actions-service.ts",
@@ -544,7 +648,9 @@
       "id": "JOB-09",
       "priority": "P0",
       "title": "Logbog og bilag",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D02",
       "code": [
         "src/services/actions-service.ts",
@@ -738,36 +844,72 @@
           "creationOriginBoundary": "P9 retains creation-time sources and does not provide a general later binding to an existing job",
           "coverageOrAcceptanceChanged": false,
           "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+        },
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
         }
       ],
       "package": "D03",
       "code": [
         "src/services/field-photo-upload-service.ts",
         "src/services/field-photo-position-service.ts",
-        "src/services/field-offline-service.ts"
+        "src/services/field-offline-service.ts",
+        "src/components/project/FieldOfflineWorkspace.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/lib/field-photo-upload.ts"
       ],
       "migrations": [
-        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
+        "supabase/migrations/20261104064006_field_photo_work_order_context.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
-        "src/services/__tests__/field-offline-sync.test.ts"
+        "src/services/__tests__/field-offline-sync.test.ts",
+        "supabase/tests/database/field_photo_work_orders.test.sql",
+        "src/lib/__tests__/field-photo-work-order.test.ts",
+        "src/services/__tests__/work-order-evidence-original.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler.",
+      "coverage": "partial, acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+      "remaining": "Eksisterende jobkort, originalfiler og koblinger til udførelsesevidens er versionsbundne. Resthullet her er den eksplicitte, fastholdte relation fra generiske field_observations til en allerede eksisterende arbejdsordre; P9-oprettelsesgrundlaget er en særskilt kontrakt. Ny opgavefotoindgang har dateret teknisk CI-/hostedbevis. Ekstern ny upload uden projektbidragsadgang, fysisk telefon og uassisteret feltaccept er fortsat åbne.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for opgavenavigation",
         "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial, acceptance open",
+          "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial, acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+          "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+        }
+      ]
     },
     {
       "id": "OBS-03",
       "priority": "P0",
       "title": "Geografisk søgning er et forslag",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D03",
       "code": [
         "src/services/field-photo-upload-service.ts",
@@ -799,24 +941,63 @@
       "code": [
         "src/services/field-photo-upload-service.ts",
         "src/services/field-photo-position-service.ts",
-        "src/services/field-offline-service.ts"
+        "src/services/field-offline-service.ts",
+        "src/components/project/FieldOfflineWorkspace.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/lib/field-photo-upload.ts"
       ],
       "migrations": [
-        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
+        "supabase/migrations/20261104034102_offline_required_job_card_plan_binding.sql",
+        "supabase/migrations/20261104064006_field_photo_work_order_context.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
-        "src/services/__tests__/field-offline-sync.test.ts"
+        "src/services/__tests__/field-offline-sync.test.ts",
+        "scripts/test-offline-required-cards-staging.mjs",
+        "supabase/tests/database/field_photo_work_orders.test.sql",
+        "src/lib/__tests__/field-photo-work-order.test.ts",
+        "src/services/__tests__/work-order-evidence-original.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Mobil originalkø findes på projektet. Opgave-/kategoribinding og metadata/flerfoto-status mangler.",
+      "coverage": "partial; project original queue preserved and plan-bound job cards staged at 90f0196; physical acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+      "remaining": "Mobil originalkø, planbundne jobkort og opgavefotos findes. Fotoets sag, opgave og arbejdsgrundlag fastholdes ved optagelse; historiske køposter bevares. To krævede jobkort er teknisk prøvet ved browserlukning, netbrud og planskift. Fotospecifik kategoribinding, samlet metadata-/flerfotostatus, fysisk kamera/GPS/HEIC og uassisteret feltaccept er fortsat åbne. Ekstern ny upload uden projektbidragsadgang er ikke leveret. Den fælles 941-kandidat har grøn CI og særskilt managerbrowserbevis; den nye fælles felt-/rapportbrowser er ikke startet, og ejerchatten er brugerpauset; se OPGAVE_FOTO_FELTINDGANG.md og FAELLES_KANDIDAT_2026-11-04.md.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for opgavenavigation",
         "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial, acceptance open",
+          "remaining": "Mobil originalkø findes på projektet. Opgave-/kategoribinding og metadata/flerfoto-status mangler."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; project original queue preserved and plan-bound job cards staged at 90f0196; physical acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+          "remaining": "Mobil originalkø, planbundne jobkort og opgavefotos findes. Fotoets sag, opgave og arbejdsgrundlag fastholdes ved optagelse; historiske køposter bevares. To krævede jobkort er teknisk prøvet ved browserlukning, netbrud og planskift. Fotospecifik kategoribinding, samlet metadata-/flerfotostatus, fysisk kamera/GPS/HEIC og uassisteret feltaccept er fortsat åbne. Ekstern ny upload uden projektbidragsadgang er ikke leveret. Den fælles kandidat er under hosted prøve; se OPGAVE_FOTO_FELTINDGANG.md og FAELLES_KANDIDAT_2026-11-04.md."
+        }
+      ],
+      "historicalRemainingBeforeCombined": "Mobil originalkø og planbundne jobkort findes. To jobkort er teknisk genprøvet ved browserlukning, netbrud og planskift. Automatisk opgave-/kategoribinding af fotos, metadata/flerfoto-status, fysisk kamera/GPS og samlet feltaccept mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben.",
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "OBS-05",
@@ -853,24 +1034,60 @@
       "code": [
         "src/services/field-photo-upload-service.ts",
         "src/services/field-photo-position-service.ts",
-        "src/services/field-offline-service.ts"
+        "src/services/field-offline-service.ts",
+        "src/components/project/FieldOfflineWorkspace.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/lib/field-photo-upload.ts"
       ],
       "migrations": [
-        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
+        "supabase/migrations/20261104064006_field_photo_work_order_context.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
-        "src/services/__tests__/field-offline-sync.test.ts"
+        "src/services/__tests__/field-offline-sync.test.ts",
+        "supabase/tests/database/field_photo_work_orders.test.sql",
+        "src/lib/__tests__/field-photo-work-order.test.ts",
+        "src/services/__tests__/work-order-evidence-original.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret.",
+      "coverage": "partial, acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for opgavenavigation",
         "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial, acceptance open",
+          "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial, acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+          "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "OBS-07",
@@ -930,7 +1147,9 @@
       "id": "OBS-09",
       "priority": "P0",
       "title": "Observation til opgave",
-      "sourceObservationReceipts": ["docs/skyhost-geotag-job-intent-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-geotag-job-intent-observation-2026-11-04.json"
+      ],
       "package": "D03",
       "code": [
         "src/services/field-photo-upload-service.ts",
@@ -1199,24 +1418,60 @@
       "code": [
         "src/services/field-photo-upload-service.ts",
         "src/services/field-photo-position-service.ts",
-        "src/services/field-offline-service.ts"
+        "src/services/field-offline-service.ts",
+        "src/components/project/FieldOfflineWorkspace.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/lib/field-photo-upload.ts"
       ],
       "migrations": [
-        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql"
+        "supabase/migrations/20261029100658_field_photo_upload_receipts.sql",
+        "supabase/migrations/20261104064006_field_photo_work_order_context.sql"
       ],
       "tests": [
         "supabase/tests/database/field_photo_positions.test.sql",
         "supabase/tests/database/field_photo_uploads.test.sql",
-        "src/services/__tests__/field-offline-sync.test.ts"
+        "src/services/__tests__/field-offline-sync.test.ts",
+        "supabase/tests/database/field_photo_work_orders.test.sql",
+        "src/lib/__tests__/field-photo-work-order.test.ts",
+        "src/services/__tests__/work-order-evidence-original.test.ts",
+        "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "coverage": "not fully assessed; later phase; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben.",
       "ownership": {
         "owner": "Produkttråden",
         "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "not fully assessed; later phase",
+          "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "not fully assessed; later phase; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
+          "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "MAP-01",
@@ -1412,7 +1667,9 @@
       "id": "FORM-03",
       "priority": "P0",
       "title": "Tjekliste ved aflevering",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D05",
       "code": [
         "src/lib/field-job-cards.ts",
@@ -1420,11 +1677,15 @@
         "src/lib/work-order-plan.ts",
         "src/lib/work-order-submission.ts",
         "src/components/project/RequiredJobCards.tsx",
-        "src/components/project/WorkOrderPlansPanel.tsx"
+        "src/components/project/WorkOrderPlansPanel.tsx",
+        "src/components/project/FieldOfflineWorkspace.tsx",
+        "src/services/field-offline-service.ts",
+        "src/services/field-offline-store.ts"
       ],
       "migrations": [
         "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
-        "supabase/migrations/20261104024837_work_order_required_job_cards.sql"
+        "supabase/migrations/20261104024837_work_order_required_job_cards.sql",
+        "supabase/migrations/20261104034102_offline_required_job_card_plan_binding.sql"
       ],
       "tests": [
         "src/lib/__tests__/field-job-cards.test.ts",
@@ -1435,16 +1696,49 @@
         "supabase/tests/database/work_order_required_job_cards.test.sql",
         "scripts/test-work-order-submission-staging.mjs",
         "scripts/test-required-job-card-plan-staging.mjs",
-        "scripts/test-required-job-card-review-staging.mjs"
+        "scripts/test-required-job-card-review-staging.mjs",
+        "src/services/__tests__/field-offline-service.test.ts",
+        "src/services/__tests__/field-offline-store.test.ts",
+        "src/components/project/__tests__/FieldOfflineWorkspace.test.tsx",
+        "supabase/tests/database/offline_required_job_card_plan.test.sql",
+        "scripts/test-offline-required-cards-staging.mjs"
       ],
-      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
-      "remaining": "Planens eksplicit valgte jobkortversioner og nødvendige svar kontrolleres på serveren. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md.",
+      "coverage": "partial; explicit requirements and plan-bound offline cards staged at 90f0196; CI 41777119984 and hosted two-card offline/retry/plan-change/revocation passed",
+      "remaining": "Planens valgte jobkortversioner og nødvendige svar kontrolleres på serveren. PR45 har teknisk bevis for to jobkort, kold offline-genåbning, genforsøg, planskift og tilbagekaldelse. Senere PR46/48/49 har særskilt teknisk bevis for opgave-/fotobinding og feltkontoens dokumentation/aflevering samt rapport; det tidligere restpunkt er bevaret i coverageHistory. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper og fysisk/uassisteret accept er fortsat åbne. Den nye samlede felt-/rapportbrowser på common 941 er ikke startet, og ejerchatten er brugerpauset. Se OPGAVE_DOKUMENTATIONSKRAV.md og report-source-classification-staging-receipt-2026-11-04.json.",
       "ownership": {
         "owner": "Produkttråden",
         "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
+          "remaining": "Planens eksplicit valgte jobkortversioner og nødvendige svar kontrolleres på serveren. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; explicit requirements and plan-bound offline cards staged at 90f0196; CI 41777119984 and hosted two-card offline/retry/plan-change/revocation passed",
+          "remaining": "Planens valgte jobkortversioner og nødvendige svar kontrolleres på serveren. To jobkort, kold offline-genåbning, genforsøg, planskift og tilbagekaldelse er teknisk efterprøvet. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, direkte opgave-/fotobinding, samlet aflevering/rapport fra offlinegrundlaget og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "FORM-04",
@@ -1537,13 +1831,17 @@
         "src/lib/work-order-plan.ts",
         "src/lib/work-order-submission.ts",
         "src/components/project/RequiredJobCards.tsx",
-        "src/components/project/WorkOrderPlansPanel.tsx"
+        "src/components/project/WorkOrderPlansPanel.tsx",
+        "src/components/project/FieldOfflineWorkspace.tsx",
+        "src/services/field-offline-service.ts",
+        "src/services/field-offline-store.ts"
       ],
       "migrations": [
         "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
         "supabase/migrations/20261102180652_work_order_submission_packets.sql",
         "supabase/migrations/20261102213116_work_order_submission_review.sql",
-        "supabase/migrations/20261104024837_work_order_required_job_cards.sql"
+        "supabase/migrations/20261104024837_work_order_required_job_cards.sql",
+        "supabase/migrations/20261104034102_offline_required_job_card_plan_binding.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
@@ -1559,16 +1857,49 @@
         "supabase/tests/database/work_order_required_job_cards.test.sql",
         "scripts/test-work-order-submission-staging.mjs",
         "scripts/test-required-job-card-plan-staging.mjs",
-        "scripts/test-required-job-card-review-staging.mjs"
+        "scripts/test-required-job-card-review-staging.mjs",
+        "src/services/__tests__/field-offline-service.test.ts",
+        "src/services/__tests__/field-offline-store.test.ts",
+        "src/components/project/__tests__/FieldOfflineWorkspace.test.tsx",
+        "supabase/tests/database/offline_required_job_card_plan.test.sql",
+        "scripts/test-offline-required-cards-staging.mjs"
       ],
-      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
+      "coverage": "partial; prior staged review/report evidence preserved; offline plan provenance staged at 90f0196; CI 41777119984 and hosted offline history/retry/plan-change checks passed",
       "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05.",
       "ownership": {
         "owner": "Produkttråden",
         "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
+          "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; prior staged review/report evidence preserved; offline plan provenance staged at 90f0196; CI 41777119984 and hosted offline history/retry/plan-change checks passed",
+          "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "QA-02",
@@ -1729,7 +2060,9 @@
       "id": "OPS-01",
       "priority": "P1",
       "title": "Timer og aktivitet",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D09",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1754,7 +2087,9 @@
       "id": "OPS-02",
       "priority": "P1",
       "title": "Materialer og enheder",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D09",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1779,7 +2114,9 @@
       "id": "OPS-03",
       "priority": "P2",
       "title": "Booking",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D10",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1804,7 +2141,9 @@
       "id": "OPS-04",
       "priority": "P2",
       "title": "Besøgsrute",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D10",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1853,7 +2192,9 @@
       "id": "OPS-06",
       "priority": "P0",
       "title": "Ingen e-mailafsendelse",
-      "sourceObservationReceipts": ["docs/skyhost-existing-test-job-observation-2026-11-04.json"],
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D08",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1906,23 +2247,59 @@
       "code": [
         "src/services/workflow-report-service.ts",
         "src/lib/workflow-report-package.ts",
-        "src/services/report-assets.ts"
+        "src/services/report-assets.ts",
+        "src/lib/report-document.ts",
+        "src/lib/report-export.ts",
+        "src/components/reports/ReportWorkspace.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261104091051_work_order_report_execution_data_basis.sql"
       ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
-        "src/services/__tests__/report-assets.test.ts"
+        "src/services/__tests__/report-assets.test.ts",
+        "src/lib/__tests__/work-order-report-classification.test.ts",
+        "src/components/reports/ReportWorkspace.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Genbrug workflow- og municipal-rapportspor. Tilføj arbejdsordre-/afleveringsversioner uden ny rapportmotor.",
+      "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+      "remaining": "Arbejdsopgavens godkendte afleveringsversion genbruger den eksisterende rapportmotor. Nye rapporter bevarer udførelsens registreringstype og kilde-id. Faglige metode-/domæneprofiler og samlet kommunal rapportaccept er fortsat åbne.",
       "ownership": {
         "owner": "Produkttråden",
         "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial, acceptance open",
+          "remaining": "Genbrug workflow- og municipal-rapportspor. Tilføj arbejdsordre-/afleveringsversioner uden ny rapportmotor."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+          "remaining": "Arbejdsopgavens godkendte afleveringsversion genbruger den eksisterende rapportmotor. Nye rapporter bevarer udførelsens registreringstype og kilde-id. Faglige metode-/domæneprofiler og samlet kommunal rapportaccept er fortsat åbne."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "REP-02",
@@ -1932,23 +2309,59 @@
       "code": [
         "src/services/workflow-report-service.ts",
         "src/lib/workflow-report-package.ts",
-        "src/services/report-assets.ts"
+        "src/services/report-assets.ts",
+        "src/lib/report-document.ts",
+        "src/lib/report-export.ts",
+        "src/components/reports/ReportWorkspace.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261104091051_work_order_report_execution_data_basis.sql"
       ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
-        "src/services/__tests__/report-assets.test.ts"
+        "src/services/__tests__/report-assets.test.ts",
+        "src/lib/__tests__/work-order-report-classification.test.ts",
+        "src/components/reports/ReportWorkspace.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Genbrug eksisterende ZIP og originale filreferencer. Komplet operationel pakke/dictionary/genindlæsning mangler.",
+      "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+      "remaining": "Eksisterende kildepakke v1 og historiske eksporter bevares. Nye klassificerede arbejdsopgaverapporter får kildepakke v2 med frossen registreringstype og udførelses-id; unit-output og checksums er efterprøvet. Hosted ZIP-v2-download, større leverancer, komplet operationel dictionary og fuld genindlæsning er fortsat åbne.",
       "ownership": {
         "owner": "Produkttråden",
         "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial, acceptance open",
+          "remaining": "Genbrug eksisterende ZIP og originale filreferencer. Komplet operationel pakke/dictionary/genindlæsning mangler."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+          "remaining": "Eksisterende kildepakke v1 og historiske eksporter bevares. Nye klassificerede arbejdsopgaverapporter får kildepakke v2 med frossen registreringstype og udførelses-id; unit-output og checksums er efterprøvet. Hosted ZIP-v2-download, større leverancer, komplet operationel dictionary og fuld genindlæsning er fortsat åbne."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "REP-03",
@@ -2010,23 +2423,59 @@
       "code": [
         "src/services/workflow-report-service.ts",
         "src/lib/workflow-report-package.ts",
-        "src/services/report-assets.ts"
+        "src/services/report-assets.ts",
+        "src/lib/report-document.ts",
+        "src/lib/report-export.ts",
+        "src/components/reports/ReportWorkspace.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql"
+        "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
+        "supabase/migrations/20261104091051_work_order_report_execution_data_basis.sql"
       ],
       "tests": [
         "src/services/__tests__/workflow-report-service.test.ts",
-        "src/services/__tests__/report-assets.test.ts"
+        "src/services/__tests__/report-assets.test.ts",
+        "src/lib/__tests__/work-order-report-classification.test.ts",
+        "src/components/reports/ReportWorkspace.test.ts",
+        "supabase/tests/database/work_order_submission_review.test.sql",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Metode-/kildebegrænsninger findes. Tilføj operationelle reviewomfang og dokumentationsmangler.",
+      "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+      "remaining": "Fejlen fra hosted 2ebb507c er rettet for nye rapporter: synthetic/demo/real og udførelsesversion følger den godkendte aflevering til visning og eksport. Hosted bc2887fb bevarer samtidig det tidligere rapportindhold og identiske PDF-bytes. Ældre rapporter viser ukendt type i UI uden omskrevet eksport. Klassifikation af øvrige målinger/observationer/AI, metodeusikkerhed og faglig effekt-/rapportaccept er fortsat åbne.",
       "ownership": {
         "owner": "Produkttråden",
         "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial, acceptance open",
+          "remaining": "Metode-/kildebegrænsninger findes. Tilføj operationelle reviewomfang og dokumentationsmangler."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
+          "remaining": "Fejlen fra hosted 2ebb507c er rettet for nye rapporter: synthetic/demo/real og udførelsesversion følger den godkendte aflevering til visning og eksport. Hosted bc2887fb bevarer samtidig det tidligere rapportindhold og identiske PDF-bytes. Ældre rapporter viser ukendt type i UI uden omskrevet eksport. Klassifikation af øvrige målinger/observationer/AI, metodeusikkerhed og faglig effekt-/rapportaccept er fortsat åbne."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
+        }
+      ]
     },
     {
       "id": "IMP-01",
@@ -2390,7 +2839,10 @@
         "src/components/project/WorkOrderStatusPanel.tsx",
         "src/routes/app.projects.$slug.tsx",
         "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
-        "src/components/project-workspace/ProjectPhotoAtlas.tsx"
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx",
+        "src/components/project/WorkOrderEvidencePanel.tsx",
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/field-job-access.functions.ts"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -2410,10 +2862,11 @@
         "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
         "src/routes/__tests__/project-media-isolation.test.tsx",
         "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
-        "src/lib/__tests__/customer-project-route-integrity.test.ts"
+        "src/lib/__tests__/customer-project-route-integrity.test.ts",
+        "scripts/test-field-task-photos-staging.mjs"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; P8 local media-failure isolation and draft preservation passed at 5228aad",
-      "remaining": "P8 bevarer lokal plankladde ved blokeret navigation og Fortryd uden gemning, prøvet i faktisk lokal browser ved 1280 px. Atlas-kladden har en faktisk Radix-portalprøve. Den tidligere brugerbekræftede iPhone/offlineprøve er afgrænset. Samlet fysisk telefon-, kamera-, GPS-, offline- og tastaturaccept samt det samlede afleveringsforløb er fortsat åbne ud over denne tidligere prøve. P7/P8 har ingen ny effektiv mobil- eller fysisk prøve.",
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json; P8 media-failure isolation and draft preservation locally verified at 5228aad; combined candidate acceptance pending",
+      "remaining": "Mine opgavers UI fører feltkonto uden can_plan gennem offlinefoto/jobkort, originalåbning, udførelse, dokumentationskobling og aflevering på kandidat 3ba51b1. Visning og rapport er prøvet ved 390/1280 px. Fysisk kamera/GPS/HEIC, fuld tastatur-/hjælpemiddelprøve, kontekstnavne og uassisteret brugeraccept er fortsat åbne. P8's særskilte lokale prøver af Fortryd, navigation og Atlas-portalen bevares som tidligere bevis; de godkender ikke fysisk telefon eller den fælles kandidat.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
         "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
@@ -2439,6 +2892,34 @@
           "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
           "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
           "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+        }
+      ],
+      "coverageHistory": [
+        {
+          "documentationRevision": "bb0e5c5",
+          "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; P8 local media-failure isolation and draft preservation passed at 5228aad",
+          "remaining": "P8 bevarer lokal plankladde ved blokeret navigation og Fortryd uden gemning, prøvet i faktisk lokal browser ved 1280 px. Atlas-kladden har en faktisk Radix-portalprøve. Den tidligere brugerbekræftede iPhone/offlineprøve er afgrænset. Samlet fysisk telefon-, kamera-, GPS-, offline- og tastaturaccept samt det samlede afleveringsforløb er fortsat åbne ud over denne tidligere prøve. P7/P8 har ingen ny effektiv mobil- eller fysisk prøve."
+        },
+        {
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json; P8 media-failure isolation and draft preservation locally verified at 5228aad; combined candidate acceptance pending",
+          "remaining": "Mine opgavers UI fører feltkonto uden can_plan gennem offlinefoto/jobkort, originalåbning, udførelse, dokumentationskobling og aflevering på kandidat 3ba51b1. Visning og rapport er prøvet ved 390/1280 px. Fysisk kamera/GPS/HEIC, fuld tastatur-/hjælpemiddelprøve, kontekstnavne og uassisteret brugeraccept er fortsat åbne. P8's særskilte lokale prøver af Fortryd, navigation og Atlas-portalen bevares som tidligere bevis; de godkender ikke fysisk telefon eller den fælles kandidat."
+        }
+      ],
+      "contextFollowUps": [
+        {
+          "recordedAt": "2026-11-04",
+          "sourceRevision": "12d348b1ab149982776bfa3adab9ec5b5d541c5e",
+          "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+          "state": "Dated product package technical evidence retained; common field/report browser not started; owner chat user-paused",
+          "fieldReceipt": "docs/field-task-handoff-staging-receipt-2026-11-04.json",
+          "offlineReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+          "photoEvidence": "docs/OPGAVE_FOTO_FELTINDGANG.md",
+          "reportReceipt": "docs/report-source-classification-staging-receipt-2026-11-04.json",
+          "commonReceipt": "docs/combined-municipal-candidate-2026-11-04.json",
+          "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+          "scope": "Technical browser slices and synthetic fixtures at their recorded sources; no new combined field/report, physical phone, unassisted, professional or overall acceptance",
+          "fullRequirementAccepted": false
         }
       ]
     },
@@ -2680,7 +3161,13 @@
     },
     "P10": {
       "codeRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
-      "requirementIds": ["JOB-01", "JOB-05", "ORG-04", "SYS-05", "SYS-07"],
+      "requirementIds": [
+        "JOB-01",
+        "JOB-05",
+        "ORG-04",
+        "SYS-05",
+        "SYS-07"
+      ],
       "scope": "Agreed presentation-only selected-work-order focus; title and next action before general project help, compact project/municipality/place context, secondary help/chooser/origin details, native mobile part selection and retained mounted editors/drafts within actor/project scope",
       "state": "technically implemented and tested; scoped desktop/responsive browser and hosted read acceptance passed on 622cfcb/091e7098; existing requirement coverage, physical phone and overall acceptance unchanged",
       "code": [
@@ -2724,10 +3211,16 @@
       "activeWorkerBeforeAndAfter": "94906bdf-e10d-4847-98c2-ad183b625b0f",
       "activeTrafficPercentageBeforeAndAfter": 100,
       "activeStagingTrafficChanged": false,
-      "desktopViewport": { "width": 1280, "height": 720 },
+      "desktopViewport": {
+        "width": 1280,
+        "height": 720
+      },
       "desktopJobHeadingTop": 199.9875,
       "desktopNextActionBottom": 411.5875,
-      "responsiveActualDomViewport": { "width": 390, "height": 844 },
+      "responsiveActualDomViewport": {
+        "width": 390,
+        "height": 844
+      },
       "responsiveJobHeadingTop": 172.7875,
       "responsiveNextActionBottom": 443.1875,
       "responsivePartSelectorTop": 310.3875,
@@ -2763,7 +3256,13 @@
       "codeRevision": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
       "codeRevisionStatus": "committed; source CI and later PR47 CI passed; common 941fdb1 full CI, staging artifact and separate 5a4a3843 preview passed scoped P11 manager browser acceptance; standalone failures remain historical",
       "baseRevision": "025d6b409f240e089ad4e2186ca1a036e2bd2fc5",
-      "requirementIds": ["JOB-05", "JOB-06", "ORG-04", "SYS-05", "SYS-07"],
+      "requirementIds": [
+        "JOB-05",
+        "JOB-06",
+        "ORG-04",
+        "SYS-05",
+        "SYS-07"
+      ],
       "scope": "Last recorded canonical lifecycle in project task list, schedule list, chooser and selected task; actor-bound authorized projection, stable pagination and exact nested scope; existing mutation and detail-context guards retained",
       "state": "source 3c5c2f3 with 171 targeted tests/ten files and source CI passed; common runtime 941fdb1/5a4a3843 passed scoped normal manager status/no-plan/legacy/draft browser acceptance with no business writes; common full CI passed 3868 app tests/282 files and 2212 database checks/31 files; underlying requirements and common overall acceptance remain open",
       "code": [
@@ -2941,7 +3440,12 @@
     "P12": {
       "codeRevision": "b5cf82b76fede2dd266f347a6cfb394bfff6f474",
       "codeRevisionStatus": "UI b5cf82b and PR47 CI passed; common 941fdb1 full CI/artifact/separate 5a4a3843 preview passed scoped manager navigation/browser acceptance; underlying requirements and common overall acceptance remain open",
-      "requirementIds": ["JOB-05", "JOB-06", "SYS-05", "SYS-07"],
+      "requirementIds": [
+        "JOB-05",
+        "JOB-06",
+        "SYS-05",
+        "SYS-07"
+      ],
       "state": "UI b5cf82b with 75 targeted tests/two files and PR47 CI passed; common PR50/941fdb1 full CI passed 3868 app tests/282 files and 2212 database checks/31 files; common 5a4a3843 normal manager browser passed exact submitted-title destination, filter return and draft locks without business writes; P13 layout finding and overall acceptance remain open",
       "scope": "Manager card title and primary action plus workspace top/bottom primary actions use the same additive recorded-status destination; secondary plan access and mounted draft/editor context retained",
       "code": [
@@ -3054,7 +3558,10 @@
       "apiPlanCountReadbackPerformed": false,
       "globalSignOutPerformed": false,
       "viewportOverrideReset": true,
-      "responsiveActualDomViewport": { "width": 390, "height": 844 },
+      "responsiveActualDomViewport": {
+        "width": 390,
+        "height": 844
+      },
       "responsiveJobHeadingTop": 203.9875030517578,
       "responsiveNextActionBottom": 558.375,
       "responsivePartSelectorTop": 449.5750122070313,
@@ -3073,7 +3580,11 @@
       "ownerCommonCandidate": {
         "pullRequest": 50,
         "head": "941fdb1918bb4e308f5e11e9c35dd78470cfef6d",
-        "previousCandidate": { "pullRequest": 49, "head": "20e58564", "accepted": false },
+        "previousCandidate": {
+          "pullRequest": 49,
+          "head": "20e58564",
+          "accepted": false
+        },
         "includesOurP11AndP12Code": true,
         "status": "full CI, staging artifact and separate preview passed; own scoped manager browser passed; common field/report and overall acceptance remain open",
         "stagingArtifactRunId": 41810930419,
@@ -3143,7 +3654,10 @@
     "P13": {
       "codeRevision": "2a817a12082263f9e140d2907b366fb21adfbbd9",
       "entryNavigationRevision": "44639c79789fc8875c867302b3a50df47b002a4d",
-      "requirementIds": ["JOB-06", "SYS-07"],
+      "requirementIds": [
+        "JOB-06",
+        "SYS-07"
+      ],
       "state": "Manager UI and test changes committed at 2a817a1 after static review/diff check; no test, lint, typecheck, CI, build or browser result yet; no layout fix accepted",
       "code": [
         "src/components/project/ManagerWorkOrders.tsx",
@@ -3216,11 +3730,64 @@
       "physicalMobileAcceptance": false
     }
   },
-  "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json",
+  "currentStagingReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
   "ownershipReviewedAt": "2026-11-04",
   "currentEvidenceRegister": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
-  "historicalCoverageNote": "Oprindelige coverage-, remaining- og evidensfelter er dateret historik. P7-P12 har særskilte followUps/packageEvidence med eksplicit kilde og lokal/API/CI/browserafgrænsning. P11/P12's egne managerpakker har afgrænset browseraccept på common 941fdb1/5a4a3843, mens de underliggende krav og common overall acceptance stadig er åbne. P13 er et faktisk layoutfund uden accepteret rettelse. OBS-09s oprindelige felter bevares i P9 historicalBaseline. currentStagingReceipt er historisk; currentManagerTestVersionReceipt peger nu på den nye common-browserkvittering. 622cfcb/091e7098 og 9af/431999b8 bevares som tidligere separate previews. Common-kodeintegration, fuld grøn CI og vores managerbrowser er ikke en gentaget fælles felt-/rapportprøve eller ny fysisk mobil-/produktaccept. Aktiv trafik er uændret. Øvrige beviser læses i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md.",
+  "historicalCoverageNote": "Oprindelige coverage-, remaining- og evidensfelter er dateret historik. P7-P12 har særskilte followUps/packageEvidence med eksplicit kilde og lokal/API/CI/browserafgrænsning. P11/P12's egne managerpakker har afgrænset browseraccept på common 941fdb1/5a4a3843, mens de underliggende krav og common overall acceptance stadig er åbne. P13 er et faktisk layoutfund uden accepteret rettelse. OBS-09s oprindelige felter bevares i P9 historicalBaseline. currentStagingReceipt er historisk; currentManagerTestVersionReceipt peger nu på den nye common-browserkvittering. 622cfcb/091e7098 og 9af/431999b8 bevares som tidligere separate previews. Common-kodeintegration, fuld grøn CI og vores managerbrowser er ikke en gentaget fælles felt-/rapportprøve eller ny fysisk mobil-/produktaccept. Aktiv trafik er uændret. Øvrige beviser læses i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md. Ved sammenfletningen af dokumentcommit bb0e5c5 og ejerens 5072bf9 er begge siders kode-/migrations-/test-/kildereferencer og 68 id’er bevaret. Nyere per-krav ejerbeviser for offlinejobkort, opgavefotos, Mine opgaver og rapportklassifikation er indarbejdet; tidligere coverage/remaining ligger i coverageHistory. currentStagingReceipt peger fortsat på en historisk enkeltpakke, ikke den nuværende fælles runtime. De to historiske stagingkvitteringer findes i historicalStagingReceipts. currentCombinedCandidate adskiller common 941-bevis fra denne endnu uprøvede P13-merge.",
   "previousManagerTestVersionReceipt": "docs/selected-work-order-test-version-2026-11-04.json",
   "currentManagerTestVersionReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
-  "currentManagerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json"
+  "currentManagerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+  "historicalStagingReceipts": [
+    "docs/jobs-geotag-staging-delivery.json",
+    "docs/offline-required-cards-staging-receipt-2026-11-04.json"
+  ],
+  "currentCombinedCandidate": {
+    "branch": "codex/combined-municipal-workflow",
+    "productSource": "20e58564e82011a692e8b46fae4802219b6f3a61",
+    "managerSource": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
+    "state": "CI passed; separate preview uploaded; scoped P11/P12 manager browser passed; new common field/report browser not started; owner chat user-paused; overall acceptance open",
+    "evidence": "docs/FAELLES_KANDIDAT_2026-11-04.md",
+    "sourceRevision": "941fdb1918bb4e308f5e11e9c35dd78470cfef6d",
+    "managerNavigationSource": "b5cf82b76fede2dd266f347a6cfb394bfff6f474",
+    "ciRun": 41810930503,
+    "artifactRun": 41810930419,
+    "receipt": "docs/combined-municipal-candidate-2026-11-04.json",
+    "historicalStateAtOwnerReceipt": "CI passed; separate preview uploaded; combined hosted acceptance in progress",
+    "ownerDocumentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+    "managerBrowserReceipt": "docs/project-work-order-status-browser-common-2026-11-04.json",
+    "ownerFieldAndReportBrowserStarted": false,
+    "ownerChatUserPaused": true,
+    "overallAcceptanceComplete": false,
+    "scope": "Runtime 941fdb1 / preview 5a4a3843 only. Pending P13 2a817a1 and entry anchor 44639c7 are not covered by that CI/build/browser evidence.",
+    "preservedProductContracts": {
+      "sourceRevision": "20e58564e82011a692e8b46fae4802219b6f3a61",
+      "fieldAndTaskEntrypoints": "Newer FieldOfflineWorkspace and MyWorkOrders retained; this merge does not substitute the older parallel field implementation.",
+      "offlineQueueVersions": [
+        1,
+        2
+      ],
+      "preservedValuesAndCases": [
+        "0",
+        "false",
+        "cold offline reopen",
+        "lost reply/retry",
+        "plan binding",
+        "required job-card versions",
+        "captured photo task/plan",
+        "historical exports"
+      ],
+      "evidence": "docs/FAELLES_KANDIDAT_2026-11-04.md",
+      "newMergedBranchAcceptanceComplete": false
+    }
+  },
+  "historicalCoverageNotes": [
+    {
+      "documentationRevision": "bb0e5c5",
+      "note": "Oprindelige coverage-, remaining- og evidensfelter er dateret historik. P7-P12 har særskilte followUps/packageEvidence med eksplicit kilde og lokal/API/CI/browserafgrænsning. P11/P12's egne managerpakker har afgrænset browseraccept på common 941fdb1/5a4a3843, mens de underliggende krav og common overall acceptance stadig er åbne. P13 er et faktisk layoutfund uden accepteret rettelse. OBS-09s oprindelige felter bevares i P9 historicalBaseline. currentStagingReceipt er historisk; currentManagerTestVersionReceipt peger nu på den nye common-browserkvittering. 622cfcb/091e7098 og 9af/431999b8 bevares som tidligere separate previews. Common-kodeintegration, fuld grøn CI og vores managerbrowser er ikke en gentaget fælles felt-/rapportprøve eller ny fysisk mobil-/produktaccept. Aktiv trafik er uændret. Øvrige beviser læses i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md."
+    },
+    {
+      "documentationRevision": "5072bf9d31c8c4f9c9b3a1eaff3d972153796fc6",
+      "note": "Oprindelige coverage-, remaining- og evidensfelter er dateret historik. P7/P8/P9 har nyere coverage/remaining og særskilte followUps/packageEvidence med eksplicit lokal, staging-API, hosted preview og SQL-afgrænsning. P10 har særskilt afgrænset desktop/responsiv/hosted læseprøve uden at lukke de underliggende krav. OBS-09s oprindelige felter er fastholdt i P9 historicalBaseline. currentStagingReceipt er historisk; currentManagerTestVersionReceipt peger nu på 622cfcb/091e7098, mens 9af/431999b8-kvitteringen bevares særskilt. Den nye version flytter ikke aktiv trafik eller dokumenterer PR45/PR46-integration, fysisk mobil eller samlet produktaccept. Øvrige beviser læses i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md."
+    }
+  ]
 }
