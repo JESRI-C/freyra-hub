@@ -333,9 +333,101 @@ describe("manager work orders across projects", () => {
     await click("Liste");
     expect(host.querySelector('[aria-label="Arbejdsordretavle"]')).toBeNull();
     expect(host.querySelectorAll('[aria-label="Arbejdsordreliste"] article')).toHaveLength(1);
-    expect(host.textContent).toContain("Gennemgå aflevering");
+    expect(host.textContent).toContain("Åbn afleveringen");
     expect(m.load).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps canonical status colors separate from the waiting lane and block badges", async () => {
+    const examples = [
+      ["started", "Påbegyndt", "bg-blue-100"],
+      ["performed", "Udført", "bg-teal-100"],
+      ["submitted", "Afleveret", "bg-violet-100"],
+      ["approved", "Godkendt", "bg-green-100"],
+      ["assigned", "Tildelt", "bg-muted"],
+      [null, "Jobstatus mangler", "bg-muted"],
+    ] as const;
+    m.load.mockResolvedValue(
+      page(
+        examples.map(([status, label], index) => ({
+          ...task,
+          action_id: id(index + 30),
+          task_status: status,
+          title: label,
+          blocked: true,
+          ...(status === null ? { legacy_status: "Tidligere afsluttet" } : {}),
+        })),
+      ),
+    );
+    await render();
+    const waiting = host.querySelector('section[aria-label="Afventer"]')!;
+    expect(waiting.querySelector("h2")?.classList.contains("bg-amber-100")).toBe(true);
+    for (const [, label, color] of examples) {
+      const card = waiting.querySelector(`article[aria-label="${label}"]`)!;
+      const badge = card.querySelector("span")!;
+      expect(badge.textContent).toBe(label);
+      expect(badge.classList.contains(color)).toBe(true);
+      const block = [...card.querySelectorAll("p")].find(
+        (paragraph) => paragraph.textContent === "Blokeret",
+      )!;
+      expect(block.classList.contains("bg-amber-100")).toBe(true);
+    }
+    const missing = waiting.querySelector('article[aria-label="Jobstatus mangler"]')!;
+    expect(missing.textContent).toContain("Tidligere status: Tidligere afsluttet");
+    await click("Liste");
+    expect(
+      host
+        .querySelector('article[aria-label="Afleveret"] span')
+        ?.classList.contains("bg-violet-100"),
+    ).toBe(true);
+    expect(m.load).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["performed", "submission", "Kontrollér afleveringen"],
+    ["submitted", "submission", "Åbn afleveringen"],
+    ["returned", "submission", "Se mangler"],
+    ["reopened", "submission", "Se mangler"],
+    ["approved", "submission", "Se afleveringen"],
+    ["cancelled", "plan", "Se arbejdsgrundlaget"],
+    ["assigned", "plan", "Arbejdsgrundlag"],
+    [null, "plan", "Arbejdsgrundlag"],
+  ] as const)(
+    "opens %s from its title and primary link in the existing %s view",
+    async (status, work, label) => {
+      m.load.mockResolvedValue(page([{ ...task, task_status: status }]));
+      await render();
+      const checkCard = (card: Element) => {
+        const title = card.querySelector("h3 a")!;
+        const primary = card.querySelector("a[aria-label]")!;
+        for (const link of [title, primary]) {
+          expect(JSON.parse(link.getAttribute("data-params")!)).toEqual({ slug: task.project_id });
+          expect(JSON.parse(link.getAttribute("data-search")!)).toEqual({
+            tab: "handlinger",
+            task: task.action_id,
+            work,
+          });
+        }
+        expect(primary.textContent?.trim()).toBe(label);
+        expect(card.querySelector("button")).toBeNull();
+        if (work === "submission") {
+          const plan = card.querySelector(
+            'a[aria-label="Åbn arbejdsgrundlag for Pleje langs åen"]',
+          )!;
+          expect(JSON.parse(plan.getAttribute("data-search")!).work).toBe("plan");
+        }
+      };
+      checkCard(host.querySelector("article")!);
+      await click("Liste");
+      checkCard(host.querySelector("article")!);
+      if (status === "performed") {
+        await click("Kort");
+        await click("Markering: Pleje langs åen");
+        checkCard(host.querySelector('[aria-label="Valgt arbejdsordre"] article')!);
+        expect(host.textContent).not.toContain("Godkendt aflevering");
+      }
+      expect(m.load).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("applies all server filters together, retains full catalogs, and resets pagination", async () => {
     m.load.mockResolvedValue(page([task], task.action_id));

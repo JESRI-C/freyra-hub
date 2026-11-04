@@ -27,6 +27,7 @@ import {
 import { listManagerWorkOrders } from "@/lib/manager-work-orders.functions";
 import { WorkOrderObservationDraftDialog } from "./WorkOrderObservationDraftDialog";
 import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
+import { workOrderStatusDestination } from "@/lib/work-order-navigation";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import {
   ManagerWorkOrderMap,
@@ -112,15 +113,17 @@ function accessDenied(error: unknown) {
   );
 }
 
-function laneFor(task: ManagerWorkOrder): Lane {
-  const status = task.task_status;
-  if (status === "cancelled") return "cancelled";
-  if (task.blocked || task.waiting_for_prerequisites) return "waiting";
+function statusLane(status: ManagerWorkOrder["task_status"]): Lane {
   if (!status) return "untracked";
   if (status === "returned" || status === "reopened") return "correction";
   if (["started", "performed", "submitted", "approved", "cancelled"].includes(status))
     return status as Lane;
   return "open";
+}
+function laneFor(task: ManagerWorkOrder): Lane {
+  if (task.task_status === "cancelled") return "cancelled";
+  if (task.blocked || task.waiting_for_prerequisites) return "waiting";
+  return statusLane(task.task_status);
 }
 
 function personName(name: string | null | undefined, personId: string) {
@@ -144,19 +147,19 @@ function assignmentLabel(task: ManagerWorkOrder) {
 }
 
 function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean }) {
-  const lane = laneFor(task);
-  const needsReview = ["submitted", "returned", "reopened", "approved"].includes(
-    task.task_status ?? "",
-  );
+  const destination = workOrderStatusDestination(task.task_status);
+  const opensSubmission = destination?.view === "submission";
   const needsAssignment = task.assignment_mode === "unassigned" || !task.assignment_is_current;
-  const search = { tab: "handlinger", task: task.action_id, work: "plan" as const };
+  const search = { tab: "handlinger", task: task.action_id, work: destination?.view ?? "plan" };
   return (
     <article
       aria-label={task.title}
       className={`min-w-0 rounded-xl border bg-card p-4 shadow-sm ${compact ? "space-y-3" : "grid gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto]"}`}
     >
       <div className="min-w-0">
-        <span className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${colors[lane]}`}>
+        <span
+          className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${colors[statusLane(task.task_status)]}`}
+        >
           {task.task_status ? workOrderStatusLabels[task.task_status] : "Jobstatus mangler"}
         </span>
         <p className="mt-3 text-xs font-medium text-muted-foreground">{task.project_name}</p>
@@ -176,7 +179,7 @@ function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean
           </p>
         )}
         {(task.blocked || task.waiting_for_prerequisites) && (
-          <p className="mt-2 text-xs font-medium text-foreground">
+          <p className="mt-2 inline-flex rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900 dark:bg-amber-950 dark:text-amber-100">
             {task.blocked ? "Blokeret" : "Afventer forudsætninger"}
           </p>
         )}
@@ -222,20 +225,25 @@ function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean
           to="/app/projects/$slug"
           params={{ slug: task.project_id }}
           search={search}
-          aria-label={`Åbn arbejdsgrundlag for ${task.title}`}
-          className={button + (compact ? " w-full" : "")}
+          aria-label={`${opensSubmission ? "Åbn aflevering" : "Åbn arbejdsgrundlag"} for ${task.title}`}
+          className={
+            button +
+            (opensSubmission ? " bg-primary/5 text-primary" : "") +
+            (compact ? " w-full" : "")
+          }
         >
-          Arbejdsgrundlag <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
+          {destination?.label ?? "Arbejdsgrundlag"}{" "}
+          <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
         </Link>
-        {needsReview && (
+        {opensSubmission && (
           <Link
             to="/app/projects/$slug"
             params={{ slug: task.project_id }}
-            search={{ ...search, work: "submission" }}
-            aria-label={`Åbn aflevering for ${task.title}`}
-            className={button + " bg-primary/5 text-primary" + (compact ? " w-full" : "")}
+            search={{ ...search, work: "plan" }}
+            aria-label={`Åbn arbejdsgrundlag for ${task.title}`}
+            className={button + (compact ? " w-full" : "")}
           >
-            {task.task_status === "submitted" ? "Gennemgå aflevering" : "Se aflevering"}
+            Arbejdsgrundlag
           </Link>
         )}
       </div>

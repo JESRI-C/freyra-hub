@@ -1,5 +1,6 @@
 import {
   WORK_ORDER_PARTS,
+  workOrderStatusDestination,
   type WorkOrderView,
   type WorkOrderListView,
 } from "@/lib/work-order-navigation";
@@ -45,6 +46,7 @@ import { ActionExecutionPanel } from "./ActionExecutionPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
 import type { WorkOrderCorrectionNote } from "@/lib/work-order-review";
+import type { WorkOrderStatus } from "@/lib/work-order-lifecycle";
 
 type Props = {
   scope: ProjectScope;
@@ -544,6 +546,11 @@ function WorkOrders({
                           ? "bookingoversigt"
                           : "opgaveliste"}
                 </button>
+                {canEdit && access.data?.canManageAvailability && (
+                  <Link to="/app/work-orders" className={button} disabled={locked}>
+                    Til arbejdsordrer
+                  </Link>
+                )}
                 <details className="min-w-0 flex-1 rounded-xl border bg-card px-3">
                   <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
                     Skift opgave
@@ -1340,6 +1347,7 @@ function WorkOrders({
               actionId={actionId}
               round={round}
               canEdit={canEdit}
+              recordedStatus={selected.workOrderStatus?.status}
               canContribute={!!access.data?.canContribute}
               timeReviewDate={timeReview?.actionId === actionId ? timeReview.date : undefined}
               openBooking={listView === "bookings"}
@@ -1378,6 +1386,7 @@ function TaskWorkspace({
   actionId,
   round,
   canEdit,
+  recordedStatus,
   canContribute,
   canManageTime,
   openBooking,
@@ -1395,6 +1404,7 @@ function TaskWorkspace({
   actionId: string;
   round?: string;
   canEdit: boolean;
+  recordedStatus?: WorkOrderStatus | null;
   canContribute: boolean;
   canManageTime: boolean;
   openBooking: boolean;
@@ -1434,6 +1444,14 @@ function TaskWorkspace({
   const navigationId = useId();
   const current = parts.find((item) => item.id === part)!;
   const next = parts[parts.indexOf(current) + 1];
+  const statusDestination = workOrderStatusDestination(recordedStatus);
+  const primaryDestination = statusDestination
+    ? statusDestination.view !== part
+      ? statusDestination
+      : undefined
+    : next
+      ? { view: next.id, label: `Videre til ${next.label.toLowerCase()} →` }
+      : undefined;
   function openPart(id: Part, note?: WorkOrderCorrectionNote) {
     if (note || id === "submission") setCorrectionNote(note);
     setOpened((old) => new Set([...old, id]));
@@ -1481,13 +1499,13 @@ function TaskWorkspace({
         </div>
       </nav>
       <div className="flex flex-wrap items-start gap-2">
-        {next && (
+        {primaryDestination && (
           <button
             type="button"
             className={button + " bg-primary text-primary-foreground"}
-            onClick={() => openPart(next.id)}
+            onClick={() => openPart(primaryDestination.view)}
           >
-            Videre til {next.label.toLowerCase()} →
+            {primaryDestination.label}
           </button>
         )}
         <details className="min-w-0 flex-1 rounded-xl border bg-card px-3">
@@ -1606,13 +1624,13 @@ function TaskWorkspace({
           />
         </div>
       )}
-      {next && (
+      {primaryDestination && (
         <button
           type="button"
           className={button + " bg-primary text-primary-foreground"}
-          onClick={() => openPart(next.id)}
+          onClick={() => openPart(primaryDestination.view)}
         >
-          Videre til {next.label.toLowerCase()} →
+          {primaryDestination.label}
         </button>
       )}
       <Link

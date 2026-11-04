@@ -51,11 +51,20 @@ vi.mock("@tanstack/react-router", () => ({
     to,
     search,
     children,
+    disabled,
   }: {
     to: string;
     search?: Record<string, string>;
     children: React.ReactNode;
-  }) => <a href={to + "?" + new URLSearchParams(search)}>{children}</a>,
+    disabled?: boolean;
+  }) => (
+    <a
+      href={disabled ? undefined : to + "?" + new URLSearchParams(search)}
+      aria-disabled={disabled || undefined}
+    >
+      {children}
+    </a>
+  ),
 }));
 vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.access }));
 vi.mock("@/services/field-job-cards-service", () => ({
@@ -954,6 +963,97 @@ describe("one task across the project workspaces", () => {
       )!.disabled,
     ).toBe(true);
     await click("Fortryd Plan");
+  });
+
+  it.each([
+    ["submitted", "Åbn afleveringen"],
+    ["returned", "Se mangler"],
+    ["reopened", "Se mangler"],
+    ["performed", "Kontrollér afleveringen"],
+    ["approved", "Se afleveringen"],
+  ] as const)(
+    "opens the existing submission view for a %s job without losing its draft",
+    async (status, label) => {
+      m.actions.mockResolvedValue([
+        {
+          ...tasks[0],
+          workOrderStatus: {
+            state: "recorded",
+            initialized: true,
+            status,
+            version: 4,
+            blocked: false,
+          },
+        },
+      ]);
+      await render("first");
+      await fill("Plan kladde", "Bevar instruktionen ved gennemgang");
+      const draft = host.querySelector<HTMLInputElement>('[aria-label="Plan"] input')!;
+      expect(
+        [...host.querySelectorAll("button")].some(
+          (node) => node.textContent === "Videre til feltregistrering →",
+        ),
+      ).toBe(false);
+      await click(label);
+      expect(host.querySelector('section[aria-label="Aflevering"]')?.textContent).toContain(
+        "first",
+      );
+      expect(draft.closest("[hidden]")).not.toBeNull();
+      await click("Arbejdsgrundlag");
+      expect(host.querySelector('[aria-label="Plan"] input')).toBe(draft);
+      expect(draft.value).toBe("Bevar instruktionen ved gennemgang");
+      expect(m.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it("offers a manager a direct return to work orders and locks it while a draft is open", async () => {
+    m.access.mockResolvedValue({
+      userId: "actor",
+      projectId: "project",
+      canConfigure: true,
+      canManageAvailability: true,
+    });
+    await render("first");
+    const returnLink = () =>
+      [...host.querySelectorAll("a")].find((node) => node.textContent === "Til arbejdsordrer")!;
+    expect(returnLink().getAttribute("href")).toBe("/app/work-orders?");
+    await fill("Plan kladde", "Bevar før retur til tavlen");
+    expect(returnLink().getAttribute("href")).toBeNull();
+    expect(returnLink().getAttribute("aria-disabled")).toBe("true");
+    await click("Fortryd Plan");
+    expect(returnLink().getAttribute("href")).toBe("/app/work-orders?");
+  });
+
+  it("keeps the existing project return for a field contributor without a manager board shortcut", async () => {
+    m.access.mockResolvedValue({
+      userId: "actor",
+      projectId: "project",
+      canConfigure: false,
+      canContribute: true,
+    });
+    await render("first", false);
+    expect(
+      [...host.querySelectorAll("a")].some((node) => node.textContent === "Til arbejdsordrer"),
+    ).toBe(false);
+    expect(
+      [...host.querySelectorAll("button")].some(
+        (node) => node.textContent === "Tilbage til opgaveliste",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not send an editor with plan access to the manager-only work-order board", async () => {
+    m.access.mockResolvedValue({
+      userId: "actor",
+      projectId: "project",
+      canConfigure: true,
+      canManageAvailability: false,
+    });
+    await render("first");
+    expect(host.querySelector('[aria-label="Plan"]')).not.toBeNull();
+    expect(
+      [...host.querySelectorAll("a")].some((node) => node.textContent === "Til arbejdsordrer"),
+    ).toBe(false);
   });
 
   it("uses the compact mobile part selector without dropping an existing plan draft", async () => {
