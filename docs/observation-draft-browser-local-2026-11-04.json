@@ -1,0 +1,70 @@
+{
+  "schema": "freyra.observation-draft-browser/v1",
+  "verifiedAt": "2026-11-04T07:29:35.553Z",
+  "environment": "local-worker-with-staging-backend",
+  "creationSourceRevision": "30794091f21813535b954a681e8d818eb4185a29",
+  "planSourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+  "origin": "http://127.0.0.1:8836",
+  "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+  "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+  "actualViewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "checks": {
+    "normalMenuEntry": true,
+    "projectAndTwoSourcesChosenThroughUi": true,
+    "oneWorkOrderCreated": true,
+    "exactTaskOpenedFromSuccess": true,
+    "sourceCount": 2,
+    "canonicalQueueStatus": "draft",
+    "exactSearchReturnedOneJob": true,
+    "firstPlanDescriptionAutomaticallyPrefilled": true,
+    "firstPlanVersionSaved": 1,
+    "descriptionPreservedAfterReload": true,
+    "sourceReferencesUnchangedAfterPlanSave": true,
+    "jobLocationNotInferredFromSourceCoordinates": true,
+    "hiddenSourcePositionNotDisplayed": true,
+    "danishSourceTypeAndStatusLabels": true,
+    "horizontalOverflow": false
+  },
+  "serverReadback": {
+    "matchingTitleJobs": 1,
+    "lifecycleVersions": 1,
+    "planVersions": 1,
+    "latestPlanVersion": 1,
+    "canonicalStatus": "draft",
+    "evidenceVersions": 0,
+    "requestId": "9605b9ab-48bc-4507-a1d1-ed7497deccb6",
+    "sourceReferences": [
+      {
+        "observationId": "8719ffc7-830c-4e0a-aa0f-0fe7aa1977e0",
+        "sourceHash": "7ddeb8a890543110db6e5ee27c0513248e2f929583a5400e34a058aaba3a87da"
+      },
+      {
+        "observationId": "8ff94397-a54d-4c41-8d29-b3403097a8bb",
+        "sourceHash": "4ead14c1a32f3256f479a7a79cb1f5f22775664a6d28488dce64fe0765065caa"
+      }
+    ]
+  },
+  "writes": {
+    "retainedSyntheticUiAction": 1,
+    "retainedFirstPlanVersion": 1,
+    "uploadedFiles": 0,
+    "newUsers": 0,
+    "newGrants": 0,
+    "skyhostBusinessWrites": 0
+  },
+  "boundaries": {
+    "plan": "Incomplete draft; responsibility, method, instruction, date and work location were not invented. No assignment or execution claimed.",
+    "physicalPhone": "Not retested in this run; earlier user acceptance is separate.",
+    "fullRollbackRoleSuite": "Not run; connector confirmation expired twice.",
+    "mediaReferencePhantom": "Not tested with two controlled SQL sessions; API fixture had no media refs.",
+    "hostedVersion": "Recorded separately after approved upload."
+  },
+  "screenshots": [
+    "evidence/observation-draft-created-3079409.png",
+    "evidence/observation-draft-plan-saved-9af245d.png"
+  ],
+  "outcome": "passed_with_stated_boundaries"
+}

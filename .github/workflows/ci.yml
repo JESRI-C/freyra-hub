@@ -105,6 +105,7 @@ jobs:
 
       - name: Check real local database concurrency
         run: |
+          set -euo pipefail
           node scripts/test-disposable-db-concurrency.mjs \
             --disposable-local \
             --database postgresql://postgres:postgres@127.0.0.1:54322/postgres \
@@ -115,6 +116,11 @@ jobs:
           node scripts/database-concurrency/field-photo-concurrency.test.mjs \
             --disposable-local \
             --database postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          mkdir -p tmp/database-concurrency
+          node scripts/database-concurrency/work-order-observation-drafts.test.mjs \
+            --disposable-local \
+            --database postgresql://postgres:postgres@127.0.0.1:54322/postgres \
+            | tee tmp/database-concurrency/work-order-observation-drafts.json
 
       - name: Restore a real database dump to a disposable database
         env:

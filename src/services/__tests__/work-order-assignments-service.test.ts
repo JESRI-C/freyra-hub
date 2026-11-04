@@ -361,7 +361,7 @@ describe("groups and pool request boundary", () => {
       }),
     ).rejects.toMatchObject({ statusCode: 403 });
   });
-  it("keeps legacy IDs in My tasks and pins the returned owner", async () => {
+  it("keeps legacy IDs and lifecycle status in My tasks and pins the returned owner", async () => {
     const taskRow = {
       user_id: actor,
       action_id: "11111111-1111-c111-5111-111111111111",
@@ -378,6 +378,7 @@ describe("groups and pool request boundary", () => {
       can_execute: false,
       can_review: false,
       can_plan: false,
+      task_status: "assigned",
       waiting_for_prerequisites: false,
       cancelled: false,
     };

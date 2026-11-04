@@ -44,7 +44,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Arbejdsordre, plan og udførelse har databasebundne relationer; observationer, tjeklister og rapport/eksport følger."
+      "remaining": "Arbejdsordre, plan og udførelse har databasebundne relationer; observationer, tjeklister og rapport/eksport følger.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "ORG-02",
@@ -69,7 +75,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Bevar eksisterende RLS/Storage. Test den nye opgaveadgang og dens API særskilt."
+      "remaining": "Bevar eksisterende RLS/Storage. Test den nye opgaveadgang og dens API særskilt.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "ORG-03",
@@ -114,7 +126,13 @@
         "scripts/test-field-task-photos-staging.mjs"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
-      "remaining": "Mine opgaver fører den tildelte projektbidragende feltbruger til samme opgaves fotos, jobkort, udførelse, eksplicitte dokumentation og aflevering. Eksterne med kun opgaveadgang beholder afgrænset læsning; ny fotooptagelse uden projektbidragsadgang er fortsat ikke leveret. Samlet tværgrens-kandidat og fysisk/kommunal accept er åbne."
+      "remaining": "Mine opgaver fører den tildelte projektbidragende feltbruger til samme opgaves fotos, jobkort, udførelse, eksplicitte dokumentation og aflevering. Eksterne med kun opgaveadgang beholder afgrænset læsning; ny fotooptagelse uden projektbidragsadgang er fortsat ikke leveret. Samlet tværgrens-kandidat og fysisk/kommunal accept er åbne.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "ORG-04",
@@ -136,7 +154,10 @@
         "src/components/project/WorkOrderStatusPanel.tsx",
         "src/components/project/WorkOrderEvidencePanel.tsx",
         "src/components/project/WorkOrderSubmissionPanel.tsx",
-        "src/lib/field-job-access.functions.ts"
+        "src/lib/field-job-access.functions.ts",
+        "src/routes/app.projects.$slug.tsx",
+        "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -156,15 +177,49 @@
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
-        "scripts/test-field-task-photos-staging.mjs"
+        "scripts/test-field-task-photos-staging.mjs",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/routes/__tests__/project-media-isolation.test.tsx",
+        "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+        "src/lib/__tests__/customer-project-route-integrity.test.ts"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
-      "remaining": "Aktør-/projektmismatch, baggrundsgenkontrol, fejl og tilbagekaldt feltadgang lukker aktive feltlinks i Mine opgaver. Mediefejl isoleres og giver ikke tomt rapportgrundlag; kladder bevares. Private original-links udløber og tilbagekaldes ikke øjeblikkeligt. Samlet offline-/rapport-/rolleaccept på fælles kandidat er fortsat åben."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json; P8 media-failure isolation and draft preservation locally verified at 5228aad; combined candidate acceptance pending",
+      "remaining": "Aktør-/projektmismatch, baggrundsgenkontrol, fejl og tilbagekaldt feltadgang lukker aktive feltlinks i Mine opgaver. Mediefejl isoleres og giver ikke tomt rapportgrundlag; kladder bevares. Private original-links udløber og tilbagekaldes ikke øjeblikkeligt. Samlet offline-/rapport-/rolleaccept på fælles kandidat er fortsat åben.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
+        "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      },
+      "followUps": [
+        {
+          "package": "P8",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
+          "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "code": [
+            "src/routes/app.projects.$slug.tsx",
+            "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+            "src/components/project-workspace/ProjectPhotoAtlas.tsx"
+          ],
+          "tests": [
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/routes/__tests__/project-media-isolation.test.tsx",
+            "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+            "src/lib/__tests__/customer-project-route-integrity.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "JOB-01",
       "priority": "P0",
       "title": "Opret og rediger arbejdsopgave",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D02",
       "code": [
         "src/services/actions-service.ts",
@@ -190,7 +245,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Planrevision og adskilt ansvarlig findes; eksplicit tildeling, livscyklus og kobling til faktisk udfører følger i D02b."
+      "remaining": "Planrevision og adskilt ansvarlig findes; eksplicit tildeling, livscyklus og kobling til faktisk udfører følger i D02b.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-02",
@@ -221,7 +282,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Typed vandløbsprofil og filtrerbare måleprojektioner findes; D04 fælles filtre og faktisk udførelseskobling afventer."
+      "remaining": "Typed vandløbsprofil og filtrerbare måleprojektioner findes; D04 fælles filtre og faktisk udførelseskobling afventer.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-03",
@@ -251,7 +318,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Samme eksisterende udførelsesrevision bindes til plan og faktisk udfører; status, felt-/ekstern skrivevej, bilagskrav før aflevering og rapporteksport følger."
+      "remaining": "Samme eksisterende udførelsesrevision bindes til plan og faktisk udfører; status, felt-/ekstern skrivevej, bilagskrav før aflevering og rapporteksport følger.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-04",
@@ -300,12 +373,24 @@
         "scripts/test-field-task-photos-staging.mjs"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
-      "remaining": "Person, gruppe, puljeovertagelse og udførelsens tildelingsbinding genbruges i modtagerens liste/tavle og feltforløb. Serverstatus og ukendt status skelnes. Modtagerspecifik notifikation/indbakke, fysisk feltprøve og uassisteret kommunal accept er fortsat åbne."
+      "remaining": "Person, gruppe, puljeovertagelse og udførelsens tildelingsbinding genbruges i modtagerens liste/tavle og feltforløb. Serverstatus og ukendt status skelnes. Modtagerspecifik notifikation/indbakke, fysisk feltprøve og uassisteret kommunal accept er fortsat åbne.",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-05",
       "priority": "P0",
       "title": "Status og afslutningskrav",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D02",
       "code": [
         "src/services/actions-service.ts",
@@ -339,7 +424,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Afleveret/Godkendt/Returneret/Genåbnet er nu prøvet på frosne afleveringsversioner i staging. Profilspecifikke, versionsbundne dokumentationskrav og samlet brugeraccept mangler."
+      "remaining": "Afleveret/Godkendt/Returneret/Genåbnet er nu prøvet på frosne afleveringsversioner i staging. Profilspecifikke, versionsbundne dokumentationskrav og samlet brugeraccept mangler.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-06",
@@ -349,23 +440,76 @@
       "code": [
         "src/services/actions-service.ts",
         "src/services/action-execution-service.ts",
-        "src/services/field-job-cards-service.ts"
+        "src/services/field-job-cards-service.ts",
+        "src/lib/manager-work-orders.ts",
+        "src/services/manager-work-orders-service.ts",
+        "src/components/project/ManagerWorkOrders.tsx",
+        "src/components/project/ManagerWorkOrderMap.tsx",
+        "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+        "src/components/project/manager-work-order-map-data.ts"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+        "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "supabase/tests/database/manager_work_order_map_projection.test.sql",
+        "src/services/__tests__/manager-work-orders-service.test.ts",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+        "src/components/project/__tests__/manager-work-order-map-data.test.ts"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Fælles filtreret snapshot, keyset-pagination og samstemmende status-/korttotaler mangler."
+      "coverage": "partial; P7 shared manager selection, stored geometry and full totals passed automated tests, staging SQL/API and local integrated browser at 5228aad; broader requirement acceptance open",
+      "remaining": "P7 viser samme arbejdsordrer i Liste/Kanban/Kort med fuldtotaler før cursor og præcis opgavenavigation. Generiske observationer, øvrigt projektkort og rapport-/eksportudvalg samt ny fysisk mobilaccept står fortsat åben; senere hosted manager/P9-læsning er særskilt prøvet på 431999b8 og er ikke fuld produktaccept. Udvalgsreferencen er ikke et vedvarende historiksnapshot.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ved den oprindelige prøve ingen ny hosted version; senere særskilt manager/P9-testversion 431999b8 er uploadet og læseprøvet, uden ny fysisk eller samlet produktaccept.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      },
+      "followUps": [
+        {
+          "package": "P7",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
+          "code": [
+            "src/lib/manager-work-orders.ts",
+            "src/services/manager-work-orders-service.ts",
+            "src/components/project/ManagerWorkOrders.tsx",
+            "src/components/project/ManagerWorkOrderMap.tsx",
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+            "src/components/project/manager-work-order-map-data.ts"
+          ],
+          "migrations": [
+            "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+            "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
+          ],
+          "tests": [
+            "supabase/tests/database/manager_work_order_map_projection.test.sql",
+            "src/services/__tests__/manager-work-orders-service.test.ts",
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+            "src/components/project/__tests__/manager-work-order-map-data.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "sourceRevision": "c495045",
+          "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "JOB-07",
       "priority": "P1",
       "title": "Kopi og gentagelse",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D09",
       "code": [
         "src/services/actions-service.ts",
@@ -381,7 +525,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-08",
@@ -402,12 +552,21 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-09",
       "priority": "P0",
       "title": "Logbog og bilag",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D02",
       "code": [
         "src/services/actions-service.ts",
@@ -441,7 +600,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Eksisterende logbog viser nu afleveringsversion, reviewomfang, forfatter og returnering/godkendelse med bevaret historik. Samlet visning af øvrige bilag og hele D03s restarbejde er fortsat åbent."
+      "remaining": "Eksisterende logbog viser nu afleveringsversion, reviewomfang, forfatter og returnering/godkendelse med bevaret historik. Samlet visning af øvrige bilag og hele D03s restarbejde er fortsat åbent.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P6",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "JOB-10",
@@ -462,7 +627,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "LOC-01",
@@ -489,8 +660,14 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes; kortinteraktion og fysisk prøve afventer."
+      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed; P7 stored site positions and exact task plan 6 passed local browser at 5228aad",
+      "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes. P7 har SQL/API-bevis for gemte positioner og lokal browserprøve af kort til præcis opgaveplan 6. Pinnet vandløb er kun SQL-/komponentprøvet; ny fysisk/hosted accept af denne kortvisning afventer.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P1–P8",
+        "scope": "Kerne og driftsplan i produkttråden. Denne tråd har P1–P7 modtagerindgange og arbejdsordrekort med gemte positioner, samt afstemt smal P8-medieisolation. Produkttrådens separate PR45 og aktive fotoindgang er ikke overtaget.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "LOC-02",
@@ -508,7 +685,13 @@
         "src/services/__tests__/watercourse-geometry.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "LOC-03",
@@ -526,7 +709,13 @@
         "src/services/__tests__/watercourse-geometry.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-01",
@@ -547,7 +736,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Originalfotoer bevarer ukendt optagetid. Generiske field_observations bruger defaulttid; operationelle observationer kræver version og eksplicit tidspræcision."
+      "remaining": "Originalfotoer bevarer ukendt optagetid. Generiske field_observations bruger defaulttid; operationelle observationer kræver version og eksplicit tidspræcision.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-02",
@@ -576,12 +771,24 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial, acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
-      "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+      "remaining": "action_evidence forbinder fotos/bilag. Observationers mange-til-mange-relation og versionsbundet bekræftelse mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben.",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-03",
       "priority": "P0",
       "title": "Geografisk søgning er et forslag",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D03",
       "code": [
         "src/services/field-photo-upload-service.ts",
@@ -597,7 +804,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Direkte relation og geografiske forslag skal få separate serverforespørgsler og UI-lister."
+      "remaining": "Direkte relation og geografiske forslag skal få separate serverforespørgsler og UI-lister.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-04",
@@ -628,7 +841,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; project original queue preserved and plan-bound job cards staged at 90f0196; physical acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
-      "remaining": "Mobil originalkø og planbundne jobkort findes. To jobkort er teknisk genprøvet ved browserlukning, netbrud og planskift. Automatisk opgave-/kategoribinding af fotos, metadata/flerfoto-status, fysisk kamera/GPS og samlet feltaccept mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+      "remaining": "Mobil originalkø og planbundne jobkort findes. To jobkort er teknisk genprøvet ved browserlukning, netbrud og planskift. Automatisk opgave-/kategoribinding af fotos, metadata/flerfoto-status, fysisk kamera/GPS og samlet feltaccept mangler. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-05",
@@ -649,7 +868,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Original GPS og 50 m-rettelser findes. Tilføj eksplicit CRS, positionskilde/nøjagtighed og begrundet GPS-undtagelse."
+      "remaining": "Original GPS og 50 m-rettelser findes. Tilføj eksplicit CRS, positionskilde/nøjagtighed og begrundet GPS-undtagelse.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-06",
@@ -678,7 +903,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial, acceptance open; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
-      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+      "remaining": "Original/privat preview er adskilt. Annotation/anonymisering og faktisk hosted afkodning er ikke accepteret. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-07",
@@ -699,7 +930,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Genbrug execution-bundne beskrivende sammenligninger; fase på observation og modstridende faktisk dato skal håndhæves."
+      "remaining": "Genbrug execution-bundne beskrivende sammenligninger; fase på observation og modstridende faktisk dato skal håndhæves.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for opgavenavigation",
+        "scope": "Felt-/filkontrakter i produkttråden; eksakte jobindgange i P3/P5. Generisk GeoTag-model og observation til job er ikke accepteret af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-08",
@@ -720,7 +957,13 @@
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OBS-09",
@@ -740,8 +983,251 @@
         "supabase/tests/database/field_photo_uploads.test.sql",
         "src/services/__tests__/field-offline-sync.test.ts"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Idempotent opgaveudkast fra udvalgte observationer mangler; ingen ekstra originalkopier."
+      "coverage": "partial; normal P9 local creation/first-plan save/reload and hosted manager/origin read passed on 9af245d; database evidence first passed in CI 41796513511 at 73f503b and repeated in full green CI 41797803182 at 622cfcb with 3720 app tests; wider acceptance remains open",
+      "remaining": "P9 creates a manager-only draft from existing field_observations with immutable source metadata snapshots and no file copies. SQL, controlled concurrency and local ACL restore first passed in CI 41796513511; full green CI 41797803182 repeated those checks and closed the earlier pending app rerun with 3720 tests in 274 files and the default CI build. New physical phone acceptance, PR45/PR46 integration and saved Skyhost GeoTag relation/create behavior remain open. Hosted recovery, original bytes, generic GeoTag, offline creation and full OBS-02/report binding are separate.",
+      "ownership": {
+        "owner": "Denne tråd for P9; produkttråden for fælles felt-/offlinekontrakter",
+        "scope": "P9: manager-only arbejdsordrekladde fra eksisterende field_observations med privat, fastholdt kilde-/mediereferencesnapshot. Smalt ejerskab bekræftet i læst produktchatstatus; dens svarafsendelse mislykkedes. Fælles guards/hjælpere og aktive feltfoto-/offlinefiler ændres ikke. Generisk GeoTag-model, offlineoprettelse og fuld OBS-02 er ikke accepteret af P9.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      },
+      "followUps": [
+        {
+          "package": "P9",
+          "state": "normal P9 creation/first-plan manager path verified at 9af245d2be8e1bc248c66f6259b6554327e23e41; same saved job/plan 1/two sources/original description read through normal hosted 622cfcb preview 091e7098 without workflow writes; first database CI 41796513511 at 73f503b preserved as history; full CI 41797803182 passed 3720 app tests/274 files, typecheck/lint/audit/default build and repeated 29 SQL files/2144 assertions, six concurrency scenarios/three actual lock waits and local ACL dump/restore; package, physical phone and PR45/PR46 integration acceptance remain open",
+          "basis": "OBS-09 requirement register; direct Skyhost GeoTag selectors observed but saved relation/create-job behavior not observed",
+          "code": [
+            "src/lib/work-order-observation-drafts.ts",
+            "src/lib/work-order-observation-drafts.functions.ts",
+            "src/services/work-order-observation-drafts-service.ts",
+            "src/components/project/ManagerWorkOrders.tsx",
+            "src/components/project/WorkOrderObservationDraftDialog.tsx",
+            "src/components/project/WorkOrderObservationOrigin.tsx",
+            "src/components/project/useWorkOrderObservationOrigin.ts",
+            "src/components/project/WorkOrderObservationSourceDetails.tsx",
+            "src/components/project/WorkOrderPlansPanel.tsx"
+          ],
+          "migrations": [
+            "supabase/migrations/20261104061624_work_order_observation_drafts.sql"
+          ],
+          "tests": [
+            "src/lib/__tests__/work-order-observation-drafts.test.ts",
+            "src/services/__tests__/work-order-observation-drafts-service.test.ts",
+            "src/components/project/__tests__/WorkOrderObservationDraftDialog.test.tsx",
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/components/project/__tests__/WorkOrderPlansPanel.test.tsx",
+            "supabase/tests/database/work_order_observation_drafts.test.sql",
+            "scripts/database-concurrency/work-order-observation-drafts.test.mjs",
+            "scripts/test-release-restore.sh",
+            "scripts/release-restore/observation-draft-fixture.sql",
+            "scripts/release-restore/observation-draft-probe.sql"
+          ],
+          "verification": {
+            "baselineCombinedRun": {
+              "sourceRevision": "30794091f21813535b954a681e8d818eb4185a29",
+              "testsPassed": 113,
+              "testFiles": 5,
+              "stagingBuild": "passed on rerun with unchanged code after initial OOM during parallel typecheck"
+            },
+            "currentPartialRuns": {
+              "sourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+              "libraryAndServicePassed": 58,
+              "managerPassed": 17,
+              "firstPlanAndDialogPassed": 49,
+              "firstPlanAndDialogFiles": 2,
+              "totalTestsAcrossRuns": 124,
+              "testFiles": 5,
+              "singleCombined124Run": false
+            },
+            "fullTypecheck": "passed on current source with fresh incremental cache and same full project scope",
+            "targetedLint": "passed",
+            "independentReview": "no findings",
+            "securityAdvisors": {
+              "before": 21,
+              "after": 21,
+              "new": 0
+            },
+            "stagingMigrationApplied": true,
+            "stagingApi": "passed scoped SDK checks: concurrent same-request identity, stale-source conflict with zero actions, committed retry after source edit, changed-request conflict, origin read, external list/create/get denied",
+            "stagingApiReceipt": "docs/observation-draft-api-staging-2026-11-04.json",
+            "stagingApiSqlSourceRevision": "30794091f21813535b954a681e8d818eb4185a29",
+            "stagingApiSourceBoundary": "normal authenticated SDK without service-role; existing same-project external role; two source observations had zero media references",
+            "stagingCatalogInspection": "private origin RLS, no authenticated UPDATE/DELETE, no source FK cascade, immediate media FK; all three RPCs security invoker with empty search_path and UTC; authenticated execute only, anon/service-role execute denied; zero ee900000 fixture users",
+            "fullRollbackSqlSuite": "passed later in disposable local CI 41796513511 at 73f503b: 29 SQL files/2144 assertions, including the P9 suite",
+            "initialSqlAttemptBoundary": "The original staging connector confirmation expired twice and the workstation had no Docker/psql; dated API/browser receipts retain their initial not-run status. This evidence gap was closed locally by CI 41796513511, not by a hosted rollback test.",
+            "localCi": {
+              "statusScope": "Historical first run 41796513511 at 73f503b; current full-green status is recorded in latestCi",
+              "receipt": "docs/observation-draft-ci-2026-11-04.json",
+              "runId": 41796513511,
+              "runUrl": "https://github.com/JESRI-C/freyra-hub/actions/runs/41796513511",
+              "sourceRevision": "73f503b62f08d15b3216aefa484501bcee70527d",
+              "databaseJobPassed": true,
+              "freshMigrationReplay": true,
+              "sqlFiles": 29,
+              "sqlAssertions": 2144,
+              "observationDraftSuiteIncluded": true,
+              "concurrencyScenariosPassed": 6,
+              "actualLockWaitsVerified": 3,
+              "controlledNewMediaReferenceBothLockOrdersPassed": true,
+              "committedRetryAfterSourceAndMediaDeletePassed": true,
+              "revokedManagerReplayAndReadDenied": true,
+              "aclDumpRestorePassed": true,
+              "noRepairGrants": true,
+              "managerExactOriginAndSourceHashRestored": true,
+              "externalGetOriginSqlState": "42501",
+              "externalPrivateOriginRows": 0,
+              "sourceAndRestoredProbeIdentical": true,
+              "restoreArtifactBodyIndependentlyDownloadedAndRead": false,
+              "databaseFunctionLintPassed": true,
+              "disposableStackCleanupPassed": true,
+              "fullHostedRecovery": false,
+              "storageOriginalBytesIncluded": false,
+              "appJobPassed": false,
+              "appTestsPassed": 3713,
+              "appTestsFailed": 1,
+              "appFailure": "Exact full-menu expectation lacked /app/work-orders",
+              "appBuild": "skipped",
+              "targetedMenuFixTestsPassed": 70,
+              "fullAppRerunAfterFix": "pending at this run; completed and green in 41797803182",
+              "packageAcceptanceComplete": false
+            },
+            "latestCi": {
+              "receipt": "docs/selected-work-order-ci-2026-11-04.json",
+              "runId": 41797803182,
+              "runUrl": "https://github.com/JESRI-C/freyra-hub/actions/runs/41797803182",
+              "sourceRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
+              "appJobPassed": true,
+              "appTestFiles": 274,
+              "appTestsPassed": 3720,
+              "appTestsFailed": 0,
+              "fullTypecheck": true,
+              "isolatedFieldPhotoWorkerTypecheck": true,
+              "lint": true,
+              "runtimeDependencyAudit": true,
+              "defaultCiBuild": true,
+              "stagingBuildVerifiedByThisRun": false,
+              "databaseJobPassed": true,
+              "freshMigrationReplay": true,
+              "sqlFiles": 29,
+              "sqlAssertions": 2144,
+              "observationDraftSuiteIncluded": true,
+              "concurrencyScenariosPassed": 6,
+              "actualLockWaitsVerified": 3,
+              "aclDumpRestorePassed": true,
+              "databaseFunctionLintPassed": true,
+              "disposableStackCleanupPassed": true,
+              "fullHostedRecovery": false,
+              "originalStorageBytesRestored": false,
+              "physicalIphoneAcceptance": false,
+              "latestPr45And46Integrated": false,
+              "packageAcceptanceComplete": false
+            },
+            "retainedApiFixtures": "two synthetic field_observations and one created work order; no new users, grants or files",
+            "latestHostedRead": {
+              "sourceRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
+              "receipt": "docs/selected-work-order-browser-2026-11-04.json",
+              "testVersionReceipt": "docs/selected-work-order-test-version-2026-11-04.json",
+              "workerVersionId": "091e7098-491b-42a5-a52a-77a36ae1edb1",
+              "previewUrl": "https://091e7098-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/work-orders",
+              "scope": "Supplement to historical 9af creation/first-plan evidence: normal existing login/project/main-menu/search/one Kanban result opens the same saved job; read-only",
+              "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+              "visiblePlanVersion": 1,
+              "visibleSourceCount": 2,
+              "originalDescriptionVisible": true,
+              "temporaryTestInstructionAbsent": true,
+              "workflowWrites": 0,
+              "directApiPlanCountReadbackPerformed": false,
+              "stagingPreflightAndBundleGuardPassed": true,
+              "sourceMetadataHttpVerified": true,
+              "versionsUploadOnly": true,
+              "activeStagingTrafficChanged": false,
+              "physicalIphoneAcceptance": false,
+              "latestPr45And46Integrated": false
+            },
+            "sourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+            "stagingBuild": "passed on final 9af245d source with staging preflight",
+            "browserAcceptance": "passed with stated boundaries: normal local creation on 3079409; exact description automatically prefilled, first plan saved/reloaded on 9af245d; normal hosted login/workspace/menu/exact-job/plan-and-two-sources read passed without hosted workflow writes",
+            "browserCreatedDraft": {
+              "sourceRevision": "30794091f21813535b954a681e8d818eb4185a29",
+              "actionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+              "selectedSources": 2,
+              "readbackTitleMatches": 1,
+              "readbackDraftLifecycleVersions": 1,
+              "readbackPlansBeforeFinalSave": 0,
+              "readbackExecutionEvidence": 0,
+              "originMatchedSelectedSourcesAndRequest": true,
+              "initialEmptyDescriptionPlanCancelledWithoutSave": true,
+              "finalReadback": {
+                "sourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+                "titleMatches": 1,
+                "planVersions": 1,
+                "latestPlanVersion": 1,
+                "lifecycleVersions": 1,
+                "canonicalStatus": "draft",
+                "evidenceVersions": 0,
+                "exactCreationDescriptionPreserved": true,
+                "manualDescriptionCopyRequired": false,
+                "sourceIdsAndHashesUnchanged": true
+              }
+            },
+            "firstPlanDescriptionFix": "passed: shared origin hook; first manager plan waits for origin and automatically prefills exact creation description; save/reload retains description and both source references; existing/followup behavior covered by targeted tests",
+            "skyhostObservationReceipt": "docs/skyhost-geotag-observation-2026-11-04.json",
+            "skyhostObserved": "Geotag banner to POI.aspx; Map/List, Alle/Ny/Jobkort/Lukket status choices, select-job link, no-job-relation filter, Log/History/Image/Ref/Comment columns",
+            "skyhostBoundary": "Ny and Jobkort empty within 1.1 Afsætning; other categories not examined; saved relation and job creation not observed; no lifecycle equivalence inferred; Ny/Map restored and zero business writes",
+            "localBrowserReceipt": "docs/observation-draft-browser-local-2026-11-04.json",
+            "serverReadbackReceipt": "docs/observation-draft-server-readback-2026-11-04.json",
+            "testVersionReceipt": "docs/observation-draft-test-version-2026-11-04.json",
+            "testVersion": {
+              "versionId": "431999b8-df07-4dd3-b68c-8e148d5e2697",
+              "url": "https://431999b8-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/work-orders",
+              "userApprovalReceived": true,
+              "uploadMode": "versions upload only --keep-vars --strict --no-upload-source-maps; no versions deploy",
+              "metadataVerified": true,
+              "metadataSourceRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+              "metadataEnvironment": "staging/customerDataOnly",
+              "activeTrafficUnchanged": true,
+              "activeDeploymentId": "700e62c8-aaa0-4dff-8d5f-abb88ca52838",
+              "activeWorkerVersionId": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+              "activeWorkerPercentage": 100
+            },
+            "hostedRead": {
+              "normalLoginWorkspaceAndMenu": true,
+              "exactJobSearch": "1/1 draft with the same action id",
+              "planVersion": 1,
+              "savedDescriptionPreserved": true,
+              "sourceCards": 2,
+              "workflowWrites": 0,
+              "actualWidth": 1280,
+              "horizontalOverflow": false,
+              "kanban": {
+                "loaded": 30,
+                "total": 60,
+                "mapped": 12,
+                "unmapped": 48,
+                "mapObjects": 24
+              },
+              "screenshot": "docs/evidence/manager-work-orders-hosted-431999b8.png"
+            },
+            "integrationBoundary": {
+              "branchBase": "3af288a / d4f57b9",
+              "productOwnerPR45Integrated": false,
+              "productOwnerPR46Integrated": false,
+              "productOwnerRuntime": "4be325d7253f02c915d5089ecb418d7e9e4d72ac",
+              "productOwnerSeparateAcceptance": "1910 database assertions / 3587 application tests are separate, not full integration proof for this preview",
+              "physicalPhoneRetested": false,
+              "assignmentExecutionOrReviewAcceptedByP9": false,
+              "plan": "incomplete draft; responsibility/method/instruction/date/place not invented",
+              "overallProductAcceptance": "open"
+            }
+          },
+          "remaining": "Normal P9 manager creation/first-plan path verified on historical 9af; latest hosted 622cfcb preview additionally read the same saved job, plan 1, two sources and original description with zero workflow writes. Package acceptance remains open and overall OBS-09 remains partial. SQL, controlled two-session media-reference and local ACL restore first passed in CI 41796513511 and repeated in full green CI 41797803182 with 3720 tests/274 files and default build. Original SDK fixtures still had no media references. New physical phone acceptance, saved Skyhost GeoTag relation/create behavior, product-owner PR45/PR46 integration, generic GeoTag, offline creation, full OBS-02 and report-wide source/count binding remain open. New preview read does not retest creation, field offline photos, submission or review; local restore does not accept hosted recovery or original bytes.",
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "historicalBaseline": {
+            "coverage": "partial, acceptance open",
+            "remaining": "Idempotent opgaveudkast fra udvalgte observationer mangler; ingen ekstra originalkopier."
+          }
+        }
+      ]
     },
     {
       "id": "OBS-10",
@@ -770,7 +1256,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "not fully assessed; later phase; selected-task photo capture CI 41785790191 passed (3587 app / 1910 DB); database 20261104064006 and app 4be325d staged; hosted run 65d462fa passed; physical/unassisted acceptance open",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept. Ny opgavefotoindgang: CI består; hosted offlineforløb gennem rapport består; fysisk telefon og naturlig feltindgang afventes; se OPGAVE_FOTO_FELTINDGANG.md. Ekstern ny upload uden projektbidragsadgang er fortsat åben.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "MAP-01",
@@ -779,16 +1271,66 @@
       "package": "D04",
       "code": [
         "src/components/project-workspace/ProjectPhotoAtlas.tsx",
-        "src/services/project-media-service.ts"
+        "src/services/project-media-service.ts",
+        "src/lib/manager-work-orders.ts",
+        "src/services/manager-work-orders-service.ts",
+        "src/components/project/ManagerWorkOrders.tsx",
+        "src/components/project/ManagerWorkOrderMap.tsx",
+        "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+        "src/components/project/manager-work-order-map-data.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+        "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
       ],
       "tests": [
-        "src/services/__tests__/project-media-originals.test.ts"
+        "src/services/__tests__/project-media-originals.test.ts",
+        "supabase/tests/database/manager_work_order_map_projection.test.sql",
+        "src/services/__tests__/manager-work-orders-service.test.ts",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+        "src/components/project/__tests__/manager-work-order-map-data.test.ts"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Delte serverfiltre og ens objektmængde/totaler mangler for nye opgaver og registreringer."
+      "coverage": "partial; P7 shared manager selection, stored geometry and full totals passed automated tests, staging SQL/API and local integrated browser at 5228aad; broader requirement acceptance open",
+      "remaining": "P7 arbejdsordreoversigt er lokalt browserprøvet med fælles filtre og identiteter, 58 unikke opgaver, 12 med position, 46 uden og 24 kortobjekter. Generiske registreringer, øvrigt projektkort, rapport-/eksportudvalg og ny fysisk mobilaccept står fortsat åben; senere hosted manager/P9-læsning er særskilt prøvet på 431999b8 og er ikke fuld produktaccept.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ved den oprindelige prøve ingen ny hosted version; senere særskilt manager/P9-testversion 431999b8 er uploadet og læseprøvet, uden ny fysisk eller samlet produktaccept.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      },
+      "followUps": [
+        {
+          "package": "P7",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
+          "code": [
+            "src/lib/manager-work-orders.ts",
+            "src/services/manager-work-orders-service.ts",
+            "src/components/project/ManagerWorkOrders.tsx",
+            "src/components/project/ManagerWorkOrderMap.tsx",
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+            "src/components/project/manager-work-order-map-data.ts"
+          ],
+          "migrations": [
+            "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+            "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
+          ],
+          "tests": [
+            "supabase/tests/database/manager_work_order_map_projection.test.sql",
+            "src/services/__tests__/manager-work-orders-service.test.ts",
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+            "src/components/project/__tests__/manager-work-order-map-data.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "sourceRevision": "c495045",
+          "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "MAP-02",
@@ -806,7 +1348,13 @@
         "src/services/__tests__/project-media-originals.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Nuværende atlas indlæser projektets poster. Afgrænset serverudsnit/aggregering og 100.000-fixture mangler."
+      "remaining": "Nuværende atlas indlæser projektets poster. Afgrænset serverudsnit/aggregering og 100.000-fixture mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "P7 beregner fuldtotaler og gemte geometrier på læsetidspunktet; MAP-02 er stadig åben for indekseret serverudsnit, aggregering og 100.000/p95-prøve.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "MAP-03",
@@ -824,7 +1372,13 @@
         "src/services/__tests__/project-media-originals.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "MAP-04",
@@ -842,7 +1396,13 @@
         "src/services/__tests__/project-media-originals.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Genbrug eksisterende kilde-/lagadaptere; afprøv fejlstatus og CRS i operationelt forløb."
+      "remaining": "Genbrug eksisterende kilde-/lagadaptere; afprøv fejlstatus og CRS i operationelt forløb.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende lag og kildeadaptere i produkttråden. P7 fælles arbejdsordreudvalg er implementeret og lokalt browserprøvet. WGS84-/pinnet versionsvalidering har SQL-/komponentbevis; fuldt operationelt lag-/CRS-forløb er fortsat åbent.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-01",
@@ -861,7 +1421,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "V1-skabeloner/svar er immutable. Arkivering og operationelle kategori-/skemaversioner mangler."
+      "remaining": "V1-skabeloner/svar er immutable. Arkivering og operationelle kategori-/skemaversioner mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-02",
@@ -880,7 +1446,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "V1 har tekst/tal/dato/bool/enkelvalg. Min/max, heltal, flervalg, foto, datotid og eksplicit undersøgelsestilstand mangler."
+      "remaining": "V1 har tekst/tal/dato/bool/enkelvalg. Min/max, heltal, flervalg, foto, datotid og eksplicit undersøgelsestilstand mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-03",
@@ -920,7 +1492,16 @@
         "scripts/test-offline-required-cards-staging.mjs"
       ],
       "coverage": "partial; explicit requirements and plan-bound offline cards staged at 90f0196; CI 41777119984 and hosted two-card offline/retry/plan-change/revocation passed",
-      "remaining": "Planens valgte jobkortversioner og nødvendige svar kontrolleres på serveren. To jobkort, kold offline-genåbning, genforsøg, planskift og tilbagekaldelse er teknisk efterprøvet. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, direkte opgave-/fotobinding, samlet aflevering/rapport fra offlinegrundlaget og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md."
+      "remaining": "Planens valgte jobkortversioner og nødvendige svar kontrolleres på serveren. To jobkort, kold offline-genåbning, genforsøg, planskift og tilbagekaldelse er teknisk efterprøvet. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, direkte opgave-/fotobinding, samlet aflevering/rapport fra offlinegrundlaget og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md.",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-04",
@@ -939,7 +1520,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Vandløbsstartskabelon findes. Tilføj krav og ikke-undersøgt/ukendt uden falsk nul."
+      "remaining": "Vandløbsstartskabelon findes. Tilføj krav og ikke-undersøgt/ukendt uden falsk nul.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-05",
@@ -958,7 +1545,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "FORM-06",
@@ -977,7 +1570,13 @@
         "supabase/tests/database/field_job_versions.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "QA-01",
@@ -1029,7 +1628,13 @@
         "scripts/test-offline-required-cards-staging.mjs"
       ],
       "coverage": "partial; prior staged review/report evidence preserved; offline plan provenance staged at 90f0196; CI 41777119984 and hosted offline history/retry/plan-change checks passed",
-      "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05."
+      "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "QA-02",
@@ -1060,7 +1665,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Returnering med konkret mangel, begrundet genåbning, rettelse og ny aflevering bevarer historikken. Selvstændige afvigelsers alvor, ejer, frist og lukningsbevis mangler stadig."
+      "remaining": "Returnering med konkret mangel, begrundet genåbning, rettelse og ny aflevering bevarer historikken. Selvstændige afvigelsers alvor, ejer, frist og lukningsbevis mangler stadig.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "QA-03",
@@ -1091,7 +1702,13 @@
         "scripts/test-work-order-review-staging.mjs"
       ],
       "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Ny godkendelse er afgrænset til registreret udførelse og vedlagt dokumentation; naturvirkning afvises som reviewScope. Metode-/effektvurdering og samlet faglig accept er fortsat særskilt arbejde."
+      "remaining": "Ny godkendelse er afgrænset til registreret udførelse og vedlagt dokumentation; naturvirkning afvises som reviewScope. Metode-/effektvurdering og samlet faglig accept er fortsat særskilt arbejde.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Produkttråden ejer skemaer og review. Den anden chat arbejder aktuelt på flere obligatoriske jobkort offline; denne tråd ændrer ikke disse filer i P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "QA-04",
@@ -1105,12 +1722,20 @@
         "src/lib/work-order-review.ts",
         "src/services/work-order-review-service.ts",
         "src/components/project/WorkOrderReviewControls.tsx",
-        "src/components/project/WorkOrderSubmissionPanel.tsx"
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/manager-work-orders.ts",
+        "src/services/manager-work-orders-service.ts",
+        "src/components/project/ManagerWorkOrders.tsx",
+        "src/components/project/ManagerWorkOrderMap.tsx",
+        "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+        "src/components/project/manager-work-order-map-data.ts"
       ],
       "migrations": [
         "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
         "supabase/migrations/20261102180652_work_order_submission_packets.sql",
-        "supabase/migrations/20261102213116_work_order_submission_review.sql"
+        "supabase/migrations/20261102213116_work_order_submission_review.sql",
+        "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+        "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
@@ -1119,15 +1744,60 @@
         "src/services/__tests__/work-order-review-service.test.ts",
         "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
         "scripts/database-concurrency/field-job-concurrency.test.mjs",
-        "scripts/test-work-order-review-staging.mjs"
+        "scripts/test-work-order-review-staging.mjs",
+        "supabase/tests/database/manager_work_order_map_projection.test.sql",
+        "src/services/__tests__/manager-work-orders-service.test.ts",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+        "src/components/project/__tests__/manager-work-order-map-data.test.ts"
       ],
-      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Afleveringen fastholder plan, tildeling, udførelse, registreringer/skabeloner og originalreferencer på samme opgave. Filtrering, rapportbinding og sammenhængende totaler på tværs af alle visninger mangler."
+      "coverage": "partial; P7 shared manager selection, stored geometry and full totals passed automated tests, staging SQL/API and local integrated browser at 5228aad; broader requirement acceptance open",
+      "remaining": "Afleveringen fastholder opgavens kilder. P7 har fælles optælling af arbejdsordrer i Liste/Kanban/Kort, uafhængigt af cursor, med lokal browserprøve til alle 58 indlæste opgaver. Samme udvalg og totaler på tværs af generiske observationer, rapport og eksport er fortsat åbne.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ved den oprindelige prøve ingen ny hosted version; senere særskilt manager/P9-testversion 431999b8 er uploadet og læseprøvet, uden ny fysisk eller samlet produktaccept.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      },
+      "followUps": [
+        {
+          "package": "P7",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
+          "code": [
+            "src/lib/manager-work-orders.ts",
+            "src/services/manager-work-orders-service.ts",
+            "src/components/project/ManagerWorkOrders.tsx",
+            "src/components/project/ManagerWorkOrderMap.tsx",
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+            "src/components/project/manager-work-order-map-data.ts"
+          ],
+          "migrations": [
+            "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+            "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
+          ],
+          "tests": [
+            "supabase/tests/database/manager_work_order_map_projection.test.sql",
+            "src/services/__tests__/manager-work-orders-service.test.ts",
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+            "src/components/project/__tests__/manager-work-order-map-data.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "sourceRevision": "c495045",
+          "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "OPS-01",
       "priority": "P1",
       "title": "Timer og aktivitet",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D09",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1140,12 +1810,21 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-02",
       "priority": "P1",
       "title": "Materialer og enheder",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D09",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1158,12 +1837,21 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-03",
       "priority": "P2",
       "title": "Booking",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D10",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1176,12 +1864,21 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-04",
       "priority": "P2",
       "title": "Besøgsrute",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D10",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1194,7 +1891,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-05",
@@ -1212,12 +1915,21 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-06",
       "priority": "P0",
       "title": "Ingen e-mailafsendelse",
+      "sourceObservationReceipts": [
+        "docs/skyhost-existing-test-job-observation-2026-11-04.json"
+      ],
       "package": "D08",
       "code": [
         "src/services/workflow-followup-service.ts",
@@ -1230,7 +1942,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Ingen udsendelse er tilladt. Nye mutationer skal kun skabe intern audit/outbox; negativ test for indirekte sendekald."
+      "remaining": "Ingen udsendelse er tilladt. Nye mutationer skal kun skabe intern audit/outbox; negativ test for indirekte sendekald.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for interne hændelser",
+        "scope": "Ingen e-mail eller SMS sendt. En kø eller statusvisning er ikke bevis for beskedlevering.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "OPS-07",
@@ -1248,7 +1966,13 @@
         "src/services/__tests__/workflow-followup-service.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-01",
@@ -1276,7 +2000,13 @@
         "scripts/test-field-task-photos-staging.mjs"
       ],
       "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
-      "remaining": "Arbejdsopgavens godkendte afleveringsversion genbruger den eksisterende rapportmotor. Nye rapporter bevarer udførelsens registreringstype og kilde-id. Faglige metode-/domæneprofiler og samlet kommunal rapportaccept er fortsat åbne."
+      "remaining": "Arbejdsopgavens godkendte afleveringsversion genbruger den eksisterende rapportmotor. Nye rapporter bevarer udførelsens registreringstype og kilde-id. Faglige metode-/domæneprofiler og samlet kommunal rapportaccept er fortsat åbne.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-02",
@@ -1304,7 +2034,13 @@
         "scripts/test-field-task-photos-staging.mjs"
       ],
       "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
-      "remaining": "Eksisterende kildepakke v1 og historiske eksporter bevares. Nye klassificerede arbejdsopgaverapporter får kildepakke v2 med frossen registreringstype og udførelses-id; unit-output og checksums er efterprøvet. Hosted ZIP-v2-download, større leverancer, komplet operationel dictionary og fuld genindlæsning er fortsat åbne."
+      "remaining": "Eksisterende kildepakke v1 og historiske eksporter bevares. Nye klassificerede arbejdsopgaverapporter får kildepakke v2 med frossen registreringstype og udførelses-id; unit-output og checksums er efterprøvet. Hosted ZIP-v2-download, større leverancer, komplet operationel dictionary og fuld genindlæsning er fortsat åbne.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-03",
@@ -1324,7 +2060,13 @@
         "src/services/__tests__/report-assets.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Vedvarende fotojobs findes; asynkront eksportjob med snapshot, genoptagelse og adgang mangler."
+      "remaining": "Vedvarende fotojobs findes; asynkront eksportjob med snapshot, genoptagelse og adgang mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-04",
@@ -1344,7 +2086,13 @@
         "src/services/__tests__/report-assets.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "REP-05",
@@ -1372,7 +2120,13 @@
         "scripts/test-field-task-photos-staging.mjs"
       ],
       "coverage": "partial; report classification 12d348b1 / migration 20261104091051; CI 41804257496 and hosted bc2887fb passed; report-source-classification-staging-receipt-2026-11-04.json",
-      "remaining": "Fejlen fra hosted 2ebb507c er rettet for nye rapporter: synthetic/demo/real og udførelsesversion følger den godkendte aflevering til visning og eksport. Hosted bc2887fb bevarer samtidig det tidligere rapportindhold og identiske PDF-bytes. Ældre rapporter viser ukendt type i UI uden omskrevet eksport. Klassifikation af øvrige målinger/observationer/AI, metodeusikkerhed og faglig effekt-/rapportaccept er fortsat åbne."
+      "remaining": "Fejlen fra hosted 2ebb507c er rettet for nye rapporter: synthetic/demo/real og udførelsesversion følger den godkendte aflevering til visning og eksport. Hosted bc2887fb bevarer samtidig det tidligere rapportindhold og identiske PDF-bytes. Ældre rapporter viser ukendt type i UI uden omskrevet eksport. Klassifikation af øvrige målinger/observationer/AI, metodeusikkerhed og faglig effekt-/rapportaccept er fortsat åbne.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-01",
@@ -1390,7 +2144,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Eksisterende import er domænespecifik. Batchforhåndsvisning med enheder/CRS/tidszone mangler."
+      "remaining": "Eksisterende import er domænespecifik. Batchforhåndsvisning med enheder/CRS/tidszone mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-02",
@@ -1408,7 +2168,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Ny unik importidentitet pr. destinationstenant/konto/type/kilde-ID mangler."
+      "remaining": "Ny unik importidentitet pr. destinationstenant/konto/type/kilde-ID mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-03",
@@ -1426,7 +2192,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Faktisk Skyhost-filpakke mangler. Syntetiske referencer uden filer skal give eksplicit mangel."
+      "remaining": "Faktisk Skyhost-filpakke mangler. Syntetiske referencer uden filer skal give eksplicit mangel.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-04",
@@ -1444,7 +2216,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Importens versions-/konfliktpolitik skal beskytte lokale rettelser."
+      "remaining": "Importens versions-/konfliktpolitik skal beskytte lokale rettelser.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "IMP-05",
@@ -1462,7 +2240,13 @@
         "src/lib/__tests__/observations-ingest-scope.test.ts"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-01",
@@ -1480,7 +2264,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "baseline verified",
-      "remaining": "Eksisterende React/TanStack/Supabase, npm/lockfile genbruges. Ingen framework- eller auth-omskrivning."
+      "remaining": "Eksisterende React/TanStack/Supabase, npm/lockfile genbruges. Ingen framework- eller auth-omskrivning.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-02",
@@ -1521,7 +2311,13 @@
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Plan, adgang, gruppe, tildeling, overtagelse, udførelse, status og noter har atomisk audit og idempotens. Versionsbundet aflevering/review og eksport følger."
+      "remaining": "Plan, adgang, gruppe, tildeling, overtagelse, udførelse, status og noter har atomisk audit og idempotens. Versionsbundet aflevering/review og eksport følger.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-03",
@@ -1562,7 +2358,13 @@
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
       ],
       "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Status og noter har forventet version og request-ID samt faktisk PostgreSQL-samtidighed og HTTP 409. Observationsrelationer og afleverings-/eksportkontrakt følger."
+      "remaining": "Status og noter har forventet version og request-ID samt faktisk PostgreSQL-samtidighed og HTTP 409. Observationsrelationer og afleverings-/eksportkontrakt følger.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-04",
@@ -1587,7 +2389,13 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
       "coverage": "partial; D01 task capability contract verified in CI 40935274270",
-      "remaining": "Genbrug audit_events. Serveraktør, korrelation og objektversion skal fastlægges ved nye mutationer."
+      "remaining": "Genbrug audit_events. Serveraktør, korrelation og objektversion skal fastlægges ved nye mutationer.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-05",
@@ -1596,16 +2404,50 @@
       "package": "D01",
       "code": [
         "src/services/project-workspace-service.ts",
-        "src/lib/__tests__/supabase-browser-client.test.ts"
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/routes/app.projects.$slug.tsx",
+        "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/routes/__tests__/project-media-isolation.test.tsx",
+        "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+        "src/lib/__tests__/customer-project-route-integrity.test.ts"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Fejl/ukendt/manglende må ikke blive nul. Nye lister og afleveringer kræver eksplicitte tilstande."
+      "coverage": "partial, acceptance open; P8 local media-failure isolation and draft preservation passed at 5228aad",
+      "remaining": "P8 viser eksplicit uafklaret mediegrundlag og genforsøg, mens opgaven forbliver tilgængelig. Medieafhængige rapport-/Atlas-handlinger behandler ikke fejl som tomt kontrolleret grundlag. Den underliggende mediefejl og øvrige drifts-/fejltilstande er ikke lukket af denne pakke.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
+        "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      },
+      "followUps": [
+        {
+          "package": "P8",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
+          "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "code": [
+            "src/routes/app.projects.$slug.tsx",
+            "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+            "src/components/project-workspace/ProjectPhotoAtlas.tsx"
+          ],
+          "tests": [
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/routes/__tests__/project-media-isolation.test.tsx",
+            "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+            "src/lib/__tests__/customer-project-route-integrity.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "SYS-06",
@@ -1623,7 +2465,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "Holdbar upload og serverhash findes. Indholds-/MIME-kontrol samt operationelle bilagsbindinger afprøves i D03."
+      "remaining": "Holdbar upload og serverhash findes. Indholds-/MIME-kontrol samt operationelle bilagsbindinger afprøves i D03.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-07",
@@ -1642,7 +2490,10 @@
         "src/components/project/WorkOrderStatusPanel.tsx",
         "src/components/project/WorkOrderEvidencePanel.tsx",
         "src/components/project/WorkOrderSubmissionPanel.tsx",
-        "src/lib/field-job-access.functions.ts"
+        "src/lib/field-job-access.functions.ts",
+        "src/routes/app.projects.$slug.tsx",
+        "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -1659,10 +2510,41 @@
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
         "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
-        "scripts/test-field-task-photos-staging.mjs"
+        "scripts/test-field-task-photos-staging.mjs",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/routes/__tests__/project-media-isolation.test.tsx",
+        "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+        "src/lib/__tests__/customer-project-route-integrity.test.ts"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json",
-      "remaining": "Mine opgavers UI fører feltkonto uden can_plan gennem offlinefoto/jobkort, originalåbning, udførelse, dokumentationskobling og aflevering på kandidat 3ba51b1. Visning og rapport er prøvet ved 390/1280 px. Fysisk kamera/GPS/HEIC, fuld tastatur-/hjælpemiddelprøve, kontekstnavne og uassisteret brugeraccept er fortsat åbne."
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; latest Mine opgaver integration 3ba51b1: CI 41798870264 and hosted 2ebb507c passed; see field-task-handoff-staging-receipt-2026-11-04.json; P8 media-failure isolation and draft preservation locally verified at 5228aad; combined candidate acceptance pending",
+      "remaining": "Mine opgavers UI fører feltkonto uden can_plan gennem offlinefoto/jobkort, originalåbning, udførelse, dokumentationskobling og aflevering på kandidat 3ba51b1. Visning og rapport er prøvet ved 390/1280 px. Fysisk kamera/GPS/HEIC, fuld tastatur-/hjælpemiddelprøve, kontekstnavne og uassisteret brugeraccept er fortsat åbne. P8's separate local plan-cancel/navigation and actual Atlas portal checks are retained; their evidence is not a new physical-phone or combined-candidate acceptance.",
+      "ownership": {
+        "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
+        "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      },
+      "followUps": [
+        {
+          "package": "P8",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no hosted/mobile acceptance at that original local run; later separate 9af245d manager/P9 preview was uploaded and read-tested at 431999b8; no new physical acceptance",
+          "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "code": [
+            "src/routes/app.projects.$slug.tsx",
+            "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+            "src/components/project-workspace/ProjectPhotoAtlas.tsx"
+          ],
+          "tests": [
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/routes/__tests__/project-media-isolation.test.tsx",
+            "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+            "src/lib/__tests__/customer-project-route-integrity.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+          "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "SYS-08",
@@ -1680,7 +2562,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "p95 og 100.000/10.000/10-bruger benchmark er krav, ikke målte resultater. Ny query- og belastningsprøve mangler."
+      "remaining": "p95 og 100.000/10.000/10-bruger benchmark er krav, ikke målte resultater. Ny query- og belastningsprøve mangler.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-09",
@@ -1698,7 +2586,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "partial, acceptance open",
-      "remaining": "CI-databasegenoprettelse findes. Faktiske filer, aftalt retention og samlet stagingrestore er ikke accepteret."
+      "remaining": "CI-databasegenoprettelse findes. Faktiske filer, aftalt retention og samlet stagingrestore er ikke accepteret.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     },
     {
       "id": "SYS-10",
@@ -1716,7 +2610,13 @@
         "supabase/tests/database/4dm_tenant_isolation.test.sql"
       ],
       "coverage": "not fully assessed; later phase",
-      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept."
+      "remaining": "Afstem eksisterende domæneservices ved denne fases start; udvider ikke første P0-accept.",
+      "ownership": {
+        "owner": "Produkttråden",
+        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "reviewedAt": "2026-11-04",
+        "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+      }
     }
   ],
   "packageEvidence": {
@@ -1739,6 +2639,241 @@
       "userInterfaceTested": false,
       "pilotAccepted": false,
       "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json"
+    },
+    "P7": {
+      "codeRevision": "c4950453e8c38cf552a15dfba141b7c2e5df4289",
+      "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+      "targetedTests": 72,
+      "stagingRollbackDatabaseAssertions": 119,
+      "authenticatedApiPassed": true,
+      "oldTenArgumentRpcCompatible": true,
+      "externalElevenArgumentRpcDenied": true,
+      "localBrowserPassed": true,
+      "actualBrowserWidth": 1280,
+      "newMobileAcceptance": false,
+      "pinnedWatercourseLiveProof": false,
+      "pinnedWatercourseSqlAndComponentProof": true,
+      "localBrowserPagination": {
+        "initialLoaded": 30,
+        "fullFilteredJobs": 58,
+        "finalLoaded": 58,
+        "uniqueActionIds": 58,
+        "mappedJobs": 12,
+        "unmappedJobs": 46,
+        "mapObjects": 24,
+        "laneTotals": {
+          "performed": 3,
+          "submitted": 1,
+          "approved": 6,
+          "waiting": 2,
+          "untracked": 46
+        },
+        "fullTotalsUnchanged": true,
+        "sameTaskSetInThreeViews": true
+      },
+      "screenshots": [
+        "docs/evidence/manager-work-orders-map-5228aad.png",
+        "docs/evidence/manager-work-orders-kanban-5228aad.png",
+        "docs/evidence/manager-work-orders-kanban-full-5228aad.png"
+      ],
+      "newHostedVersionUploaded": false,
+      "workflowWrites": false,
+      "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+      "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
+      "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+      "apiWorkingTreeBaseRevision": "7712e45ca8d65e577e6b4cf57034a1dbb6919f39",
+      "apiSourceProvenance": "API-prøven kørte på P7-arbejdstræet før commit; migrationshashes matcher c495045.",
+      "localBrowserNoPositionJob": {
+        "sameJobOpened": true,
+        "canonicalStatus": "approved",
+        "submissionVersion": 2,
+        "historicalReturnedVersion": 1
+      },
+      "hostedStatusScope": "newHostedVersionUploaded=false records the original local verification; later separate manager/P9 preview is documented in laterManagerPreviewReceipt",
+      "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+    },
+    "P8": {
+      "codeRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+      "targetedTestFiles": 4,
+      "targetedTests": 27,
+      "testBreakdown": {
+        "manager": 17,
+        "actualQueryClientRoute": 3,
+        "actualRadixAtlasDraftPortal": 1,
+        "integrity": 6
+      },
+      "targetedLintPassed": true,
+      "fullTypecheckPassed": true,
+      "stagingBuildAndIsolationPassed": true,
+      "localBrowserPassed": true,
+      "actualBrowserWidth": 1280,
+      "newMobileAcceptance": false,
+      "actualMediaFailureObserved": true,
+      "exactJobPlanRendered": true,
+      "planVersion": 6,
+      "unsavedPlanNavigationBlocked": true,
+      "draftPreserved": true,
+      "cancelRestoredOriginalWithoutSave": true,
+      "mediaRetryLoadingThenError": true,
+      "returnPreservedMapFilterViewSelection": true,
+      "underlyingMediaFailureResolved": false,
+      "workflowWrites": false,
+      "newHostedVersionUploaded": false,
+      "productOwnerUnmergedRevision": "9104a74",
+      "productOwnerActiveTask": "fotoindgang",
+      "scope": "Afstemt smal medieisolation i projektets route og Atlas; separat PR45, offlinekontrakter og aktiv fotoindgang er ikke overtaget.",
+      "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+      "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+      "atlasDraftRetentionEvidence": "Actual Radix portal unit test; no separate browser Atlas interaction claimed.",
+      "hostedStatusScope": "newHostedVersionUploaded=false records the original local verification; later separate manager/P9 preview is documented in laterManagerPreviewReceipt",
+      "laterManagerPreviewReceipt": "docs/observation-draft-test-version-2026-11-04.json"
+    },
+    "P9": {
+      "codeRevision": "9af245d2be8e1bc248c66f6259b6554327e23e41",
+      "requirement": "OBS-09",
+      "coverage": "partial",
+      "normalManagerPathPassed": true,
+      "packageAcceptanceComplete": false,
+      "targetedTestsAcrossSeparateRuns": 124,
+      "singleCombined124Run": false,
+      "stagingBuildAndPreflightPassed": true,
+      "localCreationAndFirstPlanSaveReloadPassed": true,
+      "hostedReadPassed": true,
+      "hostedWorkflowWrites": 0,
+      "uploadedVersionId": "091e7098-491b-42a5-a52a-77a36ae1edb1",
+      "previousUploadedVersionId": "431999b8-df07-4dd3-b68c-8e148d5e2697",
+      "activeTrafficUnchanged": true,
+      "productOwnerPR45PR46Integrated": false,
+      "fullRollbackSqlSuiteRan": true,
+      "controlledMediaPhantomProbeRan": true,
+      "localAclDumpRestorePassed": true,
+      "localDatabaseCiPassed": true,
+      "ciSourceRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
+      "ciRunId": 41797803182,
+      "ciSqlFiles": 29,
+      "ciSqlAssertions": 2144,
+      "ciConcurrencyScenariosPassed": 6,
+      "ciActualLockWaitsVerified": 3,
+      "ciReceipt": "docs/selected-work-order-ci-2026-11-04.json",
+      "previousCiReceipt": "docs/observation-draft-ci-2026-11-04.json",
+      "previousCiRunId": 41796513511,
+      "previousCiSourceRevision": "73f503b62f08d15b3216aefa484501bcee70527d",
+      "previousAppCiTestsPassed": 3713,
+      "previousAppCiTestsFailed": 1,
+      "previousAppCiBuild": "skipped",
+      "appCiPassed": true,
+      "appCiTestFiles": 274,
+      "appCiTestsPassed": 3720,
+      "appCiTestsFailed": 0,
+      "appCiBuild": "passed default CI build; not a staging build",
+      "targetedMenuFixTestsPassed": 70,
+      "fullAppCiRerunAfterFix": "passed in 41797803182",
+      "fullHostedRecovery": false,
+      "storageOriginalBytesRestored": false,
+      "newPhysicalPhoneAcceptance": false,
+      "apiReceipt": "docs/observation-draft-api-staging-2026-11-04.json",
+      "localBrowserReceipt": "docs/observation-draft-browser-local-2026-11-04.json",
+      "serverReadbackReceipt": "docs/observation-draft-server-readback-2026-11-04.json",
+      "testVersionReceipt": "docs/selected-work-order-test-version-2026-11-04.json",
+      "previousTestVersionReceipt": "docs/observation-draft-test-version-2026-11-04.json",
+      "latestBrowserReceipt": "docs/selected-work-order-browser-2026-11-04.json",
+      "latestHostedReadSourceRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
+      "latestHostedReadWorkflowWrites": 0,
+      "skyhostObservationReceipt": "docs/skyhost-geotag-observation-2026-11-04.json",
+      "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+    },
+    "P10": {
+      "codeRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
+      "requirementIds": [
+        "JOB-01",
+        "JOB-05",
+        "ORG-04",
+        "SYS-05",
+        "SYS-07"
+      ],
+      "scope": "Agreed presentation-only selected-work-order focus; title and next action before general project help, compact project/municipality/place context, secondary help/chooser/origin details, native mobile part selection and retained mounted editors/drafts within actor/project scope",
+      "state": "technically implemented and tested; scoped desktop/responsive browser and hosted read acceptance passed on 622cfcb/091e7098; existing requirement coverage, physical phone and overall acceptance unchanged",
+      "code": [
+        "src/components/project/ProjectHeader.tsx",
+        "src/components/project/ProjectNavigation.tsx",
+        "src/components/project/ProjectWorkspaceShell.tsx",
+        "src/components/project/ProjectWorkOrdersWorkspace.tsx",
+        "src/components/project/WorkOrderObservationOrigin.tsx",
+        "src/routes/app.projects.$slug.tsx"
+      ],
+      "tests": [
+        "src/components/project/__tests__/ProjectHeaderFocus.test.tsx",
+        "src/components/project/__tests__/ProjectWorkOrdersWorkspace.test.tsx",
+        "src/components/project/__tests__/ProjectWorkspaceShell.test.tsx",
+        "src/components/project/__tests__/WorkOrderPlansPanel.test.tsx",
+        "src/components/project/__tests__/WorkOrderObservationDraftDialog.test.tsx",
+        "src/routes/__tests__/project-media-isolation.test.tsx"
+      ],
+      "localTargetedTestsPassed": 96,
+      "localTargetedFiles": 6,
+      "compactMunicipalityHeaderRechecked": true,
+      "strictTypecheckPassed": true,
+      "independentCodeReview": "no concrete blocking findings",
+      "ciRunId": 41797803182,
+      "ciReceipt": "docs/selected-work-order-ci-2026-11-04.json",
+      "fullCiPassed": true,
+      "appCiTestsPassed": 3720,
+      "appCiTestFiles": 274,
+      "defaultCiBuildPassed": true,
+      "stagingBuildVerifiedByThisRun": false,
+      "browserAcceptance": "passed scoped desktop 1280x720, actual DOM responsive 390x844 and normal hosted read; not a physical phone or full field workflow acceptance",
+      "scopedBrowserAcceptancePassed": true,
+      "browserReceipt": "docs/selected-work-order-browser-2026-11-04.json",
+      "testVersionReceipt": "docs/selected-work-order-test-version-2026-11-04.json",
+      "previewUrl": "https://091e7098-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/app/work-orders",
+      "uploadedVersionId": "091e7098-491b-42a5-a52a-77a36ae1edb1",
+      "laterStagingBuildPreflightAndGuardPassed": true,
+      "sourceMetadataHttpVerified": true,
+      "versionsUploadOnly": true,
+      "activeDeploymentBeforeAndAfter": "700e62c8-aaa0-4dff-8d5f-abb88ca52838",
+      "activeWorkerBeforeAndAfter": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+      "activeTrafficPercentageBeforeAndAfter": 100,
+      "activeStagingTrafficChanged": false,
+      "desktopViewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "desktopJobHeadingTop": 199.9875,
+      "desktopNextActionBottom": 411.5875,
+      "responsiveActualDomViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "responsiveJobHeadingTop": 172.7875,
+      "responsiveNextActionBottom": 443.1875,
+      "responsivePartSelectorTop": 310.3875,
+      "responsivePartSelectorBottom": 383.1875,
+      "horizontalOverflow": false,
+      "nativeMobilePartSelectorSwitchedFieldAndBack": true,
+      "draftPreservedAcrossPartSwitchAndHelp": true,
+      "backToTaskListLockedDuringDraft": true,
+      "draftCancelledWithoutSave": true,
+      "normalProjectListSearchReopenedSameAction": true,
+      "hostedSameActionId": "9cbb59e0-3a70-4796-a0b6-0e3900385fa1",
+      "hostedVisiblePlanVersion": 1,
+      "hostedVisibleSources": 2,
+      "hostedOriginalDescriptionVisible": true,
+      "hostedWorkflowWrites": 0,
+      "directApiPlanCountReadbackPerformed": false,
+      "screenshots": [
+        "docs/evidence/selected-work-order-622cfcb-desktop.png",
+        "docs/evidence/selected-work-order-622cfcb-mobile-390.png",
+        "docs/evidence/selected-work-order-hosted-091e7098.png"
+      ],
+      "newHostedUiAcceptance": true,
+      "hostedAcceptanceScope": "Existing manager normal entry and exact saved job/origin read only; no workflow writes",
+      "newPhysicalPhoneAcceptance": false,
+      "productOwnerPR45PR46Integrated": false,
+      "fullHostedRecovery": false,
+      "originalStorageBytesRestored": false,
+      "packageAcceptanceComplete": false,
+      "overallGoalComplete": false,
+      "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
     }
   },
   "evidence": {
@@ -1779,5 +2914,16 @@
       "physicalMobileAcceptance": false
     }
   },
-  "currentStagingReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json"
+  "currentStagingReceipt": "docs/offline-required-cards-staging-receipt-2026-11-04.json",
+  "ownershipReviewedAt": "2026-11-04",
+  "currentEvidenceRegister": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+  "historicalCoverageNote": "Oprindelige coverage-, remaining- og evidensfelter er dateret historik. P7/P8/P9 har nyere coverage/remaining og særskilte followUps/packageEvidence med eksplicit lokal, staging-API, hosted preview og SQL-afgrænsning. P10 har særskilt afgrænset desktop/responsiv/hosted læseprøve uden at lukke de underliggende krav. OBS-09s oprindelige felter er fastholdt i P9 historicalBaseline. currentStagingReceipt er historisk; currentManagerTestVersionReceipt peger nu på 622cfcb/091e7098, mens 9af/431999b8-kvitteringen bevares særskilt. Den nye version flytter ikke aktiv trafik eller dokumenterer PR45/PR46-integration, fysisk mobil eller samlet produktaccept. Øvrige beviser læses i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md.",
+  "currentManagerTestVersionReceipt": "docs/selected-work-order-test-version-2026-11-04.json",
+  "currentCombinedCandidate": {
+    "branch": "codex/combined-municipal-workflow",
+    "productSource": "20e58564e82011a692e8b46fae4802219b6f3a61",
+    "managerSource": "3c5c2f348bd52be605ac024c0e21eec0d36ea298",
+    "state": "source-integrated; candidate CI and hosted acceptance pending",
+    "evidence": "docs/FAELLES_KANDIDAT_2026-11-04.md"
+  }
 }

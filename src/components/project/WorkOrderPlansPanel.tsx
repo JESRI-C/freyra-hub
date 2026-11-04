@@ -23,7 +23,7 @@ import {
   type WorkOrderFollowUpSource,
 } from "@/lib/work-order-plan";
 import {
-  listFieldJobActions,
+  listFieldJobActionsForActor,
   listFieldJobSchedule,
   listFieldJobTemplates,
 } from "@/services/field-job-cards-service";
@@ -37,6 +37,8 @@ import { WorkOrderVisitMap } from "./WorkOrderVisitMap";
 import { WorkOrderSeries } from "./WorkOrderSeries";
 import { WorkOrderFollowUps } from "./WorkOrderFollowUps";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
+import { WorkOrderObservationOrigin } from "./WorkOrderObservationOrigin";
+import { useWorkOrderObservationOrigin } from "./useWorkOrderObservationOrigin";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
 import { getWatercourseVersions } from "@/services/watercourse-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
@@ -44,6 +46,7 @@ import { WorkOrderAccessPanel } from "./WorkOrderAccessPanel";
 import { WorkOrderAssignmentPanel } from "./WorkOrderAssignmentPanel";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
+import { projectWorkOrderOptionLabel } from "./project-work-order-status-presentation";
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const button =
@@ -103,7 +106,7 @@ function WorkOrderPlans({
   const enabled = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
-    queryFn: ({ signal }) => listFieldJobActions(scope, signal),
+    queryFn: ({ signal }) => listFieldJobActionsForActor(scope, actorId!, signal),
     enabled,
     retry: false,
   });
@@ -150,7 +153,7 @@ function WorkOrderPlans({
                 <option value="">Vælg opgave</option>
                 {actions.data.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.title}
+                    {projectWorkOrderOptionLabel(a)}
                   </option>
                 ))}
               </select>
@@ -306,6 +309,16 @@ function PlanWorkspace({
     },
   });
   const followUpSource = planSource ?? recoveredSource.data;
+  const observationOrigin = useWorkOrderObservationOrigin({
+    scope,
+    actionId,
+    actorId,
+    enabled: canPlan && canBook,
+  });
+  const needsFirstOrigin = canPlan && canBook && !latest && !followUpSource && !draftSource;
+  const firstOriginReady =
+    !needsFirstOrigin ||
+    (observationOrigin.isSuccess && !observationOrigin.isError && !observationOrigin.isFetching);
   const [openSourceId, setOpenSourceId] = useState<string>();
   const sourceId = latest?.source_plan_version_id;
   const sourceActionId = latest?.source_action_id;
@@ -344,10 +357,14 @@ function PlanWorkspace({
   ].sort((a, b) => b.version - a.version);
   const open = useCallback(
     (onlyDates = false) => {
+      if (!firstOriginReady) return;
       setDatesOnly(onlyDates);
       const suggestion = onlyDates && typeof openReschedule === "object" ? openReschedule : null;
       const plan = latest?.plan ?? {
-        ...(followUpSource?.plan ?? emptyWorkOrderPlan(title)),
+        ...(followUpSource?.plan ?? {
+          ...emptyWorkOrderPlan(title),
+          description: canBook ? (observationOrigin.data?.description ?? "") : "",
+        }),
         title,
         responsibleId: null,
         plannedStart: suggestedStart ?? null,
@@ -375,11 +392,27 @@ function PlanWorkspace({
       );
       onEditing(true);
     },
-    [latest, onEditing, openReschedule, followUpSource, suggestedStart, title],
+    [
+      latest,
+      onEditing,
+      openReschedule,
+      followUpSource,
+      suggestedStart,
+      title,
+      firstOriginReady,
+      canBook,
+      observationOrigin.data?.description,
+    ],
   );
   const openedRequestedEditor = useRef(false);
   useEffect(() => {
-    if (openedRequestedEditor.current || !canPlan || !history.isSuccess || history.isFetching)
+    if (
+      openedRequestedEditor.current ||
+      !canPlan ||
+      !history.isSuccess ||
+      history.isFetching ||
+      !firstOriginReady
+    )
       return;
     const datesOnly = !!openReschedule && !!latest;
     if (!datesOnly && (latest || (!suggestedStart && !planSource))) return;
@@ -395,6 +428,7 @@ function PlanWorkspace({
     history.isFetching,
     draft,
     open,
+    firstOriginReady,
   ]);
   async function submit() {
     if (!draft || !canPlan || saving.current) return;
@@ -591,6 +625,7 @@ function PlanWorkspace({
   );
   return (
     <div className="min-w-0 space-y-4">
+      <WorkOrderObservationOrigin scope={scope} actionId={actionId} enabled={canPlan && canBook} />
       {history.isFetching && <p role="status">Henter planhistorik…</p>}
       {(history.error || error) && (
         <p role="alert" className="rounded-xl border border-destructive p-3 text-sm">
@@ -812,6 +847,7 @@ function PlanWorkspace({
                 disabled={
                   history.isFetching ||
                   (!!draftSource && !recoveredSource.isSuccess) ||
+                  !firstOriginReady ||
                   accessEditing ||
                   assignmentEditing ||
                   lifecycleEditing ||

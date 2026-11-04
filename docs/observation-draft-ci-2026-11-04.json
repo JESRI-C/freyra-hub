@@ -1,0 +1,110 @@
+{
+  "schema": "freyra.observation-draft-ci/v1",
+  "headSha": "73f503b62f08d15b3216aefa484501bcee70527d",
+  "pullRequest": "https://github.com/JESRI-C/freyra-hub/pull/47",
+  "runId": 41796513511,
+  "runUrl": "https://github.com/JESRI-C/freyra-hub/actions/runs/41796513511",
+  "databaseJob": {
+    "id": 126461791401,
+    "conclusion": "success",
+    "freshMigrationReplay": true,
+    "sqlSuite": {
+      "files": 29,
+      "assertions": 2144,
+      "result": "PASS",
+      "observationDraftSuiteIncluded": true
+    },
+    "concurrency": {
+      "schema": "freyra.observation-draft-local-concurrency/v1",
+      "result": "PASS",
+      "localOnly": true,
+      "authApiUsed": false,
+      "httpUsed": false,
+      "originalBytesWritten": false,
+      "actualLockWaitsVerified": 3,
+      "originalReceiptSha256": "dd79e78cea6bcffdfabb22e9af578c0cd9cc018b609053d700531258065fdfe1",
+      "scenarios": [
+        {
+          "name": "simultaneous_same_request",
+          "actualLockVerified": true,
+          "sameReceipt": true,
+          "oneJobAndOriginAndDraftState": true
+        },
+        {
+          "name": "media_fk_key_share_before_source_for_update",
+          "actualLockVerified": true,
+          "staleSqlstate": "PT409",
+          "noPartialDraft": true
+        },
+        {
+          "name": "source_for_update_before_new_media_fk_key_share",
+          "actualLockVerified": true,
+          "snapshotExcludesLaterReference": true,
+          "laterReferencePreserved": true
+        },
+        {
+          "name": "committed_media_metadata_invalidates_preview",
+          "staleSqlstate": "PT409",
+          "noPartialDraft": true
+        },
+        {
+          "name": "committed_retry_after_source_and_media_delete",
+          "originalSnapshotAndReceiptPreserved": true
+        },
+        {
+          "name": "revoked_manager_cannot_replay_or_read_origin",
+          "deniedSqlstate": "42501",
+          "rlsHidesOrigins": true
+        }
+      ],
+      "after": {
+        "jobs": 2,
+        "origins": 2,
+        "draftStates": 2,
+        "plans": 0,
+        "assignments": 0,
+        "evidence": 0,
+        "storageObjects": 6
+      },
+      "fixtureRowsRetainedInDisposableStack": true,
+      "syntheticManagerRoleRestored": true
+    },
+    "dumpRestore": {
+      "stepConclusion": "success",
+      "privilegesIncluded": true,
+      "noRepairGrants": true,
+      "checks": [
+        "manager reads exact restored origin",
+        "snapshot and media-reference hash preserved",
+        "source and media deleted before dump while creation origin survives",
+        "external denied with SQLSTATE 42501 and private RLS hides origin",
+        "source/restored probe output identical"
+      ],
+      "artifactId": 13305397675,
+      "artifactDigest": "sha256:e8960bf88a72b5658488296b6b92418ad7b51631a9e85bd3949832c02d2dba61",
+      "artifactBodyIndependentlyDownloadedAndRead": false,
+      "fullHostedRecovery": false,
+      "storageOriginalBytesIncluded": false
+    },
+    "databaseFunctionLint": "success",
+    "disposableStackCleanup": "success"
+  },
+  "appJob": {
+    "id": 126461790861,
+    "conclusion": "failure",
+    "passedTests": 3713,
+    "failedTests": 1,
+    "cause": "Exact full-menu test expectation lacked the newly implemented /app/work-orders route",
+    "build": "skipped",
+    "targetedFix": "Expected route added; unchanged full-menu assertion; targeted file 70/70 PASS",
+    "fullSuiteAfterFix": "pending"
+  },
+  "boundaries": {
+    "p10UiIncluded": false,
+    "latestPr45And46Integrated": false,
+    "physicalIphoneAcceptance": false,
+    "activeStagingTrafficChanged": false,
+    "productionChanged": false,
+    "packageAcceptanceComplete": false
+  }
+}

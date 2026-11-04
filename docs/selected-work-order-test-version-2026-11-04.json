@@ -1,0 +1,41 @@
+{
+  "schema": "freyra.selected-work-order-test-version/v1",
+  "sourceRevision": "622cfcb82e5febc714fc6d2db2d59008b3ad1782",
+  "workerVersionId": "091e7098-491b-42a5-a52a-77a36ae1edb1",
+  "previewUrl": "https://091e7098-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev",
+  "normalEntry": "/app/work-orders",
+  "sourceCi": "docs/selected-work-order-ci-2026-11-04.json",
+  "build": {
+    "stagingPreflight": "PASS",
+    "bundleGuard": "PASS",
+    "customerDataOnly": true,
+    "municipalDemo": false,
+    "stagingSupabaseRef": "xdvqdzdpyceojbdknofi",
+    "publicMetadataHttpVerified": true,
+    "sourceRevisionMatches": true,
+    "buildThreadLimit": 2,
+    "initialLocalFailures": [
+      "Build output directory was held by our previous local Wrangler process; that process was stopped",
+      "esbuild service stopped while transpiling; unchanged source subsequently built successfully with GOMAXPROCS=2"
+    ]
+  },
+  "authorization": "Explicit user approval to upload a separate test version to the existing Cloudflare staging without switching traffic",
+  "operation": {
+    "command": "wrangler versions upload --config wrangler.json --env staging --keep-vars --strict --no-upload-source-maps",
+    "exitCode": 0,
+    "versionsDeployInvoked": false,
+    "triggersDeployInvoked": false
+  },
+  "activeTraffic": {
+    "beforeAndAfterDeploymentId": "700e62c8-aaa0-4dff-8d5f-abb88ca52838",
+    "beforeAndAfterWorkerVersionId": "94906bdf-e10d-4847-98c2-ad183b625b0f",
+    "beforeAndAfterPercentage": 100,
+    "changed": false
+  },
+  "boundaries": {
+    "latestFieldPhotoOfflinePr45And46Included": false,
+    "physicalIphoneAcceptance": false,
+    "productionChanged": false,
+    "overallGoalComplete": false
+  }
+}

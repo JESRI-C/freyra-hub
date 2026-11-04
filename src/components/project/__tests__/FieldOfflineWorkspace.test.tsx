@@ -603,6 +603,34 @@ describe("mobile field local save feedback", () => {
       work: "evidence",
     });
   });
+  it("links back to evidence on the exact requested job only when online", async () => {
+    const round = "44444444-4444-4444-8444-444444444444";
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace
+          requestedProject={f.project}
+          requestedRound={round}
+          requestedActionId={f.action}
+        />,
+      ),
+    );
+    const evidenceLink = () =>
+      [...host.querySelectorAll("a")].find((link) =>
+        link.textContent?.includes("Knyt dokumentation til opgaven"),
+      );
+    expect(evidenceLink()?.getAttribute("href")).toBe("/app/projects/$slug");
+    expect(JSON.parse(evidenceLink()!.dataset.params!)).toEqual({ slug: f.project });
+    expect(JSON.parse(evidenceLink()!.dataset.search!)).toEqual({
+      tab: "handlinger",
+      round,
+      task: f.action,
+      work: "evidence",
+    });
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    await act(async () => window.dispatchEvent(new Event("offline")));
+    expect(evidenceLink()).toBeUndefined();
+    vi.restoreAllMocks();
+  });
   it("waits for the local queue before opening a saved jobcard", async () => {
     const savedPack = pack();
     f.packs.mockResolvedValue([savedPack]);

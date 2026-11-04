@@ -19,6 +19,7 @@ import {
   Droplets,
   Menu,
   Network,
+  Columns3,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { programPageGuide } from "@/lib/program-map";
@@ -34,6 +35,7 @@ const GROUPS: SidebarGroup[] = [
     items: [
       { to: "/app/overview", label: "Dashboard", icon: LayoutDashboard },
       { to: "/app/program", label: "Programoverblik", icon: Network },
+      { to: "/app/work-orders", label: "Arbejdsordrer", icon: Columns3 },
       { to: "/opgaver", label: "Mine opgaver", icon: BookCheck },
       { to: "/app/projects", label: "Naturprojekter", icon: FolderOpen },
       { to: "/app/reports", label: "Rapporter", icon: FileText },

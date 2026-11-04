@@ -135,6 +135,7 @@ describe("kommunens arbejdsflade", () => {
       [
         "/app/overview",
         "/app/program",
+        "/app/work-orders",
         "/opgaver",
         "/app/projects",
         "/app/reports",
