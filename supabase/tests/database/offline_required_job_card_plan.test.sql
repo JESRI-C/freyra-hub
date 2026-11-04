@@ -97,7 +97,10 @@ SELECT throws_ok($$SELECT pg_temp.offline_save(0,47,674,(SELECT value::uuid FROM
 SELECT lives_ok($$SELECT pg_temp.offline_save(2,47,677,(SELECT value::uuid FROM pg_temp.saved WHERE name='offline-plan2'))$$,'explicitly rebased draft can be saved on the new plan');
 SELECT throws_ok($$INSERT INTO public.field_job_versions(action_id,organization_id,project_id,template_version_id,version,"values",status,correction_reason,request_id,required_plan_version_id)
  VALUES(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47)),4,'{}','draft','Synthetic bypass',pg_temp.k(678),(SELECT value::uuid FROM pg_temp.saved WHERE name='offline-plan1'))$$,'PT409',NULL,'direct Data API writes cannot bypass the source plan');
-SELECT throws_ok($$UPDATE public.field_job_versions SET required_plan_version_id=(SELECT value::uuid FROM pg_temp.saved WHERE name='offline-plan2') WHERE action_id=pg_temp.k(32) AND version=1$$,'23514',NULL,'old source plan reference is immutable');
+SELECT throws_ok($$UPDATE public.field_job_versions SET required_plan_version_id=(SELECT value::uuid FROM pg_temp.saved WHERE name='offline-plan2') WHERE action_id=pg_temp.k(32) AND version=1$$,'42501',NULL,'authenticated actor has no update privilege on old source plan references');
+RESET ROLE;
+SELECT throws_ok($$UPDATE public.field_job_versions SET required_plan_version_id=(SELECT value::uuid FROM pg_temp.saved WHERE name='offline-plan2') WHERE action_id=pg_temp.k(32) AND version=1$$,'23514',NULL,'immutable trigger also protects old source plan references for the table owner');
+SET LOCAL ROLE authenticated;
 SELECT lives_ok($$SELECT * FROM public.save_field_job_version(pg_temp.k(11),pg_temp.k(21),pg_temp.k(32),(SELECT id FROM public.field_job_template_versions WHERE template_id=pg_temp.k(47)),3,'{}','draft','Synthetic legacy client',pg_temp.k(679))$$,'legacy endpoint remains available for existing clients');
 SELECT is((SELECT required_plan_version_id FROM public.field_job_versions WHERE action_id=pg_temp.k(32) AND version=4),NULL::uuid,'legacy writes never invent a source plan');
 RESET ROLE;
