@@ -13,11 +13,34 @@ import { WorkOrderRequestError } from "@/lib/work-order-access";
 const m = vi.hoisted(() => ({
   context: vi.fn(),
   mutate: vi.fn(),
+  saveReport: vi.fn(),
   editing: vi.fn(),
   phase: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
-vi.mock("@tanstack/react-router", () => ({ useBlocker: vi.fn() }));
+vi.mock("@tanstack/react-router", () => ({
+  useBlocker: vi.fn(),
+  Link: ({
+    children,
+    search,
+    to,
+    params,
+  }: {
+    children: React.ReactNode;
+    search: Record<string, string> | ((previous: Record<string, string>) => Record<string, string>);
+    to: string;
+    params?: { slug: string };
+  }) => (
+    <a
+      href={`${to.replace("$slug", params?.slug ?? "")}?${new URLSearchParams(typeof search === "function" ? search({}) : search)}`}
+    >
+      {children}
+    </a>
+  ),
+}));
+vi.mock("@/services/report-document-service", () => ({
+  saveApprovedWorkOrderReport: m.saveReport,
+}));
 vi.mock("@/lib/work-order-submission.functions", () => ({
   getProjectWorkOrderReviewContext: m.context,
 }));
@@ -86,6 +109,56 @@ afterEach(async () => {
   host.remove();
 });
 describe("version-bound review on the existing task", () => {
+  it("explains the next step on a returned delivery with and without a reopen action", async () => {
+    const context = reviewContext();
+    m.context.mockResolvedValue({
+      ...context,
+      can_reopen: true,
+      can_review: false,
+      state: { ...context.state, status: "returned", reason: "Tilføj foto af afslutningen." },
+    });
+    await render();
+    expect(host.textContent).toContain("Tilføj foto af afslutningen.");
+    expect(host.textContent).toContain("Genåbn opgaven for at rette manglerne");
+
+    await render({ readOnly: true });
+    expect(host.textContent).toContain("En person med adgang til at genåbne opgaven");
+    expect(host.textContent).not.toContain("Genåbn opgaven for at rette manglerne");
+  });
+  it("keeps the return reason for the reopened version next to correction shortcuts", async () => {
+    const context = reviewContext();
+    const openCorrection = vi.fn();
+    m.context.mockResolvedValue({
+      ...context,
+      state: { ...context.state, status: "reopened", reason: "Genåbnet efter gennemgang." },
+      recent_reviews: [
+        {
+          state: {
+            ...context.state,
+            id: id(21),
+            status: "returned",
+            reason: "Tilføj foto af afslutningen.",
+          },
+          submission_version: 1,
+        },
+      ],
+    });
+    await render({ onOpenCorrection: openCorrection });
+    const heading = [...host.querySelectorAll("h4")].find(
+      (node) => node.textContent === "Ret den genåbnede aflevering",
+    );
+    expect(heading?.parentElement?.textContent).toContain("Mangler i afleveringsversion 1");
+    expect(heading?.parentElement?.textContent).toContain("Tilføj foto af afslutningen.");
+    await click("Åbn udførelsen");
+    await click("Åbn dokumentationen");
+    const note = { submissionVersion: 1, reason: "Tilføj foto af afslutningen." };
+    expect(openCorrection.mock.calls).toEqual([
+      ["execution", note],
+      ["evidence", note],
+    ]);
+    await render({ readOnly: true, onOpenCorrection: openCorrection });
+    expect(button("Åbn dokumentationen")).toBeUndefined();
+  });
   it("does not let the author or performer review their own material", async () => {
     m.context.mockResolvedValue({ ...reviewContext(), self_review: true, can_review: false });
     await render();
@@ -169,5 +242,83 @@ describe("version-bound review on the existing task", () => {
     expect(host.querySelector("textarea")?.value).toContain("Synthetic scope");
     expect(button("Gem afleveringshandling")?.disabled).toBe(true);
     expect(host.textContent).not.toContain("Status: Afleveret");
+  });
+});
+
+it("opens the saved report on exactly the approved packet and review", async () => {
+  const c = reviewContext();
+  m.context.mockResolvedValue({
+    ...c,
+    state: { ...c.state, id: id(20), status: "approved", operation: "review" },
+  });
+  m.saveReport.mockResolvedValue({
+    report_id: id(21),
+    version: 1,
+    content: { workOrderApproval: { reviewId: id(20) } },
+  });
+  await render();
+  expect(button("Klargør rapportkladde for afleveringsversion 1")).toBeUndefined();
+  const openFollowUpPlan = vi.fn();
+  const createFollowUp = vi.fn();
+  await render({
+    canCreateReport: true,
+    onOpenFollowUpPlan: openFollowUpPlan,
+    onCreateApprovedFollowUp: createFollowUp,
+  });
+  await click("Åbn arbejdsgrundlaget for opfølgning");
+  expect(openFollowUpPlan).toHaveBeenCalledOnce();
+  await click("Opret opfølgning fra godkendt plan");
+  expect(createFollowUp).toHaveBeenCalledWith(c.packet);
+  await click(`Klargør rapportkladde for afleveringsversion ${c.packet!.version}`);
+  expect(host.textContent).toContain("Rapportkladden er klar");
+  expect(m.saveReport).toHaveBeenCalledWith({
+    ...scope,
+    submissionId: c.packet!.id,
+    reviewId: id(20),
+  });
+  expect(host.querySelector('a[href^="/app/reports/preview"]')?.getAttribute("href")).toBe(
+    `/app/reports/preview?report=${id(21)}&version=1`,
+  );
+});
+
+it("opens the historical approval after the task has been reopened", async () => {
+  const c = reviewContext();
+  const createFollowUp = vi.fn();
+  m.context.mockResolvedValue({
+    ...c,
+    state: { ...c.state, status: "reopened" },
+    recent_reviews: [
+      {
+        state: {
+          ...c.state,
+          id: id(22),
+          status: "approved",
+          operation: "review",
+          submission_version_id: id(23),
+          plan_version_id: id(25),
+        },
+        submission_version: 1,
+      },
+    ],
+  });
+  m.saveReport.mockResolvedValue({
+    report_id: id(24),
+    version: 1,
+    content: { workOrderApproval: { reviewId: id(22) } },
+  });
+  await render({ canCreateReport: true, onCreateApprovedFollowUp: createFollowUp });
+  await click("Opret opfølgning fra afleveringsversion 1");
+  expect(createFollowUp).toHaveBeenCalledWith({ id: id(23), version: 1, plan_version_id: id(25) });
+  const historicalLink = [...host.querySelectorAll("a")].find(
+    (link) => link.textContent === "Se afleveringsversion 1",
+  );
+  expect(historicalLink?.getAttribute("href")).toBe(
+    `/app/projects/${scope.projectId}?tab=handlinger&task=${scope.actionId}&work=submission&submissionVersion=1`,
+  );
+  await click("Klargør rapportkladde for afleveringsversion 1");
+  expect(m.saveReport).toHaveBeenCalledWith({
+    ...scope,
+    submissionId: id(23),
+    reviewId: id(22),
   });
 });

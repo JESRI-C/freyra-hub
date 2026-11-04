@@ -1,12 +1,10 @@
-import type { WorkOrderPlanVersion } from "@/lib/work-order-plan";
+import {
+  formatWorkOrderHours,
+  workOrderProfileLabels,
+  type WorkOrderPlanVersion,
+} from "@/lib/work-order-plan";
 import type { WorkOrderPerson } from "@/lib/work-order-assignments";
-const profiles = {
-  general: "Generel opgave",
-  watercourse: "Vandløb",
-  nature: "Natur",
-  construction: "Byggeri og natur",
-  grazing: "Græsningspleje",
-};
+import { RequiredJobCards } from "./RequiredJobCards";
 export function WorkOrderPlanSummary({
   row,
   members = [],
@@ -21,12 +19,12 @@ export function WorkOrderPlanSummary({
         {plan.title} · plan version {row.version}
       </p>
       <p>
-        {plan.profile ? profiles[plan.profile] : "Metodeprofil uafklaret"} ·{" "}
+        {plan.profile ? workOrderProfileLabels[plan.profile] : "Metodeprofil uafklaret"} ·{" "}
         {plan.plannedStart ?? "Start uafklaret"}
         {plan.plannedEnd ? ` til ${plan.plannedEnd}` : ""}
       </p>
       <p>
-        Ansvarlig:{" "}
+        Planens ansvarlige:{" "}
         {plan.responsibleId
           ? members.find((m) => m.user_id === plan.responsibleId)?.display_name ||
             members.find((m) => m.user_id === plan.responsibleId)?.email ||
@@ -34,9 +32,23 @@ export function WorkOrderPlanSummary({
           : "Uafklaret"}
         . Planlagt metode: {plan.plannedMethod ?? "Uafklaret"}.
       </p>
+      {plan.estimatedHours != null && (
+        <p>Estimeret arbejdstid · {formatWorkOrderHours(plan.estimatedHours)}</p>
+      )}
       {plan.locationNote && <p>Sted: {plan.locationNote}</p>}
+      {!!plan.visitStops?.length && (
+        <div className="rounded-lg border p-3">
+          <p className="font-medium">Ekstra besøg i planlagt rækkefølge</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5">
+            {plan.visitStops.map((stop) => (
+              <li key={stop.siteId}>{stop.name}</li>
+            ))}
+          </ol>
+        </div>
+      )}
       {plan.description && <p>{plan.description}</p>}
       {plan.instructions && <p>Instruktion: {plan.instructions}</p>}
+      <RequiredJobCards cards={plan.requiredJobCards} />
       {plan.watercourse && (
         <dl className="grid grid-cols-2 gap-2">
           {Object.entries(plan.watercourse).map(([key, value]) => (

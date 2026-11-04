@@ -19,6 +19,7 @@ const m = vi.hoisted(() => ({
   save: vi.fn(),
   original: vi.fn(),
   editing: vi.fn(),
+  openField: vi.fn(),
   blocker: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
@@ -34,6 +35,7 @@ vi.mock("@/lib/work-order-evidence.functions", () => ({
 vi.mock("@/lib/work-order-execution.functions", () => ({
   readProjectWorkOrderExecutionBinding: m.readExecution,
 }));
+import type { FieldJobVersion } from "@/lib/field-job-cards";
 import { WorkOrderEvidencePanel } from "../WorkOrderEvidencePanel";
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function flush() {
@@ -41,7 +43,7 @@ async function flush() {
     await new Promise((r) => setTimeout(r, 20));
   });
 }
-async function render(canContribute = true, actorId = actor) {
+async function render(canContribute = true, actorId = actor, savedObservation?: FieldJobVersion) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
@@ -52,6 +54,8 @@ async function render(canContribute = true, actorId = actor) {
           actorId={actorId}
           canContribute={canContribute}
           onEditing={m.editing}
+          onOpenField={m.openField}
+          savedObservation={savedObservation}
         />
       </QueryClientProvider>,
     ),
@@ -198,6 +202,70 @@ describe("task documentation UI", () => {
       "Ukendt",
     ]);
     expect(m.sources).not.toHaveBeenCalled();
+    expect(host.textContent).not.toContain("Afklar denne registrering før aflevering");
+  });
+  it("identifies missing required answers and review on the pinned registration", async () => {
+    const linked = version();
+    m.list.mockResolvedValue({
+      items: [
+        {
+          ...linked,
+          observation_snapshot: {
+            ...linked.observation_snapshot,
+            status: "needs_review",
+            values: { count: 0, checked: null },
+          },
+        },
+      ],
+      nextAfterId: null,
+    });
+    await render();
+    expect(host.textContent).toContain("Afklar denne registrering før aflevering");
+    expect(host.textContent).toContain("Registreringen kræver gennemgang.");
+    expect(host.textContent).toContain("Udfyld Kontrolleret.");
+    expect(host.textContent).not.toContain("Udfyld Antal.");
+    await click("Åbn Feltregistrering");
+    expect(m.openField).toHaveBeenCalledTimes(1);
+    await click("Ret kobling");
+    expect(button("Åbn Feltregistrering").disabled).toBe(true);
+    await click("Åbn Feltregistrering");
+    expect(m.openField).toHaveBeenCalledTimes(1);
+    await render(false);
+    expect(host.textContent).toContain(
+      "Bed en person med adgang til at rette registreringen og opdatere koblingen.",
+    );
+    expect(host.textContent).not.toContain("Åbn Feltregistrering");
+  });
+  it("prefills a correction with the saved observation and keeps the original selected", async () => {
+    const linked = version();
+    const savedId = id(92);
+    m.list.mockResolvedValue({
+      items: [{ ...linked, observation_snapshot: { ...linked.observation_snapshot, values: {} } }],
+      nextAfterId: null,
+    });
+    const saved: FieldJobVersion = {
+      id: savedId,
+      organization_id: scope.organizationId,
+      project_id: scope.projectId,
+      action_id: scope.actionId,
+      version: 2,
+      template_version_id: id(93),
+      request_id: id(94),
+      created_by: actor,
+      created_at: linked.created_at,
+      correction_reason: "Test",
+      status: "recorded",
+      values: { count: 0, checked: false },
+    };
+    await render(true, actor, saved);
+    expect(host.textContent).toContain(
+      "Der er gemt en nyere registrering. Vælg den, og gem koblingen som en ny version.",
+    );
+    await click("Vælg gemt registrering version 2");
+    const selects = Array.from(host.querySelectorAll("select"));
+    expect(selects[0].value).toBe(savedId);
+    expect(selects[1].value).toBe(linked.upload_id);
+    expect(m.save).not.toHaveBeenCalled();
   });
   it("retries a lost reply with exactly the same evidence and request identities", async () => {
     m.save.mockRejectedValueOnce(new Error("Mistet svar"));

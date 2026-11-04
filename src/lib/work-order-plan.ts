@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { FieldJobTemplateDefinitionSchema } from "./field-job-cards";
 import { CalendarDate } from "./action-execution";
-import { WorkOrderScopeSchema } from "./work-order-access";
+import { WorkOrderActionIdSchema, WorkOrderScopeSchema } from "./work-order-access";
 const uuid = z.string().uuid();
 const optionalText = (max: number) => z.string().trim().min(1).max(max).nullable();
 const metres = z.number().finite().min(0).max(1_000_000_000).nullable();
@@ -59,25 +60,105 @@ export function emptyWorkOrderWatercourse(): WorkOrderWatercourse {
     term: null,
   };
 }
+const workOrderHours = new Intl.NumberFormat("da-DK", { maximumFractionDigits: 2 });
+export function formatWorkOrderHours(hours: number) {
+  return workOrderHours.format(hours) + (hours === 1 ? " time" : " timer");
+}
+
+export function workOrderPlanOverlaps(
+  plan: { start: string | null; end: string | null; cancelled?: boolean },
+  from: string,
+  through: string,
+) {
+  return (
+    !plan.cancelled && !!plan.start && plan.start <= through && (plan.end ?? plan.start) >= from
+  );
+}
+
+/** Distribute an estimate evenly across its inclusive calendar dates, independent of DST. */
+export function workOrderHoursInPeriod(
+  plan: { start: string | null; end: string | null; estimatedHours?: number | null },
+  from: string,
+  through: string,
+): number | null {
+  if (!plan.start || plan.estimatedHours == null) return null;
+  const end = plan.end ?? plan.start;
+  const overlapStart = from > plan.start ? from : plan.start;
+  const overlapEnd = through < end ? through : end;
+  if (overlapEnd < overlapStart) return 0;
+  const days = (start: string, finish: string) =>
+    (Date.parse(finish) - Date.parse(start)) / 86_400_000 + 1;
+  return (plan.estimatedHours * days(overlapStart, overlapEnd)) / days(plan.start, end);
+}
+
+export const WorkOrderEstimatedHoursSchema = z
+  .number()
+  .min(0)
+  .max(10000)
+  .refine(
+    (hours) => Number(hours.toFixed(2)) === hours,
+    "Timeestimatet kan have op til to decimaler.",
+  );
+
+export const RequiredJobCardSchema = z
+  .object({
+    templateVersionId: z.string().uuid(),
+    templateId: z.string().uuid(),
+    version: z.number().int().positive().max(2147483647),
+    definition: FieldJobTemplateDefinitionSchema,
+  })
+  .strict();
+export type RequiredJobCard = z.infer<typeof RequiredJobCardSchema>;
+
 export const WorkOrderPlanSchema = z
   .object({
     schema: z.literal("freyra.work-order-plan/v1"),
     title: z.string().trim().min(1).max(160),
     description: z.string().trim().max(4000),
     instructions: z.string().trim().max(4000),
+    requiredJobCards: z.array(RequiredJobCardSchema).max(10).optional(),
     profile: z.enum(["general", "watercourse", "nature", "construction", "grazing"]).nullable(),
     responsibleId: uuid.nullable(),
     siteId: uuid.nullable(),
+    visitStops: z
+      .array(
+        z
+          .object({
+            siteId: uuid,
+            name: z.string().trim().min(1).max(500),
+          })
+          .strict(),
+      )
+      .max(20)
+      .optional(),
     watercourseVersionId: uuid.nullable(),
     locationNote: z.string().trim().max(2000),
     plannedStart: CalendarDate.nullable(),
     plannedEnd: CalendarDate.nullable(),
+    estimatedHours: WorkOrderEstimatedHoursSchema.nullable().optional(),
     priority: z.enum(["high", "medium", "low"]).nullable(),
     plannedMethod: optionalText(2000),
     watercourse: WorkOrderWatercourseSchema.nullable(),
   })
   .strict()
   .superRefine((value, ctx) => {
+    const required = value.requiredJobCards ?? [];
+    if (new Set(required.map((card) => card.templateId.toLowerCase())).size !== required.length)
+      ctx.addIssue({
+        code: "custom",
+        path: ["requiredJobCards"],
+        message: "Vælg kun én version af hvert påkrævet jobkort.",
+      });
+    const siteIds = (value.visitStops ?? []).map((stop) => stop.siteId.toLowerCase());
+    if (
+      new Set(siteIds).size !== siteIds.length ||
+      siteIds.includes(value.siteId?.toLowerCase() ?? "")
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["visitStops"],
+        message: "Vælg kun hver lokalitet én gang.",
+      });
     if (value.plannedEnd && (!value.plannedStart || value.plannedEnd < value.plannedStart))
       ctx.addIssue({
         code: "custom",
@@ -98,6 +179,14 @@ export const WorkOrderPlanSchema = z
       });
   });
 export type WorkOrderPlan = z.infer<typeof WorkOrderPlanSchema>;
+
+export const workOrderProfileLabels = {
+  general: "Generel opgave",
+  watercourse: "Vandløb",
+  nature: "Natur",
+  construction: "Byggeri og natur",
+  grazing: "Græsningspleje",
+} satisfies Record<NonNullable<WorkOrderPlan["profile"]>, string>;
 export function emptyWorkOrderPlan(title: string): WorkOrderPlan {
   return {
     schema: "freyra.work-order-plan/v1",
@@ -122,9 +211,16 @@ export const SaveWorkOrderPlanSchema = WorkOrderScopeSchema.extend({
   requestId: uuid,
   plan: WorkOrderPlanSchema,
   correctionReason: z.string().trim().max(2000),
+  sourcePlanVersionId: uuid.optional(),
 })
   .strict()
   .superRefine((input, ctx) => {
+    if (input.expectedVersion > 0 && input.sourcePlanVersionId)
+      ctx.addIssue({
+        code: "custom",
+        path: ["sourcePlanVersionId"],
+        message: "Kildeplanen vælges ved den første planversion.",
+      });
     if (input.expectedVersion > 0 && !input.correctionReason)
       ctx.addIssue({
         code: "custom",
@@ -135,13 +231,16 @@ export const SaveWorkOrderPlanSchema = WorkOrderScopeSchema.extend({
 export type SaveWorkOrderPlan = z.infer<typeof SaveWorkOrderPlanSchema>;
 export const WorkOrderPlanVersionSchema = z.object({
   id: uuid,
-  action_id: uuid,
+  action_id: WorkOrderActionIdSchema,
   organization_id: uuid,
   project_id: uuid,
   version: z.number().int().positive(),
   plan: WorkOrderPlanSchema,
   correction_reason: z.string().trim().max(2000),
-  request_id: uuid,
+  source_plan_version_id: uuid.nullish(),
+  source_action_id: WorkOrderActionIdSchema.nullish(),
+  source_plan_version: z.number().int().positive().nullish(),
+  request_id: WorkOrderActionIdSchema,
   created_by: uuid,
   created_at: z.string().datetime({ offset: true }),
 });
@@ -170,8 +269,12 @@ export function workOrderPlanGaps(plan: WorkOrderPlan): string[] {
     ...(!plan.plannedStart ? ["Planlagt start er uafklaret."] : []),
     ...(!plan.plannedMethod ? ["Planlagt metode er uafklaret."] : []),
     ...(!plan.instructions ? ["Arbejdsinstruktion mangler."] : []),
-    ...(!plan.siteId && !plan.watercourseVersionId && !plan.locationNote
+    ...(!plan.siteId && !plan.visitStops?.length && !plan.watercourseVersionId && !plan.locationNote
       ? ["Sted eller delstrækning er uafklaret."]
       : []),
   ];
 }
+export type WorkOrderFollowUpSource = Pick<
+  WorkOrderPlanVersion,
+  "id" | "action_id" | "version" | "plan"
+>;

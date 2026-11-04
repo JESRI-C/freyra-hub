@@ -279,8 +279,13 @@ export async function listMyWorkOrders(
   checkActor(actorId, input.expectedActorId);
   const data = await rows(
     client,
-    "list_my_work_orders",
-    { p_after_action_id: input.afterActionId, p_page_size: input.pageSize },
+    input.search ? "search_my_work_orders" : "list_my_work_orders_with_filter",
+    {
+      p_after_action_id: input.afterActionId,
+      p_page_size: input.pageSize,
+      p_filter: input.filter ?? "all",
+      ...(input.search ? { p_search: input.search } : {}),
+    },
     MyWorkOrderSchema,
     input.pageSize,
   );

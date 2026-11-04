@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ActionExecutionSchema, CalendarDate } from "./action-execution";
-import { WorkOrderScopeSchema } from "./work-order-access";
+import { WorkOrderActionIdSchema, WorkOrderScopeSchema } from "./work-order-access";
 export const LoadWorkOrderExecutionSchema = WorkOrderScopeSchema.extend({
   expectedActorId: z.string().uuid(),
   previousRevisionId: z.string().uuid().nullable(),
@@ -50,7 +50,7 @@ export const SaveWorkOrderExecutionSchema = WorkOrderScopeSchema.extend({
 export const WorkOrderExecutionBindingSchema = z
   .object({
     workspace_entry_id: z.string().uuid(),
-    action_id: z.string().uuid(),
+    action_id: WorkOrderActionIdSchema,
     organization_id: z.string().uuid(),
     project_id: z.string().uuid(),
     version: z.number().int().positive(),

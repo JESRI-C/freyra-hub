@@ -35,6 +35,10 @@ export function IndicatorConfigDialog({
   const [label, setLabel] = useState(indicator.label);
   const [description, setDescription] = useState(indicator.description ?? "");
   const [unit, setUnit] = useState(indicator.unit ?? "");
+  const [target, setTarget] = useState(indicator.target_value?.toString() ?? "");
+  const [targetDirection, setTargetDirection] = useState<"at_least" | "at_most">(
+    indicator.target_direction ?? "at_least",
+  );
   const [warn, setWarn] = useState(indicator.threshold_warning?.toString() ?? "");
   const [crit, setCrit] = useState(indicator.threshold_critical?.toString() ?? "");
   const [direction, setDirection] = useState<"above" | "below">(
@@ -43,12 +47,31 @@ export function IndicatorConfigDialog({
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
+    const targetValue = target.trim() ? Number(target) : null;
+    const targetUnit = unit.trim();
+    if (
+      targetValue !== null &&
+      (!Number.isFinite(targetValue) ||
+        !targetUnit ||
+        targetUnit.length > 120 ||
+        (indicator.target_unit && indicator.target_unit !== targetUnit))
+    ) {
+      toast.error(
+        indicator.target_unit && indicator.target_unit !== targetUnit
+          ? "Fjern den gamle målværdi, før du gemmer en ny enhed."
+          : "Angiv en gyldig målværdi og enhed.",
+      );
+      return;
+    }
     setSaving(true);
     try {
       await saveIndicatorConfig(indicator, {
         label: label.trim(),
         description: description.trim() || null,
         unit: unit.trim() || null,
+        target_value: targetValue,
+        target_direction: targetValue === null ? null : targetDirection,
+        target_unit: targetValue === null ? null : targetUnit,
         threshold_warning: warn === "" ? null : Number(warn),
         threshold_critical: crit === "" ? null : Number(crit),
         threshold_direction: direction,
@@ -65,7 +88,7 @@ export function IndicatorConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Konfigurér indikator</DialogTitle>
         </DialogHeader>
@@ -118,6 +141,32 @@ export function IndicatorConfigDialog({
           <p className="text-xs text-muted-foreground">
             Målinger, der rammer en grænse, opretter automatisk en handling.
           </p>
+          <fieldset className="space-y-2 rounded-lg border p-3" disabled={saving}>
+            <legend className="px-1 text-sm font-medium">Mål for indikatoren</legend>
+            <Label htmlFor="indicator-target-value">Målværdi</Label>
+            <Input
+              id="indicator-target-value"
+              type="number"
+              step="any"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+            />
+            <Label htmlFor="indicator-target-direction">Målets retning</Label>
+            <select
+              id="indicator-target-direction"
+              className="block min-h-10 w-full rounded-md border bg-background px-2"
+              value={targetDirection}
+              onChange={(e) =>
+                setTargetDirection(e.target.value === "at_most" ? "at_most" : "at_least")
+              }
+            >
+              <option value="at_least">Mindst målværdien</option>
+              <option value="at_most">Højst målværdien</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Målet bruger indikatorens enhed. Lad målværdien stå tom for at fjerne målet.
+            </p>
+          </fieldset>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>

@@ -1,4 +1,8 @@
-import { isWorkOrderView } from "@/lib/work-order-navigation";
+import {
+  isWorkOrderListView,
+  isWorkOrderView,
+  type WorkOrderListView,
+} from "@/lib/work-order-navigation";
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -130,6 +134,10 @@ export const Route = createFileRoute("/app/projects/$slug")({
     step?: MunicipalStep;
     task?: string;
     work?: WorkOrderView;
+    taskList?: WorkOrderListView;
+    reviewOnly?: true;
+    submissionVersion?: number;
+    indicator?: string;
   } => ({
     ...(typeof search.step === "string" && MUNICIPAL_STEPS.some((item) => item.id === search.step)
       ? { step: search.step as MunicipalStep }
@@ -146,6 +154,18 @@ export const Route = createFileRoute("/app/projects/$slug")({
       ? { task: search.task.toLowerCase() }
       : {}),
     ...(isWorkOrderView(search.work) ? { work: search.work as WorkOrderView } : {}),
+    ...(isWorkOrderListView(search.taskList) ? { taskList: search.taskList } : {}),
+    ...(search.reviewOnly === true ? { reviewOnly: true as const } : {}),
+    ...(typeof search.indicator === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search.indicator)
+      ? { indicator: search.indicator.toLowerCase() }
+      : {}),
+    ...(typeof search.submissionVersion === "number" &&
+    Number.isInteger(search.submissionVersion) &&
+    search.submissionVersion > 0 &&
+    search.submissionVersion <= 2147483647
+      ? { submissionVersion: search.submissionVersion }
+      : {}),
   }),
   head: () => ({ meta: [{ title: "Projekt — Freyra" }] }),
   // Project reads depend on the browser-persisted Supabase session. Rendering
@@ -209,7 +229,24 @@ function MunicipalProjectPage({ step }: { step: MunicipalStep }) {
       selectedRoundId={search.round}
       selectedActionId={search.task}
       initialWorkOrderView={search.work}
-      onSelectAction={(task) => void navigate({ search: { ...search, task }, replace: true })}
+      initialTaskList={search.taskList}
+      reviewOnly={!!search.reviewOnly}
+      onReviewOnly={(value) =>
+        void navigate({ search: { ...search, reviewOnly: value || undefined }, replace: true })
+      }
+      submissionVersion={search.submissionVersion}
+      onTaskList={(taskList) => void navigate({ search: { ...search, taskList }, replace: true })}
+      onSelectAction={(task, view) =>
+        void navigate({
+          search: {
+            ...search,
+            task,
+            work: view ?? search.work,
+            submissionVersion: task === search.task ? search.submissionVersion : undefined,
+          },
+          replace: true,
+        })
+      }
       onStep={(next) =>
         void navigate({ search: projectViewSearch(search, { kind: "step", id: next }) })
       }
@@ -357,9 +394,10 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
   useEffect(() => {
     setLocalActions(actions);
   }, [actions]);
-  const [selectedIndicator, setSelectedIndicator] = useState<(typeof indicators)[number] | null>(
-    null,
-  );
+  const [selectedIndicatorId, setSelectedIndicatorId] = useState<string>();
+  const linkedIndicatorId = activeTab === "indikatorer" ? search.indicator : undefined;
+  const selectedIndicator =
+    indicators.find((item) => item.id === (linkedIndicatorId ?? selectedIndicatorId)) ?? null;
   const [indicatorDetailOpen, setIndicatorDetailOpen] = useState(false);
   const [actionFilterSite, setActionFilterSite] = useState<string>("");
   const [actionFilterStatus, setActionFilterStatus] = useState<string>("");
@@ -371,7 +409,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
     return true;
   });
   const openIndicator = (ind: (typeof indicators)[number]) => {
-    setSelectedIndicator(ind);
+    setSelectedIndicatorId(ind.id);
     setIndicatorDetailOpen(true);
   };
   // A failed background media refresh must not feed stale/empty evidence to the report preview.
@@ -500,6 +538,16 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                   description={project.description}
                   onEditPurpose={canEdit ? () => setEditingPurpose(true) : undefined}
                   onChoose={(id) => void navigate({ search: projectJourneySearch(id, search) })}
+                  onOpenReviewQueue={() =>
+                    void navigate({
+                      search: {
+                        tab: "handlinger",
+                        round: search.round,
+                        taskList: "schedule",
+                        reviewOnly: true,
+                      },
+                    })
+                  }
                 />
                 <details className="rounded-xl border bg-card p-4">
                   <summary className="min-h-11 cursor-pointer py-3 font-medium">
@@ -598,6 +646,34 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
             {/* ── Indikatorer ────────────────────────────────────────────── */}
             {active === "indikatorer" && (
               <div className="space-y-4">
+                {search.task && (
+                  <Link
+                    to="/app/projects/$slug"
+                    params={{ slug }}
+                    search={{
+                      tab: "handlinger",
+                      task: search.task,
+                      work: "plan",
+                      round: search.round,
+                    }}
+                    className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4"
+                  >
+                    Tilbage til opgavens arbejdsgrundlag
+                  </Link>
+                )}
+                {linkedIndicatorId && !selectedIndicator && (
+                  <p role="status">
+                    Den valgte indikator findes ikke på sagen med din aktuelle adgang.
+                  </p>
+                )}
+                <Link
+                  to="/app/projects/$slug"
+                  params={{ slug }}
+                  search={projectViewSearch(search, { kind: "step", id: "sammenligning" })}
+                  className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4"
+                >
+                  Åbn projektets før- og eftervurdering
+                </Link>
                 {!hasRealGeometry ? (
                   <GeometryRequiredBanner slug={slug} variant="detailed" />
                 ) : (
@@ -635,8 +711,29 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                     canEdit={canEdit}
                     selectedActionId={search.task}
                     initialView={search.work}
-                    onSelectAction={(task) =>
-                      void navigate({ search: { ...search, task }, replace: true })
+                    initialListView={search.taskList}
+                    reviewOnly={!!search.reviewOnly}
+                    onReviewOnly={(value) =>
+                      void navigate({
+                        search: { ...search, reviewOnly: value || undefined },
+                        replace: true,
+                      })
+                    }
+                    submissionVersion={search.submissionVersion}
+                    onListView={(taskList) =>
+                      void navigate({ search: { ...search, taskList }, replace: true })
+                    }
+                    onSelectAction={(task, view) =>
+                      void navigate({
+                        search: {
+                          ...search,
+                          task,
+                          work: view ?? search.work,
+                          submissionVersion:
+                            task === search.task ? search.submissionVersion : undefined,
+                        },
+                        replace: true,
+                      })
                     }
                   />
                 )}
@@ -1051,9 +1148,16 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
       </ProjectTabs>
 
       <IndicatorDetail
+        key={selectedIndicator?.id}
         indicator={selectedIndicator}
-        open={indicatorDetailOpen}
-        onOpenChange={setIndicatorDetailOpen}
+        readOnly={!canEdit}
+        open={indicatorDetailOpen || !!linkedIndicatorId}
+        onOpenChange={(open) => {
+          setIndicatorDetailOpen(open);
+          if (!open && linkedIndicatorId) {
+            void navigate({ search: { ...search, indicator: undefined }, replace: true });
+          }
+        }}
       />
     </main>
   );

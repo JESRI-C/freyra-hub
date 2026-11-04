@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { WorkOrderEstimatedHoursSchema } from "@/lib/work-order-plan";
+import { CalendarDate } from "@/lib/action-execution";
+import { WorkOrderActionIdSchema } from "@/lib/work-order-access";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { assertProjectScope, type ProjectScope } from "./project-workspace-service";
@@ -20,7 +23,9 @@ async function client(scope: ProjectScope) {
   return supabase as unknown as SupabaseClient;
 }
 function failure(error: { code?: string; message?: string }): never {
-  if (error.code === "40001" || error.code === "23505")
+  if (error.code === "PT410")
+    throw new Error("Opgaven er aflyst. Du kan stadig se tidligere feltregistreringer.");
+  if (error.code === "PT409" || error.code === "40001" || error.code === "23505")
     throw new Error("Jobkortet er ændret af en anden. Genindlæs før du gemmer en ny version.");
   if (error.code === "42P01" || error.code === "PGRST202" || error.code === "PGRST205")
     throw new Error("Jobkort er endnu ikke installeret i dette miljø.");
@@ -34,20 +39,135 @@ function scopeRow<T extends { project_id: string; organization_id: string }>(
     throw new Error("Jobkortet tilhører en anden sag.");
   return row;
 }
-export async function listFieldJobActions(scope: ProjectScope) {
+const fieldJobAction = z.object({
+  id: WorkOrderActionIdSchema,
+  title: z.string(),
+  status: z.string().nullable(),
+  linked_indicator_id: z.string().uuid().nullish(),
+});
+
+export async function listFieldJobActions(scope: ProjectScope, signal?: AbortSignal) {
   const db = await client(scope);
-  const { data, error } = await db
-    .from("actions")
-    .select("id,title,status,action_type")
-    .eq("project_id", scope.projectId)
-    .order("id")
-    .limit(501);
-  if (error) failure(error);
-  if ((data ?? []).length > 500)
-    throw new Error("Projektet har over 500 opgaver. Jobkort kræver et afgrænset opgaveudvalg.");
-  return (data ?? [])
-    .filter((r) => r.action_type !== "workflow_followup")
-    .map((r) => z.object({ id: uuid, title: z.string(), status: z.string().nullable() }).parse(r));
+  const actions: z.infer<typeof fieldJobAction>[] = [];
+  const pageSize = 200;
+  let afterId: string | undefined;
+  for (;;) {
+    signal?.throwIfAborted();
+    let query = db
+      .from("actions")
+      .select("id,title,status,action_type,linked_indicator_id")
+      .eq("project_id", scope.projectId)
+      .order("id")
+      .limit(pageSize);
+    if (afterId) query = query.gt("id", afterId);
+    if (signal) query = query.abortSignal(signal);
+    const { data, error } = await query;
+    if (error) failure(error);
+    for (const row of data ?? []) {
+      if (row.action_type !== "workflow_followup") actions.push(fieldJobAction.parse(row));
+    }
+    if (!data || data.length < pageSize) return actions;
+    afterId = WorkOrderActionIdSchema.parse(data[data.length - 1].id);
+  }
+}
+const scheduleRow = z.object({
+  work_order_prerequisite_versions: z
+    .array(
+      z.object({
+        prerequisite_action_id: WorkOrderActionIdSchema.nullable(),
+        prerequisite_action_ids: z.array(WorkOrderActionIdSchema).max(12).nullable(),
+      }),
+    )
+    .max(1),
+  action_id: WorkOrderActionIdSchema,
+  work_order_lifecycle_versions: z.array(z.object({ status: z.string() })).max(1),
+  work_order_plan_versions: z
+    .array(
+      z.object({
+        id: uuid,
+        planned_start: CalendarDate.nullable(),
+        planned_end: CalendarDate.nullable(),
+        responsible_id: uuid.nullable(),
+        estimated_hours: WorkOrderEstimatedHoursSchema.nullable(),
+      }),
+    )
+    .max(1),
+});
+
+export async function listFieldJobSchedule(scope: ProjectScope) {
+  const db = await client(scope);
+  const dates: Record<
+    string,
+    {
+      planVersionId: string;
+      cancelled: boolean;
+      reviewStatus?: "submitted" | "returned" | "reopened";
+      waitingForActionIds: string[];
+      start: string | null;
+      end: string | null;
+      responsibleId: string | null;
+      estimatedHours: number | null;
+    }
+  > = {};
+  const prerequisites = new Map<string, string[]>();
+  const completed = new Set<string>();
+  const pageSize = 200;
+  let afterId: string | undefined;
+  for (;;) {
+    let query = db
+      .from("work_orders")
+      .select(
+        "action_id,work_order_plan_versions(id,planned_start,planned_end,responsible_id,estimated_hours:plan->estimatedHours),work_order_lifecycle_versions(status),work_order_prerequisite_versions(prerequisite_action_id,prerequisite_action_ids)",
+      )
+      .eq("organization_id", scope.organizationId)
+      .eq("project_id", scope.projectId)
+      .order("action_id")
+      .order("version", { referencedTable: "work_order_plan_versions", ascending: false })
+      .limit(1, { referencedTable: "work_order_plan_versions" })
+      .order("version", { referencedTable: "work_order_lifecycle_versions", ascending: false })
+      .limit(1, { referencedTable: "work_order_lifecycle_versions" })
+      .order("version", { referencedTable: "work_order_prerequisite_versions", ascending: false })
+      .limit(1, { referencedTable: "work_order_prerequisite_versions" })
+      .limit(pageSize);
+    if (afterId) query = query.gt("action_id", afterId);
+    const { data, error } = await query;
+    if (error) throw new Error("Planoversigten kunne ikke hentes. Prøv igen.");
+    const rows = z.array(scheduleRow).parse(data);
+    for (const row of rows) {
+      const status = row.work_order_lifecycle_versions[0]?.status;
+      if (status === "performed" || status === "submitted" || status === "approved") {
+        completed.add(row.action_id);
+      }
+      const dependency = row.work_order_prerequisite_versions[0];
+      const prerequisite =
+        dependency?.prerequisite_action_ids ??
+        (dependency?.prerequisite_action_id ? [dependency.prerequisite_action_id] : []);
+      if (prerequisite.length && (!status || ["draft", "planned", "assigned"].includes(status))) {
+        prerequisites.set(row.action_id, prerequisite);
+      }
+      const plan = row.work_order_plan_versions[0];
+      if (plan)
+        dates[row.action_id] = {
+          planVersionId: plan.id,
+          cancelled: status === "cancelled",
+          ...(status === "submitted" || status === "returned" || status === "reopened"
+            ? { reviewStatus: status }
+            : {}),
+          waitingForActionIds: [],
+          start: plan.planned_start,
+          end: plan.planned_end,
+          responsibleId: plan.responsible_id,
+          estimatedHours: plan.estimated_hours,
+        };
+    }
+    if (rows.length < pageSize) break;
+    afterId = rows[rows.length - 1].action_id;
+  }
+  for (const [actionId, prerequisiteIds] of prerequisites) {
+    const plan = dates[actionId];
+    if (plan) plan.waitingForActionIds = prerequisiteIds.filter((id) => !completed.has(id));
+  }
+  return dates;
 }
 export async function listFieldJobTemplates(scope: ProjectScope) {
   const db = await client(scope);
@@ -65,7 +185,7 @@ export async function listFieldJobTemplates(scope: ProjectScope) {
 }
 export async function listFieldJobVersions(scope: ProjectScope, actionId: string) {
   const db = await client(scope);
-  uuid.parse(actionId);
+  WorkOrderActionIdSchema.parse(actionId);
   const { data, error } = await db
     .from("field_job_versions")
     .select("*")
@@ -123,7 +243,7 @@ export async function saveFieldJobVersion(
     requestId: string;
   },
 ) {
-  uuid.parse(input.actionId);
+  WorkOrderActionIdSchema.parse(input.actionId);
   uuid.parse(input.templateVersionId);
   uuid.parse(input.requestId);
   z.number().int().nonnegative().parse(input.expectedVersion);

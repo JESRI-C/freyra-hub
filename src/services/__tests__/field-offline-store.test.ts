@@ -159,6 +159,7 @@ describe("durable field outbox", () => {
   it("sends dependent job revisions only after a matching canonical receipt, preserving false and zero", async () => {
     const store = await openFieldOfflineStore(new IDBFactory()),
       first = job();
+    first.payload.actionId = "11111111-1111-c111-5111-111111111111";
     const next = {
       ...first,
       id: crypto.randomUUID(),
@@ -185,6 +186,33 @@ describe("durable field outbox", () => {
     expect((await store.claim(actor, 3001))?.id).toBe(next.id);
     store.close();
   });
+  it("keeps a cancelled field draft and dependent answers without offering retry", async () => {
+    const store = await openFieldOfflineStore(new IDBFactory());
+    const first = job();
+    const next = {
+      ...first,
+      id: crypto.randomUUID(),
+      dependsOn: first.id,
+      payload: { ...first.payload, expectedVersion: 2 },
+    };
+    await store.enqueue(first);
+    const claim = (await store.claim(actor, 2000))!;
+    await store.enqueue(next);
+    await store.fail(actor, first.id, claim.leaseId!, "cancelled", 3000);
+    expect(await store.claim(actor, 3001)).toBeNull();
+    const items = await store.items(actor);
+    expect(items).toHaveLength(2);
+    for (const item of items) {
+      expect(item).toMatchObject({
+        state: "blocked",
+        lastError: "cancelled",
+        payload: { values: { seen: false, count: 0 } },
+      });
+      await expect(store.retry(actor, item.id)).rejects.toThrow("aflyst");
+    }
+    store.close();
+  });
+
   it("makes dependent conflicts visible without stopping unrelated photos", async () => {
     const store = await openFieldOfflineStore(new IDBFactory()),
       first = job();

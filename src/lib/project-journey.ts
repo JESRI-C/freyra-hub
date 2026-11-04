@@ -42,6 +42,17 @@ export const PROJECT_JOURNEY = [
     work: "execution",
   },
   {
+    id: "submission",
+    title: "Aflevér til faglig gennemgang",
+    question: "Er opgavens udførelse og dokumentation klar?",
+    description:
+      "Saml de gemte registreringer og originalfotos i en afleveringsversion. Send den til en person med gennemgangsadgang.",
+    output: "En afleveringsversion med kilder og en synlig afgørelse efter gennemgang.",
+    action: "Åbn opgavens aflevering",
+    view: { kind: "tab", id: "handlinger" },
+    work: "submission",
+  },
+  {
     id: "assessment",
     title: "Vurdér ændringen",
     question: "Hvad viser før og efter?",
@@ -68,7 +79,7 @@ export const PROJECT_JOURNEY = [
   output: string;
   action: string;
   view: ProjectView;
-  work?: "plan" | "execution";
+  work?: "plan" | "execution" | "submission";
 }[];
 
 export type ProjectJourneyId = (typeof PROJECT_JOURNEY)[number]["id"];
@@ -82,5 +93,6 @@ export function projectJourneySearch(
     ...context,
     ...(item.view.kind === "tab" ? { tab: item.view.id } : { step: item.view.id }),
     ...("work" in item ? { work: item.work } : {}),
+    ...(item.id === "submission" && !context.task ? { taskList: "tasks" as const } : {}),
   };
 }

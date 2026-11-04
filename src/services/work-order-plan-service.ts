@@ -28,6 +28,7 @@ export async function saveWorkOrderPlan(
       p_plan: input.plan,
       p_correction_reason: input.correctionReason,
       p_request_id: input.requestId,
+      ...(input.sourcePlanVersionId ? { p_source_plan_version_id: input.sourcePlanVersionId } : {}),
     }),
   );
   if (!result.success) throw new WorkOrderRequestError("unavailable");
@@ -38,6 +39,8 @@ export async function saveWorkOrderPlan(
     row.version !== input.expectedVersion + 1 ||
     row.request_id !== input.requestId ||
     row.correction_reason !== input.correctionReason ||
+    (input.expectedVersion === 0 &&
+      (row.source_plan_version_id ?? undefined) !== input.sourcePlanVersionId) ||
     JSON.stringify(row.plan) !== JSON.stringify(input.plan)
   )
     throw new WorkOrderRequestError("unavailable");

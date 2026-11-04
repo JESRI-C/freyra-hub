@@ -52,4 +52,52 @@ Næste leverance er **S05: generel rapport på den præcise godkendte opgavevers
 
 `scripts/saas50` gemmer den reproducerbare prøve. Start en ny syntetisk kørsel i et tomt, ignoreret `tmp/saas50` og angiv præcis stagingrevision i `FREYRA_TEST_REVISION`. `prepare-fixture.mjs --staging` bruger en lokalt installeret `bcryptjs@3.0.3` i `tmp/saas50-tools`. Den forbereder kun data til det navngivne stagingprojekt. Autoriseret drift kører først den ene konto og derefter resten af det afgrænsede fixture-SQL. `authenticate`, `setup-tenants` og rollefixture etablerer de 50 sessioner og otte projekter. Kør `isolation`, `workflows`, `browser` og `final-boundaries` i rækkefølge; de anvender almindelige brugerrettigheder. Efter prøven afvikles det afgrænsede `prepare-cleanup`-SQL og læses tilbage. `render-report.py` bruger den sanerede kvittering til rapporten.
 
+Hvis kontooprettelsen afbrydes, kan `prepare-cleanup.mjs --staging --partial-provisioning` generere særskilt oprydnings-SQL. Det kontrollerer eksakt konto-id, e-mail og testmærke samt projekt- og organisationsmedlemskaber. Den automatisk oprettede personlige organisation afgrænses af kontoen, typen og det forventede syntetiske navn. Kvitteringen angiver antal fundne og lukkede konti. Standardoprydningen kræver stadig alle 50 konti.
+
+En rollback-prøve i staging oprettede én syntetisk konto med den normale oprettelsestrigger. Oprydningen lukkede kontoen og ændrede medlemskabet i den personlige organisation til læseadgang. Rollback fjernede testkontoen igen. En negativ prøve med et uventet organisationsnavn blev afvist. Standardoprydningen afviste også en kørsel med kun én konto.
+
+Generér standardoprydningen fra den aktuelle fixture efter `setup-tenants`. Opsætningen erstatter de foreløbige organisations-id'er med de faktiske organisations-id'er, før projektrollerne oprettes. Den særskilte fil til afbrudt kontooprettelse kan genereres før dette trin.
+
 Der er ikke ændret produktion, merget kode, sendt invitationer eller aktiveret en betalt udbyder. Brugerens to lokale Jobs/Geotag-dokumenter og eksisterende projekter er bevaret.
+
+## Opfølgning efter 50-brugerprøven
+
+S05 er teknisk verificeret på staging for den godkendte arbejdsopgave. Projektlederen kan danne og genåbne en rapport fra den konkrete godkendelse, eksportere PDF og følge forbindelsen tilbage til opgaven og originalerne. Browserprøven dækkede 320, 390 og 1280 px. Se udviklingsplanens S05-afsnit for revisioner og testbevis.
+
+Projektets arbejdsopgaver har desuden fået plan- og kalenderoversigt, registrering af timer og materialer, kortlagte besøg med udførelseshistorik og udstyrsbooking. Se udviklingsplanen for de enkelte leverancer og deres teststatus. Ledighed inden reservation er implementeret i `6c3ddbb`. Databasetesten bestod, og Chrome-prøven på staging ved 390 px bekræftede, at en optaget periode blokerer gemning, og at aflysning frigiver perioden og bevarer historikken.
+
+Tallene ovenfor gælder den oprindelige 50-brugerprøve. Der er stadig åbne frigivelseskriterier for fysisk telefon, uassisteret brug, fuld Skyhost-dækning og fagvisninger, længere belastning, kundens onboarding, betaling og produktionsdrift.
+
+## Genprøve med 50 brugere efter samlingen
+
+Kørsel ed583cee på staging, kilde 7a28b32e89a4b6eab3a4a4bf7e55baf05d0ba562 og Worker 6d270fda-160f-4365-bea2-88f95dea97d4. Alle 515 kontroller bestod på otte syntetiske projekter.
+
+| Prøve | Bestået | Hvad blev kontrolleret |
+|---|---:|---|
+| Login | 50 af 50 | Særskilte konti og sessioner. 14 af 64 loginforsøg fik HTTP 429. Alle konti loggede ind efter genforsøg. |
+| Projektoprettelse | 8 af 8 | Oprettelse og genåbning via den almindelige brugeradgang. |
+| Isolation og samtidige læsninger | 268 af 268 | Tre samtidige læserunder med 50 klienter samt afvisning af fremmed projektskrivning og forsøg på at ændre rettigheder gennem metadata. |
+| Arbejdsforløb | 56 af 56 | Plan, tildeling, feltregistrering, original, udførelse, versionsfast aflevering og uafhængig godkendelse. Samtidige skrivninger og genforsøg bevarede historikken. |
+| Browserprofiler | 50 af 50 | Rollevisninger ved 320, 390 og 1280 px. Ingen fremmede testprojekter, JavaScript-fejl eller vandret rulning på de afprøvede flader. |
+| Rapport og PDF | 8 af 8 | Projektlederen åbnede rapporten fra godkendelsen og genåbnede samme rapportversion. PDF-eksport virkede, og rapporten linkede til den præcise opgave og dens originalfotos. |
+| Afsluttende adgangskontrol | 75 af 75 | Fremmede originaler, uautoriserede genforsøg, tilbagekaldt opgaveadgang og ændrede roller. |
+
+Der blev registreret 1.067 SDK-kald i de målte faser. Browserkald er opgjort separat som scenarier. Kør genprøvens rapportfase med node scripts/saas50/reports.mjs --staging efter arbejdsforløbene og før kontolukning.
+
+Rapportfasen bruger nu den forventede afleveringsversion fra det gennemførte arbejdsforløb. Den kontrollerer versionen på den aktuelle rapporthandling og i den åbnede rapport, kvitteringen efter klargøring, PDF, tastaturretur og JavaScript-sidefejl. Kontrollen af den viste kildeversion er efterprøvet på én eksisterende syntetisk stagingrapport. De historiske 50-brugertal ovenfor gælder fortsat den registrerede kørsel ed583cee.
+
+Projektledernes browserprøve starter nu i Overblik uden valgt opgave og med kalenderen som tidligere visning. Den aktiverer afleveringsgenvejen med tastaturet, søger efter testopgaven og kontrollerer den præcise opgave og aflevering. En tilsvarende prøve bestod på eksisterende syntetiske stagingdata ved 390 og 1280 px. Den udvidede kørsel med alle projektlederkonti afventes.
+
+Oprydningen lukkede alle 50 konti. Efter læsning på staging var der 0 aktive sessioner, 0 uinddragede refresh-tokens og 0 skrivende projekt- eller organisationsroller for kontiene. Login og refresh blev afvist for den repræsentative lukkede konto. De lokale testlegitimationsoplysninger blev fjernet. De otte projekter, otte verificerede originaler, ni afleveringsversioner og otte gemte rapporter er bevaret.
+
+Den opdaterede genprøve dækker arbejdsforløbet til gemt rapport og PDF. Den samlede frigivelsesvurdering afventer uassisteret brug på fysisk telefon, fuld Skyhost-dækning og de resterende fagvisninger, længere belastning, kundeopstart, betaling og produktionsdrift.
+
+Den efterfølgende S13-leverance tilføjer en afgrænset ugentlig serie fra Arbejdsopgaver → Arbejdsgrundlag. Stagingprøven ved 390 px oprettede to særskilte arbejdsopgaver, genåbnede deres datoer og verificerede den præcise kildeplan. Serien er testet separat fra 50-brugerprøven. Flere gentagelsesintervaller og samlet omplanlægning af en serie er åbne. Den første browserprøve efterlod to syntetiske poster med id-format, som appen afviser, i det oprindelige testprojekt. Genprøven bestod i et separat syntetisk projekt efter rettelsen.
+
+## Genprøve af navigation og rapportens kildeversion
+
+Kørsel `6e51f4bb` på staging, appkilde `596bdc5` og Worker `adf6fef4-4388-49f0-a8e7-03f0c6ccd29c`. Alle 515 kontroller bestod. Det omfatter 50 login, otte projektoprettelser, 268 isolationskontroller, 56 forløbskontroller, 50 browserprofiler, otte rapportprøver og 75 afsluttende adgangskontroller. Der blev registreret 1.066 SDK-kald. Alle otte projektledere fandt via tastaturet den korrekte aflevering fra Overblik. Alle otte rapportprøver viste den forventede godkendte afleveringsversion, åbnede samme rapport ved genforsøg, hentede PDF og vendte tilbage til samme opgave med tastaturet.
+
+Standardoprydningen stoppede først på den gamle organisationsafgrænsning. Efter generering fra den afsluttede fixture blev alle 50 konti lukket. Aflæsningen viste 0 aktive sessioner, 0 aktive refresh-tokens og 0 medlemskaber med skriveadgang for kontiene. Login og refresh på en lukket konto blev afvist med `user_banned`. Lokale legitimationsoplysninger blev fjernet. Otte projekter, otte verificerede originaler og ni afleveringsversioner blev bevaret. En separat afbrudt opstart `56233511` blev lukket med én oprettet og én lukket konto.
+
+Prøven er teknisk og syntetisk. Fysisk telefon, uassisteret kundebrug, vedvarende belastning og de øvrige åbne frigivelseskriterier afventes.

@@ -31,8 +31,11 @@ const clientHydrated = () => true;
 const serverHydrated = () => false;
 
 // Oversæt engelske Supabase-fejlbeskeder til klar dansk
-function translateError(message: string): string {
-  const m = message.toLowerCase();
+function translateError(error: unknown): string {
+  const m = error instanceof Error ? error.message.toLowerCase() : "";
+  const status = error && typeof error === "object" && "status" in error ? error.status : undefined;
+  if (status === 429 || m.includes("rate limit") || m.includes("too many"))
+    return "For mange forsøg lige nu. Vent et par minutter, og prøv igen. Dine oplysninger står stadig i formularen.";
   if (m.includes("invalid login credentials"))
     return "Forkert email eller adgangskode. Tjek at du har skrevet begge korrekt.";
   if (m.includes("email not confirmed"))
@@ -42,8 +45,6 @@ function translateError(message: string): string {
   if (m.includes("password should be at least"))
     return "Adgangskoden skal være mindst 6 tegn lang.";
   if (m.includes("unable to validate email")) return "Ugyldig email-adresse.";
-  if (m.includes("rate limit") || m.includes("too many"))
-    return "For mange forsøg. Vent et par minutter og prøv igen.";
   if (m.includes("network")) return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
   return "Login kunne ikke gennemføres. Prøv igen eller kontakt den ansvarlige for jeres adgang.";
 }
@@ -63,6 +64,7 @@ function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [formError, setFormError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
@@ -70,10 +72,16 @@ function LoginPage() {
 
   if (destination) return <Navigate to={destination} />;
 
+  function changeMode(nextMode: Mode) {
+    setFormError("");
+    setMode(nextMode);
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (controlsDisabled) return;
     setBusy(true);
+    setFormError("");
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
@@ -102,7 +110,7 @@ function LoginPage() {
         // Hvis identities-arrayet er tomt, findes brugeren allerede
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           toast.error("Der findes allerede en konto med denne email. Prøv at logge ind.");
-          setMode("signin");
+          changeMode("signin");
         } else {
           setSignupSuccess(true);
         }
@@ -114,8 +122,7 @@ function LoginPage() {
         setForgotSent(true);
       }
     } catch (err) {
-      const raw = err instanceof Error ? err.message : "Ukendt fejl";
-      toast.error(translateError(raw));
+      setFormError(translateError(err));
     } finally {
       setBusy(false);
     }
@@ -133,8 +140,7 @@ function LoginPage() {
       if (nextPath) window.location.href = nextPath;
       else navigate({ to: "/select" });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Google-login fejlede";
-      toast.error(translateError(msg));
+      toast.error(translateError(err));
     } finally {
       setBusy(false);
     }
@@ -179,7 +185,7 @@ function LoginPage() {
             type="button"
             onClick={() => {
               setSignupSuccess(false);
-              setMode("signin");
+              changeMode("signin");
               setPassword("");
             }}
             className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
@@ -211,7 +217,7 @@ function LoginPage() {
             type="button"
             onClick={() => {
               setForgotSent(false);
-              setMode("signin");
+              changeMode("signin");
             }}
             className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
           >
@@ -255,8 +261,9 @@ function LoginPage() {
         </div>
 
         {isSignup && (
-          <Field label="Fulde navn" icon={<User className="h-4 w-4" />}>
+          <Field id="login-name" label="Fulde navn" icon={<User className="h-4 w-4" />}>
             <input
+              id="login-name"
               type="text"
               disabled={controlsDisabled}
               required
@@ -270,13 +277,16 @@ function LoginPage() {
         )}
 
         <Field
-          label="Email"
+          id="login-email"
+          label="E-mail"
           icon={<Mail className="h-4 w-4" />}
           hint={
             isSignup ? "Vi bruger din arbejdsemail til bekræftelse og notifikationer." : undefined
           }
         >
           <input
+            id="login-email"
+            aria-describedby={isSignup ? "login-email-hint" : undefined}
             type="email"
             disabled={controlsDisabled}
             required
@@ -291,20 +301,19 @@ function LoginPage() {
 
         {!isForgot && (
           <Field
-            label={
-              <div className="flex items-center justify-between w-full">
-                <span>Adgangskode</span>
-                {!isSignup && (
-                  <button
-                    type="button"
-                    disabled={controlsDisabled}
-                    onClick={() => setMode("forgot")}
-                    className="text-xs text-primary hover:underline font-normal"
-                  >
-                    Glemt?
-                  </button>
-                )}
-              </div>
+            id="login-password"
+            label="Adgangskode"
+            action={
+              !isSignup && (
+                <button
+                  type="button"
+                  disabled={controlsDisabled}
+                  onClick={() => changeMode("forgot")}
+                  className="text-xs text-primary hover:underline font-normal"
+                >
+                  Glemt?
+                </button>
+              )
             }
             icon={<Lock className="h-4 w-4" />}
             hint={
@@ -314,6 +323,8 @@ function LoginPage() {
             }
           >
             <input
+              id="login-password"
+              aria-describedby={isSignup ? "login-password-hint" : undefined}
               type={showPassword ? "text" : "password"}
               disabled={controlsDisabled}
               required
@@ -330,7 +341,6 @@ function LoginPage() {
               onClick={() => setShowPassword((s) => !s)}
               className="absolute right-2 top-[30px] p-1.5 text-muted-foreground hover:text-foreground rounded-md"
               aria-label={showPassword ? "Skjul adgangskode" : "Vis adgangskode"}
-              tabIndex={-1}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -338,8 +348,13 @@ function LoginPage() {
         )}
 
         {isSignup && (
-          <Field label="Bekræft adgangskode" icon={<Lock className="h-4 w-4" />}>
+          <Field
+            id="login-confirm-password"
+            label="Bekræft adgangskode"
+            icon={<Lock className="h-4 w-4" />}
+          >
             <input
+              id="login-confirm-password"
               type={showPassword ? "text" : "password"}
               disabled={controlsDisabled}
               required
@@ -354,6 +369,15 @@ function LoginPage() {
               <p className="text-[11px] text-destructive mt-1.5">Adgangskoderne er ikke ens.</p>
             )}
           </Field>
+        )}
+
+        {formError && (
+          <p
+            role="alert"
+            className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          >
+            {formError}
+          </p>
         )}
 
         {authError && mode === "signin" && (
@@ -426,7 +450,7 @@ function LoginPage() {
           {isForgot ? (
             <button
               type="button"
-              onClick={() => setMode("signin")}
+              onClick={() => changeMode("signin")}
               disabled={controlsDisabled}
               className="text-primary hover:underline font-medium inline-flex items-center gap-1"
             >
@@ -437,7 +461,7 @@ function LoginPage() {
               Har du allerede en konto?{" "}
               <button
                 type="button"
-                onClick={() => setMode("signin")}
+                onClick={() => changeMode("signin")}
                 disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
@@ -449,7 +473,7 @@ function LoginPage() {
               Ny på Freyra?{" "}
               <button
                 type="button"
-                onClick={() => setMode("signup")}
+                onClick={() => changeMode("signup")}
                 disabled={controlsDisabled}
                 className="text-primary hover:underline font-medium"
               >
@@ -471,19 +495,28 @@ function LoginPage() {
 }
 
 function Field({
+  id,
   label,
+  action,
   icon,
   hint,
   children,
 }: {
-  label: React.ReactNode;
+  id: string;
+  label: string;
+  action?: React.ReactNode;
   icon?: React.ReactNode;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium block">{label}</label>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={id} className="text-sm font-medium">
+          {label}
+        </label>
+        {action}
+      </div>
       <div className="relative">
         {icon && (
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
@@ -492,7 +525,11 @@ function Field({
         )}
         {children}
       </div>
-      {hint && <p className="text-[11px] text-muted-foreground leading-relaxed">{hint}</p>}
+      {hint && (
+        <p id={id + "-hint"} className="text-[11px] text-muted-foreground leading-relaxed">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

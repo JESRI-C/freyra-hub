@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useBlocker } from "@tanstack/react-router";
+import { saveApprovedWorkOrderReport } from "@/services/report-document-service";
+import type { ReportRevision } from "@/lib/report-document";
+import { Link, useBlocker } from "@tanstack/react-router";
 import { getProjectWorkOrderReviewContext } from "@/lib/work-order-submission.functions";
 import { mutateProjectWorkOrderLifecycle } from "@/lib/work-order-lifecycle.functions";
 import {
@@ -10,7 +12,12 @@ import {
   type WorkOrderStatus,
 } from "@/lib/work-order-lifecycle";
 import { WorkOrderRequestError, type WorkOrderScope } from "@/lib/work-order-access";
-import type { WorkOrderReviewAction } from "@/lib/work-order-review";
+import type {
+  ApprovedFollowUpBasis,
+  WorkOrderReviewAction,
+  WorkOrderReviewContext,
+  WorkOrderCorrectionNote,
+} from "@/lib/work-order-review";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
 const button = "min-h-11 rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -37,9 +44,15 @@ export function WorkOrderReviewControls({
   parentAuthorized,
   readOnly,
   allowReview,
+  canCreateReport = false,
   active,
   onEditing,
   onPhase,
+  onOpenSubmissionVersion,
+  onInspectSubmission,
+  onOpenCorrection,
+  onOpenFollowUpPlan,
+  onCreateApprovedFollowUp,
 }: {
   scope: WorkOrderScope;
   actorId: string;
@@ -47,9 +60,15 @@ export function WorkOrderReviewControls({
   parentAuthorized: boolean;
   readOnly: boolean;
   allowReview: boolean;
+  canCreateReport?: boolean;
   active: boolean;
   onEditing: (editing: boolean) => void;
   onPhase: (phase: WorkOrderStatus | undefined) => void;
+  onOpenSubmissionVersion?: (version: number) => void;
+  onInspectSubmission?: (id: string, origin: HTMLAnchorElement) => boolean;
+  onOpenCorrection?: (part: "execution" | "evidence", note?: WorkOrderCorrectionNote) => void;
+  onOpenFollowUpPlan?: () => void;
+  onCreateApprovedFollowUp?: (packet: ApprovedFollowUpBasis) => void;
 }) {
   const load = useServerFn(getProjectWorkOrderReviewContext),
     mutate = useServerFn(mutateProjectWorkOrderLifecycle),
@@ -75,6 +94,7 @@ export function WorkOrderReviewControls({
       alive.current = false;
     };
   }, []);
+  const [report, setReport] = useState<ReportRevision | null>(null);
   const locked = !!draft || busy || uncertain;
   useWorkOrderEditorLock(locked, onEditing);
   useBlocker({ shouldBlockFn: () => locked, enableBeforeUnload: locked });
@@ -100,9 +120,113 @@ export function WorkOrderReviewControls({
     c.project_id === scope.projectId &&
     c.organization_id === scope.organizationId;
   const phase = authorized ? c?.state?.status : undefined;
+  const returnedReview =
+    phase === "reopened" && c?.state?.submission_version_id
+      ? c.recent_reviews.find(
+          ({ state }) =>
+            state.status === "returned" &&
+            state.submission_version_id === c.state?.submission_version_id,
+        )
+      : undefined;
+  const correctionNote = returnedReview
+    ? { submissionVersion: returnedReview.submission_version, reason: returnedReview.state.reason }
+    : undefined;
   useEffect(() => {
     if (authorized) onPhase(phase);
   }, [authorized, phase, onPhase]);
+  async function openReport(reviewId: string, submissionId: string) {
+    if (
+      !authorized ||
+      !canCreateReport ||
+      disabledByParent ||
+      locked ||
+      query.isFetching ||
+      inFlight.current
+    )
+      return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await saveApprovedWorkOrderReport({
+        ...scope,
+        submissionId,
+        reviewId,
+      });
+      if (alive.current) {
+        setReport(result);
+        setNotice("Rapportkladden er klar. Åbn den gemte rapport for at se den og hente PDF.");
+      }
+      await cache.invalidateQueries({ queryKey: ["report-documents"] });
+    } catch (e) {
+      if (alive.current)
+        setError(e instanceof Error ? e.message : "Rapporten kunne ikke oprettes.");
+    } finally {
+      inFlight.current = false;
+      if (alive.current) setBusy(false);
+    }
+  }
+  const currentApproval =
+    c?.state?.status === "approved" && c.state.operation === "review" ? c.state : undefined;
+
+  function submissionLink(version: number, inspectId?: string) {
+    return (
+      <Link
+        className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-2"
+        to="/app/projects/$slug"
+        params={{ slug: scope.projectId }}
+        search={(previous) => ({
+          ...previous,
+          tab: "handlinger",
+          task: scope.actionId,
+          work: "submission",
+          submissionVersion: version,
+        })}
+        onClick={(event) => {
+          if (
+            event.button === 0 &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey
+          ) {
+            if (inspectId && onInspectSubmission?.(inspectId, event.currentTarget)) {
+              event.preventDefault();
+              return;
+            }
+            onOpenSubmissionVersion?.(version);
+          }
+        }}
+      >
+        Se afleveringsversion {version}
+      </Link>
+    );
+  }
+
+  function reportAction(reviewId: string, submissionId: string, version: number) {
+    if (report?.content.workOrderApproval?.reviewId === reviewId) {
+      return (
+        <Link
+          className={button + " inline-flex items-center"}
+          to="/app/reports/preview"
+          search={{ report: report.report_id, version: report.version }}
+        >
+          Åbn den gemte rapport
+        </Link>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className={button}
+        disabled={locked || disabledByParent || query.isFetching}
+        onClick={() => void openReport(reviewId, submissionId)}
+      >
+        Klargør rapportkladde for afleveringsversion {version}
+      </button>
+    );
+  }
   function start(action: WorkOrderReviewAction) {
     if (!authorized || !c?.packet || disabledByParent || locked) return;
     const permitted =
@@ -190,6 +314,7 @@ export function WorkOrderReviewControls({
         cache.invalidateQueries({ queryKey: key }),
         cache.invalidateQueries({ queryKey: ["work-order-lifecycle", actorId, scope] }),
         cache.invalidateQueries({ queryKey: ["work-order-log", actorId, scope] }),
+        cache.invalidateQueries({ queryKey: ["field-job-schedule", actorId] }),
         cache.invalidateQueries({ queryKey: ["audit", scope.projectId] }),
       ]);
     } catch (failure) {
@@ -220,12 +345,17 @@ export function WorkOrderReviewControls({
       {query.isPending && <p role="status">Henter afleveringsstatus…</p>}
       {(query.error || error) && <p role="alert">{query.error?.message || error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {busy && !draft && <p role="status">Klargør rapportkladden…</p>}
       {authorized && (
         <>
           <p className="text-sm font-medium">
             Status: {phase ? workOrderStatusLabels[phase] : "Ikke fastlagt"}
             {c?.packet ? ` · afleveringsversion ${c.packet.version}` : ""}
           </p>
+          {c?.packet &&
+            !locked &&
+            !disabledByParent &&
+            submissionLink(c.packet.version, phase === "submitted" ? c.packet.id : undefined)}
           {c?.state?.reason &&
             ["submitted", "approved", "returned", "reopened"].includes(phase ?? "") && (
               <p className="whitespace-pre-wrap text-sm">Begrundelse: {c.state.reason}</p>
@@ -243,11 +373,55 @@ export function WorkOrderReviewControls({
               egen udførelse eller dokumentation.
             </p>
           )}
-          {phase === "reopened" && (
+          {phase === "submitted" && !c?.self_review && (!allowReview || !c?.can_review) && (
             <p className="text-sm">
-              Ret de relevante oplysninger, og bekræft udført status under Arbejdsgrundlag. Fasthold
-              derefter en ny afleveringsversion.
+              Afleveringen afventer faglig gennemgang. En person med gennemgangsadgang tager
+              stilling til den gemte version.
             </p>
+          )}
+          {phase === "returned" && !c?.state?.blocked && (
+            <p className="text-sm">
+              {!readOnly && c?.can_reopen
+                ? "Genåbn opgaven for at rette manglerne og aflevere en ny version."
+                : "En person med adgang til at genåbne opgaven skal sætte rettelserne i gang."}
+            </p>
+          )}
+          {phase === "reopened" && (
+            <div className="space-y-2 rounded-lg border p-3 text-sm">
+              <h4 className="font-medium">Ret den genåbnede aflevering</h4>
+              {returnedReview && (
+                <>
+                  <p className="font-medium">
+                    Mangler i afleveringsversion {returnedReview.submission_version}
+                  </p>
+                  <p className="whitespace-pre-wrap">{returnedReview.state.reason}</p>
+                </>
+              )}
+              <p>
+                Ret udførelsen eller dokumentationen, og bekræft udført status under
+                Arbejdsgrundlag. Fasthold derefter en ny afleveringsversion.
+              </p>
+              {!readOnly && onOpenCorrection && !draft && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={locked || disabledByParent || query.isFetching}
+                    onClick={() => onOpenCorrection("execution", correctionNote)}
+                  >
+                    Åbn udførelsen
+                  </button>
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={locked || disabledByParent || query.isFetching}
+                    onClick={() => onOpenCorrection("evidence", correctionNote)}
+                  >
+                    Åbn dokumentationen
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {c?.state?.blocked && (
             <p className="text-sm">
@@ -297,6 +471,44 @@ export function WorkOrderReviewControls({
               )}
             </div>
           )}
+          {canCreateReport && !draft && currentApproval && c?.packet && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <h4 className="font-medium">Næste skridt · Projektrapport</h4>
+              <p className="text-sm">
+                Klargør rapporten med den godkendte udførelse og dokumentation fra
+                afleveringsversion {c.packet.version}. Åbn derefter rapporten for at se den og hente
+                PDF.
+              </p>
+              {reportAction(currentApproval.id, c.packet.id, c.packet.version)}
+            </div>
+          )}
+          {!draft && currentApproval && onOpenFollowUpPlan && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <h4 className="font-medium">Planlæg opfølgning</h4>
+              <p className="text-sm">
+                Hvis gennemgangen giver anledning til mere arbejde, kan du se eksisterende
+                opfølgninger eller oprette en ny opgave fra arbejdsgrundlaget.
+              </p>
+              <button
+                type="button"
+                className={button}
+                disabled={disabledByParent || query.isFetching}
+                onClick={onOpenFollowUpPlan}
+              >
+                Åbn arbejdsgrundlaget for opfølgning
+              </button>
+              {onCreateApprovedFollowUp && c?.packet && (
+                <button
+                  type="button"
+                  className={button}
+                  disabled={disabledByParent || query.isFetching}
+                  onClick={() => onCreateApprovedFollowUp(c.packet!)}
+                >
+                  Opret opfølgning fra godkendt plan
+                </button>
+              )}
+            </div>
+          )}
           {!!c?.recent_reviews.length && (
             <div className="space-y-2">
               <h4 className="font-medium">Seneste faglige gennemgange</h4>
@@ -313,6 +525,41 @@ export function WorkOrderReviewControls({
                     </p>
                     <p className="whitespace-pre-wrap">{entry.state.reason}</p>
                     <p>Omfang: Registreret udførelse og vedlagt dokumentation.</p>
+                    {!locked && !disabledByParent && submissionLink(entry.submission_version)}
+                    {onCreateApprovedFollowUp &&
+                      !locked &&
+                      entry.state.status === "approved" &&
+                      entry.state.id !== currentApproval?.id &&
+                      entry.state.submission_version_id &&
+                      entry.state.plan_version_id && (
+                        <button
+                          type="button"
+                          className={button}
+                          disabled={disabledByParent || query.isFetching}
+                          onClick={() =>
+                            onCreateApprovedFollowUp({
+                              id: entry.state.submission_version_id!,
+                              version: entry.submission_version,
+                              plan_version_id: entry.state.plan_version_id!,
+                            })
+                          }
+                        >
+                          Opret opfølgning fra afleveringsversion {entry.submission_version}
+                        </button>
+                      )}
+                    {canCreateReport &&
+                      !draft &&
+                      entry.state.status === "approved" &&
+                      entry.state.id !== currentApproval?.id &&
+                      entry.state.submission_version_id && (
+                        <div className="mt-2">
+                          {reportAction(
+                            entry.state.id,
+                            entry.state.submission_version_id,
+                            entry.submission_version,
+                          )}
+                        </div>
+                      )}
                   </li>
                 ))}
               </ol>

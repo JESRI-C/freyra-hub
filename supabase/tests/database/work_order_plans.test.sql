@@ -11,8 +11,8 @@ INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES
 INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_temp.k(11),'Synthetic plan project'),(pg_temp.k(22),pg_temp.k(11),'Synthetic other plan project'),(pg_temp.k(23),pg_temp.k(12),'Synthetic foreign plan project');
 INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'viewer'),(pg_temp.k(21),pg_temp.k(4),'external');
 INSERT INTO public.actions(id,project_id,title) SELECT pg_temp.k(n),pg_temp.k(21),'Synthetic plan action '||n FROM generate_series(31,35) n;
-INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(36),pg_temp.k(22),'Synthetic inaccessible action');
-INSERT INTO public.sites(id,project_id,name) VALUES(pg_temp.k(51),pg_temp.k(21),'Synthetic same project site'),(pg_temp.k(52),pg_temp.k(22),'Synthetic other project site');
+INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(36),pg_temp.k(22),'Synthetic inaccessible action'),(pg_temp.k(37),pg_temp.k(21),'Synthetic follow-up'),(pg_temp.k(38),pg_temp.k(21),'Synthetic rejected follow-up');
+INSERT INTO public.sites(id,project_id,name) VALUES(pg_temp.k(51),pg_temp.k(21),'Synthetic same project site'),(pg_temp.k(52),pg_temp.k(22),'Synthetic other project site'),(pg_temp.k(55),pg_temp.k(21),'Synthetic second visit');
 INSERT INTO public.watercourse_versions(id,organization_id,project_id,version,geometry,crs,direction,source,length_m,method,created_by)
  VALUES(pg_temp.k(53),pg_temp.k(11),pg_temp.k(21),1,'{"type":"LineString","coordinates":[[9.4,55.2],[9.401,55.2]]}','EPSG:4326','unknown','Synthetic same project centerline',1,'fixture',pg_temp.k(1)),
  (pg_temp.k(54),pg_temp.k(11),pg_temp.k(22),1,'{"type":"LineString","coordinates":[[9.4,55.2],[9.401,55.2]]}','EPSG:4326','unknown','Synthetic other project centerline',1,'fixture',pg_temp.k(1));
@@ -32,10 +32,39 @@ SELECT ok(NOT has_function_privilege('service_role','public.save_work_order_plan
 SELECT ok(NOT (SELECT prosecdef FROM pg_proc WHERE oid='public.save_work_order_plan(uuid,uuid,uuid,integer,jsonb,text,uuid)'::regprocedure),'plan RPC preserves caller RLS');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(300),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',1,0)$$,
+ 'a project manager can record explicit zero daily availability');
+SELECT lives_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(301),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',2,6.5)$$,
+ 'a revision appends rather than rewriting availability');
+SELECT is((SELECT count(*)::integer FROM public.project_work_availability_versions),2,'availability history is retained');
+SELECT throws_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(302),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',2,7)$$,
+ '40001',NULL,'a concurrent stale availability change is refused');
+SELECT throws_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(302),pg_temp.k(11),pg_temp.k(21),pg_temp.k(6),'2026-11-12',1,7)$$,
+ '42501',NULL,'a foreign person cannot be added to the project calendar');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.project_work_availability_versions),0,'field users cannot read project availability');
+SELECT throws_ok($$INSERT INTO public.project_work_availability_versions
+ (id,organization_id,project_id,person_id,work_date,version,hours)
+ VALUES(pg_temp.k(303),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),'2026-11-12',3,8)$$,
+ '42501',NULL,'field users cannot write project availability');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),0,'authorized existing action has real empty history before first save');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(36)$$,'42501',NULL,'same organization does not expose another project history');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(31,NULL,0)$$,'22023',NULL,'zero page size is rejected');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(31,0)$$,'22023',NULL,'invalid history cursor is rejected');
+SELECT lives_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":0}')$$,'zero estimated hours are explicit');
+SELECT lives_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":2.75}')$$,'decimal estimated hours are valid');
+SELECT throws_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":2.751}')$$,'22023',NULL,'more than two decimals is rejected');
+SELECT throws_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":"2.75"}')$$,'22023',NULL,'text cannot masquerade as estimated hours');
+SELECT throws_ok($$SELECT private.validate_work_order_plan(pg_temp.plan()||'{"estimatedHours":-1}')$$,'22023',NULL,'negative estimated hours are rejected');
 SELECT throws_ok($$SELECT pg_temp.save(0,60,pg_temp.plan()||'{"plannedStart":"2026-02-30"}')$$,'22023',NULL,'impossible date is not coerced into another date');
 SELECT throws_ok($$SELECT pg_temp.save(0,60,pg_temp.plan()||'{"plannedEnd":"2026-11-02"}')$$,'22023',NULL,'end date cannot invent an unknown start');
 SELECT throws_ok($$SELECT pg_temp.save(0,60,jsonb_set(pg_temp.plan(),'{watercourse,measurementSource}','null'))$$,'22023',NULL,'measured zero requires a source');
@@ -59,12 +88,21 @@ SELECT lives_ok($$SELECT pg_temp.save(1,62,pg_temp.plan()||jsonb_build_object('s
 SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions WHERE version=1 AND plan=pg_temp.plan()),1,'T10 original plan stays unchanged after correction');
 SELECT is((SELECT responsible_id FROM public.work_order_plan_versions WHERE version=2),pg_temp.k(2),'named responsible is projected without granting access');
 SELECT is((SELECT count(*)::integer FROM public.work_order_access_versions WHERE user_id=pg_temp.k(2)),0,'responsible selection grants no task capability');
-SELECT lives_ok($$SELECT pg_temp.save(2,63,pg_temp.plan(),31,11,21,'Synthetic third version')$$,'third version is appended');
+SELECT lives_ok($$SELECT pg_temp.save(2,63,pg_temp.plan()||jsonb_build_object('visitStops',
+ jsonb_build_array(jsonb_build_object('siteId',pg_temp.k(55),'name','Synthetic second visit'),
+                   jsonb_build_object('siteId',pg_temp.k(51),'name','Synthetic same project site'))),
+ 31,11,21,'Synthetic third version')$$,'ordered project visits are appended in the plan version');
 SELECT is((SELECT array_agg(version) FROM pg_temp.history(31,NULL,1)),ARRAY[3,2],'history uses descending cursor with one lookahead row');
 SELECT is((SELECT array_agg(version) FROM pg_temp.history(31,2,1)),ARRAY[1],'older cursor has no duplicates or skipped old revision');
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan(),32,12,21)$$,'23503',NULL,'T02 organization/project mismatch is rejected in database');
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan(),36,11,21)$$,'23503',NULL,'T02 action/project mismatch is rejected in database');
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('siteId',pg_temp.k(52)),32)$$,'23503',NULL,'foreign site cannot be attached even by raw API');
+SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('visitStops',
+ jsonb_build_array(jsonb_build_object('siteId',pg_temp.k(52),'name','Synthetic other project site'))),32)$$,
+ '22023',NULL,'foreign project site is refused as a visit stop');
+SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('visitStops',
+ jsonb_build_array(jsonb_build_object('siteId',pg_temp.k(51),'name','Spoofed site label'))),32)$$,
+ '22023',NULL,'client-supplied label must match the project site');
 SELECT throws_ok($$SELECT pg_temp.save(0,64,pg_temp.plan()||jsonb_build_object('watercourseVersionId',pg_temp.k(54)),32)$$,'23503',NULL,'foreign centerline cannot be attached');
 SELECT is((SELECT count(*)::integer FROM public.work_orders WHERE action_id=pg_temp.k(32)),0,'foreign relation rolls back initialization too');
 SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organization_id,project_id,version,plan,request_id,created_by) VALUES(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),4,pg_temp.plan(),pg_temp.k(65),pg_temp.k(2))$$,'42501',NULL,'Data API cannot spoof plan actor');
@@ -72,15 +110,34 @@ SELECT throws_ok($$INSERT INTO public.work_order_plan_versions(action_id,organiz
 SELECT lives_ok($$SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),0,true,true,false,'Synthetic assigned executor',pg_temp.k(70))$$,'concrete external executor is assigned without project access');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),3,'assigned external executor can read its task plan history');
+SELECT is((SELECT plan#>>'{visitStops,0,name}' FROM pg_temp.history() WHERE version=3),
+ 'Synthetic second visit','external executor can see the first stop in the saved order');
+CREATE FUNCTION pg_temp.visit(r integer, s integer, ver integer, p integer, result text, detail text)
+RETURNS void LANGUAGE sql AS $$
+ INSERT INTO public.work_order_visit_results(id,plan_version_id,site_id,action_id,organization_id,project_id,version,outcome,note)
+ VALUES(pg_temp.k(r),(SELECT id FROM pg_temp.history() WHERE version=p),pg_temp.k(s),pg_temp.k(31),
+        pg_temp.k(11),pg_temp.k(21),ver,result,detail);
+$$;
+SELECT lives_ok($$SELECT pg_temp.visit(350,55,1,3,'visited','')$$,'assigned external can register a planned visit');
+SELECT throws_ok($$SELECT pg_temp.visit(351,52,1,3,'visited','')$$,'22023',NULL,'a site outside the plan cannot be registered');
+SELECT throws_ok($$SELECT pg_temp.visit(351,51,1,2,'visited','')$$,'40001',NULL,'an older plan cannot receive a new visit result');
+SELECT throws_ok($$SELECT pg_temp.visit(351,55,2,3,'skipped','')$$,'23514',NULL,'a skipped visit requires a reason');
+SELECT lives_ok($$SELECT pg_temp.visit(352,55,2,3,'skipped','No access to site')$$,'a correction appends a new visit version');
+SELECT throws_ok($$SELECT pg_temp.visit(353,55,2,3,'visited','Stale')$$,'40001',NULL,'a stale visit correction is rejected');
+SELECT is((SELECT count(*) FROM public.work_order_visit_results),2::bigint,'visit history retains the original outcome');
+SELECT is((SELECT outcome FROM public.list_work_order_visit_results(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
+ (SELECT id FROM pg_temp.history() WHERE version=3))),'skipped','the plan view reads the current outcome');
 SELECT ok(NOT private.can_read_project(pg_temp.k(21)),'reading the assigned plan does not grant project access');
 SELECT throws_ok($$SELECT * FROM pg_temp.history(32)$$,'42501',NULL,'unassigned plan is unavailable');
 SELECT throws_ok($$SELECT pg_temp.save(3,66,pg_temp.plan(),31,11,21,'Synthetic unauthorized edit')$$,'42501',NULL,'execution permission cannot change the work plan');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT pg_temp.visit(353,55,3,3,'visited','Viewer')$$,'42501',NULL,'viewer cannot register a visit');
 SELECT is((SELECT count(*)::integer FROM pg_temp.history()),3,'viewer can inspect existing plan history');
 SELECT throws_ok($$SELECT pg_temp.save(3,66,pg_temp.plan(),31,11,21,'Synthetic viewer edit')$$,'42501',NULL,'viewer cannot save a plan');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT throws_ok($$SELECT pg_temp.save(3,66,pg_temp.plan(),31,11,21,'Synthetic field edit')$$,'42501',NULL,'field role cannot impersonate the planner');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT is((SELECT count(*) FROM public.work_order_visit_results),0::bigint,'other tenant cannot read visit results');
 SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions),0,'other tenant cannot enumerate plan rows');
 SELECT throws_ok($$SELECT * FROM pg_temp.history()$$,'42501',NULL,'other tenant cannot fetch by guessed task ID');
 -- T09 domain + root + event transaction must fail closed on audit failure.
@@ -176,5 +233,268 @@ SELECT throws_ok($$SELECT pg_temp.execution_save(3,86,pg_temp.execution(),1,'',3
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
 SELECT is((SELECT count(*)::integer FROM public.work_order_execution_bindings),0,'another tenant cannot enumerate execution bindings');
 SELECT throws_ok($$SELECT * FROM public.get_work_order_execution_binding(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(81))$$,'42501',NULL,'another tenant cannot fetch by guessed execution reference');
+RESET ROLE;
+INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(22),pg_temp.k(2),'project_manager');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$INSERT INTO public.organization_work_equipment(id,organization_id,source_project_id,name,kind)
+ VALUES(pg_temp.k(370),pg_temp.k(11),pg_temp.k(21),'Synthetic equipment','machine')$$,
+ 'manager can register organization equipment');
+CREATE FUNCTION pg_temp.book(r integer, task integer, project integer, starts date, ends date)
+RETURNS uuid LANGUAGE sql AS $$
+ SELECT public.reserve_work_order_equipment(pg_temp.k(r),pg_temp.k(11),pg_temp.k(project),pg_temp.k(task),pg_temp.k(370),starts,ends);
+$$;
+SELECT lives_ok($$SELECT pg_temp.book(372,31,21,'2026-11-12','2026-11-13')$$,'equipment can be reserved on the task');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT lives_ok($$SELECT pg_temp.save(0,371,pg_temp.plan(),36,11,22)$$,'initialize work order in another project');
+SELECT is((SELECT count(*) FROM public.work_order_equipment_bookings),0::bigint,'other project booking details are hidden');
+SELECT is(public.is_work_order_equipment_available(pg_temp.k(11),pg_temp.k(22),pg_temp.k(36),pg_temp.k(370),'2026-11-13','2026-11-13'),false,
+ 'availability detects an overlap without exposing the reservation');
+SELECT is(public.is_work_order_equipment_available(pg_temp.k(11),pg_temp.k(22),pg_temp.k(36),pg_temp.k(370),'2026-11-14','2026-11-14'),true,
+ 'availability permits adjacent days');
+SELECT throws_ok($$SELECT pg_temp.book(373,36,22,'2026-11-13','2026-11-14')$$,
+ '23P01','Equipment is already reserved in this period','cross-project conflict returns only a generic error');
+SELECT lives_ok($$SELECT pg_temp.book(374,36,22,'2026-11-14','2026-11-14')$$,'the following day is available');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+UPDATE public.work_order_equipment_bookings SET cancelled_at=now() WHERE id=pg_temp.k(372);
+SELECT is((SELECT cancelled_by FROM public.work_order_equipment_bookings WHERE id=pg_temp.k(372)),pg_temp.k(1),
+ 'cancellation records the actor and retains the booking');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is(public.is_work_order_equipment_available(pg_temp.k(11),pg_temp.k(22),pg_temp.k(36),pg_temp.k(370),'2026-11-12','2026-11-13'),true,
+ 'availability ignores cancelled reservations');
+SELECT lives_ok($$SELECT pg_temp.book(373,36,22,'2026-11-12','2026-11-13')$$,'cancellation releases the reserved dates');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT throws_ok($$SELECT public.is_work_order_equipment_available(pg_temp.k(11),pg_temp.k(22),pg_temp.k(36),pg_temp.k(370),'2026-11-12','2026-11-13')$$,
+ '42501','Equipment availability is unavailable','foreign tenant cannot infer equipment availability');
+SELECT is((SELECT count(*) FROM public.organization_work_equipment),0::bigint,'foreign tenant cannot see organization equipment');
+SELECT is((SELECT count(*) FROM public.work_order_equipment_bookings),0::bigint,'foreign tenant cannot see reservations');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT pg_temp.book(375,31,21,'2026-11-20','2026-11-21')$$,'task has active equipment for field lookup');
+SELECT lives_ok($$SELECT * FROM public.save_work_order_access(
+ pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),2,true,true,false,'Synthetic field booking lookup',pg_temp.k(376)
+)$$,'the external account receives scoped work permission');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
+SELECT is((SELECT name FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31))),
+ 'Synthetic equipment','assigned external can see the active reservation without catalogue access');
+SELECT is((SELECT count(*) FROM public.organization_work_equipment),0::bigint,'field booking view grants no catalogue access');
+SELECT is((SELECT count(*) FROM public.work_order_equipment_bookings),0::bigint,'field booking view grants no raw reservation access');
+SELECT throws_ok($$SELECT * FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(22),pg_temp.k(31))$$,
+ '42501',NULL,'field booking lookup rejects mismatched project scope');
+SELECT throws_ok($$SELECT * FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(22),pg_temp.k(36))$$,
+ '42501',NULL,'field booking lookup denies a different work order');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT * FROM public.save_work_order_access(
+ pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),3,false,false,false,'Synthetic field booking lookup revoked',pg_temp.k(377)
+)$$,'field work permission is revoked');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
+SELECT throws_ok($$SELECT * FROM public.list_field_work_order_equipment(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31))$$,
+ '42501',NULL,'revocation prevents subsequent field booking reads');
+RESET ROLE;
+SELECT set_config('test.foreign_plan', (SELECT id::text FROM public.work_order_plan_versions
+ WHERE action_id=pg_temp.k(36) AND version=1), true);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT * FROM public.save_work_order_plan(
+ pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(380),
+ (SELECT id FROM pg_temp.history(31) WHERE version=1)
+)$$,'a new follow-up binds a specific source plan');
+SELECT is((SELECT source_plan_version_id FROM pg_temp.history(37)),
+ (SELECT id FROM pg_temp.history(31) WHERE version=1),'source is the exact earlier plan version');
+SELECT is((SELECT source_action_id FROM pg_temp.history(37)),pg_temp.k(31),'source action is derived from the source plan');
+SELECT lives_ok($$SELECT pg_temp.save(1,381,pg_temp.plan(),37,11,21,'Synthetic correction')$$,
+ 'legacy save appends a correction to the follow-up');
+SELECT is((SELECT source_plan_version FROM pg_temp.history(37) WHERE version=2),1,
+ 'follow-up corrections retain the original source version');
+SELECT throws_ok($$SELECT * FROM public.save_work_order_plan(
+ pg_temp.k(38),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(382),
+ current_setting('test.foreign_plan')::uuid
+)$$,'23503','Source plan is unavailable','another project cannot provide the source');
+SELECT is((SELECT count(*) FROM pg_temp.history(38)),0::bigint,'rejected source leaves no plan');
+SELECT lives_ok($$SELECT pg_temp.save(0,383,pg_temp.plan()||jsonb_build_object(
+ 'plannedStart','2026-03-20','plannedEnd','2026-03-22','siteId',pg_temp.k(51),'responsibleId',pg_temp.k(1)
+),38)$$,'a dated plan is saved as the series source');
+SELECT set_config('test.weekly_source', (SELECT id::text FROM pg_temp.history(38)), true);
+CREATE FUNCTION pg_temp.weekly(first_date date DEFAULT '2026-03-27', amount integer DEFAULT 3, key_id integer DEFAULT 384)
+RETURNS uuid[] LANGUAGE sql AS $$
+ SELECT public.create_work_order_weekly_series(pg_temp.k(11),pg_temp.k(21),
+   current_setting('test.weekly_source')::uuid,first_date,amount,pg_temp.k(key_id),pg_temp.k(1))
+$$;
+SELECT is(cardinality(pg_temp.weekly()),3,'three independent weekly work orders are created');
+SELECT is(pg_temp.weekly(),pg_temp.weekly(),'the same request recovers the same ids');
+SELECT results_eq(
+ $$SELECT planned_start,planned_end,responsible_id,site_id FROM public.work_order_plan_versions
+   WHERE source_plan_version_id=current_setting('test.weekly_source')::uuid ORDER BY planned_start$$,
+ $$VALUES (DATE '2026-03-27',DATE '2026-03-29',NULL::uuid,pg_temp.k(51)),
+          (DATE '2026-04-03',DATE '2026-04-05',NULL::uuid,pg_temp.k(51)),
+          (DATE '2026-04-10',DATE '2026-04-12',NULL::uuid,pg_temp.k(51))$$,
+ 'weekly dates and duration are preserved across daylight saving while assignment is cleared');
+SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-28')$$,'22023',NULL,'retry cannot change the start date');
+SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-27',4)$$,'22023',NULL,'retry cannot extend the series');
+SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-22',3,385)$$,'22023',NULL,'series must start after source period');
+CREATE FUNCTION pg_temp.weekly_id(key_id integer, slot integer) RETURNS uuid
+LANGUAGE sql IMMUTABLE AS $$
+ SELECT overlay(overlay(md5('work-order-series:'||pg_temp.k(key_id)::text||':'||slot::text)
+  placing '8' from 13 for 1) placing '8' from 17 for 1)::uuid
+$$;
+SELECT ok((SELECT bool_and(id::text ~ '^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
+ FROM unnest(pg_temp.weekly()) AS occurrence(id)),'series ids use the UUID version and variant accepted by the app');
+INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.weekly_id(385,1),pg_temp.k(21),'Synthetic collision');
+SELECT throws_ok($$SELECT pg_temp.weekly('2026-03-27',3,385)$$,'22023',NULL,'an occupied id cannot be reused');
+SELECT is((SELECT count(*) FROM public.actions WHERE id=pg_temp.weekly_id(385,0)),
+ 0::bigint,'failure on the second task rolls back the first task');
+SELECT throws_ok($$SELECT public.create_work_order_weekly_series(pg_temp.k(11),pg_temp.k(21),
+ current_setting('test.foreign_plan')::uuid,'2026-03-27',3,pg_temp.k(386),pg_temp.k(1))
+$$,'22023',NULL,'a series cannot use a plan from another project');
+SELECT ok(NOT has_function_privilege('anon','public.create_work_order_weekly_series(uuid,uuid,uuid,date,integer,uuid,uuid)','EXECUTE'),
+ 'anonymous users cannot invoke the series endpoint');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT public.create_work_order_weekly_series(pg_temp.k(11),pg_temp.k(21),
+ current_setting('test.weekly_source')::uuid,'2026-03-27',3,pg_temp.k(386),pg_temp.k(3))
+$$,'42501',NULL,'readers cannot create a series');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.recurring(cadence text, key_id integer, first_date date DEFAULT '2027-01-31')
+RETURNS uuid[] LANGUAGE sql AS $$
+ SELECT public.create_work_order_series(pg_temp.k(11),pg_temp.k(21),current_setting('test.weekly_source')::uuid,
+   first_date,3,pg_temp.k(key_id),pg_temp.k(1),cadence)
+$$;
+SELECT is(pg_temp.recurring('monthly',390),pg_temp.recurring('monthly',390),'monthly retry preserves identities');
+SELECT is(
+ (SELECT array_agg(planned_start ORDER BY planned_start) FROM public.work_order_plan_versions
+  WHERE action_id=ANY(pg_temp.recurring('monthly',390))),
+ ARRAY[DATE '2027-01-31',DATE '2027-02-28',DATE '2027-03-31'],
+ 'monthly repeats clamp February and return to the anchor day in March');
+SELECT is(
+ (SELECT array_agg(planned_end ORDER BY planned_start) FROM public.work_order_plan_versions
+  WHERE action_id=ANY(pg_temp.recurring('monthly',390))),
+ ARRAY[DATE '2027-02-02',DATE '2027-03-02',DATE '2027-04-02'],
+ 'monthly repeats retain the original duration');
+SELECT throws_ok($$SELECT pg_temp.recurring('daily',390)$$,'22023',NULL,'retry rejects a changed interval');
+SELECT lives_ok($$SELECT pg_temp.recurring('fortnightly',391)$$,'fortnightly series is saved');
+SELECT is(
+ (SELECT array_agg(planned_start ORDER BY planned_start) FROM public.work_order_plan_versions
+  WHERE action_id=ANY(pg_temp.recurring('fortnightly',391))),
+ ARRAY[DATE '2027-01-31',DATE '2027-02-14',DATE '2027-02-28'],
+ 'fortnightly repeats use fourteen calendar days');
+SELECT lives_ok($$SELECT pg_temp.recurring('daily',392)$$,'daily series is saved');
+SELECT is(
+ (SELECT array_agg(planned_start ORDER BY planned_start) FROM public.work_order_plan_versions
+  WHERE action_id=ANY(pg_temp.recurring('daily',392))),
+ ARRAY[DATE '2027-01-31',DATE '2027-02-01',DATE '2027-02-02'],
+ 'daily repeats cross the end of the month');
+SELECT throws_ok($$SELECT pg_temp.recurring('annual',393)$$,'22023',NULL,'an unknown interval is refused');
+SELECT throws_ok($$SELECT pg_temp.recurring('monthly',393,'9999-11-30')$$,'22023',NULL,'a date outside the app range is refused');
+SELECT is((SELECT count(*) FROM public.actions WHERE id=pg_temp.weekly_id(393,0)),0::bigint,
+ 'out of range recurrence leaves no partial series');
+SELECT ok(NOT has_function_privilege('anon','public.create_work_order_series(uuid,uuid,uuid,date,integer,uuid,uuid,text)','EXECUTE'),
+ 'anonymous callers cannot invoke configurable recurrence');
+SELECT is((SELECT count(*) FROM public.work_order_series_members WHERE series_id=pg_temp.k(390)),3::bigint,
+ 'series retry records exactly three immutable members');
+SELECT is((SELECT array_agg(position ORDER BY position) FROM public.work_order_series_members WHERE series_id=pg_temp.k(390)),
+ ARRAY[1,2,3],'series positions are stable');
+SELECT is((SELECT count(*) FROM public.work_order_series_members WHERE series_id=pg_temp.k(393)),0::bigint,
+ 'a rejected series leaves no membership');
+SELECT ok(NOT has_table_privilege('authenticated','public.work_order_series_members','UPDATE'),
+ 'membership cannot be reassigned');
+SELECT throws_ok($$INSERT INTO public.work_order_series_members(plan_version_id,series_id,position,member_count,cadence)
+ SELECT id,pg_temp.k(399),1,2,'weekly' FROM pg_temp.history(37) WHERE version=1$$,'42501',NULL,
+ 'a manual follow-up cannot be assigned fabricated membership');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT is((SELECT count(*) FROM public.work_order_series_members),0::bigint,'another organization cannot see series membership');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.shift_series(mutation integer, days integer DEFAULT 2) RETURNS integer
+LANGUAGE sql AS $$
+ SELECT public.shift_work_order_series(pg_temp.k(11),pg_temp.k(21),pg_temp.k(390),
+   current_setting('test.series_basis')::jsonb,days,'Synthetic series move',pg_temp.k(mutation),pg_temp.k(1))
+$$;
+SELECT set_config('test.series_basis',(
+ SELECT jsonb_object_agg(p.action_id,p.id)::text
+ FROM public.work_order_series_members m JOIN public.work_order_plan_versions p ON p.id=m.plan_version_id
+ WHERE m.series_id=pg_temp.k(390)
+),true);
+SELECT public.reserve_work_order_equipment(pg_temp.k(403),pg_temp.k(11),pg_temp.k(21),
+ pg_temp.weekly_id(390,2),pg_temp.k(370),'2027-03-31','2027-03-31');
+SELECT throws_ok($$SELECT pg_temp.shift_series(404)$$,'PT409',NULL,'active reservation blocks the entire series');
+SELECT is((SELECT count(*) FROM public.work_order_plan_versions v
+ WHERE v.version>1 AND v.action_id=ANY(pg_temp.recurring('monthly',390))),0::bigint,
+ 'reservation conflict leaves all original plans unchanged');
+UPDATE public.work_order_equipment_bookings SET cancelled_at=now() WHERE id=pg_temp.k(403);
+SELECT is(pg_temp.shift_series(400),3,'a complete series moves in one transaction');
+SELECT is(pg_temp.shift_series(400),3,'retry returns the original series move');
+SELECT throws_ok($$SELECT pg_temp.shift_series(400,3)$$,'22023',NULL,'same request key rejects a different offset');
+SELECT throws_ok($$SELECT pg_temp.shift_series(401)$$,'PT409',NULL,'a stale snapshot cannot shift any member');
+SELECT is((
+ SELECT array_agg(v.planned_start ORDER BY m.position)
+ FROM public.work_order_series_members m JOIN public.work_order_plan_versions p ON p.id=m.plan_version_id
+ JOIN public.work_order_plan_versions v ON v.action_id=p.action_id AND v.version=2
+ WHERE m.series_id=pg_temp.k(390)
+), ARRAY[DATE '2027-02-02',DATE '2027-03-02',DATE '2027-04-02'],'all dates move by two calendar days');
+SELECT is((
+ SELECT count(*) FROM public.work_order_plan_versions v
+ WHERE v.version>2 AND v.action_id=ANY(pg_temp.recurring('monthly',390))
+),0::bigint,'retry and stale snapshot add no extra versions');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT public.shift_work_order_series(pg_temp.k(11),pg_temp.k(21),pg_temp.k(390),
+ current_setting('test.series_basis')::jsonb,2,'Unauthorized',pg_temp.k(402),pg_temp.k(3))
+$$,'42501',NULL,'a reader cannot shift a series');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT set_config('test.cancel_basis',(
+ SELECT jsonb_object_agg(p.action_id,p.id)::text
+ FROM public.work_order_series_members m JOIN public.work_order_plan_versions p ON p.id=m.plan_version_id
+ WHERE m.series_id=pg_temp.k(392)
+),true);
+CREATE FUNCTION pg_temp.cancel_series(mutation integer, explanation text DEFAULT 'Synthetic series cancellation') RETURNS integer
+LANGUAGE sql AS $$
+ SELECT public.cancel_work_order_series(pg_temp.k(11),pg_temp.k(21),pg_temp.k(392),
+   current_setting('test.cancel_basis')::jsonb,explanation,pg_temp.k(mutation),auth.uid())
+$$;
+SELECT public.reserve_work_order_equipment(pg_temp.k(410),pg_temp.k(11),pg_temp.k(21),
+ pg_temp.weekly_id(392,2),pg_temp.k(370),'2027-02-02','2027-02-02');
+SELECT throws_ok($$SELECT pg_temp.cancel_series(411)$$,'PT409',NULL,'a reservation prevents cancellation of any member');
+SELECT is((SELECT count(*) FROM public.work_order_lifecycle_versions
+ WHERE action_id=ANY(pg_temp.recurring('daily',392))),0::bigint,'failed cancellation leaves no lifecycle changes');
+UPDATE public.work_order_equipment_bookings SET cancelled_at=now() WHERE id=pg_temp.k(410);
+SELECT is(pg_temp.cancel_series(411),3,'cancels all three tasks through the normal lifecycle');
+SELECT is(pg_temp.cancel_series(411),3,'identical retry returns the original receipt');
+SELECT throws_ok($$SELECT pg_temp.cancel_series(411,'A different reason')$$,'22023',NULL,'retry rejects changed reason');
+SELECT is((SELECT count(*) FROM public.work_order_lifecycle_versions
+ WHERE status='cancelled' AND reason='Synthetic series cancellation' AND action_id=ANY(pg_temp.recurring('daily',392))),
+ 3::bigint,'one cancelled entry per task preserves the reason');
+SELECT is((SELECT count(*) FROM public.work_order_plan_versions WHERE action_id=ANY(pg_temp.recurring('daily',392))),
+ 3::bigint,'original plans remain intact');
+SELECT throws_ok($$SELECT public.reserve_work_order_equipment(pg_temp.k(413),pg_temp.k(11),pg_temp.k(21),
+ pg_temp.weekly_id(392,2),pg_temp.k(370),'2027-02-02','2027-02-02')$$,'PT409',NULL,
+ 'cancelled work orders cannot reserve equipment');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT pg_temp.cancel_series(412)$$,'42501',NULL,'reader cannot cancel a series');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is(public.save_work_order_prerequisite(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),0,
+ pg_temp.weekly_id(390,1),pg_temp.k(650)),1,'first prerequisite in chain is recorded');
+SELECT is(public.save_work_order_prerequisite(pg_temp.weekly_id(390,1),pg_temp.k(11),pg_temp.k(21),0,
+ pg_temp.weekly_id(390,2),pg_temp.k(651)),1,'second prerequisite in chain is recorded');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisite(pg_temp.weekly_id(390,2),pg_temp.k(11),pg_temp.k(21),0,
+ pg_temp.weekly_id(390,0),pg_temp.k(652))$$,'22023',NULL,'a three-task cycle is refused');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT throws_ok($$SELECT public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))$$,
+ '42501',NULL,'another organization cannot read the dependency');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is(public.save_work_order_prerequisites(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),1,
+ ARRAY[pg_temp.weekly_id(390,1),pg_temp.weekly_id(390,2)],pg_temp.k(653)),2,'two prerequisites are saved as one version');
+SELECT is(public.save_work_order_prerequisites(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),1,
+ ARRAY[pg_temp.weekly_id(390,1),pg_temp.weekly_id(390,2)],pg_temp.k(653)),2,'identical list retry reuses the version');
+SELECT is(jsonb_array_length(public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))->'prerequisites'),2,
+ 'both prerequisites are visible to the project manager');
+SELECT is((public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))->>'ready')::boolean,false,
+ 'an unfinished list prevents start');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisite(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),2,
+ NULL,pg_temp.k(654))$$,'PT409',NULL,'an old client cannot silently remove multiple prerequisites');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisites(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),2,
+ ARRAY[pg_temp.weekly_id(390,1),pg_temp.weekly_id(390,1)],pg_temp.k(654))$$,'22023',NULL,'duplicate prerequisites are rejected');
+SELECT throws_ok($$SELECT public.save_work_order_prerequisites(pg_temp.weekly_id(390,2),pg_temp.k(11),pg_temp.k(21),0,
+ ARRAY[pg_temp.weekly_id(391,0),pg_temp.weekly_id(390,0)],pg_temp.k(655))$$,'22023',NULL,
+ 'a cycle through a secondary prerequisite is rejected');
+SELECT is(public.save_work_order_prerequisites(pg_temp.weekly_id(390,0),pg_temp.k(11),pg_temp.k(21),2,
+ ARRAY[]::uuid[],pg_temp.k(656)),3,'the entire list can be cleared explicitly');
+SELECT is((public.get_work_order_prerequisite(pg_temp.weekly_id(390,0))->>'ready')::boolean,true,
+ 'clearing the list removes the prerequisite gate');
 SELECT * FROM finish();
 ROLLBACK;

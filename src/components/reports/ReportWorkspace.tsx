@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateEvidenceReportDraft } from "@/lib/report-draft.functions";
+import { getProjectWorkOrderEvidenceOriginal } from "@/lib/work-order-evidence.functions";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, PageHeader } from "@/components/ui-bits";
+import { WorkOrderFollowUps } from "@/components/project/WorkOrderFollowUps";
 import { useAuth } from "@/lib/auth";
 import { getMyProjectRole, permissionsFor } from "@/services/project-members-service";
 import {
@@ -61,6 +63,7 @@ export function ReportWorkspace({ mode }: { mode: Mode }) {
 function ScopedReportWorkspace({ mode }: { mode: Mode }) {
   const { currentOrg, currentProject, user, session } = useAuth();
   const generateDraft = useServerFn(generateEvidenceReportDraft);
+  const signEvidenceOriginal = useServerFn(getProjectWorkOrderEvidenceOriginal);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const search = useRouterState({ select: (s) => s.location.search }) as {
@@ -94,6 +97,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     search.version ? r.version === search.version : true,
   );
   const [content, setContent] = useState<ReportContent | null>(null);
+  const canEditContent = canEdit && !content?.workOrderApproval;
   const [busy, setBusy] = useState(false);
   const [workflowReviewReason, setWorkflowReviewReason] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
@@ -138,6 +142,39 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     setImages([]);
     setImagesReady(false);
   }, [mode, orgId, projectId, reportId, revision, currentOrg, currentProject, search.template]);
+  async function downloadPackage(saved: ReportRevision, includeOriginals = false) {
+    const approval = saved.content.workOrderApproval;
+    const { buildWorkflowReportPackage, buildWorkOrderReportPackage } =
+      await import("@/lib/workflow-report-package");
+    const signOriginal =
+      includeOriginals && approval && orgId && projectId && user?.id
+        ? (id: string) =>
+            signEvidenceOriginal({
+              data: {
+                id,
+                actionId: approval.actionId,
+                projectId,
+                organizationId: orgId,
+                expectedActorId: user.id,
+              },
+            })
+        : undefined;
+    if (includeOriginals && !signOriginal) throw new Error("Originalfilerne kræver projektadgang.");
+    const bytes = approval
+      ? await buildWorkOrderReportPackage(saved, signOriginal)
+      : await buildWorkflowReportPackage(
+          saved,
+          imagesReady && assetRevisionId === saved.id ? images : [],
+        );
+    const url = URL.createObjectURL(new Blob([bytes.slice().buffer], { type: "application/zip" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    const prefix = approval ? "Freyra-opgaverapport-v" : "Freyra-foer-efter-v";
+    anchor.download = prefix + saved.version + (includeOriginals ? "-med-originaler" : "") + ".zip";
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setMessage("");
@@ -306,7 +343,15 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
           </p>
         </Card>
       )}
-      {canEdit && content && (mode === "new" || mode === "builder") && (
+      {content?.workOrderApproval && mode === "builder" && revision && (
+        <Link
+          to="/app/reports/preview"
+          search={{ report: revision.report_id, version: revision.version }}
+        >
+          Åbn rapporten for den godkendte aflevering
+        </Link>
+      )}
+      {canEditContent && content && (mode === "new" || mode === "builder") && (
         <>
           <Card className="p-5 space-y-3">
             <label className="block">
@@ -655,7 +700,7 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
               </p>
             </div>
           )}
-          {canEdit && mode === "approval" && (
+          {canEditContent && mode === "approval" && (
             <div className="flex gap-2">
               <button
                 className={button}
@@ -679,60 +724,92 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
         </Card>
       )}
       {content && mode === "preview" && <ReportPreview revision={revision} content={content} />}
+      {mode === "preview" && revision?.content.workOrderApproval && projectId && (
+        <Card className="space-y-3 p-5">
+          <h2 className="font-semibold">Aflevering og opfølgning</h2>
+          <Link
+            className={button + " inline-flex min-h-11 items-center"}
+            to="/app/projects/$slug"
+            params={{ slug: projectId }}
+            search={{
+              tab: "handlinger",
+              task: revision.content.workOrderApproval.actionId,
+              work: "submission",
+              submissionVersion: revision.content.workOrderApproval.submissionVersion,
+            }}
+          >
+            Åbn opgavens aflevering og originalfotos
+          </Link>
+          {canEdit && user?.id && orgId && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Listen viser opgavens aktuelle opfølgninger på sagen.
+              </p>
+              <WorkOrderFollowUps
+                actorId={user.id}
+                scope={{ organizationId: orgId, projectId }}
+                actionId={revision.content.workOrderApproval.actionId}
+              />
+            </>
+          )}
+        </Card>
+      )}
       {revision && (mode === "approval" || mode === "preview") && (
         <Card className="p-5 space-y-3">
           <h2 className="font-semibold">Eksportér gemt version {revision.version}</h2>
-          {revision.content.workflowSnapshot && (
+          {(revision.content.workflowSnapshot || revision.content.workOrderApproval) && (
             <button
               className={button}
               disabled={busy || changed}
-              onClick={() =>
-                void run(async () => {
-                  const { buildWorkflowReportPackage } =
-                    await import("@/lib/workflow-report-package");
-                  const bytes = await buildWorkflowReportPackage(
-                    revision,
-                    imagesReady ? images : [],
-                  );
-                  const url = URL.createObjectURL(
-                    new Blob([bytes.slice().buffer], { type: "application/zip" }),
-                  );
-                  const anchor = document.createElement("a");
-                  anchor.href = url;
-                  anchor.download = "Freyra-foer-efter-v" + revision.version + ".zip";
-                  anchor.click();
-                  setTimeout(() => URL.revokeObjectURL(url), 10000);
-                })
-              }
+              onClick={() => void run(() => downloadPackage(revision))}
             >
               Hent PDF og kildepakke fra denne version
             </button>
           )}
-          <p className="text-sm">
-            Kladder mærkes tydeligt. Filen genereres fra den valgte gemte version og får en
-            SHA-256-checksum. Fotoatlas medtager JPEG/PNG-originaler med verificeret checksum. Andre
-            formater medtages kun som referencer. Oversigtskortet bruger OpenStreetMap. Hvis
-            kortfelter ikke kan hentes, vises det tydeligt i kortbilaget. Faktisk fotodækning og
-            officielle naturbindinger er ikke dokumenteret af GPS-punkterne.
-          </p>
-          <button
-            className={button}
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                setImagesReady(false);
-                const next = await buildReportImages(revision);
-                setImages(next);
-                setAssetRevisionId(revision.id);
-                setImagesReady(true);
-                setMessage(
-                  "Kort- og fotovisning er klar. PDF/DOCX genbruger denne visning uden at hente nye kortfelter.",
-                );
-              })
-            }
-          >
-            Vis kort og fotoatlas før PDF/DOCX-eksport
-          </button>
+          {revision.content.workOrderApproval ? (
+            <>
+              <button
+                className={button}
+                disabled={busy || changed}
+                onClick={() => void run(() => downloadPackage(revision, true))}
+              >
+                Hent ZIP med verificerede originalfotos
+              </button>
+              <p className="text-sm">
+                Kildepakken indeholder referencer og kontrolsummer. ZIP med originalfotos henter
+                også filerne med din aktuelle adgang, op til 25 MiB i alt. Du kan åbne originalfotos
+                enkeltvis fra opgaven.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm">
+                Kladder mærkes tydeligt. Filen genereres fra den valgte gemte version og får en
+                SHA-256-checksum. Fotoatlas medtager JPEG/PNG-originaler med verificeret checksum.
+                Andre formater medtages kun som referencer. Oversigtskortet bruger OpenStreetMap.
+                Hvis kortfelter ikke kan hentes, vises det tydeligt i kortbilaget. Faktisk
+                fotodækning og officielle naturbindinger er ikke dokumenteret af GPS-punkterne.
+              </p>
+              <button
+                className={button}
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    setImagesReady(false);
+                    const next = await buildReportImages(revision);
+                    setImages(next);
+                    setAssetRevisionId(revision.id);
+                    setImagesReady(true);
+                    setMessage(
+                      "Kort- og fotovisning er klar. PDF/DOCX genbruger denne visning uden at hente nye kortfelter.",
+                    );
+                  })
+                }
+              >
+                Vis kort og fotoatlas før PDF/DOCX-eksport
+              </button>
+            </>
+          )}
           {assetRevisionId === revision.id &&
             imageUrls.map((url, i) => (
               <figure key={images[i]?.id} className="border rounded-lg p-3">
@@ -747,7 +824,8 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
                 className={button}
                 disabled={
                   busy ||
-                  ((format === "pdf" || format === "docx") &&
+                  (!revision.content.workOrderApproval &&
+                    (format === "pdf" || format === "docx") &&
                     (!imagesReady || assetRevisionId !== revision.id))
                 }
                 onClick={() =>
@@ -768,37 +846,94 @@ function ScopedReportWorkspace({ mode }: { mode: Mode }) {
     </main>
   );
 }
-function ReportPreview({
+export function ReportPreview({
   content,
   revision,
 }: {
   content: ReportContent;
   revision?: ReportRevision;
 }) {
+  const sources = new Map(
+    content.sources.map((source, index) => [
+      source.id,
+      { title: source.title, anchor: "report-source-" + index },
+    ]),
+  );
+  const hasApprovalSection =
+    content.workOrderApproval && content.sections.some((section) => section.id === "review");
   return (
-    <Card className="p-8 max-w-4xl mx-auto space-y-6">
+    <Card className="mx-auto max-w-4xl space-y-6 p-4 sm:p-8">
       <header>
         <div className="text-primary font-bold">FREYRA</div>
         <h1 className="text-2xl font-semibold mt-3">{content.title}</h1>
         <p>{content.organizationName}</p>
         <p>
-          {revision?.status === "approved" ? "Godkendt" : "KLADDE - ikke godkendt"} · Version{" "}
-          {revision?.version ?? "ikke gemt"}
+          {revision?.status === "approved"
+            ? "Godkendt rapport"
+            : content.workOrderApproval
+              ? "Rapportkladde"
+              : "KLADDE - ikke godkendt"}{" "}
+          · Version {revision?.version ?? "ikke gemt"}
         </p>
-        <p>Scope: {content.scope}</p>
+        <p>Omfang · {content.scope}</p>
+        {content.workOrderApproval && (
+          <p className="text-sm">
+            Grundlag · Godkendt afleveringsversion {content.workOrderApproval.submissionVersion}
+            {hasApprovalSection && (
+              <a
+                href="#report-work-order-review"
+                className="ml-2 inline-flex min-h-11 items-center text-primary underline"
+              >
+                Se den faglige afgørelse
+              </a>
+            )}
+          </p>
+        )}
       </header>
       {content.sections.map((s) => (
-        <section key={s.id}>
+        <section
+          key={s.id}
+          id={hasApprovalSection && s.id === "review" ? "report-work-order-review" : undefined}
+          tabIndex={hasApprovalSection && s.id === "review" ? -1 : undefined}
+          className="scroll-mt-20"
+        >
           <h2 className="font-semibold text-lg">{s.title}</h2>
           <p className="text-xs text-muted-foreground">{BASIS_LABELS[s.basis]}</p>
-          <p className="whitespace-pre-wrap mt-2">{s.text || "Grundlaget er ikke dokumenteret."}</p>
-          <p className="text-xs mt-2">Kilder: {s.sourceIds.join(", ") || "Ingen"}</p>
+          <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere]">
+            {s.text || "Grundlaget er ikke dokumenteret."}
+          </p>
+          <p className="mt-2 text-xs [overflow-wrap:anywhere]">
+            Kilder: {s.sourceIds.length === 0 && "Ingen"}
+            {s.sourceIds.map((sourceId, index) => {
+              const source = sources.get(sourceId);
+              return (
+                <span key={sourceId}>
+                  {index > 0 && ", "}
+                  {source ? (
+                    <a
+                      href={"#" + source.anchor}
+                      className="inline-block py-2 text-primary underline"
+                    >
+                      {source.title || sourceId}
+                    </a>
+                  ) : (
+                    sourceId
+                  )}
+                </span>
+              );
+            })}
+          </p>
         </section>
       ))}
       <section>
         <h2 className="font-semibold text-lg">Kilderegister</h2>
         {content.sources.map((s) => (
-          <p key={s.id} className="text-sm mt-2">
+          <p
+            key={s.id}
+            id={sources.get(s.id)?.anchor}
+            tabIndex={-1}
+            className="mt-2 scroll-mt-20 text-sm [overflow-wrap:anywhere]"
+          >
             {s.id}: {s.title} · {s.method} · version {s.version} · GPS{" "}
             {s.position?.join(", ") ?? "mangler"} · SHA-256 {s.checksum ?? "ikke dokumenteret"}
           </p>

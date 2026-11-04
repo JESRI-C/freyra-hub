@@ -11,6 +11,9 @@ INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES
 INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_temp.k(11),'Synthetic submission project'),(pg_temp.k(22),pg_temp.k(12),'Synthetic foreign project');
 INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'viewer'),(pg_temp.k(21),pg_temp.k(4),'external');
 INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(31),pg_temp.k(21),'Synthetic task'),(pg_temp.k(32),pg_temp.k(21),'Synthetic other task');
+INSERT INTO public.indicators(id,project_id,key,label,unit,target_value,target_direction,target_unit)
+ VALUES(pg_temp.k(33),pg_temp.k(21),'synthetic_target','Synthetic indicator','stk.',0,'at_most','stk.');
+UPDATE public.actions SET linked_indicator_id=pg_temp.k(33) WHERE id=pg_temp.k(31);
 CREATE FUNCTION pg_temp.plan() RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('schema','freyra.work-order-plan/v1','title','Synthetic submission plan','description','','instructions','Synthetic instruction','profile','nature','responsibleId',pg_temp.k(1),'siteId',NULL,'watercourseVersionId',NULL,'locationNote','Synthetic location','plannedStart',NULL,'plannedEnd',NULL,'priority',NULL,'plannedMethod',NULL,'watercourse',NULL) $$;
 CREATE FUNCTION pg_temp.ctx() RETURNS jsonb LANGUAGE sql AS $$ SELECT public.get_work_order_submission_context(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21)) $$;
 CREATE FUNCTION pg_temp.hash() RETURNS text LANGUAGE sql AS $$ SELECT pg_temp.ctx()->>'basis_hash' $$;
@@ -64,6 +67,9 @@ SELECT lives_ok($$SELECT pg_temp.save()$$,'ready packet is saved');
 INSERT INTO pg_temp.saved SELECT 'first',snapshot::text FROM public.work_order_submission_versions WHERE version=1;
 INSERT INTO pg_temp.saved SELECT 'hash',basis_hash FROM public.work_order_submission_versions WHERE version=1;
 SELECT is((SELECT snapshot->'plan'->'plan'->'plannedStart' FROM public.work_order_submission_versions WHERE version=1),'null'::jsonb,'unknown planned date stays unknown');
+SELECT is((SELECT snapshot->'indicatorTarget' FROM public.work_order_submission_versions WHERE version=1),
+ jsonb_build_object('indicatorId',pg_temp.k(33),'label','Synthetic indicator','value',0,'direction','at_most','unit','stk.'),
+ 'submission freezes the linked indicator and zero target');
 SELECT is((SELECT snapshot->'evidence'->0->'observation_snapshot'->'values'->'count' FROM public.work_order_submission_versions WHERE version=1),'0'::jsonb,'snapshot preserves measured zero');
 SELECT is((SELECT snapshot->'evidence'->0->'observation_snapshot'->'values'->'checked' FROM public.work_order_submission_versions WHERE version=1),'false'::jsonb,'snapshot preserves false');
 SELECT is(pg_temp.save(),(SELECT id FROM public.work_order_submission_versions WHERE version=1),'identical retry returns the same packet');
@@ -96,6 +102,15 @@ SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub',pg_temp.
 SELECT throws_ok($$SELECT pg_temp.save(2,85)$$,'23514',NULL,'audit failure rolls back packet creation');
 SELECT is((SELECT count(*)::integer FROM public.work_order_submission_versions),2,'failed audit leaves no new version');
 RESET ROLE; DROP TRIGGER synthetic_submission_audit_failure ON public.audit_events;
+UPDATE public.indicators SET target_value=5 WHERE id=pg_temp.k(33);
+SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT isnt(pg_temp.hash(),(SELECT value FROM pg_temp.saved WHERE name='hash'),'a changed target changes the current basis hash');
+SELECT throws_ok($$SELECT pg_temp.save(2,85,(SELECT value FROM pg_temp.saved WHERE name='hash'))$$,
+ 'PT409',NULL,'a submission based on the old target is rejected');
+SELECT is((SELECT snapshot->'indicatorTarget'->'value' FROM public.work_order_submission_versions WHERE version=1),
+ '0'::jsonb,'a changed target preserves the previously submitted target');
+RESET ROLE;
+UPDATE public.indicators SET target_value=0 WHERE id=pg_temp.k(33);
 UPDATE storage.objects SET version='Synthetic changed object' WHERE id=pg_temp.k(61);
 SET LOCAL ROLE authenticated; SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT ok((pg_temp.ctx()->'gaps') ? 'original_unavailable','original metadata change is detected');

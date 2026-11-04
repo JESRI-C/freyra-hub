@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FieldPhotoUuid, FieldPhotoUploadPayload } from "./field-photo-upload";
+import { WorkOrderActionIdSchema } from "./work-order-access";
 import {
   FieldJobTemplateVersionSchema,
   FieldJobVersionSchema,
@@ -10,6 +11,7 @@ export const OFFLINE_DEVICE_KEY = "freyra-field-device-v1";
 export const FIELD_OFFLINE_DB = "freyra-field-offline-v1";
 export const FIELD_OFFLINE_MAX_BYTES = 2 * 1024 * 1024 * 1024;
 export const FIELD_OFFLINE_LEASE_MS = 120_000;
+const actionId = WorkOrderActionIdSchema.transform((value) => value.toLowerCase());
 
 export const FieldWorkPackSchema = z.object({
   actorId: FieldPhotoUuid,
@@ -19,7 +21,7 @@ export const FieldWorkPackSchema = z.object({
   savedAt: z.number().int().positive(),
   jobs: z.array(
     z.object({
-      actionId: FieldPhotoUuid,
+      actionId,
       title: z.string(),
       template: FieldJobTemplateVersionSchema.nullable(),
       latest: FieldJobVersionSchema.nullable(),
@@ -30,7 +32,7 @@ export type FieldWorkPack = z.infer<typeof FieldWorkPackSchema>;
 export const OfflineJobDraftSchema = z
   .object({
     organizationId: FieldPhotoUuid,
-    actionId: FieldPhotoUuid,
+    actionId,
     templateVersionId: FieldPhotoUuid,
     expectedVersion: z.number().int().nonnegative(),
     values: FieldJobValuesSchema,

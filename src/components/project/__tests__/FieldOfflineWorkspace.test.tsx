@@ -8,6 +8,7 @@ const f = vi.hoisted(() => ({
   project: "22222222-2222-4222-8222-222222222222",
   action: "33333333-3333-4333-8333-333333333333",
   packs: vi.fn(),
+  items: vi.fn(),
   enqueue: vi.fn(),
   prepare: vi.fn(),
   photo: vi.fn(),
@@ -37,7 +38,7 @@ vi.mock("@/services/field-offline-store", () => ({
   openFieldOfflineStore: async () => ({
     packs: f.packs,
     enqueue: f.enqueue,
-    items: async () => [],
+    items: f.items,
     close: () => {},
   }),
 }));
@@ -108,6 +109,7 @@ beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   localStorage.setItem("freyra-field-device-v1", f.actor);
   f.packs.mockResolvedValue([pack()]);
+  f.items.mockReset().mockResolvedValue([]);
   f.prepare.mockReturnValue({ id: "local" });
   f.enqueue.mockReset();
   host = document.createElement("div");
@@ -157,6 +159,119 @@ describe("mobile field local save feedback", () => {
     ).toBe(f.action);
     expect(host.textContent).toContain("Skabelonversion 1");
     expect(host.textContent).toContain("ikke automatisk opgavedokumentation");
+  });
+  it("waits for the local queue before opening a saved jobcard", async () => {
+    const savedPack = pack();
+    f.packs.mockResolvedValue([savedPack]);
+    let readQueue!: (items: unknown[]) => void;
+    const queue = new Promise<unknown[]>((resolve) => {
+      readQueue = resolve;
+    });
+    f.items.mockReturnValue(queue);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    expect(host.textContent).toContain("Henter gemte feltkladder");
+    expect(host.textContent).not.toContain("Skabelonversion 1");
+    await act(async () =>
+      readQueue([
+        {
+          id: crypto.randomUUID(),
+          projectId: f.project,
+          kind: "job",
+          state: "queued",
+          template: savedPack.jobs[0].template,
+          payload: { actionId: f.action, expectedVersion: 1, values: { count: null, seen: false } },
+        },
+      ]),
+    );
+    expect(host.textContent).toContain("Nødvendige felter udfyldt: 1 af 2");
+    expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("");
+  });
+  it("compares a conflicting local answer with the refreshed server version", async () => {
+    const refreshed = pack();
+    const job = refreshed.jobs[0];
+    job.latest = { ...job.latest!, version: 2, values: { count: 8, seen: true } };
+    f.packs.mockResolvedValue([refreshed]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        projectId: f.project,
+        kind: "job",
+        state: "conflict",
+        template: job.template,
+        payload: {
+          actionId: f.action,
+          expectedVersion: 1,
+          values: { count: 0, seen: false },
+          status: "draft",
+        },
+      },
+    ]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const values = [...host.querySelectorAll("li dl dd")].map((item) => item.textContent);
+    expect(values).toEqual(["8", "0", "Ja", "Nej"]);
+    const useLocal = [...host.querySelectorAll("button")].find((item) =>
+      item.textContent?.includes("Brug den bevarede registrering som ny kladde"),
+    )!;
+    await act(async () => useLocal.click());
+    expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("0");
+    expect(f.enqueue).not.toHaveBeenCalled();
+  });
+  it("shows the server version and draft status on a completed job receipt", async () => {
+    const savedPack = pack();
+    const job = savedPack.jobs[0];
+    f.packs.mockResolvedValue([savedPack]);
+    f.items.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        projectId: f.project,
+        kind: "job",
+        state: "complete",
+        template: job.template,
+        payload: { actionId: f.action, expectedVersion: 1, values: job.latest!.values },
+        receipt: { ...job.latest, version: 2, status: "draft" },
+      },
+    ]);
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
+    const queue = host.querySelector('[aria-label="Telefonens feltkø"]');
+    expect(queue?.textContent).toContain("Gemt som version 2 · Kladde");
+    expect(queue?.textContent).toContain("Modtaget og kontrolleret på serveren");
+  });
+  it("counts a retained cancelled registration separately from pending work", async () => {
+    const savedPack = pack();
+    const job = savedPack.jobs[0];
+    const registration = {
+      projectId: f.project,
+      kind: "job",
+      template: job.template,
+      payload: { actionId: f.action, expectedVersion: 1, values: job.latest!.values },
+    };
+    f.packs.mockResolvedValue([savedPack]);
+    f.items.mockResolvedValue([
+      { ...registration, id: crypto.randomUUID(), state: "blocked", lastError: "cancelled" },
+      { ...registration, id: crypto.randomUUID(), state: "queued" },
+    ]);
+    await act(async () => root!.render(<FieldOfflineWorkspace requestedProject={f.project} />));
+
+    const queue = host.querySelector('[aria-label="Telefonens feltkø"]')!;
+    expect(queue.textContent).toContain("1 afventer på denne sag");
+    expect(queue.textContent).toContain("1 registrering er bevaret på telefonen efter aflysning.");
+    const cancelled = [...queue.querySelectorAll("li")].find((item) =>
+      item.textContent?.includes("opgaven er aflyst"),
+    );
+    expect(cancelled?.textContent).toContain("Hent registrering");
+    expect(cancelled?.querySelectorAll("button")).toHaveLength(1);
   });
   it("does not replace an unavailable requested task with another saved task", async () => {
     await act(async () =>
@@ -211,6 +326,21 @@ describe("mobile field local save feedback", () => {
     });
     await act(async () => commit());
     expect(host.textContent).toContain("Registreringen er gemt på telefonen.");
+  });
+  it("counts zero and no, then focuses a required field when its answer is cleared", async () => {
+    await edit();
+    expect(host.textContent).toContain("Nødvendige felter udfyldt: 2 af 2");
+    const count = host.querySelector<HTMLInputElement>('input[type="number"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(count, "");
+      count.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(host.textContent).toContain("Nødvendige felter udfyldt: 1 af 2");
+    const shortcut = Array.from(host.querySelectorAll("button")).find(
+      (item) => item.textContent?.trim() === "Udfyld Antal",
+    )!;
+    await act(async () => shortcut.click());
+    expect(document.activeElement).toBe(count);
   });
   it("keeps the form and reason after quota failure instead of confirming a save", async () => {
     f.enqueue.mockRejectedValue(new DOMException("Lageret er fuldt", "QuotaExceededError"));

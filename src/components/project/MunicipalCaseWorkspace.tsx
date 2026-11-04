@@ -21,6 +21,7 @@ import { getMyProjectRole, permissionsFor } from "@/services/project-members-ser
 import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/supabase/types";
 import { getSurveyRoundAccess } from "@/lib/survey-round.functions";
+import type { WorkOrderListView } from "@/lib/work-order-navigation";
 import { ProjectWorkOrdersWorkspace, type WorkOrderView } from "./ProjectWorkOrdersWorkspace";
 import { countCanonicalProjectOriginals } from "@/services/project-media-service";
 import { listProjectBaselines } from "@/lib/public-baseline.functions";
@@ -114,6 +115,11 @@ export function MunicipalCaseWorkspace({
   selectedActionId,
   onSelectAction,
   initialWorkOrderView,
+  initialTaskList,
+  reviewOnly,
+  onReviewOnly,
+  submissionVersion,
+  onTaskList,
   embedded = false,
 }: {
   project: Project;
@@ -123,8 +129,13 @@ export function MunicipalCaseWorkspace({
   onStep: (step: MunicipalStep) => void;
   onRound: (id: string | undefined) => void;
   selectedActionId?: string;
-  onSelectAction?: (id: string | undefined) => void;
+  onSelectAction?: (id: string | undefined, view?: WorkOrderView) => void;
   initialWorkOrderView?: WorkOrderView;
+  initialTaskList?: WorkOrderListView;
+  reviewOnly?: boolean;
+  onReviewOnly?: (value: boolean) => void;
+  submissionVersion?: number;
+  onTaskList?: (view: WorkOrderListView) => void;
   embedded?: boolean;
 }) {
   const { user, selectProject, projectId: selectedProjectId } = useAuth();
@@ -463,15 +474,37 @@ export function MunicipalCaseWorkspace({
                 canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
                 selectedActionId={selectedActionId}
                 initialView={initialWorkOrderView}
+                initialListView={initialTaskList}
+                reviewOnly={reviewOnly}
+                onReviewOnly={onReviewOnly}
+                submissionVersion={submissionVersion}
+                onListView={onTaskList}
                 onSelectAction={onSelectAction}
               />
             )}
             {step === "sammenligning" && project.organization_id && (
-              <PhotoComparisonPanel
-                key={project.id}
-                scope={{ projectId: project.id, organizationId: project.organization_id }}
-                canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
-              />
+              <>
+                <div className="space-y-2 rounded-xl border bg-card p-4 text-sm">
+                  <h3 className="font-medium">Følg ændringer i projektets indikatorer</h3>
+                  <p className="text-muted-foreground">
+                    Åbn målehistorikken for at se værdier, kilde og metode som del af den faglige
+                    vurdering.
+                  </p>
+                  <Link
+                    to="/app/projects/$slug"
+                    params={{ slug: project.slug ?? project.id }}
+                    search={{ tab: "indikatorer", round: selectedRoundId, task: selectedActionId }}
+                    className="inline-flex min-h-11 items-center font-medium text-primary underline underline-offset-4"
+                  >
+                    Åbn projektets målehistorik
+                  </Link>
+                </div>
+                <PhotoComparisonPanel
+                  key={project.id}
+                  scope={{ projectId: project.id, organizationId: project.organization_id }}
+                  canEdit={access.data?.userId === user?.id && access.data?.canPersist === true}
+                />
+              </>
             )}
           </section>
           <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">

@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { getFieldJobAccess } from "@/lib/field-job-access.functions";
+import { getProjectWorkOrderPlanHistory } from "@/lib/work-order-plan.functions";
+import { getProjectWorkOrderAccess } from "@/lib/work-order-access.functions";
+import { RequiredJobCards } from "./RequiredJobCards";
 import {
   FIELD_JOB_STARTER_TEMPLATES,
   FieldJobTemplateDefinitionSchema,
-  fieldJobGaps,
+  missingRequiredFieldJobFields,
   type FieldJobTemplateDefinition,
   type FieldJobValues,
   type FieldJobVersion,
@@ -21,6 +24,7 @@ import {
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { Button } from "@/components/ui/button";
 import { useBlocker } from "@tanstack/react-router";
+import { RequiredFieldJobProgress } from "./RequiredFieldJobProgress";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
 const control =
@@ -29,6 +33,7 @@ type JobCardsProps = {
   scope: ProjectScope;
   selectedActionId?: string;
   onEditing?: (value: boolean) => void;
+  onSaved?: (version: FieldJobVersion | undefined) => void;
 };
 export function FieldJobCardsPanel(props: JobCardsProps) {
   const { scope } = props;
@@ -45,6 +50,7 @@ function JobCards({
   scope,
   actorId,
   selectedActionId,
+  onSaved,
   onEditing,
 }: JobCardsProps & { actorId?: string }) {
   const accessFn = useServerFn(getFieldJobAccess);
@@ -59,7 +65,7 @@ function JobCards({
   const enabled = sameAccess && !access.isError;
   const actions = useQuery({
     queryKey: ["field-job-actions", actorId, scope],
-    queryFn: () => listFieldJobActions(scope),
+    queryFn: ({ signal }) => listFieldJobActions(scope, signal),
     enabled,
     retry: false,
   });
@@ -123,6 +129,7 @@ function JobCards({
               canConfigure={enabled && !!access.data?.canConfigure && !access.isFetching}
               canContribute={enabled && !!access.data?.canContribute && !access.isFetching}
               onEditing={setEditing}
+              onSaved={onSaved}
             />
           )}
         </div>
@@ -138,6 +145,7 @@ function JobCardEditor({
   templates,
   canConfigure,
   canContribute,
+  onSaved,
   onEditing,
 }: {
   scope: ProjectScope;
@@ -147,8 +155,25 @@ function JobCardEditor({
   canConfigure: boolean;
   canContribute: boolean;
   onEditing: (value: boolean) => void;
+  onSaved?: JobCardsProps["onSaved"];
 }) {
   const cache = useQueryClient();
+  const loadPlan = useServerFn(getProjectWorkOrderPlanHistory);
+  const loadAccess = useServerFn(getProjectWorkOrderAccess);
+  const plan = useQuery({
+    queryKey: ["work-order-plan-history", actorId, scope, actionId],
+    queryFn: () => loadPlan({ data: { ...scope, actionId, beforeVersion: null, pageSize: 20 } }),
+    retry: false,
+  });
+  const required = plan.data?.items[0]?.plan.requiredJobCards ?? [];
+  const capabilities = useQuery({
+    queryKey: ["work-order-capabilities", actorId, { ...scope, actionId }],
+    queryFn: () => loadAccess({ data: { ...scope, actionId } }),
+    enabled: canContribute && !canConfigure && required.length > 0,
+    retry: false,
+  });
+  const canUseRequired =
+    !plan.isError && !capabilities.isError && capabilities.data?.can_execute === true;
   const history = useQuery({
     queryKey: ["field-job-versions", actorId, scope, actionId],
     queryFn: () => listFieldJobVersions(scope, actionId),
@@ -190,7 +215,12 @@ function JobCardEditor({
     }
   }, [history.data]);
   const selected = templates.find((t) => t.id === templateId);
-  const writable = canContribute && (!!base || canConfigure);
+  const selectedIsRequired = required.some((card) => card.templateVersionId === templateId);
+  const writable =
+    canContribute &&
+    (canConfigure ||
+      (!!base && base.template_version_id === templateId) ||
+      (canUseRequired && selectedIsRequired));
   function requestId(payload: unknown) {
     const text = JSON.stringify(payload);
     if (request.current.payload !== text)
@@ -256,9 +286,28 @@ function JobCardEditor({
         expectedVersion: base?.version ?? 0,
       };
       const saved = await saveFieldJobVersion(scope, { ...input, requestId: requestId(input) });
-      await cache.invalidateQueries({ queryKey: ["field-job-versions", actorId, scope, actionId] });
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: ["field-job-versions", actorId, scope, actionId] }),
+        cache.invalidateQueries({
+          queryKey: [
+            "work-order-evidence",
+            actorId,
+            scope.organizationId,
+            scope.projectId,
+            actionId,
+            "sources",
+            "observation",
+          ],
+        }),
+      ]);
       if (alive.current) {
         setBase(saved);
+        onSaved?.(
+          saved.status === "recorded" &&
+            missingRequiredFieldJobFields(selected.definition, saved.values).length === 0
+            ? saved
+            : undefined,
+        );
         setValues(saved.values);
         setReason("");
         setRecordDirty(false);
@@ -278,18 +327,25 @@ function JobCardEditor({
     (t) =>
       !templates.some((other) => other.template_id === t.template_id && other.version > t.version),
   );
-  const options =
+  const usualOptions =
     selected && !latestTemplates.some((t) => t.id === selected.id)
       ? [selected, ...latestTemplates]
       : latestTemplates;
-  let gaps: string[] = [];
-  if (selected) {
-    try {
-      gaps = fieldJobGaps(selected.definition, values);
-    } catch {
-      gaps = ["Svarene skal passe til den valgte skabelon."];
-    }
-  }
+  const options = canConfigure
+    ? [
+        ...usualOptions,
+        ...templates.filter(
+          (t) =>
+            required.some((card) => card.templateVersionId === t.id) &&
+            !usualOptions.some((option) => option.id === t.id),
+        ),
+      ]
+    : templates.filter(
+        (t) =>
+          t.id === base?.template_version_id ||
+          (canUseRequired && required.some((card) => card.templateVersionId === t.id)),
+      );
+  const inputPrefix = useId();
   return (
     <fieldset
       className="min-w-0 space-y-4"
@@ -300,16 +356,36 @@ function JobCardEditor({
       }}
     >
       {history.isFetching && <p role="status">Henter registreringshistorik…</p>}
+      {!base && (plan.isFetching || capabilities.isFetching) && (
+        <p role="status">Kontrollerer opgavens dokumentationskrav og din adgang…</p>
+      )}
       {history.error && <p role="alert">{history.error.message}</p>}
+      {plan.error && (
+        <p role="alert">Dokumentationskrav kunne ikke kontrolleres: {plan.error.message}</p>
+      )}
+      {capabilities.error && (
+        <p role="alert">
+          Adgang til påkrævede jobkort kunne ikke kontrolleres: {capabilities.error.message}
+        </p>
+      )}
+      <RequiredJobCards cards={required} />
       {!canContribute && <p>Du har læseadgang til jobkortet.</p>}
-      {canContribute && !canConfigure && !base && (
+      {canContribute && !canConfigure && !base && plan.isSuccess && required.length === 0 && (
         <p>En redaktør skal først tilknytte en skabelon til opgaven.</p>
       )}
+      {canContribute &&
+        !canConfigure &&
+        !base &&
+        required.length > 0 &&
+        capabilities.isSuccess &&
+        !capabilities.data.can_execute && (
+          <p>Du har ikke udførelsesadgang til opgavens påkrævede jobkort.</p>
+        )}
       <label className="block">
         Skabelon
         <select
           className={control}
-          disabled={!canConfigure || busy}
+          disabled={(!canConfigure && !canUseRequired) || busy}
           value={templateId}
           onChange={(e) => {
             setTemplateId(e.target.value);
@@ -478,6 +554,12 @@ function JobCardEditor({
             Denne registrering bruger skabelonversion {selected.version}. Rettelser bevarer
             tidligere versioner.
           </p>
+          <RequiredFieldJobProgress
+            definition={selected.definition}
+            values={values}
+            inputPrefix={inputPrefix}
+            disabled={!writable || busy}
+          />
           {selected.definition.fields.map((f) => (
             <label className="block" key={f.key}>
               {f.label}
@@ -488,6 +570,7 @@ function JobCardEditor({
               )}
               {f.type === "boolean" || f.type === "select" ? (
                 <select
+                  id={inputPrefix + f.key}
                   className={control}
                   disabled={!writable || busy}
                   value={values[f.key] == null ? "" : String(values[f.key])}
@@ -512,6 +595,7 @@ function JobCardEditor({
                 </select>
               ) : f.type === "textarea" ? (
                 <textarea
+                  id={inputPrefix + f.key}
                   className={control}
                   disabled={!writable || busy}
                   maxLength={4000}
@@ -520,6 +604,7 @@ function JobCardEditor({
                 />
               ) : (
                 <input
+                  id={inputPrefix + f.key}
                   className={control}
                   disabled={!writable || busy}
                   type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
@@ -541,16 +626,6 @@ function JobCardEditor({
               )}
             </label>
           ))}
-          {gaps.length > 0 && (
-            <div className="text-sm">
-              <p>Mangler kan gemmes og afklares senere:</p>
-              <ul>
-                {gaps.map((g) => (
-                  <li key={g}>{g}</li>
-                ))}
-              </ul>
-            </div>
-          )}
           <label className="block">
             Vurderingsstatus
             <select

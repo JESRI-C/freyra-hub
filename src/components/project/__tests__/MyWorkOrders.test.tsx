@@ -73,6 +73,8 @@ const task = {
   can_execute: false,
   can_review: false,
   can_plan: false,
+  waiting_for_prerequisites: false,
+  cancelled: false,
 };
 let host: HTMLDivElement, root: ReturnType<typeof createRoot>, cache: QueryClient;
 async function flush() {
@@ -116,6 +118,86 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("submits a title search with the selected status and clears it explicitly", async () => {
+    await render();
+    await click("Aktive");
+    const input = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(
+        input,
+        "  mobil  ",
+      );
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await click("Søg");
+    expect(m.load.mock.lastCall?.[0].data).toMatchObject({
+      expectedActorId: id(1),
+      afterActionId: null,
+      filter: "active",
+      search: "mobil",
+    });
+    await openTask();
+    await click("← Tilbage til opgavelisten");
+    expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("  mobil  ");
+    await click("Ryd søgning");
+    expect(host.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe("");
+  });
+
+  it("requests filtered pages from the server and restores the selected list after opening a task", async () => {
+    m.load.mockImplementation(({ data }) =>
+      Promise.resolve({
+        items: data.filter === "cancelled" ? [{ ...task, cancelled: true }] : [task],
+        nextAfterActionId: null,
+      }),
+    );
+    await render();
+    await click("Aflyste");
+    expect(m.load).toHaveBeenLastCalledWith({
+      data: {
+        expectedActorId: id(1),
+        afterActionId: null,
+        pageSize: 20,
+        filter: "cancelled",
+      },
+    });
+    expect(host.textContent).toContain("Aflyst.");
+    await openTask();
+    await click("← Tilbage til opgavelisten");
+    expect(
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Aflyste")
+        ?.getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  it("keeps a cancelled task accessible without offering active field actions", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, cancelled: true, can_execute: true, can_plan: true }],
+      nextAfterActionId: null,
+    });
+    await render();
+    expect(host.textContent).toContain("Aflyst.");
+    await openTask();
+    expect(host.textContent).toContain("Synthetic instructions");
+    expect(host.textContent).toContain("Status og logbog");
+    expect(host.textContent).not.toContain("Overtag opgaven");
+    expect(host.textContent).not.toContain("Registrér arbejdstid");
+    expect(host.textContent).not.toContain("Tag fotos på projektet");
+  });
+
+  it("shows waiting status before opening a task and keeps its instructions accessible", async () => {
+    m.load.mockResolvedValue({
+      items: [{ ...task, waiting_for_prerequisites: true }],
+      nextAfterActionId: null,
+    });
+    await render();
+    expect(host.textContent).toContain("Afventer forudsætninger");
+    await openTask();
+    expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.textContent).toContain(
+      "Synthetic instructions",
+    );
+  });
+
   it("opens exact-task documentation as read-only and retains the status editor lock", async () => {
     await render();
     await openTask();
@@ -167,7 +249,7 @@ describe("mobile personal tasks", () => {
     await click("Synthetic edit status");
     expect(
       [...host.querySelectorAll("button")].find(
-        (button) => button.textContent === "← Alle mine opgaver",
+        (button) => button.textContent === "← Tilbage til opgavelisten",
       )?.disabled,
     ).toBe(true);
     expect(
@@ -189,14 +271,14 @@ describe("mobile personal tasks", () => {
     expect(host.textContent).toContain("Synthetic instructions");
     expect(host.querySelector('a[href="/app/projects/$slug"]')).toBeNull();
     expect(m.load).toHaveBeenCalledWith({
-      data: { expectedActorId: id(1), afterActionId: null, pageSize: 20 },
+      data: { expectedActorId: id(1), afterActionId: null, pageSize: 20, filter: "all" },
     });
   });
   it("reuses the same claim request and frozen versions after a lost response", async () => {
     await render();
     await openTask();
     await click("Overtag opgaven");
-    await click("← Alle mine opgaver");
+    await click("← Tilbage til opgavelisten");
     await openTask();
     await click("Overtag opgaven");
     const first = m.claim.mock.calls[0][0].data;
@@ -227,8 +309,12 @@ describe("mobile personal tasks", () => {
     });
     await render();
     await openTask();
+    expect(host.textContent).not.toContain("Gå til status og logbog");
     await click("Overtag opgaven");
     expect(host.textContent).toContain("Overtaget af dig");
+    await click("Gå til status og logbog");
+    expect(document.activeElement?.textContent).toBe("Status og logbog");
+    expect(document.activeElement?.parentElement?.hasAttribute("open")).toBe(true);
     expect(
       [...host.querySelectorAll("button")].some((b) => b.textContent === "Overtag opgaven"),
     ).toBe(false);
@@ -290,7 +376,7 @@ describe("mobile personal tasks", () => {
     expect(JSON.parse(host.querySelector('a[href="/felt"]')!.getAttribute("data-search")!)).toEqual(
       { project: id(4), task: id(2) },
     );
-    await click("← Alle mine opgaver");
+    await click("← Tilbage til opgavelisten");
     expect(host.querySelector('[aria-label="Opgavens instruktion"]')?.parentElement?.hidden).toBe(
       true,
     );

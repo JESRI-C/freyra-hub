@@ -1,6 +1,6 @@
 import { WorkspaceGuide } from "@/components/WorkspaceGuide";
 import { programPageGuide } from "@/lib/program-map";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useBlocker } from "@tanstack/react-router";
 import { Camera, CloudUpload, Download, LockKeyhole, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -11,7 +11,8 @@ import {
   type FieldWorkPack,
   type OfflineItem,
 } from "@/lib/field-offline";
-import { fieldJobGaps, type FieldJobValues } from "@/lib/field-job-cards";
+import { FieldJobVersionSchema, type FieldJobValues } from "@/lib/field-job-cards";
+import { RequiredFieldJobProgress } from "./RequiredFieldJobProgress";
 import { openFieldOfflineStore, type FieldOfflineStore } from "@/services/field-offline-store";
 import { drainFieldOfflineQueue } from "@/services/field-offline-sync";
 import {
@@ -68,7 +69,7 @@ export function FieldOfflineWorkspace({
   const [actor, setActor] = useState<string | null>(null);
   const [packs, setPacks] = useState<FieldWorkPack[]>([]);
   const [projectId, setProject] = useState(requestedProject ?? "");
-  const [items, setItems] = useState<OfflineItem[]>([]);
+  const [queue, setQueue] = useState<{ actor: string; projectId: string; items: OfflineItem[] }>();
   const [online, setOnline] = useState(true);
   const [shellReady, setShellReady] = useState(false);
   const [persistent, setPersistent] = useState<boolean | null>(null);
@@ -89,7 +90,12 @@ export function FieldOfflineWorkspace({
   const projectRef = useRef(projectId);
   projectRef.current = projectId;
   const pack = packs.find((p) => p.projectId === projectId);
-  const pending = items.filter((i) => i.state !== "complete");
+  const queueReady = !!queue && queue.actor === actor && queue.projectId === projectId;
+  const items = queueReady ? queue.items : [];
+  const cancelledCount = items.filter((item) => item.lastError === "cancelled").length;
+  const pendingCount = items.filter(
+    (item) => item.state !== "complete" && item.lastError !== "cancelled",
+  ).length;
 
   useBlocker({
     shouldBlockFn: () => {
@@ -153,7 +159,7 @@ export function FieldOfflineWorkspace({
   useEffect(() => {
     if (!store || !actor) {
       setPacks([]);
-      setItems([]);
+      setQueue(undefined);
       return;
     }
     let current = true;
@@ -174,7 +180,7 @@ export function FieldOfflineWorkspace({
     if (!store || !actor) return;
     const rows = await store.items(actor, projectId || undefined);
     if (alive.current && actorRef.current === actor && projectRef.current === projectId)
-      setItems(rows);
+      setQueue({ actor, projectId, items: rows });
     const estimate = await navigator.storage?.estimate?.().catch(() => null);
     if (alive.current)
       setSpace(
@@ -433,29 +439,40 @@ export function FieldOfflineWorkspace({
                 setPhotoBusy(value);
             }}
           />
-          <OfflineJobs
-            key={actor + projectId + pack.savedAt}
-            pack={pack}
-            store={store}
-            items={items}
-            requestedActionId={projectId === requestedProject ? requestedActionId : undefined}
-            onSaved={() =>
-              void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
-            }
-            onDirty={(value) => {
-              if (actorRef.current === actor && projectRef.current === projectId)
-                setJobDirty(value);
-            }}
-          />
+          {queueReady ? (
+            <OfflineJobs
+              key={actor + projectId + pack.savedAt}
+              pack={pack}
+              store={store}
+              items={items}
+              requestedActionId={projectId === requestedProject ? requestedActionId : undefined}
+              onSaved={() =>
+                void refresh().catch(() => setError("Den gemte kø kunne ikke genlæses."))
+              }
+              onDirty={(value) => {
+                if (actorRef.current === actor && projectRef.current === projectId)
+                  setJobDirty(value);
+              }}
+            />
+          ) : (
+            <p role="status">Henter gemte feltkladder…</p>
+          )}
           <section className={card} aria-label="Telefonens feltkø">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-semibold">
-                Telefonens kø · {pending.length} afventer på denne sag
+                Telefonens kø · {pendingCount} afventer på denne sag
               </h2>
               <button className={button} onClick={() => void refresh()}>
                 Opdater kø
               </button>
             </div>
+            {cancelledCount > 0 && (
+              <p className="text-sm">
+                {cancelledCount === 1
+                  ? "1 registrering er bevaret på telefonen efter aflysning."
+                  : `${cancelledCount} registreringer er bevaret på telefonen efter aflysning.`}
+              </p>
+            )}
             <label className="flex min-h-11 items-center gap-3 text-sm">
               <input
                 type="checkbox"
@@ -469,7 +486,8 @@ export function FieldOfflineWorkspace({
             </label>
             <p className="text-sm text-muted-foreground">
               Når telefonen lukker eller suspenderer siden, bevares køen. Åbn feltsiden igen med net
-              for at fortsætte. En kvittering gælder filens bytes, ikke faglig godkendelse.
+              for at fortsætte. For jobkort viser kvitteringen den gemte version. For fotos
+              bekræfter den, at originalfilen er kontrolleret. Faglig gennemgang sker i opgaven.
             </p>
             <ul className="space-y-3">
               {items.slice(0, visibleCount).map((item) => (
@@ -484,12 +502,17 @@ export function FieldOfflineWorkspace({
                         "Jobkortregistrering")}
                   </p>
                   <p className="text-sm">
-                    {labels[item.state]}
+                    {item.lastError === "cancelled"
+                      ? "Bevaret på telefonen – opgaven er aflyst"
+                      : labels[item.state]}
                     {item.dependsOn && item.state === "queued"
                       ? " · afventer tidligere registrering"
                       : ""}
                     {progress?.id === item.id ? ` · ${Math.round(progress.percent)} %` : ""}
                   </p>
+                  {item.kind === "job" && item.state === "complete" && (
+                    <JobReceipt receipt={item.receipt} />
+                  )}
                   {item.kind === "photo" && (
                     <p className="text-xs text-muted-foreground">
                       {bytes(item.originalBytes)} ·{" "}
@@ -528,7 +551,8 @@ export function FieldOfflineWorkspace({
                         Hent registrering
                       </button>
                     )}
-                    {(item.state === "retry" || item.state === "blocked") && (
+                    {(item.state === "retry" ||
+                      (item.state === "blocked" && item.lastError !== "cancelled")) && (
                       <button
                         className={button}
                         onClick={() =>
@@ -876,6 +900,7 @@ function OfflineJobEditor({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const saving = useRef(false);
+  const inputPrefix = useId();
   if (!job.template || !job.latest)
     return (
       <p className="text-sm">
@@ -912,7 +937,6 @@ function OfflineJobEditor({
       setBusy(false);
     }
   }
-  const gaps = fieldJobGaps(job.template.definition, values);
   return (
     <div className="space-y-3">
       <p className="text-sm">
@@ -920,7 +944,7 @@ function OfflineJobEditor({
       </p>
       <details>
         <summary className="min-h-11 cursor-pointer py-2 text-sm">
-          Serverens gemte version {job.latest.version}
+          Serverversion i opgavepakken: {job.latest.version}
         </summary>
         <dl className="space-y-2 text-sm">
           {Object.entries(job.latest.values).map(([key, value]) => (
@@ -928,33 +952,77 @@ function OfflineJobEditor({
               <dt className="font-medium">
                 {job.template!.definition.fields.find((f) => f.key === key)?.label ?? key}
               </dt>
-              <dd>{value === null ? "Ikke registreret" : String(value)}</dd>
+              <dd>{offlineJobAnswer(value)}</dd>
             </div>
           ))}
         </dl>
       </details>
       {local?.kind === "job" && local.state === "conflict" && (
-        <details>
-          <summary className="min-h-11 cursor-pointer py-2 text-sm">
-            Den bevarede lokale registrering
-          </summary>
-          <pre className="whitespace-pre-wrap text-xs">
-            {JSON.stringify(local.payload.values, null, 2)}
-          </pre>
-          {local.template.id === job.template.id && (
-            <button
-              className={button}
-              onClick={() => {
-                setValues(local.payload.values);
-                setStatus(local.payload.status);
-                onDirty(true);
-              }}
-            >
-              Brug den bevarede registrering som ny kladde
-            </button>
+        <div className="space-y-2 rounded-xl border bg-muted/40 p-3 text-sm">
+          <h3 className="font-medium">Sammenlign den lokale registrering med opgavepakken</h3>
+          {local.template.id !== job.template.id ? (
+            <p>
+              Skabelonen er ændret. Brug de bevarede svar nedenfor til at udfylde den nye skabelon.
+            </p>
+          ) : job.latest.version <= local.payload.expectedVersion ? (
+            <p>Opdater sagen med net, så opgavepakken indeholder den nyere serverversion.</p>
+          ) : (
+            <p>
+              Vælg, hvilke svar du vil gemme som en ny version. Angiv en begrundelse, før du gemmer.
+            </p>
           )}
-        </details>
+          <ul className="space-y-2">
+            {local.template.definition.fields.map((field) => {
+              const savedAnswer = offlineJobAnswer(job.latest?.values[field.key]);
+              const localAnswer = offlineJobAnswer(local.payload.values[field.key]);
+              return (
+                <li
+                  key={field.key}
+                  className="rounded-lg border bg-background p-2 [overflow-wrap:anywhere]"
+                >
+                  <p className="font-medium">
+                    {field.label}
+                    {field.unit ? ` (${field.unit})` : ""}
+                  </p>
+                  <dl className="grid gap-1 sm:grid-cols-2">
+                    {local.template.id === job.template?.id && (
+                      <div>
+                        <dt className="text-muted-foreground">I opgavepakken</dt>
+                        <dd className="whitespace-pre-wrap">{savedAnswer}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt className="text-muted-foreground">På telefonen</dt>
+                      <dd className="whitespace-pre-wrap">{localAnswer}</dd>
+                    </div>
+                  </dl>
+                </li>
+              );
+            })}
+          </ul>
+          {local.template.id === job.template.id &&
+            job.latest.version > local.payload.expectedVersion && (
+              <button
+                type="button"
+                className={button}
+                disabled={busy}
+                onClick={() => {
+                  setValues(local.payload.values);
+                  setStatus(local.payload.status);
+                  onDirty(true);
+                }}
+              >
+                Brug den bevarede registrering som ny kladde
+              </button>
+            )}
+        </div>
       )}
+      <RequiredFieldJobProgress
+        definition={job.template.definition}
+        values={values}
+        inputPrefix={inputPrefix}
+        disabled={busy}
+      />
       {job.template.definition.fields.map((field) => (
         <label className="block space-y-2 text-sm" key={field.key}>
           {field.label}
@@ -965,6 +1033,7 @@ function OfflineJobEditor({
           )}
           {field.type === "boolean" || field.type === "select" ? (
             <select
+              id={inputPrefix + field.key}
               className={control}
               disabled={busy}
               value={
@@ -994,6 +1063,7 @@ function OfflineJobEditor({
             </select>
           ) : field.type === "textarea" ? (
             <textarea
+              id={inputPrefix + field.key}
               className={control}
               disabled={busy}
               maxLength={4000}
@@ -1002,6 +1072,7 @@ function OfflineJobEditor({
             />
           ) : (
             <input
+              id={inputPrefix + field.key}
               className={control}
               disabled={busy}
               type={field.type === "date" ? "date" : field.type === "number" ? "number" : "text"}
@@ -1021,7 +1092,6 @@ function OfflineJobEditor({
           )}
         </label>
       ))}
-      {gaps.length > 0 && <p className="text-sm">Mangler: {gaps.join(" ")}</p>}
       <label className="block space-y-2 text-sm">
         Status
         <select
@@ -1059,5 +1129,26 @@ function OfflineJobEditor({
         </p>
       )}
     </div>
+  );
+}
+
+function offlineJobAnswer(value: FieldJobValues[string] | undefined) {
+  if (value == null || value === "") return "Ikke registreret";
+  if (typeof value === "boolean") return value ? "Ja" : "Nej";
+  return String(value);
+}
+
+function JobReceipt({ receipt }: { receipt: unknown }) {
+  const result = FieldJobVersionSchema.safeParse(receipt);
+  if (!result.success) return null;
+  const status = {
+    draft: "Kladde",
+    recorded: "Registreret af medarbejder",
+    needs_review: "Til ekstra gennemgang",
+  }[result.data.status];
+  return (
+    <p className="text-sm text-muted-foreground">
+      Gemt som version {result.data.version} · {status}
+    </p>
   );
 }

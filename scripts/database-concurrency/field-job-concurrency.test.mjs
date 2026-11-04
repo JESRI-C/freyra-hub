@@ -158,12 +158,12 @@ try {
   await actualLock(stale, winner);
   await commit(winner);
   await stale.marker("STALE_DONE");
-  assert.equal(stale.rows().find((row) => row.result)?.result, "40001");
+  assert.equal(stale.rows().find((row) => row.result)?.result, "PT409");
   await commit(stale);
   scenarios.push({
     name: "competing_first_binding",
     actualLockVerified: true,
-    staleSqlstate: "40001",
+    staleSqlstate: "PT409",
   });
 
   const retryRequest = randomUUID();
@@ -951,6 +951,18 @@ try {
     p_project_id: project.slice(1, -1),
   };
   const staleRequests = [
+    [
+      "save_field_job_version",
+      {
+        ...common,
+        p_template_version_id: templateVersion,
+        p_expected_version: 0,
+        p_values: {},
+        p_status: "draft",
+        p_correction_reason: "Synthetic stale field revision",
+        p_request_id: randomUUID(),
+      },
+    ],
     [
       "save_work_order_evidence",
       {

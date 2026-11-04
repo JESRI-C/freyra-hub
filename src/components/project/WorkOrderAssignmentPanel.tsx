@@ -28,6 +28,7 @@ type Props = {
   canManage: boolean;
   people: WorkOrderPerson[];
   onEditing: (value: boolean) => void;
+  onOpenStatus?: () => void;
 };
 type Draft = {
   base: number;
@@ -44,7 +45,15 @@ const personLabel = (people: WorkOrderPerson[], id: string) => {
 export function WorkOrderAssignmentPanel(props: Props) {
   return <AssignmentPanel key={props.actorId + props.scope.actionId} {...props} />;
 }
-function AssignmentPanel({ scope, actorId, planId, canManage, people, onEditing }: Props) {
+function AssignmentPanel({
+  scope,
+  actorId,
+  planId,
+  canManage,
+  people,
+  onEditing,
+  onOpenStatus,
+}: Props) {
   const historyFn = useServerFn(getProjectWorkOrderAssignmentHistory),
     groupsFn = useServerFn(listProjectWorkOrderGroups),
     configure = useServerFn(configureProjectWorkOrderAssignment),
@@ -78,6 +87,8 @@ function AssignmentPanel({ scope, actorId, planId, canManage, people, onEditing 
     retry: false,
   });
   const current = history.isError ? undefined : history.data?.pages[0].items[0];
+  const assignmentNeedsReview =
+    !!current && current.mode !== "unassigned" && current.plan_version_id !== planId;
   const groupRows = groups.isError ? [] : (groups.data?.pages.flatMap((p) => p.items) ?? []);
   const [draft, setDraft] = useState<Draft | null>(null),
     [groupEditing, setGroupEditing] = useState(false),
@@ -146,7 +157,7 @@ function AssignmentPanel({ scope, actorId, planId, canManage, people, onEditing 
       <h3 className="font-semibold">Arbejdsfordeling</h3>
       <p className="text-sm text-muted-foreground">
         Vælg en person, en arbejdsgruppe eller en pulje, hvor én udfører overtager opgaven.
-        Tildelingen gemmer det valgte hold og arbejdsgrundlag.
+        Arbejdsfordelingen afgør, hvem der kan udføre opgaven. Planens ansvarlige vælges i planen.
       </p>
       {history.isPending && <p role="status">Henter tildeling…</p>}
       {history.isError && (
@@ -159,23 +170,55 @@ function AssignmentPanel({ scope, actorId, planId, canManage, people, onEditing 
       )}
       {!draft && history.isSuccess && (
         <>
-          <p className="text-sm">
-            {current
-              ? `${assignmentModeLabels[current.mode]} · version ${current.version} · ${current.candidate_user_ids.length} udførere`
-              : "Ingen opgavefordeling gemt."}
-          </p>
-          {current?.claimed_by && (
-            <p className="text-sm">Overtaget af {personLabel(people, current.claimed_by)}.</p>
+          {current && current.mode !== "unassigned" ? (
+            <div className="space-y-1 break-words text-sm">
+              <p className="text-muted-foreground">
+                {assignmentModeLabels[current.mode]} · tildeling version {current.version}
+              </p>
+              {current.claimed_by ? (
+                <p>Overtaget af {personLabel(people, current.claimed_by)}.</p>
+              ) : (
+                <>
+                  {current.mode === "pool" && <p>Afventer, at en udfører overtager opgaven.</p>}
+                  <p>
+                    {current.mode === "pool" ? "Kan overtage: " : "Tildelt til: "}
+                    {current.candidate_user_ids.map((id) => personLabel(people, id)).join(", ")}.
+                  </p>
+                </>
+              )}
+              {assignmentNeedsReview && (
+                <p>
+                  Tildelingen henviser til en tidligere planversion.
+                  {canManage && " Gennemgå, hvem der skal udføre arbejdet efter den nye plan."}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm">
+              Ingen udfører er tildelt.
+              {current && ` Seneste tildeling er version ${current.version}.`}
+            </p>
           )}
           {canManage && (
             <button className={button} disabled={history.isFetching || groupEditing} onClick={open}>
-              Rediger arbejdsfordeling
+              {assignmentNeedsReview
+                ? "Gennemgå tildeling til ny plan"
+                : "Rediger arbejdsfordeling"}
             </button>
           )}
         </>
       )}
       {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
+      {message && (
+        <div className="space-y-2">
+          <p role="status">{message}</p>
+          {canManage && !groupEditing && onOpenStatus && (
+            <button type="button" className={button} onClick={onOpenStatus}>
+              Se status og næste trin
+            </button>
+          )}
+        </div>
+      )}
       {draft && (
         <form
           className="space-y-3"

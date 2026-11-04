@@ -11,6 +11,9 @@ INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES
 INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_temp.k(11),'Synthetic submission project'),(pg_temp.k(22),pg_temp.k(12),'Synthetic foreign project');
 INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'viewer'),(pg_temp.k(21),pg_temp.k(4),'external');
 INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(31),pg_temp.k(21),'Synthetic task'),(pg_temp.k(32),pg_temp.k(21),'Synthetic other task');
+INSERT INTO public.indicators(id,project_id,key,label,unit,target_value,target_direction,target_unit)
+ VALUES(pg_temp.k(33),pg_temp.k(21),'synthetic_target','Synthetic indicator','stk.',0,'at_most','stk.');
+UPDATE public.actions SET linked_indicator_id=pg_temp.k(33) WHERE id=pg_temp.k(31);
 CREATE FUNCTION pg_temp.plan() RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('schema','freyra.work-order-plan/v1','title','Synthetic submission plan','description','','instructions','Synthetic instruction','profile','nature','responsibleId',pg_temp.k(1),'siteId',NULL,'watercourseVersionId',NULL,'locationNote','Synthetic location','plannedStart',NULL,'plannedEnd',NULL,'priority',NULL,'plannedMethod',NULL,'watercourse',NULL) $$;
 CREATE FUNCTION pg_temp.ctx() RETURNS jsonb LANGUAGE sql AS $$ SELECT public.get_work_order_submission_context(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21)) $$;
 CREATE FUNCTION pg_temp.hash() RETURNS text LANGUAGE sql AS $$ SELECT pg_temp.ctx()->>'basis_hash' $$;
@@ -142,6 +145,39 @@ SELECT throws_ok($$SELECT pg_temp.review(14,'review','returned',3,218)$$,'PT409'
 SELECT throws_ok($$UPDATE public.work_order_lifecycle_versions SET reason='Overwrite' WHERE operation='review'$$,'42501',NULL,'review history cannot be overwritten');
 SELECT throws_ok($$DELETE FROM public.work_order_lifecycle_versions WHERE operation='review'$$,'42501',NULL,'review history cannot be deleted');
 SELECT is(pg_temp.review(14,'review','approved',3,217),(pg_temp.rc()->'state'->>'id')::uuid,'lost approval response can recover same exact receipt');
+RESET ROLE;
+UPDATE public.indicators SET target_value=5 WHERE id=pg_temp.k(33);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.work_order_report() RETURNS jsonb LANGUAGE sql AS $$
+ SELECT public.save_approved_work_order_report(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
+   (pg_temp.rc()->'packet'->>'id')::uuid,(pg_temp.rc()->'state'->>'id')::uuid)
+$$;
+INSERT INTO pg_temp.saved VALUES ('work-order-report', pg_temp.work_order_report()::text);
+SELECT is(pg_temp.work_order_report(),(SELECT value::jsonb FROM pg_temp.saved WHERE name='work-order-report'),
+  'retry returns exactly the same stored report');
+SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'submissionVersion'
+  FROM pg_temp.saved WHERE name='work-order-report'),'3','report is bound to approved submission version 3');
+SELECT is((SELECT value::jsonb->'content'->'workOrderApproval'->>'reviewId'
+  FROM pg_temp.saved WHERE name='work-order-report'),pg_temp.rc()->'state'->>'id','report pins exact review');
+SELECT ok((SELECT value::jsonb->'content'->'sections'->0->>'text'
+  FROM pg_temp.saved WHERE name='work-order-report') LIKE '%Mål ved aflevering: Synthetic indicator · højst 0 stk.',
+  'report shows the approved target even when the current target was changed before report creation');
+SELECT is((SELECT value::jsonb->'content'->'sections'->0->>'basis'
+  FROM pg_temp.saved WHERE name='work-order-report'),'not_measured','a target is not presented as a measurement');
+SELECT throws_ok($$SELECT public.save_approved_work_order_report(pg_temp.k(12),pg_temp.k(21),pg_temp.k(31),
+  (pg_temp.rc()->'packet'->>'id')::uuid,(pg_temp.rc()->'state'->>'id')::uuid)$$,
+  '42501',NULL,'foreign organization cannot reuse an approval');
+SELECT throws_ok($$SELECT public.save_approved_work_order_report(pg_temp.k(11),pg_temp.k(21),pg_temp.k(31),
+  (pg_temp.rc()->'packet'->>'id')::uuid,pg_temp.k(199))$$,
+  '42501',NULL,'unverified review cannot produce a report');
+SELECT throws_ok($$SELECT public.save_report_revision(
+  (value::jsonb->>'report_id')::uuid,pg_temp.k(11),pg_temp.k(21),1,'draft',
+  (value::jsonb->'content') - 'workOrderApproval' - 'sources' || '{"sources":[]}'::jsonb)
+  FROM pg_temp.saved WHERE name='work-order-report'$$,
+  'P0001','The approved work order report is immutable','cannot strip provenance from a saved report');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT pg_temp.work_order_report()$$,'42501',NULL,'field staff cannot create a project report');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
 SELECT ok(EXISTS(SELECT 1 FROM jsonb_array_elements((SELECT log->'items' FROM public.get_work_order_log(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,NULL,NULL,50))) item WHERE item->'detail'->>'reviewScope'='execution_and_documentation'),'existing logbook includes the pinned review scope');
 SELECT * FROM public.save_work_order_access(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),pg_temp.k(4),2,false,false,false,'Synthetic revoke reviewer',pg_temp.k(219));

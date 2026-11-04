@@ -82,6 +82,15 @@ SELECT ok(NOT private.can_execute_work_order(pg_temp.k(32)),'pool candidacy alon
 SELECT ok((SELECT can_claim AND NOT can_execute AND user_id=pg_temp.k(3) FROM public.get_work_order_assignment_state(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21))),'assignment state pins the current candidate and claim capability');
 SELECT ok(NOT (SELECT can_plan FROM public.list_my_work_orders(NULL,20) WHERE action_id=pg_temp.k(32)),'external task list does not offer a project manager route');
 SELECT is((SELECT count(*)::integer FROM public.list_my_work_orders(NULL,20)),2,'My tasks lists only group task and candidate pool');
+SELECT ok(NOT has_function_privilege('anon','public.search_my_work_orders(uuid,integer,text,text)','EXECUTE'),'anonymous task search is absent');
+SELECT is(
+  (SELECT array_agg((value->>'action_id')::uuid ORDER BY value->>'action_id') FROM public.search_my_work_orders(NULL,1,'all','  SYNTHETIC CREW  ') AS t(value)),
+  ARRAY[pg_temp.k(31),pg_temp.k(32)],
+  'title search returns only visible tasks plus the pagination sentinel'
+);
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(pg_temp.k(31),1,'all','synthetic crew')),1,'title search resumes after the keyset cursor');
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(NULL,20,'cancelled','synthetic crew')),0,'title search respects the selected status');
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(NULL,20,'all','%')),0,'title search treats wildcard characters literally');
 SELECT is((SELECT count(*)::integer FROM public.projects),0,'task assignment does not open whole projects');
 SELECT throws_ok($$SELECT pg_temp.group_save(1,65,ARRAY[2,3],51,true,'Synthetic self promotion')$$,'42501',NULL,'external executor cannot edit groups');
 SELECT throws_ok($$SELECT pg_temp.assign(1,75)$$,'42501',NULL,'external executor cannot assign other people');
@@ -173,9 +182,88 @@ CREATE FUNCTION pg_temp.unbound_field_row() RETURNS void LANGUAGE plpgsql AS $$ 
 END $$;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
-SELECT lives_ok($$SELECT public.save_work_order_plan(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(191))$$,'planner saves the assigned field test plan');
+SELECT lives_ok($$SELECT public.save_work_order_plan(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan()||'{"estimatedHours":2.5}', '',pg_temp.k(191))$$,'planner saves the assigned field test plan');
 SELECT lives_ok($$SELECT pg_temp.assign(0,192,37,'person',ARRAY[2],NULL)$$,'manager assigns execution to field role');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$INSERT INTO public.project_material_catalog(id,organization_id,project_id,material,unit)
+ VALUES(pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg')$$,'42501',NULL,'field cannot manage the material catalog');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$INSERT INTO public.project_material_catalog(id,organization_id,project_id,material,unit)
+ VALUES(pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg')$$,'manager can add a catalog material');
+SELECT lives_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(334),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),1,1995)$$,'manager can record a catalog unit price');
+SELECT lives_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(335),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,0)$$,'zero is a valid versioned unit price');
+SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(336),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,2995)$$,'40001',NULL,'stale price updates are rejected');
+SELECT is((SELECT unit_price_ore FROM public.project_material_unit_prices WHERE id=pg_temp.k(334)),1995,
+ 'the initial unit price remains available after an update');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'field users cannot read project material billing');
+SELECT is((SELECT count(*) FROM public.project_material_unit_prices WHERE catalog_id=pg_temp.k(330)),0::bigint,
+ 'field users cannot read catalog prices');
+SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(337),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),3,2500)$$,'42501',NULL,'field users cannot change catalog prices');
+SELECT is((SELECT material FROM public.project_material_catalog WHERE id=pg_temp.k(330)),
+ 'Testgrus','the assigned field user can see active catalog materials');
+SELECT throws_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(331),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Forkert navn','kg',1250,1,pg_temp.k(330))$$,
+ '22023',NULL,'catalog material snapshots must match the catalog');
+SELECT lives_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(331),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1250,1,pg_temp.k(330))$$,
+ 'an assigned field user can register a catalog material');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+UPDATE public.project_material_catalog SET active=false WHERE id=pg_temp.k(330);
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT count(*) FROM public.project_material_catalog WHERE id=pg_temp.k(330)),
+ 0::bigint,'archived catalog materials are hidden from field selection');
+SELECT lives_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id,reason)
+ VALUES(pg_temp.k(332),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1000,2,pg_temp.k(330),'Kontrolvejning')$$,
+ 'archiving preserves existing usage and permits correction');
+CREATE FUNCTION pg_temp.material(row_id integer, entry integer, task integer, version integer, quantity integer, label text DEFAULT 'Testmateriale')
+RETURNS void LANGUAGE sql AS $$
+ INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,reason)
+ VALUES(pg_temp.k(row_id),pg_temp.k(entry),pg_temp.k(task),pg_temp.k(11),pg_temp.k(21),label,'kg',quantity,version,
+   CASE WHEN version=1 THEN '' ELSE 'Syntetisk rettelse' END);
+$$;
+SELECT lives_ok($$SELECT pg_temp.material(320,320,37,1,2500)$$,'assigned field staff can record materials');
+SELECT throws_ok($$SELECT pg_temp.material(321,321,36,1,500)$$,'42501',NULL,'field cannot record materials on unassigned work');
+SELECT lives_ok($$SELECT pg_temp.material(322,320,37,2,1250)$$,'material correction is appended');
+SELECT throws_ok($$SELECT pg_temp.material(323,320,37,2,1000)$$,'40001',NULL,'a stale material correction is rejected');
+SELECT throws_ok($$SELECT pg_temp.material(324,320,37,3,500,'Andet materiale')$$,'22023',NULL,'a correction cannot change the material identity');
+SELECT is((SELECT count(*) FROM public.work_order_material_versions WHERE entry_id=pg_temp.k(320)),
+ 2::bigint,'original material version is preserved');
+SELECT is((SELECT quantity_milli FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) WHERE entry_id=pg_temp.k(320)),
+ 1250,'material list shows the current quantity');
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(300),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',1,90)$$,
+ 'assigned field staff can log their own time');
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(301),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',2,75,'Synthetic correction')$$,
+ 'time corrections retain the original version');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(302),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',2,60,'Stale correction')$$,
+ '40001',NULL,'a stale time correction is rejected');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,actor_id,work_date,version,minutes)
+ VALUES(pg_temp.k(303),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),pg_temp.k(3),'2026-11-03',1,60)$$,
+ '42501',NULL,'field staff cannot record another user’s time');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(304),pg_temp.k(36),pg_temp.k(11),pg_temp.k(21),'2026-11-03',1,60)$$,
+ '42501',NULL,'field staff cannot record time on unassigned work');
+SELECT throws_ok($$SELECT * FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21))$$,
+ '42501',NULL,'field users cannot read the project time overview');
+SELECT throws_ok($$SELECT public.get_work_order_time_summary(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37))$$,
+ '42501',NULL,'field users cannot use the manager time summary');
 SELECT ok(NOT private.can_write_project(pg_temp.k(21)),'field remains unable to edit the project');
 SELECT throws_ok($$SELECT pg_temp.field_execution(36)$$,'42501',NULL,'field cannot execute an unassigned task');
 SELECT throws_ok($$SELECT pg_temp.field_execution(37,3)$$,'42501',NULL,'field cannot record execution as another user');
@@ -188,11 +276,111 @@ SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct wor
 SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
 SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.material_export() RETURNS jsonb LANGUAGE sql AS $$
+  SELECT public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),
+    (now() at time zone 'Europe/Copenhagen')::date,(now() at time zone 'Europe/Copenhagen')::date);
+$$;
+SELECT is((SELECT (r->>'unit_price_ore')::integer FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),0,'historical zero price is distinct from a missing price');
+SELECT is((SELECT r->>'amount_ore' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(320)::text),NULL::text,'free-text material is explicitly unpriced');
+UPDATE public.project_material_catalog SET active=true WHERE id=pg_temp.k(330);
+INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(338),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),3,1995);
+INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(339),pg_temp.k(339),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1250,1,pg_temp.k(330));
+SELECT is((SELECT (r->>'amount_ore')::bigint FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(339)::text),2494::bigint,'billing rounds the material line to the nearest ore');
+SELECT is((SELECT r->>'price_version_id' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),pg_temp.k(335)::text,'price changes do not reprice earlier usage');
+SELECT is((SELECT r->>'material_version_id' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),pg_temp.k(332)::text,'billing traces the latest corrected quantity');
+SELECT throws_ok($$SELECT public.get_project_material_billing_export(pg_temp.k(12),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'material billing rejects a mismatched organization');
+SELECT is((SELECT actor_id FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) WHERE entry_id=pg_temp.k(320)),
+ pg_temp.k(2),'the manager can see the recorded material with the authenticated field author');
+SELECT is((SELECT count(*) FROM public.list_work_order_material_usage(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))),
+ 0::bigint,'material list rejects mismatched scope');
+SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(300))$$,
+ '40001',NULL,'an outdated time version cannot be approved');
+SELECT lives_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(301))$$,
+ 'the manager approves the latest field time version');
+SELECT is((public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')->0->>'minutes')::integer,
+ 75,'export contains the current approved time only');
+SELECT throws_ok($$SELECT public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-10-01','2026-11-03')$$,
+ '22023',NULL,'export rejects unbounded periods');
+SELECT lives_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids)
+ VALUES(pg_temp.k(307),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)])$$,
+ 'manager can save a priced snapshot of approved time');
+SELECT is((SELECT total_ore FROM public.project_approved_time_drafts WHERE id=pg_temp.k(307)),
+ 62499::bigint,'database rounds the approved 75 minutes to 624.99');
+SELECT lives_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids,material_refs)
+ VALUES(pg_temp.k(340),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)],
+  (SELECT coalesce(jsonb_agg(jsonb_build_array(r.value->>'material_version_id',r.value->>'price_version_id')
+    ORDER BY r.ordinality),'[]'::jsonb) FROM jsonb_array_elements(
+      public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')
+    ) WITH ORDINALITY r(value,ordinality)))$$,'the draft freezes both exact evidence sets');
+SELECT is((SELECT material_snapshot FROM public.project_approved_time_drafts WHERE id=pg_temp.k(340)),
+ public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03'),
+ 'combined draft stores the server material snapshot');
+SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids,material_refs)
+ VALUES(pg_temp.k(341),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)],'[[null,null]]')$$,
+ '40001',NULL,'a stale material preview cannot be saved');
+SELECT ok((SELECT r.approved FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'the review list shows the precise approval');
+SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),75::bigint,'project time sums only the latest actor and day version');
+SELECT is((SELECT t.estimated_hours FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),2.5::numeric,'project time includes the latest estimate');
+SELECT is((SELECT t.pending_entries FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),0::bigint,'the current approved time does not appear in the review queue');
+SELECT ok(NOT EXISTS (SELECT 1 FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) t
+  WHERE t.action_id<=pg_temp.k(37)),'project time cursor excludes the preceding page');
+SELECT is(public.get_work_order_time_summary(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)),
+ '{"minutes":75,"entries":1,"estimatedHours":2.5}'::jsonb,'time summary counts the corrected daily version once');
+SELECT throws_ok($$SELECT public.get_work_order_time_summary(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))$$,
+ '42501',NULL,'the time summary rejects a mismatched organization');
+SELECT is((SELECT count(*)::integer FROM public.work_order_time_versions),2,'the manager can read both immutable time versions');
+INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(305),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-02',1,60);
+SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(305))$$,
+ '42501',NULL,'a manager cannot approve their own registration');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(306),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',3,70,'After approval')$$,
+ 'a correction may follow an approval');
+SELECT ok(EXISTS(SELECT 1 FROM public.work_order_time_approvals WHERE time_id=pg_temp.k(301)),
+ 'the performer can read the original approval');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is(public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03'),
+ '[]'::jsonb,'the approved older version is excluded after an unapproved correction');
+SELECT is((SELECT t.pending_entries FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),2::bigint,'the overview counts the unapproved correction and the manager registration');
+SELECT is((SELECT t.pending_date FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),'2026-11-03'::date,'the review opens an approvable date ahead of the managers own time');
+SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids)
+ VALUES(pg_temp.k(308),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)])$$,
+ '40001',NULL,'a saved draft cannot be created from superseded approval');
+SELECT is((SELECT snapshot->0->>'time_id' FROM public.project_approved_time_drafts WHERE id=pg_temp.k(307)),
+ pg_temp.k(301)::text,'the previously saved draft retains the precise time version');
+SELECT ok(NOT (SELECT r.approved FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'approval does not carry to a corrected version');
 SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(37) AND event_type='work_order.execution_saved'),1,'field revision and retry emit one scoped execution audit event');
 RESET ROLE;
 UPDATE public.project_members SET role='viewer' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
 SELECT throws_ok($$SELECT pg_temp.field_execution()$$,'42501',NULL,'revocation also blocks a retry using a formerly authorized request');
+SELECT throws_ok($$SELECT public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'a field user cannot export billing evidence');
+SELECT throws_ok($$SELECT * FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03')$$,'42501',NULL,'a field user cannot open the manager approval list');
 SELECT * FROM finish();
 ROLLBACK;

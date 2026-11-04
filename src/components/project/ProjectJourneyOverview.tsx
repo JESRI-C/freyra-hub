@@ -8,10 +8,12 @@ export function ProjectJourneyOverview({
   description,
   onChoose,
   onEditPurpose,
+  onOpenReviewQueue,
 }: {
   description: string | null;
   onChoose: (id: ProjectJourneyId) => void;
   onEditPurpose?: () => void;
+  onOpenReviewQueue?: () => void;
 }) {
   return (
     <section
@@ -65,6 +67,19 @@ export function ProjectJourneyOverview({
           </button>
         </div>
       </div>
+      {onOpenReviewQueue && (
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="font-semibold">Afleveringer til gennemgang eller rettelse</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Find afleveringer, der venter på en faglig afgørelse, og opgaver, der er sendt tilbage
+            med mangler.
+          </p>
+          <button type="button" className={button + " mt-3"} onClick={onOpenReviewQueue}>
+            Se afleveringer der kræver handling
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
       <div>
         <h3 className="text-lg font-semibold">Sådan hænger arbejdet sammen</h3>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -105,7 +120,8 @@ export function ProjectJourneyOverview({
         <p className="font-semibold">Et eksempel på sammenhængen</p>
         <p className="mt-1">
           En eng gror til → du beskriver målet → planlægger plejen → registrerer det udførte arbejde
-          → sammenholder før og efter → samler dokumentationen.
+          → afleverer dokumentationen til faglig gennemgang → sammenholder før og efter → samler
+          rapporten.
         </p>
         <p className="mt-2 text-muted-foreground">
           Et foto viser forholdene på et tidspunkt. Opgaven forklarer, hvad der skulle gøres.

@@ -16,6 +16,7 @@ try {
       const { context, page } = await openSession(browser, user, sessions[user.id], tenant, width);
       const pageErrors = [];
       page.on("pageerror", (error) => pageErrors.push(error.name));
+      let foundDeliveryFromOverview = false;
       try {
         if (user.role === "external" || user.role === "unassigned") {
           await page.goto(fixture.app + "/opgaver", { waitUntil: "domcontentloaded" });
@@ -58,7 +59,43 @@ try {
             );
           }
         } else {
-          await page.goto(taskUrl(tenant, "submission"), { waitUntil: "domcontentloaded" });
+          if (user.role === "manager") {
+            const overview = new URL(taskUrl(tenant, "submission"));
+            overview.search = "?tab=overblik&taskList=calendar";
+            await page.goto(overview.href, { waitUntil: "domcontentloaded" });
+            const shortcut = page.getByRole("button", {
+              name: "Åbn opgavens aflevering",
+              exact: true,
+            });
+            await shortcut.focus();
+            await page.keyboard.press("Enter");
+            await page.waitForURL(
+              (url) =>
+                url.searchParams.get("tab") === "handlinger" &&
+                url.searchParams.get("taskList") === "tasks" &&
+                url.searchParams.get("work") === "submission" &&
+                !url.searchParams.has("task"),
+            );
+            await page
+              .getByText(
+                "Vælg en arbejdsopgave for at åbne dens aflevering og faglige gennemgang.",
+                {
+                  exact: true,
+                },
+              )
+              .waitFor();
+            const title = `TEST SaaS50 ${fixture.run} opgave ${tenant.number}`;
+            await page.getByPlaceholder("Søg efter opgavens titel").fill(title);
+            await page.getByRole("button", { name: title + " Åbn →", exact: true }).click();
+            await page.waitForURL(
+              (url) =>
+                url.searchParams.get("task") === tenant.actionId &&
+                url.searchParams.get("work") === "submission",
+            );
+            foundDeliveryFromOverview = true;
+          } else {
+            await page.goto(taskUrl(tenant, "submission"), { waitUntil: "domcontentloaded" });
+          }
           await page
             .getByRole("heading", { name: tenant.projectName, exact: true })
             .first()
@@ -104,6 +141,7 @@ try {
                 ? "none"
                 : "own-project",
           approvedVersionRendered: !!tenant?.approved,
+          foundDeliveryFromOverview,
           javascriptErrors: 0,
         };
       } finally {

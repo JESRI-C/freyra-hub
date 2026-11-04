@@ -71,6 +71,33 @@ export async function saveReportDocument(input: {
     throw new Error("Serveren returnerede ingen gemt rapportversion.");
   return { ...data, content: ReportContentSchema.parse(data.content) } as ReportRevision;
 }
+export async function saveApprovedWorkOrderReport(input: {
+  organizationId: string;
+  projectId: string;
+  actionId: string;
+  submissionId: string;
+  reviewId: string;
+}): Promise<ReportRevision> {
+  const { data, error } = await db().rpc("save_approved_work_order_report", {
+    p_organization_id: input.organizationId,
+    p_project_id: input.projectId,
+    p_action_id: input.actionId,
+    p_submission_id: input.submissionId,
+    p_review_id: input.reviewId,
+  });
+  if (error)
+    throw new Error("Rapporten kunne ikke hentes eller oprettes. Opdatér opgaven og prøv igen.");
+  const content = ReportContentSchema.parse(data?.content);
+  if (
+    !data?.report_id ||
+    data.version !== 1 ||
+    content.workOrderApproval?.actionId !== input.actionId ||
+    content.workOrderApproval.submissionId !== input.submissionId ||
+    content.workOrderApproval.reviewId !== input.reviewId
+  )
+    throw new Error("Rapportens afleveringsgrundlag stemmer ikke.");
+  return { ...data, content } as ReportRevision;
+}
 async function sourcePages<T>(table: string, columns: string, projectId: string): Promise<T[]> {
   const rows: T[] = [];
   for (let offset = 0; ; offset += 500) {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { WorkOrderActionIdSchema } from "./work-order-access";
 import { latestEntries, type WorkspaceEntry } from "./project-workspace";
 
 const optionalText = z.string().trim().max(2000).nullable();
@@ -14,7 +15,7 @@ export const CalendarDate = z
 export const ActionExecutionSchema = z
   .object({
     schema: z.literal("freyra.action-execution/v1"),
-    actionId: z.string().uuid(),
+    actionId: WorkOrderActionIdSchema,
     surveyRoundId: z.string().uuid().nullable(),
     dataBasis: z.enum(["real", "synthetic", "demo"]),
     workType: z.enum(["weed_cutting", "other"]),

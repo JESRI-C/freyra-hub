@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { WorkOrderScopeSchema } from "./work-order-access";
+import { WorkOrderActionIdSchema, WorkOrderScopeSchema } from "./work-order-access";
 import { FieldJobTemplateDefinitionSchema, FieldJobValuesSchema } from "./field-job-cards";
 import { PhotoCaptureSchema } from "./field-photo-position";
 const uuid = z.string().uuid();
@@ -41,7 +41,7 @@ export const EvidenceVersionSchema = z
   .object({
     id: uuid,
     evidence_id: uuid,
-    action_id: uuid,
+    action_id: WorkOrderActionIdSchema,
     organization_id: uuid,
     project_id: uuid,
     version: z.number().int().positive(),
@@ -55,6 +55,7 @@ export const EvidenceVersionSchema = z
       id: uuid,
       version: z.number().int().positive(),
       template: FieldJobTemplateDefinitionSchema,
+      templateVersionId: uuid.optional(),
       values: FieldJobValuesSchema,
       status: z.enum(["recorded", "needs_review"]),
       recordedAt: z.string().datetime({ offset: true }),

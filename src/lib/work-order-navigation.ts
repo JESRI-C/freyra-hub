@@ -42,6 +42,17 @@ export const WORK_ORDER_PARTS = [
       "Et fastholdt afleveringsgrundlag med særskilt, versionsbundet gennemgang af udførelse og dokumentation.",
   },
 ] as const;
+export type WorkOrderListView = "tasks" | "schedule" | "calendar" | "time" | "bookings";
+export function isWorkOrderListView(value: unknown): value is WorkOrderListView {
+  return (
+    value === "tasks" ||
+    value === "schedule" ||
+    value === "calendar" ||
+    value === "time" ||
+    value === "bookings"
+  );
+}
+
 export type WorkOrderView = (typeof WORK_ORDER_PARTS)[number]["id"];
 export function isWorkOrderView(value: unknown): value is WorkOrderView {
   return WORK_ORDER_PARTS.some((part) => part.id === value);

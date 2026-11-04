@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { WorkOrderScopeSchema } from "./work-order-access";
+import { WorkOrderActionIdSchema, WorkOrderScopeSchema } from "./work-order-access";
 import { WorkOrderPlanSchema } from "./work-order-plan";
 import { WorkOrderExecutionBindingSchema } from "./work-order-execution";
 import { ActionExecutionSchema } from "./action-execution";
@@ -17,6 +17,8 @@ export const submissionGapLabels = {
   lifecycle_basis_changed: "Status skal bekræftes på den aktuelle plan, tildeling og udførelse.",
   observation_needs_review: "En tilknyttet registrering kræver gennemgang.",
   observation_incomplete: "En tilknyttet registrering mangler nødvendige svar.",
+  required_job_card_missing:
+    "Tilknyt dokumentation fra hvert jobkort og den version, der kræves i planen.",
   original_unavailable: "Et originalfoto er ændret, utilgængeligt eller mangler gyldig kontrol.",
   evidence_missing: "Tilknyt mindst én gemt registrering med et verificeret originalfoto.",
   too_many_evidence: "Der er over 100 aktive dokumentationskoblinger. Afgræns afleveringen.",
@@ -41,7 +43,16 @@ export const SubmissionPageSchema = WorkOrderScopeSchema.extend({
 }).strict();
 export const SubmissionSnapshotSchema = WorkOrderScopeSchema.extend({
   schema: z.literal("freyra.work-order-submission/v1"),
-  ruleSet: z.literal("freyra.submission-core/v1"),
+  ruleSet: z.enum(["freyra.submission-core/v1", "freyra.submission-requirements/v1"]),
+  indicatorTarget: z
+    .object({
+      indicatorId: uuid,
+      label: z.string(),
+      value: z.number().finite(),
+      direction: z.enum(["at_least", "at_most"]),
+      unit: z.string(),
+    })
+    .optional(),
   plan: z.object({ id: uuid, version: z.number().int().positive(), plan: WorkOrderPlanSchema }),
   assignment: z.object({
     id: uuid,
@@ -93,11 +104,23 @@ export const SubmissionSnapshotSchema = WorkOrderScopeSchema.extend({
       issue();
     seen.add(row.evidence_id);
   }
+  const required = s.plan.plan.requiredJobCards ?? [];
+  if (required.length > 0 !== (s.ruleSet === "freyra.submission-requirements/v1")) issue();
+  for (const card of required) {
+    if (
+      !s.evidence.some(
+        (row) =>
+          row.observation_snapshot.templateVersionId === card.templateVersionId &&
+          JSON.stringify(row.observation_snapshot.template) === JSON.stringify(card.definition),
+      )
+    )
+      issue();
+  }
 });
 export const SubmissionVersionSchema = z
   .object({
     id: uuid,
-    action_id: uuid,
+    action_id: WorkOrderActionIdSchema,
     organization_id: uuid,
     project_id: uuid,
     version: z.number().int().positive(),
@@ -127,14 +150,14 @@ export const SubmissionVersionSchema = z
   });
 export const SubmissionContextSchema = z
   .object({
-    action_id: uuid,
+    action_id: WorkOrderActionIdSchema,
     organization_id: uuid,
     project_id: uuid,
     user_id: uuid,
     latest_version: z.number().int().min(0),
     can_prepare: z.boolean(),
     basis_hash: hash.nullable(),
-    gaps: z.array(gap).max(12).nullable(),
+    gaps: z.array(gap).max(13).nullable(),
     plan_version: z.number().int().positive().nullable(),
     execution_version: z.number().int().positive().nullable(),
     evidence_count: z.number().int().min(0).max(100).nullable(),

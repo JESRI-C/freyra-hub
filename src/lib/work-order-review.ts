@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { WorkOrderActionIdSchema } from "./work-order-access";
 import { WorkOrderLifecycleSchema, WorkOrderLifecycleBasisSchema } from "./work-order-lifecycle";
 const uuid = z.string().uuid();
 export const WorkOrderReviewContextSchema = z
   .object({
-    action_id: uuid,
+    action_id: WorkOrderActionIdSchema,
     organization_id: uuid,
     project_id: uuid,
     user_id: uuid,
@@ -70,4 +71,9 @@ export const WorkOrderReviewContextSchema = z
     }
   });
 export type WorkOrderReviewContext = z.infer<typeof WorkOrderReviewContextSchema>;
+export type ApprovedFollowUpBasis = Pick<
+  NonNullable<WorkOrderReviewContext["packet"]>,
+  "id" | "version" | "plan_version_id"
+>;
+export type WorkOrderCorrectionNote = { submissionVersion: number; reason: string };
 export type WorkOrderReviewAction = "submit" | "approve" | "return" | "reopen";

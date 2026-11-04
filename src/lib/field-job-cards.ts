@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CalendarDate } from "./action-execution";
+import { WorkOrderActionIdSchema } from "./work-order-access";
 
 const optionSchema = z.string().trim().min(1).max(120);
 
@@ -112,18 +113,23 @@ export function validateFieldJobValues(
   return result;
 }
 
+export function missingRequiredFieldJobFields(
+  definition: FieldJobTemplateDefinition,
+  values: FieldJobValues,
+) {
+  const parsed = validateFieldJobValues(definition, values);
+  return definition.fields.filter((field) => {
+    const value = parsed[field.key];
+    return field.required && (value === undefined || value === null || value === "");
+  });
+}
+
 /** Completion gaps describe missing input, never a biological or AI confidence score. */
 export function fieldJobGaps(
   definition: FieldJobTemplateDefinition,
   values: FieldJobValues,
 ): string[] {
-  const parsed = validateFieldJobValues(definition, values);
-  return definition.fields
-    .filter((field) => {
-      const value = parsed[field.key];
-      return field.required && (value === undefined || value === null || value === "");
-    })
-    .map((field) => `Udfyld ${field.label}.`);
+  return missingRequiredFieldJobFields(definition, values).map((field) => `Udfyld ${field.label}.`);
 }
 
 const identityShape = {
@@ -146,7 +152,7 @@ export type FieldJobTemplateVersion = z.infer<typeof FieldJobTemplateVersionSche
 
 export const FieldJobVersionSchema = z.object({
   ...identityShape,
-  action_id: z.string().uuid(),
+  action_id: WorkOrderActionIdSchema,
   template_version_id: z.string().uuid(),
   values: FieldJobValuesSchema,
   status: z.enum(["draft", "recorded", "needs_review"]),

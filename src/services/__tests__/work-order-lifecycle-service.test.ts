@@ -150,6 +150,39 @@ describe("versioned lifecycle and logbook boundary", () => {
     vi.clearAllMocks();
     rpc.mockResolvedValue({ data: [state], error: null });
   });
+  it("loads status and the creation event for a legacy recurring task", async () => {
+    const actionId = "11111111-1111-c111-5111-111111111111";
+    const legacyScope = { ...scope, actionId };
+    const legacyState = { ...state, action_id: actionId };
+    rpc.mockResolvedValueOnce({
+      data: [{ ...context, action_id: actionId, state: legacyState }],
+      error: null,
+    });
+    const root = {
+      ...event,
+      key: "root:" + actionId,
+      kind: "created",
+      event_type: "work_order.created",
+      source_id: actionId,
+      source_version: null,
+      origin: "system",
+      detail: {},
+    };
+    rpc.mockResolvedValueOnce({
+      data: [{ log: { ...page, action_id: actionId, items: [root] } }],
+      error: null,
+    });
+
+    expect((await getWorkOrderLifecycleContext(client, actor, legacyScope)).state).toEqual(
+      legacyState,
+    );
+    const log = await getWorkOrderLog(client, actor, {
+      ...legacyScope,
+      cursor: null,
+      pageSize: 20,
+    });
+    expect(log.items).toEqual([root]);
+  });
   it("sends the operation and exact context through the existing authenticated client", async () => {
     expect(await mutateWorkOrderLifecycle(client, actor, input)).toEqual(state);
     expect(rpc).toHaveBeenCalledExactlyOnceWith("mutate_work_order_lifecycle", {

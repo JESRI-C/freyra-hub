@@ -13,9 +13,20 @@ import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignm
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
+import { FieldWorkOrderEquipment } from "./FieldWorkOrderEquipment";
+import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
+import { WorkOrderMaterials } from "./WorkOrderMaterials";
+import { WorkOrderTimePanel } from "./WorkOrderTimePanel";
 import { WorkOrderSubmissionPanel } from "./WorkOrderSubmissionPanel";
 const button =
   "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50";
+
+const taskFilters = [
+  ["all", "Alle"],
+  ["active", "Aktive"],
+  ["waiting", "Afventer"],
+  ["cancelled", "Aflyste"],
+] as const;
 
 export function MyWorkOrders() {
   const { user, loading, authError } = useAuth();
@@ -46,11 +57,22 @@ function MyTasks({ actorId }: { actorId: string }) {
   const load = useServerFn(listCurrentUserWorkOrders);
   const [editors, setEditors] = useState<Set<string>>(() => new Set());
   const [activeTaskId, setActiveTask] = useState<string | null>(null);
+  const [filter, setFilter] = useState<(typeof taskFilters)[number][0]>("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const tasks = useInfiniteQuery({
-    queryKey: ["my-work-orders", actorId],
+    queryKey: ["my-work-orders", actorId, filter, search],
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
-      load({ data: { expectedActorId: actorId, afterActionId: pageParam, pageSize: 20 } }),
+      load({
+        data: {
+          expectedActorId: actorId,
+          afterActionId: pageParam,
+          pageSize: 20,
+          filter,
+          search: search || undefined,
+        },
+      }),
     getNextPageParam: (page) => page.nextAfterActionId ?? undefined,
     retry: false,
     refetchOnWindowFocus: editors.size === 0,
@@ -70,6 +92,59 @@ function MyTasks({ actorId }: { actorId: string }) {
         </button>
       </header>
       <WorkspaceGuide {...programPageGuide("/opgaver")!} />
+      {!activeTaskId && (
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSearch(searchInput.trim());
+          }}
+        >
+          <label className="min-w-0 flex-1 text-sm font-medium">
+            Find opgave efter titel
+            <input
+              type="search"
+              maxLength={120}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className="mt-1 block min-h-11 w-full rounded-xl border bg-background px-3 text-base"
+            />
+          </label>
+          <button type="submit" className={button}>
+            Søg
+          </button>
+          {search && (
+            <button
+              type="button"
+              className={button}
+              onClick={() => {
+                setSearchInput("");
+                setSearch("");
+              }}
+            >
+              Ryd søgning
+            </button>
+          )}
+        </form>
+      )}
+      {!activeTaskId && (
+        <div role="group" aria-label="Filtrér mine opgaver" className="flex flex-wrap gap-2">
+          {taskFilters.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={
+                button + (filter === value ? " bg-primary text-primary-foreground" : " bg-card")
+              }
+              aria-pressed={filter === value}
+              disabled={editors.size > 0}
+              onClick={() => setFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {activeTaskId && (
         <button
           type="button"
@@ -77,7 +152,7 @@ function MyTasks({ actorId }: { actorId: string }) {
           disabled={editors.size > 0}
           onClick={() => setActiveTask(null)}
         >
-          ← Alle mine opgaver
+          ← Tilbage til opgavelisten
         </button>
       )}
       {!!editors.size && (
@@ -96,7 +171,13 @@ function MyTasks({ actorId }: { actorId: string }) {
         </p>
       )}
       {tasks.isSuccess && !items.length && (
-        <p className="rounded-xl border p-4">Du har ingen tildelte opgaver med en gemt plan.</p>
+        <p role="status" className="rounded-xl border p-4">
+          {search
+            ? `Ingen opgaver matcher “${search}” i den valgte visning.`
+            : filter === "all"
+              ? "Du har ingen tildelte opgaver med en gemt plan."
+              : "Du har ingen opgaver med den valgte status."}
+        </p>
       )}
       {items.map((task) => (
         <div key={task.action_id} hidden={activeTaskId !== null && activeTaskId !== task.action_id}>
@@ -144,6 +225,7 @@ function TaskCard({
   active: boolean;
   onOpen: () => void;
 }) {
+  const canExecute = task.can_execute && !task.cancelled;
   const claim = useServerFn(claimProjectWorkOrderPool),
     cache = useQueryClient();
   const [busy, setBusy] = useState(false),
@@ -154,7 +236,14 @@ function TaskCard({
   const [evidenceOpened, setEvidenceOpened] = useState(false),
     [evidenceEditing, setEvidenceEditing] = useState(false);
   const [submissionOpened, setSubmissionOpened] = useState(false),
-    [submissionEditing, setSubmissionEditing] = useState(false);
+    [submissionEditing, setSubmissionEditing] = useState(false),
+    [timeOpened, setTimeOpened] = useState(false),
+    [timeEditing, setTimeEditing] = useState(false);
+  const [materialsOpened, setMaterialsOpened] = useState(false);
+  const [materialsEditing, setMaterialsEditing] = useState(false);
+  const [visitEditing, setVisitEditing] = useState(false);
+  const statusDetails = useRef<HTMLDetailsElement>(null);
+  const statusSummary = useRef<HTMLElement>(null);
   const nestedLocks = useRef(new Set<string>());
   function reportEditing(part: string, value: boolean) {
     if (value) nestedLocks.current.add(part);
@@ -164,7 +253,7 @@ function TaskCard({
   const inFlight = useRef(false),
     attempt = useRef<{ signature: string; requestId: string } | null>(null);
   async function take() {
-    if (inFlight.current || !task.can_claim || locked || !active) return;
+    if (inFlight.current || !task.can_claim || task.cancelled || locked || !active) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -208,6 +297,16 @@ function TaskCard({
               : " · Ledig"
           : ""}
       </p>
+      {task.cancelled && (
+        <p className="rounded-xl border bg-muted px-3 py-2 text-sm font-medium">
+          Aflyst. Se instruktion og historik ved at åbne opgaven.
+        </p>
+      )}
+      {!task.cancelled && task.waiting_for_prerequisites && (
+        <p className="rounded-xl border border-amber-600/40 bg-amber-50 px-3 py-2 text-sm font-medium dark:bg-amber-950">
+          Afventer forudsætninger. Arbejdet kan startes, når de er udført.
+        </p>
+      )}
       {!active && (
         <button
           type="button"
@@ -226,11 +325,57 @@ function TaskCard({
               "Der er endnu ikke angivet en instruktion. Kontakt projektansvarlig, før arbejdet udføres."}
           </p>
         </section>
+        {canExecute && (
+          <div className="space-y-2 rounded-xl border p-3">
+            <p className="text-sm">
+              {task.waiting_for_prerequisites
+                ? "Du kan følge opgaven i logbogen, mens du venter."
+                : "Når du har læst instruktionen, kan du opdatere status og skrive noter i logbogen."}
+            </p>
+            <button
+              type="button"
+              className={button}
+              disabled={locked || busy}
+              onClick={() => {
+                if (!statusDetails.current) return;
+                statusDetails.current.open = true;
+                setStatusOpened(true);
+                statusSummary.current?.focus();
+              }}
+            >
+              Gå til status og logbog
+            </button>
+          </div>
+        )}
         <details>
           <summary className="min-h-11 cursor-pointer py-2 font-medium">Se arbejdsgrundlag</summary>
           <WorkOrderPlanSummary row={{ plan: task.plan, version: task.plan_version }} />
         </details>
-        {task.can_claim && (
+        {active && canExecute && (
+          <FieldWorkOrderEquipment
+            scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+            actorId={actorId}
+            actionId={task.action_id}
+          />
+        )}
+        {active && (task.plan.siteId || !!task.plan.visitStops?.length) && (
+          <WorkOrderVisitResults
+            key={task.plan_version_id}
+            scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+            actorId={actorId}
+            actionId={task.action_id}
+            planVersionId={task.plan_version_id}
+            planVersion={task.plan_version}
+            plan={task.plan}
+            canWrite={canExecute}
+            disabled={(locked && !visitEditing) || busy}
+            onEditing={(value) => {
+              setVisitEditing(value);
+              reportEditing("visits", value);
+            }}
+          />
+        )}
+        {task.can_claim && !task.cancelled && (
           <button
             className={button + " bg-primary text-primary-foreground"}
             disabled={busy || locked}
@@ -240,11 +385,13 @@ function TaskCard({
           </button>
         )}
         <details
+          ref={statusDetails}
           onToggle={(e) => {
             if (e.currentTarget.open) setStatusOpened(true);
           }}
         >
           <summary
+            ref={statusSummary}
             className="min-h-11 cursor-pointer py-2 font-medium"
             onClick={(e) => {
               if (locked && !editing) e.preventDefault();
@@ -318,7 +465,7 @@ function TaskCard({
               actorId={actorId}
               actionId={task.action_id}
               readOnly
-              allowReviewInReadOnly
+              allowReviewInReadOnly={!task.cancelled}
               onEditing={(value) => {
                 setSubmissionEditing(value);
                 reportEditing("submission", value);
@@ -326,7 +473,67 @@ function TaskCard({
             />
           )}
         </details>
-        {task.can_plan && (
+        {(canExecute || timeOpened) && (
+          <details
+            onToggle={(event) => {
+              if (event.currentTarget.open) setTimeOpened(true);
+            }}
+          >
+            <summary
+              className="min-h-11 cursor-pointer py-2 font-medium"
+              onClick={(event) => {
+                if (locked && !timeEditing) event.preventDefault();
+              }}
+            >
+              Registrér arbejdstid
+            </summary>
+            {timeOpened && (
+              <fieldset disabled={(locked && !timeEditing) || busy} className="min-w-0">
+                <WorkOrderTimePanel
+                  scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+                  actorId={actorId}
+                  actionId={task.action_id}
+                  canWrite={canExecute}
+                  onEditing={(value) => {
+                    setTimeEditing(value);
+                    reportEditing("time", value);
+                  }}
+                />
+              </fieldset>
+            )}
+          </details>
+        )}
+        {(canExecute || materialsOpened) && (
+          <details
+            onToggle={(event) => {
+              if (event.currentTarget.open) setMaterialsOpened(true);
+            }}
+          >
+            <summary
+              className="min-h-11 cursor-pointer py-2 font-medium"
+              onClick={(event) => {
+                if (locked && !materialsEditing) event.preventDefault();
+              }}
+            >
+              Registrér materialeforbrug
+            </summary>
+            {materialsOpened && (
+              <fieldset disabled={(locked && !materialsEditing) || busy} className="min-w-0">
+                <WorkOrderMaterials
+                  scope={{ organizationId: task.organization_id, projectId: task.project_id }}
+                  actorId={actorId}
+                  actionId={task.action_id}
+                  canWrite={canExecute}
+                  onEditing={(value) => {
+                    setMaterialsEditing(value);
+                    reportEditing("materials", value);
+                  }}
+                />
+              </fieldset>
+            )}
+          </details>
+        )}
+        {task.can_plan && !task.cancelled && (
           <div className="grid gap-2 sm:grid-cols-2">
             <Link
               to="/app/projects/$slug"

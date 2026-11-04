@@ -54,7 +54,7 @@ async function flush() {
     await new Promise((r) => setTimeout(r, 15));
   });
 }
-async function render(canManage = true, planId = id(5)) {
+async function render(canManage = true, planId = id(5), onOpenStatus?: () => void) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
@@ -65,6 +65,7 @@ async function render(canManage = true, planId = id(5)) {
           canManage={canManage}
           people={[owner]}
           onEditing={m.editing}
+          onOpenStatus={onOpenStatus}
         />
       </QueryClientProvider>,
     ),
@@ -125,6 +126,52 @@ afterEach(async () => {
   host.remove();
 });
 describe("group and assignment editor", () => {
+  it("offers the next status step after a confirmed assignment save", async () => {
+    const openStatus = vi.fn();
+    m.configure.mockResolvedValue(undefined);
+    await render(true, id(5), openStatus);
+    expect(host.textContent).not.toContain("Se status og næste trin");
+    await click("Rediger arbejdsfordeling");
+    await fill("Udfører", actor);
+    await fill("Begrundelse", "Synthetic assignment");
+    await submit();
+    expect(host.textContent).toContain("Tildelingen er gemt som ny version.");
+    await click("Se status og næste trin");
+    expect(openStatus).toHaveBeenCalledOnce();
+  });
+  it("shows who can take a pooled task and flags its earlier plan version", async () => {
+    m.history.mockResolvedValue({
+      items: [
+        {
+          id: id(10),
+          mode: "pool",
+          version: 1,
+          plan_version_id: id(6),
+          candidate_user_ids: [actor],
+          claimed_by: null,
+          created_at: "2026-10-29T20:00:00Z",
+        },
+      ],
+      nextBeforeVersion: null,
+    });
+    await render();
+    const summary = host.querySelector('section[aria-label="Arbejdsfordeling"]')!;
+    expect(summary.textContent).toContain("Afventer, at en udfører overtager opgaven.");
+    expect(summary.textContent).toContain("Kan overtage: Synthetic owner.");
+    expect(summary.textContent).toContain("Tildelingen henviser til en tidligere planversion.");
+    await click("Gennemgå tildeling til ny plan");
+    await fill("Begrundelse", "Synthetic review of the new plan");
+    await submit();
+    expect(m.configure).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        expectedVersion: 1,
+        planVersionId: id(5),
+        mode: "pool",
+        candidateUserIds: [actor],
+      }),
+    });
+  });
+
   it("selects an organization owner with no invented project role and retains the opened plan on conflict", async () => {
     await render();
     await click("Rediger arbejdsfordeling");

@@ -843,17 +843,29 @@
       "package": "D05",
       "code": [
         "src/lib/field-job-cards.ts",
-        "src/components/project/FieldJobCardsPanel.tsx"
+        "src/components/project/FieldJobCardsPanel.tsx",
+        "src/lib/work-order-plan.ts",
+        "src/lib/work-order-submission.ts",
+        "src/components/project/RequiredJobCards.tsx",
+        "src/components/project/WorkOrderPlansPanel.tsx"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261104024837_work_order_required_job_cards.sql"
       ],
       "tests": [
         "src/lib/__tests__/field-job-cards.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "src/lib/__tests__/required-job-cards.test.ts",
+        "src/components/project/__tests__/WorkOrderPlansPanel.test.tsx",
+        "src/components/project/__tests__/FieldJobCardsPanel.test.tsx",
+        "supabase/tests/database/work_order_required_job_cards.test.sql",
+        "scripts/test-work-order-submission-staging.mjs",
+        "scripts/test-required-job-card-plan-staging.mjs",
+        "scripts/test-required-job-card-review-staging.mjs"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Fælles serverkrav ved aflevering mangler; UI-komplethed er ikke tilstrækkelig."
+      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
+      "remaining": "Planens eksplicit valgte jobkortversioner og nødvendige svar kontrolleres på serveren. Fagligt fastlagte metode-/kategorikrav, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept mangler. Se OPGAVE_DOKUMENTATIONSKRAV.md."
     },
     {
       "id": "FORM-04",
@@ -924,12 +936,17 @@
         "src/lib/work-order-review.ts",
         "src/services/work-order-review-service.ts",
         "src/components/project/WorkOrderReviewControls.tsx",
-        "src/components/project/WorkOrderSubmissionPanel.tsx"
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/work-order-plan.ts",
+        "src/lib/work-order-submission.ts",
+        "src/components/project/RequiredJobCards.tsx",
+        "src/components/project/WorkOrderPlansPanel.tsx"
       ],
       "migrations": [
         "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
         "supabase/migrations/20261102180652_work_order_submission_packets.sql",
-        "supabase/migrations/20261102213116_work_order_submission_review.sql"
+        "supabase/migrations/20261102213116_work_order_submission_review.sql",
+        "supabase/migrations/20261104024837_work_order_required_job_cards.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
@@ -938,10 +955,17 @@
         "src/services/__tests__/work-order-review-service.test.ts",
         "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
         "scripts/database-concurrency/field-job-concurrency.test.mjs",
-        "scripts/test-work-order-review-staging.mjs"
+        "scripts/test-work-order-review-staging.mjs",
+        "src/lib/__tests__/required-job-cards.test.ts",
+        "src/components/project/__tests__/WorkOrderPlansPanel.test.tsx",
+        "src/components/project/__tests__/FieldJobCardsPanel.test.tsx",
+        "supabase/tests/database/work_order_required_job_cards.test.sql",
+        "scripts/test-work-order-submission-staging.mjs",
+        "scripts/test-required-job-card-plan-staging.mjs",
+        "scripts/test-required-job-card-review-staging.mjs"
       ],
-      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Versionsbundet opgaveaflevering, uafhængigt review, returnering, genåbning og genaflevering er prøvet i staging. Profilspecifikke kravversioner, rapportens binding til samme review og faglig/kundeaccept mangler."
+      "coverage": "partial; explicit job-card requirements staged at fcf3f8f; CI 41766083814 and hosted plan/submission/review/report/PDF passed",
+      "remaining": "Versionsbundet aflevering, uafhængigt review og rapportbinding har stagingbevis, også med eksplicit valgte jobkortkrav. Fagligt fastlagte profil-/kategorikrav og samlet faglig/kommunal accept er fortsat åbne. Se OPGAVE_DOKUMENTATIONSKRAV.md og S05."
     },
     {
       "id": "QA-02",

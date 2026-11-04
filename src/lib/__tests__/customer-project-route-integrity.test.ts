@@ -131,6 +131,12 @@ describe("customer project evidence guards", () => {
       round: "a1000000-0000-4000-8000-000000000001",
     });
     expect(validate({ tab: "unrecognized", round: "not-a-version" })).toEqual({});
+    expect(validate({ tab: "handlinger", taskList: "schedule", reviewOnly: true })).toEqual({
+      tab: "handlinger",
+      taskList: "schedule",
+      reviewOnly: true,
+    });
+    expect(validate({ reviewOnly: false })).toEqual({});
     expect(
       validate({
         step: "udfoerelse",

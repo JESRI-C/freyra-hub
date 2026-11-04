@@ -1,0 +1,56 @@
+{
+  "schema": "freyra.work-order-requirements-receipt/v1",
+  "date": "2026-11-04",
+  "sourceRevision": "fcf3f8fe71c19f961e8c0b13e1d161dcdd10c05c",
+  "workerVersion": "378972d6-1d4b-4c5f-8811-409fe899058f",
+  "environment": "staging",
+  "databaseMigration": "20261104024837",
+  "ci": {
+    "url": "https://github.com/JESRI-C/freyra-hub/actions/runs/41766083814",
+    "applicationTests": 3543,
+    "applicationFiles": 264,
+    "databaseTests": 1847,
+    "freshMigrations": true,
+    "concurrency": true,
+    "databaseRestore": true,
+    "lint": true,
+    "build": true
+  },
+  "run": "7df9e97e",
+  "projectId": "342591a9-5e90-4e34-8777-934a8d2a68dd",
+  "actionId": "c9b50416-4b22-48f6-b91d-49a6fb280421",
+  "submissionVersion": 3,
+  "checks": {
+    "wrongCardRejected": true,
+    "lostReplyRetry": true,
+    "historyPreserved": true,
+    "originalDownload": true,
+    "withdrawnOriginalDenied": true,
+    "externalReadOnly": true,
+    "externalRevoked": true,
+    "newTemplatePreservesPinnedRequirement": true,
+    "planDraftVersionSelection": true,
+    "planCancelPreservesSavedVersion": true
+  },
+  "browserWidths": [1280, 390],
+  "review": {
+    "independentReviewer": true,
+    "reviewId": "6ed8a384-9077-453f-9f1c-603d5c107cc8",
+    "activeTemporaryReviewGrantsAfter": 0
+  },
+  "report": {
+    "id": "395ec95c-3b43-45c2-9fbf-1be9f8633fbb",
+    "submissionVersion": 3,
+    "retryStable": true,
+    "pdfSha256": "6a15c00c0afcb1bb3108a5f383360b0bff937d03fc0100a119da958c3fe282d7",
+    "sourceReturnVerified": true
+  },
+  "acceptance": {
+    "packageTechnical": "passed for documented scenarios",
+    "overallTechnical": "open",
+    "professional": "open",
+    "municipal": "open",
+    "physicalPhone": "open",
+    "production": "not authorized"
+  }
+}

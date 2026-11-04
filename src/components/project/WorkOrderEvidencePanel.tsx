@@ -10,6 +10,7 @@ import {
   listProjectWorkOrderEvidenceExecutions,
   saveProjectWorkOrderEvidence,
 } from "@/lib/work-order-evidence.functions";
+import { fieldJobGaps, type FieldJobVersion } from "@/lib/field-job-cards";
 import type { EvidenceVersion } from "@/lib/work-order-evidence";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
@@ -32,6 +33,8 @@ type Props = {
   actionId: string;
   canContribute: boolean;
   onEditing?: (value: boolean) => void;
+  onOpenField?: () => void;
+  savedObservation?: FieldJobVersion;
 };
 
 /** Mounted only after opening Documentation; the task workspace owns the actor/project key. */
@@ -41,6 +44,8 @@ export function WorkOrderEvidencePanel({
   actionId,
   canContribute,
   onEditing,
+  onOpenField,
+  savedObservation,
 }: Props) {
   const cache = useQueryClient();
   const accessFn = useServerFn(getProjectWorkOrderAccess);
@@ -118,17 +123,30 @@ export function WorkOrderEvidencePanel({
     refetchOnWindowFocus: !locked,
     refetchOnReconnect: !locked,
   });
+  const correction =
+    writable &&
+    savedObservation?.action_id === actionId &&
+    savedObservation.created_by === actorId &&
+    savedObservation.organization_id === scope.organizationId &&
+    savedObservation.project_id === scope.projectId &&
+    savedObservation.status === "recorded"
+      ? savedObservation
+      : undefined;
   const rows = history.data?.pages.flatMap((page) => page.items) ?? [];
   const latest = new Map<string, number>();
   rows.forEach((row) =>
     latest.set(row.evidence_id, Math.max(latest.get(row.evidence_id) ?? 0, row.version)),
   );
-  function edit(row?: EvidenceVersion, withdraw = false) {
+  function edit(
+    row?: EvidenceVersion,
+    withdraw = false,
+    observationVersionId = row?.observation_version_id ?? "",
+  ) {
     if (!writable || locked) return;
     setDraft({
       evidenceId: row?.evidence_id ?? crypto.randomUUID(),
       expectedVersion: row?.version ?? 0,
-      observationVersionId: row?.observation_version_id ?? "",
+      observationVersionId,
       uploadId: row?.upload_id ?? "",
       executionRevisionId: row?.execution_revision_id ?? null,
       state: withdraw ? "withdrawn" : "attached",
@@ -472,6 +490,19 @@ export function WorkOrderEvidencePanel({
                 Registrering version {row.observation_snapshot.version} · gemt{" "}
                 {new Date(row.created_at).toLocaleString("da-DK")}
               </p>
+              {row.state === "attached" && latest.get(row.evidence_id) === row.version && (
+                <EvidenceObservationGaps
+                  observation={row.observation_snapshot}
+                  writable={writable}
+                  onOpenField={writable ? onOpenField : undefined}
+                  locked={locked}
+                  correction={
+                    correction && correction.version > row.observation_snapshot.version
+                      ? { version: correction.version, open: () => edit(row, false, correction.id) }
+                      : undefined
+                  }
+                />
+              )}
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
                 {row.observation_snapshot.template.fields.map((field) => (
                   <div key={field.key}>
@@ -569,6 +600,56 @@ export function WorkOrderEvidencePanel({
     </section>
   );
 }
+function EvidenceObservationGaps({
+  observation,
+  writable,
+  onOpenField,
+  locked,
+  correction,
+}: {
+  correction?: { version: number; open: () => void };
+  onOpenField?: () => void;
+  locked: boolean;
+  writable: boolean;
+  observation: EvidenceVersion["observation_snapshot"];
+}) {
+  let gaps: string[];
+  try {
+    gaps = fieldJobGaps(observation.template, observation.values);
+  } catch {
+    gaps = ["Svarene skal passe til skabelonen."];
+  }
+  if (observation.status === "needs_review") gaps.unshift("Registreringen kræver gennemgang.");
+  if (gaps.length === 0) return null;
+  return (
+    <div className="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm">
+      <p className="font-medium">Afklar denne registrering før aflevering</p>
+      <ul className="list-disc pl-5">
+        {gaps.map((gap, index) => (
+          <li key={index}>{gap}</li>
+        ))}
+      </ul>
+      <p>
+        {correction
+          ? "Der er gemt en nyere registrering. Vælg den, og gem koblingen som en ny version."
+          : writable
+            ? "Gem en rettelse under Feltregistrering, og vælg den nye version via Ret kobling."
+            : "Bed en person med adgang til at rette registreringen og opdatere koblingen."}
+      </p>
+      {correction && (
+        <button type="button" className={button} disabled={locked} onClick={correction.open}>
+          Vælg gemt registrering version {correction.version}
+        </button>
+      )}
+      {onOpenField && (
+        <button type="button" className={button} disabled={locked} onClick={onOpenField}>
+          Åbn Feltregistrering
+        </button>
+      )}
+    </div>
+  );
+}
+
 function formatValue(value: unknown) {
   return value === null || value === undefined || value === ""
     ? "Ukendt"
