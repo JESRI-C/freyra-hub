@@ -147,7 +147,10 @@
         "src/components/project/MyWorkOrders.tsx",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/routes/app.projects.$slug.tsx",
+        "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -166,16 +169,40 @@
         "supabase/tests/database/work_order_groups_pools.test.sql",
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
-        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/routes/__tests__/project-media-isolation.test.tsx",
+        "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+        "src/lib/__tests__/customer-project-route-integrity.test.ts"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; P8 local media-failure isolation and draft preservation passed at 5228aad",
       "remaining": "Aktør-/scopebundet status, logbog og noter skjules ved adgangsfejl/kontoskift. Rapport/eksport og offline-snapshots skal følge samme scope. Eksisterende private links udløber, de tilbagekaldes ikke øjeblikkeligt.",
       "ownership": {
-        "owner": "Produkttråden",
-        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
+        "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "followUps": [
+        {
+          "package": "P8",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no new hosted or mobile acceptance",
+          "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "code": [
+            "src/routes/app.projects.$slug.tsx",
+            "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+            "src/components/project-workspace/ProjectPhotoAtlas.tsx"
+          ],
+          "tests": [
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/routes/__tests__/project-media-isolation.test.tsx",
+            "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+            "src/lib/__tests__/customer-project-route-integrity.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "JOB-01",
@@ -209,7 +236,7 @@
       "remaining": "Planrevision og adskilt ansvarlig findes; eksplicit tildeling, livscyklus og kobling til faktisk udfører følger i D02b.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P1–P6",
-        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -246,7 +273,7 @@
       "remaining": "Typed vandløbsprofil og filtrerbare måleprojektioner findes; D04 fælles filtre og faktisk udførelseskobling afventer.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P1–P6",
-        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -282,7 +309,7 @@
       "remaining": "Samme eksisterende udførelsesrevision bindes til plan og faktisk udfører; status, felt-/ekstern skrivevej, bilagskrav før aflevering og rapporteksport følger.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P1–P6",
-        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -333,7 +360,7 @@
       "remaining": "Person, gruppe og atomisk puljeovertagelse samt udførelsens tildelingsbinding findes. Modtagerspecifik tildelingsnotifikation/indbakke og fysisk telefon-/feltprøve er fortsat åbne.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P1–P6",
-        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -378,7 +405,7 @@
       "remaining": "Afleveret/Godkendt/Returneret/Genåbnet er nu prøvet på frosne afleveringsversioner i staging. Profilspecifikke, versionsbundne dokumentationskrav og samlet brugeraccept mangler.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P1–P6",
-        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -391,34 +418,48 @@
       "code": [
         "src/services/actions-service.ts",
         "src/services/action-execution-service.ts",
-        "src/services/field-job-cards-service.ts"
+        "src/services/field-job-cards-service.ts",
+        "src/lib/manager-work-orders.ts",
+        "src/services/manager-work-orders-service.ts",
+        "src/components/project/ManagerWorkOrders.tsx",
+        "src/components/project/ManagerWorkOrderMap.tsx",
+        "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+        "src/components/project/manager-work-order-map-data.ts"
       ],
       "migrations": [
-        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql"
+        "supabase/migrations/20261029072246_field_job_templates_and_versions.sql",
+        "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+        "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
       ],
       "tests": [
         "src/lib/__tests__/action-execution.test.ts",
         "src/services/__tests__/action-execution-service.test.ts",
-        "supabase/tests/database/field_job_versions.test.sql"
+        "supabase/tests/database/field_job_versions.test.sql",
+        "supabase/tests/database/manager_work_order_map_projection.test.sql",
+        "src/services/__tests__/manager-work-orders-service.test.ts",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+        "src/components/project/__tests__/manager-work-order-map-data.test.ts"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Fælles filtreret snapshot, keyset-pagination og samstemmende status-/korttotaler mangler.",
+      "coverage": "partial; P7 shared manager selection, stored geometry and full totals passed automated tests, staging SQL/API and local integrated browser at 5228aad; broader requirement acceptance open",
+      "remaining": "P7 viser samme arbejdsordrer i Liste/Kanban/Kort med fuldtotaler før cursor og præcis opgavenavigation. Generiske observationer, øvrigt projektkort og rapport-/eksportudvalg samt ny hosted/mobil accept står åbne. Udvalgsreferencen er ikke et vedvarende historiksnapshot.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
-        "scope": "P7: autoriseret fælles udvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Generiske observationer og rapporttotaler er fortsat særskilt.",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ingen ny hosted version.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       },
       "followUps": [
         {
           "package": "P7",
-          "state": "implemented; automated and staging database tested; integrated browser pending",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no new hosted or mobile acceptance",
           "code": [
             "src/lib/manager-work-orders.ts",
             "src/services/manager-work-orders-service.ts",
             "src/components/project/ManagerWorkOrders.tsx",
             "src/components/project/ManagerWorkOrderMap.tsx",
-            "src/components/project/ManagerWorkOrderMapCanvas.tsx"
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+            "src/components/project/manager-work-order-map-data.ts"
           ],
           "migrations": [
             "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
@@ -428,9 +469,14 @@
             "supabase/tests/database/manager_work_order_map_projection.test.sql",
             "src/services/__tests__/manager-work-orders-service.test.ts",
             "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
-            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx"
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+            "src/components/project/__tests__/manager-work-order-map-data.test.ts"
           ],
-          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "sourceRevision": "c495045",
+          "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
         }
       ]
     },
@@ -528,7 +574,7 @@
       "remaining": "Eksisterende logbog viser nu afleveringsversion, reviewomfang, forfatter og returnering/godkendelse med bevaret historik. Samlet visning af øvrige bilag og hele D03s restarbejde er fortsat åbent.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P1–P6",
-        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. P7 fælles arbejdsordreudvalg er nu lokalt browserprøvet; generiske observationer, øvrigt projektkort og rapporttotaler er fortsat åbne.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -585,11 +631,11 @@
         "supabase/tests/database/work_order_plans.test.sql",
         "scripts/database-concurrency/field-job-concurrency.test.mjs"
       ],
-      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed",
-      "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes; kortinteraktion og fysisk prøve afventer.",
+      "coverage": "partial; D01-D02a/b/c staged at 625e2dab3447e6402be9e7caceb33bbbde09fae0; CI 40942472409 and hosted API passed; P7 stored site positions and exact task plan 6 passed local browser at 5228aad",
+      "remaining": "Versionsbinding til eksisterende site og vandløbsgrundlag findes. P7 har SQL/API-bevis for gemte positioner og lokal browserprøve af kort til præcis opgaveplan 6. Pinnet vandløb er kun SQL-/komponentprøvet; ny fysisk/hosted accept af denne kortvisning afventer.",
       "ownership": {
-        "owner": "Produkttråden; denne tråd for P1–P6",
-        "scope": "Kerne og driftsplan i produkttråden. Modtagerindgange, overdragelse og ny lederoversigt i denne tråd. JOB-06 kort/liste står åbent.",
+        "owner": "Produkttråden; denne tråd for P1–P8",
+        "scope": "Kerne og driftsplan i produkttråden. Denne tråd har P1–P7 modtagerindgange og arbejdsordrekort med gemte positioner, samt afstemt smal P8-medieisolation. Produkttrådens separate PR45 og aktive fotoindgang er ikke overtaget.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -919,32 +965,46 @@
       "package": "D04",
       "code": [
         "src/components/project-workspace/ProjectPhotoAtlas.tsx",
-        "src/services/project-media-service.ts"
+        "src/services/project-media-service.ts",
+        "src/lib/manager-work-orders.ts",
+        "src/services/manager-work-orders-service.ts",
+        "src/components/project/ManagerWorkOrders.tsx",
+        "src/components/project/ManagerWorkOrderMap.tsx",
+        "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+        "src/components/project/manager-work-order-map-data.ts"
       ],
       "migrations": [
-        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
+        "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
+        "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+        "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
       ],
       "tests": [
-        "src/services/__tests__/project-media-originals.test.ts"
+        "src/services/__tests__/project-media-originals.test.ts",
+        "supabase/tests/database/manager_work_order_map_projection.test.sql",
+        "src/services/__tests__/manager-work-orders-service.test.ts",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+        "src/components/project/__tests__/manager-work-order-map-data.test.ts"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Delte serverfiltre og ens objektmængde/totaler mangler for nye opgaver og registreringer.",
+      "coverage": "partial; P7 shared manager selection, stored geometry and full totals passed automated tests, staging SQL/API and local integrated browser at 5228aad; broader requirement acceptance open",
+      "remaining": "P7 arbejdsordreoversigt er lokalt browserprøvet med fælles filtre og identiteter, 58 unikke opgaver, 12 med position, 46 uden og 24 kortobjekter. Generiske registreringer, øvrigt projektkort, rapport-/eksportudvalg og ny hosted/mobil accept står åbne.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
-        "scope": "P7: autoriseret fælles udvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Generiske observationer og rapporttotaler er fortsat særskilt.",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ingen ny hosted version.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       },
       "followUps": [
         {
           "package": "P7",
-          "state": "implemented; automated and staging database tested; integrated browser pending",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no new hosted or mobile acceptance",
           "code": [
             "src/lib/manager-work-orders.ts",
             "src/services/manager-work-orders-service.ts",
             "src/components/project/ManagerWorkOrders.tsx",
             "src/components/project/ManagerWorkOrderMap.tsx",
-            "src/components/project/ManagerWorkOrderMapCanvas.tsx"
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+            "src/components/project/manager-work-order-map-data.ts"
           ],
           "migrations": [
             "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
@@ -954,9 +1014,14 @@
             "supabase/tests/database/manager_work_order_map_projection.test.sql",
             "src/services/__tests__/manager-work-orders-service.test.ts",
             "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
-            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx"
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+            "src/components/project/__tests__/manager-work-order-map-data.test.ts"
           ],
-          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "sourceRevision": "c495045",
+          "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
         }
       ]
     },
@@ -1027,7 +1092,7 @@
       "remaining": "Genbrug eksisterende kilde-/lagadaptere; afprøv fejlstatus og CRS i operationelt forløb.",
       "ownership": {
         "owner": "Produkttråden",
-        "scope": "Eksisterende kort i produkttråden. Fælles autoriseret arbejdsordremængde i kort/liste er næste kortlagte pakke, endnu ikke implementeret.",
+        "scope": "Eksisterende lag og kildeadaptere i produkttråden. P7 fælles arbejdsordreudvalg er implementeret og lokalt browserprøvet. WGS84-/pinnet versionsvalidering har SQL-/komponentbevis; fuldt operationelt lag-/CRS-forløb er fortsat åbent.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       }
@@ -1329,12 +1394,20 @@
         "src/lib/work-order-review.ts",
         "src/services/work-order-review-service.ts",
         "src/components/project/WorkOrderReviewControls.tsx",
-        "src/components/project/WorkOrderSubmissionPanel.tsx"
+        "src/components/project/WorkOrderSubmissionPanel.tsx",
+        "src/lib/manager-work-orders.ts",
+        "src/services/manager-work-orders-service.ts",
+        "src/components/project/ManagerWorkOrders.tsx",
+        "src/components/project/ManagerWorkOrderMap.tsx",
+        "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+        "src/components/project/manager-work-order-map-data.ts"
       ],
       "migrations": [
         "supabase/migrations/20261028153415_freeze_workflow_report_inputs.sql",
         "supabase/migrations/20261102180652_work_order_submission_packets.sql",
-        "supabase/migrations/20261102213116_work_order_submission_review.sql"
+        "supabase/migrations/20261102213116_work_order_submission_review.sql",
+        "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
+        "supabase/migrations/20261104051231_manager_work_order_site_position_precedence.sql"
       ],
       "tests": [
         "src/lib/__tests__/workflow-report.test.ts",
@@ -1343,26 +1416,32 @@
         "src/services/__tests__/work-order-review-service.test.ts",
         "src/components/project/__tests__/WorkOrderReviewControls.test.tsx",
         "scripts/database-concurrency/field-job-concurrency.test.mjs",
-        "scripts/test-work-order-review-staging.mjs"
+        "scripts/test-work-order-review-staging.mjs",
+        "supabase/tests/database/manager_work_order_map_projection.test.sql",
+        "src/services/__tests__/manager-work-orders-service.test.ts",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+        "src/components/project/__tests__/manager-work-order-map-data.test.ts"
       ],
-      "coverage": "partial; S04/D05b staged at 2e04787f13a042b36df44b3b3bb2a4bb4a25f6f3; CI 41535229142 and hosted browser/API passed",
-      "remaining": "Afleveringen fastholder plan, tildeling, udførelse, registreringer/skabeloner og originalreferencer på samme opgave. Filtrering, rapportbinding og sammenhængende totaler på tværs af alle visninger mangler.",
+      "coverage": "partial; P7 shared manager selection, stored geometry and full totals passed automated tests, staging SQL/API and local integrated browser at 5228aad; broader requirement acceptance open",
+      "remaining": "Afleveringen fastholder opgavens kilder. P7 har fælles optælling af arbejdsordrer i Liste/Kanban/Kort, uafhængigt af cursor, med lokal browserprøve til alle 58 indlæste opgaver. Samme udvalg og totaler på tværs af generiske observationer, rapport og eksport er fortsat åbne.",
       "ownership": {
         "owner": "Produkttråden; denne tråd for P7 arbejdsordreoversigt",
-        "scope": "P7: autoriseret fælles udvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Generiske observationer og rapporttotaler er fortsat særskilt.",
+        "scope": "P7: fælles autoriseret arbejdsordreudvalg i kort/liste/tavle, fuldtotaler før cursor, token mod ændret sidegrundlag og præcis opgavenavigation. Lokalt browserprøvet ved 1280 px i P8-build; generiske observationer og rapporttotaler er særskilt. Ingen ny hosted version.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
       },
       "followUps": [
         {
           "package": "P7",
-          "state": "implemented; automated and staging database tested; integrated browser pending",
+          "state": "implemented; 72 targeted tests, 119 staging rollback assertions and authenticated API passed; integrated local browser passed at 5228aad (1280 px), no new hosted or mobile acceptance",
           "code": [
             "src/lib/manager-work-orders.ts",
             "src/services/manager-work-orders-service.ts",
             "src/components/project/ManagerWorkOrders.tsx",
             "src/components/project/ManagerWorkOrderMap.tsx",
-            "src/components/project/ManagerWorkOrderMapCanvas.tsx"
+            "src/components/project/ManagerWorkOrderMapCanvas.tsx",
+            "src/components/project/manager-work-order-map-data.ts"
           ],
           "migrations": [
             "supabase/migrations/20261104051102_manager_work_order_map_projection.sql",
@@ -1372,9 +1451,14 @@
             "supabase/tests/database/manager_work_order_map_projection.test.sql",
             "src/services/__tests__/manager-work-orders-service.test.ts",
             "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
-            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx"
+            "src/components/project/__tests__/ManagerWorkOrderMapCanvas.test.tsx",
+            "src/components/project/__tests__/manager-work-order-map-data.test.ts"
           ],
-          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "sourceRevision": "c495045",
+          "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
         }
       ]
     },
@@ -1952,22 +2036,49 @@
       "package": "D01",
       "code": [
         "src/services/project-workspace-service.ts",
-        "src/lib/__tests__/supabase-browser-client.test.ts"
+        "src/lib/__tests__/supabase-browser-client.test.ts",
+        "src/routes/app.projects.$slug.tsx",
+        "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql"
       ],
       "tests": [
-        "supabase/tests/database/4dm_tenant_isolation.test.sql"
+        "supabase/tests/database/4dm_tenant_isolation.test.sql",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/routes/__tests__/project-media-isolation.test.tsx",
+        "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+        "src/lib/__tests__/customer-project-route-integrity.test.ts"
       ],
-      "coverage": "partial, acceptance open",
-      "remaining": "Fejl/ukendt/manglende må ikke blive nul. Nye lister og afleveringer kræver eksplicitte tilstande.",
+      "coverage": "partial, acceptance open; P8 local media-failure isolation and draft preservation passed at 5228aad",
+      "remaining": "P8 viser eksplicit uafklaret mediegrundlag og genforsøg, mens opgaven forbliver tilgængelig. Medieafhængige rapport-/Atlas-handlinger behandler ikke fejl som tomt kontrolleret grundlag. Den underliggende mediefejl og øvrige drifts-/fejltilstande er ikke lukket af denne pakke.",
       "ownership": {
-        "owner": "Produkttråden",
-        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
+        "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "followUps": [
+        {
+          "package": "P8",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no new hosted or mobile acceptance",
+          "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "code": [
+            "src/routes/app.projects.$slug.tsx",
+            "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+            "src/components/project-workspace/ProjectPhotoAtlas.tsx"
+          ],
+          "tests": [
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/routes/__tests__/project-media-isolation.test.tsx",
+            "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+            "src/lib/__tests__/customer-project-route-integrity.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "SYS-06",
@@ -2007,7 +2118,10 @@
         "src/components/project/MyWorkOrders.tsx",
         "src/lib/work-order-lifecycle.ts",
         "src/services/work-order-lifecycle-service.ts",
-        "src/components/project/WorkOrderStatusPanel.tsx"
+        "src/components/project/WorkOrderStatusPanel.tsx",
+        "src/routes/app.projects.$slug.tsx",
+        "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+        "src/components/project-workspace/ProjectPhotoAtlas.tsx"
       ],
       "migrations": [
         "supabase/migrations/20260831064838_harden_4dm_tenant_isolation.sql",
@@ -2023,16 +2137,40 @@
         "scripts/database-concurrency/field-job-concurrency.test.mjs",
         "src/services/__tests__/work-order-lifecycle-service.test.ts",
         "src/components/project/__tests__/WorkOrderStatusPanel.test.tsx",
-        "supabase/tests/database/work_order_lifecycle_logbook.test.sql"
+        "supabase/tests/database/work_order_lifecycle_logbook.test.sql",
+        "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+        "src/routes/__tests__/project-media-isolation.test.tsx",
+        "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+        "src/lib/__tests__/customer-project-route-integrity.test.ts"
       ],
-      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed",
-      "remaining": "Mobil status/note, dirty-lock, starttid/kilde, bilagsmangler og fejl bevarer kladden i automatiske UI-prøver. Fysisk telefon-/kamera-/offline-/tastaturprøve og samlet aflevering er fortsat åbne.",
+      "coverage": "partial; D02e staged at 28fb7d325eecc56eb1dc5bccd5340d7eb8e8a054; CI 40955139531 and hosted API passed; P8 local media-failure isolation and draft preservation passed at 5228aad",
+      "remaining": "P8 bevarer lokal plankladde ved blokeret navigation og Fortryd uden gemning, prøvet i faktisk lokal browser ved 1280 px. Atlas-kladden har en faktisk Radix-portalprøve. Den tidligere brugerbekræftede iPhone/offlineprøve er afgrænset. Samlet fysisk telefon-, kamera-, GPS-, offline- og tastaturaccept samt det samlede afleveringsforløb er fortsat åbne ud over denne tidligere prøve. P7/P8 har ingen ny effektiv mobil- eller fysisk prøve.",
       "ownership": {
-        "owner": "Produkttråden",
-        "scope": "Eksisterende kerne, videreudvikling og samlet accept. Denne tråd ændrer ikke dette krav som del af P6.",
+        "owner": "Produkttråden; denne tråd for afstemt smal P8-medieisolation",
+        "scope": "P8 holder opgaven åben ved mediefejl, afgrænser den ikke-suspenderende medieforespørgsel på bruger/projekt/organisation og bevarer kladder. Medieafhængige rapport-/Atlas-handlinger kræver kontrolleret grundlag. Produkttrådens PR45 og aktive fotoindgang forbliver særskilt.",
         "reviewedAt": "2026-11-04",
         "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md"
-      }
+      },
+      "followUps": [
+        {
+          "package": "P8",
+          "state": "implemented; 27 targeted tests in four files, targeted lint, full typecheck, staging build and isolation passed; actual local browser passed at 5228aad (1280 px); no new hosted or mobile acceptance",
+          "sourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+          "code": [
+            "src/routes/app.projects.$slug.tsx",
+            "src/components/project-workspace/ProjectMediaAvailabilityNotice.tsx",
+            "src/components/project-workspace/ProjectPhotoAtlas.tsx"
+          ],
+          "tests": [
+            "src/components/project/__tests__/ManagerWorkOrders.test.tsx",
+            "src/routes/__tests__/project-media-isolation.test.tsx",
+            "src/components/project-workspace/__tests__/ProjectPhotoAtlasAvailability.test.tsx",
+            "src/lib/__tests__/customer-project-route-integrity.test.ts"
+          ],
+          "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+          "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json"
+        }
+      ]
     },
     {
       "id": "SYS-08",
@@ -2127,6 +2265,90 @@
       "userInterfaceTested": false,
       "pilotAccepted": false,
       "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json"
+    },
+    "P7": {
+      "codeRevision": "c4950453e8c38cf552a15dfba141b7c2e5df4289",
+      "browserSourceRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+      "targetedTests": 72,
+      "stagingRollbackDatabaseAssertions": 119,
+      "authenticatedApiPassed": true,
+      "oldTenArgumentRpcCompatible": true,
+      "externalElevenArgumentRpcDenied": true,
+      "localBrowserPassed": true,
+      "actualBrowserWidth": 1280,
+      "newMobileAcceptance": false,
+      "pinnedWatercourseLiveProof": false,
+      "pinnedWatercourseSqlAndComponentProof": true,
+      "localBrowserPagination": {
+        "initialLoaded": 30,
+        "fullFilteredJobs": 58,
+        "finalLoaded": 58,
+        "uniqueActionIds": 58,
+        "mappedJobs": 12,
+        "unmappedJobs": 46,
+        "mapObjects": 24,
+        "laneTotals": {
+          "performed": 3,
+          "submitted": 1,
+          "approved": 6,
+          "waiting": 2,
+          "untracked": 46
+        },
+        "fullTotalsUnchanged": true,
+        "sameTaskSetInThreeViews": true
+      },
+      "screenshots": [
+        "docs/evidence/manager-work-orders-map-5228aad.png",
+        "docs/evidence/manager-work-orders-kanban-5228aad.png",
+        "docs/evidence/manager-work-orders-kanban-full-5228aad.png"
+      ],
+      "newHostedVersionUploaded": false,
+      "workflowWrites": false,
+      "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+      "apiReceipt": "docs/manager-map-api-staging-2026-11-04.json",
+      "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+      "apiWorkingTreeBaseRevision": "7712e45ca8d65e577e6b4cf57034a1dbb6919f39",
+      "apiSourceProvenance": "API-prøven kørte på P7-arbejdstræet før commit; migrationshashes matcher c495045.",
+      "localBrowserNoPositionJob": {
+        "sameJobOpened": true,
+        "canonicalStatus": "approved",
+        "submissionVersion": 2,
+        "historicalReturnedVersion": 1
+      }
+    },
+    "P8": {
+      "codeRevision": "5228aade571de9e95f79ef234ec83d6e181a1ff9",
+      "targetedTestFiles": 4,
+      "targetedTests": 27,
+      "testBreakdown": {
+        "manager": 17,
+        "actualQueryClientRoute": 3,
+        "actualRadixAtlasDraftPortal": 1,
+        "integrity": 6
+      },
+      "targetedLintPassed": true,
+      "fullTypecheckPassed": true,
+      "stagingBuildAndIsolationPassed": true,
+      "localBrowserPassed": true,
+      "actualBrowserWidth": 1280,
+      "newMobileAcceptance": false,
+      "actualMediaFailureObserved": true,
+      "exactJobPlanRendered": true,
+      "planVersion": 6,
+      "unsavedPlanNavigationBlocked": true,
+      "draftPreserved": true,
+      "cancelRestoredOriginalWithoutSave": true,
+      "mediaRetryLoadingThenError": true,
+      "returnPreservedMapFilterViewSelection": true,
+      "underlyingMediaFailureResolved": false,
+      "workflowWrites": false,
+      "newHostedVersionUploaded": false,
+      "productOwnerUnmergedRevision": "9104a74",
+      "productOwnerActiveTask": "fotoindgang",
+      "scope": "Afstemt smal medieisolation i projektets route og Atlas; separat PR45, offlinekontrakter og aktiv fotoindgang er ikke overtaget.",
+      "evidence": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
+      "browserReceipt": "docs/manager-map-browser-local-2026-11-04.json",
+      "atlasDraftRetentionEvidence": "Actual Radix portal unit test; no separate browser Atlas interaction claimed."
     }
   },
   "evidence": {
@@ -2170,5 +2392,5 @@
   "currentStagingReceipt": "docs/jobs-geotag-staging-delivery.json",
   "ownershipReviewedAt": "2026-11-04",
   "currentEvidenceRegister": "docs/SKYHOST_JOBFLOW_RES_2026-11-03.md",
-  "historicalCoverageNote": "coverage og remaining er bevaret historik. Nyere daterede prøvebeviser og afgrænsninger står i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md."
+  "historicalCoverageNote": "Oprindelige coverage-, remaining- og evidensfelter er dateret historik. P7/P8-relaterede krav har opdateret coverage/remaining og særskilte followUps/packageEvidence med eksplicit lokal, staging-API og SQL-afgrænsning. Øvrige nyere beviser læses i currentEvidenceRegister og UDVIKLINGSPLAN_SAMLING_2026-11-02.md; currentStagingReceipt er den historiske stagingkvittering og er ikke en ny hosted P6–P8-version."
 }
