@@ -10,6 +10,8 @@ const m = vi.hoisted(() => ({
   indicators: vi.fn(),
   time: vi.fn(),
   availability: vi.fn(),
+  equipment: vi.fn(),
+  equipmentAvailability: vi.fn(),
   create: vi.fn(),
   blocker: vi.fn(),
   navigate: vi.fn(),
@@ -17,11 +19,16 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/supabase/client", () => ({
   createActorBoundSupabaseClient: () => ({
-    rpc: () => ({ abortSignal: m.time }),
+    rpc: (name: string, args: unknown) => ({
+      abortSignal:
+        name === "is_work_order_equipment_available" ? () => m.equipmentAvailability(args) : m.time,
+    }),
     from: () => {
       const query = {
         select: () => query,
         eq: () => query,
+        ilike: () => query,
+        then: (resolve: (result: unknown) => void) => Promise.resolve(m.equipment()).then(resolve),
         order: () => query,
         limit: () => query,
         maybeSingle: m.availability,
@@ -458,6 +465,52 @@ it("compares a suggested start day with recorded capacity only when opened", asy
   expect(details.textContent).toContain("0 timer til rådighed");
   expect(details.textContent).toContain("3 timer over de tilgængelige timer");
   expect(details.textContent).not.toContain("Angiv tilgængelige timer");
+});
+
+it("checks selected equipment on the proposed date without a reservation form", async () => {
+  const equipmentId = "00000000-0000-4000-8000-000000000012";
+  m.access.mockResolvedValue({
+    userId: "actor",
+    projectId: "project",
+    canConfigure: true,
+    canManageAvailability: true,
+  });
+  m.schedule.mockResolvedValue({
+    first: { start: "2099-01-02", end: "2099-01-03" },
+    second: { start: null, end: null, waitingForActionIds: ["first"] },
+  });
+  m.equipment.mockReturnValue({
+    error: null,
+    data: [{ id: equipmentId, name: "Gravemaskine", kind: "machine" }],
+  });
+  m.equipmentAvailability.mockResolvedValue({ error: null, data: false });
+  await render();
+  await click("Planoversigt");
+  expect(m.equipment).not.toHaveBeenCalled();
+  const details = [...host.querySelectorAll("details")].find(
+    (node) => node.querySelector("summary")?.textContent === "Kontrollér udstyr for datoforslaget",
+  )!;
+  await act(async () => {
+    details.open = true;
+    details.dispatchEvent(new Event("toggle"));
+  });
+  await settle();
+  const select = details.querySelector("select")!;
+  await act(async () => {
+    select.value = equipmentId;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await settle();
+  expect(m.equipmentAvailability).toHaveBeenCalledWith({
+    p_organization_id: scope.organizationId,
+    p_project_id: scope.projectId,
+    p_action_id: "second",
+    p_equipment_id: equipmentId,
+    p_starts_on: "2099-01-04",
+    p_ends_on: "2099-01-04",
+  });
+  expect(details.textContent).toContain("Optaget i den valgte periode");
+  expect(details.querySelector('button[type="submit"]')).toBeNull();
 });
 
 it("shows a task spanning the month boundary and filters it by a planned day", async () => {

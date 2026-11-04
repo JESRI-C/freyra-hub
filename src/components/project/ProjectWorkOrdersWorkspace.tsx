@@ -32,6 +32,7 @@ import { ProjectWorkAvailability } from "./ProjectWorkAvailability";
 import { WorkOrderPlansPanel, type PlanDateEditorRequest } from "./WorkOrderPlansPanel";
 import { FieldJobCardsPanel } from "./FieldJobCardsPanel";
 import { ProjectEquipmentBookings } from "./ProjectEquipmentBookings";
+import { WorkOrderEquipmentBooking } from "./WorkOrderEquipmentBooking";
 import { ProjectWorkTimeOverview } from "./ProjectWorkTimeOverview";
 import { ProjectMaterialCatalog, WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimeSummary } from "./WorkOrderTimeSummary";
@@ -1084,6 +1085,18 @@ function WorkOrders({
                                 />
                               )}
                             </details>
+                          )}
+                          {actorId && access.data?.canManageAvailability && (
+                            <WorkOrderEquipmentBooking
+                              key={a.id + ":" + suggestedDate + ":" + (plan?.end ?? "")}
+                              scope={scope}
+                              actorId={actorId}
+                              actionId={a.id}
+                              plannedStart={suggestedDate}
+                              plannedEnd={plan?.end ?? null}
+                              disabled={locked}
+                              preview
+                            />
                           )}
                           <p>Tjek bemanding og udstyr, før du planlægger.</p>
                         </div>

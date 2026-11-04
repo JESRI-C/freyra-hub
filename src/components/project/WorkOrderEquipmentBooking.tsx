@@ -31,6 +31,7 @@ export function WorkOrderEquipmentBooking({
   actorId,
   actionId,
   initialOpen = false,
+  preview = false,
   plannedStart,
   plannedEnd,
   disabled,
@@ -40,23 +41,30 @@ export function WorkOrderEquipmentBooking({
   actorId: string;
   actionId: string;
   initialOpen?: boolean;
+  preview?: boolean;
   plannedStart: string | null;
   plannedEnd: string | null;
   disabled: boolean;
-  onEditing: (value: boolean) => void;
+  onEditing?: (value: boolean) => void;
 }) {
   const [open, setOpen] = useState(initialOpen);
   const cache = useQueryClient();
   const [search, setSearch] = useState("");
   const [newEquipment, setNewEquipment] = useState<{ name: string; kind: z.infer<typeof kinds> }>();
-  const [draft, setDraft] = useState<{ equipmentId: string; from: string; through: string }>();
+  const [draft, setDraft] = useState<
+    { equipmentId: string; from: string; through: string } | undefined
+  >(() =>
+    preview && plannedStart
+      ? { equipmentId: "", from: plannedStart, through: plannedEnd ?? plannedStart }
+      : undefined,
+  );
   const [cancelId, setCancelId] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const inFlight = useRef(false);
   const attempt = useRef<{ signature: string; id: string } | undefined>(undefined);
-  useWorkOrderEditorLock(!!newEquipment || !!draft || !!cancelId || busy, onEditing);
+  useWorkOrderEditorLock(!preview && (!!newEquipment || !!draft || !!cancelId || busy), onEditing);
   const db = () => createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
   const bookingsQuery = () =>
     db()
@@ -84,7 +92,7 @@ export function WorkOrderEquipmentBooking({
   const [limit, setLimit] = useState(30);
   const bookings = useQuery({
     queryKey: ["equipment-bookings", actorId, scope, actionId, limit],
-    enabled: open,
+    enabled: open && !preview,
     retry: false,
     queryFn: async () => {
       const result = await bookingsQuery()
@@ -127,7 +135,7 @@ export function WorkOrderEquipmentBooking({
   const knownConflict = availability.data === false && attempt.current?.signature !== signature;
 
   async function mutate() {
-    if (disabled || inFlight.current) return;
+    if (preview || disabled || inFlight.current) return;
     const name = newEquipment?.name.trim();
     if (newEquipment && !name) {
       setError("Angiv et navn på udstyret.");
@@ -249,16 +257,24 @@ export function WorkOrderEquipmentBooking({
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary className="min-h-11 cursor-pointer py-3 font-medium">Booking af udstyr</summary>
-      <p>Reservér udstyr til denne opgave. Første og sidste dato er med i reservationen.</p>
-      {open && bookings.isPending && <p role="status">Henter reservationer…</p>}
-      {bookings.isError && (
+      <summary className="min-h-11 cursor-pointer py-3 font-medium">
+        {preview ? "Kontrollér udstyr for datoforslaget" : "Booking af udstyr"}
+      </summary>
+      {preview ? (
+        <p>
+          Vælg udstyr for at se ledigheden fra {plannedStart} til {plannedEnd ?? plannedStart}.
+        </p>
+      ) : (
+        <p>Reservér udstyr til denne opgave. Første og sidste dato er med i reservationen.</p>
+      )}
+      {!preview && open && bookings.isPending && <p role="status">Henter reservationer…</p>}
+      {!preview && bookings.isError && (
         <button type="button" className={button} onClick={() => void bookings.refetch()}>
           Hent reservationer igen
         </button>
       )}
-      {bookings.data?.length === 0 && <p>Opgaven har endnu ingen reservationer.</p>}
-      {bookings.data && bookings.data.length > 0 && (
+      {!preview && bookings.data?.length === 0 && <p>Opgaven har endnu ingen reservationer.</p>}
+      {!preview && bookings.data && bookings.data.length > 0 && (
         <ul className="space-y-2">
           {bookings.data.slice(0, limit).map((row) => (
             <li key={row.id} className="space-y-2 rounded-lg border p-2">
@@ -301,7 +317,7 @@ export function WorkOrderEquipmentBooking({
           ))}
         </ul>
       )}
-      {!!bookings.data && bookings.data.length > limit && limit < 990 && (
+      {!preview && !!bookings.data && bookings.data.length > limit && limit < 990 && (
         <button
           type="button"
           className={button}
@@ -311,7 +327,7 @@ export function WorkOrderEquipmentBooking({
           Vis flere reservationer
         </button>
       )}
-      {!editing && (
+      {!preview && !editing && (
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -341,7 +357,7 @@ export function WorkOrderEquipmentBooking({
           </button>
         </div>
       )}
-      {(draft || newEquipment) && (
+      {(!preview || open) && (draft || newEquipment) && (
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -396,7 +412,7 @@ export function WorkOrderEquipmentBooking({
                   />
                 </label>
                 <label className="block">
-                  Udstyr til reservation
+                  {preview ? "Udstyr til ledighedskontrol" : "Udstyr til reservation"}
                   <select
                     className={control}
                     required
@@ -418,28 +434,30 @@ export function WorkOrderEquipmentBooking({
                   </button>
                 )}
                 {equipment.data?.length === 0 && <p>Ingen udstyr matcher søgningen.</p>}
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <label className="block">
-                    Fra dato
-                    <input
-                      type="date"
-                      className={control}
-                      required
-                      value={draft.from}
-                      onChange={(event) => setDraft({ ...draft, from: event.target.value })}
-                    />
-                  </label>
-                  <label className="block">
-                    Til og med
-                    <input
-                      type="date"
-                      className={control}
-                      required
-                      value={draft.through}
-                      onChange={(event) => setDraft({ ...draft, through: event.target.value })}
-                    />
-                  </label>
-                </div>
+                {!preview && (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="block">
+                      Fra dato
+                      <input
+                        type="date"
+                        className={control}
+                        required
+                        value={draft.from}
+                        onChange={(event) => setDraft({ ...draft, from: event.target.value })}
+                      />
+                    </label>
+                    <label className="block">
+                      Til og med
+                      <input
+                        type="date"
+                        className={control}
+                        required
+                        value={draft.through}
+                        onChange={(event) => setDraft({ ...draft, through: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                )}
               </>
             )}
             {draft && validBooking && (
@@ -448,10 +466,14 @@ export function WorkOrderEquipmentBooking({
                   {availability.isFetching || availability.isPending
                     ? "Kontrollerer ledighed…"
                     : availability.isError
-                      ? "Ledigheden kunne ikke kontrolleres. Freyra kontrollerer igen ved gemning."
+                      ? preview
+                        ? "Ledigheden kunne ikke kontrolleres."
+                        : "Ledigheden kunne ikke kontrolleres. Freyra kontrollerer igen ved gemning."
                       : availability.data === false
                         ? "Optaget i den valgte periode. Vælg andre datoer eller andet udstyr."
-                        : "Ledigt ved seneste kontrol. Reservationen bekræftes, når du gemmer."}
+                        : preview
+                          ? "Ledigt ved seneste kontrol."
+                          : "Ledigt ved seneste kontrol. Reservationen bekræftes, når du gemmer."}
                 </p>
                 {!availability.isFetching &&
                   (availability.data === false || availability.isError) && (
@@ -465,14 +487,16 @@ export function WorkOrderEquipmentBooking({
                   )}
               </div>
             )}
-            <div className="flex flex-wrap gap-2">
-              <button type="submit" className={button} disabled={!!draft && knownConflict}>
-                {busy ? "Gemmer…" : draft ? "Gem reservation" : "Gem udstyr"}
-              </button>
-              <button type="button" className={button} onClick={clear}>
-                Fortryd
-              </button>
-            </div>
+            {!preview && (
+              <div className="flex flex-wrap gap-2">
+                <button type="submit" className={button} disabled={!!draft && knownConflict}>
+                  {busy ? "Gemmer…" : draft ? "Gem reservation" : "Gem udstyr"}
+                </button>
+                <button type="button" className={button} onClick={clear}>
+                  Fortryd
+                </button>
+              </div>
+            )}
           </fieldset>
         </form>
       )}
