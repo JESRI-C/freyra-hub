@@ -6,6 +6,8 @@ Det afgrænsede jobflow har browserbevis for oprettelse og persontildeling genne
 
 Efter den funktionelle prøve er mobilens primære handlinger flyttet op, kamera og synkronisering samlet, og Mine opgaver har fået en Kanban-visning, som bruger serverens status. De ændringer er browserprøvet ved 390 og 1280 px. Tavleversionen `df6a5ca` har særskilt browserbevis. Produkttrådens stabile ændringer frem til `d4f57b9`, herunder obligatoriske jobkort, er samlet i denne branch. Den samlede ændring bestod 162 målrettede tests på tværs af ni prøvesuiter. Produkttrådens igangværende offlinekrav til jobkort har sin egen branch.
 
+Den samlede testversion `3af288a` er tilgængelig på [denne testadresse](https://23d5119f-gofreyra-p0-staging.gofreyra-jesri-staging.workers.dev/opgaver). Typekontrol, lint og staging-build bestod. Den læsende browserprøve ved 390 px viste den nyere kravopgave i Godkendt med afleveringsversion 3 og fastholdt jobkortversion. En ældre opgave viste fortsat Afleveret og version 1. Åbning og retur bevarede den præcise arbejdsordre. Prøven ændrede ingen opgavedata eller adgange.
+
 3. november 2026. Observationerne er fra det eksisterende testjob i den åbne Skyhost-portal. Kontoen viste rollen Administrator. Der er kun åbnet visninger og faner. Observationerne er taget fra browserens synlige brugerflade. Registerhenvisningerne nedenfor beskriver krav og tidligere prøver.
 
 ## Det observerede jobflow
