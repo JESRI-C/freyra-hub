@@ -44,6 +44,12 @@ jobs:
         with:
           node-version: 22.14.0
           cache: npm
+      - name: Install the repository's pinned npm
+        run: npm install --global npm@11.6.0
+      - name: Verify toolchain
+        run: |
+          node --version
+          npm --version
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: node node_modules/vitest/vitest.mjs run src/services/__tests__/place-search.test.ts src/services/__tests__/project-area-lookup.test.ts src/components/maps/__tests__/map-geometry.test.ts src/services/__tests__/geo-service-validation.test.ts src/services/baseline/__tests__/cadastral-source.test.ts src/services/baseline/__tests__/planting-polygon-sources.test.ts --maxWorkers=1 --no-file-parallelism
