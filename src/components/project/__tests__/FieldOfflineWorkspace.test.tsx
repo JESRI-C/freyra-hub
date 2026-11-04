@@ -28,7 +28,12 @@ vi.mock("@tanstack/react-router", () => ({
     params?: unknown;
     search?: unknown;
   }) => (
-    <a href={to} {...props}>
+    <a
+      href={to}
+      data-params={JSON.stringify(_params)}
+      data-search={JSON.stringify(_search)}
+      {...props}
+    >
       {children}
     </a>
   ),
@@ -160,6 +165,34 @@ describe("mobile field local save feedback", () => {
     expect(host.textContent).toContain("Skabelonversion 1");
     expect(host.textContent).toContain("ikke automatisk opgavedokumentation");
   });
+  it("links back to evidence on the exact requested job only when online", async () => {
+    const round = "44444444-4444-4444-8444-444444444444";
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace
+          requestedProject={f.project}
+          requestedRound={round}
+          requestedActionId={f.action}
+        />,
+      ),
+    );
+    const evidenceLink = () =>
+      [...host.querySelectorAll("a")].find((link) =>
+        link.textContent?.includes("Knyt dokumentation til opgaven"),
+      );
+    expect(evidenceLink()?.getAttribute("href")).toBe("/app/projects/$slug");
+    expect(JSON.parse(evidenceLink()!.dataset.params!)).toEqual({ slug: f.project });
+    expect(JSON.parse(evidenceLink()!.dataset.search!)).toEqual({
+      tab: "handlinger",
+      round,
+      task: f.action,
+      work: "evidence",
+    });
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    await act(async () => window.dispatchEvent(new Event("offline")));
+    expect(evidenceLink()).toBeUndefined();
+    vi.restoreAllMocks();
+  });
   it("waits for the local queue before opening a saved jobcard", async () => {
     const savedPack = pack();
     f.packs.mockResolvedValue([savedPack]);
@@ -284,12 +317,17 @@ describe("mobile field local save feedback", () => {
     );
     expect(host.textContent).toContain("Der er ikke valgt en erstatningsopgave");
     expect(host.textContent).not.toContain("Skabelonversion 1");
+    expect(host.textContent).not.toContain("Knyt dokumentation til opgaven");
     expect(f.prepare).not.toHaveBeenCalled();
   });
   it("retains a rejected camera file for download and retry instead of discarding the selection", async () => {
     f.photo.mockResolvedValue({ id: "photo" });
     f.enqueue.mockRejectedValue(new DOMException("Full", "QuotaExceededError"));
-    await act(async () => root!.render(<FieldOfflineWorkspace requestedProject={f.project} />));
+    await act(async () =>
+      root!.render(
+        <FieldOfflineWorkspace requestedProject={f.project} requestedActionId={f.action} />,
+      ),
+    );
     const camera = host.querySelector<HTMLInputElement>('input[capture="environment"]')!;
     Object.defineProperty(camera, "files", {
       value: [new File(["raw"], "camera.png", { type: "image/png" })],
@@ -298,6 +336,13 @@ describe("mobile field local save feedback", () => {
     expect(host.textContent).toContain("1 originaler er endnu ikke gemt");
     expect(host.textContent).toContain("Hent ikke-gemt original: camera.png");
     expect(f.blocker.mock.calls.at(-1)?.[0].enableBeforeUnload).toBe(true);
+    const evidence = [...host.querySelectorAll("a")].find((link) =>
+      link.textContent?.includes("Knyt dokumentation til opgaven"),
+    )!;
+    const navigate = new MouseEvent("click", { bubbles: true, cancelable: true });
+    await act(async () => evidence.dispatchEvent(navigate));
+    expect(navigate.defaultPrevented).toBe(true);
+    expect(host.textContent).toContain("Gem eller fortryd ændringerne, før du forlader feltsiden.");
     const retry = Array.from(host.querySelectorAll("button")).find((b) =>
       b.textContent?.includes("Prøv at gemme de resterende"),
     )!;
