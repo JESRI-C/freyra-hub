@@ -53,3 +53,42 @@ De private fixtures ligger under tmp/submission-required-hosted og er ikke i Git
 ## Fortsat åbent
 
 Fagpersonen skal fortsat fastlægge, hvilke jobkort og bilag en bestemt faglig metode kræver. Denne funktion gemmer projektlederens konkrete valg og tillægger det ingen faglig godkendelse. Kategoriregler, yderligere bilagstyper, samlet offlineprøve med flere krævede jobkort og fysisk telefonaccept indgår i det resterende arbejde. Ekstern nyregistrering uden projektbidragsadgang udvides ikke af denne migration.
+
+## Offlinepakken under samling
+
+4. november 2026 · S02/S04/D05c · [Draft PR45](https://github.com/JESRI-C/freyra-hub/pull/45). Den beskrevne offlinepakke er teknisk efterprøvet på staging. Samlet opgave-/fotoforløb, faglig accept og fysisk telefon er fortsat åbne.
+
+Den eksisterende feltpakke henter nu planens instruktioner og op til ti præcise krævede jobkortversioner. Første registrering kræver ingen tidligere udfyldelse fra en redaktør. Hvert kort har sine egne svar. Køen bruger fortsat samme opgaves versionsrækkefølge og genbruger IndexedDB, synkronisering og den kanoniske originalkø.
+
+Nye offlinebesvarelser af krævede kort medsender den planversion, medarbejderen arbejdede efter. Migration 20261104034102_offline_required_job_card_plan_binding.sql tilføjer en valgfri, uforanderlig planreference med organisation-, projekt- og opgavebinding. Den nye save_field_job_version_for_plan og den eksisterende RPC deler samme invoker-funktion. En ny registrering under en forældet plan afvises. Et identisk, allerede accepteret request kan genhente sin oprindelige kvittering, så længe brugeren fortsat har adgang. Gamle klienter og registreringer bevarer den eksisterende API og får ingen opdigtet planreference.
+
+Ved konflikt kan medarbejderen læse den aktuelle instruktion, sammenligne svar og udtrykkeligt genbruge dem med en begrundelse. Originalkladden bevares. Først efter en præcist matchende serverkvittering knyttes den til rettelsen og udgår af det afventende antal. Allerede modtagne svar kan genbruges på en ny plan uden at blive behandlet som en uløst konflikt. Usendte svar skal først synkroniseres. Blokerede svar vises og kan eksporteres.
+
+Hvis et serverfunktionssvar ikke længere giver et pålideligt adgangssignal, bekræftes det med et aktørbundet, læsende RLS-opslag. Vellykket opslag uden projektadgang blokerer køposten. Et utilgængeligt opslag eller fortsat synligt projekt giver genforsøg. Kontrollen giver aldrig adgang til at skrive.
+
+### Afprøvning på den leverede version
+
+Appkilde **90f0196b7c8927b02b23b2b660df39c8f2b30887**, Worker **4e90dcd9-055a-44c5-a336-36bc2f7e512c** og stagingmigration **20261104034102**. [Maskinkvitteringen](offline-required-cards-staging-receipt-2026-11-04.json) har kilde, planreferencer, bevis og afgrænsning.
+
+| Prøve | Resultat og afgrænsning |
+|---|---|
+| Lokale offlineprøver | 43 bestået: komponent, service, IndexedDB og synkronisering. Nul/nej, to kort, første registrering, fejlkvittering, konflikt, læseadgang og tilbagekaldelse. |
+| Fuld CI | [41777119984](https://github.com/JESRI-C/freyra-hub/actions/runs/41777119984): 3.562 appprøver i 265 filer, 1.872 databasekontroller i 27 filer, typecheck, lint og build. |
+| Database | Frisk migrationsafspilning, faktisk låsekonkurrence mellem plan og registrering, idempotens, adgang og immutable historik består. Disponibel database-restore består; dette er ikke en samlet gendannelse af originalfiler. |
+| Hosted Chrome | Separat feltkonto, to kort uden tidligere svar, offline gemning, fuld browserlukning, offline genåbning, mistet svar med identisk genforsøg, forældet plan, eksplicit rettelse, modtagne svar under endnu en plan og tilbagekaldt adgang består. |
+| Visning | 390 og 1280 px uden vandret overløb eller JavaScript-sidefejl. Blokerede svar er synlige. Fysisk telefon og uassisteret brugeraccept er åbne. |
+| Bevaring og oprydning | Fire serverversioner og seks lokale registreringer bevaret. Én original konfliktkladde er knyttet til sin modtagne rettelse. Én med vilje afvist registrering er blokeret og bevaret efter tilbagekaldelse. Nul midlertidige feltmedlemskaber; egne testsessioner logget ud. |
+
+Førbeviset er bevaret. Tre UI-fejl i genbrug og læsning af kladder blev fundet af nye prøver. En faktisk hosted-fejl viste tilbagekaldt adgang som genforsøg; den er rettet og genprøvet. De tidligere fejl i testforventninger, Windows' lange profilsti og Chromiums opstartsadfærd tæller ikke som beståede prøver. Private fixtures og skærmbilleder ligger i ignoreret tmp. Browserens persistente profil bruger en kort Windows-tempsti.
+
+Prøven lukker fra en neutral browserside og åbner derefter den cachede feltside med offlineindstillingen aktiveret. Det forhindrer, at Chromium genstarter en appfane, før Playwright har anvendt offline-emuleringen. IndexedDB, cache, login og registreringer bevares under browserlukningen; profilen og data nulstilles ikke. Dette afgrænser en gentagelig softwareprøve, og er ingen fysisk flytilstands- eller kamera-/GPS-prøve.
+
+Genkør med en tom fixturemappe under ignoreret tmp, den faktiske stagingrevision i FREYRA_TEST_REVISION og eventuelt FREYRA_OFFLINE_QA_DIR. Kommando: node scripts/test-offline-required-cards-staging.mjs --staging --accepted-plan-change. Scriptet kontrollerer miljøet og opretter et særskilt TEST-projekt. Den eksisterende testkonto får kun midlertidig feltrolle i dette projekt; rollen fjernes og læses tilbage. Egne sessioner gemmes privat til afgrænset oprydning og fjernes fra fixturen efter logout. Der sendes ingen invitationer eller beskeder.
+
+Sikkerhedsadvisors har samme fundkategorier før og efter migrationen. De tidligere PostGIS-/Auth-/driftspunkter er fortsat åbne. Originalcheckoutets seks lokale ændringer er bevaret; denne pakke er udviklet i en isoleret gren.
+
+### Resterende integration og accept
+
+Fotoets direkte binding til den valgte opgave og registrering skal stadig samles i feltindgangen; den eksisterende manuelle dokumentationskobling og originalkø bevares. Før samme offlinegrundlag gennem udførelse, aflevering, særskilt review og rapport på denne kandidat. Fagpersonen skal fortsat definere metode-/kategorikrav og yderligere bilagstyper. Fysisk kamera/GPS og kommunens egen brugerprøve afventes.
+
+En ældre app før den nye strikte køpayload kan ikke behandle den. En rollback skal bruge en kompatibel læser eller sikre genoptagelse af køen og må ikke slette den. Samlet rollback, gendannelse af originalfiler, fuld Skyhost-dækning og SaaS-frigivelse er åbne. Ingen produktion, merge eller betalt udbyder er aktiveret.

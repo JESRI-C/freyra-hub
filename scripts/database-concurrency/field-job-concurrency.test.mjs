@@ -329,6 +329,125 @@ try {
     oneRevision: true,
     oneInternalEvent: true,
   });
+  // Same local sessions and real lock witness, on an independent task.
+  const offlineAction = q(randomUUID());
+  const [offlineTemplate] = await query(
+    "SELECT json_build_object('id',id,'templateId',template_id,'version',version,'definition',definition) FROM public.field_job_template_versions WHERE id=" +
+      q(templateVersion) +
+      ";",
+  );
+  const offlinePlan = {
+    ...planValue,
+    requiredJobCards: [
+      {
+        templateVersionId: offlineTemplate.id,
+        templateId: offlineTemplate.templateId,
+        version: offlineTemplate.version,
+        definition: offlineTemplate.definition,
+      },
+    ],
+  };
+  const offlinePlanCall = (expected, reason) =>
+    "public.save_work_order_plan(" +
+    offlineAction +
+    "," +
+    org +
+    "," +
+    project +
+    "," +
+    expected +
+    "," +
+    q(JSON.stringify({ ...offlinePlan, instructions: reason })) +
+    "::jsonb," +
+    q(reason) +
+    "," +
+    q(randomUUID()) +
+    ")";
+  const [initialOfflinePlan] = await query(
+    "BEGIN; " +
+      login +
+      " INSERT INTO public.actions(id,project_id,title) VALUES(" +
+      offlineAction +
+      "," +
+      project +
+      ",'Synthetic offline concurrency'); SELECT * FROM public.initialize_work_order(" +
+      offlineAction +
+      "," +
+      org +
+      "," +
+      project +
+      ",0," +
+      q(randomUUID()) +
+      "); SELECT json_build_object('id',id) FROM " +
+      offlinePlanCall(0, "Synthetic first plan") +
+      "; COMMIT;",
+  );
+  const offlineRequest = randomUUID();
+  const offlineCall = (planId, request) =>
+    "public.save_field_job_version_for_plan(" +
+    org +
+    "," +
+    project +
+    "," +
+    offlineAction +
+    "," +
+    q(templateVersion) +
+    ",0,'{}'::jsonb,'draft','Synthetic offline visit'," +
+    q(request) +
+    "," +
+    q(planId) +
+    ")";
+  const changingPlan = await transaction(
+    "SELECT json_build_object('id',id) FROM " + offlinePlanCall(1, "Synthetic changed plan") + ";",
+    "OFFLINE_PLAN_HELD",
+  );
+  await changingPlan.marker("OFFLINE_PLAN_HELD");
+  const staleOffline = await transaction(
+    capture(offlineCall(initialOfflinePlan.id, randomUUID())),
+    "OFFLINE_STALE_DONE",
+  );
+  await actualLock(staleOffline, changingPlan);
+  await commit(changingPlan);
+  await staleOffline.marker("OFFLINE_STALE_DONE");
+  assert.equal(staleOffline.rows().find((row) => row.result)?.result, "PT409");
+  await commit(staleOffline);
+  const planTwo = changingPlan.rows().find((row) => row.id).id;
+  const acceptedOffline = await transaction(
+    "SELECT json_build_object('id',id) FROM " + offlineCall(planTwo, offlineRequest) + ";",
+    "OFFLINE_WRITE_HELD",
+  );
+  await acceptedOffline.marker("OFFLINE_WRITE_HELD");
+  const laterPlan = await transaction(
+    "SELECT json_build_object('id',id) FROM " + offlinePlanCall(2, "Synthetic later plan") + ";",
+    "OFFLINE_LATER_PLAN",
+  );
+  await actualLock(laterPlan, acceptedOffline);
+  await commit(acceptedOffline);
+  await laterPlan.marker("OFFLINE_LATER_PLAN");
+  await commit(laterPlan);
+  const recovered = await transaction(
+    "SELECT json_build_object('id',id) FROM " + offlineCall(planTwo, offlineRequest) + ";",
+    "OFFLINE_REPLY_RECOVERED",
+  );
+  await recovered.marker("OFFLINE_REPLY_RECOVERED");
+  assert.equal(
+    recovered.rows().find((row) => row.id).id,
+    acceptedOffline.rows().find((row) => row.id).id,
+  );
+  await commit(recovered);
+  const [offlineAfter] = await query(
+    "SELECT json_build_object('versions',count(*),'plan',min(required_plan_version_id::text)) FROM public.field_job_versions WHERE action_id=" +
+      offlineAction +
+      ";",
+  );
+  assert.deepEqual(offlineAfter, { versions: 1, plan: planTwo });
+  scenarios.push({
+    name: "offline_required_plan_change",
+    actualLockVerified: true,
+    staleSqlstate: "PT409",
+    acceptedSourcePlanRetained: true,
+    lostReplyRecovered: true,
+  });
   const execution = {
     schema: "freyra.action-execution/v1",
     actionId: action.slice(1, -1),

@@ -1,6 +1,6 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.9 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.10 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
 
 **Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
 kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
@@ -8,6 +8,13 @@ driftsarbejde. Én sammenhængende sag viser, hvad der skal gøres og hvorfor,
 hvad der faktisk er gjort, hvordan naturen udvikler sig, og hvad der skal
 følges op på. Grundlaget er Jespers arbejdsinstruks **GoFreyra – slutmål og
 arbejdsinstruks med RES (Reverse Engineering)** i denne udviklingstråd.
+
+**Kvalitetsmål for helheden:** Programmet skal være gennemarbejdet i funktion,
+design og brug på niveau med førende SaaS-systemer. Formål, næste handling,
+gemmestatus og vej videre efter en fejl skal kunne forstås uden udviklerhjælp.
+Fælles ordvalg, navigation, tilgængelighed og ydelse vurderes gennem de samme
+rolleforløb på computer og fysisk telefon. Dinero er en reference for enkel
+betjening; en bestået teknisk prøve dokumenterer ikke lighed i brugeroplevelse.
 
 Projektlederen kan afgrænse området, beskrive førtilstand og mål, planlægge
 og tildele arbejdet og følge status. Feltmedarbejderen kan finde opgaven og
@@ -44,12 +51,29 @@ på samme identificerede kandidat, inklusive adgang, fejlhåndtering, rapporters
 kildespor og gendannelse af både database og originalfiler. Kundens opstart,
 supportvej og leverede arbejdsgange skal være dokumenteret før salg og drift.
 
-**Næste kodepakke:** Før de valgte dokumentationskrav gennem feltets offlineforløb
-(S02/S04/D05c), og afstem metodeprofilernes krav med dokumenterede fagkilder.
-Derefter samlet kommunal accept af aflevering → faglig gennemgang → rapport → opfølgning.
+**Næste kodepakke:** Saml valgt opgave, feltregistrering og originalfoto i én
+tydelig feltindgang (S02/D03). Genbrug den kanoniske uploader og den eksisterende
+dokumentationskobling. Kontrollér, at genveje følger den aktuelt valgte opgave,
+og før det samme offlinegrundlag videre gennem udførelse, aflevering,
+gennemgang og rapport. Afstem metodeprofilernes krav med dokumenterede fagkilder.
+Derefter samlet kommunal accept af rapport og opfølgning.
 Eksisterende implementeringer og delprøver genbruges. Kontrollen af slutmålet
 ændrer ingen tidligere prøves status og er ingen ny teknisk eller faglig
 godkendelse; samlet fysisk mobil-, kunde- og driftsaccept er fortsat åben.
+
+**Seneste tekniske leverance, 4. november:** [Offlinepakken med krævede jobkort](OPGAVE_DOKUMENTATIONSKRAV.md#offlinepakken-under-samling)
+er på staging som appkilde `90f0196`, Worker `4e90dcd9-055a-44c5-a336-36bc2f7e512c`
+og migration `20261104034102`. CI 41777119984 består med 3.562 appprøver og
+1.872 databasekontroller, inklusive faktisk samtidighed og database-restore.
+Alle 43 afgrænsede offlineprøver består. Den hosted genprøve med separat
+feltkonto bestod to jobkort, browserluk/genåbning, mistet svar uden dublet,
+ændret plan, bevaret konfliktkladde, genbrug af modtagne svar og tilbagekaldt
+adgang med læsbar blokeret kladde. Fire serverversioner og seks lokale
+registreringer er bevaret. Nul midlertidige feltmedlemskaber er læst tilbage.
+[Kvitteringen](offline-required-cards-staging-receipt-2026-11-04.json) afgrænser
+prøven og bevarer henvisning til fejl før rettelserne. Draft PR45 er ikke merget.
+Den samlede SaaS-brugeroplevelse kræver fortsat uassisterede rolleforløb på
+computer og fysisk telefon; tekniske delprøver erstatter ikke den accept.
 
 **Tidligere teknisk delprøve:** [50-brugerprøven](SAAS_50_BRUGERE_2026-11-03.md)
 afprøvede 50 forskellige konti i otte organisationer. Den fandt og rettede
