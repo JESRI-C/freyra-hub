@@ -26,7 +26,12 @@ import {
   ObservationSourceBoundary,
   WorkOrderObservationSourceDetails,
 } from "./WorkOrderObservationSourceDetails";
-import { observationSourceName, observationTime } from "./work-order-observation-presentation";
+import {
+  observationSourceName,
+  observationTime,
+  observationTypeLabel,
+  observationStatusLabel,
+} from "./work-order-observation-presentation";
 
 const button =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -607,8 +612,9 @@ function DraftDialog({
                               {observationSourceName(source)}
                             </span>
                             <span className="block text-xs text-muted-foreground">
+                              {observationTypeLabel(source.snapshot.observation_type)} ·{" "}
                               {observationTime(source.snapshot.observed_at)} ·{" "}
-                              {source.snapshot.status}
+                              {observationStatusLabel(source.snapshot.status)}
                             </span>
                             <span className="block line-clamp-2">
                               {source.snapshot.notes || "Ingen note"}

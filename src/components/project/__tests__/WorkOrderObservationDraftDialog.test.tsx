@@ -395,6 +395,54 @@ describe("work order draft from existing field observations", () => {
 });
 
 describe("preserved observation origin", () => {
+  it.each([
+    ["species", "confirmed", "Artsobservation", "Bekræftet registrering"],
+    ["manual", "draft", "Manuel registrering", "Kladde"],
+    ["field", "rejected", "Feltobservation", "Afvist registrering"],
+    ["inspection", "draft", "Besigtigelse", "Kladde"],
+    ["__proto__", "toString", "__proto__", "toString"],
+  ])(
+    "presents %s/%s without changing the stored source or implying professional approval",
+    async (type, status, typeLabel, statusLabel) => {
+      const copy = {
+        ...source,
+        snapshot: { ...source.snapshot, species_name: null, observation_type: type, status },
+      };
+      const stored = JSON.stringify(copy);
+      await act(async () => root.render(<WorkOrderObservationSourceDetails source={copy} />));
+      expect(host.textContent).toContain(typeLabel);
+      expect(host.textContent).toContain(`Registreringsstatus: ${statusLabel}`);
+      expect(host.textContent).not.toContain("Fagligt godkendt");
+      expect(JSON.stringify(copy)).toBe(stored);
+    },
+  );
+
+  it("uses the same Danish source-state labels in the observation picker and selected preview", async () => {
+    const inspection = {
+      ...source,
+      snapshot: {
+        ...source.snapshot,
+        species_name: null,
+        observation_type: "inspection",
+        status: "draft",
+      },
+    };
+    m.list.mockResolvedValue({ items: [inspection], nextCursor: null });
+    await render(id(2), id(3));
+    await click("Opret fra feltobservationer");
+    expect(document.body.textContent).toContain("Besigtigelse");
+    expect(document.body.textContent).toContain("Kladde");
+    await act(async () =>
+      document.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click(),
+    );
+    expect(document.querySelector('[aria-label="Valgte kilder"]')?.textContent).toContain(
+      "Registreringsstatus: Kladde",
+    );
+    expect(inspection.snapshot.observation_type).toBe("inspection");
+    expect(inspection.snapshot.status).toBe("draft");
+    expect(inspection.source_hash).toBe(source.source_hash);
+  });
+
   it("loads only for enabled manager context, displays a stored snapshot and renders nothing for an ordinary job", async () => {
     const props = { scope: { organizationId: id(2), projectId: id(3) }, actionId: id(6) };
     async function show(enabled: boolean) {

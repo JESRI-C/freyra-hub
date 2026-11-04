@@ -38,6 +38,7 @@ import { WorkOrderSeries } from "./WorkOrderSeries";
 import { WorkOrderFollowUps } from "./WorkOrderFollowUps";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderObservationOrigin } from "./WorkOrderObservationOrigin";
+import { useWorkOrderObservationOrigin } from "./useWorkOrderObservationOrigin";
 import { fetchSitesByProject } from "@/lib/supabase/queries";
 import { getWatercourseVersions } from "@/services/watercourse-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
@@ -307,6 +308,16 @@ function PlanWorkspace({
     },
   });
   const followUpSource = planSource ?? recoveredSource.data;
+  const observationOrigin = useWorkOrderObservationOrigin({
+    scope,
+    actionId,
+    actorId,
+    enabled: canPlan && canBook,
+  });
+  const needsFirstOrigin = canPlan && canBook && !latest && !followUpSource && !draftSource;
+  const firstOriginReady =
+    !needsFirstOrigin ||
+    (observationOrigin.isSuccess && !observationOrigin.isError && !observationOrigin.isFetching);
   const [openSourceId, setOpenSourceId] = useState<string>();
   const sourceId = latest?.source_plan_version_id;
   const sourceActionId = latest?.source_action_id;
@@ -345,10 +356,14 @@ function PlanWorkspace({
   ].sort((a, b) => b.version - a.version);
   const open = useCallback(
     (onlyDates = false) => {
+      if (!firstOriginReady) return;
       setDatesOnly(onlyDates);
       const suggestion = onlyDates && typeof openReschedule === "object" ? openReschedule : null;
       const plan = latest?.plan ?? {
-        ...(followUpSource?.plan ?? emptyWorkOrderPlan(title)),
+        ...(followUpSource?.plan ?? {
+          ...emptyWorkOrderPlan(title),
+          description: canBook ? (observationOrigin.data?.description ?? "") : "",
+        }),
         title,
         responsibleId: null,
         plannedStart: suggestedStart ?? null,
@@ -376,11 +391,27 @@ function PlanWorkspace({
       );
       onEditing(true);
     },
-    [latest, onEditing, openReschedule, followUpSource, suggestedStart, title],
+    [
+      latest,
+      onEditing,
+      openReschedule,
+      followUpSource,
+      suggestedStart,
+      title,
+      firstOriginReady,
+      canBook,
+      observationOrigin.data?.description,
+    ],
   );
   const openedRequestedEditor = useRef(false);
   useEffect(() => {
-    if (openedRequestedEditor.current || !canPlan || !history.isSuccess || history.isFetching)
+    if (
+      openedRequestedEditor.current ||
+      !canPlan ||
+      !history.isSuccess ||
+      history.isFetching ||
+      !firstOriginReady
+    )
       return;
     const datesOnly = !!openReschedule && !!latest;
     if (!datesOnly && (latest || (!suggestedStart && !planSource))) return;
@@ -396,6 +427,7 @@ function PlanWorkspace({
     history.isFetching,
     draft,
     open,
+    firstOriginReady,
   ]);
   async function submit() {
     if (!draft || !canPlan || saving.current) return;
@@ -814,6 +846,7 @@ function PlanWorkspace({
                 disabled={
                   history.isFetching ||
                   (!!draftSource && !recoveredSource.isSuccess) ||
+                  !firstOriginReady ||
                   accessEditing ||
                   assignmentEditing ||
                   lifecycleEditing ||

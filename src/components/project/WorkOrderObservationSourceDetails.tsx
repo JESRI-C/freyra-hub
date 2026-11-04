@@ -3,6 +3,8 @@ import {
   observationPosition,
   observationSourceName,
   observationTime,
+  observationTypeLabel,
+  observationStatusLabel,
 } from "./work-order-observation-presentation";
 
 export function WorkOrderObservationSourceDetails({ source }: { source: ObservationDraftSource }) {
@@ -11,8 +13,9 @@ export function WorkOrderObservationSourceDetails({ source }: { source: Observat
     <article className="min-w-0 space-y-2 rounded-xl border bg-card p-3 text-sm [overflow-wrap:anywhere]">
       <h4 className="font-semibold">{observationSourceName(source)}</h4>
       <p className="text-xs text-muted-foreground">
-        Registreret observationstid: {observationTime(row.observed_at)} · Registreringsstatus:{" "}
-        {row.status || "Ukendt"}
+        {observationTypeLabel(row.observation_type)} · Registreret observationstid:{" "}
+        {observationTime(row.observed_at)} · Registreringsstatus:{" "}
+        {observationStatusLabel(row.status)}
       </p>
       <p className="text-xs text-muted-foreground">
         {observationPosition(source)}

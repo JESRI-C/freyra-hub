@@ -23,6 +23,7 @@ const m = vi.hoisted(() => ({
   visitResults: vi.fn(),
   visitHistoryFilter: vi.fn(),
   visitHistory: vi.fn(),
+  origin: vi.fn(),
 }));
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const actor = id(1),
@@ -65,6 +66,9 @@ vi.mock("@/lib/work-order-plan.functions", () => ({
   shiftProjectWorkOrderSeries: m.shiftSeries,
   cancelProjectWorkOrderSeries: m.cancelSeries,
 }));
+vi.mock("@/lib/work-order-observation-drafts.functions", () => ({
+  getWorkOrderObservationDraft: m.origin,
+}));
 vi.mock("@/services/field-job-cards-service", () => ({
   listFieldJobActions: m.actions,
   listFieldJobTemplates: m.templates,
@@ -75,6 +79,8 @@ vi.mock("../useWorkOrderPeople", () => ({
   MoreWorkOrderPeople: () => null,
 }));
 vi.mock("@/lib/supabase/client", () => ({
+  supabase: null,
+  isSupabaseConfigured: false,
   createActorBoundSupabaseClient: () => ({
     rpc: (_name: string, params: unknown) => ({
       abortSignal: () => m.visitResults(params),
@@ -101,7 +107,6 @@ vi.mock("@/services/watercourse-service", () => ({ getWatercourseVersions: m.cen
 vi.mock("../WorkOrderAccessPanel", () => ({ WorkOrderAccessPanel: () => null }));
 vi.mock("../WorkOrderAssignmentPanel", () => ({ WorkOrderAssignmentPanel: () => null }));
 vi.mock("../WorkOrderStatusPanel", () => ({ WorkOrderStatusPanel: () => null }));
-vi.mock("../WorkOrderObservationOrigin", () => ({ WorkOrderObservationOrigin: () => null }));
 vi.mock("@/components/maps/MapEditorMap", () => ({
   MapEditorMap: ({
     locationPoints,
@@ -136,6 +141,45 @@ const row = () => ({
   correction_reason: "",
   created_by: actor,
   created_at: "2026-10-29T18:00:00Z",
+});
+const observationOrigin = (description = "Følg den registrerede engplante før pleje.") => ({
+  action_id: actionId,
+  organization_id: scope.organizationId,
+  project_id: scope.projectId,
+  user_id: actor,
+  created_by: actor,
+  created_at: "2026-11-04T12:00:00Z",
+  request_id: id(80),
+  status: "draft" as const,
+  title: "Synthetic visit",
+  description,
+  sources: [
+    {
+      observation_id: id(81),
+      source_hash: "a".repeat(64),
+      media_refs: [],
+      snapshot: {
+        id: id(81),
+        project_id: scope.projectId,
+        zone_id: null,
+        observation_type: "inspection",
+        observed_at: null,
+        observer_id: actor,
+        species_name: null,
+        species_confidence: null,
+        count_value: null,
+        latitude: null,
+        longitude: null,
+        accuracy_m: null,
+        notes: "Registreret besigtigelse",
+        visibility: "hidden",
+        status: "draft",
+        metadata: null,
+        created_at: null,
+        updated_at: null,
+      },
+    },
+  ],
 });
 async function settle() {
   await act(async () => {
@@ -218,6 +262,7 @@ beforeEach(() => {
   m.centerlines.mockResolvedValue([]);
   m.schedule.mockResolvedValue({});
   m.templates.mockResolvedValue([]);
+  m.origin.mockReset().mockResolvedValue(null);
 });
 afterEach(async () => {
   await act(async () => root.unmount());
@@ -226,6 +271,137 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 describe("work-order plan editor", () => {
+  it("carries the checked observation draft description into the first manager plan and save", async () => {
+    m.access.mockResolvedValue({
+      userId: actor,
+      projectId: scope.projectId,
+      canConfigure: true,
+      canContribute: true,
+      canManageAvailability: true,
+    });
+    m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
+    m.origin.mockResolvedValue(observationOrigin());
+    m.save.mockImplementation(async ({ data }) => {
+      const saved = { ...row(), plan: data.plan };
+      m.history.mockResolvedValue({ items: [saved], nextBeforeVersion: null });
+      return saved;
+    });
+    await open(false);
+    expect(m.origin).toHaveBeenCalledTimes(1);
+    expect(m.origin).toHaveBeenCalledWith({ data: { ...scope, actionId, expectedActorId: actor } });
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Opret arbejdsopgavens plan")!
+        .click(),
+    );
+    const description = [...host.querySelectorAll("label")]
+      .find((label) => label.textContent?.startsWith("Beskrivelse"))!
+      .querySelector("textarea")!;
+    expect(description.value).toBe(observationOrigin().description);
+    await save();
+    expect(m.save.mock.calls[0][0].data.plan.description).toBe(observationOrigin().description);
+  });
+
+  it("waits through pending and failed origin reads before auto-opening the first suggested plan", async () => {
+    m.access.mockResolvedValue({
+      userId: actor,
+      projectId: scope.projectId,
+      canConfigure: true,
+      canContribute: true,
+      canManageAvailability: true,
+    });
+    m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
+    let reject!: (failure: Error) => void;
+    m.origin.mockReturnValue(
+      new Promise((_resolve, fail) => {
+        reject = fail;
+      }),
+    );
+    await open(false, false, undefined, "2026-12-01");
+    expect(host.querySelector("form")).toBeNull();
+    expect(
+      [...host.querySelectorAll<HTMLButtonElement>("button")].find(
+        (button) => button.textContent === "Opret arbejdsopgavens plan",
+      )!.disabled,
+    ).toBe(true);
+    await act(async () => reject(new Error("Origin read unavailable")));
+    await settle();
+    expect(host.querySelector("form")).toBeNull();
+    expect(host.textContent).toContain("Opgavens kildegrundlag kunne ikke kontrolleres");
+    m.origin.mockResolvedValue(observationOrigin("Beskrivelse efter kontrolleret genforsøg"));
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Hent kildegrundlag igen")!
+        .click(),
+    );
+    await settle();
+    await settle();
+    expect(host.querySelector("form")).not.toBeNull();
+    expect(
+      [...host.querySelectorAll("label")]
+        .find((label) => label.textContent?.startsWith("Beskrivelse"))!
+        .querySelector("textarea")!.value,
+    ).toBe("Beskrivelse efter kontrolleret genforsøg");
+    expect(host.querySelector<HTMLInputElement>('input[type="date"]')?.value).toBe("2026-12-01");
+    expect(m.origin).toHaveBeenCalledTimes(2);
+  });
+
+  it("allows existing plan edits during origin failure and never overwrites that draft on origin refresh", async () => {
+    m.access.mockResolvedValue({
+      userId: actor,
+      projectId: scope.projectId,
+      canConfigure: true,
+      canContribute: true,
+      canManageAvailability: true,
+    });
+    const existing = row();
+    existing.plan.description = "Den gemte plans beskrivelse";
+    m.history.mockResolvedValue({ items: [existing], nextBeforeVersion: null });
+    m.origin.mockRejectedValue(new Error("Unavailable"));
+    await open();
+    const description = await fill("Beskrivelse", "Min ugemte planrettelse");
+    m.origin.mockResolvedValue(observationOrigin("Oprindelig kladdebeskrivelse"));
+    await act(async () => {
+      await cache.invalidateQueries({ queryKey: ["work-order-observation-origin"] });
+    });
+    await settle();
+    expect(description.value).toBe("Min ugemte planrettelse");
+  });
+
+  it("leaves editor-only first plan behavior unchanged without requesting the manager origin", async () => {
+    m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
+    m.origin.mockRejectedValue(new Error("Manager-only origin must not be read by editor"));
+    await open(false, false, undefined, "2026-12-01");
+    expect(m.origin).not.toHaveBeenCalled();
+    expect(
+      [...host.querySelectorAll("label")]
+        .find((label) => label.textContent?.startsWith("Beskrivelse"))!
+        .querySelector("textarea")!.value,
+    ).toBe("");
+  });
+
+  it("opens an ordinary manager job with an empty description after its authorized null origin", async () => {
+    m.access.mockResolvedValue({
+      userId: actor,
+      projectId: scope.projectId,
+      canConfigure: true,
+      canContribute: true,
+      canManageAvailability: true,
+    });
+    m.history.mockResolvedValue({ items: [], nextBeforeVersion: null });
+    await open(false);
+    await act(async () =>
+      [...host.querySelectorAll("button")]
+        .find((button) => button.textContent === "Opret arbejdsopgavens plan")!
+        .click(),
+    );
+    expect(m.origin).toHaveBeenCalledTimes(1);
+    expect(
+      [...host.querySelectorAll("label")]
+        .find((label) => label.textContent?.startsWith("Beskrivelse"))!
+        .querySelector("textarea")!.value,
+    ).toBe("");
+  });
   it("saves the chosen existing template version and preserves it if template loading fails later", async () => {
     const definition = {
       schema: "freyra.field-job-template/v1",
@@ -627,8 +803,17 @@ describe("work-order plan editor", () => {
     });
   });
   it("reuses the planning details for a follow-up without copying dates or responsibility", async () => {
+    m.access.mockResolvedValue({
+      userId: actor,
+      projectId: scope.projectId,
+      canConfigure: true,
+      canContribute: true,
+      canManageAvailability: true,
+    });
+    m.origin.mockResolvedValue(observationOrigin("Skal ikke erstatte opfølgningsplanen"));
     const source = row();
     Object.assign(source.plan, {
+      description: "Beskrivelse fra opfølgningsplanen",
       instructions: "Synthetic mowing instructions",
       plannedStart: "2026-11-10",
       plannedEnd: "2026-11-12",
@@ -646,6 +831,7 @@ describe("work-order plan editor", () => {
         sourcePlanVersionId: source.id,
         plan: expect.objectContaining({
           instructions: source.plan.instructions,
+          description: source.plan.description,
           profile: "watercourse",
           watercourse: source.plan.watercourse,
           plannedStart: null,

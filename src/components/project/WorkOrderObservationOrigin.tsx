@@ -1,13 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
-import { getWorkOrderObservationDraft } from "@/lib/work-order-observation-drafts.functions";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import {
   ObservationSourceBoundary,
   WorkOrderObservationSourceDetails,
 } from "./WorkOrderObservationSourceDetails";
 import { observationTime } from "./work-order-observation-presentation";
+import { useWorkOrderObservationOrigin } from "./useWorkOrderObservationOrigin";
 
 export function WorkOrderObservationOrigin({
   scope,
@@ -39,18 +37,7 @@ function Origin({
   actionId: string;
   actorId: string;
 }) {
-  const load = useServerFn(getWorkOrderObservationDraft);
-  const query = useQuery({
-    queryKey: [
-      "work-order-observation-origin",
-      actorId,
-      scope.organizationId,
-      scope.projectId,
-      actionId,
-    ],
-    queryFn: () => load({ data: { ...scope, actionId, expectedActorId: actorId } }),
-    retry: false,
-  });
+  const query = useWorkOrderObservationOrigin({ scope, actionId, actorId, enabled: true });
   if (query.isError)
     return (
       <div role="alert" className="rounded-xl border p-3 text-sm">

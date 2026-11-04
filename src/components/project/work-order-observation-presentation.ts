@@ -3,8 +3,36 @@ import { maskCoordinates } from "@/services/monitoring/observations-service";
 
 export function observationSourceName(source: ObservationDraftSource) {
   return (
-    source.snapshot.species_name?.trim() || source.snapshot.observation_type || "Feltobservation"
+    source.snapshot.species_name?.trim() || observationTypeLabel(source.snapshot.observation_type)
   );
+}
+
+export function observationTypeLabel(value: string) {
+  switch (value) {
+    case "species":
+      return "Artsobservation";
+    case "manual":
+      return "Manuel registrering";
+    case "field":
+      return "Feltobservation";
+    case "inspection":
+      return "Besigtigelse";
+    default:
+      return value || "Observationstype uafklaret";
+  }
+}
+
+export function observationStatusLabel(value: string) {
+  switch (value) {
+    case "draft":
+      return "Kladde";
+    case "confirmed":
+      return "Bekræftet registrering";
+    case "rejected":
+      return "Afvist registrering";
+    default:
+      return value || "Status uafklaret";
+  }
 }
 
 export function observationTime(value: string | null) {
