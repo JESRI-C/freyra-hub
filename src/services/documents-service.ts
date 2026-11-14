@@ -3,7 +3,7 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 import { logAuditEvent } from "@/services/audit-service";
 import type { ProjectDocument, Project, Action, Indicator, Site } from "@/lib/supabase/types";
-import jsPDF from "jspdf";
+import { renderProjectReportPdf } from "@/services/project-report-pdf";
 
 interface UntypedDb {
   from(table: string): {
@@ -67,84 +67,7 @@ export async function generateProjectReport(input: GenerateReportInput): Promise
   const title = input.title || defaultTitle(reportType, project.name);
   const fileName = `${slug(title)}-v1.pdf`;
 
-  const pdf = new jsPDF({ unit: "pt", format: "a4" });
-  const w = pdf.internal.pageSize.getWidth();
-  let y = 56;
-
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(20);
-  pdf.text(title, 40, y);
-  y += 18;
-
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(10);
-  pdf.setTextColor(120);
-  pdf.text(`Genereret ${new Date().toLocaleString("da-DK")}`, 40, y);
-  y += 24;
-  pdf.setTextColor(20);
-
-  // Project summary
-  section(pdf, "Projekt", y); y += 18;
-  y = kv(pdf, "Navn", project.name, y);
-  y = kv(pdf, "Type", project.project_type || "—", y);
-  y = kv(pdf, "Status", project.status || "—", y);
-  y = kv(pdf, "Areal", project.geometry_area_ha ? `${project.geometry_area_ha} ha` : "—", y);
-  y = kv(pdf, "Lokation", project.location_name || project.municipality || "—", y);
-  y += 8;
-
-  // Sites
-  section(pdf, `Sites (${sites.length})`, y); y += 18;
-  if (sites.length === 0) {
-    pdf.setFontSize(10); pdf.text("Ingen sites registreret.", 40, y); y += 14;
-  } else {
-    for (const s of sites.slice(0, 15)) {
-      y = ensure(pdf, y);
-      pdf.setFontSize(10);
-      pdf.text(`• ${s.name}${s.site_type ? ` (${s.site_type})` : ""}${s.area_ha ? ` – ${s.area_ha} ha` : ""}`, 40, y);
-      y += 14;
-    }
-  }
-  y += 8;
-
-  // Indicators
-  section(pdf, `Indikatorer (${indicators.length})`, y); y += 18;
-  if (indicators.length === 0) {
-    pdf.setFontSize(10); pdf.text("Ingen indikatorer defineret.", 40, y); y += 14;
-  } else {
-    for (const i of indicators) {
-      y = ensure(pdf, y);
-      pdf.setFontSize(10);
-      const val = i.value != null ? `${i.value}${i.unit ? ` ${i.unit}` : ""}` : "—";
-      pdf.text(`• ${i.label}: ${val} — ${i.status || "ukendt"}`, 40, y);
-      y += 14;
-    }
-  }
-  y += 8;
-
-  // Actions
-  section(pdf, `Handlinger (${actions.length})`, y); y += 18;
-  const grouped = groupByStatus(actions);
-  for (const [status, items] of Object.entries(grouped)) {
-    y = ensure(pdf, y);
-    pdf.setFont("helvetica", "bold"); pdf.setFontSize(11);
-    pdf.text(`${status} (${items.length})`, 40, y); y += 14;
-    pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
-    for (const a of items.slice(0, 20)) {
-      y = ensure(pdf, y);
-      const line = `• ${a.title}${a.priority ? ` [${a.priority}]` : ""}${a.due_date ? ` — frist ${a.due_date}` : ""}`;
-      pdf.text(splitText(pdf, line, w - 80), 40, y);
-      y += 14;
-    }
-    y += 4;
-  }
-
-  // Footer
-  const pages = pdf.getNumberOfPages();
-  for (let p = 1; p <= pages; p++) {
-    pdf.setPage(p);
-    pdf.setFontSize(8); pdf.setTextColor(150);
-    pdf.text(`GoFreyra · ${title} · Side ${p}/${pages}`, 40, pdf.internal.pageSize.getHeight() - 20);
-  }
+  const pdf = renderProjectReportPdf({ project, sites, actions, indicators, reportType, title, generatedAt: new Date() });
 
   const blob = pdf.output("blob");
 
@@ -195,37 +118,6 @@ function defaultTitle(t: string, name: string) {
 
 function slug(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-function section(pdf: jsPDF, label: string, y: number) {
-  pdf.setDrawColor(200); pdf.line(40, y - 4, pdf.internal.pageSize.getWidth() - 40, y - 4);
-  pdf.setFont("helvetica", "bold"); pdf.setFontSize(13); pdf.text(label, 40, y + 10);
-}
-
-function kv(pdf: jsPDF, k: string, v: string, y: number) {
-  y = ensure(pdf, y);
-  pdf.setFont("helvetica", "bold"); pdf.setFontSize(10); pdf.text(`${k}:`, 40, y);
-  pdf.setFont("helvetica", "normal"); pdf.text(v, 120, y);
-  return y + 14;
-}
-
-function ensure(pdf: jsPDF, y: number) {
-  if (y > pdf.internal.pageSize.getHeight() - 60) { pdf.addPage(); return 56; }
-  return y;
-}
-
-function splitText(pdf: jsPDF, text: string, maxWidth: number): string {
-  const arr = pdf.splitTextToSize(text, maxWidth);
-  return arr.join("\n");
-}
-
-function groupByStatus(actions: Action[]): Record<string, Action[]> {
-  const g: Record<string, Action[]> = {};
-  for (const a of actions) {
-    const k = a.status || "Ukendt";
-    (g[k] ||= []).push(a);
-  }
-  return g;
 }
 
 // Documentation completeness scoring
