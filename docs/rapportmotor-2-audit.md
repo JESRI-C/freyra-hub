@@ -2,7 +2,9 @@
 
 ## Udgivelseskandidat 18. november 2026
 
-Kildekandidat `4949100` bestod typekontrol, stagingbygning, Wranglers lokale prøveudgivelse og fire lokale HTTP-kontroller. Alle 774 filer i to udpakninger matchede byggeoutputtet. Den eksisterende stagingadresse viste ved kontrollen den 18. november den tidligere version `4be325d`. Udgivelse til denne adresse afventer adgang til ejerkontoen.
+Den offentliggjorte kode `7bd94a4` bestod typekontrol, stagingbygning og Wranglers strenge lokale prøveudgivelse. Versionsopslag, login, feltrute og rapportgodkendelse returnerede HTTP 200 lokalt. Alle 774 filer i to udpakninger af testpakken matchede byggeoutputtet. Testpakkens SHA-256 er `67a97890acd3b4e951862792fe148363a1d0d8a43a348f21bc4ab1573791c5fb`. Den eksisterende stagingadresse viste den 18. november kl. 10.15 dansk tid fortsat `4be325d`. Udgivelse til denne adresse afventer adgang til ejerkontoen. [Offentlig kode 7bd94a4](https://github.com/JESRI-C/freyra-hub/commit/7bd94a4710f43bb75f4be4855057f51f75ee64e4)
+
+Den første fulde lokale testkørsel på `7bd94a4` gav fem fejl i én testfil. Da testens router fik den manglende funktion `useLoaderData`, bestod alle 3.947 tests i 291 filer på 624,19 sekunder. Rettelsen ændrede kun testfilen. GitHub viste ved kontrollen ingen CI-kørsler eller indberettede checks på de to revisioner. [Testrettelse 675483d](https://github.com/JESRI-C/freyra-hub/commit/675483d3b06273382584b28e28890b79b1c9e709)
 
 Rapportmotoren bruger projektets eksisterende registreringer, originalfiler, undersøgelsesrunder og rapportversioner. Under **Verificering** kan en projektredaktør knytte et foto til en bestemt vandløbsstrækning, beskrive en observation og sende den til faglig gennemgang. Et enkelt kildefoto beholder sin neutrale betegnelse. En læser kan åbne det valgte foto med sin aktuelle projektadgang.
 
