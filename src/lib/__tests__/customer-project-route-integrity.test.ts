@@ -26,6 +26,7 @@ vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => (options: unknown) => ({
     options,
     useParams: () => ({ slug: "pilot" }),
+    useLoaderData: () => project,
     // The retained full-app overview is now opened through Flere sagsværktøjer.
     // Exercise the same evidence guards on that explicit tab.
     useSearch: () => ({ tab: state.tab }),
