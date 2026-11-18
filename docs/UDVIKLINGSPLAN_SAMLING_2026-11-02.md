@@ -1,6 +1,18 @@
 # Freyra: udviklingsplan for at samle og færdiggøre programmet
 
-Version 1.15 · 4. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+Version 1.16 · 18. november 2026 · Produktejer: Jesper Riel · Teknisk udførelse: udviklingsansvarlig.
+
+### Rapportmotor 2.0 · sprintstatus 18. november
+
+| Story | Status | Verificeret | Næste accept og ansvar |
+| --- | --- | --- | --- |
+| S02 · Originaler og feltdata | 2 · integreret lokalt | 437 kameraoriginaler blev overført fra ét filvalg og genlæst af serverkoden. Filnavn, byteantal og SHA-256 stemte for hver fil. I de tidligere stagingprojekter kunne 42 af de samme originaler genfindes. | Pilotredaktøren genåbner en gemt rundetilknytning i staging og kontrollerer adgangen med projektets læserrolle. |
+| S05 · Samlet rapport | 2 · afventer samlet pilot | Projektets Verificering forbinder en observation med kildefoto, versionsbundet delstrækning, stationering og opmålingsmetode. Den gemte rapport fastholder kilderne. Et enkelt neutralt foto betegnes som kildefoto. | Udgivelsesansvarlig verificerer versionen på den eksisterende stagingadresse. Pilotredaktøren gennemfører A og D, og den fagansvarlige afviser og godkender en bestemt revision i E. |
+| S06 · Faglige registreringsforløb | 3 · delvist udviklet | Broer og naturarealer kan genbruges i rapporten. Mobilforløbet og naturregistreringen er afprøvet lokalt. | Feltmedarbejderen registrerer virkelige broer på telefonen i B. Den naturfaglige medarbejder registrerer aktuelle artsfund og kontrollerer arealet i C. |
+
+Pilotaccept kræver, at ansvarlige brugere gennemfører A–E på samme udgivne version gennem de almindelige brugerflader. [Prøver og udgivelsesstatus](rapportmotor-2-audit.md)
+
+En lokal browserprøve fulgte ét originalfoto og den tilhørende vandløbslinje til en gemt rapportkladde. Observationen blev først synlig for rapportimporten efter særskilt teknisk gennemgang. Kladden blev genåbnet og eksporteret til PDF og Word. Fotopunktet står åbent til faglig afgørelse.
 
 **Slutmål, afstemt 4. november:** GoFreyra skal være et SaaS-produkt, som en
 kommune kan købe, tage i brug og selv anvende i sit daglige natur- og
@@ -214,7 +226,7 @@ Kodeinventaret fra 2. november viser 831 JS/TS-kodefiler i nyeste src-træ, hera
 
 Importgrafens 98 ikke-nåede filer er kandidater til undersøgelse, ikke en sletteliste. Framework-entrypoints, typer, standard-UI, dynamiske opslag og alternative implementationer kan være legitime. Hver oprydningsbeslutning kræver indholdsgennemgang og viden om faktisk anvendelse.
 
-Den færdige [Haderslev-rapport](https://drive.google.com/file/d/1BynA_7pBq91XG96qHuCJ1z8sV_1Wv070/view?usp=drivesdk) er reference for kvaliteten af en leverance. Dens fremstilling rummer også projektspecifikke værktøjer uden for webappen. Vi antager ikke, at rapportknappen allerede automatiserer hele denne produktion.
+Den færdige Haderslev-rapport er reference for kvaliteten af en leverance. Dens fremstilling rummer også projektspecifikke værktøjer uden for webappen. Vi antager ikke, at rapportknappen allerede automatiserer hele denne produktion.
 
 ### Det, som allerede skal genbruges
 
@@ -312,6 +324,8 @@ S-ID'erne er integrationspakker. I hver pakke henvises til og opdateres de eksis
 
 ### S02 — Bind feltdata og originaler til arbejdsopgaven
 
+**Haderslev, 18. november.** De 437 droneoriginaler på 5.655.120.369 bytes er fulgt gennem neutral upload, kort og en separat lokal prøve med de faktiske server- og databasefunktioner. Hver original gav én kilde og én ophavspost. I tidligere stagingprojekter havde otte forskellige originaler tilsammen 15 gemte tilknytninger til undersøgelsesrunder. Den faglige fotopunktgennemgang er næste pilottrin. [Prøvegrundlag og afgrænsning](rapportmotor-2-audit.md)
+
 **Afhænger af:** S00; fælles navigation fra S01 bruges ved integration. **Genbrug:** D03, F05/F13, eksisterende field-photo/offline/canonical-media. **Skøn:** 3–5 dage.
 
 **Udført del, 2. november:** [Opgave, gemt jobkortversion, verificeret feltoriginal og valgfri præcis udførelsesversion](OPGAVE_DOKUMENTATION_SAMLING.md) er implementeret i kladde PR36 og deployet til staging med begge additive migrationer. På `46bf6df…` bestod 3.368 applikationstests, 1.471 databasekontroller, migration fra tom database, reelle samtidighedsprøver, restore, databaselint og build i CI. Hosted-forløbet bestod også offlinekø/luk/genåbn, reel upload, mistet gemmesvar, historik, originalåbning, ekstern læsning og tilbagekaldelse. En konkret dobbelt Authorization-header i den eksisterende TUS-upload blev rettet med regression. Eksisterende data og brugerændringer er bevaret. Pakken er fortsat delvis, især ekstern nyregistrering/upload, øvrige originaltyper og fysisk telefon/kamera/HEIC.
@@ -385,6 +399,16 @@ Sagens overblik har genvejen Se afleveringer der kræver handling. Den åbner Pl
 
 ### S05 — Samlet rapport fra samme grundlag
 
+Den lokale Haderslev-prøve importerede 437 registreringer med kamera-GPS. Fire eksportformater bevarede alle numre, positionskategorier og afstande, herunder 15 poster til manuel afklaring. Tre billedpar med seks faktiske droneoriginaler blev gemt og sammenholdt i PDF og Word. En separat mobilprøve fulgte to konstruktioner fra registrering med simuleret GPS til samme rapport. Kortudsnit kan gemmes på den enkelte revision. [Kilder og prøver for A, B og D](rapportmotor-2-audit.md#haderslevs-fotoregister-kortudsnit-og-feltprøver)
+
+**Rapportmotor 2.0, 17. november. Status 2, udviklet med udestående integration.** Den isolerede pakke `2adb36b5c8047a0c79fc5a450b0cf4c46c0a2b55` samler skabeloner, før/efter-par, bro- og naturregistreringer, kort og kildehenvisninger på de eksisterende rapportversioner. Feltregistreringer og undersøgelsesområder har databaseberegnede kontrolsummer. Feltmedarbejderadgang, genforsøg ved brogemning og varig lagring af brofoto i den eksisterende feltfotokø er rettet. De seneste 14 målrettede tests, isoleret TypeScript, målrettet lint og samlet staging-build med bundlekontrol bestod. Pakken er kontrolleret med 776 poster og SHA-256. En lokal HTTP-prøve af netop denne version gav 200 på metadata, login, feltforløb og rapportgodkendelsens rute, og versionsmarkøren matchede. Prøven dækkede opstart og ruternes tilgængelighed. Haderslevs seks verificerede droneoriginaler er tidligere afprøvet i lokal PDF/ZIP, og en syntetisk naturprøve er visuelt gennemgået i PDF og Microsoft Word.
+
+Ni rapportrelaterede migrationer er verificeret i staging til og med `20261117192851`. Tidszonerne `UTC` og `Europe/Copenhagen` gav identiske kontrolsummer og UTC-tidsstempler for det samme registreringsgrundlag. De 11 lokale databaseprøver for registreringskilder og de 92 for droneoriginaler bestod. Seks byteverificerede Haderslev-fotos gav tre kendte før/efter-par. Efter den første køprøve med 437 syntetiske fotos blev alle 437 faktiske originalfiler overført til en lokal modtager og genfundet på projektkortet. Den samlede sag med indlogget pilotbruger og godkendt rapport på staging afventer.
+
+Et fagligt bekræftet fotopunkt kan nu bruges som rapportkilde. Rapportrevisionen gemmer den konkrete afgørelse, fotobindingen og originalens kontrolsum. De 113 lokale databaseprøver bestod. Den lokale eksportprøve med Haderslev-originalen DRN-201 og en syntetisk fotopunktvurdering viste kameraets lokale dato, fotoet og kildehenvisningen i både PDF og Word. En anden lokal prøve fulgte samme rapport gennem seks revisioner. Et afsnit blev returneret med begrundelse, og godkendelsen blev afvist, indtil afsnittet var gennemgået igen.
+
+**Udgivelseskontrol 18. november.** Kildekandidat `4949100` bestod typekontrol, stagingbygning og Wranglers lokale prøveudgivelse med 558 moduler og 213 statiske filer. To udpakninger matchede byggeoutputtets 774 filer. Den udpakkede app returnerede HTTP 200 for versionsopslag, login, feltrute og rapportgodkendelse. Arkivets SHA-256 er `1b38e7906c2702672d08d3bb4b3582b114c829efa5ea39774804ba980c0430a7`. På den eksisterende stagingadresse viste seneste offentlige kontrol `4be325d`. Udgivelsen afventer ejerkontoen. Pilotaccept A–E og den faglige godkendelse står åbne. [Udgivelse og prøver](rapportmotor-2-audit.md)
+
 Gemte opgaverapporter kan eksporteres som ZIP med PDF, rapportrevision, fastholdte referencer til aflevering og godkendelse, originalreferencer og manifest med SHA-256 pr. fil. Eksporten bruger den gemte rapportrevision. Originalfiler åbnes særskilt via opgaven med aktuel adgang. Appprøven læser ZIP-filen tilbage og kontrollerer PDF, revisionsindhold, kildereferencer og alle filhashes. Første browserprøve viste forskellige pakkehashes på grund af PDF-metadata. Efter fastlåsning af PDF-dato og dokument-id til den gemte rapportrevision bestod genprøven på stagingkilde 1097b3d og Worker 20422ac3-490c-4a0e-820d-e873438f2165. Chrome downloadede rapportversion 1 ved 390 og 1280 px. Begge pakker havde samme SHA-256 2cda5ae4899b5f852841c15c8a5510f91ff258bd95f79921bfa455d74fc661ef, alle fem filhashes matchede manifestet, og pakken pegede på afleveringsversion 3. Fysisk telefon og særskilt eksport af originalfiler afventes.
 
 Opgaverapporten tilbyder en særskilt ZIP med originalfotos. Hver kilde åbnes via den eksisterende adgangskontrol for dokumentationsversionen. Browseren sammenligner bytes med rapportens gemte SHA-256 og afbryder hele eksporten ved fejl eller over 25 MiB originaler. Filnavnene bruger rapportens dokumentationsreferencer, og hver original indgår i manifestet. Lokale prøver kontrollerer indhold, hashfejl, størrelsesgrænse og fravær af signerede links i pakken. Stagingdownload bestod på kilde 39c6d17 og Worker 1e30c3bc-06a3-4731-bed6-21581e44c64e. Chrome downloadede rapportversion 1 med originaler fra afleveringsversion 3 ved 390 og 1280 px. Alle filer matchede manifestet, og alle originaler matchede rapportens kilderegister. Pakkerne havde samme SHA-256 63b90b7db2e92216c0e6173be5f97e86bc6d2ccd3d4507bfe5d94e22324879c2. Ingen midlertidige downloadlinks, vandret overflow eller JavaScript-sidefejl. Fysisk telefon og større leverancer afventer.
@@ -417,6 +441,10 @@ Genvejen fra en gemt rapport bærer nu rapportens afleveringsversion. Aflevering
 **Færdig:** Rapport v1 genåbner med egne kilder efter inputrettelse og ny v2. Alle originalreferencer og manifesthashes matcher. Forkert projekt/version afvises. Alle 274 fotos kan indgå i et repræsentativt atlas uden at hele originalsamlingen indlæses i browserhukommelsen. Ingen rapport erklæres kundegodkendt uden faktisk review.
 
 ### S06 — Gentagelige faglige forløb på fælles kerne
+
+**Rapportmotor 2.0, 17. november. Status 3, delvist udviklet.** Kandidaten kan genbruge vandløbsbaseline og før/efter-par samt importere broer, naturarealer, feltmetoder, artsfund og levestedsobservationer til rapportkladden. Et artsfund bevarer bestemmelsesniveauet, inklusive uafklaret bestemmelse.
+
+Vandløbsrapporten har nu fire versionerede AU-anvisninger med datakrav, begrænsninger og direkte kildelinks. Fagpersonen kan vælge V05 3.0, V07 2.7, V17 3.0 og V18 8.3 og indsætte dem i den redigerbare rapporttekst. Metodevalg og feltresultater dokumenteres særskilt. Alle 44 målrettede tests for rapportbygger, rapportdokument og skabeloner bestod. De fire udgaver og adresser kunne genlæses i PDF, og den valgte V17-kilde kunne genlæses i DOCX. Naturbaseline omfatter også AU N03 version 1 for de 34 lysåbne habitatnaturtyper i habitatområderne. Metodereferencen og en manglende artsliste var synlige i både PDF og Word efter genimport. Der er gennemført 51 målrettede prøver på denne kandidat. Rapportguiden og Haderslev-metodenotatet er kendte kilder. Identifikation af den interne Rapportstandard 2.0, kilderegisteret og forskningsbenchmark, afstemning af de øvrige fagprofiler samt faglig godkendelse står åbne. [Audit og eksisterende kilder](rapportmotor-2-audit.md)
 
 Når en opgave har status Udført, viser Status og logbog genvejen Kontrollér afleveringsgrundlaget. Genvejen åbner Aflevering på samme opgave med tastaturfokus på fanen. Den eksisterende afleveringskontrol afgør, hvad der mangler, før dokumentationen kan sendes til gennemgang. Komponentprøverne dækker status, navigation og fokus. [CI 41729311397](https://github.com/JESRI-C/freyra-hub/actions/runs/41729311397) bestod. På stagingkilde 5359bdc og Worker c2880bca-4f40-4db2-81e2-acaf4bdff401 blev den syntetiske opgave bekræftet udført. Enter åbnede Aflevering på samme opgave ved 1280 og 390 px. Kontrollen viste krav om en gemt registrering med verificeret originalfoto, og gemmeknappen var spærret. Ingen vandret overflow eller JavaScript-sidefejl. Fysisk mobil afventes.
 
@@ -1087,3 +1115,7 @@ En afleveret opgave forklarer, hvem der tager over, når brugeren ikke selv kan 
 Stagingprøven på kilde fc8659f stoppede, før afleveringspanelet kunne åbnes. Ét ældre opgave-id, som PostgreSQL accepterer, blev afvist af opgavelistens strengere UUID-validering. Opgavelisten og dens sidecursor accepterer nu det gemte id-format. Rettelsen bevarer id'er og projektafgrænsning. Den lokale regressionstest dækker et ældre id på sidegrænsen. Den samlede browserprøve skal køres igen efter udrulning af rettelsen.
 
 Browserprøven bestod efter rettelsen på kilde 995e650, staging-Worker 80c88355-96a4-4d7a-89b6-ca35e84a7e09. Projektlederen så begrundelse og genåbningshandling. Den eksterne faglige gennemgår så vejledningen uden genåbningsknap. Efter rettelse og genaflevering blev version 2 godkendt. Version 1 og originalfotoets kontrolsum blev bevaret. Prøven kontrollerede afvist selvgodkendelse, afvist godkendelse af forældet grundlag, gentagelse efter mistet svar og fjernet adgang. Rapportkladden brugte den godkendte aflevering, åbnede samme rapportversion ved genforsøg, eksporterede en PDF og førte via tastaturet tilbage til opgaven. Chrome ved 1280, 390 og 320 px havde ingen vandret overflow i de prøvede visninger. Prøven brugte syntetiske data og browserbredder. Fysisk telefon, bred SaaS-accept og faglig kundeaccept afventes.
+
+## Udgivelsesopfølgning · 18. november 2026
+
+[Scrumplan for samlet udgivelse](SCRUM_UDGIVELSE_2026-11-18.md) samler brugerens aktuelle prioritet: udgiv alt bygget arbejde på den eksisterende app med bevarede kundedata, fulde kode-/buildkontroller og hosted rolleprøver. Dette ændrer ikke slutmålet eller acceptkravene for S00–S16.
