@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project, Indicator } from "@/lib/supabase/types";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 const state = vi.hoisted(() => ({
   insert: vi.fn(),
   audit: vi.fn(async () => {}),
@@ -38,6 +39,24 @@ beforeEach(() => {
   state.insert.mockClear();
   state.audit.mockClear();
 });
+
+async function pdfText(blob: Blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  expect(new TextDecoder("latin1").decode(bytes.slice(0, 5))).toBe("%PDF-");
+  const task = getDocument({ data: bytes, useSystemFonts: false });
+  const pdf = await task.promise;
+  try {
+    const pages: string[] = [];
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+      pages.push(content.items.map((item) => ("str" in item ? item.str : "")).join(" "));
+    }
+    return pages.join(" ").replace(/\s+/g, " ").trim();
+  } finally {
+    await task.destroy();
+  }
+}
 describe("actual generated project PDF draft", () => {
   it.each(["status", "indicator", "authority"] as const)(
     "embeds truthful unknowns in the actual %s PDF bytes",
@@ -49,8 +68,7 @@ describe("actual generated project PDF draft", () => {
         indicators: [],
         reportType,
       });
-      const text = new TextDecoder("latin1").decode(await out.blob.arrayBuffer());
-      expect(text).toMatch(/^%PDF-/);
+      const text = await pdfText(out.blob);
       expect(text).toContain("Kladde:");
       expect(text).toContain("Rapporteringsperiode: ikke fastlagt.");
       expect(text).toContain("Fagligt review: ikke dokumenteret");
@@ -86,8 +104,8 @@ describe("actual generated project PDF draft", () => {
       ],
       reportType: "status",
     });
-    const text = new TextDecoder("latin1").decode(await out.blob.arrayBuffer());
-    expect(text).toContain("Syntetisk indikator: 7 m");
+    const text = await pdfText(out.blob);
+    expect(text).toMatch(/Syntetisk indikator\s+7 m/);
     expect(text).toContain("Kladde: Registreret titel");
     expect(out.documentId).toBe("synthetic-document");
     expect(state.insert).toHaveBeenCalledOnce();

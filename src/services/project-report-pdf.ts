@@ -310,6 +310,11 @@ export function renderProjectReportPdf(input: ProjectReportPdfInput): jsPDF {
     ["Genereret", generated],
   ]);
 
+  L.paragraph(
+    "Automatisk fra registrerede projektdata ved genereringstidspunktet. Rapporteringsperiode: ikke fastlagt. Fagligt review: ikke dokumenteret. Droneobservationer og kilde-/fotoreferencer: ikke medtaget. PDF-filen arkiveres ikke; gem selve filen separat. Eventuel dokumentregistrering omfatter kun metadata.",
+    MUTED,
+  );
+
   const projectSection = () => {
     L.heading("Projekt");
     L.kv([
@@ -407,10 +412,6 @@ export function renderProjectReportPdf(input: ProjectReportPdfInput): jsPDF {
       ],
       ["Geometrikilde", project.geometry_source || "Ikke angivet"],
     ]);
-    L.paragraph(
-      "Rapporten er genereret automatisk ud fra de data, der var registreret på projektet på genereringstidspunktet. Den er ikke fagligt godkendt.",
-      MUTED,
-    );
   };
 
   if (reportType === "indicator") {
@@ -431,6 +432,6 @@ export function renderProjectReportPdf(input: ProjectReportPdfInput): jsPDF {
     actionsSection();
   }
 
-  L.footers(`GoFreyra · KLADDE · Ikke fagligt godkendt · ${title}`);
+  L.footers(`KLADDE - fagligt review ikke dokumenteret · ${title}`);
   return L.pdf;
 }

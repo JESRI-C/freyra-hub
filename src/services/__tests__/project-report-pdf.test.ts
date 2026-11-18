@@ -87,10 +87,6 @@ describe("generateProjectReport PDF layout", () => {
         reportType,
       });
       const f = await generateProjectReport({ project, sites, actions, indicators, reportType });
-      expect(e.documentId).toBeNull();
-      expect(await pages(e.blob)).toBe(1);
-      expect(await pages(f.blob)).toBeGreaterThan(1);
-      expect(f.fileName.endsWith("-v1.pdf")).toBe(true);
       if (process.env.PDF_OUT) {
         mkdirSync(process.env.PDF_OUT, { recursive: true });
         writeFileSync(
@@ -102,6 +98,10 @@ describe("generateProjectReport PDF layout", () => {
           Buffer.from(await f.blob.arrayBuffer()),
         );
       }
+      expect(e.documentId).toBeNull();
+      expect(await pages(e.blob)).toBe(1);
+      expect(await pages(f.blob)).toBeGreaterThan(1);
+      expect(f.fileName.endsWith("-v1.pdf")).toBe(true);
     });
   }
 });
