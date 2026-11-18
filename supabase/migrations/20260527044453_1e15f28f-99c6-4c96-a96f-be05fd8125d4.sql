@@ -1,9 +1,19 @@
 
 -- 1. Lock down SECURITY DEFINER queue functions and pin search_path
-REVOKE EXECUTE ON FUNCTION public.enqueue_email(text, jsonb) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.delete_email(text, bigint) FROM PUBLIC, anon, authenticated;
-ALTER FUNCTION public.enqueue_email(text, jsonb) SET search_path = public, pgmq;
-ALTER FUNCTION public.delete_email(text, bigint) SET search_path = public, pgmq;
+-- Bootstrap replay: these hosted email helpers are optional and are not created
+-- by this repository. Keep their hardening when present; do not invent stubs.
+-- Already-applied databases are unchanged by this historical replay repair.
+DO $$
+BEGIN
+  IF pg_catalog.to_regprocedure('public.enqueue_email(text,jsonb)') IS NOT NULL THEN
+    EXECUTE 'REVOKE EXECUTE ON FUNCTION public.enqueue_email(text, jsonb) FROM PUBLIC, anon, authenticated';
+    EXECUTE 'ALTER FUNCTION public.enqueue_email(text, jsonb) SET search_path = public, pgmq';
+  END IF;
+  IF pg_catalog.to_regprocedure('public.delete_email(text,bigint)') IS NOT NULL THEN
+    EXECUTE 'REVOKE EXECUTE ON FUNCTION public.delete_email(text, bigint) FROM PUBLIC, anon, authenticated';
+    EXECUTE 'ALTER FUNCTION public.delete_email(text, bigint) SET search_path = public, pgmq';
+  END IF;
+END $$;
 
 -- 2. Enable RLS on PostGIS spatial_ref_sys reference table with public read
 DO $$ BEGIN

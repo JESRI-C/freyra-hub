@@ -28,9 +28,8 @@ export function useNdvi(projectId: string, lat: number | null, lng: number | nul
   });
 
   const interpretation = data?.ndvi != null ? interpretNdvi(data.ndvi) : null;
-  const delta = data?.ndvi != null && data.sceneDate
-    ? seasonalNdviDelta(data.ndvi, data.sceneDate)
-    : null;
+  const delta =
+    data?.ndvi != null && data.sceneDate ? seasonalNdviDelta(data.ndvi, data.sceneDate) : null;
 
   return {
     // Kerneddata
@@ -48,7 +47,7 @@ export function useNdvi(projectId: string, lat: number | null, lng: number | nul
     // Status
     isLoading,
     isError: !!error,
-    error: error instanceof Error ? error.message : data?.error ?? null,
+    error: error instanceof Error ? error.message : (data?.error ?? null),
     savedToDb: data?.savedToDb ?? false,
 
     // Actions

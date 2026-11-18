@@ -1,13 +1,26 @@
 // Device measurements service — insert + querying + anomaly detection
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  supabase,
+  isSupabaseConfigured,
+  createActorBoundSupabaseClient,
+} from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 export type DeviceMeasurement = Database["public"]["Tables"]["device_measurements"]["Row"];
 export type DeviceMeasurementInsert = Database["public"]["Tables"]["device_measurements"]["Insert"];
 
-export async function listMeasurements(deviceId: string, opts?: { from?: Date; to?: Date; limit?: number }): Promise<DeviceMeasurement[]> {
+export async function listMeasurements(
+  deviceId: string,
+  opts?: { from?: Date; to?: Date; limit?: number; actorId?: string },
+): Promise<DeviceMeasurement[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  let q = supabase.from("device_measurements").select("*").eq("device_id", deviceId).order("measured_at", { ascending: false });
+  const db = opts?.actorId ? createActorBoundSupabaseClient(opts.actorId) : supabase;
+  let q = db
+    .from("device_measurements")
+    .select("*")
+    .eq("device_id", deviceId)
+    .order("measured_at", { ascending: false })
+    .order("id", { ascending: false });
   if (opts?.from) q = q.gte("measured_at", opts.from.toISOString());
   if (opts?.to) q = q.lte("measured_at", opts.to.toISOString());
   if (opts?.limit) q = q.limit(opts.limit);
@@ -18,7 +31,11 @@ export async function listMeasurements(deviceId: string, opts?: { from?: Date; t
 
 export async function insertMeasurement(m: DeviceMeasurementInsert): Promise<DeviceMeasurement> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.from("device_measurements").insert(m as never).select("*").single();
+  const { data, error } = await supabase
+    .from("device_measurements")
+    .insert(m as never)
+    .select("*")
+    .single();
   if (error) throw error;
   return data as DeviceMeasurement;
 }

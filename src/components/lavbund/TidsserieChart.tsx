@@ -26,7 +26,20 @@ export interface TidsseriePunkt {
 
 function fmtMaaned(m: string): string {
   const [aar, md] = m.split("-");
-  const navne = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+  const navne = [
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "maj",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "okt",
+    "nov",
+    "dec",
+  ];
   return `${navne[Number(md) - 1] ?? md} ${aar?.slice(2)}`;
 }
 
@@ -72,7 +85,12 @@ export function TidsserieChart({
               <stop offset="100%" stopColor={SERIE_BLAA} stopOpacity={0.04} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="2 4" stroke="currentColor" strokeOpacity={0.12} vertical={false} />
+          <CartesianGrid
+            strokeDasharray="2 4"
+            stroke="currentColor"
+            strokeOpacity={0.12}
+            vertical={false}
+          />
           <XAxis
             dataKey="maaned"
             tickFormatter={fmtMaaned}
@@ -106,7 +124,12 @@ export function TidsserieChart({
               x2={sidsteBaselineMaaned}
               fill="#b45309"
               fillOpacity={0.07}
-              label={{ value: "Baseline (før)", position: "insideTopLeft", fontSize: 10, fill: "#b45309" }}
+              label={{
+                value: "Baseline (før)",
+                position: "insideTopLeft",
+                fontSize: 10,
+                fill: "#b45309",
+              }}
             />
           )}
           {sidsteBaselineMaaned && foersteEfterMaaned && (

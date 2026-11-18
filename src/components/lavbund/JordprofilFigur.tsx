@@ -35,9 +35,24 @@ export function JordprofilFigur({
       aria-label="Jordprofil: iltet tørv over vandspejlet frigiver CO₂; vandmættet tørv er beskyttet"
     >
       {/* Tørveprofil */}
-      <rect x="36" y={TOP} width={W - 72} height={BUND - TOP} fill="#a16207" opacity="0.14" rx="4" />
+      <rect
+        x="36"
+        y={TOP}
+        width={W - 72}
+        height={BUND - TOP}
+        fill="#a16207"
+        opacity="0.14"
+        rx="4"
+      />
       {/* Iltet zone (over vandspejl) */}
-      <rect x="36" y={TOP} width={W - 72} height={Math.max(0, vandY - TOP)} fill="#b45309" opacity="0.18" />
+      <rect
+        x="36"
+        y={TOP}
+        width={W - 72}
+        height={Math.max(0, vandY - TOP)}
+        fill="#b45309"
+        opacity="0.18"
+      />
       {/* Vandmættet zone (under vandspejl) */}
       <rect
         x="36"
@@ -62,7 +77,14 @@ export function JordprofilFigur({
         strokeWidth="2"
         strokeDasharray="6 4"
       />
-      <text x={W - 40} y={yFoer - 5} fontSize="10" fill="currentColor" opacity="0.65" textAnchor="end">
+      <text
+        x={W - 40}
+        y={yFoer - 5}
+        fontSize="10"
+        fill="currentColor"
+        opacity="0.65"
+        textAnchor="end"
+      >
         FØR {foerM.toFixed(2)} m
       </text>
       {/* EFTER-vandspejl (målt) */}

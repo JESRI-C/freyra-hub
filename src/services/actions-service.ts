@@ -1,6 +1,6 @@
 // Actions Service
-
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import {
   fetchOpenActionsByProject,
   fetchAllOpenActions,
@@ -13,43 +13,24 @@ import {
 } from "@/lib/supabase/queries";
 import { logAuditEvent } from "@/services/audit-service";
 import { SEED_ACTIONS } from "@/data/platform-seed";
-import type { IoTSensor } from "@/services/iot-simulation-service";
 import type { Action, ActionEvidence } from "@/lib/supabase/types";
-
-function isMissingTable(err: unknown): boolean {
-  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
-}
-
 export async function getOpenActionsByProject(projectId: string): Promise<Action[]> {
   const fallback = () =>
-    SEED_ACTIONS.filter((a) => a.project_id === projectId && a.status !== "Lukket").sort(
-      (a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""),
+    SEED_ACTIONS.filter((a) => a.project_id === projectId && a.status !== "Lukket").sort((a, b) =>
+      (a.due_date ?? "").localeCompare(b.due_date ?? ""),
     );
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchOpenActionsByProject(projectId);
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  requireCustomerDatabase();
+  return fetchOpenActionsByProject(projectId);
 }
-
 export async function getAllOpenActions(): Promise<Action[]> {
   const fallback = () =>
     SEED_ACTIONS.filter((a) => a.status !== "Lukket").sort((a, b) =>
       (a.due_date ?? "").localeCompare(b.due_date ?? ""),
     );
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchAllOpenActions();
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  requireCustomerDatabase();
+  return fetchAllOpenActions();
 }
-
 // ─── Write ────────────────────────────────────────────────────────────────────
-
 export async function createAction(input: {
   project_id: string;
   title: string;
@@ -62,7 +43,9 @@ export async function createAction(input: {
   linked_indicator_id?: string | null;
   expected_impact?: string | null;
   requires_evidence?: boolean;
-}): Promise<{ id: string }> {
+}): Promise<{
+  id: string;
+}> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   const action = await insertAction({ ...input, status: "Åben" });
   void logAuditEvent({
@@ -75,7 +58,6 @@ export async function createAction(input: {
   });
   return action;
 }
-
 export async function startAction(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   const startedAt = new Date().toISOString();
@@ -92,7 +74,6 @@ export async function startAction(id: string, projectId?: string): Promise<void>
     after_data: { status: "I gang", started_at: startedAt },
   });
 }
-
 export async function completeAction(
   id: string,
   projectId?: string,
@@ -115,17 +96,27 @@ export async function completeAction(
     actor: "Bruger",
     source: "manual",
     before_data: { status: "I gang" },
-    after_data: { status: "Lukket", completed_at: completedAt, ...(actual_impact ? { actual_impact } : {}) },
+    after_data: {
+      status: "Lukket",
+      completed_at: completedAt,
+      ...(actual_impact ? { actual_impact } : {}),
+    },
   });
 }
-
 export async function updateActionDetails(
   id: string,
   input: Partial<{
-    title: string; description: string; priority: string; due_date: string;
-    owner: string; status: string; site_id: string | null;
-    action_type: string | null; linked_indicator_id: string | null;
-    expected_impact: string | null; actual_impact: string | null;
+    title: string;
+    description: string;
+    priority: string;
+    due_date: string;
+    owner: string;
+    status: string;
+    site_id: string | null;
+    action_type: string | null;
+    linked_indicator_id: string | null;
+    expected_impact: string | null;
+    actual_impact: string | null;
     requires_evidence: boolean;
   }>,
   projectId?: string,
@@ -143,19 +134,11 @@ export async function updateActionDetails(
     after_data: input as Record<string, unknown>,
   });
 }
-
 // ─── Action Evidence ──────────────────────────────────────────────────────────
-
 export async function getActionEvidence(actionId: string): Promise<ActionEvidence[]> {
-  if (!isSupabaseConfigured) return [];
-  try {
-    return await fetchActionEvidence(actionId);
-  } catch (err) {
-    if (isMissingTable(err)) return [];
-    throw err;
-  }
+  requireCustomerDatabase();
+  return fetchActionEvidence(actionId);
 }
-
 export async function addActionEvidence(input: {
   action_id: string;
   evidence_type: "photo" | "document" | "note" | string;
@@ -182,7 +165,6 @@ export async function addActionEvidence(input: {
   });
   return ev;
 }
-
 export async function removeActionEvidence(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await deleteActionEvidence(id);
@@ -194,7 +176,6 @@ export async function removeActionEvidence(id: string, projectId?: string): Prom
     source: "manual",
   });
 }
-
 export async function removeAction(id: string, projectId?: string): Promise<void> {
   if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
   await deleteAction(id);
@@ -206,7 +187,6 @@ export async function removeAction(id: string, projectId?: string): Promise<void
     source: "manual",
   });
 }
-
 export function actionPriorityTone(priority: string): "danger" | "warning" | "neutral" {
   switch (priority) {
     case "Høj":
@@ -217,7 +197,6 @@ export function actionPriorityTone(priority: string): "danger" | "warning" | "ne
       return "neutral";
   }
 }
-
 export function actionPriorityColor(priority: string): string {
   switch (priority) {
     case "Høj":
@@ -228,24 +207,29 @@ export function actionPriorityColor(priority: string): string {
       return "text-muted-foreground";
   }
 }
-
 export interface SuggestedSensorAction {
   label: string;
   priority: "Høj" | "Medium" | "Lav";
   reason: string;
 }
-
 /**
  * Derive suggested field actions from the current sensor readings.
  * Returns an empty array when all sensors are healthy.
  */
-export function suggestSensorActions(sensors: IoTSensor[]): SuggestedSensorAction[] {
+export function suggestSensorActions(
+  sensors: ReadonlyArray<{ label: string; status: string; batteryPercent: number | null }>,
+): SuggestedSensorAction[] {
   const actions: SuggestedSensorAction[] = [];
-
   const offline = sensors.filter((s) => s.status === "offline");
-  const lowBat = sensors.filter((s) => s.batteryPercent < 20 && s.status !== "offline");
-  const warnings = sensors.filter((s) => s.status === "warning");
-
+  const lowBat = sensors.filter(
+    (s) =>
+      s.batteryPercent !== null &&
+      Number.isFinite(s.batteryPercent) &&
+      s.batteryPercent >= 0 &&
+      s.batteryPercent < 20 &&
+      s.status !== "offline",
+  );
+  const warnings = sensors.filter((s) => ["warning", "partial", "attention"].includes(s.status));
   if (offline.length > 0) {
     actions.push({
       label: `Tjek ${offline.length} offline sensor${offline.length > 1 ? "er" : ""} i felten`,
@@ -253,7 +237,6 @@ export function suggestSensorActions(sensors: IoTSensor[]): SuggestedSensorActio
       reason: `${offline.map((s) => s.label).join(", ")} sender ikke data.`,
     });
   }
-
   if (lowBat.length > 0) {
     actions.push({
       label: `Udskift batteri i ${lowBat.length} sensor${lowBat.length > 1 ? "er" : ""}`,
@@ -261,7 +244,6 @@ export function suggestSensorActions(sensors: IoTSensor[]): SuggestedSensorActio
       reason: `Batteriniveau under 20%: ${lowBat.map((s) => `${s.label} (${s.batteryPercent}%)`).join(", ")}.`,
     });
   }
-
   if (warnings.length > 0) {
     actions.push({
       label: `Inspicér ${warnings.length} sensor${warnings.length > 1 ? "er" : ""} med advarselsstatus`,
@@ -269,6 +251,5 @@ export function suggestSensorActions(sensors: IoTSensor[]): SuggestedSensorActio
       reason: `${warnings.map((s) => s.label).join(", ")} rapporterer advarselsstatus.`,
     });
   }
-
   return actions;
 }

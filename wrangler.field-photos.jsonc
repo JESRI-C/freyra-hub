@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "freyra-field-photos-local",
+  "main": "workers/field-photos/index.ts",
+  "compatibility_date": "2026-10-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "vars": { "FIELD_PHOTO_PROCESSING_ENABLED": "false", "SUPABASE_URL": "http://127.0.0.1:54321" },
+  "images": { "binding": "IMAGES" },
+  "secrets": { "required": ["SUPABASE_SERVICE_ROLE_KEY"] },
+  "env": {
+    "staging": {
+      "name": "gofreyra-field-photos-staging",
+      "workers_dev": false,
+      "vars": {
+        "FIELD_PHOTO_PROCESSING_ENABLED": "false",
+        "SUPABASE_URL": "https://xdvqdzdpyceojbdknofi.supabase.co",
+      },
+      "images": { "binding": "IMAGES" },
+      "secrets": { "required": ["SUPABASE_SERVICE_ROLE_KEY"] },
+      "triggers": { "crons": ["*/2 * * * *"] },
+    },
+  },
+}

@@ -1,5 +1,9 @@
 // Monitoring devices service — CRUD + status derivation
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  supabase,
+  isSupabaseConfigured,
+  createActorBoundSupabaseClient,
+} from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 export type MonitoringDevice = Database["public"]["Tables"]["monitoring_devices"]["Row"];
@@ -14,7 +18,12 @@ function client() {
 }
 
 /** Compute a device status from last_seen_at + expected_interval_minutes. */
-export function deriveDeviceStatus(device: Pick<MonitoringDevice, "status" | "last_seen_at" | "expected_interval_minutes" | "battery_level">): DeviceStatus {
+export function deriveDeviceStatus(
+  device: Pick<
+    MonitoringDevice,
+    "status" | "last_seen_at" | "expected_interval_minutes" | "battery_level"
+  >,
+): DeviceStatus {
   if (device.status === "not_activated") return "not_activated";
   if (!device.last_seen_at) return "offline";
   const ageMin = (Date.now() - new Date(device.last_seen_at).getTime()) / 60_000;
@@ -25,9 +34,13 @@ export function deriveDeviceStatus(device: Pick<MonitoringDevice, "status" | "la
   return "online";
 }
 
-export async function listDevices(projectId: string): Promise<MonitoringDevice[]> {
+export async function listDevices(
+  projectId: string,
+  actorId?: string,
+): Promise<MonitoringDevice[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  const { data, error } = await supabase
+  const db = actorId ? createActorBoundSupabaseClient(actorId) : supabase;
+  const { data, error } = await db
     .from("monitoring_devices")
     .select("*")
     .eq("project_id", projectId)
@@ -38,19 +51,35 @@ export async function listDevices(projectId: string): Promise<MonitoringDevice[]
 
 export async function getDevice(id: string): Promise<MonitoringDevice | null> {
   if (!isSupabaseConfigured || !supabase) return null;
-  const { data, error } = await supabase.from("monitoring_devices").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("monitoring_devices")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
   if (error) throw error;
   return data as MonitoringDevice | null;
 }
 
 export async function createDevice(input: MonitoringDeviceInsert): Promise<MonitoringDevice> {
-  const { data, error } = await client().from("monitoring_devices").insert(input as never).select("*").single();
+  const { data, error } = await client()
+    .from("monitoring_devices")
+    .insert(input as never)
+    .select("*")
+    .single();
   if (error) throw error;
   return data as MonitoringDevice;
 }
 
-export async function updateDevice(id: string, patch: MonitoringDeviceUpdate): Promise<MonitoringDevice> {
-  const { data, error } = await client().from("monitoring_devices").update(patch as never).eq("id", id).select("*").single();
+export async function updateDevice(
+  id: string,
+  patch: MonitoringDeviceUpdate,
+): Promise<MonitoringDevice> {
+  const { data, error } = await client()
+    .from("monitoring_devices")
+    .update(patch as never)
+    .eq("id", id)
+    .select("*")
+    .single();
   if (error) throw error;
   return data as MonitoringDevice;
 }
@@ -69,7 +98,13 @@ export interface DeviceKpis {
 }
 
 export function computeDeviceKpis(devices: MonitoringDevice[]): DeviceKpis {
-  const kpi: DeviceKpis = { total: devices.length, online: 0, attention: 0, offline: 0, lowBattery: 0 };
+  const kpi: DeviceKpis = {
+    total: devices.length,
+    online: 0,
+    attention: 0,
+    offline: 0,
+    lowBattery: 0,
+  };
   for (const d of devices) {
     const status = deriveDeviceStatus(d);
     if (status === "online") kpi.online++;

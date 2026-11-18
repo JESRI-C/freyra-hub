@@ -1,0 +1,386 @@
+-- Synthetic fixtures only. No Auth API, invitation, email, SMS or file bytes.
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SELECT no_plan();
+CREATE FUNCTION pg_temp.k(n integer) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT ('dd040000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid $$;
+INSERT INTO auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
+ SELECT '00000000-0000-0000-0000-000000000000',pg_temp.k(n),'authenticated','authenticated','synthetic-groups-pools-'||n||'@example.test','',now(),'{"provider":"email"}','{"role":"admin"}',now(),now() FROM generate_series(1,8)n;
+INSERT INTO public.organizations(id,name,type,country) VALUES(pg_temp.k(11),'Synthetic crew organization A','test','Denmark'),(pg_temp.k(12),'Synthetic crew organization B','test','Denmark');
+INSERT INTO public.organization_memberships(organization_id,user_id,role) SELECT pg_temp.k(11),pg_temp.k(n),'viewer' FROM generate_series(1,8)n WHERE n<>6;
+INSERT INTO public.organization_memberships(organization_id,user_id,role) VALUES(pg_temp.k(12),pg_temp.k(6),'owner');
+INSERT INTO public.projects(id,organization_id,name) VALUES(pg_temp.k(21),pg_temp.k(11),'Synthetic crew project'),(pg_temp.k(22),pg_temp.k(11),'Synthetic other crew project'),(pg_temp.k(23),pg_temp.k(12),'Synthetic foreign crew project');
+INSERT INTO public.project_members(project_id,user_id,role) VALUES(pg_temp.k(21),pg_temp.k(1),'project_manager'),(pg_temp.k(21),pg_temp.k(2),'field'),(pg_temp.k(21),pg_temp.k(3),'external'),(pg_temp.k(21),pg_temp.k(4),'external'),(pg_temp.k(21),pg_temp.k(5),'viewer'),(pg_temp.k(22),pg_temp.k(7),'project_manager');
+INSERT INTO public.actions(id,project_id,title) SELECT pg_temp.k(n),pg_temp.k(21),'Synthetic crew action '||n FROM generate_series(31,36)n;
+CREATE TEMP TABLE plan_refs(action_id uuid PRIMARY KEY,plan_id uuid NOT NULL);
+GRANT SELECT,INSERT ON plan_refs TO authenticated;
+CREATE FUNCTION pg_temp.plan() RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$ SELECT '{"schema":"freyra.work-order-plan/v1","title":"Synthetic crew plan","description":"","instructions":"Synthetic safe work instruction","profile":"general","responsibleId":null,"siteId":null,"watercourseVersionId":null,"locationNote":"Synthetic place","plannedStart":null,"plannedEnd":null,"priority":null,"plannedMethod":null,"watercourse":null}'::jsonb $$;
+CREATE FUNCTION pg_temp.group_save(ver integer DEFAULT 0,req integer DEFAULT 61,members integer[] DEFAULT ARRAY[2,3],g integer DEFAULT 51,active boolean DEFAULT true,reason text DEFAULT '',proj integer DEFAULT 21,org integer DEFAULT 11)
+RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.save_work_order_group(pg_temp.k(g),pg_temp.k(org),pg_temp.k(proj),ver,'Synthetic crew',active,ARRAY(SELECT pg_temp.k(m) FROM unnest(members)m),reason,pg_temp.k(req)) $$;
+CREATE FUNCTION pg_temp.assign(ver integer DEFAULT 0,req integer DEFAULT 71,a integer DEFAULT 31,mode text DEFAULT 'group',members integer[] DEFAULT ARRAY[2,3],g integer DEFAULT 51,group_ver integer DEFAULT 1)
+RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.configure_work_order_assignment(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),ver,(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),mode,ARRAY(SELECT pg_temp.k(m) FROM unnest(members)m),(SELECT id FROM public.work_order_group_versions WHERE group_id=pg_temp.k(g) AND version=group_ver),'Synthetic operational assignment',pg_temp.k(req)) $$;
+CREATE FUNCTION pg_temp.claim(ver integer DEFAULT 1,req integer DEFAULT 81,a integer DEFAULT 32)
+RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.claim_work_order_pool(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),ver,(SELECT plan_id FROM pg_temp.plan_refs WHERE action_id=pg_temp.k(a)),pg_temp.k(req)) $$;
+CREATE FUNCTION pg_temp.execution(a integer DEFAULT 31,expected integer DEFAULT 0,assignment_ver integer DEFAULT 1,req integer DEFAULT 91)
+RETURNS uuid LANGUAGE sql AS $$ SELECT workspace_entry_id FROM public.save_work_order_execution(pg_temp.k(a),pg_temp.k(11),pg_temp.k(21),(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),1,expected,
+ jsonb_build_object('schema','freyra.action-execution/v1','actionId',pg_temp.k(a),'surveyRoundId',NULL,'dataBasis','synthetic','workType','other','stage','performed','actualDate','2026-10-08','actualEndDate',NULL,'method','Synthetic actual method','reach','Synthetic reach','performedBy','Synthetic external worker','sourceReference','Synthetic work log','evidenceIds','[]'::jsonb,'deviation','','correctionReason',CASE WHEN expected>0 THEN 'Synthetic factual correction' ELSE '' END,'coverage','limited','coverageDescription','Synthetic limited coverage'),pg_temp.k(3),'',pg_temp.k(req),
+ (SELECT id FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(a) AND version=assignment_ver),assignment_ver) $$;
+
+SELECT ok(NOT has_table_privilege('anon','public.work_order_group_versions','SELECT'),'anonymous group read is absent');
+SELECT ok(NOT has_table_privilege('authenticated','public.work_order_assignment_versions','UPDATE'),'assignments cannot be overwritten');
+SELECT ok(NOT has_table_privilege('authenticated','public.work_order_group_versions','DELETE'),'group history cannot be deleted');
+SELECT ok(NOT has_function_privilege('service_role','public.claim_work_order_pool(uuid,uuid,uuid,integer,uuid,uuid)','EXECUTE'),'background service cannot claim a pool task');
+SELECT ok(NOT has_function_privilege('anon','public.list_my_work_orders(uuid,integer)','EXECUTE'),'anonymous task listing is absent');
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT public.save_work_order_plan(pg_temp.k(n),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan(),'',pg_temp.k(n+100)) FROM generate_series(31,36)n$$,'all plans reuse the existing action/project identity');
+INSERT INTO pg_temp.plan_refs SELECT action_id,id FROM public.work_order_plan_versions WHERE project_id=pg_temp.k(21);
+SELECT lives_ok($$SELECT pg_temp.group_save()$$,'manager saves a group with current membership assessments');
+SELECT is(pg_temp.group_save(),(SELECT id FROM public.work_order_group_versions WHERE request_id=pg_temp.k(61)),'group retry returns the same revision');
+SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(51) AND event_type='work_order.group_saved'),1,'group retry produces one internal event');
+SELECT is((SELECT member_assessments->0->>'projectRole' FROM public.work_order_group_versions WHERE group_id=pg_temp.k(51)),'field','group stores the observed role without creating membership');
+SELECT throws_ok($$SELECT pg_temp.group_save(0,62)$$,'PT409',NULL,'stale group version is a domain conflict');
+SELECT throws_ok($$SELECT pg_temp.group_save(0,61,ARRAY[2,4])$$,'22023',NULL,'group idempotency key rejects changed roster');
+SELECT throws_ok($$SELECT pg_temp.group_save(0,62,ARRAY[2,2],54)$$,'22023',NULL,'duplicate members are rejected');
+SELECT throws_ok($$SELECT pg_temp.group_save(0,62,ARRAY[5],54)$$,'22023',NULL,'viewer is not a hidden executor');
+SELECT throws_ok($$SELECT pg_temp.group_save(0,62,ARRAY[6],54)$$,'22023',NULL,'other tenant cannot enter the group');
+SELECT throws_ok($$SELECT pg_temp.group_save(0,62,ARRAY[8],54)$$,'22023',NULL,'organization membership alone is insufficient');
+SELECT throws_ok($$INSERT INTO public.work_order_group_versions(group_id,organization_id,project_id,version,name,active,member_ids,request_id) VALUES(pg_temp.k(54),pg_temp.k(12),pg_temp.k(21),1,'Synthetic foreign scope',true,ARRAY[pg_temp.k(2)],pg_temp.k(62))$$,'23503',NULL,'raw group write cannot bypass project/organization FK');
+SELECT lives_ok($$SELECT pg_temp.group_save(0,62,ARRAY[]::integer[],54,false)$$,'archived empty group is represented explicitly');
+SELECT is((SELECT array_agg(group_id) FROM public.list_work_order_groups(pg_temp.k(11),pg_temp.k(21),NULL,1)),ARRAY[pg_temp.k(51),pg_temp.k(54)],'group cursor includes one stable lookahead row');
+SELECT is((SELECT count(*)::integer FROM public.list_work_order_people(pg_temp.k(11),pg_temp.k(21),NULL,50)),5,'people come from current project membership only');
+SELECT is((SELECT can_execute FROM public.list_work_order_people(pg_temp.k(11),pg_temp.k(21),NULL,50) WHERE user_id=pg_temp.k(5)),false,'people selector reports viewer execution as false');
+
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(7)::text,true);
+SELECT lives_ok($$SELECT pg_temp.group_save(0,63,ARRAY[7],52,true,'',22)$$,'second project manager creates their own separate group');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT lives_ok($$SELECT pg_temp.group_save(0,64,ARRAY[6],53,true,'',23,12)$$,'other organization owner creates a separate group');
+SELECT is((SELECT can_execute FROM public.list_work_order_people(pg_temp.k(12),pg_temp.k(23),NULL,50) WHERE user_id=pg_temp.k(6)),true,'implicit organization owner is selectable without a fabricated project role');
+SELECT is((SELECT project_role FROM public.list_work_order_people(pg_temp.k(12),pg_temp.k(23),NULL,50) WHERE user_id=pg_temp.k(6)),NULL::text,'owner selector preserves the absence of explicit project membership');
+SELECT is((SELECT count(*)::integer FROM public.work_order_group_versions),1,'other tenant sees only its group');
+SELECT throws_ok($$SELECT * FROM public.list_work_order_groups(pg_temp.k(11),pg_temp.k(21),NULL,1)$$,'42501',NULL,'other tenant cannot enumerate project groups');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT throws_ok($$SELECT pg_temp.assign(0,71,31,'group',ARRAY[2],52)$$,'22023',NULL,'same-organization foreign project group cannot be attached');
+SELECT lives_ok($$SELECT pg_temp.assign()$$,'manager assigns the exact existing group version to the task');
+SELECT is(pg_temp.assign(),(SELECT id FROM public.work_order_assignment_versions WHERE request_id=pg_temp.k(71)),'assignment retry returns identical membership assessment');
+SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE event_type='work_order.assignment_configured' AND entity_id=pg_temp.k(31)),1,'assignment retry has one internal event');
+SELECT throws_ok($$SELECT pg_temp.assign(0,72)$$,'PT409',NULL,'concurrent old assignment version is refused');
+SELECT lives_ok($$SELECT pg_temp.assign(0,72,32,'pool',ARRAY[3,4],NULL)$$,'pool has a frozen explicit candidate roster');
+SELECT ok(NOT private.can_execute_work_order(pg_temp.k(32)),'unclaimed pool requires takeover even for the manager');
+SELECT throws_ok($$SELECT pg_temp.execution(32)$$,'42501',NULL,'unclaimed pool cannot acquire a performed-work record');
+SELECT lives_ok($$SELECT pg_temp.assign(0,73,33,'person',ARRAY[2],NULL)$$,'person assignment remains separate from plan responsibility');
+SELECT lives_ok($$SELECT * FROM public.save_work_order_access(pg_temp.k(33),pg_temp.k(11),pg_temp.k(21),pg_temp.k(2),0,true,true,false,'Synthetic manual delegation',pg_temp.k(74))$$,'direct task capability remains independent and explicit');
+SELECT throws_ok($$SELECT pg_temp.execution(31,0,0)$$,'PT409',NULL,'legacy missing assignment context cannot bind silently to current assignment');
+SELECT lives_ok($$SELECT pg_temp.execution()$$,'actual execution freezes the exact group assignment');
+SET CONSTRAINTS work_order_execution_required IMMEDIATE;
+SET CONSTRAINTS work_order_execution_required DEFERRED;
+SELECT is((SELECT assignment_version_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31)),(SELECT id FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(31) AND version=1),'execution binding has a scoped immutable assignment FK');
+
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT ok(private.can_execute_work_order(pg_temp.k(31)),'assigned external member gets execution capability for its group task');
+SELECT ok(private.can_read_work_order(pg_temp.k(32)),'pool candidate can read necessary plan before claiming');
+SELECT ok(NOT private.can_execute_work_order(pg_temp.k(32)),'pool candidacy alone is not execution');
+SELECT ok((SELECT can_claim AND NOT can_execute AND user_id=pg_temp.k(3) FROM public.get_work_order_assignment_state(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21))),'assignment state pins the current candidate and claim capability');
+SELECT ok(NOT (SELECT can_plan FROM public.list_my_work_orders(NULL,20) WHERE action_id=pg_temp.k(32)),'external task list does not offer a project manager route');
+SELECT is((SELECT count(*)::integer FROM public.list_my_work_orders(NULL,20)),2,'My tasks lists only group task and candidate pool');
+SELECT ok(NOT has_function_privilege('anon','public.search_my_work_orders(uuid,integer,text,text)','EXECUTE'),'anonymous task search is absent');
+SELECT is(
+  (SELECT array_agg((value->>'action_id')::uuid ORDER BY value->>'action_id') FROM public.search_my_work_orders(NULL,1,'all','  SYNTHETIC CREW  ') AS t(value)),
+  ARRAY[pg_temp.k(31),pg_temp.k(32)],
+  'title search returns only visible tasks plus the pagination sentinel'
+);
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(pg_temp.k(31),1,'all','synthetic crew')),1,'title search resumes after the keyset cursor');
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(NULL,20,'cancelled','synthetic crew')),0,'title search respects the selected status');
+SELECT is((SELECT count(*)::integer FROM public.search_my_work_orders(NULL,20,'all','%')),0,'title search treats wildcard characters literally');
+SELECT is((SELECT count(*)::integer FROM public.projects),0,'task assignment does not open whole projects');
+SELECT throws_ok($$SELECT pg_temp.group_save(1,65,ARRAY[2,3],51,true,'Synthetic self promotion')$$,'42501',NULL,'external executor cannot edit groups');
+SELECT throws_ok($$SELECT pg_temp.assign(1,75)$$,'42501',NULL,'external executor cannot assign other people');
+SELECT ok(NOT private.is_work_order_executor_member(pg_temp.k(22),pg_temp.k(7)),'executor cannot probe a foreign project member');
+
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT pg_temp.group_save(1,65,ARRAY[2],51,true,'Synthetic member removed')$$,'group change is appended with a reason');
+SELECT is((SELECT member_ids FROM public.work_order_group_versions WHERE group_id=pg_temp.k(51) AND version=1),ARRAY[pg_temp.k(2),pg_temp.k(3)],'group change preserves old roster');
+SELECT is((SELECT performed_by_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(31)),pg_temp.k(3),'group change cannot rewrite the historical actual performer');
+SELECT is((SELECT candidate_user_ids FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(31)),ARRAY[pg_temp.k(2),pg_temp.k(3)],'assignment membership assessment stays frozen');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT ok(NOT private.can_execute_work_order(pg_temp.k(31)),'group removal revokes group-derived execution on the next request');
+SELECT ok(NOT private.can_read_work_order(pg_temp.k(31)),'removed external group member cannot issue fresh plan reads');
+SELECT is((SELECT count(*)::integer FROM public.list_my_work_orders(NULL,20)),1,'removed group task disappears from refreshed My tasks');
+SELECT is((SELECT can_claim FROM public.list_my_work_orders(NULL,20)),true,'remaining pool still has an explicit claim action');
+SELECT lives_ok($$SELECT pg_temp.claim()$$,'eligible candidate atomically claims the pool for themselves');
+SELECT is(pg_temp.claim(),(SELECT id FROM public.work_order_assignment_versions WHERE request_id=pg_temp.k(81)),'claim retry returns the one committed claim');
+SELECT ok(private.can_execute_work_order(pg_temp.k(32)),'claim grants concrete task execution through existing authority helper');
+SELECT is((SELECT claimed_by FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(32) ORDER BY version DESC LIMIT 1),pg_temp.k(3),'pool owner is the authenticated claimant');
+SELECT is((SELECT count(*)::integer FROM public.work_order_access_versions WHERE action_id=pg_temp.k(32)),0,'pool claim creates no duplicate capability store or implicit reviewer');
+SELECT ok(NOT private.can_review_work_order(pg_temp.k(32)),'claim does not assign professional review');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(4)::text,true);
+SELECT throws_ok($$SELECT * FROM public.claim_work_order_pool(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),1,(SELECT plan_id FROM pg_temp.plan_refs WHERE action_id=pg_temp.k(32)),pg_temp.k(82))$$,'PT409',NULL,'second candidate gets conflict instead of another owner');
+SELECT ok(NOT private.can_execute_work_order(pg_temp.k(32)),'losing candidate has no execution capability');
+SELECT ok((SELECT NOT can_claim AND NOT can_execute AND assignment->>'claimed_by'=pg_temp.k(3)::text FROM public.get_work_order_assignment_state(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21))),'losing claimant sees fresh claim bookkeeping without execution access');
+SELECT is((SELECT count(*)::integer FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(32)),0,'losing candidate cannot freshly download the claimed plan');
+SELECT is((SELECT count(*)::integer FROM public.get_work_order_assignment_history(pg_temp.k(32),pg_temp.k(11),pg_temp.k(21),NULL,20)),2,'candidate can see claim bookkeeping without wider project access');
+
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE event_type='work_order.pool_claimed' AND entity_id=pg_temp.k(32)),1,'claim retry and losing claim add no duplicate internal event');
+SELECT lives_ok($$SELECT pg_temp.assign(2,76,32,'pool',ARRAY[4],NULL)$$,'manager can reopen a pool as a new explicit assignment');
+SELECT is((SELECT claimed_by FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(32) AND version=2),pg_temp.k(3),'reopening preserves the historical pool owner');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(3)::text,true);
+SELECT throws_ok($$SELECT pg_temp.claim()$$,'42501',NULL,'removed pool candidate cannot retrieve a fresh claim receipt');
+SELECT ok(NOT private.can_execute_work_order(pg_temp.k(32)),'reassignment revokes old pool-derived execution');
+
+-- A viewer demotion invalidates even a still-active direct execution grant.
+RESET ROLE;
+UPDATE public.project_members SET role='viewer' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT ok(NOT private.can_execute_work_order(pg_temp.k(33)),'current role demotion invalidates an old execution grant');
+SELECT ok(NOT (SELECT can_execute FROM public.get_work_order_access(pg_temp.k(33),pg_temp.k(21))),'authority RPC returns the demoted current role');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(5)::text,true);
+SELECT throws_ok($$SELECT pg_temp.claim(3,83)$$,'42501',NULL,'viewer cannot claim the pool using user metadata admin');
+SELECT throws_ok($$SELECT * FROM public.list_my_work_orders(NULL,21)$$,'22023',NULL,'task list is explicitly bounded');
+
+-- Atomic audit failure leaves no partial roster or assignment.
+RESET ROLE;
+CREATE FUNCTION pg_temp.fail_roster_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic roster audit failure' USING ERRCODE='P0001';END $$;
+CREATE TRIGGER synthetic_roster_audit_failure BEFORE INSERT ON public.audit_events FOR EACH ROW WHEN(NEW.event_type='work_order.assignment_configured') EXECUTE FUNCTION pg_temp.fail_roster_audit();
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT throws_ok($$SELECT pg_temp.assign(0,77,36,'person',ARRAY[4],NULL)$$,'P0001',NULL,'audit failure rejects the entire assignment');
+SELECT is((SELECT count(*)::integer FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(36)),0,'audit failure leaves no partial assignment');
+RESET ROLE;
+DROP TRIGGER synthetic_roster_audit_failure ON public.audit_events;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT pg_temp.assign(0,77,36,'person',ARRAY[4],NULL)$$,'assignment retry succeeds with its original request after rollback');
+SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(36) AND event_type='work_order.assignment_configured'),1,'exactly one assignment event is committed');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(6)::text,true);
+SELECT is((SELECT count(*)::integer FROM public.work_order_assignment_versions),0,'other tenant cannot enumerate assignments');
+SELECT throws_ok($$SELECT * FROM public.get_work_order_assignment_history(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21),NULL,1)$$,'42501',NULL,'other tenant guessed assignment history is denied');
+SELECT throws_ok($$SELECT * FROM public.get_work_order_assignment_state(pg_temp.k(31),pg_temp.k(11),pg_temp.k(21))$$,'42501',NULL,'other tenant cannot read the assignment-state envelope');
+
+-- Assigned field staff record their own work without obtaining project-editor access.
+RESET ROLE;
+UPDATE public.project_members SET role='field' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
+INSERT INTO public.actions(id,project_id,title) VALUES(pg_temp.k(37),pg_temp.k(21),'Synthetic assigned field execution');
+CREATE FUNCTION pg_temp.field_payload(a integer, correction text DEFAULT '') RETURNS jsonb LANGUAGE sql AS $$
+ SELECT jsonb_build_object('schema','freyra.action-execution/v1','actionId',pg_temp.k(a),'surveyRoundId',NULL,
+ 'dataBasis','synthetic','workType','other','stage','performed','actualDate','2026-11-03','actualEndDate',NULL,
+ 'method','Synthetic field method','reach','Synthetic reach','performedBy','Synthetic field user',
+ 'sourceReference','Synthetic original work log','evidenceIds','[]'::jsonb,'deviation','',
+ 'correctionReason',correction,'coverage','limited','coverageDescription','Synthetic limited coverage')
+$$;
+CREATE FUNCTION pg_temp.field_execution(a integer DEFAULT 37, performer integer DEFAULT 2, o integer DEFAULT 11)
+RETURNS uuid LANGUAGE sql AS $$ SELECT workspace_entry_id FROM public.save_work_order_execution(
+ pg_temp.k(a),pg_temp.k(o),pg_temp.k(21),(SELECT id FROM public.work_order_plan_versions WHERE action_id=pg_temp.k(a) ORDER BY version DESC LIMIT 1),
+ 1,0,pg_temp.field_payload(a),pg_temp.k(performer),'',pg_temp.k(190),
+ (SELECT id FROM public.work_order_assignment_versions WHERE action_id=pg_temp.k(a) AND version=1),1) $$;
+CREATE FUNCTION pg_temp.unbound_field_row() RETURNS void LANGUAGE plpgsql AS $$ BEGIN
+ INSERT INTO public.project_workspace_entries(entry_id,organization_id,project_id,kind,version,title,payload)
+ VALUES(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'decision_note',2,'Unbound synthetic execution',
+ jsonb_build_object('basis','Synthetic basis','source','action-execution:'||pg_temp.k(37)::text,
+ 'decision',pg_temp.field_payload(37,'Synthetic correction')::text,'alternatives','','uncertainty','','owner','Synthetic actor'));
+ SET CONSTRAINTS work_order_execution_required IMMEDIATE;
+END $$;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$SELECT public.save_work_order_plan(pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),0,pg_temp.plan()||'{"estimatedHours":2.5}', '',pg_temp.k(191))$$,'planner saves the assigned field test plan');
+SELECT lives_ok($$SELECT pg_temp.assign(0,192,37,'person',ARRAY[2],NULL)$$,'manager assigns execution to field role');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$INSERT INTO public.project_material_catalog(id,organization_id,project_id,material,unit)
+ VALUES(pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg')$$,'42501',NULL,'field cannot manage the material catalog');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT lives_ok($$INSERT INTO public.project_material_catalog(id,organization_id,project_id,material,unit)
+ VALUES(pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg')$$,'manager can add a catalog material');
+SELECT lives_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(334),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),1,1995)$$,'manager can record a catalog unit price');
+SELECT lives_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(335),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,0)$$,'zero is a valid versioned unit price');
+SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(336),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),2,2995)$$,'PT409',NULL,'stale price updates are rejected');
+SELECT is((SELECT unit_price_ore FROM public.project_material_unit_prices WHERE id=pg_temp.k(334)),1995,
+ 'the initial unit price remains available after an update');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'field users cannot read project material billing');
+SELECT is((SELECT count(*) FROM public.project_material_unit_prices WHERE catalog_id=pg_temp.k(330)),0::bigint,
+ 'field users cannot read catalog prices');
+SELECT throws_ok($$INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(337),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),3,2500)$$,'42501',NULL,'field users cannot change catalog prices');
+SELECT is((SELECT material FROM public.project_material_catalog WHERE id=pg_temp.k(330)),
+ 'Testgrus','the assigned field user can see active catalog materials');
+SELECT throws_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(331),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Forkert navn','kg',1250,1,pg_temp.k(330))$$,
+ '22023',NULL,'catalog material snapshots must match the catalog');
+SELECT lives_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(331),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1250,1,pg_temp.k(330))$$,
+ 'an assigned field user can register a catalog material');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+UPDATE public.project_material_catalog SET active=false WHERE id=pg_temp.k(330);
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT is((SELECT count(*) FROM public.project_material_catalog WHERE id=pg_temp.k(330)),
+ 0::bigint,'archived catalog materials are hidden from field selection');
+SELECT lives_ok($$INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id,reason)
+ VALUES(pg_temp.k(332),pg_temp.k(331),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1000,2,pg_temp.k(330),'Kontrolvejning')$$,
+ 'archiving preserves existing usage and permits correction');
+CREATE FUNCTION pg_temp.material(row_id integer, entry integer, task integer, version integer, quantity integer, label text DEFAULT 'Testmateriale')
+RETURNS void LANGUAGE sql AS $$
+ INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,reason)
+ VALUES(pg_temp.k(row_id),pg_temp.k(entry),pg_temp.k(task),pg_temp.k(11),pg_temp.k(21),label,'kg',quantity,version,
+   CASE WHEN version=1 THEN '' ELSE 'Syntetisk rettelse' END);
+$$;
+SELECT lives_ok($$SELECT pg_temp.material(320,320,37,1,2500)$$,'assigned field staff can record materials');
+SELECT throws_ok($$SELECT pg_temp.material(321,321,36,1,500)$$,'42501',NULL,'field cannot record materials on unassigned work');
+SELECT lives_ok($$SELECT pg_temp.material(322,320,37,2,1250)$$,'material correction is appended');
+SELECT throws_ok($$SELECT pg_temp.material(323,320,37,2,1000)$$,'PT409',NULL,'a stale material correction is rejected');
+SELECT throws_ok($$SELECT pg_temp.material(324,320,37,3,500,'Andet materiale')$$,'22023',NULL,'a correction cannot change the material identity');
+SELECT is((SELECT count(*) FROM public.work_order_material_versions WHERE entry_id=pg_temp.k(320)),
+ 2::bigint,'original material version is preserved');
+SELECT is((SELECT quantity_milli FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) WHERE entry_id=pg_temp.k(320)),
+ 1250,'material list shows the current quantity');
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(300),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',1,90)$$,
+ 'assigned field staff can log their own time');
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(301),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',2,75,'Synthetic correction')$$,
+ 'time corrections retain the original version');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(302),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',2,60,'Stale correction')$$,
+ 'PT409',NULL,'a stale time correction is rejected');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,actor_id,work_date,version,minutes)
+ VALUES(pg_temp.k(303),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),pg_temp.k(3),'2026-11-03',1,60)$$,
+ '42501',NULL,'field staff cannot record another user’s time');
+SELECT throws_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(304),pg_temp.k(36),pg_temp.k(11),pg_temp.k(21),'2026-11-03',1,60)$$,
+ '42501',NULL,'field staff cannot record time on unassigned work');
+SELECT throws_ok($$SELECT * FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21))$$,
+ '42501',NULL,'field users cannot read the project time overview');
+SELECT throws_ok($$SELECT public.get_work_order_time_summary(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37))$$,
+ '42501',NULL,'field users cannot use the manager time summary');
+SELECT ok(NOT private.can_write_project(pg_temp.k(21)),'field remains unable to edit the project');
+SELECT throws_ok($$SELECT pg_temp.field_execution(36)$$,'42501',NULL,'field cannot execute an unassigned task');
+SELECT throws_ok($$SELECT pg_temp.field_execution(37,3)$$,'42501',NULL,'field cannot record execution as another user');
+SELECT throws_ok($$SELECT pg_temp.field_execution(37,2,12)$$,'42501',NULL,'mismatched tenant scope is rejected');
+SELECT throws_ok($$INSERT INTO public.project_workspace_entries(entry_id,organization_id,project_id,kind,version,title,payload) VALUES(pg_temp.k(193),pg_temp.k(11),pg_temp.k(21),'decision_note',1,'Unrelated note','{"basis":"Synthetic basis","source":"unrelated"}')$$,'42501',NULL,'field cannot create an unrelated workspace entry');
+SELECT lives_ok($$SELECT pg_temp.field_execution()$$,'assigned field can save a bound execution of their own work');
+SELECT is(pg_temp.field_execution(),(SELECT workspace_entry_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(37)), 'field retry preserves the same revision identity');
+SELECT is((SELECT performed_by_id FROM public.work_order_execution_bindings WHERE action_id=pg_temp.k(37)),pg_temp.k(2),'receipt pins the authenticated field actor');
+SELECT throws_ok($$SELECT pg_temp.unbound_field_row()$$,'23514',NULL,'direct workspace insertion cannot bypass the frozen binding');
+SELECT is((SELECT count(*)::integer FROM public.project_workspace_entries WHERE entry_id=pg_temp.k(37)),1,'failed unbound row leaves only the verified execution');
+SELECT throws_ok($$INSERT INTO public.audit_events(project_id,event_type,title,actor,source,entity_type,entity_id) VALUES(pg_temp.k(21),'work_order.execution_saved','Forged audit',pg_temp.k(2)::text,'synthetic','work_order',pg_temp.k(37))$$,'42501',NULL,'field cannot forge a generic audit event');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+CREATE FUNCTION pg_temp.material_export() RETURNS jsonb LANGUAGE sql AS $$
+  SELECT public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),
+    (now() at time zone 'Europe/Copenhagen')::date,(now() at time zone 'Europe/Copenhagen')::date);
+$$;
+SELECT is((SELECT (r->>'unit_price_ore')::integer FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),0,'historical zero price is distinct from a missing price');
+SELECT is((SELECT r->>'amount_ore' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(320)::text),NULL::text,'free-text material is explicitly unpriced');
+UPDATE public.project_material_catalog SET active=true WHERE id=pg_temp.k(330);
+INSERT INTO public.project_material_unit_prices(id,catalog_id,organization_id,project_id,version,unit_price_ore)
+ VALUES(pg_temp.k(338),pg_temp.k(330),pg_temp.k(11),pg_temp.k(21),3,1995);
+INSERT INTO public.work_order_material_versions
+ (id,entry_id,action_id,organization_id,project_id,material,unit,quantity_milli,version,catalog_id)
+ VALUES(pg_temp.k(339),pg_temp.k(339),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'Testgrus','kg',1250,1,pg_temp.k(330));
+SELECT is((SELECT (r->>'amount_ore')::bigint FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(339)::text),2494::bigint,'billing rounds the material line to the nearest ore');
+SELECT is((SELECT r->>'price_version_id' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),pg_temp.k(335)::text,'price changes do not reprice earlier usage');
+SELECT is((SELECT r->>'material_version_id' FROM jsonb_array_elements(pg_temp.material_export()) r
+ WHERE r->>'entry_id'=pg_temp.k(331)::text),pg_temp.k(332)::text,'billing traces the latest corrected quantity');
+SELECT throws_ok($$SELECT public.get_project_material_billing_export(pg_temp.k(12),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'material billing rejects a mismatched organization');
+SELECT is((SELECT actor_id FROM public.list_work_order_material_usage(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) WHERE entry_id=pg_temp.k(320)),
+ pg_temp.k(2),'the manager can see the recorded material with the authenticated field author');
+SELECT is((SELECT count(*) FROM public.list_work_order_material_usage(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))),
+ 0::bigint,'material list rejects mismatched scope');
+SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(300))$$,
+ 'PT409',NULL,'an outdated time version cannot be approved');
+SELECT lives_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(301))$$,
+ 'the manager approves the latest field time version');
+SELECT is((public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')->0->>'minutes')::integer,
+ 75,'export contains the current approved time only');
+SELECT throws_ok($$SELECT public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-10-01','2026-11-03')$$,
+ '22023',NULL,'export rejects unbounded periods');
+SELECT lives_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids)
+ VALUES(pg_temp.k(307),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)])$$,
+ 'manager can save a priced snapshot of approved time');
+SELECT is((SELECT total_ore FROM public.project_approved_time_drafts WHERE id=pg_temp.k(307)),
+ 62499::bigint,'database rounds the approved 75 minutes to 624.99');
+SELECT lives_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids,material_refs)
+ VALUES(pg_temp.k(340),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)],
+  (SELECT coalesce(jsonb_agg(jsonb_build_array(r.value->>'material_version_id',r.value->>'price_version_id')
+    ORDER BY r.ordinality),'[]'::jsonb) FROM jsonb_array_elements(
+      public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')
+    ) WITH ORDINALITY r(value,ordinality)))$$,'the draft freezes both exact evidence sets');
+SELECT is((SELECT material_snapshot FROM public.project_approved_time_drafts WHERE id=pg_temp.k(340)),
+ public.get_project_material_billing_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03'),
+ 'combined draft stores the server material snapshot');
+SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids,material_refs)
+ VALUES(pg_temp.k(341),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)],'[[null,null]]')$$,
+ 'PT409',NULL,'a stale material preview cannot be saved');
+SELECT ok((SELECT r.approved FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'the review list shows the precise approval');
+SELECT is((SELECT t.minutes FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),75::bigint,'project time sums only the latest actor and day version');
+SELECT is((SELECT t.estimated_hours FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),2.5::numeric,'project time includes the latest estimate');
+SELECT is((SELECT t.pending_entries FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),0::bigint,'the current approved time does not appear in the review queue');
+SELECT ok(NOT EXISTS (SELECT 1 FROM public.list_project_work_order_time(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)) t
+  WHERE t.action_id<=pg_temp.k(37)),'project time cursor excludes the preceding page');
+SELECT is(public.get_work_order_time_summary(pg_temp.k(11),pg_temp.k(21),pg_temp.k(37)),
+ '{"minutes":75,"entries":1,"estimatedHours":2.5}'::jsonb,'time summary counts the corrected daily version once');
+SELECT throws_ok($$SELECT public.get_work_order_time_summary(pg_temp.k(12),pg_temp.k(21),pg_temp.k(37))$$,
+ '42501',NULL,'the time summary rejects a mismatched organization');
+SELECT is((SELECT count(*)::integer FROM public.work_order_time_versions),2,'the manager can read both immutable time versions');
+INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes)
+ VALUES(pg_temp.k(305),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-02',1,60);
+SELECT throws_ok($$INSERT INTO public.work_order_time_approvals(time_id) VALUES(pg_temp.k(305))$$,
+ '42501',NULL,'a manager cannot approve their own registration');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT lives_ok($$INSERT INTO public.work_order_time_versions
+ (id,action_id,organization_id,project_id,work_date,version,minutes,reason)
+ VALUES(pg_temp.k(306),pg_temp.k(37),pg_temp.k(11),pg_temp.k(21),'2026-11-03',3,70,'After approval')$$,
+ 'a correction may follow an approval');
+SELECT ok(EXISTS(SELECT 1 FROM public.work_order_time_approvals WHERE time_id=pg_temp.k(301)),
+ 'the performer can read the original approval');
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(1)::text,true);
+SELECT is(public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03'),
+ '[]'::jsonb,'the approved older version is excluded after an unapproved correction');
+SELECT is((SELECT t.pending_entries FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),2::bigint,'the overview counts the unapproved correction and the manager registration');
+SELECT is((SELECT t.pending_date FROM public.list_project_work_order_time_review(pg_temp.k(11),pg_temp.k(21)) t
+  WHERE t.action_id=pg_temp.k(37)),'2026-11-03'::date,'the review opens an approvable date ahead of the managers own time');
+SELECT throws_ok($$INSERT INTO public.project_approved_time_drafts
+ (id,organization_id,project_id,date_from,date_through,rate_ore,time_ids)
+ VALUES(pg_temp.k(308),pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03',49999,ARRAY[pg_temp.k(301)])$$,
+ 'PT409',NULL,'a saved draft cannot be created from superseded approval');
+SELECT is((SELECT snapshot->0->>'time_id' FROM public.project_approved_time_drafts WHERE id=pg_temp.k(307)),
+ pg_temp.k(301)::text,'the previously saved draft retains the precise time version');
+SELECT ok(NOT (SELECT r.approved FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03') r),'approval does not carry to a corrected version');
+SELECT is((SELECT count(*)::integer FROM public.audit_events WHERE entity_id=pg_temp.k(37) AND event_type='work_order.execution_saved'),1,'field revision and retry emit one scoped execution audit event');
+RESET ROLE;
+UPDATE public.project_members SET role='viewer' WHERE project_id=pg_temp.k(21) AND user_id=pg_temp.k(2);
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',pg_temp.k(2)::text,true);
+SELECT throws_ok($$SELECT pg_temp.field_execution()$$,'42501',NULL,'revocation also blocks a retry using a formerly authorized request');
+SELECT throws_ok($$SELECT public.get_project_approved_time_export(pg_temp.k(11),pg_temp.k(21),'2026-11-03','2026-11-03')$$,
+ '42501',NULL,'a field user cannot export billing evidence');
+SELECT throws_ok($$SELECT * FROM public.list_work_order_time_for_review(
+ pg_temp.k(11),pg_temp.k(21),pg_temp.k(37),'2026-11-03')$$,'42501',NULL,'a field user cannot open the manager approval list');
+SELECT * FROM finish();
+ROLLBACK;

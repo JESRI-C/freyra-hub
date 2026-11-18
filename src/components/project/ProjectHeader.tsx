@@ -24,16 +24,22 @@ function statusTone(status: string | null): "success" | "warning" | "info" | "de
 
 interface ProjectHeaderProps {
   project: Project;
+  canEdit?: boolean;
   sitesCount: number;
   activeDataSourcesCount: number;
-  openActionsCount: number;
+  actionsCount: number;
+  showDescription?: boolean;
+  compact?: boolean;
 }
 
 export function ProjectHeader({
   project,
+  canEdit = false,
   sitesCount,
   activeDataSourcesCount,
-  openActionsCount,
+  actionsCount,
+  showDescription = true,
+  compact = false,
 }: ProjectHeaderProps) {
   const queryClient = useQueryClient();
   const [statusOpen, setStatusOpen] = useState(false);
@@ -59,6 +65,7 @@ export function ProjectHeader({
   }
 
   async function changeStatus(next: string) {
+    if (!canEdit) return;
     if (next === project.status) {
       setStatusOpen(false);
       return;
@@ -72,8 +79,8 @@ export function ProjectHeader({
       await updateProjectDetails(project.id, { status: next });
       toast.success(`Status ændret til: ${next}`);
       await invalidate();
-    } catch (err) {
-      toast.error(`Kunne ikke ændre status: ${(err as Error).message}`);
+    } catch {
+      toast.error("Status kunne ikke ændres. Kontrollér din adgang og prøv igen.");
     } finally {
       setSavingStatus(false);
       setStatusOpen(false);
@@ -81,15 +88,46 @@ export function ProjectHeader({
   }
 
   return (
-    <div className="rounded-2xl bg-card border shadow-soft p-6 space-y-4">
+    <div
+      className={`min-w-0 rounded-2xl bg-card border shadow-soft ${compact ? "px-4 py-2" : "p-4 sm:p-6 space-y-4"}`}
+    >
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-leaf/20 grid place-items-center text-leaf shrink-0">
+        <div className="flex min-w-0 max-w-full items-center gap-3">
+          <div
+            hidden={compact}
+            className={
+              compact
+                ? "hidden"
+                : "h-12 w-12 rounded-xl bg-leaf/20 grid place-items-center text-leaf shrink-0"
+            }
+          >
             <Leaf className="h-6 w-6" />
           </div>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">{project.name}</h1>
-            <div className="flex items-center gap-2 mt-0.5 text-sm text-muted-foreground">
+          <div className="min-w-0">
+            {compact && (
+              <p className="break-words text-xs text-muted-foreground">
+                {[
+                  "Projekt",
+                  project.municipality,
+                  project.location_name !== project.municipality ? project.location_name : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+            <h1
+              className={`break-words font-semibold tracking-tight ${compact ? "text-base" : "text-xl"}`}
+            >
+              {project.name}
+            </h1>
+            <div
+              hidden={compact}
+              className={
+                compact
+                  ? "hidden"
+                  : "flex flex-wrap items-center gap-2 mt-0.5 text-sm text-muted-foreground"
+              }
+            >
               {project.project_type && <span>{project.project_type}</span>}
               {project.location_name && (
                 <>
@@ -107,20 +145,20 @@ export function ProjectHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div hidden={compact} className={compact ? "hidden" : "flex items-center gap-2"}>
           {/* Status dropdown */}
           <div className="relative" ref={statusRef}>
             <button
               type="button"
               onClick={() => setStatusOpen((v) => !v)}
-              disabled={savingStatus}
+              disabled={savingStatus || !canEdit}
               className="inline-flex items-center gap-1 disabled:opacity-60"
-              aria-label="Skift status"
+              aria-label={canEdit ? "Skift status" : "Sagens status"}
             >
               <Pill tone={statusTone(project.status)}>
                 <span className="inline-flex items-center gap-1">
                   {savingStatus ? "Gemmer…" : (project.status ?? "Ukendt status")}
-                  <ChevronDown className="h-3 w-3" />
+                  {canEdit && <ChevronDown className="h-3 w-3" />}
                 </span>
               </Pill>
             </button>
@@ -140,22 +178,31 @@ export function ProjectHeader({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Rediger
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Rediger
+            </button>
+          )}
         </div>
       </div>
 
-      {project.description && (
-        <p className="text-sm text-muted-foreground">{project.description}</p>
+      {showDescription && project.description && (
+        <p hidden={compact} className="text-sm text-muted-foreground">
+          {project.description}
+        </p>
       )}
 
-      <div className="flex flex-wrap gap-4 pt-2 border-t text-sm text-muted-foreground">
+      <div
+        hidden={compact}
+        className={
+          compact ? "hidden" : "flex flex-wrap gap-4 pt-2 border-t text-sm text-muted-foreground"
+        }
+      >
         {(project.start_date || project.end_date) && (
           <div className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />
@@ -174,11 +221,9 @@ export function ProjectHeader({
               : ""}
           </div>
         )}
-        <span>{sitesCount} sites</span>
+        <span>{sitesCount} fotopunkter</span>
         <span>{activeDataSourcesCount} aktive datakilder</span>
-        {openActionsCount > 0 && (
-          <span className="text-amber-600 font-medium">{openActionsCount} åbne handlinger</span>
-        )}
+        {actionsCount > 0 && <span>{actionsCount} arbejdsopgaver</span>}
       </div>
 
       {editOpen && (
@@ -205,7 +250,7 @@ const PROJECT_TYPES = [
   "Vådområde",
 ];
 
-function EditProjectDialog({
+export function EditProjectDialog({
   project,
   onClose,
   onSaved,
@@ -247,8 +292,8 @@ function EditProjectDialog({
       });
       toast.success("Projekt opdateret");
       await onSaved();
-    } catch (e2) {
-      setErr((e2 as Error).message);
+    } catch {
+      setErr("Projektet kunne ikke gemmes. Kontrollér din adgang og prøv igen.");
     } finally {
       setSaving(false);
     }
@@ -262,7 +307,10 @@ function EditProjectDialog({
       <div className="bg-card rounded-2xl shadow-xl border w-full max-w-lg max-h-[90vh] overflow-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-card">
           <h2 className="font-semibold text-base">Rediger projekt</h2>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center">
+          <button
+            onClick={onClose}
+            className="h-8 w-8 rounded-lg hover:bg-muted grid place-items-center"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -275,26 +323,39 @@ function EditProjectDialog({
               className="input-base"
             />
           </Field>
-          <Field label="Beskrivelse">
+          <Field label="Problem og mål">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+              placeholder="Hvad er problemet, hvad vil I opnå, og hvordan vil I følge op?"
+              rows={4}
               className="input-base resize-none"
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Projekttype">
-              <select value={projectType} onChange={(e) => setProjectType(e.target.value)} className="input-base">
+              <select
+                value={projectType}
+                onChange={(e) => setProjectType(e.target.value)}
+                className="input-base"
+              >
                 {PROJECT_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </select>
             </Field>
             <Field label="Status">
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="input-base">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="input-base"
+              >
                 {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
             </Field>
@@ -331,11 +392,17 @@ function EditProjectDialog({
           </div>
 
           {err && (
-            <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{err}</div>
+            <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+              {err}
+            </div>
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="rounded-xl border px-4 py-2 text-sm hover:bg-muted">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border px-4 py-2 text-sm hover:bg-muted"
+            >
               Annuller
             </button>
             <button
@@ -364,7 +431,15 @@ function EditProjectDialog({
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium">

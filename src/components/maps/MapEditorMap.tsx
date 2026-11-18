@@ -6,7 +6,7 @@
  *   - Tegn projektgrænse (gemmes på projektet) — op til MAX_DRAW_POINTS punkter
  *   - Tegn zone (åbner gem-dialog)
  *   - Mål areal (ha + omkreds, gemmes ikke)
- *   - Redigér tegnede former (træk i hjørnepunkter)
+ *   - Redigér den gemte projektgrænse med eksplicit Gem/Annuller
  * Lag: 4 base layers + zoner + §3 + vandløb + NDVI + sensorer
  */
 
@@ -17,7 +17,10 @@ import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import type { Zone, ZoneType, GeoJsonPolygon } from "@/services/zones-service";
 import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS, calculatePolygonArea } from "@/services/zones-service";
-import type { IoTSensor } from "@/services/iot-simulation-service";
+import type { MapDevice } from "@/services/monitoring/map-devices-service";
+import { mapDevicePopup } from "./map-device-popup";
+import { MAX_PROJECT_POLYGON_VERTICES, validateProjectPolygon } from "@/services/geo-service";
+import type { DroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,22 +42,49 @@ export interface MapEditorMapProps {
   projectName: string;
   lat: number;
   lng: number;
+  initialZoom?: number;
+  initialBaseLayer?: BaseLayer;
+  readOnly?: boolean;
+  locationPoints?: Array<{
+    id: string;
+    label: string;
+    lat: number;
+    lng: number;
+    visitNumber?: number;
+  }>;
+  locationBounds?: Array<[number, number]> | null;
+  visitSegments?: Array<[[number, number], [number, number]]>;
+  onLayerStatus?: (id: string, message: string | null) => void;
   areaHa?: number | null;
   boundaryGeoJSON?: GeoJsonPolygon | null;
   zones?: Zone[];
-  sensors?: IoTSensor[];
+  sensors?: MapDevice[];
+  droneUploadPoints?: DroneUploadMapPoint[];
+  onDronePhotoClick?: (photoId: string) => void;
+  fitDroneUploads?: boolean;
   showSensors?: boolean;
+  showDroneUploads?: boolean;
   showParagraph3?: boolean;
   showWatercourses?: boolean;
   showNdviOverlay?: boolean;
   ndviValue?: number | null;
   paragraph3Areas?: Array<{ id: string; natureType: string; geojson: GeoJsonPolygon | null }>;
   watercourseFeatures?: Array<{ id: string; name?: string; coordinates: number[][] }>;
+  /** Zoom to a newly loaded official watercourse without treating it as a boundary. */
+  fitWatercourses?: boolean;
   drawMode?: DrawMode;
   onDrawModeChange?: (mode: DrawMode) => void;
   onZoneCreated?: (geojson: GeoJsonPolygon, areaHa: number) => void;
   onZoneClicked?: (zone: Zone) => void;
-  onBoundaryDrawn?: (geojson: GeoJsonPolygon, areaHa: number) => void;
+  onBoundaryDrawn?: (
+    geojson: GeoJsonPolygon,
+    areaHa: number,
+    source?: string,
+  ) => void | boolean | Promise<void | boolean>;
+  /** Prevent new boundary draw/edit while another boundary workflow is active. */
+  boundaryBusy?: boolean;
+  /** Reports whether the persistent boundary currently has unsaved local edits. */
+  onBoundaryEditStateChange?: (isEditing: boolean) => void;
   onMeasurement?: (areaHa: number, perimeterM: number) => void;
   /** External center commands (e.g. from address search). Changes trigger flyTo. */
   centerOverride?: { lat: number; lng: number; zoom?: number } | null;
@@ -70,6 +100,7 @@ export interface MapEditorMapProps {
    * kortudsnittet ved zoom ≥ CADASTRE_MIN_ZOOM og opdateres når kortet flyttes.
    */
   showCadastreParcels?: boolean;
+  showLowlandPolygons?: boolean;
   /** Preview polygon for a picked feature (shown before confirm). */
   previewPolygon?: GeoJsonPolygon | null;
   height?: number;
@@ -78,7 +109,10 @@ export interface MapEditorMapProps {
 
 // ─── Base layers ──────────────────────────────────────────────────────────────
 
-const BASE_LAYERS: Record<BaseLayer, { url: string; attribution: string; label: string; maxZoom: number }> = {
+const BASE_LAYERS: Record<
+  BaseLayer,
+  { url: string; attribution: string; label: string; maxZoom: number }
+> = {
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution: "Tiles © Esri — Esri, Maxar, Earthstar Geographics",
@@ -105,20 +139,25 @@ const BASE_LAYERS: Record<BaseLayer, { url: string; attribution: string; label: 
   },
 };
 
-const SENSOR_COLORS: Record<IoTSensor["status"], string> = {
+const SENSOR_COLORS: Record<MapDevice["status"], string> = {
   online: "#10b981",
-  warning: "#f59e0b",
+  partial: "#f59e0b",
+  attention: "#f59e0b",
   offline: "#ef4444",
+  not_activated: "#64748b",
 };
 
-const DRAW_STYLES: Record<Exclude<DrawMode, "none">, { color: string; fillOpacity: number; dashArray?: string }> = {
+const DRAW_STYLES: Record<
+  Exclude<DrawMode, "none">,
+  { color: string; fillOpacity: number; dashArray?: string }
+> = {
   boundary: { color: "#2BC48A", fillOpacity: 0.15 },
-  zone:     { color: "#f59e0b", fillOpacity: 0.2 },
-  measure:  { color: "#6366f1", fillOpacity: 0.12, dashArray: "5 5" },
+  zone: { color: "#f59e0b", fillOpacity: 0.2 },
+  measure: { color: "#6366f1", fillOpacity: 0.12, dashArray: "5 5" },
 };
 
 /** Hårdt loft for punkter pr. tegnet flade — fladen afsluttes automatisk ved loftet. */
-export const MAX_DRAW_POINTS = 500;
+export const MAX_DRAW_POINTS = MAX_PROJECT_POLYGON_VERTICES;
 
 /** Matrikel-vektorlaget hentes først fra dette zoomniveau (DAWA-opslag pr. udsnit). */
 export const CADASTRE_MIN_ZOOM = 15;
@@ -131,7 +170,8 @@ export function haversineM(lat1: number, lng1: number, lat2: number, lng2: numbe
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
+  const a =
+    Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
@@ -144,10 +184,64 @@ export function polygonPerimeterM(latLngs: [number, number][]): number {
   return Math.round(total);
 }
 
+function appendDronePopupRow(container: HTMLElement, label: string, value: string): void {
+  const row = document.createElement("div");
+  const labelNode = document.createElement("span");
+  const valueNode = document.createElement("span");
+  labelNode.textContent = `${label}: `;
+  labelNode.style.fontWeight = "600";
+  valueNode.textContent = value;
+  row.append(labelNode, valueNode);
+  container.append(row);
+}
+
+/** Build the popup entirely with text nodes so upload-controlled metadata is never parsed as HTML. */
+function buildDroneUploadPopup(point: DroneUploadMapPoint): HTMLElement {
+  const popup = document.createElement("div");
+  popup.style.minWidth = "220px";
+
+  const title = document.createElement("strong");
+  title.textContent = point.fileName;
+  popup.append(title);
+
+  const warning = document.createElement("div");
+  warning.textContent = point.positionNotice ?? "Ubekræftet kameraposition";
+  warning.style.color = "#b45309";
+  warning.style.fontWeight = "600";
+  warning.style.margin = "4px 0";
+  popup.append(warning);
+
+  appendDronePopupRow(
+    popup,
+    "Optaget",
+    point.capturedAtLabel ?? new Date(point.capturedAt).toLocaleString("da-DK"),
+  );
+  appendDronePopupRow(
+    popup,
+    "Position",
+    `${point.coordinates.lat.toFixed(6)}, ${point.coordinates.lng.toFixed(6)}`,
+  );
+  if (point.altitudeM != null) {
+    appendDronePopupRow(popup, "Højde", `${point.altitudeM.toFixed(1)} m`);
+  }
+  if (point.directionDeg != null) {
+    appendDronePopupRow(popup, "Retning", `${point.directionDeg.toFixed(0)}°`);
+  }
+  if (point.cameraLabel) appendDronePopupRow(popup, "Kamera", point.cameraLabel);
+
+  const limitation = document.createElement("div");
+  limitation.textContent = "Kun til orientering – ikke footprint eller rapportbevis.";
+  limitation.style.marginTop = "6px";
+  limitation.style.fontSize = "11px";
+  limitation.style.color = "#6b7280";
+  popup.append(limitation);
+  return popup;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function MapEditorMap({
-  projectId: _projectId,
+  projectId,
   projectName,
   lat,
   lng,
@@ -155,25 +249,40 @@ export function MapEditorMap({
   boundaryGeoJSON,
   zones = [],
   sensors = [],
+  droneUploadPoints = [],
+  onDronePhotoClick,
+  fitDroneUploads = false,
   showSensors = true,
+  showDroneUploads = true,
   showParagraph3 = true,
   showWatercourses = true,
   showNdviOverlay = false,
   ndviValue,
   paragraph3Areas = [],
   watercourseFeatures = [],
+  fitWatercourses = false,
   drawMode: drawModeProp,
   onDrawModeChange,
   onZoneCreated,
   onZoneClicked,
   onBoundaryDrawn,
+  boundaryBusy = false,
+  onBoundaryEditStateChange,
   onMeasurement,
+  initialZoom = 15,
+  initialBaseLayer = "satellite",
+  readOnly = false,
+  locationPoints = [],
+  locationBounds,
+  visitSegments,
+  onLayerStatus,
   centerOverride,
   wmsOverlays,
   addressMarker,
   pickMode,
   onFeaturePicked,
   showCadastreParcels = false,
+  showLowlandPolygons = false,
   previewPolygon,
   height = 540,
   className,
@@ -188,6 +297,7 @@ export function MapEditorMap({
     wl: import("leaflet").FeatureGroup | null;
     ndvi: import("leaflet").GeoJSON | null;
     sensors: import("leaflet").FeatureGroup | null;
+    droneUploads: import("leaflet").FeatureGroup | null;
     drawn: import("leaflet").FeatureGroup | null;
     activeDrawer: {
       disable: () => void;
@@ -195,38 +305,81 @@ export function MapEditorMap({
       completeShape?: () => void;
       _markers?: unknown[];
     } | null;
-    editHandler: { enable: () => void; disable: () => void; save: () => void } | null;
+    editHandler: { enable: () => void; disable: () => void } | null;
     wms: Map<string, import("leaflet").TileLayer.WMS>;
     addressMarker: import("leaflet").Marker | null;
     preview: import("leaflet").GeoJSON | null;
     cadastre: import("leaflet").GeoJSON | null;
+    lowland: import("leaflet").GeoJSON | null;
   }>({
-    base: null, boundary: null, zones: null, p3: null, wl: null,
-    ndvi: null, sensors: null, drawn: null, activeDrawer: null, editHandler: null,
+    base: null,
+    boundary: null,
+    zones: null,
+    p3: null,
+    wl: null,
+    ndvi: null,
+    sensors: null,
+    droneUploads: null,
+    drawn: null,
+    activeDrawer: null,
+    editHandler: null,
     wms: new Map(),
     addressMarker: null,
     preview: null,
     cadastre: null,
+    lowland: null,
   });
 
-  // Intern mode-state, synkroniseret med evt. controlled prop
-  const [internalMode, setInternalMode] = useState<DrawMode>("none");
-  const drawMode = drawModeProp ?? internalMode;
-  const drawModeRef = useRef<DrawMode>(drawMode);
-  useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
-
   const [isEditing, setIsEditing] = useState(false);
-  const [baseLayer, setBaseLayer] = useState<BaseLayer>("satellite");
-  const [measurement, setMeasurement] = useState<{ areaHa: number; perimeterM: number } | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Intern mode-state, synkroniseret med evt. controlled prop. En ekstern
+  // drawMode må ikke kunne genstarte Geoman, mens grænsen redigeres/gemmes.
+  const [internalMode, setInternalMode] = useState<DrawMode>("none");
+  const requestedDrawMode = drawModeProp ?? internalMode;
+  const drawingBlocked = boundaryBusy || isEditing || isSavingEdit;
+  const drawMode = drawingBlocked ? "none" : requestedDrawMode;
+  const drawModeRef = useRef<DrawMode>(drawMode);
+  useEffect(() => {
+    drawModeRef.current = drawMode;
+  }, [drawMode]);
+
+  const [boundaryRenderVersion, setBoundaryRenderVersion] = useState(0);
+  const [baseLayer, setBaseLayer] = useState<BaseLayer>(initialBaseLayer);
+  const [measurement, setMeasurement] = useState<{ areaHa: number; perimeterM: number } | null>(
+    null,
+  );
   const [ready, setReady] = useState(false);
   // Live-tæller for punkter under tegning
   const [drawingPoints, setDrawingPoints] = useState(0);
 
-  const setMode = useCallback((mode: DrawMode) => {
-    setInternalMode(mode);
-    onDrawModeChange?.(mode);
-    setDrawingPoints(0);
+  useEffect(() => {
+    onBoundaryEditStateChange?.(isEditing);
+    return () => onBoundaryEditStateChange?.(false);
+  }, [isEditing, onBoundaryEditStateChange]);
+
+  const onDrawModeChangeRef = useRef(onDrawModeChange);
+  useEffect(() => {
+    onDrawModeChangeRef.current = onDrawModeChange;
   }, [onDrawModeChange]);
+
+  useEffect(() => {
+    if (!drawingBlocked || requestedDrawMode === "none") return;
+    // Controlled callers får samme tydelige nulstilling som den interne state.
+    // `drawMode` er allerede effektivt "none", så Geoman kan ikke nå at starte.
+    setInternalMode("none");
+    setDrawingPoints(0);
+    onDrawModeChangeRef.current?.("none");
+  }, [drawingBlocked, requestedDrawMode]);
+
+  const setMode = useCallback(
+    (mode: DrawMode) => {
+      setInternalMode(mode);
+      onDrawModeChange?.(mode);
+      setDrawingPoints(0);
+    },
+    [onDrawModeChange],
+  );
 
   // Tegn-værktøjslinje-handlers
   const undoLastVertex = useCallback(() => {
@@ -243,14 +396,15 @@ export function MapEditorMap({
     setMode("none");
   }, [setMode]);
 
-
   // Refs holder friske callbacks + pickMode så map-event listeners ikke skal genregistreres
   const pickModeRef = useRef(pickMode);
-  useEffect(() => { pickModeRef.current = pickMode; }, [pickMode]);
+  useEffect(() => {
+    pickModeRef.current = pickMode;
+  }, [pickMode]);
   const onPickRef = useRef(onFeaturePicked);
-  useEffect(() => { onPickRef.current = onFeaturePicked; }, [onFeaturePicked]);
-
-
+  useEffect(() => {
+    onPickRef.current = onFeaturePicked;
+  }, [onFeaturePicked]);
 
   // Holder callbacks friske i event handlers
   const callbacksRef = useRef({ onZoneCreated, onBoundaryDrawn, onMeasurement, onZoneClicked });
@@ -278,19 +432,22 @@ export function MapEditorMap({
       delete proto["_getIconUrl"];
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
       const map = L.map(containerRef.current, {
         center: [lat, lng],
-        zoom: 15,
+        zoom: initialZoom,
         zoomControl: true,
         scrollWheelZoom: true,
       });
 
       const bl = BASE_LAYERS["satellite"];
-      layersRef.current.base = L.tileLayer(bl.url, { attribution: bl.attribution, maxZoom: bl.maxZoom }).addTo(map);
+      layersRef.current.base = L.tileLayer(bl.url, {
+        attribution: bl.attribution,
+        maxZoom: bl.maxZoom,
+      }).addTo(map);
 
       const drawnItems = new L.FeatureGroup();
       map.addLayer(drawnItems);
@@ -305,35 +462,78 @@ export function MapEditorMap({
           const mode = drawModeRef.current;
           const layer = e.layer as import("leaflet").Polygon;
 
+          // Et sent create-event efter stop/busy må aldrig blive behandlet som
+          // en zone eller gemt som en ny projektgrænse.
+          if (mode === "none") {
+            map.removeLayer(layer);
+            layersRef.current.activeDrawer = null;
+            return;
+          }
+
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const gj = (layer as any).toGeoJSON() as { geometry: GeoJsonPolygon };
-          const polygon = gj.geometry;
+          const validation = validateProjectPolygon(gj.geometry);
+          if (!validation.valid) {
+            map.removeLayer(layer);
+            toast.error(validation.error);
+            layersRef.current.activeDrawer = null;
+            setInternalMode("none");
+            onDrawModeChangeRef.current?.("none");
+            return;
+          }
+          const polygon = validation.polygon as GeoJsonPolygon;
           const ha = await calculatePolygonArea(polygon);
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const ring: [number, number][] = ((layer as any).getLatLngs()[0] as Array<{ lat: number; lng: number }>)
-            .map((ll) => [ll.lat, ll.lng] as [number, number]);
+          const ring: [number, number][] =
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ((layer as any).getLatLngs()[0] as Array<{ lat: number; lng: number }>).map(
+              (ll) => [ll.lat, ll.lng] as [number, number],
+            );
           const perimeterM = polygonPerimeterM([...ring, ring[0]]);
 
-          const style = DRAW_STYLES[mode === "none" ? "zone" : mode];
+          const style = DRAW_STYLES[mode];
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (layer as any).setStyle?.({ ...style, weight: 2, fillColor: style.color });
 
           drawnItems.addLayer(layer);
-          layer.bindPopup(
-            `<strong>${ha} ha</strong><br/>${(perimeterM / 1000).toFixed(2)} km omkreds`,
-          ).openPopup();
+          layer
+            .bindPopup(`<strong>${ha} ha</strong><br/>${(perimeterM / 1000).toFixed(2)} km omkreds`)
+            .openPopup();
 
           setMeasurement({ areaHa: ha, perimeterM });
 
           const cb = callbacksRef.current;
-          if (mode === "boundary") cb.onBoundaryDrawn?.(polygon, ha);
-          else if (mode === "zone") cb.onZoneCreated?.(polygon, ha);
-          else if (mode === "measure") cb.onMeasurement?.(ha, perimeterM);
-
           layersRef.current.activeDrawer = null;
           setInternalMode("none");
-          onDrawModeChange?.("none");
+          onDrawModeChangeRef.current?.("none");
+
+          if (mode === "boundary") {
+            if (!cb.onBoundaryDrawn) {
+              drawnItems.removeLayer(layer);
+              setMeasurement(null);
+              toast.error("Projektgrænsen kan ikke gemmes i denne kortvisning.");
+              return;
+            }
+            try {
+              const saved = await cb.onBoundaryDrawn(polygon, ha, "manual");
+              if (saved === false) {
+                drawnItems.removeLayer(layer);
+                setMeasurement(null);
+                return;
+              }
+              drawnItems.removeLayer(layer);
+            } catch (error) {
+              drawnItems.removeLayer(layer);
+              setMeasurement(null);
+              toast.error(
+                error instanceof Error ? error.message : "Projektgrænsen kunne ikke gemmes.",
+              );
+            }
+          } else if (mode === "zone") {
+            cb.onZoneCreated?.(polygon, ha);
+          } else if (mode === "measure") {
+            cb.onMeasurement?.(ha, perimeterM);
+          }
         });
 
         // Live tælling af tegnede vertices + hårdt loft på MAX_DRAW_POINTS.
@@ -341,7 +541,6 @@ export function MapEditorMap({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         map.on("pm:drawstart", (e: any) => {
           setDrawingPoints(0);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           e?.workingLayer?.on?.("pm:vertexadded", () => {
             setDrawingPoints((n) => {
               const next = n + 1;
@@ -366,7 +565,6 @@ export function MapEditorMap({
         const ll = (ev as any).latlng as { lat: number; lng: number };
         cb?.({ lat: ll.lat, lng: ll.lng });
       });
-
 
       mapRef.current = map;
       setReady(true);
@@ -410,40 +608,114 @@ export function MapEditorMap({
     };
   }, [drawMode, ready]);
 
-  // ── Redigér tegnede former (geoman pr. lag) ──────────────────────────────────
-  const toggleEdit = useCallback(() => {
-    const map = mapRef.current;
-    const drawnItems = layersRef.current.drawn;
-    if (!map || !drawnItems) return;
+  // ── Redigér den persistente projektgrænse (Geoman pr. polygonlag) ────────────
+  const startBoundaryEdit = useCallback(() => {
+    const boundary = layersRef.current.boundary;
+    if (!boundary || !onBoundaryDrawn || boundaryBusy) return;
 
-    if (isEditing) {
-      layersRef.current.editHandler?.save();
+    setMode("none");
+    let editableLayers = 0;
+    boundary.eachLayer((layer) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pm = (layer as any).pm;
+      if (!pm?.enable) return;
+      pm.enable({ allowSelfIntersection: false });
+      editableLayers += 1;
+    });
+    if (editableLayers !== 1) {
+      boundary.eachLayer((layer) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (layer as any).pm?.disable?.();
+      });
+      toast.error("Projektgrænsen kunne ikke åbnes til redigering som én Polygon.");
+      return;
+    }
+
+    layersRef.current.editHandler = {
+      enable: () => {
+        boundary.eachLayer((layer) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (layer as any).pm?.enable?.({ allowSelfIntersection: false });
+        });
+      },
+      disable: () => {
+        boundary.eachLayer((layer) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (layer as any).pm?.disable?.();
+        });
+      },
+    };
+    setIsEditing(true);
+  }, [boundaryBusy, onBoundaryDrawn, setMode]);
+
+  const saveBoundaryEdit = useCallback(async () => {
+    const boundary = layersRef.current.boundary;
+    const callback = callbacksRef.current.onBoundaryDrawn;
+    if (!boundary || !callback || boundaryBusy || isSavingEdit) return;
+
+    let rawGeometry: unknown = null;
+    let polygonCount = 0;
+    boundary.eachLayer((layer) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const feature = (layer as any).toGeoJSON?.() as
+        | { type?: string; geometry?: unknown }
+        | undefined;
+      if (feature?.type === "Feature") {
+        polygonCount += 1;
+        rawGeometry = feature.geometry;
+      }
+    });
+
+    if (polygonCount !== 1) {
+      toast.error("Projektgrænsen skal bestå af præcis én Polygon.");
+      return;
+    }
+
+    const validation = validateProjectPolygon(rawGeometry);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
+    // Frys Geoman-laget før den første await. Snapshot og persistence kan
+    // dermed ikke komme ud af takt med vertices, som brugeren stadig flytter.
+    layersRef.current.editHandler?.disable();
+    setIsSavingEdit(true);
+    try {
+      const polygon = validation.polygon as GeoJsonPolygon;
+      const nextAreaHa = await calculatePolygonArea(polygon);
+      const saved = await callback(polygon, nextAreaHa, "manual");
+      if (saved === false) {
+        layersRef.current.editHandler?.enable();
+        return;
+      }
+
       layersRef.current.editHandler?.disable();
       layersRef.current.editHandler = null;
+      setMeasurement(null);
       setIsEditing(false);
-    } else {
-      const handler = {
-        enable: () => {
-          drawnItems.eachLayer((l) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (l as any).pm?.enable?.({ allowSelfIntersection: false });
-          });
-        },
-        disable: () => {
-          drawnItems.eachLayer((l) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (l as any).pm?.disable?.();
-          });
-        },
-        save: () => {
-          /* geoman opdaterer lagene live — intet separat save-trin */
-        },
-      };
-      handler.enable();
-      layersRef.current.editHandler = handler;
-      setIsEditing(true);
+      toast.success("Projektgrænsen er gemt");
+    } catch (error) {
+      layersRef.current.editHandler?.enable();
+      toast.error(error instanceof Error ? error.message : "Projektgrænsen kunne ikke gemmes.");
+    } finally {
+      setIsSavingEdit(false);
     }
-  }, [isEditing]);
+  }, [boundaryBusy, isSavingEdit]);
+
+  const cancelBoundaryEdit = useCallback(() => {
+    if (isSavingEdit) return;
+    layersRef.current.editHandler?.disable();
+    layersRef.current.editHandler = null;
+    setIsEditing(false);
+    // Geoman ændrer laget in-place. Genrender fra den uændrede prop for at
+    // gendanne den persistente geometri uden at skrive noget.
+    setBoundaryRenderVersion((version) => version + 1);
+  }, [isSavingEdit]);
+
+  useEffect(() => {
+    if (boundaryBusy && isEditing && !isSavingEdit) cancelBoundaryEdit();
+  }, [boundaryBusy, cancelBoundaryEdit, isEditing, isSavingEdit]);
 
   const clearDrawings = useCallback(() => {
     layersRef.current.drawn?.clearLayers();
@@ -458,7 +730,10 @@ export function MapEditorMap({
       const map = mapRef.current!;
       if (layersRef.current.base) map.removeLayer(layersRef.current.base);
       const bl = BASE_LAYERS[baseLayer];
-      layersRef.current.base = L.tileLayer(bl.url, { attribution: bl.attribution, maxZoom: bl.maxZoom }).addTo(map);
+      layersRef.current.base = L.tileLayer(bl.url, {
+        attribution: bl.attribution,
+        maxZoom: bl.maxZoom,
+      }).addTo(map);
       layersRef.current.base.bringToBack();
     })();
   }, [baseLayer, ready]);
@@ -469,16 +744,28 @@ export function MapEditorMap({
     (async () => {
       const L = await import("leaflet");
       const map = mapRef.current!;
+      layersRef.current.editHandler?.disable();
+      layersRef.current.editHandler = null;
+      setIsEditing(false);
+      setIsSavingEdit(false);
       if (layersRef.current.boundary) map.removeLayer(layersRef.current.boundary);
+      layersRef.current.boundary = null;
       if (!boundaryGeoJSON) return;
+      const validation = validateProjectPolygon(boundaryGeoJSON);
+      if (!validation.valid) {
+        toast.error(`Den gemte projektgrænse er ugyldig: ${validation.error}`);
+        return;
+      }
       const layer = L.geoJSON(
-        { type: "Feature", geometry: boundaryGeoJSON, properties: {} } as never,
+        { type: "Feature", geometry: validation.polygon, properties: {} } as never,
         { style: { color: "#2BC48A", weight: 3, fillColor: "#2BC48A", fillOpacity: 0.08 } },
-      ).bindPopup(`<strong>${projectName}</strong>${areaHa ? `<br/>${areaHa} ha` : ""}`).addTo(map);
+      )
+        .bindPopup(`<strong>${projectName}</strong>${areaHa ? `<br/>${areaHa} ha` : ""}`)
+        .addTo(map);
       layersRef.current.boundary = layer;
       map.fitBounds(layer.getBounds(), { padding: [40, 40] });
     })();
-  }, [boundaryGeoJSON, projectName, areaHa, ready]);
+  }, [boundaryGeoJSON, projectName, areaHa, ready, boundaryRenderVersion]);
 
   // ── Zoner (ryd tegninger når en zone er gemt) ────────────────────────────────
   const prevZoneCount = useRef(zones.length);
@@ -501,14 +788,15 @@ export function MapEditorMap({
       zones.forEach((zone) => {
         if (!zone.geojson) return;
         const c = ZONE_TYPE_COLORS[zone.area_type as ZoneType] ?? ZONE_TYPE_COLORS.pilot_area;
-        L.geoJSON(
-          { type: "Feature", geometry: zone.geojson, properties: {} } as never,
-          { style: { color: c.stroke, weight: 2, fillColor: c.fill, fillOpacity: 0.3 } },
-        )
-          .bindPopup(
-            `<strong>${zone.name}</strong><br/>${ZONE_TYPE_LABELS[zone.area_type as ZoneType]}` +
-            `${zone.area_ha ? `<br/>${zone.area_ha} ha` : ""}`,
-          )
+        const popup = document.createElement("div");
+        const name = document.createElement("strong");
+        name.textContent = zone.name;
+        popup.append(name, document.createElement("br"), ZONE_TYPE_LABELS[zone.area_type] ?? "");
+        if (zone.area_ha) popup.append(document.createElement("br"), `${zone.area_ha} ha`);
+        L.geoJSON({ type: "Feature", geometry: zone.geojson, properties: {} } as never, {
+          style: { color: c.stroke, weight: 2, fillColor: c.fill, fillOpacity: 0.3 },
+        })
+          .bindPopup(popup)
           .on("click", () => callbacksRef.current.onZoneClicked?.(zone))
           .addTo(group);
       });
@@ -527,10 +815,17 @@ export function MapEditorMap({
       layersRef.current.p3 = group;
       paragraph3Areas.forEach((a) => {
         if (!a.geojson) return;
-        L.geoJSON(
-          { type: "Feature", geometry: a.geojson, properties: {} } as never,
-          { style: { color: "#15803d", weight: 1.5, fillColor: "#22c55e", fillOpacity: 0.35, dashArray: "4 2" } },
-        ).bindPopup(`§3 ${a.natureType}`).addTo(group);
+        L.geoJSON({ type: "Feature", geometry: a.geojson, properties: {} } as never, {
+          style: {
+            color: "#15803d",
+            weight: 1.5,
+            fillColor: "#22c55e",
+            fillOpacity: 0.35,
+            dashArray: "4 2",
+          },
+        })
+          .bindPopup(`§3 ${a.natureType}`)
+          .addTo(group);
       });
     })();
   }, [showParagraph3, paragraph3Areas, ready]);
@@ -547,12 +842,25 @@ export function MapEditorMap({
       layersRef.current.wl = group;
       watercourseFeatures.forEach((wc) => {
         if (wc.coordinates.length < 2) return;
-        L.polyline(wc.coordinates.map((c) => [c[1], c[0]] as [number, number]), {
-          color: "#3B82F6", weight: 2.5, opacity: 0.85,
-        }).bindPopup(wc.name ?? "Vandløb").addTo(group);
+        const popup = document.createElement("span");
+        popup.textContent = wc.name ?? "Vandløb";
+        L.polyline(
+          wc.coordinates.map((c) => [c[1], c[0]] as [number, number]),
+          {
+            color: "#3B82F6",
+            weight: 2.5,
+            opacity: 0.85,
+          },
+        )
+          .bindPopup(popup)
+          .addTo(group);
       });
+      if (fitWatercourses && group.getLayers().length > 0) {
+        const bounds = group.getBounds();
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+      }
     })();
-  }, [showWatercourses, watercourseFeatures, ready]);
+  }, [showWatercourses, watercourseFeatures, fitWatercourses, ready]);
 
   // ── NDVI overlay ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -565,47 +873,188 @@ export function MapEditorMap({
         layersRef.current.ndvi = null;
       }
       if (!showNdviOverlay || ndviValue == null || !boundaryGeoJSON) return;
-      const color = ndviValue >= 0.6 ? "#16a34a" : ndviValue >= 0.4 ? "#65a30d" :
-                    ndviValue >= 0.2 ? "#ca8a04" : "#dc2626";
+      const color =
+        ndviValue >= 0.6
+          ? "#16a34a"
+          : ndviValue >= 0.4
+            ? "#65a30d"
+            : ndviValue >= 0.2
+              ? "#ca8a04"
+              : "#dc2626";
       layersRef.current.ndvi = L.geoJSON(
         { type: "Feature", geometry: boundaryGeoJSON, properties: {} } as never,
         { style: { color: "transparent", fillColor: color, fillOpacity: 0.4 } },
-      ).bindPopup(`NDVI: ${ndviValue.toFixed(2)}`).addTo(map);
+      )
+        .bindPopup(`NDVI: ${ndviValue.toFixed(2)}`)
+        .addTo(map);
     })();
   }, [showNdviOverlay, ndviValue, boundaryGeoJSON, ready]);
 
   // ── Sensorer ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    let cancelled = false;
+    let group: import("leaflet").FeatureGroup | null = null;
     (async () => {
       const L = await import("leaflet");
-      const map = mapRef.current!;
+      if (cancelled || mapRef.current !== map) return;
       if (layersRef.current.sensors) map.removeLayer(layersRef.current.sensors);
+      layersRef.current.sensors = null;
       if (!showSensors) return;
-      const group = new L.FeatureGroup().addTo(map);
+      group = new L.FeatureGroup().addTo(map);
       layersRef.current.sensors = group;
       sensors.forEach((s) => {
+        if (!s.coordinates) return;
         L.marker([s.coordinates.lat, s.coordinates.lng], {
+          title: s.label,
           icon: L.divIcon({
             html: `<div style="width:14px;height:14px;border-radius:50%;background:${SENSOR_COLORS[s.status]};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
-            className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+            className: "",
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
           }),
-        }).bindPopup(
-          `<strong>${s.label}</strong><br/>${s.latestValue} ${s.unit}<br/>🔋 ${s.batteryPercent}%`,
-        ).addTo(group);
+        })
+          .bindPopup(mapDevicePopup(s), {
+            maxWidth: 250,
+            autoPanPaddingTopLeft: [45, 65],
+            autoPanPaddingBottomRight: [15, 15],
+          })
+          .addTo(group!);
       });
     })();
+    return () => {
+      cancelled = true;
+      if (group && mapRef.current === map && map.hasLayer(group)) map.removeLayer(group);
+      if (layersRef.current.sensors === group) layersRef.current.sensors = null;
+    };
   }, [showSensors, sensors, ready]);
+
+  // ── Rå dronefoto-positioner ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    const layers = layersRef.current;
+
+    if (layers.droneUploads) {
+      map.removeLayer(layers.droneUploads);
+      layers.droneUploads = null;
+    }
+    if (!showDroneUploads || droneUploadPoints.length === 0) return;
+
+    let disposed = false;
+    let nextGroup: import("leaflet").FeatureGroup | null = null;
+
+    void (async () => {
+      const L = await import("leaflet");
+      if (disposed || mapRef.current !== map) return;
+
+      const normalizedProjectId = projectId.toLowerCase();
+      const group = new L.FeatureGroup();
+      droneUploadPoints.forEach((point) => {
+        const { lat: pointLat, lng: pointLng } = point.coordinates;
+        if (
+          point.projectId.toLowerCase() !== normalizedProjectId ||
+          point.positionTrust !== "raw_unvalidated" ||
+          !Number.isFinite(pointLat) ||
+          !Number.isFinite(pointLng) ||
+          Math.abs(pointLat) > 90 ||
+          Math.abs(pointLng) > 180
+        ) {
+          return;
+        }
+
+        L.circleMarker([pointLat, pointLng], {
+          radius: 7,
+          color: "#ffffff",
+          weight: 2,
+          fillColor: "#f59e0b",
+          fillOpacity: 0.95,
+        })
+          .bindPopup(buildDroneUploadPopup(point))
+          .on("click", () => onDronePhotoClick?.(point.uploadId))
+          .addTo(group);
+      });
+
+      if (disposed || mapRef.current !== map || group.getLayers().length === 0) return;
+      group.addTo(map);
+      if (fitDroneUploads) map.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 18 });
+      nextGroup = group;
+      layers.droneUploads = group;
+    })();
+
+    return () => {
+      disposed = true;
+      if (nextGroup && layers.droneUploads === nextGroup) {
+        if (map.hasLayer(nextGroup)) map.removeLayer(nextGroup);
+        layers.droneUploads = null;
+      }
+    };
+  }, [droneUploadPoints, projectId, ready, showDroneUploads, onDronePhotoClick, fitDroneUploads]);
 
   // ── Center override (from address search) ─────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || !ready || !centerOverride) return;
-    mapRef.current.flyTo(
-      [centerOverride.lat, centerOverride.lng],
-      centerOverride.zoom ?? 16,
-      { duration: 0.8 },
-    );
+    mapRef.current.flyTo([centerOverride.lat, centerOverride.lng], centerOverride.zoom ?? 16, {
+      duration: 0.8,
+    });
   }, [centerOverride, ready]);
+
+  const layerStatusRef = useRef(onLayerStatus);
+  layerStatusRef.current = onLayerStatus;
+  const locationLayerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    let cancelled = false;
+    void import("leaflet").then((L) => {
+      if (cancelled || !mapRef.current) return;
+      if (locationLayerRef.current) mapRef.current.removeLayer(locationLayerRef.current);
+      const group = L.layerGroup();
+      for (const segment of visitSegments ?? []) {
+        L.polyline(segment, { color: "#1d4ed8", dashArray: "6 6", interactive: false }).addTo(
+          group,
+        );
+      }
+      for (const p of locationPoints) {
+        const label = document.createElement("span");
+        if (p.visitNumber !== undefined) {
+          const markerText = document.createElement("span");
+          markerText.textContent = String(p.visitNumber);
+          markerText.className =
+            "flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-700 font-bold text-white shadow";
+          label.textContent = p.visitNumber + ". " + p.label;
+          L.marker([p.lat, p.lng], {
+            title: label.textContent,
+            icon: L.divIcon({
+              html: markerText,
+              className: "",
+              iconSize: [28, 28],
+              iconAnchor: [14, 14],
+            }),
+          })
+            .bindPopup(label)
+            .addTo(group);
+        } else {
+          label.textContent = p.label + " · Kameraposition, ikke billeddækning";
+          L.circleMarker([p.lat, p.lng], { radius: 6, color: "#2563eb", fillOpacity: 0.8 })
+            .bindTooltip(label)
+            .addTo(group);
+        }
+      }
+      group.addTo(mapRef.current);
+      locationLayerRef.current = group;
+    });
+    return () => {
+      cancelled = true;
+      if (locationLayerRef.current && mapRef.current)
+        mapRef.current.removeLayer(locationLayerRef.current);
+    };
+  }, [locationPoints, ready, visitSegments]);
+  useEffect(() => {
+    if (!mapRef.current || !ready || !locationBounds?.length) return;
+    // A zoom animation to the first point can otherwise discard the next group's bounds.
+    mapRef.current.fitBounds(locationBounds, { padding: [30, 30], maxZoom: 17, animate: false });
+  }, [locationBounds, ready]);
 
   // ── WMS overlays (matrikelskel, markblokke, etc.) ────────────────────────────
   useEffect(() => {
@@ -631,17 +1080,25 @@ export function MapEditorMap({
           opacity: o.opacity ?? 0.7,
           attribution: o.attribution,
         });
+        layerStatusRef.current?.(o.id, "Henter kortlag …");
+        layer.on("tileerror", () =>
+          layerStatusRef.current?.(o.id, "Kortlaget kunne ikke vises. Prøv igen eller zoom ind."),
+        );
+        layer.on("tileload", () =>
+          layerStatusRef.current?.(o.id, "Kortlag hentet. Indhold afhænger af sted og zoom."),
+        );
         layer.addTo(map);
         layersRef.current.wms.set(o.id, layer);
       });
     })();
   }, [wmsOverlays, ready]);
 
-  // ── Matrikelskel som vektorlag (DAWA — gratis, ingen token) ────────────────
+  // ── Gældende matrikler via serverens validerede Datafordeler-adapter ────────────────
   const cadastreSeqRef = useRef(0);
   useEffect(() => {
     if (!mapRef.current || !ready) return;
     const map = mapRef.current;
+    let cancelled = false;
 
     const clearLayer = () => {
       if (layersRef.current.cadastre) {
@@ -657,8 +1114,13 @@ export function MapEditorMap({
 
     const load = async () => {
       const seq = ++cadastreSeqRef.current;
+      layerStatusRef.current?.("cadastre", "Henter matrikler …");
       if (map.getZoom() < CADASTRE_MIN_ZOOM) {
         clearLayer();
+        layerStatusRef.current?.(
+          "cadastre",
+          "Zoom ind til niveau 15 eller tættere for at se matrikler.",
+        );
         return;
       }
       const b = map.getBounds();
@@ -670,13 +1132,19 @@ export function MapEditorMap({
       const s = clampLat(b.getSouth());
       const n = clampLat(b.getNorth());
       if (w >= e || s >= n) return; // udsnit helt uden for DK
-      const ring: [number, number][] = [[w, s], [e, s], [e, n], [w, n], [w, s]];
+      const ring: [number, number][] = [
+        [w, s],
+        [e, s],
+        [e, n],
+        [w, n],
+        [w, s],
+      ];
 
       try {
         const { listMatriklerInArea } = await import("@/lib/geo-search.functions");
         const result = await listMatriklerInArea({ data: { ring } });
         // Stale-guard: kortet kan være flyttet mens vi ventede.
-        if (seq !== cadastreSeqRef.current || !mapRef.current) return;
+        if (cancelled || seq !== cadastreSeqRef.current || !mapRef.current) return;
         const L = await import("leaflet");
         clearLayer();
         const features = result.items
@@ -686,33 +1154,137 @@ export function MapEditorMap({
             properties: { label: it.label, areaHa: it.areaHa },
             geometry: it.geometry as { type: string; coordinates: unknown },
           }));
+        layerStatusRef.current?.(
+          "cadastre",
+          result.truncated
+            ? "Matrikeludsnittet er delvist. Zoom tættere ind."
+            : features.length
+              ? "Matrikler hentet fra Datafordeleren."
+              : "Ingen matrikler i dette kortudsnit.",
+        );
         if (features.length === 0) return;
-        const layer = L.geoJSON(
-          { type: "FeatureCollection", features } as never,
-          {
-            style: CADASTRE_STYLE,
-            onEachFeature: (feature, l) => {
-              const p = feature.properties as { label?: string; areaHa?: number | null };
-              l.bindTooltip(
-                `${p.label ?? "Matrikel"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`,
-                { sticky: true, direction: "top" },
-              );
-            },
+        const layer = L.geoJSON({ type: "FeatureCollection", features } as never, {
+          style: CADASTRE_STYLE,
+          onEachFeature: (feature, l) => {
+            const p = feature.properties as { label?: string; areaHa?: number | null };
+            const label = document.createElement("span");
+            label.textContent = `${p.label ?? "Kortflade"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`;
+            l.bindTooltip(label, { sticky: true, direction: "top" });
           },
-        ).addTo(map);
+        }).addTo(map);
         layersRef.current.cadastre = layer;
       } catch {
-        // Opslag fejlede (offline/API nede) — kortet virker stadig uden laget.
+        if (!cancelled && seq === cadastreSeqRef.current) {
+          clearLayer();
+          layerStatusRef.current?.("cadastre", "Matrikeltjenesten kunne ikke hentes. Prøv igen.");
+        }
       }
     };
 
     void load();
     map.on("moveend", load);
     return () => {
+      cancelled = true;
       map.off("moveend", load);
       clearLayer();
     };
   }, [showCadastreParcels, ready]);
+
+  const lowlandSeqRef = useRef(0);
+  useEffect(() => {
+    if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    let cancelled = false;
+
+    const clearLayer = () => {
+      if (layersRef.current.lowland) {
+        map.removeLayer(layersRef.current.lowland);
+        layersRef.current.lowland = null;
+      }
+    };
+
+    if (!showLowlandPolygons) {
+      clearLayer();
+      return;
+    }
+
+    const load = async () => {
+      const seq = ++lowlandSeqRef.current;
+      layerStatusRef.current?.("kulstof2022", "Henter Kulstof2022 …");
+      if (map.getZoom() < 13) {
+        clearLayer();
+        layerStatusRef.current?.(
+          "kulstof2022",
+          "Zoom ind til niveau 13 eller tættere for at se kulstofflader.",
+        );
+        return;
+      }
+      const b = map.getBounds();
+      // Clamp til dansk område (server-fn'ens validering kræver 7-16 / 54-58).
+      const clampLng = (v: number) => Math.min(16, Math.max(7, v));
+      const clampLat = (v: number) => Math.min(58, Math.max(54, v));
+      const w = clampLng(b.getWest());
+      const e = clampLng(b.getEast());
+      const s = clampLat(b.getSouth());
+      const n = clampLat(b.getNorth());
+      if (w >= e || s >= n) return; // udsnit helt uden for DK
+      const ring: [number, number][] = [
+        [w, s],
+        [e, s],
+        [e, n],
+        [w, n],
+        [w, s],
+      ];
+
+      try {
+        const { listLowlandInArea } = await import("@/lib/geo-search.functions");
+        const result = await listLowlandInArea({ data: { ring } });
+        // Stale-guard: kortet kan være flyttet mens vi ventede.
+        if (cancelled || seq !== lowlandSeqRef.current || !mapRef.current) return;
+        const L = await import("leaflet");
+        clearLayer();
+        const features = result.items
+          .filter((it) => it.geometry != null)
+          .map((it) => ({
+            type: "Feature" as const,
+            properties: { label: it.label, areaHa: it.areaHa },
+            geometry: it.geometry as { type: string; coordinates: unknown },
+          }));
+        layerStatusRef.current?.(
+          "kulstof2022",
+          result.truncated
+            ? "Kulstofudsnittet er delvist. Zoom tættere ind."
+            : features.length
+              ? "Kulstof2022 hentet (uden klasseinddeling)."
+              : "Ingen registrerede kulstofflader i dette udsnit.",
+        );
+        if (features.length === 0) return;
+        const layer = L.geoJSON({ type: "FeatureCollection", features } as never, {
+          style: { color: "#b45309", weight: 1, fillOpacity: 0.25 },
+          onEachFeature: (feature, l) => {
+            const p = feature.properties as { label?: string; areaHa?: number | null };
+            const label = document.createElement("span");
+            label.textContent = `${p.label ?? "Kortflade"}${p.areaHa != null ? ` · ${p.areaHa} ha` : ""}`;
+            l.bindTooltip(label, { sticky: true, direction: "top" });
+          },
+        }).addTo(map);
+        layersRef.current.lowland = layer;
+      } catch {
+        if (!cancelled && seq === lowlandSeqRef.current) {
+          clearLayer();
+          layerStatusRef.current?.("kulstof2022", "Kulstoftjenesten kunne ikke hentes. Prøv igen.");
+        }
+      }
+    };
+
+    void load();
+    map.on("moveend", load);
+    return () => {
+      cancelled = true;
+      map.off("moveend", load);
+      clearLayer();
+    };
+  }, [showLowlandPolygons, ready]);
 
   // ── Adressemarkør (fra søgning) ────────────────────────────────────────────
   useEffect(() => {
@@ -725,13 +1297,18 @@ export function MapEditorMap({
         layersRef.current.addressMarker = null;
       }
       if (!addressMarker) return;
-      const m = L.marker([addressMarker.lat, addressMarker.lng])
-        .bindPopup(`<strong>${addressMarker.label}</strong>`)
+      const addressLabel = document.createElement("strong");
+      addressLabel.textContent = addressMarker.label;
+      const m = L.marker([addressMarker.lat, addressMarker.lng], {
+        interactive: !pickMode,
+        keyboard: !pickMode,
+      })
+        .bindPopup(addressLabel)
         .addTo(map);
-      m.openPopup();
+      if (!pickMode) m.openPopup();
       layersRef.current.addressMarker = m;
     })();
-  }, [addressMarker, ready]);
+  }, [addressMarker, pickMode, ready]);
 
   // ── Preview polygon (fra markblok/matrikel klik) ──────────────────────────
   useEffect(() => {
@@ -746,7 +1323,15 @@ export function MapEditorMap({
       if (!previewPolygon) return;
       const layer = L.geoJSON(
         { type: "Feature", geometry: previewPolygon, properties: {} } as never,
-        { style: { color: "#f59e0b", weight: 2.5, dashArray: "6 4", fillColor: "#f59e0b", fillOpacity: 0.2 } },
+        {
+          style: {
+            color: "#f59e0b",
+            weight: 2.5,
+            dashArray: "6 4",
+            fillColor: "#f59e0b",
+            fillOpacity: 0.2,
+          },
+        },
       ).addTo(map);
       layersRef.current.preview = layer;
       map.fitBounds(layer.getBounds(), { padding: [40, 40] });
@@ -760,9 +1345,6 @@ export function MapEditorMap({
     el.style.cursor = pickMode ? "crosshair" : "";
   }, [pickMode]);
 
-
-
-
   // ─── UI ─────────────────────────────────────────────────────────────────────
   const toolBtn = (active: boolean, activeCls: string) =>
     `text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
@@ -773,45 +1355,77 @@ export function MapEditorMap({
     <div className={`flex flex-col ${className ?? ""}`} style={{ height }}>
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 px-3 py-2 bg-card border-b flex-wrap">
-        <span className="text-xs text-muted-foreground">Tegn:</span>
-        <button
-          onClick={() => setMode(drawMode === "boundary" ? "none" : "boundary")}
-          className={toolBtn(drawMode === "boundary", "bg-emerald-600 text-white border-emerald-600")}
-        >
-          ⬠ Projektgrænse
-        </button>
-        <button
-          onClick={() => setMode(drawMode === "zone" ? "none" : "zone")}
-          className={toolBtn(drawMode === "zone", "bg-amber-500 text-white border-amber-500")}
-        >
-          ⬠ Zone
-        </button>
-        <button
-          onClick={() => setMode(drawMode === "measure" ? "none" : "measure")}
-          className={toolBtn(drawMode === "measure", "bg-violet-600 text-white border-violet-600")}
-        >
-          📐 Mål areal
-        </button>
+        {!readOnly && (
+          <>
+            <span className="text-xs text-muted-foreground">Tegn:</span>
+            <button
+              onClick={() => setMode(drawMode === "boundary" ? "none" : "boundary")}
+              disabled={boundaryBusy || isEditing || isSavingEdit || !onBoundaryDrawn}
+              className={`${toolBtn(drawMode === "boundary", "bg-emerald-600 text-white border-emerald-600")} disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              ⬠ Projektgrænse
+            </button>
+            <button
+              onClick={() => setMode(drawMode === "zone" ? "none" : "zone")}
+              disabled={isEditing || isSavingEdit}
+              className={toolBtn(drawMode === "zone", "bg-amber-500 text-white border-amber-500")}
+            >
+              ⬠ Zone
+            </button>
+            <button
+              onClick={() => setMode(drawMode === "measure" ? "none" : "measure")}
+              disabled={isEditing || isSavingEdit}
+              className={toolBtn(
+                drawMode === "measure",
+                "bg-violet-600 text-white border-violet-600",
+              )}
+            >
+              📐 Mål areal
+            </button>
 
-        <div className="w-px h-4 bg-border mx-1" />
+            <div className="w-px h-4 bg-border mx-1" />
 
-        <button onClick={toggleEdit} className={toolBtn(isEditing, "bg-blue-600 text-white border-blue-600")}>
-          ✏️ {isEditing ? "Gem redigering" : "Redigér"}
-        </button>
-        <button onClick={clearDrawings} className={toolBtn(false, "")}>
-          🗑 Ryd tegninger
-        </button>
+            {isEditing ? (
+              <>
+                <button
+                  onClick={() => void saveBoundaryEdit()}
+                  disabled={boundaryBusy || isSavingEdit}
+                  className={toolBtn(true, "bg-blue-600 text-white border-blue-600")}
+                >
+                  {isSavingEdit ? "Gemmer …" : "✓ Gem grænse"}
+                </button>
+                <button
+                  onClick={cancelBoundaryEdit}
+                  disabled={isSavingEdit}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium disabled:opacity-50"
+                >
+                  ✕ Annuller
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={startBoundaryEdit}
+                disabled={boundaryBusy || !boundaryGeoJSON || !onBoundaryDrawn}
+                className={`${toolBtn(false, "")} disabled:opacity-40 disabled:cursor-not-allowed`}
+              >
+                ✏️ Redigér grænse
+              </button>
+            )}
+            <button onClick={clearDrawings} className={toolBtn(false, "")}>
+              🗑 Ryd tegninger
+            </button>
 
-        {drawMode !== "none" && (
-          <button
-            onClick={() => setMode("none")}
-            className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium"
-          >
-            ✕ Stop
-          </button>
+            {drawMode !== "none" && (
+              <button
+                onClick={() => setMode("none")}
+                className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium"
+              >
+                ✕ Stop
+              </button>
+            )}
+          </>
         )}
-
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex max-w-full flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Baggrund:</span>
           {(Object.keys(BASE_LAYERS) as BaseLayer[]).map((key) => (
             <button
@@ -826,6 +1440,10 @@ export function MapEditorMap({
       </div>
 
       {/* ── Kort ───────────────────────────────────────────────────────────── */}
+      <div className="shrink-0 break-words border-b bg-card px-3 py-2 text-xs font-medium">
+        {projectName}
+        {areaHa ? ` · ${areaHa} ha` : ""}
+      </div>
       <div className="relative flex-1 min-h-0">
         <div ref={containerRef} className="h-full w-full" />
 
@@ -844,16 +1462,22 @@ export function MapEditorMap({
               onClick={undoLastVertex}
               disabled={drawingPoints === 0}
               className="text-xs px-2.5 py-1 rounded-md border bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
-            >↶ Fortryd punkt</button>
+            >
+              ↶ Fortryd punkt
+            </button>
             <button
               onClick={finishShape}
               disabled={drawingPoints < 3}
               className="text-xs px-2.5 py-1 rounded-md border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
-            >✓ Afslut flade</button>
+            >
+              ✓ Afslut flade
+            </button>
             <button
               onClick={cancelDrawing}
               className="text-xs px-2.5 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-            >✕ Annuller</button>
+            >
+              ✕ Annuller
+            </button>
           </div>
         )}
 
@@ -863,7 +1487,6 @@ export function MapEditorMap({
           </div>
         )}
 
-
         {measurement && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-white rounded-xl shadow-lg border px-5 py-3 flex items-center gap-4">
             <div className="text-center">
@@ -872,13 +1495,17 @@ export function MapEditorMap({
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center">
-              <div className="text-xl font-bold">{(measurement.perimeterM / 1000).toFixed(2)} km</div>
+              <div className="text-xl font-bold">
+                {(measurement.perimeterM / 1000).toFixed(2)} km
+              </div>
               <div className="text-xs text-muted-foreground">Omkreds</div>
             </div>
             <button
               onClick={() => setMeasurement(null)}
               className="ml-2 text-muted-foreground hover:text-foreground text-lg leading-none"
-            >×</button>
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -892,10 +1519,6 @@ export function MapEditorMap({
             </div>
           </div>
         )}
-
-        <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur rounded-lg shadow border px-3 py-1.5 text-xs font-medium">
-          {projectName}{areaHa ? ` · ${areaHa} ha` : ""}
-        </div>
       </div>
     </div>
   );

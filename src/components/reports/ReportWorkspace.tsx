@@ -1,0 +1,1287 @@
+import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { generateEvidenceReportDraft } from "@/lib/report-draft.functions";
+import { getProjectWorkOrderEvidenceOriginal } from "@/lib/work-order-evidence.functions";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, PageHeader } from "@/components/ui-bits";
+import { WorkOrderFollowUps } from "@/components/project/WorkOrderFollowUps";
+import { ReportMethodPicker } from "./ReportMethodPicker";
+import { ReportMapViewportEditor } from "./ReportMapViewportEditor";
+import { useAuth } from "@/lib/auth";
+import { getMyProjectRole, permissionsFor } from "@/services/project-members-service";
+import {
+  BASIS_LABELS,
+  SourceSchema,
+  moveSection,
+  numberedAtlasMapPoints,
+  newReportContent,
+  reportPhotoMapNumbers,
+  reportIssueDetails,
+  reportWorkOrderDataBasis,
+  type ReportContent,
+  type ReportRevision,
+  type ReportStatus,
+} from "@/lib/report-document";
+import {
+  getReportRevisions,
+  listReportDocuments,
+  loadBridgeReport,
+  loadNatureSurveyReport,
+  loadReportSources,
+  loadReviewedReportObservations,
+  saveReportDocument,
+} from "@/services/report-document-service";
+import { buildReportImages, type ReportImage } from "@/services/report-assets";
+import { downloadReportFile, type ReportFormat } from "@/lib/report-export";
+import {
+  getReportTemplate,
+  isReportTemplateId,
+  REPORT_TEMPLATES,
+  type ReportTemplateId,
+} from "@/lib/report-templates";
+
+export const reportSearch = (
+  search: Record<string, unknown>,
+): { report?: string; version?: number; template?: ReportTemplateId } => ({
+  report: typeof search.report === "string" ? search.report : undefined,
+  version:
+    typeof search.version === "number" && Number.isInteger(search.version) && search.version > 0
+      ? search.version
+      : undefined,
+  template: isReportTemplateId(search.template) ? search.template : undefined,
+});
+type Mode = "list" | "new" | "builder" | "preview" | "readiness" | "approval" | "templates";
+const button = "rounded-lg border bg-card px-3 py-2 text-sm disabled:opacity-40";
+const field = "w-full rounded-lg border bg-background px-3 py-2 text-sm";
+export function ReportWorkspace({ mode }: { mode: Mode }) {
+  const { currentOrg, currentProject } = useAuth();
+  const search = useRouterState({ select: (s) => s.location.search }) as {
+    report?: string;
+    version?: number;
+    template?: ReportTemplateId;
+  };
+  return (
+    <ScopedReportWorkspace
+      key={`${currentOrg?.id}:${currentProject?.id}:${search.report}:${search.version}:${search.template}:${mode}`}
+      mode={mode}
+    />
+  );
+}
+function ScopedReportWorkspace({ mode }: { mode: Mode }) {
+  const { currentOrg, currentProject, user, session } = useAuth();
+  const generateDraft = useServerFn(generateEvidenceReportDraft);
+  const signEvidenceOriginal = useServerFn(getProjectWorkOrderEvidenceOriginal);
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const search = useRouterState({ select: (s) => s.location.search }) as {
+    report?: string;
+    version?: number;
+    template?: ReportTemplateId;
+  };
+  const orgId = currentOrg?.id,
+    projectId = currentProject?.id,
+    reportId = search.report;
+  const key = ["report-documents", user?.id, orgId, projectId];
+  const documents = useQuery({
+    queryKey: key,
+    queryFn: () => listReportDocuments(orgId!, projectId!),
+    enabled: !!orgId && !!projectId,
+  });
+  const revisions = useQuery({
+    queryKey: [...key, reportId],
+    queryFn: () => getReportRevisions(orgId!, projectId!, reportId!),
+    enabled: !!orgId && !!projectId && !!reportId && mode !== "new",
+  });
+  const access = useQuery({
+    queryKey: ["project-role", user?.id, orgId, projectId],
+    queryFn: () => getMyProjectRole(projectId!, user!.id),
+    enabled: !!user && !!orgId && !!projectId,
+  });
+  const canEdit =
+    ["owner", "admin"].includes(currentOrg?.role ?? "") ||
+    permissionsFor(access.data ?? null).canEdit;
+  const revision = revisions.data?.find((r) =>
+    search.version ? r.version === search.version : true,
+  );
+  const [content, setContent] = useState<ReportContent | null>(null);
+  const canEditContent = canEdit && !content?.workOrderApproval;
+  const sectionHash = useRouterState({ select: (s) => s.location.hash });
+  const editorReady = mode === "builder" && canEditContent && !!content;
+  useEffect(() => {
+    if (editorReady && typeof sectionHash === "string" && sectionHash.startsWith("rapport-")) {
+      document.getElementById(sectionHash)?.scrollIntoView?.();
+    }
+  }, [editorReady, sectionHash]);
+  const [busy, setBusy] = useState(false);
+  const [reviewReason, setReviewReason] = useState("");
+  const [correctionSectionId, setCorrectionSectionId] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
+  const [images, setImages] = useState<ReportImage[]>([]);
+  const [assetRevisionId, setAssetRevisionId] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  useEffect(() => {
+    const urls = images.map((image) =>
+      URL.createObjectURL(
+        new Blob([image.bytes.slice().buffer], { type: `image/${image.format}` }),
+      ),
+    );
+    setImageUrls(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [images]);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const draftSeed = useRef<string | null>(null);
+  useEffect(() => {
+    const seed =
+      mode === "new" && currentOrg && currentProject
+        ? `new:${orgId}:${projectId}:${search.template ?? "watercourse"}`
+        : revision?.id;
+    // Auth refreshes recreate org/project objects; saved revisions are immutable.
+    // Rehydrate only a different scope/revision, never an in-progress draft.
+    if (!seed || draftSeed.current === seed) return;
+    draftSeed.current = seed;
+    setContent(
+      mode === "new" && currentOrg && currentProject
+        ? {
+            ...newReportContent(
+              currentProject.name,
+              currentOrg.name,
+              getReportTemplate(search.template).scope,
+              "Kunde",
+              search.template,
+            ),
+            photoLayoutVersion: 2,
+          }
+        : (revision?.content ?? null),
+    );
+    setMessage("");
+    setError("");
+    setImages([]);
+    setAssetRevisionId(null);
+  }, [mode, orgId, projectId, reportId, revision, currentOrg, currentProject, search.template]);
+  async function reportImagesFor(saved: ReportRevision) {
+    if (saved.content.workOrderApproval) return [];
+    if (assetRevisionId === saved.id) return images;
+    const next = await buildReportImages(saved);
+    setImages(next);
+    setAssetRevisionId(saved.id);
+    return next;
+  }
+
+  async function downloadPackage(saved: ReportRevision, includeOriginals = false) {
+    const approval = saved.content.workOrderApproval;
+    const { buildWorkflowReportPackage, buildWorkOrderReportPackage } =
+      await import("@/lib/workflow-report-package");
+    const signOriginal =
+      includeOriginals && approval && orgId && projectId && user?.id
+        ? (id: string) =>
+            signEvidenceOriginal({
+              data: {
+                id,
+                actionId: approval.actionId,
+                projectId,
+                organizationId: orgId,
+                expectedActorId: user.id,
+              },
+            })
+        : undefined;
+    if (includeOriginals && !signOriginal) throw new Error("Originalfilerne kræver projektadgang.");
+    const bytes = approval
+      ? await buildWorkOrderReportPackage(saved, signOriginal)
+      : await buildWorkflowReportPackage(saved, await reportImagesFor(saved));
+    const url = URL.createObjectURL(new Blob([bytes.slice().buffer], { type: "application/zip" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    const prefix = approval ? "Freyra-opgaverapport-v" : "Freyra-foer-efter-v";
+    anchor.download = prefix + saved.version + (includeOriginals ? "-med-originaler" : "") + ".zip";
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setMessage("");
+    setError("");
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Handlingen mislykkedes.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function save(status: ReportStatus, nextContent = content) {
+    if (!canEdit) {
+      setError("Din adgang er læseadgang. Rapportversioner kan ikke oprettes eller ændres.");
+      return;
+    }
+    if (!nextContent || !orgId || !projectId) return;
+    let contentToSave =
+      status === "draft" && nextContent.workflowSnapshot?.review
+        ? { ...nextContent, workflowSnapshot: { ...nextContent.workflowSnapshot, review: null } }
+        : nextContent;
+    if (status === "review" && contentToSave.requestedCorrection) {
+      const { requestedCorrection, ...resubmission } = contentToSave;
+      if (
+        !resubmission.sections.some(
+          (section) => section.id === requestedCorrection.sectionId && section.reviewed,
+        )
+      ) {
+        setError("Gennemgå det returnerede afsnit, før rettelsen indsendes.");
+        return;
+      }
+      contentToSave = resubmission;
+    }
+    await run(async () => {
+      const saved = await saveReportDocument({
+        organizationId: orgId,
+        projectId,
+        reportId: mode === "new" ? null : (reportId ?? null),
+        expectedVersion: mode === "new" ? 0 : (revision?.version ?? 0),
+        status,
+        content: contentToSave,
+      });
+      await qc.invalidateQueries({ queryKey: key });
+      await navigate({
+        to: "/app/reports/builder",
+        search: { report: saved.report_id, version: saved.version } as never,
+      });
+      setMessage(`Version ${saved.version} er gemt.`);
+    });
+  }
+
+  function recordWorkflowReview(decision: "accepted" | "changes_requested") {
+    const reason = reviewReason.trim();
+    const snapshot = content?.workflowSnapshot;
+    if (!canEdit || !content || !snapshot || !reason) return;
+    void save("review", {
+      ...content,
+      workflowSnapshot: {
+        ...snapshot,
+        review: {
+          scope: "documentation",
+          decision,
+          inputIds: snapshot.inputs.map((entry) => entry.id),
+          sectionTexts: Object.fromEntries(content.sections.map(({ id, text }) => [id, text])),
+          reason,
+        },
+      },
+    });
+  }
+  function returnSectionForCorrection() {
+    const reason = reviewReason.trim();
+    if (
+      !canEditContent ||
+      revision?.status !== "review" ||
+      !content ||
+      content.workflowSnapshot ||
+      !reason ||
+      !content.sections.some((section) => section.id === correctionSectionId)
+    )
+      return;
+    void save("draft", {
+      ...content,
+      requestedCorrection: {
+        reviewedVersion: revision.version,
+        sectionId: correctionSectionId,
+        reason,
+      },
+      sections: content.sections.map((section) =>
+        section.id === correctionSectionId ? { ...section, reviewed: false } : section,
+      ),
+    });
+  }
+  if (!currentOrg || !currentProject)
+    return (
+      <main className="p-6">
+        <PageHeader
+          title="Rapporter"
+          description="Vælg organisation og projekt i den fælles projektvælger. Rapporter indlæses kun for det valgte projekt."
+        />
+      </main>
+    );
+  const title =
+    mode === "new"
+      ? "Opret rapport"
+      : mode === "list"
+        ? "Rapportbibliotek"
+        : mode === "readiness"
+          ? "Rapportens mangler"
+          : mode === "approval"
+            ? "Godkendelse og eksport"
+            : mode === "preview"
+              ? "Rapportvisning"
+              : mode === "templates"
+                ? "Rapportskabelon"
+                : "Rapportbygger";
+  const issues = content ? reportIssueDetails(content) : [];
+  if (content?.workflowSnapshot?.review?.decision === "accepted" && revision?.status === "draft") {
+    issues.push({
+      message: "Gem et accepteret dokumentationsreview af denne version før godkendelse.",
+    });
+  }
+  const reportSourceIds = new Set(content?.sources.map(({ id }) => id));
+  const correction = content?.requestedCorrection;
+  const returnedSection =
+    correction && content?.sections.find((section) => section.id === correction.sectionId);
+  const changed = !!revision && JSON.stringify(content) !== JSON.stringify(revision.content);
+  return (
+    <main className="p-6 max-w-[1400px] mx-auto space-y-4">
+      <PageHeader title={title} description={`${currentOrg.name} / ${currentProject.name}`} />
+      {!canEdit && (
+        <p role="note">
+          Din adgang er læseadgang. Du kan åbne og eksportere gemte rapportversioner.
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="rounded-lg border border-destructive p-3">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p role="status" className="rounded-lg border p-3 break-all">
+          {message}
+        </p>
+      )}
+      {(documents.error || revisions.error) && (
+        <p role="alert">{(documents.error ?? revisions.error)?.message}</p>
+      )}
+      {(mode === "list" || mode === "templates") && (
+        <Card className="p-5 space-y-3">
+          <p>
+            Rapporter bygger på gemte projektkilder og fagligt gennemgåede afsnit. Manglende
+            grundlag vises som ukendt.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {REPORT_TEMPLATES.map((template) => (
+              <div key={template.id} className="rounded-lg border p-3 space-y-2">
+                <h2 className="font-semibold">{template.label}</h2>
+                <p className="text-sm text-muted-foreground">{template.description}</p>
+                {canEdit && (
+                  <Link
+                    className={button}
+                    to="/app/reports/new"
+                    search={{ template: template.id } as never}
+                  >
+                    Opret {template.label.toLowerCase()}
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="divide-y">
+            {documents.data?.map((d) => (
+              <div key={d.id} className="py-3 flex justify-between gap-3">
+                <span>Rapport oprettet {new Date(d.created_at).toLocaleString("da-DK")}</span>
+                <Link
+                  className="text-primary"
+                  to="/app/reports/builder"
+                  search={{ report: d.id } as never}
+                >
+                  Åbn {d.id.slice(0, 8)}
+                </Link>
+              </div>
+            ))}
+          </div>
+          {documents.isLoading ? (
+            <p>Indlæser rapporter…</p>
+          ) : documents.data?.length === 0 ? (
+            <p>Der er endnu ingen gemte rapporter for projektet.</p>
+          ) : null}
+        </Card>
+      )}
+      {!["list", "templates", "new"].includes(mode) && !reportId && (
+        <Card className="p-5">
+          <p>Vælg en gemt rapport fra biblioteket.</p>
+          <Link to="/app/reports/library" className="text-primary">
+            Åbn rapportbibliotek
+          </Link>
+        </Card>
+      )}
+      {reportId && revision && (
+        <Card className="p-4 space-y-2">
+          <div className="flex flex-wrap gap-3 items-center">
+            <strong>
+              Version {revision.version} ·{" "}
+              {revision.status === "approved"
+                ? "Godkendt"
+                : revision.status === "review"
+                  ? "Afventer gennemgang"
+                  : "Kladde"}
+            </strong>
+            <select
+              aria-label="Rapportversion"
+              value={revision.version}
+              className={button}
+              onChange={(e) =>
+                void navigate({
+                  to: ".",
+                  search: { report: reportId, version: Number(e.target.value) } as never,
+                })
+              }
+            >
+              {revisions.data?.map((r) => (
+                <option key={r.id} value={r.version}>
+                  Version {r.version} · {new Date(r.created_at).toLocaleString("da-DK")}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Gemte versioner ændres ikke. En ændring gemmes som en ny version. Registreret af{" "}
+            {revision.created_by}.
+          </p>
+          {revision.content.workflowSnapshot?.review && (
+            <div className="space-y-1 text-sm">
+              <p className="font-medium">
+                {revision.content.workflowSnapshot.review.decision === "accepted"
+                  ? "Dokumentationsreview accepteret"
+                  : "Rettelser anmodet"}
+              </p>
+              <p className="whitespace-pre-wrap">
+                {revision.content.workflowSnapshot.review.reason}
+              </p>
+            </div>
+          )}
+          {correction && (
+            <div className="space-y-1 text-sm">
+              <p className="font-medium">
+                Version {correction.reviewedVersion} returneret til rettelse ·{" "}
+                {returnedSection?.title}
+              </p>
+              <p className="whitespace-pre-wrap">{correction.reason}</p>
+            </div>
+          )}
+        </Card>
+      )}
+      {content?.workOrderApproval && mode === "builder" && revision && (
+        <Link
+          to="/app/reports/preview"
+          search={{ report: revision.report_id, version: revision.version }}
+        >
+          Åbn rapporten for den godkendte aflevering
+        </Link>
+      )}
+      {canEditContent && content && (mode === "new" || mode === "builder") && (
+        <>
+          <Card className="p-5 space-y-3">
+            <label className="block">
+              Titel
+              <input
+                className={field}
+                value={content.title}
+                onChange={(e) => setContent({ ...content, title: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              Scope
+              <textarea
+                className={field}
+                value={content.scope}
+                onChange={(e) => setContent({ ...content, scope: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              Målgruppe
+              <input
+                className={field}
+                value={content.audience}
+                onChange={(e) => setContent({ ...content, audience: e.target.value })}
+              />
+            </label>
+            <div id="rapport-kilder" className="flex flex-wrap gap-2">
+              <button disabled={busy} className={button} onClick={() => void save("draft")}>
+                Gem kladde som ny version
+              </button>
+              <button
+                disabled={busy}
+                className={button}
+                onClick={() =>
+                  void run(async () => {
+                    const sources = await loadReportSources(projectId!);
+                    setContent((current) =>
+                      current
+                        ? {
+                            ...current,
+                            sources: [
+                              ...sources,
+                              ...current.sources.filter(
+                                ({ id }) =>
+                                  id.startsWith("field:") || id.startsWith("survey-area:"),
+                              ),
+                            ],
+                            sections: current.sections.map((s) => ({ ...s, reviewed: false })),
+                          }
+                        : current,
+                    );
+                    setMessage(
+                      `${sources.length} kildereferencer indlæst. Gem versionen for at fastholde dem.`,
+                    );
+                  })
+                }
+              >
+                Indlæs projektets kilderegister
+              </button>
+              <button
+                className={button}
+                disabled={busy || !content.sections.some((section) => section.sourceIds.length)}
+                onClick={() => {
+                  const used = new Set(content.sections.flatMap((section) => section.sourceIds));
+                  setContent({
+                    ...content,
+                    sources: content.sources.filter((source) => used.has(source.id)),
+                  });
+                  setMessage("Registeret er afgrænset til afsnittenes kilder. Gem som ny version.");
+                }}
+              >
+                Afgræns register til citerede kilder
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(content.templateId === "nature_baseline" ||
+                content.templateId === "biodiversity") && (
+                <button
+                  className={button}
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      const draft = await loadNatureSurveyReport(projectId!, content);
+                      setContent(draft);
+                      setMessage(
+                        `${draft.natureSurvey?.areas.length ?? 0} områder og ${draft.natureSurvey?.observations.length ?? 0} observationer indlæst. Gennemgå afsnittene og gem som ny version.`,
+                      );
+                    })
+                  }
+                >
+                  Indlæs naturområder og feltobservationer
+                </button>
+              )}
+              {content.templateId === "bridge_registration" && (
+                <button
+                  className={button}
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      const draft = await loadBridgeReport(projectId!, content);
+                      setContent(draft);
+                      setMessage(
+                        `${draft.bridgeObservations?.length ?? 0} broregistreringer indlæst. Gennemgå de udfyldte afsnit og gem som ny version.`,
+                      );
+                    })
+                  }
+                >
+                  Indlæs broregistreringer og udfyld objektafsnit
+                </button>
+              )}
+              <button
+                className={button}
+                hidden={content.templateId === "bridge_registration"}
+                disabled={busy || !content.sections.some((section) => section.id === "section-4")}
+                onClick={() =>
+                  void run(async () => {
+                    const seed = draftSeed.current;
+                    const [observations, sources] = await Promise.all([
+                      loadReviewedReportObservations(projectId!, orgId!),
+                      loadReportSources(projectId!),
+                    ]);
+                    if (seed !== draftSeed.current) return;
+                    if (!observations.length) {
+                      setMessage(
+                        "Der er ingen fagligt godkendte vandløbsobservationer at indlæse.",
+                      );
+                      return;
+                    }
+                    const ids = new Set(observations.flatMap((o) => o.sourceIds));
+                    const used = sources.filter(({ id }) => ids.has(id));
+                    if (used.length !== ids.size)
+                      throw new Error(
+                        "Et eller flere kildefotos til observationerne kunne ikke hentes fra projektet.",
+                      );
+                    setContent((current) => {
+                      if (!current) return current;
+                      const byId = new Map(current.sources.map((source) => [source.id, source]));
+                      const changedIds = new Set<string>();
+                      for (const source of used) {
+                        const previous = byId.get(source.id);
+                        if (
+                          !previous ||
+                          JSON.stringify(SourceSchema.parse(previous)) !==
+                            JSON.stringify(SourceSchema.parse(source))
+                        )
+                          changedIds.add(source.id);
+                        byId.set(source.id, source);
+                      }
+                      return {
+                        ...current,
+                        sources: [...byId.values()],
+                        sections: current.sections.map((section) =>
+                          section.id === "section-4"
+                            ? {
+                                ...section,
+                                text: observations.map((o) => o.text).join("\n\n"),
+                                sourceIds: [...ids],
+                                basis: observations.some((observation) => observation.screening)
+                                  ? "screening"
+                                  : "observed",
+                                reviewed: false,
+                              }
+                            : section.sourceIds.some((id) => changedIds.has(id))
+                              ? { ...section, reviewed: false }
+                              : section,
+                        ),
+                      };
+                    });
+                    setMessage(
+                      `${observations.length} godkendte observationer indlæst. Gennemgå afsnittet og gem versionen.`,
+                    );
+                  })
+                }
+              >
+                Indlæs godkendte observationer
+              </button>
+              <button
+                className={button}
+                disabled={busy || !revision || changed || !session}
+                onClick={() =>
+                  void run(async () => {
+                    if (!revision || !session) return;
+                    const result = await generateDraft({
+                      data: {
+                        accessToken: session.access_token,
+                        organizationId: orgId!,
+                        projectId: projectId!,
+                        reportId: revision.report_id,
+                        revisionId: revision.id,
+                      },
+                    });
+                    if (result.error || !result.draft) {
+                      const errors: Record<string, string> = {
+                        missing_key: "LOVABLE_API_KEY mangler på serveren.",
+                        unauthorized: "Adgang til rapportversionen kunne ikke bekræftes.",
+                        missing_reviewed_evidence:
+                          "Gem først fagligt gennemgåede afsnit med kilder.",
+                        missing_evidence: "Rapportversionen mangler kilder.",
+                        missing_database: "Serverens databasekonfiguration mangler.",
+                      };
+                      throw new Error(
+                        errors[result.error ?? ""] ??
+                          "AI-udkastet kunne ikke valideres eller genereres.",
+                      );
+                    }
+                    const draft = result.draft;
+                    setContent({
+                      ...content,
+                      sections: content.sections.map((section) =>
+                        section.id === "section-1"
+                          ? {
+                              ...section,
+                              text: draft.claims
+                                .map((c) => `${c.text} [${c.sourceIds.join(", ")}]`)
+                                .join("\n\n"),
+                              sourceIds: [...new Set(draft.claims.flatMap((c) => c.sourceIds))],
+                              reviewed: false,
+                              basis: "screening",
+                            }
+                          : section.id === "section-10"
+                            ? {
+                                ...section,
+                                text: section.text + "\n\n" + draft.limitations.join("\n"),
+                                reviewed: false,
+                              }
+                            : section,
+                      ),
+                    });
+                    setMessage(
+                      "AI-forslag er indsat som screening og kræver faglig gennemgang. Gem som ny version.",
+                    );
+                  })
+                }
+              >
+                Generér kildebaseret tekstforslag
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              AI bruger kun den gemte rapports gennemgåede, kildehenviste tekst via den eksisterende
+              serverintegration. Billeder analyseres ikke af dette tekstjob. Nye forslag er altid
+              ugodkendte.
+            </p>
+          </Card>
+          <ReportMapViewportEditor
+            key={revision?.id ?? `${orgId}:${projectId}:${content.templateId}`}
+            content={content}
+            disabled={busy}
+            onChange={(viewport) =>
+              setContent((current) => current && { ...current, mapViewport: viewport })
+            }
+          />
+          {content.sections.map((s, i) => (
+            <Card key={s.id} className="p-5 space-y-2">
+              <div className="flex justify-between gap-2">
+                <h2 id={`rapport-afsnit-${s.id}`} className="font-semibold">
+                  {s.title}
+                </h2>
+                <div>
+                  <button
+                    aria-label={`Flyt ${s.title} op`}
+                    className={button}
+                    disabled={i === 0}
+                    onClick={() =>
+                      setContent({ ...content, sections: moveSection(content.sections, i, i - 1) })
+                    }
+                  >
+                    ↑
+                  </button>
+                  <button
+                    aria-label={`Flyt ${s.title} ned`}
+                    className={button}
+                    disabled={i === content.sections.length - 1}
+                    onClick={() =>
+                      setContent({ ...content, sections: moveSection(content.sections, i, i + 1) })
+                    }
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
+              {s.id === "section-3" &&
+                (content.templateId === "watercourse" ||
+                  content.templateId === "nature_baseline" ||
+                  (!content.templateId &&
+                    s.title === getReportTemplate("watercourse").headings[2])) && (
+                  <ReportMethodPicker
+                    natureBaseline={content.templateId === "nature_baseline"}
+                    text={s.text}
+                    disabled={busy}
+                    onInsert={(reference) =>
+                      setContent(
+                        (current) =>
+                          current && {
+                            ...current,
+                            sections: current.sections.map((section) =>
+                              section.id === s.id && !section.text.includes(reference)
+                                ? {
+                                    ...section,
+                                    text: section.text
+                                      ? section.text + "\n\n" + reference
+                                      : reference,
+                                    reviewed: false,
+                                  }
+                                : section,
+                            ),
+                          },
+                      )
+                    }
+                  />
+                )}
+              <textarea
+                aria-label={s.title}
+                rows={5}
+                className={field}
+                value={s.text}
+                onChange={(e) =>
+                  setContent({
+                    ...content,
+                    sections: content.sections.map((x) =>
+                      x.id === s.id ? { ...x, text: e.target.value, reviewed: false } : x,
+                    ),
+                  })
+                }
+              />
+              <select
+                aria-label={`Grundlag for ${s.title}`}
+                className={field}
+                value={s.basis}
+                onChange={(e) =>
+                  setContent({
+                    ...content,
+                    sections: content.sections.map((x) =>
+                      x.id === s.id
+                        ? { ...x, basis: e.target.value as typeof s.basis, reviewed: false }
+                        : x,
+                    ),
+                  })
+                }
+              >
+                {Object.entries(BASIS_LABELS).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+              <fieldset>
+                <legend className="text-sm">
+                  Kilder til afsnittet ({s.sourceIds.length} valgt)
+                </legend>
+                {s.sourceIds.some((id) => !reportSourceIds.has(id)) && (
+                  <button
+                    type="button"
+                    className={button}
+                    onClick={() =>
+                      setContent({
+                        ...content,
+                        sections: content.sections.map((section) =>
+                          section.id === s.id
+                            ? {
+                                ...section,
+                                reviewed: false,
+                                sourceIds: section.sourceIds.filter((id) =>
+                                  reportSourceIds.has(id),
+                                ),
+                              }
+                            : section,
+                        ),
+                      })
+                    }
+                  >
+                    Fjern ukendte kildehenvisninger fra afsnittet
+                  </button>
+                )}
+                <input
+                  className={field}
+                  aria-label="Søg kilder"
+                  placeholder="Søg foto eller kilde-id"
+                  value={sourceFilter}
+                  onChange={(e) => setSourceFilter(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Viser højst 100 match ad gangen. Alle {content.sources.length} kilder er i
+                  rapportens gemte register.
+                </p>
+                {content.sources
+                  .filter((source) =>
+                    `${source.title} ${source.id}`
+                      .toLowerCase()
+                      .includes(sourceFilter.toLowerCase()),
+                  )
+                  .slice(0, 100)
+                  .map((source) => (
+                    <label key={source.id} className="flex gap-2 text-sm py-1">
+                      <input
+                        type="checkbox"
+                        checked={s.sourceIds.includes(source.id)}
+                        onChange={(e) =>
+                          setContent({
+                            ...content,
+                            sections: content.sections.map((x) =>
+                              x.id === s.id
+                                ? {
+                                    ...x,
+                                    reviewed: false,
+                                    sourceIds: e.target.checked
+                                      ? [...x.sourceIds, source.id]
+                                      : x.sourceIds.filter((id) => id !== source.id),
+                                  }
+                                : x,
+                            ),
+                          })
+                        }
+                      />
+                      {source.title} ({source.id})
+                    </label>
+                  ))}
+              </fieldset>
+              <label className="flex gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={s.reviewed}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      sections: content.sections.map((x) =>
+                        x.id === s.id ? { ...x, reviewed: e.target.checked } : x,
+                      ),
+                    })
+                  }
+                />
+                Jeg har fagligt gennemgået afsnittet og dets kildehenvisninger
+              </label>
+            </Card>
+          ))}
+        </>
+      )}
+      {content && (mode === "readiness" || mode === "approval") && (
+        <Card className="p-5 space-y-3">
+          <h2 className="font-semibold">
+            {issues.length
+              ? "Rapporten er ikke klar til kundegodkendelse"
+              : "Datakontrol gennemført - faglig godkendelse kræves"}
+          </h2>
+          <ul className="list-disc pl-5 text-sm space-y-1">
+            {issues.map(({ message, sectionId, sourceRegister }, i) => {
+              const hash = sectionId
+                ? `rapport-afsnit-${sectionId}`
+                : sourceRegister
+                  ? "rapport-kilder"
+                  : undefined;
+              return (
+                <li key={i}>
+                  {hash && canEditContent && revision ? (
+                    <Link
+                      className="underline underline-offset-2"
+                      to="/app/reports/builder"
+                      search={{ report: revision.report_id, version: revision.version }}
+                      hash={hash}
+                    >
+                      {message}
+                    </Link>
+                  ) : (
+                    message
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {canEdit && mode === "approval" && content.workflowSnapshot && (
+            <div className="space-y-2">
+              <label className="block text-sm">
+                Dokumentationsreviewets omfang og begrundelse
+                <textarea
+                  className={field}
+                  value={reviewReason}
+                  maxLength={3000}
+                  onChange={(event) => setReviewReason(event.target.value)}
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className={button}
+                  disabled={busy || changed || !reviewReason.trim()}
+                  onClick={() => recordWorkflowReview("accepted")}
+                >
+                  Gem accepteret dokumentationsreview
+                </button>
+                <button
+                  className={button}
+                  disabled={busy || changed || !reviewReason.trim()}
+                  onClick={() => recordWorkflowReview("changes_requested")}
+                >
+                  Gem anmodning om rettelser
+                </button>
+              </div>
+              <p className="text-xs">
+                Reviewet gemmes som en ny version og gælder dokumentationen i det angivne omfang.
+              </p>
+            </div>
+          )}
+          {canEditContent &&
+            mode === "approval" &&
+            !content.workflowSnapshot &&
+            revision?.status === "review" && (
+              <fieldset disabled={busy || changed} className="space-y-2">
+                <legend className="font-medium">Send et afsnit tilbage til rettelse</legend>
+                <label className="block text-sm">
+                  Afsnit til rettelse
+                  <select
+                    className={field}
+                    value={correctionSectionId}
+                    onChange={(event) => setCorrectionSectionId(event.target.value)}
+                  >
+                    <option value="">Vælg afsnit</option>
+                    {content.sections.map((section) => (
+                      <option key={section.id} value={section.id}>
+                        {section.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  Hvad skal rettes?
+                  <textarea
+                    className={field}
+                    value={reviewReason}
+                    maxLength={3000}
+                    onChange={(event) => setReviewReason(event.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={!correctionSectionId || !reviewReason.trim()}
+                  onClick={returnSectionForCorrection}
+                >
+                  Send tilbage til rettelse
+                </button>
+              </fieldset>
+            )}
+          {canEditContent && mode === "approval" && (
+            <div className="flex gap-2">
+              {(!content.workflowSnapshot || revision?.status === "draft") && (
+                <button
+                  className={button}
+                  disabled={busy || changed || (!!correction && !returnedSection?.reviewed)}
+                  onClick={() =>
+                    void save(
+                      "review",
+                      content.workflowSnapshot
+                        ? {
+                            ...content,
+                            workflowSnapshot: { ...content.workflowSnapshot, review: null },
+                          }
+                        : content,
+                    )
+                  }
+                >
+                  Registrér til gennemgang
+                </button>
+              )}
+              <button
+                className={button}
+                disabled={busy || changed || issues.length > 0 || revision?.status === "approved"}
+                onClick={() => void save("approved")}
+              >
+                Godkend som ny version
+              </button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            En gennemgang registreres i systemet. Der sendes ingen mail eller invitation.
+          </p>
+        </Card>
+      )}
+      {content && mode === "preview" && <ReportPreview revision={revision} content={content} />}
+      {mode === "preview" && revision?.content.workOrderApproval && projectId && (
+        <Card className="space-y-3 p-5">
+          <h2 className="font-semibold">Aflevering og opfølgning</h2>
+          <Link
+            className={button + " inline-flex min-h-11 items-center"}
+            to="/app/projects/$slug"
+            params={{ slug: projectId }}
+            search={{
+              tab: "handlinger",
+              task: revision.content.workOrderApproval.actionId,
+              work: "submission",
+              submissionVersion: revision.content.workOrderApproval.submissionVersion,
+            }}
+          >
+            Åbn opgavens aflevering og originalfotos
+          </Link>
+          {canEdit && user?.id && orgId && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Listen viser opgavens aktuelle opfølgninger på sagen.
+              </p>
+              <WorkOrderFollowUps
+                actorId={user.id}
+                scope={{ organizationId: orgId, projectId }}
+                actionId={revision.content.workOrderApproval.actionId}
+              />
+            </>
+          )}
+        </Card>
+      )}
+      {revision && (mode === "approval" || mode === "preview") && (
+        <Card className="p-5 space-y-3">
+          <h2 className="font-semibold">Eksportér gemt version {revision.version}</h2>
+          {(revision.content.workflowSnapshot || revision.content.workOrderApproval) && (
+            <button
+              className={button}
+              disabled={busy || changed}
+              onClick={() => void run(() => downloadPackage(revision))}
+            >
+              Hent PDF og kildepakke fra denne version
+            </button>
+          )}
+          {revision.content.workOrderApproval ? (
+            <>
+              <button
+                className={button}
+                disabled={busy || changed}
+                onClick={() => void run(() => downloadPackage(revision, true))}
+              >
+                Hent ZIP med verificerede originalfotos
+              </button>
+              <p className="text-sm">
+                Kildepakken indeholder referencer og kontrolsummer. ZIP med originalfotos henter
+                også filerne med din aktuelle adgang, op til 25 MiB i alt. Du kan åbne originalfotos
+                enkeltvis fra opgaven.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm">
+                Kladder mærkes tydeligt. Filen genereres fra den valgte gemte version og får en
+                SHA-256-checksum. Fotoatlas medtager JPEG/PNG-originaler med verificeret checksum.
+                Andre formater medtages kun som referencer. Oversigtskortet bruger OpenStreetMap.
+                Hvis kortfelter ikke kan hentes, vises det tydeligt i kortbilaget. Faktisk
+                fotodækning og officielle naturbindinger er ikke dokumenteret af GPS-punkterne.
+              </p>
+              <button
+                className={button}
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    await reportImagesFor(revision);
+                    setMessage(
+                      "Kort- og fotovisning er klar. PDF/DOCX genbruger denne visning uden at hente nye kortfelter.",
+                    );
+                  })
+                }
+              >
+                Forhåndsvis kort og fotoatlas
+              </button>
+            </>
+          )}
+          {assetRevisionId === revision.id &&
+            imageUrls.map((url, i) => (
+              <figure key={images[i]?.id} className="border rounded-lg p-3">
+                <img src={url} alt={images[i]?.caption} className="max-h-[520px] mx-auto" />
+                <figcaption className="text-xs mt-2">{images[i]?.caption}</figcaption>
+              </figure>
+            ))}
+          <div className="flex flex-wrap gap-2">
+            {(["pdf", "docx", "csv", "geojson"] as ReportFormat[]).map((format) => (
+              <button
+                key={format}
+                className={button}
+                disabled={busy || changed}
+                onClick={() =>
+                  void run(async () => {
+                    const assets =
+                      format === "pdf" || format === "docx" ? await reportImagesFor(revision) : [];
+                    const file = await downloadReportFile(revision, format, assets);
+                    setMessage(
+                      `Fil genereret og download startet: ${file.filename}. SHA-256: ${file.checksum}`,
+                    );
+                  })
+                }
+              >
+                {format.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+    </main>
+  );
+}
+export function ReportPreview({
+  content,
+  revision,
+}: {
+  content: ReportContent;
+  revision?: ReportRevision;
+}) {
+  const mapNumbers = reportPhotoMapNumbers(content);
+  const sources = new Map(
+    content.sources.map((source, index) => [
+      source.id,
+      { title: source.title, anchor: "report-source-" + index },
+    ]),
+  );
+  const hasApprovalSection =
+    content.workOrderApproval && content.sections.some((section) => section.id === "review");
+  const dataBasis = reportWorkOrderDataBasis(content);
+  return (
+    <Card className="mx-auto max-w-4xl space-y-6 p-4 sm:p-8">
+      <header>
+        <div className="text-primary font-bold">FREYRA</div>
+        <h1 className="text-2xl font-semibold mt-3">{content.title}</h1>
+        <p>{content.organizationName}</p>
+        <p>
+          {revision?.status === "approved"
+            ? "Godkendt rapport"
+            : content.workOrderApproval
+              ? "Rapportkladde"
+              : "KLADDE - ikke godkendt"}{" "}
+          · Version {revision?.version ?? "ikke gemt"}
+        </p>
+        <p>Omfang · {content.scope}</p>
+        {content.workOrderApproval && (
+          <p className="text-sm">
+            Grundlag · Godkendt afleveringsversion {content.workOrderApproval.submissionVersion}
+            {hasApprovalSection && (
+              <a
+                href="#report-work-order-review"
+                className="ml-2 inline-flex min-h-11 items-center text-primary underline"
+              >
+                Se den faglige afgørelse
+              </a>
+            )}
+          </p>
+        )}
+      </header>
+      {dataBasis && (
+        <section
+          aria-label="Udførelsens datagrundlag"
+          role="status"
+          className={
+            "space-y-2 rounded-xl border p-4 text-sm [overflow-wrap:anywhere] " +
+            (dataBasis.kind === "real"
+              ? "bg-muted/30"
+              : "border-amber-600/40 bg-amber-50 text-amber-950 dark:bg-amber-950 dark:text-amber-100")
+          }
+        >
+          <h2 className="font-semibold">{dataBasis.label}</h2>
+          <p>{dataBasis.description}</p>
+        </section>
+      )}
+      {content.sections.map((s) => (
+        <section
+          key={s.id}
+          id={hasApprovalSection && s.id === "review" ? "report-work-order-review" : undefined}
+          tabIndex={hasApprovalSection && s.id === "review" ? -1 : undefined}
+          className="scroll-mt-20"
+        >
+          <h2 className="font-semibold text-lg">{s.title}</h2>
+          <p className="text-xs text-muted-foreground">{BASIS_LABELS[s.basis]}</p>
+          <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere]">
+            {s.text || "Grundlaget er ikke dokumenteret."}
+          </p>
+          <p className="mt-2 text-xs [overflow-wrap:anywhere]">
+            Kilder: {s.sourceIds.length === 0 && "Ingen"}
+            {s.sourceIds.map((sourceId, index) => {
+              const source = sources.get(sourceId);
+              return (
+                <span key={sourceId}>
+                  {index > 0 && ", "}
+                  {source ? (
+                    <a
+                      href={"#" + source.anchor}
+                      className="inline-block py-2 text-primary underline"
+                    >
+                      {source.title || sourceId}
+                    </a>
+                  ) : (
+                    sourceId
+                  )}
+                </span>
+              );
+            })}
+          </p>
+        </section>
+      ))}
+      <section>
+        <h2 className="font-semibold text-lg">Kilderegister</h2>
+        {content.sources.map((s) => (
+          <p
+            key={s.id}
+            id={sources.get(s.id)?.anchor}
+            tabIndex={-1}
+            className="mt-2 scroll-mt-20 text-sm [overflow-wrap:anywhere]"
+          >
+            {mapNumbers.has(s.id) && <strong>Kortpunkt {mapNumbers.get(s.id)} · </strong>}
+            {s.id}: {s.title} · {s.method} · version {s.version} · GPS{" "}
+            {s.position?.join(", ") ?? "mangler"} · SHA-256 {s.checksum ?? "ikke dokumenteret"}
+            {s.photoPointReview && (
+              <>
+                {" "}
+                · Fotopunkt {s.photoPointReview.bindingId} · Faglig gennemgang{" "}
+                {s.photoPointReview.id}
+              </>
+            )}
+            {s.localCaptureDate && (
+              <> · Lokal kameradato {s.localCaptureDate} uden dokumenteret tidszone</>
+            )}
+          </p>
+        ))}
+        {numberedAtlasMapPoints(content, mapNumbers).map((point) => (
+          <p key={point.sourceId} className="mt-2 text-sm">
+            <strong>Kortpunkt {point.number}</strong> · Atlasfoto {point.id} · GPS{" "}
+            {point.position.join(", ")}
+          </p>
+        ))}
+      </section>
+    </Card>
+  );
+}

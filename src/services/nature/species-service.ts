@@ -20,7 +20,7 @@ export interface EnrichedSpecies extends IdentifiedSpecies {
   gbifMatch: boolean;
   acceptedName: string | null;
   redListStatus: RedListCategory | null;
-  protected: boolean;          // bilag IV / fredet
+  protected: boolean; // bilag IV / fredet
   vernacularNames: string[];
 }
 
@@ -40,32 +40,32 @@ export const RED_LIST_LABELS: Record<RedListCategory, string> = {
 // ─── Dansk beskyttelse — bilag IV-arter (habitatdirektivet) ────────────────────
 // Udvalg af de mest relevante strengt beskyttede arter i DK.
 const PROTECTED_SPECIES = new Set([
-  "Lutra lutra",          // Odder
-  "Myotis",               // Flagermus (slægt)
-  "Triturus cristatus",   // Stor vandsalamander
-  "Bombina bombina",      // Klokkefrø
-  "Pelobates fuscus",     // Løgfrø
-  "Bufo calamita",        // Strandtudse
-  "Bufo viridis",         // Grønbroget tudse
-  "Rana arvalis",         // Spidssnudet frø
-  "Rana dalmatina",       // Springfrø
-  "Hyla arborea",         // Løvfrø
-  "Coronella austriaca",  // Glat snog
+  "Lutra lutra", // Odder
+  "Myotis", // Flagermus (slægt)
+  "Triturus cristatus", // Stor vandsalamander
+  "Bombina bombina", // Klokkefrø
+  "Pelobates fuscus", // Løgfrø
+  "Bufo calamita", // Strandtudse
+  "Bufo viridis", // Grønbroget tudse
+  "Rana arvalis", // Spidssnudet frø
+  "Rana dalmatina", // Springfrø
+  "Hyla arborea", // Løvfrø
+  "Coronella austriaca", // Glat snog
   "Muscardinus avellanarius", // Hasselmus
-  "Castor fiber",         // Bæver
+  "Castor fiber", // Bæver
 ]);
 
 // Statisk dansk rødliste-udvalg (kan udvides med fuld liste fra DCE)
 const RED_LIST_DK: Record<string, RedListCategory> = {
-  "Ciconia ciconia": "CR",       // Hvid stork
-  "Lutra lutra": "LC",           // Odder (genindvandret)
-  "Drosera rotundifolia": "NT",  // Rundbladet soldug
-  "Triturus cristatus": "VU",    // Stor vandsalamander
-  "Bombina bombina": "EN",       // Klokkefrø
-  "Hyla arborea": "VU",          // Løvfrø
-  "Circus aeruginosus": "LC",    // Rørhøg
-  "Pandion haliaetus": "EN",     // Fiskeørn
-  "Haliaeetus albicilla": "NT",  // Havørn
+  "Ciconia ciconia": "CR", // Hvid stork
+  "Lutra lutra": "LC", // Odder (genindvandret)
+  "Drosera rotundifolia": "NT", // Rundbladet soldug
+  "Triturus cristatus": "VU", // Stor vandsalamander
+  "Bombina bombina": "EN", // Klokkefrø
+  "Hyla arborea": "VU", // Løvfrø
+  "Circus aeruginosus": "LC", // Rørhøg
+  "Pandion haliaetus": "EN", // Fiskeørn
+  "Haliaeetus albicilla": "NT", // Havørn
 };
 
 // ─── GBIF berigelse ────────────────────────────────────────────────────────────
@@ -99,7 +99,9 @@ async function gbifVernacular(usageKey: number): Promise<string[]> {
       { signal: AbortSignal.timeout(6000) },
     );
     if (!res.ok) return [];
-    const json = (await res.json()) as { results?: Array<{ vernacularName: string; language?: string }> };
+    const json = (await res.json()) as {
+      results?: Array<{ vernacularName: string; language?: string }>;
+    };
     return (json.results ?? [])
       .filter((r) => r.language === "dan" || r.language === "eng")
       .map((r) => r.vernacularName)
@@ -192,7 +194,9 @@ export async function saveSpeciesObservations(input: SaveSpeciesInput): Promise<
 
   if (saved > 0) {
     const protectedCount = input.species.filter((s) => s.protected).length;
-    const redListed = input.species.filter((s) => s.redListStatus && !["LC", "NA", "DD"].includes(s.redListStatus)).length;
+    const redListed = input.species.filter(
+      (s) => s.redListStatus && !["LC", "NA", "DD"].includes(s.redListStatus),
+    ).length;
     void logAuditEvent({
       project_id: input.projectId,
       event_type: "species_identified",
@@ -201,7 +205,9 @@ export async function saveSpeciesObservations(input: SaveSpeciesInput): Promise<
         input.species.map((s) => s.danishName).join(", "),
         protectedCount > 0 ? `${protectedCount} fredede` : null,
         redListed > 0 ? `${redListed} rødlistede` : null,
-      ].filter(Boolean).join(" · "),
+      ]
+        .filter(Boolean)
+        .join(" · "),
       actor: "Artsgenkendelse (AI)",
       source: "automated",
     });

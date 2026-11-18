@@ -15,8 +15,10 @@ function statusTone(status: string | null): "success" | "warning" | "info" | "de
   }
 }
 
-function scoreTone(score: "low" | "medium" | "high" | "critical"): string {
+function scoreTone(score: "low" | "medium" | "high" | "critical" | "unknown"): string {
   switch (score) {
+    case "unknown":
+      return "bg-muted text-muted-foreground";
     case "critical":
       return "bg-red-100 text-red-700";
     case "high":
@@ -28,8 +30,10 @@ function scoreTone(score: "low" | "medium" | "high" | "critical"): string {
   }
 }
 
-function scoreLabel(score: "low" | "medium" | "high" | "critical"): string {
+function scoreLabel(score: "low" | "medium" | "high" | "critical" | "unknown"): string {
   switch (score) {
+    case "unknown":
+      return "Ukendt";
     case "critical":
       return "Kritisk";
     case "high":

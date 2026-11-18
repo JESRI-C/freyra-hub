@@ -1,0 +1,11 @@
+-- LOCAL M1 metadata fixture after all existing eighteen cases. No physical bytes.
+begin;
+do $guard$ begin
+ if to_regclass('public.survey_round_note_versions') is null then raise exception 'Reviewed note migration required'; end if;
+ if (select count(*) from public.uploads)<>2 or (select count(*) from public.project_media)<>2 or (select count(*) from storage.objects)<>2 or (select count(*) from public.survey_round_media_versions)<>2 or exists(select 1 from public.survey_round_note_versions) then raise exception 'Exact prior eighteen-case graph required'; end if;
+ if exists(select 1 from public.uploads where id='95000000-0000-4000-8000-000000000003'::uuid) or exists(select 1 from storage.objects where id='96000000-0000-4000-8000-000000000003'::uuid) then raise exception 'Original C must be new'; end if;
+end $guard$;
+insert into public.uploads(id,project_id,organization_id,uploaded_by,file_name,original_file_name,file_size,mime_type,upload_type,storage_path,intent_request_id,intent_expires_at,received_at,status) values('95000000-0000-4000-8000-000000000003'::uuid,'10000000-0000-4000-8000-000000000001'::uuid,'94000000-0000-4000-8000-000000000001'::uuid,'20000000-0000-4000-8000-000000000001'::uuid,'concurrency-note-original-c.jpg','concurrency-note-original-c.jpg',137,'image/jpeg','drone_photo','20000000-0000-4000-8000-000000000001/intents/95000000-0000-4000-8000-000000000003/concurrency-note-original-c.jpg','97000000-0000-4000-8000-000000000003'::uuid,now()+interval '1 day','2026-10-14T00:00:00.000Z'::timestamptz,'awaiting_validation');
+insert into storage.objects(id,bucket_id,name,owner_id,metadata) values('96000000-0000-4000-8000-000000000003'::uuid,'monitoring-uploads','20000000-0000-4000-8000-000000000001/intents/95000000-0000-4000-8000-000000000003/concurrency-note-original-c.jpg','20000000-0000-4000-8000-000000000001','{"size":137,"mimetype":"image/jpeg"}'::jsonb);
+select jsonb_build_object('syntheticOnly',true,'metadataOnly',true,'bytesUploadedOrStored',false,'uploads',(select count(*) from public.uploads),'storageObjects',(select count(*) from storage.objects),'media',(select count(*) from public.project_media),'roundMediaBindings',(select count(*) from public.survey_round_media_versions),'notes',(select count(*) from public.survey_round_note_versions));
+commit;

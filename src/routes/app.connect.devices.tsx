@@ -9,11 +9,12 @@ import {
   DeviceStatusBadge,
   SignalStrengthIndicator,
   BatteryIndicator,
-  Section,
   Chip,
 } from "@/components/connect/Primitives";
 import { DeviceWizard } from "@/components/monitoring/DeviceWizard";
+import { GpsDeviceOverview } from "@/components/monitoring/GpsDeviceOverview";
 import { useConnectContext } from "@/lib/connect-context";
+import { useAuth } from "@/lib/auth";
 import {
   listDevices,
   computeDeviceKpis,
@@ -22,9 +23,13 @@ import {
   type DeviceStatus,
 } from "@/services/monitoring/devices-service";
 
-const devicesQuery = (projectId: string | null) => ({
-  queryKey: ["monitoring-devices", projectId] as const,
-  queryFn: () => (projectId ? listDevices(projectId) : Promise.resolve<MonitoringDevice[]>([])),
+const devicesQuery = (projectId: string | null, actorId: string | undefined) => ({
+  queryKey: ["monitoring-devices", projectId, actorId] as const,
+  refetchInterval: projectId && actorId ? (30_000 as const) : (false as const),
+  queryFn: () =>
+    projectId && actorId
+      ? listDevices(projectId, actorId)
+      : Promise.resolve<MonitoringDevice[]>([]),
 });
 
 export const Route = createFileRoute("/app/connect/devices")({
@@ -49,19 +54,21 @@ function formatWhen(iso: string | null): string {
 
 function Page() {
   const { projectId } = useConnectContext();
+  const { user } = useAuth();
   const qc = useQueryClient();
-  const { data: devices } = useSuspenseQuery(devicesQuery(projectId));
+  const { data: devices } = useSuspenseQuery(devicesQuery(projectId, user?.id));
   const [filter, setFilter] = useState<string>("all");
   const [wizardOpen, setWizardOpen] = useState(false);
 
   const kpis = computeDeviceKpis(devices);
   const filtered = devices.filter((d) => statusFilterMatches(d, filter));
+  const trackers = devices.filter((device) => device.device_type === "gps_tracker");
 
   return (
     <main className="p-6 max-w-[1400px] w-full mx-auto space-y-4">
       <PageHeader
         title="Enheder"
-        description="Sensorer, gateways, kameraer, vejrstationer og akustiske monitorer."
+        description="GPS-trackere, sensorer, gateways, kameraer og vejrstationer."
         actions={
           projectId && (
             <button
@@ -77,18 +84,44 @@ function Page() {
       {!projectId && (
         <Card className="p-4 flex items-start gap-3 border-warning/40 bg-warning/5">
           <Info className="h-4 w-4 text-warning mt-0.5" />
-          <div className="text-sm">
-            Vælg et projekt i topbaren for at se og oprette enheder.
-          </div>
+          <div className="text-sm">Vælg et projekt i topbaren for at se og oprette enheder.</div>
         </Card>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <ConnectionHealthCard label="Enheder" value={String(kpis.total)} icon={<Cpu className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Online" value={String(kpis.online)} tone="success" icon={<Wifi className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Kræver opmærksomhed" value={String(kpis.attention)} tone="warning" icon={<BatteryLow className="h-5 w-5" />} />
-        <ConnectionHealthCard label="Offline" value={String(kpis.offline)} tone="danger" icon={<WifiOff className="h-5 w-5" />} />
+        <ConnectionHealthCard
+          label="Enheder"
+          value={String(kpis.total)}
+          icon={<Cpu className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Online"
+          value={String(kpis.online)}
+          tone="success"
+          icon={<Wifi className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Kræver opmærksomhed"
+          value={String(kpis.attention)}
+          tone="warning"
+          icon={<BatteryLow className="h-5 w-5" />}
+        />
+        <ConnectionHealthCard
+          label="Offline"
+          value={String(kpis.offline)}
+          tone="danger"
+          icon={<WifiOff className="h-5 w-5" />}
+        />
       </div>
+
+      {user && projectId && trackers.length > 0 && (
+        <GpsDeviceOverview
+          key={user.id + ":" + projectId}
+          actorId={user.id}
+          projectId={projectId}
+          devices={trackers}
+        />
+      )}
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -107,7 +140,9 @@ function Page() {
               key={k}
               onClick={() => setFilter(k)}
               className={`text-xs px-3 py-1.5 rounded-lg border transition ${
-                filter === k ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"
+                filter === k
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card hover:bg-muted"
               }`}
             >
               {l}
@@ -184,13 +219,6 @@ function Page() {
           </div>
         </Card>
       )}
-
-      <Section title="Om denne visning" subtitle="Fase B — første version af enhedsregistret">
-        <div className="text-sm text-muted-foreground space-y-1">
-          <p>Enheder oprettes nu direkte i databasen med RLS efter projektmedlemsskab.</p>
-          <p>Status beregnes ud fra <code>last_seen_at</code> og <code>expected_interval_minutes</code>. Målehistorik, batterikurve og vedligeholdelseslog kommer i næste iteration.</p>
-        </div>
-      </Section>
 
       {projectId && (
         <DeviceWizard

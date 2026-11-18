@@ -6,7 +6,10 @@
 // revisionssporet overlever genindlæsning. Andre moduler kører in-memory
 // indtil de får egne tabeller.
 import type { LedgerPost } from "@/types/lavbund";
-import { getLedger as dbGetLedger, appendLedger as dbAppendLedger } from "@/services/lavbundService";
+import {
+  getLedger as dbGetLedger,
+  appendLedger as dbAppendLedger,
+} from "@/services/lavbundService";
 
 const store = new Map<string, LedgerPost[]>();
 
@@ -90,9 +93,7 @@ export async function ledgerVerify(modul: string, sagId: string): Promise<KaedeR
     if (p.prevHash !== prev) {
       return { ok: false, brud: { seq: p.seq, forventet: prev, faktisk: p.prevHash } };
     }
-    const forventet = await sha256Hex(
-      hashInput(prev, p.tidspunkt, p.actor, p.event, p.detail),
-    );
+    const forventet = await sha256Hex(hashInput(prev, p.tidspunkt, p.actor, p.event, p.detail));
     if (forventet !== p.hash) {
       return { ok: false, brud: { seq: p.seq, forventet, faktisk: p.hash } };
     }

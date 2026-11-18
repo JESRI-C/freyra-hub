@@ -42,10 +42,7 @@ function MetricCard({ icon, label, value, sub, tone = "neutral" }: MetricCardPro
 }
 
 export function ProjectMetricsPanel({ metrics, className }: ProjectMetricsPanelProps) {
-  const ndviLabel =
-    metrics.latestNdvi !== null
-      ? `${metrics.latestNdvi.toFixed(2)}`
-      : "—";
+  const ndviLabel = metrics.latestNdvi !== null ? `${metrics.latestNdvi.toFixed(2)}` : "—";
 
   const ndviSub =
     metrics.latestNdvi !== null
@@ -86,7 +83,11 @@ export function ProjectMetricsPanel({ metrics, className }: ProjectMetricsPanelP
         <MetricCard
           icon={<Leaf className="h-4 w-4" />}
           label="Beskyttet natur"
-          value={metrics.protectedNatureOverlapHa !== null ? `${metrics.protectedNatureOverlapHa} ha` : "—"}
+          value={
+            metrics.protectedNatureOverlapHa !== null
+              ? `${metrics.protectedNatureOverlapHa} ha`
+              : "—"
+          }
           sub="Overlap med §3"
           tone="emerald"
         />
@@ -100,7 +101,11 @@ export function ProjectMetricsPanel({ metrics, className }: ProjectMetricsPanelP
         <MetricCard
           icon={<Waves className="h-4 w-4" />}
           label="Nærmeste vandløb"
-          value={metrics.nearestWatercourseDistanceM !== null ? `${metrics.nearestWatercourseDistanceM} m` : "—"}
+          value={
+            metrics.nearestWatercourseDistanceM !== null
+              ? `${metrics.nearestWatercourseDistanceM} m`
+              : "—"
+          }
           sub={distSub}
           tone="blue"
         />

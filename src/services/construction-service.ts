@@ -3,6 +3,11 @@
 
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import {
+  fetchProjects,
+  fetchProjectById,
+  fetchProjectBySlug,
+  fetchEvidenceFilesByProject,
+  fetchAuditEventsByProject,
   fetchConstructionExtension,
   fetchNatureContext,
   fetchRunoffProfile,
@@ -161,14 +166,14 @@ async function getEvidenceForProject(projectId: string): Promise<EvidenceFile[]>
   if (!isSupabaseConfigured) {
     return SEED_EVIDENCE_FILES.filter((f) => f.project_id === projectId);
   }
-  return getEvidenceFilesByProject(projectId);
+  return fetchEvidenceFilesByProject(projectId);
 }
 
 async function getAuditForProject(projectId: string): Promise<AuditEvent[]> {
   if (!isSupabaseConfigured) {
     return SEED_AUDIT_EVENTS.filter((e) => e.project_id === projectId);
   }
-  return getAuditEventsByProject(projectId);
+  return fetchAuditEventsByProject(projectId);
 }
 
 // ─── Summary assembly ─────────────────────────────────────────────────────────
@@ -176,7 +181,9 @@ async function getAuditForProject(projectId: string): Promise<AuditEvent[]> {
 async function assembleConstructionSummary(
   projectId: string,
 ): Promise<ConstructionProjectSummary | null> {
-  const project = SEED_PROJECTS.find((p) => p.id === projectId) ?? null;
+  const project = isSupabaseConfigured
+    ? await fetchProjectById(projectId)
+    : (SEED_PROJECTS.find((p) => p.id === projectId) ?? null);
   if (!project) return null;
 
   const [
@@ -212,8 +219,21 @@ async function assembleConstructionSummary(
   };
 
   const readinessScore = getConstructionReadinessScore(partialSummary);
-  const runoffRiskScore = getRunoffRiskScore(runoffProfile, constructionExt);
-  const natureSensitivityScore = getNatureSensitivityScore(natureContext);
+  const runoffRiskScore =
+    runoffProfile &&
+    constructionExt &&
+    constructionExt.paved_area_m2 != null &&
+    runoffProfile.oil_separator_present != null &&
+    runoffProfile.runoff_destination
+      ? getRunoffRiskScore(runoffProfile, constructionExt)
+      : "unknown";
+  const natureSensitivityScore =
+    natureContext &&
+    natureContext.protected_nature_present != null &&
+    natureContext.watercourse_present != null &&
+    natureContext.natura2000_nearby != null
+      ? getNatureSensitivityScore(natureContext)
+      : "unknown";
 
   return {
     ...partialSummary,
@@ -225,8 +245,11 @@ async function assembleConstructionSummary(
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function getConstructionProjects(): Promise<ConstructionProjectSummary[]> {
-  const constructionProjects = SEED_PROJECTS.filter((p) => isConstructionType(p.project_type));
+export async function getConstructionProjects(
+  organizationId?: string,
+): Promise<ConstructionProjectSummary[]> {
+  const projects = isSupabaseConfigured ? await fetchProjects(organizationId) : SEED_PROJECTS;
+  const constructionProjects = projects.filter((p) => isConstructionType(p.project_type));
   const summaries = await Promise.all(
     constructionProjects.map((p) => assembleConstructionSummary(p.id)),
   );
@@ -235,8 +258,17 @@ export async function getConstructionProjects(): Promise<ConstructionProjectSumm
 
 export async function getConstructionProjectBySlug(
   slug: string,
+  organizationId?: string,
 ): Promise<ConstructionProjectSummary | null> {
-  const project = SEED_PROJECTS.find((p) => p.slug === slug && isConstructionType(p.project_type));
+  const project = isSupabaseConfigured
+    ? await fetchProjectBySlug(slug)
+    : SEED_PROJECTS.find((p) => p.slug === slug && isConstructionType(p.project_type));
+  if (
+    project &&
+    (!isConstructionType(project.project_type) ||
+      (organizationId && project.organization_id !== organizationId))
+  )
+    return null;
   if (!project) return null;
   return assembleConstructionSummary(project.id);
 }

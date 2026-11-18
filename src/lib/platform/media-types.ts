@@ -37,13 +37,16 @@ export interface ProjectMediaItem {
   documentId?: string | null;
   direction?: number | null;
   beforeMediaId?: string | null;
+  flightId?: string | null;
+  sha256?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export const MEDIA_CATEGORY_LABELS: Record<MediaCategory, string> = {
   field_photo: "Feltfoto",
   drone_image: "Drone",
   satellite_snapshot: "Satellit",
-  before_after: "Før/efter",
+  before_after: "Tidslig sammenligning",
   document_scan: "Dokument",
   biodiversity_observation: "Biodiversitet",
   water_observation: "Vand",

@@ -105,10 +105,7 @@ export function pixelWindow(
  * Median-NDVI over to samhørende bånd-arrays (rød + NIR). Nodata (0) og
  * urealistiske reflektanser filtreres fra. Returnerer null uden gyldige pixels.
  */
-export function medianNdviFromBands(
-  red: ArrayLike<number>,
-  nir: ArrayLike<number>,
-): number | null {
+export function medianNdviFromBands(red: ArrayLike<number>, nir: ArrayLike<number>): number | null {
   const n = Math.min(red.length, nir.length);
   const values: number[] = [];
   for (let i = 0; i < n; i++) {
@@ -158,7 +155,9 @@ export async function computeWindowNdvi(
     const { fromUrl } = await import("geotiff");
     const [redTiff, nirTiff] = await Promise.all([fromUrl(b04Url), fromUrl(b08Url)]);
 
-    async function readWindow(tiff: Awaited<ReturnType<typeof fromUrl>>): Promise<ArrayLike<number> | null> {
+    async function readWindow(
+      tiff: Awaited<ReturnType<typeof fromUrl>>,
+    ): Promise<ArrayLike<number> | null> {
       const count = await tiff.getImageCount();
       const widths: number[] = [];
       const images = [];

@@ -8,8 +8,14 @@ import { renderProjectReportPdf } from "@/services/project-report-pdf";
 interface UntypedDb {
   from(table: string): {
     select: (cols?: string) => {
-      eq: (col: string, val: unknown) => {
-        order: (col: string, opts: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+      eq: (
+        col: string,
+        val: unknown,
+      ) => {
+        order: (
+          col: string,
+          opts: { ascending: boolean },
+        ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
       };
     };
     insert: (values: Record<string, unknown>) => {
@@ -24,7 +30,7 @@ interface UntypedDb {
 }
 
 function getDb(): UntypedDb | null {
-  return (isSupabaseConfigured ? (supabase as unknown as UntypedDb) : null);
+  return isSupabaseConfigured ? (supabase as unknown as UntypedDb) : null;
 }
 
 export async function listDocuments(projectId: string): Promise<ProjectDocument[]> {
@@ -44,7 +50,11 @@ export async function deleteDocument(id: string): Promise<void> {
   if (!db) return;
   const { error } = await db.from("documents").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  await logAuditEvent({ event_type: "document.deleted", title: "Dokument slettet", description: id });
+  await logAuditEvent({
+    event_type: "document.deleted",
+    title: "Dokument slettet",
+    description: id,
+  });
 }
 
 export interface GenerateReportInput {
@@ -62,12 +72,22 @@ export interface GenerateReportOutput {
   fileName: string;
 }
 
-export async function generateProjectReport(input: GenerateReportInput): Promise<GenerateReportOutput> {
+export async function generateProjectReport(
+  input: GenerateReportInput,
+): Promise<GenerateReportOutput> {
   const { project, sites, actions, indicators, reportType } = input;
   const title = input.title || defaultTitle(reportType, project.name);
   const fileName = `${slug(title)}-v1.pdf`;
 
-  const pdf = renderProjectReportPdf({ project, sites, actions, indicators, reportType, title, generatedAt: new Date() });
+  const pdf = renderProjectReportPdf({
+    project,
+    sites,
+    actions,
+    indicators,
+    reportType,
+    title,
+    generatedAt: new Date(),
+  });
 
   const blob = pdf.output("blob");
 
@@ -112,12 +132,20 @@ export async function generateProjectReport(input: GenerateReportInput): Promise
 
 function defaultTitle(t: string, name: string) {
   const d = new Date().toISOString().slice(0, 10);
-  const label = t === "authority" ? "Myndighedsrapport" : t === "indicator" ? "Indikatorrapport" : "Projektstatusrapport";
+  const label =
+    t === "authority"
+      ? "Myndighedsrapport"
+      : t === "indicator"
+        ? "Indikatorrapport"
+        : "Projektstatusrapport";
   return `${label} – ${name} – ${d}`;
 }
 
 function slug(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 // Documentation completeness scoring
@@ -142,12 +170,25 @@ export function computeDocumentationScore(input: {
   const missingEvidence = recentActions.filter((a) => (evidenceCountByAction[a.id] ?? 0) === 0);
 
   const items = [
-    { label: "Projektbeskrivelse", ok: !!project.description && project.description.length > 20, weight: 10 },
+    {
+      label: "Projektbeskrivelse",
+      ok: !!project.description && project.description.length > 20,
+      weight: 10,
+    },
     { label: "Mindst ét site defineret", ok: sites.length > 0, weight: 15 },
     { label: "Mindst én indikator", ok: indicators.length > 0, weight: 15 },
-    { label: "Indikatorer med tærskler", ok: indicators.some((i) => i.threshold_warning != null || i.threshold_critical != null), weight: 10 },
+    {
+      label: "Indikatorer med tærskler",
+      ok: indicators.some((i) => i.threshold_warning != null || i.threshold_critical != null),
+      weight: 10,
+    },
     { label: "Aktive handlinger", ok: actions.some((a) => a.status !== "Færdig"), weight: 10 },
-    { label: "Foto/evidens på seneste 5 færdige handlinger", ok: recentActions.length > 0 && missingEvidence.length === 0, weight: 20, hint: missingEvidence.length ? `${missingEvidence.length} mangler` : undefined },
+    {
+      label: "Foto/evidens på seneste 5 færdige handlinger",
+      ok: recentActions.length > 0 && missingEvidence.length === 0,
+      weight: 20,
+      hint: missingEvidence.length ? `${missingEvidence.length} mangler` : undefined,
+    },
     { label: "Mindst én genereret rapport", ok: documents.length > 0, weight: 10 },
     { label: "Areal / geografi opgivet", ok: !!project.geometry_area_ha, weight: 10 },
   ];

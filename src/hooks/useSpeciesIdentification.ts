@@ -12,12 +12,23 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { identifySpeciesFromImage } from "@/lib/species-id.functions";
-import { enrichSpeciesList, saveSpeciesObservations, type EnrichedSpecies } from "@/services/nature/species-service";
+import { AI_IMAGE_MAX_BYTES, isAllowedAiImageDataUrl } from "@/lib/ai-image-input";
+import {
+  enrichSpeciesList,
+  saveSpeciesObservations,
+  type EnrichedSpecies,
+} from "@/services/nature/species-service";
 import type { Project } from "@/lib/supabase/types";
 
-type Phase = "idle" | "reading" | "identifying" | "enriching" | "review" | "saving" | "saved" | "error";
-
-const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+type Phase =
+  | "idle"
+  | "reading"
+  | "identifying"
+  | "enriching"
+  | "review"
+  | "saving"
+  | "saved"
+  | "error";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -49,13 +60,13 @@ export function useSpeciesIdentification(project: Project | null) {
 
   const identifyFile = useCallback(async (file: File, hint?: string) => {
     setError(null);
-    if (!file.type.startsWith("image/")) {
-      setError("Filen er ikke et billede.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Vælg et JPEG-, PNG- eller WebP-billede.");
       setPhase("error");
       return;
     }
-    if (file.size > MAX_BYTES) {
-      setError("Billedet er for stort (maks 8 MB).");
+    if (file.size > AI_IMAGE_MAX_BYTES) {
+      setError("Billedet er for stort (maks 2 MiB).");
       setPhase("error");
       return;
     }
@@ -63,6 +74,8 @@ export function useSpeciesIdentification(project: Project | null) {
     try {
       setPhase("reading");
       const dataUrl = await fileToDataUrl(file);
+      if (!isAllowedAiImageDataUrl(dataUrl))
+        throw new Error("Billedet har et ugyldigt eller ikke understøttet format.");
       setPreviewUrl(dataUrl);
 
       setPhase("identifying");
@@ -83,7 +96,9 @@ export function useSpeciesIdentification(project: Project | null) {
       const enriched = await enrichSpeciesList(idResult.species);
       setResults(enriched);
       // Vælg alle med rimelig konfidens som default
-      setSelected(new Set(enriched.filter((s) => s.confidence >= 0.4).map((s) => s.scientificName)));
+      setSelected(
+        new Set(enriched.filter((s) => s.confidence >= 0.4).map((s) => s.scientificName)),
+      );
       setPhase("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ukendt fejl ved billedanalyse.");
@@ -100,41 +115,46 @@ export function useSpeciesIdentification(project: Project | null) {
     });
   }, []);
 
-  const confirm = useCallback(async (coordinates?: { lat: number; lng: number }) => {
-    if (!project) {
-      setError("Intet aktivt projekt.");
-      return;
-    }
-    const toSave = results.filter((s) => selected.has(s.scientificName));
-    if (toSave.length === 0) {
-      setError("Vælg mindst én art at gemme.");
-      return;
-    }
+  const confirm = useCallback(
+    async (coordinates?: { lat: number; lng: number }) => {
+      if (!project) {
+        setError("Intet aktivt projekt.");
+        return;
+      }
+      const toSave = results.filter((s) => selected.has(s.scientificName));
+      if (toSave.length === 0) {
+        setError("Vælg mindst én art at gemme.");
+        return;
+      }
 
-    try {
-      setPhase("saving");
-      const coords = coordinates ?? (project.geometry_centroid_lat != null && project.geometry_centroid_lng != null
-        ? { lat: project.geometry_centroid_lat, lng: project.geometry_centroid_lng }
-        : undefined);
+      try {
+        setPhase("saving");
+        const coords =
+          coordinates ??
+          (project.geometry_centroid_lat != null && project.geometry_centroid_lng != null
+            ? { lat: project.geometry_centroid_lat, lng: project.geometry_centroid_lng }
+            : undefined);
 
-      const { saved } = await saveSpeciesObservations({
-        projectId: project.id,
-        species: toSave,
-        coordinates: coords,
-      });
+        const { saved } = await saveSpeciesObservations({
+          projectId: project.id,
+          species: toSave,
+          coordinates: coords,
+        });
 
-      setSavedCount(saved);
-      setPhase("saved");
+        setSavedCount(saved);
+        setPhase("saved");
 
-      // Biodiversitet og observationer afhænger af de nye arter
-      void queryClient.invalidateQueries({ queryKey: ["nature-data"] });
-      void queryClient.invalidateQueries({ queryKey: ["biodiversity"] });
-      void queryClient.invalidateQueries({ queryKey: ["observations"] });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kunne ikke gemme arter.");
-      setPhase("error");
-    }
-  }, [project, results, selected, queryClient]);
+        // Biodiversitet og observationer afhænger af de nye arter
+        void queryClient.invalidateQueries({ queryKey: ["nature-data"] });
+        void queryClient.invalidateQueries({ queryKey: ["biodiversity"] });
+        void queryClient.invalidateQueries({ queryKey: ["observations"] });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Kunne ikke gemme arter.");
+        setPhase("error");
+      }
+    },
+    [project, results, selected, queryClient],
+  );
 
   return {
     phase,

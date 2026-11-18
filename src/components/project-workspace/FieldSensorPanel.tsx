@@ -1,158 +1,126 @@
-import { useState } from "react";
 import { Battery, Signal, TrendingUp, TrendingDown, Minus, RefreshCw } from "lucide-react";
-import type { IoTSensor } from "@/services/iot-simulation-service";
-import { SENSOR_TYPE_LABELS, getLiveReading } from "@/services/iot-simulation-service";
+import type { MapDevice } from "@/services/monitoring/map-devices-service";
 import { Card, CardHeader } from "@/components/ui-bits";
 
 interface FieldSensorPanelProps {
-  sensors: IoTSensor[];
+  sensors: MapDevice[] | null;
+  status: string;
+  refreshing?: boolean;
+  onRefresh?: () => unknown;
   className?: string;
 }
-
-const STATUS_STYLE = {
-  online: { dot: "bg-emerald-500", label: "Online", badge: "bg-emerald-100 text-emerald-700" },
-  warning: { dot: "bg-amber-400", label: "Advarsel", badge: "bg-amber-100 text-amber-700" },
-  offline: { dot: "bg-red-400", label: "Offline", badge: "bg-red-100 text-red-700" },
-} as const;
-
-function TrendIcon({ trend }: { trend: IoTSensor["trend"] }) {
-  if (trend === "up") return <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />;
-  if (trend === "down") return <TrendingDown className="h-3.5 w-3.5 text-red-400" />;
-  return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
-}
-
-function BatteryBar({ pct }: { pct: number }) {
-  const color = pct < 20 ? "bg-red-400" : pct < 40 ? "bg-amber-400" : "bg-emerald-500";
+const statuses = {
+  online: { dot: "bg-emerald-500", label: "Online" },
+  partial: { dot: "bg-amber-400", label: "Delvis forbindelse" },
+  attention: { dot: "bg-amber-400", label: "Kræver opmærksomhed" },
+  offline: { dot: "bg-red-400", label: "Offline" },
+  not_activated: { dot: "bg-slate-400", label: "Ikke aktiveret" },
+};
+function BatteryBar({ value }: { value: number | null }) {
+  if (value === null || !Number.isFinite(value) || value < 0 || value > 100)
+    return (
+      <span className="text-xs text-muted-foreground">Batteriniveau mangler eller er ugyldigt</span>
+    );
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
       <Battery className="h-3.5 w-3.5" />
-      <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span>{pct}%</span>
-    </div>
+      {value}%
+    </span>
   );
 }
-
-function formatLastSeen(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 2) return "Lige nu";
-  if (mins < 60) return `${mins} min siden`;
-  const hrs = Math.floor(mins / 60);
-  return `${hrs} t siden`;
+function lastSeen(value: string | null) {
+  if (!value || !Number.isFinite(Date.parse(value)) || Date.parse(value) > Date.now())
+    return "Tidspunkt ukendt";
+  return new Date(value).toLocaleString("da-DK");
 }
-
-export function FieldSensorPanel({ sensors, className }: FieldSensorPanelProps) {
-  const [readings, setReadings] = useState<Record<string, number>>({});
-
-  function refreshAll() {
-    const updated: Record<string, number> = {};
-    for (const s of sensors) {
-      updated[s.id] = getLiveReading(s);
-    }
-    setReadings(updated);
-  }
-
-  const online = sensors.filter((s) => s.status === "online").length;
-  const warning = sensors.filter((s) => s.status === "warning").length;
-  const offline = sensors.filter((s) => s.status === "offline").length;
-
+export function FieldSensorPanel({
+  sensors,
+  status,
+  refreshing,
+  onRefresh,
+  className,
+}: FieldSensorPanelProps) {
+  const online = sensors?.filter((sensor) => sensor.status === "online").length ?? 0;
   return (
     <Card className={className}>
       <CardHeader
-        title="Feltsensorer (IoT)"
-        subtitle={`${sensors.length} simulerede sensorer — ${online} online`}
+        title="Registrerede enheder"
+        subtitle={
+          sensors ? `${sensors.length} enheder · ${online} online` : "Ingen aktuelle enhedsdata"
+        }
         action={
-          <button
-            onClick={refreshAll}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border rounded-lg px-2.5 py-1.5 transition-colors"
-          >
-            <RefreshCw className="h-3 w-3" />
-            Opdatér
-          </button>
+          onRefresh && (
+            <button
+              type="button"
+              aria-label="Opdatér registrerede enheder"
+              disabled={refreshing}
+              onClick={() => void onRefresh()}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs disabled:opacity-60"
+            >
+              <RefreshCw className="h-3 w-3" />
+              {refreshing ? "Henter…" : "Opdatér"}
+            </button>
+          )
         }
       />
-
-      {/* Summary row */}
-      <div className="px-5 pb-3 flex gap-4 text-xs">
-        <span className="flex items-center gap-1 text-emerald-700">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
-          {online} online
-        </span>
-        {warning > 0 && (
-          <span className="flex items-center gap-1 text-amber-700">
-            <span className="h-2 w-2 rounded-full bg-amber-400 inline-block" />
-            {warning} advarsel
-          </span>
-        )}
-        {offline > 0 && (
-          <span className="flex items-center gap-1 text-red-700">
-            <span className="h-2 w-2 rounded-full bg-red-400 inline-block" />
-            {offline} offline
-          </span>
-        )}
-        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">SIMULERET</span>
-      </div>
-
+      <p role="status" className="px-5 pb-3 text-sm text-muted-foreground">
+        {status}
+      </p>
       <div className="divide-y border-t">
-        {sensors.map((sensor) => {
-          const liveValue = readings[sensor.id] ?? sensor.latestValue;
-          const st = STATUS_STYLE[sensor.status];
+        {sensors?.map((sensor) => {
+          const state = statuses[sensor.status];
+          const Trend =
+            sensor.trend === "up" ? TrendingUp : sensor.trend === "down" ? TrendingDown : Minus;
           return (
-            <div
+            <article
               key={sensor.id}
-              className="px-5 py-3 flex items-start gap-3 hover:bg-muted/20 transition-colors"
+              data-device-id={sensor.id}
+              className="min-w-0 space-y-2 break-words px-5 py-3 [overflow-wrap:anywhere]"
             >
-              {/* Status dot */}
-              <span className={`mt-1 h-2 w-2 rounded-full shrink-0 ${st.dot}`} />
-
-              {/* Label + type */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium truncate">{sensor.label}</span>
-                  <span
-                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${st.badge}`}
-                  >
-                    {st.label}
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {SENSOR_TYPE_LABELS[sensor.type]}
-                </div>
-                <div className="mt-1.5 flex items-center gap-3 flex-wrap">
-                  <BatteryBar pct={sensor.batteryPercent} />
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Signal className="h-3.5 w-3.5" />
-                    {sensor.signalStrength}%
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <span>Sidst set:</span>
-                    <span>{formatLastSeen(sensor.lastSeen)}</span>
-                  </div>
-                </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${state.dot}`} />
+                <h3 className="text-sm font-medium">{sensor.label}</h3>
+                <span className="text-xs text-muted-foreground">{state.label}</span>
               </div>
-
-              {/* Value + trend */}
-              <div className="text-right shrink-0">
-                <div className="text-base font-semibold tabular-nums">
-                  {liveValue}
-                  <span className="text-xs font-normal text-muted-foreground ml-0.5">
-                    {sensor.unit}
-                  </span>
-                </div>
-                <div className="flex items-center justify-end gap-0.5 mt-0.5">
-                  <TrendIcon trend={sensor.trend} />
-                  <span className="text-[10px] text-muted-foreground">
-                    {sensor.trend === "up"
-                      ? "Stigende"
-                      : sensor.trend === "down"
-                        ? "Faldende"
-                        : "Stabil"}
-                  </span>
-                </div>
+              <div className="text-base font-semibold tabular-nums">
+                {sensor.measurement
+                  ? `${sensor.measurement.value}${sensor.measurement.unit ? " " + sensor.measurement.unit : ""}`
+                  : "Ingen måling registreret"}
               </div>
-            </div>
+              {sensor.measurement && (
+                <div className="text-xs text-muted-foreground">
+                  Målt: {sensor.measurement.measuredAt} · Datakvalitet:{" "}
+                  {sensor.measurement.qualityStatus}
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-3">
+                <BatteryBar value={sensor.batteryPercent} />
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Signal className="h-3.5 w-3.5" />
+                  {sensor.signalStrength === null || !Number.isFinite(sensor.signalStrength)
+                    ? "Signalstyrke mangler"
+                    : `Signalværdi: ${sensor.signalStrength} (enhed ikke angivet)`}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Sidst set: {lastSeen(sensor.lastSeen)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {sensor.coordinates
+                  ? `Position: ${sensor.coordinates.lat}, ${sensor.coordinates.lng} · ${sensor.coordinates.source === "measurement" ? "fra gemt måling" : "registreret enhedsposition, ikke aktuel GPS"}`
+                  : "Position mangler – vises ikke på kortet"}
+              </div>
+              <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Trend className="h-3.5 w-3.5" />
+                {sensor.trend === "up"
+                  ? "Stigende"
+                  : sensor.trend === "down"
+                    ? "Faldende"
+                    : sensor.trend === "stable"
+                      ? "Uændret"
+                      : "Trend ikke beregnet"}
+              </div>
+            </article>
           );
         })}
       </div>

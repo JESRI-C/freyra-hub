@@ -3,7 +3,7 @@
  * Går via server-fn `searchPlaces` så vi kan skifte kilde uden UI-ændringer
  * og holde eventuelle credentials væk fra klienten.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Search, X, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { searchPlaces, resolvePlace, type PlaceSuggestion } from "@/lib/geo-search.functions";
@@ -16,14 +16,18 @@ export interface AddressPick {
 
 export function AddressSearch({
   onSelect,
+  initialQuery = "",
   placeholder = "Søg på adresse, vej, stednavn eller koordinater…",
 }: {
   onSelect: (pick: AddressPick) => void;
   placeholder?: string;
+  initialQuery?: string;
 }) {
+  const listId = useId();
+  const selectedQuery = useRef<string | null>(null);
   const search = useServerFn(searchPlaces);
   const resolve = useServerFn(resolvePlace);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
   const [items, setItems] = useState<PlaceSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,26 +50,37 @@ export function AddressSearch({
 
   useEffect(() => {
     const query = q.trim();
+    const id = ++reqIdRef.current;
+    let cancelled = false;
+    setItems([]);
+    setLoading(false);
     setError(null);
-    if (query.length < 2) { setItems([]); setOpen(false); return; }
+    if (selectedQuery.current === query) return;
+    if (query.length < 2) {
+      setItems([]);
+      setOpen(false);
+      return;
+    }
     const t = setTimeout(async () => {
-      const id = ++reqIdRef.current;
       setLoading(true);
       try {
         const data = await search({ data: { q: query } });
-        if (id !== reqIdRef.current) return;
+        if (cancelled || id !== reqIdRef.current) return;
         setItems(data);
         setOpen(true);
         setHighlight(0);
       } catch {
-        if (id !== reqIdRef.current) return;
+        if (cancelled || id !== reqIdRef.current) return;
         setError("Kunne ikke hente søgeforslag");
         setItems([]);
       } finally {
-        if (id === reqIdRef.current) setLoading(false);
+        if (!cancelled && id === reqIdRef.current) setLoading(false);
       }
     }, 220);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      cancelled = true;
+    };
   }, [q, search]);
 
   useEffect(() => {
@@ -77,17 +92,35 @@ export function AddressSearch({
   }, []);
 
   const pick = async (item: PlaceSuggestion) => {
-    let lat = item.lat, lng = item.lng;
+    if (item.refine) {
+      selectedQuery.current = null;
+      setQ(item.tekst + " ");
+      setOpen(true);
+      return;
+    }
+    const request = ++reqIdRef.current;
+    setLoading(true);
+    setError(null);
+    let lat = item.lat,
+      lng = item.lng;
     if ((lat == null || lng == null) && item.href) {
       try {
         const r = await resolve({ data: { href: item.href } });
-        if (r) { lat = r.lat; lng = r.lng; }
-      } catch { /* ignore */ }
+        if (r) {
+          lat = r.lat;
+          lng = r.lng;
+        }
+      } catch {
+        /* ignore */
+      }
     }
+    if (request !== reqIdRef.current) return;
+    setLoading(false);
     if (lat == null || lng == null) {
       setError("Kunne ikke slå koordinater op for dette forslag");
       return;
     }
+    selectedQuery.current = item.tekst;
     onSelect({ label: item.tekst, lat, lng });
     setQ(item.tekst);
     setOpen(false);
@@ -110,15 +143,34 @@ export function AddressSearch({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <input
           type="text"
+          aria-label="Find sted"
+          role="combobox"
+          aria-expanded={open && items.length > 0}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={open && items.length ? `${listId}-${highlight}` : undefined}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            selectedQuery.current = null;
+            ++reqIdRef.current;
+            setItems([]);
+            setQ(e.target.value);
+          }}
           onFocus={() => items.length > 0 && setOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") { e.preventDefault(); submit(); return; }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+              return;
+            }
             if (!open) return;
-            if (e.key === "ArrowDown") { e.preventDefault(); setHighlight((h) => Math.min(h + 1, items.length - 1)); }
-            else if (e.key === "ArrowUp") { e.preventDefault(); setHighlight((h) => Math.max(h - 1, 0)); }
-            else if (e.key === "Escape") setOpen(false);
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setHighlight((h) => Math.min(h + 1, items.length - 1));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setHighlight((h) => Math.max(h - 1, 0));
+            } else if (e.key === "Escape") setOpen(false);
           }}
           placeholder={placeholder}
           className="w-full pl-9 pr-9 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -129,7 +181,13 @@ export function AddressSearch({
         {q && !loading && (
           <button
             type="button"
-            onClick={() => { setQ(""); setItems([]); setOpen(false); }}
+            onClick={() => {
+              selectedQuery.current = null;
+              ++reqIdRef.current;
+              setQ("");
+              setItems([]);
+              setOpen(false);
+            }}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
             aria-label="Ryd søgning"
           >
@@ -138,15 +196,30 @@ export function AddressSearch({
         )}
       </div>
 
-      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs text-destructive mt-1">
+          {error}
+        </p>
+      )}
 
       {open && items.length > 0 && (
-        <ul className="absolute z-[1200] left-0 right-0 mt-1.5 max-h-72 overflow-auto rounded-xl border bg-popover shadow-lg text-sm">
+        <ul
+          id={listId}
+          role="listbox"
+          aria-label="Stedforslag"
+          className="absolute z-[1200] left-0 right-0 mt-1.5 max-h-72 overflow-auto rounded-xl border bg-popover shadow-lg text-sm"
+        >
           {items.map((it, i) => (
             <li
               key={`${it.type}-${i}-${it.tekst}`}
+              id={`${listId}-${i}`}
+              role="option"
+              aria-selected={i === highlight}
               onMouseEnter={() => setHighlight(i)}
-              onMouseDown={(e) => { e.preventDefault(); void pick(it); }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                void pick(it);
+              }}
               className={`px-3 py-2 cursor-pointer flex items-center gap-2 ${
                 i === highlight ? "bg-primary/10" : "hover:bg-muted"
               }`}
@@ -154,7 +227,13 @@ export function AddressSearch({
               <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 w-16">
                 {it.type}
               </span>
-              <span className="truncate">{it.tekst}</span>
+              <span className="min-w-0">
+                <span className="block truncate">{it.tekst}</span>
+                <span className="block text-[10px] text-muted-foreground">
+                  {it.attribution}
+                  {it.refine ? " · Vælg for at præcisere adressen" : ""}
+                </span>
+              </span>
             </li>
           ))}
         </ul>

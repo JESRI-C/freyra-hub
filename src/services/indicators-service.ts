@@ -1,6 +1,6 @@
 // Indicators Service
-
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import {
   fetchIndicatorsByProject,
   fetchIndicator,
@@ -13,36 +13,18 @@ import { logAuditEvent } from "@/services/audit-service";
 import { createAction } from "@/services/actions-service";
 import { SEED_INDICATORS } from "@/data/platform-seed";
 import type { Indicator, IndicatorMeasurement } from "@/lib/supabase/types";
-
-function isMissingTable(err: unknown): boolean {
-  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "PGRST205");
-}
-
 export async function getIndicatorsByProject(projectId: string): Promise<Indicator[]> {
   const fallback = () => SEED_INDICATORS.filter((i) => i.project_id === projectId);
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchIndicatorsByProject(projectId);
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  requireCustomerDatabase();
+  return fetchIndicatorsByProject(projectId);
 }
-
 export async function getIndicator(projectId: string, key: string): Promise<Indicator | null> {
   const fallback = () =>
     SEED_INDICATORS.find((i) => i.project_id === projectId && i.key === key) ?? null;
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    return await fetchIndicator(projectId, key);
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  requireCustomerDatabase();
+  return fetchIndicator(projectId, key);
 }
-
 // ─── Write ────────────────────────────────────────────────────────────────────
-
 export async function saveIndicator(input: {
   project_id: string;
   key: string;
@@ -59,14 +41,12 @@ export async function saveIndicator(input: {
     project_id: input.project_id,
     event_type: "data_update",
     title: `Indikator opdateret: ${input.label}`,
-    description: input.value !== undefined
-      ? `Ny værdi: ${input.value}${input.unit ?? ""}`
-      : undefined,
+    description:
+      input.value !== undefined ? `Ny værdi: ${input.value}${input.unit ?? ""}` : undefined,
     actor: "System",
     source: "automated",
   });
 }
-
 // Formats an indicator value for display.
 export function formatIndicatorValue(indicator: Indicator): string {
   if (indicator.value === null) return "—";
@@ -74,7 +54,6 @@ export function formatIndicatorValue(indicator: Indicator): string {
   if (v >= 1000) return `${(v / 1000).toFixed(1)} k${indicator.unit ?? ""}`.trim();
   return `${v}${indicator.unit ?? ""}`.trim();
 }
-
 // Returns a CSS color token for status.
 export function indicatorStatusColor(indicator: Indicator): string {
   switch (indicator.status) {
@@ -88,11 +67,8 @@ export function indicatorStatusColor(indicator: Indicator): string {
       return "text-muted-foreground";
   }
 }
-
 // ─── Measurements ─────────────────────────────────────────────────────────────
-
 export type Period = "30d" | "90d" | "12m" | "all";
-
 function periodToSince(period: Period): string | undefined {
   const now = new Date();
   if (period === "30d") now.setDate(now.getDate() - 30);
@@ -101,7 +77,6 @@ function periodToSince(period: Period): string | undefined {
   else return undefined;
   return now.toISOString();
 }
-
 function seedMeasurements(indicator: Indicator, days: number): IndicatorMeasurement[] {
   const base = indicator.value ?? 50;
   const step = days > 90 ? 15 : days > 30 ? 7 : 3;
@@ -126,24 +101,13 @@ function seedMeasurements(indicator: Indicator, days: number): IndicatorMeasurem
   }
   return out;
 }
-
 export async function getMeasurements(
   indicator: Indicator,
   period: Period = "90d",
 ): Promise<IndicatorMeasurement[]> {
-  const days = period === "30d" ? 30 : period === "90d" ? 90 : period === "12m" ? 365 : 365;
-  const fallback = () => seedMeasurements(indicator, days);
-  if (!isSupabaseConfigured) return fallback();
-  try {
-    const rows = await fetchMeasurementsForIndicator(indicator.id, periodToSince(period));
-    if (rows.length === 0) return fallback();
-    return rows;
-  } catch (err) {
-    if (isMissingTable(err)) return fallback();
-    throw err;
-  }
+  if (!isSupabaseConfigured) throw new Error("Database ikke konfigureret");
+  return fetchMeasurementsForIndicator(indicator.id, periodToSince(period));
 }
-
 export async function recordMeasurement(input: {
   indicator: Indicator;
   value: number;
@@ -164,7 +128,6 @@ export async function recordMeasurement(input: {
     method: input.method,
     confidence_score: input.confidence_score,
   });
-
   // Update current value + status + trend on the indicator
   const prev = indicator.value;
   const trend: "up" | "down" | "flat" =
@@ -176,7 +139,6 @@ export async function recordMeasurement(input: {
           ? "down"
           : "flat";
   const status = evaluateStatus(indicator, input.value);
-
   await upsertIndicator({
     project_id: indicator.project_id ?? "",
     key: indicator.key,
@@ -187,7 +149,6 @@ export async function recordMeasurement(input: {
     trend,
     status,
   });
-
   void logAuditEvent({
     project_id: indicator.project_id ?? undefined,
     event_type: "data_update",
@@ -196,7 +157,6 @@ export async function recordMeasurement(input: {
     actor: "Bruger",
     source: "manual",
   });
-
   // Threshold breach → auto-create action
   if (status === "critical" && indicator.project_id) {
     try {
@@ -222,11 +182,7 @@ export async function recordMeasurement(input: {
     }
   }
 }
-
-export function evaluateStatus(
-  indicator: Indicator,
-  value: number,
-): "ok" | "warning" | "critical" {
+export function evaluateStatus(indicator: Indicator, value: number): "ok" | "warning" | "critical" {
   const dir = indicator.threshold_direction ?? "above";
   const warn = indicator.threshold_warning ?? null;
   const crit = indicator.threshold_critical ?? null;
@@ -240,7 +196,6 @@ export function evaluateStatus(
   }
   return "ok";
 }
-
 export async function saveIndicatorConfig(
   indicator: Indicator,
   input: {
@@ -249,6 +204,9 @@ export async function saveIndicatorConfig(
     threshold_warning?: number | null;
     threshold_critical?: number | null;
     threshold_direction?: "above" | "below";
+    target_value?: number | null;
+    target_direction?: "at_least" | "at_most" | null;
+    target_unit?: string | null;
     unit?: string | null;
   },
 ): Promise<void> {

@@ -46,7 +46,11 @@ const TYPE_LABEL: Record<ReportType, string> = {
   authority: "Myndighedsrapport",
 };
 
-const INDICATOR_STATUS: Record<string, string> = { ok: "OK", warning: "Advarsel", critical: "Kritisk" };
+const INDICATOR_STATUS: Record<string, string> = {
+  ok: "OK",
+  warning: "Advarsel",
+  critical: "Kritisk",
+};
 
 export interface ProjectReportPdfInput {
   project: Project;
@@ -129,9 +133,12 @@ class Layout {
     const titleLines = this.lines(title, textW, T.title.size);
     const colW = textW / 2;
     this.font("bold", T.body.size);
-    const ctxLines = context.map(([, v]) => Math.min(2, this.lines(v, colW - 4, T.body.size).length));
+    const ctxLines = context.map(([, v]) =>
+      Math.min(2, this.lines(v, colW - 4, T.body.size).length),
+    );
     const rowH: number[] = [];
-    for (let r = 0; r * 2 < context.length; r++) rowH.push(5.6 + Math.max(ctxLines[r * 2] ?? 1, ctxLines[r * 2 + 1] ?? 1) * T.body.lh);
+    for (let r = 0; r * 2 < context.length; r++)
+      rowH.push(5.6 + Math.max(ctxLines[r * 2] ?? 1, ctxLines[r * 2 + 1] ?? 1) * T.body.lh);
     const rowY = rowH.map((_, r) => rowH.slice(0, r).reduce((a, b) => a + b, 0));
     const ctxH = rowH.reduce((a, b) => a + b, 0);
     this.font("bold", T.title.size);
@@ -143,16 +150,30 @@ class Layout {
     // Landscape mark: anchored to the right edge, cropped by the page edge and band bottom.
     const imgH = bandH * 0.92;
     const imgW = imgH * LANDSCAPE_RATIO;
-    const gs = new (this.pdf as unknown as { GState: new (o: { opacity: number }) => unknown }).GState({ opacity: 0.22 });
+    const gs = new (
+      this.pdf as unknown as { GState: new (o: { opacity: number }) => unknown }
+    ).GState({ opacity: 0.22 });
     this.pdf.saveGraphicsState();
     (this.pdf as unknown as { setGState: (g: unknown) => void }).setGState(gs);
     // Starts right of the text column; the page edge crops it on the right.
-    this.pdf.addImage(landscapeUrl, "PNG", M + textW + 8, top + bandH - imgH, imgW, imgH, "landscape", "FAST");
+    this.pdf.addImage(
+      landscapeUrl,
+      "PNG",
+      M + textW + 8,
+      top + bandH - imgH,
+      imgW,
+      imgH,
+      "landscape",
+      "FAST",
+    );
     this.pdf.restoreGraphicsState();
 
     let y = top + 12;
     this.font("bold", T.title.size, GREEN);
-    for (const l of titleLines) { this.pdf.text(l, M, y + 5); y += T.title.lh; }
+    for (const l of titleLines) {
+      this.pdf.text(l, M, y + 5);
+      y += T.title.lh;
+    }
     y += 6;
 
     context.forEach(([k, v], i) => {
@@ -163,7 +184,8 @@ class Layout {
       this.font("bold", T.body.size);
       // Up to two lines; never silently drop the end of a value.
       const vl = this.lines(v, colW - 4, T.body.size);
-      const shown = vl.length > 2 ? [vl[0], ellipsize(this.pdf, vl.slice(1).join(" "), colW - 4)] : vl;
+      const shown =
+        vl.length > 2 ? [vl[0], ellipsize(this.pdf, vl.slice(1).join(" "), colW - 4)] : vl;
       shown.forEach((l, li) => this.pdf.text(l, x, ry + 4.6 + li * T.body.lh));
     });
 
@@ -230,13 +252,18 @@ class Layout {
     for (const r of rows) {
       const cells = r.map((v, i) => this.lines(v || "—", widths[i] - pad * 2, T.body.size));
       const h = Math.max(...cells.map((c) => c.length)) * T.body.lh + 3;
-      if (this.y + h > CONTENT_BOTTOM) { this.newPage(); drawHead(); }
+      if (this.y + h > CONTENT_BOTTOM) {
+        this.newPage();
+        drawHead();
+      }
       this.font("normal", T.body.size);
       let x = M;
       cells.forEach((c, i) => {
         const col = cols[i];
         const tx = col.align === "right" ? x + widths[i] - pad : x + pad;
-        c.forEach((l, li) => this.pdf.text(l, tx, this.y + 4.6 + li * T.body.lh, { align: col.align ?? "left" }));
+        c.forEach((l, li) =>
+          this.pdf.text(l, tx, this.y + 4.6 + li * T.body.lh, { align: col.align ?? "left" }),
+        );
         x += widths[i];
       });
       this.y += h;
@@ -276,12 +303,17 @@ export function renderProjectReportPdf(input: ProjectReportPdfInput): jsPDF {
   const L = new Layout(TYPE_LABEL[reportType]);
   const generated = generatedAt.toLocaleString("da-DK");
 
-  L.titleArea(title, [
+  L.titleArea(`Kladde: ${title}`, [
     ["Projekt", project.name],
     ["Rapporttype", TYPE_LABEL[reportType]],
     ["Lokation", project.location_name || project.municipality || "—"],
     ["Genereret", generated],
   ]);
+
+  L.paragraph(
+    "Automatisk fra registrerede projektdata ved genereringstidspunktet. Rapporteringsperiode: ikke fastlagt. Fagligt review: ikke dokumenteret. Droneobservationer og kilde-/fotoreferencer: ikke medtaget. PDF-filen arkiveres ikke; gem selve filen separat. Eventuel dokumentregistrering omfatter kun metadata.",
+    MUTED,
+  );
 
   const projectSection = () => {
     L.heading("Projekt");
@@ -289,9 +321,17 @@ export function renderProjectReportPdf(input: ProjectReportPdfInput): jsPDF {
       ["Navn", project.name],
       ["Type", project.project_type || "—"],
       ["Status", project.status || "—"],
-      ["Areal", project.geometry_area_ha ? `${num(project.geometry_area_ha)} ha` : "Ikke angivet"],
+      [
+        "Areal",
+        project.geometry_area_ha != null ? `${num(project.geometry_area_ha)} ha` : "Ikke angivet",
+      ],
       ["Lokation", project.location_name || project.municipality || "—"],
-      ["Periode", project.start_date || project.end_date ? `${fmtDate(project.start_date)} – ${fmtDate(project.end_date)}` : "Ikke angivet"],
+      [
+        "Periode",
+        project.start_date || project.end_date
+          ? `${fmtDate(project.start_date)} – ${fmtDate(project.end_date)}`
+          : "Ikke angivet",
+      ],
     ]);
     if (project.description) L.paragraph(project.description);
   };
@@ -300,21 +340,33 @@ export function renderProjectReportPdf(input: ProjectReportPdfInput): jsPDF {
     L.heading(`Sites (${sites.length})`);
     if (sites.length === 0) return L.paragraph("Ingen sites registreret.", MUTED);
     L.table(
-      [{ label: "Navn", w: 50 }, { label: "Type", w: 30 }, { label: "Areal (ha)", w: 20, align: "right" }],
-      sites.slice(0, SITE_LIMIT).map((s) => [s.name, s.site_type || "—", s.area_ha != null ? num(s.area_ha) : "—"]),
+      [
+        { label: "Navn", w: 50 },
+        { label: "Type", w: 30 },
+        { label: "Areal (ha)", w: 20, align: "right" },
+      ],
+      sites
+        .slice(0, SITE_LIMIT)
+        .map((s) => [s.name, s.site_type || "—", s.area_ha != null ? num(s.area_ha) : "—"]),
     );
-    if (sites.length > SITE_LIMIT) L.paragraph(`${sites.length - SITE_LIMIT} yderligere sites er ikke vist i rapporten.`, MUTED);
+    if (sites.length > SITE_LIMIT)
+      L.paragraph(`${sites.length - SITE_LIMIT} yderligere sites er ikke vist i rapporten.`, MUTED);
   };
 
   const indicatorsSection = () => {
     L.heading(`Indikatorer (${indicators.length})`);
     if (indicators.length === 0) return L.paragraph("Ingen indikatorer defineret.", MUTED);
     L.table(
-      [{ label: "Indikator", w: 44 }, { label: "Værdi", w: 22, align: "right" }, { label: "Status", w: 16 }, { label: "Opdateret", w: 18 }],
+      [
+        { label: "Indikator", w: 44 },
+        { label: "Værdi", w: 22, align: "right" },
+        { label: "Status", w: 16 },
+        { label: "Opdateret", w: 18 },
+      ],
       indicators.map((i) => [
         i.label,
         i.value != null ? `${num(i.value)}${i.unit ? ` ${i.unit}` : ""}` : "Ingen værdi",
-        i.status ? INDICATOR_STATUS[i.status] ?? i.status : "Ukendt",
+        i.status ? (INDICATOR_STATUS[i.status] ?? i.status) : "Ukendt",
         fmtDate(i.updated_at),
       ]),
     );
@@ -329,10 +381,23 @@ export function renderProjectReportPdf(input: ProjectReportPdfInput): jsPDF {
       L.pdf.text(`${status} (${items.length})`, M, L.y + 3.4);
       L.y += 6;
       L.table(
-        [{ label: "Handling", w: 50 }, { label: "Prioritet", w: 14 }, { label: "Ansvarlig", w: 18 }, { label: "Frist", w: 16 }],
-        items.slice(0, ACTION_LIMIT).map((a) => [a.title, a.priority || "—", a.owner || "—", a.due_date ? fmtDate(a.due_date) : "—"]),
+        [
+          { label: "Handling", w: 50 },
+          { label: "Prioritet", w: 14 },
+          { label: "Ansvarlig", w: 18 },
+          { label: "Frist", w: 16 },
+        ],
+        items
+          .slice(0, ACTION_LIMIT)
+          .map((a) => [
+            a.title,
+            a.priority || "—",
+            a.owner || "—",
+            a.due_date ? fmtDate(a.due_date) : "—",
+          ]),
       );
-      if (items.length > ACTION_LIMIT) L.paragraph(`${items.length - ACTION_LIMIT} yderligere handlinger er ikke vist.`, MUTED);
+      if (items.length > ACTION_LIMIT)
+        L.paragraph(`${items.length - ACTION_LIMIT} yderligere handlinger er ikke vist.`, MUTED);
     }
   };
 
@@ -341,23 +406,32 @@ export function renderProjectReportPdf(input: ProjectReportPdfInput): jsPDF {
     L.kv([
       ["Projekt-ID", project.id],
       ["Genereret", generated],
-      ["Datagrundlag", `${sites.length} sites, ${indicators.length} indikatorer, ${actions.length} handlinger`],
+      [
+        "Datagrundlag",
+        `${sites.length} sites, ${indicators.length} indikatorer, ${actions.length} handlinger`,
+      ],
       ["Geometrikilde", project.geometry_source || "Ikke angivet"],
     ]);
-    L.paragraph(
-      "Rapporten er genereret automatisk ud fra de data, der var registreret på projektet på genereringstidspunktet. Den er ikke fagligt godkendt.",
-      MUTED,
-    );
   };
 
   if (reportType === "indicator") {
-    projectSection(); indicatorsSection(); sitesSection(); actionsSection();
+    projectSection();
+    indicatorsSection();
+    sitesSection();
+    actionsSection();
   } else if (reportType === "authority") {
-    projectSection(); sitesSection(); indicatorsSection(); actionsSection(); traceSection();
+    projectSection();
+    sitesSection();
+    indicatorsSection();
+    actionsSection();
+    traceSection();
   } else {
-    projectSection(); sitesSection(); indicatorsSection(); actionsSection();
+    projectSection();
+    sitesSection();
+    indicatorsSection();
+    actionsSection();
   }
 
-  L.footers(`GoFreyra · ${title}`);
+  L.footers(`KLADDE - fagligt review ikke dokumenteret · ${title}`);
   return L.pdf;
 }

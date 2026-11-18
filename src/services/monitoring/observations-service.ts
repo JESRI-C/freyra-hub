@@ -1,22 +1,42 @@
 // Field observations service — CRUD for artsobservationer og feltregistreringer.
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  createActorBoundSupabaseClient,
+  supabase,
+  isSupabaseConfigured,
+} from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 export type FieldObservation = Database["public"]["Tables"]["field_observations"]["Row"];
 export type FieldObservationInsert = Database["public"]["Tables"]["field_observations"]["Insert"];
 
-export async function listObservations(projectId: string, opts?: { limit?: number }): Promise<FieldObservation[]> {
+export async function listObservations(
+  projectId: string,
+  opts?: { limit?: number; type?: string },
+): Promise<FieldObservation[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  let q = supabase.from("field_observations").select("*").eq("project_id", projectId).order("observed_at", { ascending: false });
+  let q = supabase
+    .from("field_observations")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("observed_at", { ascending: false });
   if (opts?.limit) q = q.limit(opts.limit);
+  if (opts?.type) q = q.eq("observation_type", opts.type);
   const { data, error } = await q;
   if (error) throw error;
   return (data as FieldObservation[] | null) ?? [];
 }
 
-export async function createObservation(input: FieldObservationInsert): Promise<FieldObservation> {
+export async function createObservation(
+  input: FieldObservationInsert,
+  expectedActorId?: string,
+): Promise<FieldObservation> {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.from("field_observations").insert(input as never).select("*").single();
+  const client = expectedActorId ? createActorBoundSupabaseClient(expectedActorId) : supabase;
+  const { data, error } = await client
+    .from("field_observations")
+    .insert(input as never)
+    .select("*")
+    .single();
   if (error) throw error;
   return data as FieldObservation;
 }
