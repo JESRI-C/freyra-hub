@@ -17,7 +17,8 @@ import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import type { Zone, ZoneType, GeoJsonPolygon } from "@/services/zones-service";
 import { ZONE_TYPE_COLORS, ZONE_TYPE_LABELS, calculatePolygonArea } from "@/services/zones-service";
-import type { IoTSensor } from "@/services/iot-simulation-service";
+import type { MapDevice } from "@/services/monitoring/map-devices-service";
+import { mapDevicePopup } from "./map-device-popup";
 import { MAX_PROJECT_POLYGON_VERTICES, validateProjectPolygon } from "@/services/geo-service";
 import type { DroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 
@@ -57,7 +58,7 @@ export interface MapEditorMapProps {
   areaHa?: number | null;
   boundaryGeoJSON?: GeoJsonPolygon | null;
   zones?: Zone[];
-  sensors?: IoTSensor[];
+  sensors?: MapDevice[];
   droneUploadPoints?: DroneUploadMapPoint[];
   onDronePhotoClick?: (photoId: string) => void;
   fitDroneUploads?: boolean;
@@ -138,10 +139,12 @@ const BASE_LAYERS: Record<
   },
 };
 
-const SENSOR_COLORS: Record<IoTSensor["status"], string> = {
+const SENSOR_COLORS: Record<MapDevice["status"], string> = {
   online: "#10b981",
-  warning: "#f59e0b",
+  partial: "#f59e0b",
+  attention: "#f59e0b",
   offline: "#ef4444",
+  not_activated: "#64748b",
 };
 
 const DRAW_STYLES: Record<
@@ -890,15 +893,21 @@ export function MapEditorMap({
   // ── Sensorer ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || !ready) return;
+    const map = mapRef.current;
+    let cancelled = false;
+    let group: import("leaflet").FeatureGroup | null = null;
     (async () => {
       const L = await import("leaflet");
-      const map = mapRef.current!;
+      if (cancelled || mapRef.current !== map) return;
       if (layersRef.current.sensors) map.removeLayer(layersRef.current.sensors);
+      layersRef.current.sensors = null;
       if (!showSensors) return;
-      const group = new L.FeatureGroup().addTo(map);
+      group = new L.FeatureGroup().addTo(map);
       layersRef.current.sensors = group;
       sensors.forEach((s) => {
+        if (!s.coordinates) return;
         L.marker([s.coordinates.lat, s.coordinates.lng], {
+          title: s.label,
           icon: L.divIcon({
             html: `<div style="width:14px;height:14px;border-radius:50%;background:${SENSOR_COLORS[s.status]};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
             className: "",
@@ -906,12 +915,19 @@ export function MapEditorMap({
             iconAnchor: [7, 7],
           }),
         })
-          .bindPopup(
-            `<strong>${s.label}</strong><br/>${s.latestValue} ${s.unit}<br/>🔋 ${s.batteryPercent}%`,
-          )
-          .addTo(group);
+          .bindPopup(mapDevicePopup(s), {
+            maxWidth: 250,
+            autoPanPaddingTopLeft: [45, 65],
+            autoPanPaddingBottomRight: [15, 15],
+          })
+          .addTo(group!);
       });
     })();
+    return () => {
+      cancelled = true;
+      if (group && mapRef.current === map && map.hasLayer(group)) map.removeLayer(group);
+      if (layersRef.current.sensors === group) layersRef.current.sensors = null;
+    };
   }, [showSensors, sensors, ready]);
 
   // ── Rå dronefoto-positioner ────────────────────────────────────────────────
@@ -1424,6 +1440,10 @@ export function MapEditorMap({
       </div>
 
       {/* ── Kort ───────────────────────────────────────────────────────────── */}
+      <div className="shrink-0 break-words border-b bg-card px-3 py-2 text-xs font-medium">
+        {projectName}
+        {areaHa ? ` · ${areaHa} ha` : ""}
+      </div>
       <div className="relative flex-1 min-h-0">
         <div ref={containerRef} className="h-full w-full" />
 
@@ -1499,11 +1519,6 @@ export function MapEditorMap({
             </div>
           </div>
         )}
-
-        <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur rounded-lg shadow border px-3 py-1.5 text-xs font-medium">
-          {projectName}
-          {areaHa ? ` · ${areaHa} ha` : ""}
-        </div>
       </div>
     </div>
   );

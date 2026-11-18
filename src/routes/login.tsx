@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate, Link } from "@tanstack/react-router";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   Lock,
   Mail,
@@ -70,7 +70,13 @@ function LoginPage() {
   const [forgotSent, setForgotSent] = useState(false);
   const controlsDisabled = !hydrated || busy || loading || refreshing;
 
-  if (destination) return <Navigate to={destination} />;
+  useEffect(() => {
+    if (destination && nextPath) window.location.replace(destination);
+  }, [destination, nextPath]);
+
+  if (destination) {
+    return nextPath ? <p role="status">Åbner GoFreyra…</p> : <Navigate to="/select" />;
+  }
 
   function changeMode(nextMode: Mode) {
     setFormError("");

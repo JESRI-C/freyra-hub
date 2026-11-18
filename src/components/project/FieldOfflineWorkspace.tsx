@@ -1078,8 +1078,14 @@ function OfflineJobEditor({
   const [values, setValues] = useState<FieldJobValues>(
     () => readTemplate(initialTemplateId).values,
   );
+  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
+  const lastSaved = taskItems.find((item) => item.id === lastSavedId);
   const [dirty, setDirty] = useState(false);
   const markDirty = (value: boolean) => {
+    if (value) {
+      setLastSavedId(null);
+      setMessage("");
+    }
     setDirty(value);
     onDirty(value);
   };
@@ -1107,6 +1113,7 @@ function OfflineJobEditor({
     saving.current = true;
     setBusy(true);
     setMessage("");
+    setLastSavedId(null);
     try {
       if (readOfflineActor() !== pack.actorId) throw new Error("Feltadgangen er låst.");
       const current = await store.items(pack.actorId, pack.projectId);
@@ -1117,6 +1124,7 @@ function OfflineJobEditor({
         current,
       );
       await store.enqueue(item);
+      setLastSavedId(item.id);
       setMessage("Registreringen er gemt på telefonen. Serverkvittering afventer synkronisering.");
       markDirty(false);
       setReason("");
@@ -1147,6 +1155,7 @@ function OfflineJobEditor({
             setReason("");
             setSupersedesId(undefined);
             setMessage("");
+            setLastSavedId(null);
           }}
         >
           {templates.map((card) => (
@@ -1388,7 +1397,13 @@ function OfflineJobEditor({
       </button>
       {message && (
         <p role="status" className="text-sm">
-          {message}
+          {lastSaved?.state === "complete"
+            ? "Registreringen er modtaget på serveren. Se kvitteringen i telefonens kø."
+            : lastSaved?.lastError === "cancelled"
+              ? "Registreringen er bevaret på telefonen. Opgaven er aflyst."
+              : lastSaved && ["blocked", "conflict", "retry"].includes(lastSaved.state)
+                ? `${labels[lastSaved.state]}. Se registreringen i telefonens kø.`
+                : message}
         </p>
       )}
     </div>

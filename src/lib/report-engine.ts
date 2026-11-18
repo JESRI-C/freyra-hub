@@ -12,7 +12,6 @@ import type {
   EvidenceFile,
 } from "@/lib/supabase/types";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
-import type { IoTSensor } from "@/services/iot-simulation-service";
 
 export interface IndicatorSummaryRow {
   label: string;
@@ -46,7 +45,7 @@ interface GenerateInput {
   auditEvents: AuditEvent[];
   evidenceFiles: EvidenceFile[];
   mediaItems?: ProjectMediaItem[];
-  sensors?: IoTSensor[];
+  sensors?: ReadonlyArray<{ status: string }>;
   hasConnectorData?: boolean;
   hasValidPolygon?: boolean;
 }
@@ -103,12 +102,7 @@ export function generateProjectReportPreview({
     }
   }
 
-  // ── IoT sensor bonus scoring ────────────────────────────────────────────────
-  if (sensors && sensors.length > 0) {
-    const onlineSensors = sensors.filter((s) => s.status === "online");
-    if (onlineSensors.length > 0) readinessScore = Math.min(100, readinessScore + 5);
-    if (onlineSensors.length >= 3) readinessScore = Math.min(100, readinessScore + 5);
-  }
+  // Device connectivity alone does not establish report evidence or readiness.
 
   // ── Key findings from indicators ────────────────────────────────────────────
   const keyFindings: string[] = [];
@@ -218,7 +212,7 @@ export function getRecommendedNextAction(
   _indicators: Indicator[],
   actions: Action[],
   mediaItems?: ProjectMediaItem[],
-  _sensors?: IoTSensor[],
+  _sensors?: ReadonlyArray<{ status: string }>,
 ): string {
   // These legacy inputs do not include the saved investigation, source coverage,
   // photo bindings, notes, review decisions or report archive. They cannot establish

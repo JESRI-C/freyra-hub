@@ -89,7 +89,7 @@ const P3_TYPES = [
 
 /**
  * Henter §3-arealer indenfor bbox via Miljøportalens WFS.
- * Beregner overlap med projektets areal (approximeret via bbox-intersection).
+ * Beregner det geometriske overlap med den gemte projektpolygon.
  */
 export async function fetchParagraph3Overlap(
   lat: number,

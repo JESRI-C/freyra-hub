@@ -12,7 +12,7 @@ import {
   ProjectWorkOrdersWorkspace,
   type WorkOrderView,
 } from "@/components/project/ProjectWorkOrdersWorkspace";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { isDemoDataEnabled } from "@/lib/data-mode";
@@ -99,7 +99,7 @@ import { ProjectSourcePhoto } from "@/components/project-workspace/ProjectSource
 import { ProjectMediaUploadPanel } from "@/components/project-workspace/ProjectMediaUploadPanel";
 import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPanel";
 import { LiveProjectMap } from "@/components/maps/LiveProjectMap";
-import { getProjectSensors } from "@/services/iot-simulation-service";
+import { useProjectMapDevices } from "@/hooks/useProjectMapDevices";
 import { ProjectGeometryMap } from "@/components/data-foundation/ProjectGeometryMap";
 import {
   dataSourceStatusTone,
@@ -325,6 +325,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
       !fieldAccess.isError);
   // projectId is always set when project exists; hooks below use it unconditionally
   const projectId = project?.id ?? "";
+  const mapDevices = useProjectMapDevices(projectId);
   // Sub-queries — all parallel via standard suspense
   const { data: indicators } = useSuspenseQuery({
     queryKey: ["indicators", projectId],
@@ -389,7 +390,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
   });
   // Geometri: DB-tegnet polygon vinder altid over seed-data. Kun hvis projektet
   // hverken har en gemt polygon eller centroid, falder vi tilbage til seed.
-  const geometry = resolveProjectGeometry(project);
+  const geometry = useMemo(() => resolveProjectGeometry(project), [project]);
   // A project has "real" geometry only when a polygon has been drawn or uploaded —
   // a centroid alone (from location name) is not enough to run area-based analyses.
   const hasRealGeometry = validateProjectPolygon(project?.geometry_polygon).valid;
@@ -481,8 +482,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
       setLocalActions(actions);
     }
   };
-  // Generated sensor readings are available only in explicit offline demo.
-  const sensors: ReturnType<typeof getProjectSensors> = [];
+  const sensors = mapDevices.devices ?? [];
   // Report preview
   const reportPreview =
     mediaReady && mediaItems !== undefined
@@ -1158,7 +1158,7 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                   height={500}
                   mediaItems={mediaReady ? mediaItems : undefined}
                   droneUploadPoints={droneUploadOverview?.points ?? []}
-                  sensors={sensors}
+                  sensors={mapDevices.points}
                   dmiData={
                     environmentalCtx?.liveData?.weather
                       ? {
@@ -1171,16 +1171,12 @@ function ProjectDetailPage({ activeTab }: { activeTab: ProjectTab }) {
                       : undefined
                   }
                 />
-                {sensors.length > 0 ? (
-                  <FieldSensorPanel sensors={sensors} />
-                ) : (
-                  <Card className="py-10 text-center">
-                    <CardHeader
-                      title="Ingen sensorer"
-                      subtitle={"Der er ingen tilknyttede sensorer i denne visning."}
-                    />
-                  </Card>
-                )}
+                <FieldSensorPanel
+                  sensors={mapDevices.devices}
+                  status={mapDevices.status}
+                  refreshing={mapDevices.refreshing}
+                  onRefresh={mapDevices.refresh}
+                />
               </div>
             )}
           </>

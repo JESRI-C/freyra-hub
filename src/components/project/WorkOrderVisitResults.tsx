@@ -245,7 +245,9 @@ export function WorkOrderVisitResults({
         receipt.data.note !== note
       )
         throw new Error(
-          result.error?.code === "40001" || result.error?.code === "23505"
+          result.error?.code === "PT409" ||
+            result.error?.code === "40001" ||
+            result.error?.code === "23505"
             ? "Planen eller besøget er ændret. Fortryd kladden og opdater opgaven før et nyt forsøg."
             : "Besøget kunne ikke bekræftes. Prøv igen.",
         );

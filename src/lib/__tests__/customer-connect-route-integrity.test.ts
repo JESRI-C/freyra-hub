@@ -9,6 +9,8 @@ const state = vi.hoisted(() => ({
   alerts: [] as Array<Record<string, unknown>>,
   alertError: false,
   loaded: true,
+  authorizedProjects: ["project-a"],
+  refreshing: false,
   analysis: {
     result: null as unknown,
     summary: null as unknown,
@@ -22,7 +24,13 @@ vi.mock("@/lib/auth", () => ({
   useAuth: () => ({
     orgId: "org-a",
     user: { id: "user" },
-    currentOrg: { name: "Testorganisation", role: "viewer" },
+    refreshing: state.refreshing,
+    currentOrg: {
+      id: "org-a",
+      name: "Testorganisation",
+      role: "viewer",
+      projects: state.authorizedProjects.map((id) => ({ id })),
+    },
   }),
 }));
 vi.mock("@tanstack/react-router", () => ({
@@ -172,6 +180,8 @@ beforeEach(() => {
   state.alerts = [];
   state.alertError = false;
   state.loaded = true;
+  state.authorizedProjects = ["project-a"];
+  state.refreshing = false;
   state.analysis = { result: null, summary: null, stepsFailed: [], durationS: 1, error: null };
 });
 
@@ -241,6 +251,16 @@ describe("customer alert dashboard", () => {
   });
 });
 
+describe("map organization scope", () => {
+  it("omits cached cases outside the current membership and during refresh", () => {
+    expect(renderRoute(MapRoute)).toContain('<option value="project-a"');
+    state.authorizedProjects = [];
+    expect(renderRoute(MapRoute)).not.toContain('<option value="project-a"');
+    state.authorizedProjects = ["project-a"];
+    state.refreshing = true;
+    expect(renderRoute(MapRoute)).not.toContain('<option value="project-a"');
+  });
+});
 describe("map analysis persistence feedback", () => {
   it("does not call an unsaved NDVI sample a saved analysis", () => {
     state.analysis.result = {

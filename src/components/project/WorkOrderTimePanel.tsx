@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { workOrderUsageConflict } from "@/lib/work-order-usage-conflict";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
@@ -110,9 +111,9 @@ export function WorkOrderTimePanel({
         row.data.minutes !== minutes ||
         row.data.reason !== reason
       ) {
-        if (result.error?.code === "PT409")
+        if (workOrderUsageConflict(result.error) === "cancelled")
           throw new Error("Opgaven er aflyst. Du kan stadig se tidligere timer.");
-        if (result.error?.code === "40001" || result.error?.code === "23505")
+        if (workOrderUsageConflict(result.error) === "changed")
           throw new Error(
             "Tiden er ændret. Fortryd, og hent den nyeste registrering før en rettelse.",
           );

@@ -176,11 +176,11 @@ export function WorkOrderReviewControls({
         className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-2"
         to="/app/projects/$slug"
         params={{ slug: scope.projectId }}
-        search={(previous) => ({
+        search={(previous: Record<string, unknown>) => ({
           ...previous,
           tab: "handlinger",
           task: scope.actionId,
-          work: "submission",
+          work: "submission" as const,
           submissionVersion: version,
         })}
         onClick={(event) => {

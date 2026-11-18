@@ -1,5 +1,9 @@
 // Device measurements service — insert + querying + anomaly detection
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  supabase,
+  isSupabaseConfigured,
+  createActorBoundSupabaseClient,
+} from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 export type DeviceMeasurement = Database["public"]["Tables"]["device_measurements"]["Row"];
@@ -7,14 +11,16 @@ export type DeviceMeasurementInsert = Database["public"]["Tables"]["device_measu
 
 export async function listMeasurements(
   deviceId: string,
-  opts?: { from?: Date; to?: Date; limit?: number },
+  opts?: { from?: Date; to?: Date; limit?: number; actorId?: string },
 ): Promise<DeviceMeasurement[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  let q = supabase
+  const db = opts?.actorId ? createActorBoundSupabaseClient(opts.actorId) : supabase;
+  let q = db
     .from("device_measurements")
     .select("*")
     .eq("device_id", deviceId)
-    .order("measured_at", { ascending: false });
+    .order("measured_at", { ascending: false })
+    .order("id", { ascending: false });
   if (opts?.from) q = q.gte("measured_at", opts.from.toISOString());
   if (opts?.to) q = q.lte("measured_at", opts.to.toISOString());
   if (opts?.limit) q = q.limit(opts.limit);

@@ -1,5 +1,9 @@
 // Monitoring devices service — CRUD + status derivation
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  supabase,
+  isSupabaseConfigured,
+  createActorBoundSupabaseClient,
+} from "@/lib/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 export type MonitoringDevice = Database["public"]["Tables"]["monitoring_devices"]["Row"];
@@ -30,9 +34,13 @@ export function deriveDeviceStatus(
   return "online";
 }
 
-export async function listDevices(projectId: string): Promise<MonitoringDevice[]> {
+export async function listDevices(
+  projectId: string,
+  actorId?: string,
+): Promise<MonitoringDevice[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  const { data, error } = await supabase
+  const db = actorId ? createActorBoundSupabaseClient(actorId) : supabase;
+  const { data, error } = await db
     .from("monitoring_devices")
     .select("*")
     .eq("project_id", projectId)

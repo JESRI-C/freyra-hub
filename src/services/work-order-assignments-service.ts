@@ -12,6 +12,7 @@ import {
   ClaimWorkOrderPoolSchema,
   WorkOrderAssignmentHistorySchema,
   MyWorkOrdersInputSchema,
+  MyWorkOrderLinkInputSchema,
   MyWorkOrderSchema,
   WorkOrderAssignmentStateInputSchema,
   WorkOrderAssignmentStateSchema,
@@ -295,6 +296,29 @@ export async function listMyWorkOrders(
   const page = ascending(data, input.afterActionId, input.pageSize, (row) => row.action_id);
   return { items: page.items, nextAfterActionId: page.next };
 }
+export async function getMyWorkOrderFromLink(
+  client: WorkOrderRequestClient,
+  actorId: string,
+  raw: unknown,
+) {
+  const input = parseWorkOrderInput(MyWorkOrderLinkInputSchema, raw);
+  checkActor(actorId, input.expectedActorId);
+  // Seek immediately before the requested UUID in the existing authorized order.
+  // Return only the exact match; a neighbouring task never leaves the server.
+  const key = BigInt("0x" + input.actionId.replaceAll("-", ""));
+  const previous = key === 0n ? null : (key - 1n).toString(16).padStart(32, "0");
+  const cursor =
+    previous?.replace(/^(........)(....)(....)(....)(............)$/, "$1-$2-$3-$4-$5") ?? null;
+  const page = await listMyWorkOrders(client, actorId, {
+    expectedActorId: actorId,
+    afterActionId: cursor,
+    pageSize: 1,
+    filter: "all",
+  });
+  const match = page.items[0];
+  return match?.action_id === input.actionId ? match : null;
+}
+
 export async function getWorkOrderAssignmentState(
   client: WorkOrderRequestClient,
   actorId: string,

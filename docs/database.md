@@ -45,19 +45,10 @@ Create a `.env.local` file (git-ignored) in the repo root:
 
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-
-# TanStack serverFn JWT verification requires the same public connection
-# values as server-runtime aliases.
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-
-# Only required for explicitly authorized server-side persistence.
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-The URL and keys are in Supabase → Project Settings → API. The service-role
-key is server-only and must never use a `VITE_` prefix.
+Both values are in Supabase → Project Settings → API.
 
 ### 5. Restart the dev server
 

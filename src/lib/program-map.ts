@@ -503,6 +503,12 @@ export const PROGRAM_PAGES: ProgramFeature[] = [
       "Læs de tilgængelige systemkontroller og deres resultater.",
       "Synlig teknisk kontrolstatus.",
     ],
+    [
+      "/app/development",
+      "Produktudvikling",
+      "Organisationens ejer og administrator kan følge Skyhost-krav, kodehenvisninger og manglende acceptprøver.",
+      "Whiteboard og Kanban over den foreløbige produktkortlægning.",
+    ],
   ]),
 ];
 

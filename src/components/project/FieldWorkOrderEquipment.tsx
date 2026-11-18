@@ -5,6 +5,7 @@ import { z } from "zod";
 import { CalendarDate } from "@/lib/action-execution";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import { workEquipmentKind, workEquipmentKindLabel } from "@/lib/work-order-equipment";
+import { BookingCustodyDetails } from "./EquipmentCustodyActions";
 import type { ProjectScope } from "@/services/project-workspace-service";
 
 const schema = z
@@ -76,6 +77,14 @@ export function FieldWorkOrderEquipment({
                   ? booking.starts_on
                   : booking.starts_on + " til " + booking.ends_on}
               </p>
+              {open && (
+                <BookingCustodyDetails
+                  bookingId={booking.id}
+                  actionId={actionId}
+                  actorId={actorId}
+                  scope={scope}
+                />
+              )}
             </li>
           ))}
         </ul>

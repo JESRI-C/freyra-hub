@@ -127,13 +127,28 @@ async function sourcePages<T>(
   filter?: { column: string; value: string },
 ): Promise<T[]> {
   const rows: T[] = [];
-  for (let offset = 0; ; offset += 500) {
-    let query = db().from(table).select(columns).eq("project_id", projectId);
+  const seen = new Set<string>();
+  let total: number | null = null;
+  for (let offset = 0; ; ) {
+    let query = db().from(table).select(columns, { count: "exact" }).eq("project_id", projectId);
     if (filter) query = query.eq(filter.column, filter.value);
-    const { data, error } = await query.order("id").range(offset, offset + 499);
+    const { data, error, count } = await query.order("id").range(offset, offset + 499);
     if (error) throw new Error(error.message);
-    rows.push(...((data ?? []) as T[]));
-    if ((data ?? []).length < 500) return rows;
+    const incomplete = () =>
+      new Error("Kilderegisteret er ændret eller ufuldstændigt. Hent kilderne igen.");
+    if (!Number.isSafeInteger(count) || count === null || count < 0 || !Array.isArray(data))
+      throw incomplete();
+    if (total === null) total = count;
+    if (count !== total || offset + data.length > total || (!data.length && offset < total))
+      throw incomplete();
+    for (const row of data as unknown[]) {
+      const id = row && typeof row === "object" && "id" in row ? row.id : null;
+      if (typeof id !== "string" || !id || seen.has(id)) throw incomplete();
+      seen.add(id);
+    }
+    rows.push(...(data as T[]));
+    if (rows.length === total) return rows;
+    offset = rows.length;
   }
 }
 

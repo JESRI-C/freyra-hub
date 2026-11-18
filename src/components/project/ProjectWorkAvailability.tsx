@@ -102,7 +102,11 @@ export function ProjectWorkAvailability({
         row.data.version !== version ||
         row.data.hours !== hours
       ) {
-        if (result.error?.code === "40001" || result.error?.code === "23505")
+        if (
+          result.error?.code === "PT409" ||
+          result.error?.code === "40001" ||
+          result.error?.code === "23505"
+        )
           throw new Error(
             "Timerne er ændret. Fortryd, og hent den seneste version før en ny ændring.",
           );

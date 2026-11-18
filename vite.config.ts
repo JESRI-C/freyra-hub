@@ -22,6 +22,9 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    // Exifr's full ESM entry supplies the sidecar reader used by metadata parsing.
+    // Process it through Vite during SSR instead of loading the CommonJS entry.
+    ssr: { noExternal: ["exifr"] },
     // This runtime module is supplied by Workers. Keep it external only in the
     // intermediate server bundle; Nitro's Cloudflare preset handles the final
     // Worker bundle, and the client must retain its server-only import checks.
@@ -40,6 +43,7 @@ export default defineConfig({
     css: { postcss: { plugins: [] } },
     optimizeDeps: {
       include: ["leaflet"],
+      exclude: ["cloudflare:workers"],
     },
     plugins: [
       municipalBuildMetadataPlugin(),

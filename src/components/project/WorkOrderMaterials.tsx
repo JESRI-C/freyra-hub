@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { workOrderUsageConflict } from "@/lib/work-order-usage-conflict";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -237,10 +238,10 @@ export function WorkOrderMaterials({
         : result;
       const receipt = rowSchema.safeParse(recovered.data);
       if (!receipt.success || receipt.data.id !== id || receipt.data.actor_id !== actorId) {
-        if (result.error?.code === "PT409")
+        if (workOrderUsageConflict(result.error) === "cancelled")
           throw new Error("Opgaven er aflyst. Du kan stadig se tidligere materialeforbrug.");
         throw new Error(
-          result.error?.code === "40001" || result.error?.code === "23505"
+          workOrderUsageConflict(result.error) === "changed"
             ? "Registreringen er ændret. Fortryd og hent den nyeste version."
             : "Registreringen kunne ikke bekræftes. Prøv igen.",
         );

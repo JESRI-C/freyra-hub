@@ -13,7 +13,6 @@ import {
 } from "@/lib/supabase/queries";
 import { logAuditEvent } from "@/services/audit-service";
 import { SEED_ACTIONS } from "@/data/platform-seed";
-import type { IoTSensor } from "@/services/iot-simulation-service";
 import type { Action, ActionEvidence } from "@/lib/supabase/types";
 export async function getOpenActionsByProject(projectId: string): Promise<Action[]> {
   const fallback = () =>
@@ -217,11 +216,20 @@ export interface SuggestedSensorAction {
  * Derive suggested field actions from the current sensor readings.
  * Returns an empty array when all sensors are healthy.
  */
-export function suggestSensorActions(sensors: IoTSensor[]): SuggestedSensorAction[] {
+export function suggestSensorActions(
+  sensors: ReadonlyArray<{ label: string; status: string; batteryPercent: number | null }>,
+): SuggestedSensorAction[] {
   const actions: SuggestedSensorAction[] = [];
   const offline = sensors.filter((s) => s.status === "offline");
-  const lowBat = sensors.filter((s) => s.batteryPercent < 20 && s.status !== "offline");
-  const warnings = sensors.filter((s) => s.status === "warning");
+  const lowBat = sensors.filter(
+    (s) =>
+      s.batteryPercent !== null &&
+      Number.isFinite(s.batteryPercent) &&
+      s.batteryPercent >= 0 &&
+      s.batteryPercent < 20 &&
+      s.status !== "offline",
+  );
+  const warnings = sensors.filter((s) => ["warning", "partial", "attention"].includes(s.status));
   if (offline.length > 0) {
     actions.push({
       label: `Tjek ${offline.length} offline sensor${offline.length > 1 ? "er" : ""} i felten`,

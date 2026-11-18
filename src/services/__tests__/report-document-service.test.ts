@@ -14,6 +14,7 @@ import {
 } from "../report-document-service";
 const content = newReportContent("Bykær", "Haderslev", "Scope", "Kunde");
 const registration = (id: string) => ({
+  id,
   source: {
     id,
     title: id,
@@ -75,9 +76,10 @@ describe("report persistence", () => {
         data: [
           row,
           paired,
-          { ...row, comparison: null },
-          { ...row, watercourse_observation_reviews: null },
+          { ...row, id: "obs-3", comparison: null },
+          { ...row, id: "obs-4", watercourse_observation_reviews: null },
         ],
+        count: 4,
         error: null,
       }),
     };
@@ -85,6 +87,7 @@ describe("report persistence", () => {
     const observations = await loadReviewedReportObservations("project-a", "org-a");
     expect(query.select).toHaveBeenCalledWith(
       expect.stringContaining("watercourse_versions(id,version,method,source,segments)"),
+      { count: "exact" },
     );
     expect(query.eq).toHaveBeenCalledWith("organization_id", "org-a");
     expect(query.eq).toHaveBeenCalledWith("project_id", "project-a");
@@ -112,6 +115,7 @@ describe("report persistence", () => {
     expect(observations[2].text).toContain("Kildefoto: media:first.");
     query.range.mockResolvedValueOnce({
       data: [{ ...row, centerline_version_id: "other" }],
+      count: 1,
       error: null,
     });
     await expect(loadReviewedReportObservations("project-a", "org-a")).rejects.toThrow(
@@ -142,7 +146,7 @@ describe("report persistence", () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      range: vi.fn().mockResolvedValue({ data, error: null }),
+      range: vi.fn().mockResolvedValue({ data, error: null, count: data.length }),
     });
     const areas = query([
       { id: areaId, name: "Eng", geometry, area_hectares: 2, description: "Transekter" },
@@ -198,6 +202,7 @@ describe("report persistence", () => {
     ).toMatchObject([{ geometry, properties: { zone_id: areaId, map_number: 1 } }]);
     areas.range.mockResolvedValueOnce({
       data: [{ id: areaId, name: "Eng", geometry, area_hectares: 2, description: "Feltbesøg 2" }],
+      count: 1,
       error: null,
     });
     const refreshed = await loadNatureSurveyReport("project-a", draft);
@@ -220,6 +225,7 @@ describe("report persistence", () => {
     expect(docx).toContain("Afventer artsliste.");
     observations.range.mockResolvedValueOnce({
       data: [{ ...row, zone_id: "foreign" }],
+      count: 1,
       error: null,
     });
     await expect(loadNatureSurveyReport("project-a", base)).rejects.toThrow("undersøgelsesområde");
@@ -265,7 +271,7 @@ describe("report persistence", () => {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           order: vi.fn().mockReturnThis(),
-          range: vi.fn().mockResolvedValue({ data, error: null }),
+          range: vi.fn().mockResolvedValue({ data, error: null, count: data.length }),
         },
       ]),
     );
@@ -310,7 +316,7 @@ describe("report persistence", () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      range: vi.fn().mockResolvedValue({ data, error: null }),
+      range: vi.fn().mockResolvedValue({ data, error: null, count: data.length }),
     });
     const checksum = "a".repeat(64);
     const photoPointReview = {

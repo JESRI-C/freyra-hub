@@ -7,7 +7,7 @@
  *   <MapEditorMap {...map.mapProps} />
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getZonesByProject,
@@ -19,7 +19,7 @@ import {
   type GeoJsonPolygon,
 } from "@/services/zones-service";
 import { fetchNatureData, fetchWatercourses } from "@/services/nature/paragraph3-service";
-import { getProjectSensors } from "@/services/iot-simulation-service";
+import { useProjectMapDevices } from "./useProjectMapDevices";
 import {
   BoundaryOperationInProgressError,
   clearProjectBoundary,
@@ -29,6 +29,7 @@ import {
 } from "@/services/projects-service";
 import type { Project } from "@/lib/supabase/types";
 import type { DrawMode } from "@/components/maps/MapEditorMap";
+import { validateProjectPolygon } from "@/services/geo-service";
 
 export interface NewZoneState {
   name: string;
@@ -42,6 +43,16 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   const lat = project?.geometry_centroid_lat ?? null;
   const lng = project?.geometry_centroid_lng ?? null;
   const areaHa = project?.geometry_area_ha ?? 1;
+  const boundary = useMemo(
+    () => validateProjectPolygon(project?.geometry_polygon),
+    [project?.geometry_polygon],
+  );
+  const polygon = boundary.valid ? boundary.polygon : null;
+  const hasCoordinates =
+    typeof lat === "number" &&
+    Number.isFinite(lat) &&
+    typeof lng === "number" &&
+    Number.isFinite(lng);
 
   // ── UI state ──────────────────────────────────────────────────────────────────
   const [drawMode, setDrawMode] = useState<DrawMode>("none");
@@ -80,10 +91,11 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
 
   // ── §3 og artsobservationer ───────────────────────────────────────────────────
   const natureQuery = useQuery({
-    queryKey: ["nature-data", lat, lng, areaHa],
-    queryFn: () => fetchNatureData(lat!, lng!, areaHa),
-    enabled: !!lat && !!lng,
+    queryKey: ["nature-data", project?.id, polygon, lat, lng, areaHa],
+    queryFn: () => fetchNatureData(lat!, lng!, areaHa, polygon),
+    enabled: !!project?.id && !!polygon && hasCoordinates,
     staleTime: 12 * 60 * 60 * 1000,
+    retry: 1,
   });
 
   // ── Vandløb fra Miljøportal WFS ───────────────────────────────────────────────
@@ -96,7 +108,8 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   });
 
   // ── IoT sensorer ──────────────────────────────────────────────────────────────
-  const sensors = lat && lng ? getProjectSensors(project?.id ?? "", { lat, lng }) : [];
+  const mapDevices = useProjectMapDevices(project?.id);
+  const sensors = mapDevices.points;
 
   // ── Mutations ─────────────────────────────────────────────────────────────────
   const onMutationError = (err: unknown) => {
@@ -275,19 +288,31 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
   }, []);
 
   // ── Data coverage beregning ───────────────────────────────────────────────────
-  const p3Data = natureQuery.data?.p3;
-  const sensorCoverage =
-    sensors.length > 0
-      ? Math.round((sensors.filter((s) => s.status === "online").length / sensors.length) * 100)
-      : 0;
-  const ndviCoverage = ndvi !== null && ndvi !== undefined ? 100 : 0;
-  const p3Coverage = p3Data ? Math.min(100, p3Data.overlapPercent * 1.5) : 0;
-  const fieldCoverage = 58; // fra felt-observationer — beregnes fra geo_observations
+  // Cached data must not look current after an unsuccessful source refresh.
+  const p3Data =
+    !natureQuery.isError && natureQuery.data?.p3.mode === "live" ? natureQuery.data.p3 : undefined;
+  const natureStatus = !project
+    ? null
+    : !polygon
+      ? "§3-overlap er ikke beregnet. Tegn eller indlæs en gyldig projektgrænse."
+      : !hasCoordinates
+        ? "§3-overlap er ikke beregnet. Projektets koordinater mangler."
+        : natureQuery.isError
+          ? "Naturdata kunne ikke hentes. §3-overlap er ikke beregnet. Prøv igen senere."
+          : natureQuery.isFetching
+            ? "Henter naturdata for projektgrænsen…"
+            : null;
+  const sensorCoverage = mapDevices.onlinePercent;
+  const ndviAvailable = ndvi !== null && ndvi !== undefined && Number.isFinite(ndvi);
+  const p3Coverage = p3Data ? p3Data.overlapPercent : null;
+  // No spatial denominator or observation coverage query exists yet.
+  const fieldCoverage = null;
 
   return {
     // Kortdata
     zones: zonesQuery.data ?? [],
     sensors,
+    deviceStatus: mapDevices.status,
     paragraph3Areas:
       p3Data?.areas
         .filter((a) => a.geometry !== null)
@@ -344,7 +369,7 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
     // Datadækning
     coverage: {
       sensor: sensorCoverage,
-      satellite: ndviCoverage,
+      satelliteAvailable: ndviAvailable,
       nature: p3Coverage,
       field: fieldCoverage,
     },
@@ -352,7 +377,11 @@ export function useMapEditor(project: Project | null, ndvi?: number | null) {
     // Loading
     isLoading: zonesQuery.isLoading || natureQuery.isLoading,
     isNatureLoading: natureQuery.isLoading,
+    natureStatus,
     p3Data,
-    speciesData: natureQuery.data?.species,
+    speciesData:
+      !natureQuery.isError && natureQuery.data?.species.mode === "live"
+        ? natureQuery.data.species
+        : undefined,
   };
 }

@@ -1,10 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { getRecommendedNextAction } from "@/lib/report-engine";
+import { getRecommendedNextAction, generateProjectReportPreview } from "@/lib/report-engine";
 import type { Action, Indicator, Project } from "@/lib/supabase/types";
 import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import type { IoTSensor } from "@/services/iot-simulation-service";
 
 const project = { id: "synthetic-project" } as Project;
+it("does not increase report readiness just because registered devices are online", () => {
+  const input = {
+    project,
+    sites: [],
+    dataSources: [],
+    indicators: [],
+    observations: [],
+    actions: [],
+    auditEvents: [],
+    evidenceFiles: [],
+  };
+  expect(
+    generateProjectReportPreview({
+      ...input,
+      sensors: [{ status: "online" }, { status: "online" }, { status: "online" }],
+    }).readinessScore,
+  ).toBe(generateProjectReportPreview({ ...input, sensors: [] }).readinessScore);
+});
 const photo: ProjectMediaItem = {
   id: "synthetic-photo",
   projectId: project.id,

@@ -1,5 +1,10 @@
 // Audit Service
-import { isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  isSupabaseConfigured,
+  supabase,
+  createActorBoundSupabaseClient,
+} from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { isDemoDataEnabled, requireCustomerDatabase } from "@/lib/data-mode";
 import {
   fetchAuditEventsByProject,
@@ -42,6 +47,39 @@ export async function logAuditEvent(input: {
   await insertAuditEvent(input);
 }
 // ─── CSV export ───────────────────────────────────────────────────────────────
+/** Only the server can choose the event's author, kind and project scope. */
+export async function logProjectExportRequest(input: {
+  actorId?: string;
+  projectId: string;
+  format: "geojson" | "csv" | "xlsx";
+  filename: string;
+  entityType?: "watercourse_version" | "work_orders";
+  entityId?: string;
+}): Promise<void> {
+  requireCustomerDatabase();
+  if (!supabase) throw new Error("Database er ikke konfigureret.");
+  const db = input.actorId ? createActorBoundSupabaseClient(input.actorId) : supabase;
+  let receipt: { data: unknown; error: unknown };
+  try {
+    receipt = await (db as unknown as SupabaseClient).rpc("record_project_data_export_request", {
+      p_project_id: input.projectId,
+      p_format: input.format,
+      p_filename: input.filename,
+      p_entity_type: input.entityType ?? null,
+      p_entity_id: input.entityId ?? null,
+    });
+  } catch {
+    throw new Error("Eksporten kunne ikke registreres. Kontrollér adgang og prøv igen.");
+  }
+  const { data, error } = receipt;
+  if (
+    error ||
+    typeof data !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data)
+  )
+    throw new Error("Eksporten kunne ikke registreres. Kontrollér adgang og prøv igen.");
+}
+
 export function auditEventsToCsv(events: AuditEvent[]): string {
   const headers = [
     "created_at",

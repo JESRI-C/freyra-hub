@@ -9,6 +9,7 @@ import { getFieldJobAccess } from "@/lib/field-job-access.functions";
 import {
   claimProjectWorkOrderPool,
   listCurrentUserWorkOrders,
+  openCurrentUserWorkOrderLink,
 } from "@/lib/work-order-assignments.functions";
 import { assignmentModeLabels, type MyWorkOrder } from "@/lib/work-order-assignments";
 import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
@@ -16,7 +17,11 @@ import { scheduleLabel } from "@/lib/work-order-schedule-label";
 import { WorkOrderPlanSummary } from "./WorkOrderPlanSummary";
 import { WorkOrderStatusPanel } from "./WorkOrderStatusPanel";
 import { WorkOrderEvidencePanel } from "./WorkOrderEvidencePanel";
+import { ScannedEquipmentReservations } from "./ScannedEquipmentReservations";
+import { EquipmentCustodyActions } from "./EquipmentCustodyActions";
+import { EquipmentServiceJournal } from "./EquipmentServiceJournal";
 import { FieldWorkOrderEquipment } from "./FieldWorkOrderEquipment";
+import { FieldWorkOrderDirections } from "./FieldWorkOrderDirections";
 import { WorkOrderVisitResults } from "./WorkOrderVisitResults";
 import { WorkOrderMaterials } from "./WorkOrderMaterials";
 import { WorkOrderTimePanel } from "./WorkOrderTimePanel";
@@ -137,7 +142,17 @@ function WorkOrderBoard({
   );
 }
 
-export function MyWorkOrders() {
+export function MyWorkOrders({
+  linkedActionId,
+  linkedBookingId,
+  scannedEquipmentId,
+  completionIntent = false,
+}: {
+  linkedActionId?: string;
+  linkedBookingId?: string;
+  scannedEquipmentId?: string;
+  completionIntent?: boolean;
+} = {}) {
   const { user, loading, authError } = useAuth();
   if (loading)
     return (
@@ -155,13 +170,143 @@ export function MyWorkOrders() {
     return (
       <main className="mx-auto max-w-xl space-y-4 p-4">
         <h1 className="text-2xl font-semibold">Mine opgaver</h1>
-        <Link to="/login" search={{ next: "/opgaver" }} className={button}>
+        <Link
+          to="/login"
+          search={{
+            next: linkedActionId
+              ? "/opgaver?job=" +
+                encodeURIComponent(linkedActionId) +
+                (completionIntent ? "&mode=finish" : "") +
+                (linkedBookingId ? "&booking=" + encodeURIComponent(linkedBookingId) : "")
+              : scannedEquipmentId
+                ? "/opgaver?equipment=" + encodeURIComponent(scannedEquipmentId)
+                : "/opgaver",
+          }}
+          className={button}
+        >
           Log ind for at se dine opgaver
         </Link>
       </main>
     );
+  if (linkedActionId) {
+    return (
+      <LinkedMyWorkOrder
+        key={user.id + ":" + linkedActionId}
+        actorId={user.id}
+        actionId={linkedActionId}
+        bookingId={linkedBookingId}
+        completionIntent={completionIntent}
+      />
+    );
+  }
+  if (scannedEquipmentId)
+    return (
+      <ScannedEquipmentReservations
+        key={user.id + ":" + scannedEquipmentId}
+        actorId={user.id}
+        equipmentId={scannedEquipmentId}
+      />
+    );
   return <MyTasks key={user.id} actorId={user.id} />;
 }
+function LinkedMyWorkOrder({
+  actorId,
+  actionId,
+  bookingId,
+  completionIntent,
+}: {
+  actorId: string;
+  actionId: string;
+  bookingId?: string;
+  completionIntent: boolean;
+}) {
+  const load = useServerFn(openCurrentUserWorkOrderLink);
+  const [editors, setEditors] = useState<Set<string>>(() => new Set());
+  useBlocker({ shouldBlockFn: () => editors.size > 0, enableBeforeUnload: editors.size > 0 });
+  const linked = useQuery({
+    queryKey: ["my-work-orders", actorId, "link", actionId],
+    queryFn: () => load({ data: { expectedActorId: actorId, actionId } }),
+    retry: false,
+    refetchOnWindowFocus: editors.size === 0,
+    refetchOnReconnect: editors.size === 0,
+  });
+
+  return (
+    <main className="mx-auto min-h-dvh max-w-3xl space-y-4 p-3 pb-12 sm:p-6">
+      <h1 className="text-2xl font-semibold">Mine opgaver</h1>
+      <Link
+        to="/opgaver"
+        search={{ job: undefined, mode: undefined, booking: undefined }}
+        disabled={editors.size > 0}
+        className={button}
+      >
+        ← Tilbage til opgavelisten
+      </Link>
+      {linked.isPending && <p role="status">Henter opgaven…</p>}
+      {linked.isError && (
+        <p role="alert">
+          Opgaven kunne ikke hentes.{" "}
+          <button type="button" className={button} onClick={() => void linked.refetch()}>
+            Prøv igen
+          </button>
+        </p>
+      )}
+      {linked.isSuccess && !linked.data && (
+        <p role="status">Opgaven er ikke tilgængelig for din konto.</p>
+      )}
+      {linked.isSuccess && linked.data && bookingId && (
+        <section
+          aria-label="Scannet materielreservation"
+          className="space-y-2 rounded-xl border p-3"
+        >
+          <h2 className="font-semibold">Scannet materielreservation</h2>
+          <EquipmentCustodyActions
+            key={bookingId}
+            bookingId={bookingId}
+            actionId={actionId}
+            actorId={actorId}
+            scope={{
+              organizationId: linked.data.organization_id,
+              projectId: linked.data.project_id,
+            }}
+            disabled={editors.size > 0}
+            showReservation
+          />
+          <EquipmentServiceJournal
+            key={bookingId + "-service"}
+            bookingId={bookingId}
+            actionId={actionId}
+            actorId={actorId}
+            scope={{
+              organizationId: linked.data.organization_id,
+              projectId: linked.data.project_id,
+            }}
+            disabled={editors.size > 0}
+          />
+        </section>
+      )}
+      {linked.isSuccess && linked.data && (
+        <TaskCard
+          task={linked.data}
+          completionIntent={completionIntent}
+          actorId={actorId}
+          active
+          onOpen={() => undefined}
+          locked={editors.size > 0}
+          onEditing={(value) =>
+            setEditors((old) => {
+              const next = new Set(old);
+              if (value) next.add(actionId);
+              else next.delete(actionId);
+              return next;
+            })
+          }
+        />
+      )}
+    </main>
+  );
+}
+
 function MyTasks({ actorId }: { actorId: string }) {
   const load = useServerFn(listCurrentUserWorkOrders);
   const [editors, setEditors] = useState<Set<string>>(() => new Set());
@@ -373,8 +518,10 @@ function TaskCard({
   onEditing,
   active,
   onOpen,
+  completionIntent = false,
 }: {
   task: MyWorkOrder;
+  completionIntent?: boolean;
   actorId: string;
   locked: boolean;
   onEditing: (value: boolean) => void;
@@ -421,6 +568,29 @@ function TaskCard({
   const statusSummary = useRef<HTMLElement>(null);
   const submissionDetails = useRef<HTMLDetailsElement>(null);
   const submissionSummary = useRef<HTMLElement>(null);
+  const completionTarget =
+    canExecute && !task.waiting_for_prerequisites
+      ? task.task_status === "performed" || task.task_status === "returned"
+        ? "submission"
+        : task.task_status === "started" ||
+            task.task_status === "reopened" ||
+            task.task_status === "assigned"
+          ? "status"
+          : null
+      : null;
+  function openCompletionPanel() {
+    if (completionTarget === "submission") {
+      if (!submissionDetails.current) return;
+      submissionDetails.current.open = true;
+      setSubmissionOpened(true);
+      submissionSummary.current?.focus();
+    } else if (completionTarget === "status") {
+      if (!statusDetails.current) return;
+      statusDetails.current.open = true;
+      setStatusOpened(true);
+      statusSummary.current?.focus();
+    }
+  }
   const nestedLocks = useRef(new Set<string>());
   function reportEditing(part: string, value: boolean) {
     if (value) nestedLocks.current.add(part);
@@ -554,6 +724,41 @@ function TaskCard({
             )}
           </>
         )}
+        {completionIntent && (
+          <section
+            aria-label="Færdigmelding fra jobkort"
+            className="space-y-2 rounded-xl border bg-card p-3"
+          >
+            <h3 className="font-semibold">Færdigmelding fra jobkort</h3>
+            {completionTarget ? (
+              <>
+                <p className="text-sm">
+                  {task.task_status === "assigned"
+                    ? "Jobbet skal påbegyndes, før du kan registrere det som udført."
+                    : "Åbn næste trin, og kontrollér oplysningerne, før du gemmer."}
+                </p>
+                <button
+                  type="button"
+                  className={button}
+                  disabled={locked || busy}
+                  onClick={openCompletionPanel}
+                >
+                  {completionTarget === "submission"
+                    ? "Fortsæt til aflevering"
+                    : task.task_status === "assigned"
+                      ? "Fortsæt til start af jobbet"
+                      : "Fortsæt til udført status"}
+                </button>
+              </>
+            ) : (
+              <p className="text-sm">
+                {task.waiting_for_prerequisites
+                  ? "Jobbet afventer en forudsætning."
+                  : "Der er ingen færdigmeldingshandling tilgængelig med jobbets aktuelle status og din adgang."}
+              </p>
+            )}
+          </section>
+        )}
         {(canPlan || canExecute) && (
           <section
             aria-labelledby={`workflow-${task.action_id}`}
@@ -655,6 +860,14 @@ function TaskCard({
             scope={{ organizationId: task.organization_id, projectId: task.project_id }}
             actorId={actorId}
             actionId={task.action_id}
+          />
+        )}
+        {active && (task.plan.siteId || !!task.plan.visitStops?.length) && (
+          <FieldWorkOrderDirections
+            actorId={actorId}
+            projectId={task.project_id}
+            planVersionId={task.plan_version_id}
+            plan={task.plan}
           />
         )}
         {active && (task.plan.siteId || !!task.plan.visitStops?.length) && (

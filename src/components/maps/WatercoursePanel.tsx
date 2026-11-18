@@ -35,6 +35,7 @@ export function WatercoursePanel({
   const [direction, setDirection] = useState<WatercourseVersion["direction"]>("unknown");
   const [segmentSize, setSegmentSize] = useState(100);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const save = useMutation({
     mutationFn: async () => {
       if (!draft) throw new Error("Tegn eller importér en centerlinje.");
@@ -82,6 +83,22 @@ export function WatercoursePanel({
       setError(e instanceof Error ? e.message : "Import fejlede");
     }
   }
+  async function exportLine() {
+    if (!latest || exporting) return;
+    setExporting(true);
+    setError(null);
+    try {
+      await downloadGeoJSON(watercourseGeoJSON(latest), `vandloeb-v${latest.version}`, {
+        projectId,
+        entityType: "watercourse_version",
+        entityId: latest.id,
+      });
+    } catch {
+      setError("GeoJSON-udtrækket kunne ikke registreres og hentes. Prøv igen.");
+    } finally {
+      setExporting(false);
+    }
+  }
   return (
     <Card className="p-4 space-y-3">
       <h2 className="font-semibold">Vandløb og delstrækninger</h2>
@@ -99,12 +116,7 @@ export function WatercoursePanel({
           Version {latest.version}: {latest.length_m.toFixed(1)} m · {latest.segments.length}{" "}
           delstrækninger · EPSG:4326
           <br />
-          <button
-            className="underline"
-            onClick={() =>
-              downloadGeoJSON(watercourseGeoJSON(latest) as never, `vandloeb-v${latest.version}`)
-            }
-          >
+          <button className="underline" disabled={exporting} onClick={() => void exportLine()}>
             Hent linje og stationering (GeoJSON)
           </button>
           <br />

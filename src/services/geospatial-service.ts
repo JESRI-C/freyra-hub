@@ -20,7 +20,7 @@ export interface MapLayer {
   isActive: boolean;
   requiresApiKey: boolean;
   refreshInterval: string | null;
-  status: "live" | "preview" | "unavailable";
+  status: "live" | "stored" | "preview" | "unavailable";
 }
 
 export interface ProjectMetrics {

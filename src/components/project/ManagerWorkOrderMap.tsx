@@ -1,4 +1,5 @@
 import { lazy, Suspense, useMemo, type ReactNode } from "react";
+import { jobDirectionsUrl } from "@/lib/job-directions";
 import type { ManagerWorkOrder } from "@/lib/manager-work-orders";
 import { managerMapData, managerMapSourceLabel } from "./manager-work-order-map-data";
 
@@ -85,11 +86,38 @@ export function ManagerWorkOrderMap({
           {selected ? (
             <div aria-label="Valgt arbejdsordre" className="space-y-3">
               {renderOrder(selected)}
-              {selected.map_locations.map((location) => (
-                <p key={location.id} className="text-xs text-muted-foreground">
-                  {location.name} · {managerMapSourceLabel(location)}
-                </p>
-              ))}
+              {selected.map_locations.map((location) => {
+                const directions =
+                  location.geometry.type === "Point" &&
+                  location.coordinate_source === "site_point" &&
+                  !location.archived
+                    ? jobDirectionsUrl(
+                        location.geometry.coordinates[1],
+                        location.geometry.coordinates[0],
+                      )
+                    : null;
+                return (
+                  <div
+                    key={location.id}
+                    className="flex flex-wrap items-center justify-between gap-x-3"
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      {location.name} · {managerMapSourceLabel(location)}
+                    </p>
+                    {directions && (
+                      <a
+                        href={directions}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={"Få vejvisning til " + location.name + " i Google Maps"}
+                        className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+                      >
+                        Vejvisning
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
               {selected.map_unavailable_locations > 0 && (
                 <p className="text-xs text-muted-foreground">
                   {selected.map_unavailable_locations} tilknyttede lokaliteter mangler en brugbar

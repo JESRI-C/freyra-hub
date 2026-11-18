@@ -27,6 +27,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 
 const STATUS_DOT: Record<string, string> = {
   live: "bg-emerald-500",
+  stored: "bg-blue-500",
   preview: "bg-amber-400",
   unavailable: "bg-red-400",
 };

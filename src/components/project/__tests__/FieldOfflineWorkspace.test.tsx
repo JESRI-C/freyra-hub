@@ -204,6 +204,50 @@ const inputWithLabel = (prefix: string) =>
     .find((label) => label.textContent?.trim().startsWith(prefix))!
     .querySelector<HTMLInputElement>("input")!;
 describe("mobile field local save feedback", () => {
+  it("replaces the pending message only after that saved registration receives its server receipt", async () => {
+    const source = pack(),
+      job = source.jobs[0],
+      itemId = crypto.randomUUID();
+    let queue: unknown[] = [];
+    const item = {
+      id: itemId,
+      actorId: f.actor,
+      projectId: f.project,
+      kind: "job",
+      state: "queued",
+      createdAt: Date.now(),
+      originalBytes: 0,
+      attempts: 0,
+      lastError: null,
+      receipt: null,
+      template: job.template,
+      payload: { actionId: f.action, expectedVersion: 1, values: job.latest!.values },
+    };
+    f.packs.mockResolvedValue([source]);
+    f.items.mockImplementation(async () => queue);
+    f.prepare.mockReturnValue(item);
+    f.enqueue.mockImplementation(async () => {
+      queue = [item];
+    });
+    const save = await edit();
+    await act(async () => save.click());
+    const editor = host.querySelector('[aria-label="Jobkort på telefonen"]')!;
+    expect(editor.textContent).toContain("Serverkvittering afventer synkronisering");
+    queue = [
+      { ...item, state: "complete", receipt: { ...job.latest, version: 2, request_id: itemId } },
+    ];
+    const refresh = [...host.querySelectorAll("button")].find(
+      (button) => button.textContent?.trim() === "Opdater kø",
+    )!;
+    await act(async () => refresh.click());
+    expect(editor.textContent).toContain("Registreringen er modtaget på serveren");
+    expect(editor.textContent).not.toContain("Serverkvittering afventer synkronisering");
+    await inputValue(inputWithLabel("Begrundelse"), "Ny rettelse");
+    f.enqueue.mockRejectedValue(new DOMException("Lageret er fuldt", "QuotaExceededError"));
+    await act(async () => save.click());
+    expect(editor.textContent).toContain("Telefonens lager er fuldt");
+    expect(editor.textContent).not.toContain("Registreringen er modtaget på serveren");
+  });
   it("retains the corrected source without counting it as an outstanding registration", async () => {
     const source = pack(),
       job = source.jobs[0],

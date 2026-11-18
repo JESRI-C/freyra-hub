@@ -6,17 +6,53 @@ import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { emptyWorkOrderPlan } from "@/lib/work-order-plan";
 const m = vi.hoisted(() => ({
   load: vi.fn(),
+  loadLink: vi.fn(),
   claim: vi.fn(),
   fieldAccess: vi.fn(),
+  sites: vi.fn(),
+  siteProject: vi.fn(),
+  client: vi.fn(),
+  scanned: vi.fn(),
   blocker: vi.fn(),
   actor: "00000000-0000-4000-8000-000000000001" as string | null,
 }));
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({ user: m.actor ? { id: m.actor } : null, loading: false }),
 }));
+vi.mock("@/lib/supabase/client", () => ({
+  createActorBoundSupabaseClient: (actorId: string) => {
+    m.client(actorId);
+    return {
+      from: (table: string) => {
+        expect(table).toBe("sites");
+        return {
+          select: () => ({
+            eq: (column: string, value: string) => {
+              m.siteProject(column, value);
+              return {
+                neq: () => ({
+                  is: () => ({
+                    in: (column: string, values: string[]) => ({
+                      abortSignal: () => m.sites(column, values),
+                    }),
+                  }),
+                }),
+              };
+            },
+          }),
+        };
+      },
+      rpc: (name: string, args: unknown) => ({
+        abortSignal: async () =>
+          name === "list_field_equipment_label" ? m.scanned(args) : { data: [], error: null },
+      }),
+    };
+  },
+}));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@/lib/work-order-assignments.functions", () => ({
   listCurrentUserWorkOrders: m.load,
+  openCurrentUserWorkOrderLink: m.loadLink,
   claimProjectWorkOrderPool: m.claim,
 }));
 vi.mock("@/lib/field-job-access.functions", () => ({ getFieldJobAccess: m.fieldAccess }));
@@ -126,11 +162,19 @@ async function flush() {
     await new Promise((r) => setTimeout(r, 15));
   });
 }
-async function render() {
+async function render(
+  linkedActionId?: string,
+  completionIntent = false,
+  scannedEquipmentId?: string,
+) {
   await act(async () =>
     root.render(
       <QueryClientProvider client={cache}>
-        <MyWorkOrders />
+        <MyWorkOrders
+          linkedActionId={linkedActionId}
+          completionIntent={completionIntent}
+          scannedEquipmentId={scannedEquipmentId}
+        />
       </QueryClientProvider>,
     ),
   );
@@ -167,6 +211,123 @@ afterEach(async () => {
   host.remove();
 });
 describe("mobile personal tasks", () => {
+  it("shows the asset’s authorized current reservation after opening its durable label", async () => {
+    m.scanned.mockResolvedValue({
+      error: null,
+      data: [
+        {
+          booking_id: id(61),
+          action_id: task.action_id,
+          equipment_name: "Motorsav",
+          job_title: "Kantslåning",
+          starts_on: "2026-11-17",
+          ends_on: "2026-11-18",
+          checked_out: false,
+        },
+      ],
+    });
+    await render(undefined, false, id(60));
+    expect(m.load).not.toHaveBeenCalled();
+    expect(m.scanned).toHaveBeenCalledWith({ p_equipment_id: id(60) });
+    expect(host.textContent).toContain("Motorsav");
+    const link = [...host.querySelectorAll("a")].find(
+      (node) => node.textContent?.trim() === "Åbn reservation",
+    );
+    expect(JSON.parse(link!.getAttribute("data-search")!)).toEqual({
+      job: task.action_id,
+      booking: id(61),
+    });
+  });
+
+  it("opens only the linked job without requesting the inbox", async () => {
+    m.loadLink.mockResolvedValue(task);
+    await render(task.action_id);
+    expect(m.load).not.toHaveBeenCalled();
+    expect(m.loadLink).toHaveBeenCalledWith({
+      data: { expectedActorId: task.user_id, actionId: task.action_id },
+    });
+    expect(host.textContent).toContain(task.plan.title);
+    expect(host.textContent).toContain("Tilbage til opgavelisten");
+  });
+  it.each([
+    ["started", "Fortsæt til udført status", "Status og logbog"],
+    ["performed", "Fortsæt til aflevering", "Aflevering og historik"],
+  ] as const)(
+    "opens the appropriate explicit QR completion step for %s",
+    async (status, label, summary) => {
+      m.loadLink.mockResolvedValue({ ...task, can_execute: true, task_status: status });
+      await render(task.action_id, true);
+      const panel = [...host.querySelectorAll("summary")].find(
+        (node) => node.textContent?.trim() === summary,
+      );
+      expect(panel?.closest("details")?.open).toBe(false);
+      expect(m.claim).not.toHaveBeenCalled();
+      await click(label);
+      expect(panel?.closest("details")?.open).toBe(true);
+      expect(panel).toBe(document.activeElement);
+    },
+  );
+
+  it("offers no QR completion action for a blocked or finalized job", async () => {
+    m.loadLink.mockResolvedValue({ ...task, can_execute: true, task_status: "approved" });
+    await render(task.action_id, true);
+    expect(host.querySelector('[aria-label="Færdigmelding fra jobkort"] button')).toBeNull();
+  });
+
+  it("shows a neutral message for an unassigned or missing linked job", async () => {
+    m.loadLink.mockResolvedValue(null);
+    await render(task.action_id);
+    expect(host.textContent).toContain("Opgaven er ikke tilgængelig for din konto.");
+    expect(host.textContent).not.toContain(task.plan.title);
+    expect(m.load).not.toHaveBeenCalled();
+  });
+
+  it("gives field workers directions for exact authorized stops without using estimated locations", async () => {
+    m.load.mockResolvedValue({
+      items: [
+        {
+          ...task,
+          plan: {
+            ...task.plan,
+            siteId: id(41),
+            visitStops: [
+              { siteId: id(42), name: "Eng med flade" },
+              { siteId: id(43), name: "Sted uden adgang" },
+            ],
+          },
+        },
+      ],
+      nextAfterActionId: null,
+    });
+    m.sites.mockResolvedValue({
+      error: null,
+      data: [
+        {
+          id: id(41),
+          name: "Nordporten",
+          geometry_geojson: { type: "Point", coordinates: [9.5, 55.2] },
+        },
+        {
+          id: id(42),
+          name: "Eng med flade",
+          geometry_geojson: { type: "Polygon", coordinates: [] },
+        },
+      ],
+    });
+    await render();
+    expect(m.sites).not.toHaveBeenCalled();
+    await openTask();
+    expect(m.client).toHaveBeenCalledWith(task.user_id);
+    expect(m.siteProject).toHaveBeenCalledWith("project_id", task.project_id);
+    expect(m.sites).toHaveBeenCalledWith("id", [id(41), id(42), id(43)]);
+    const panel = host.querySelector('[aria-label="Vejvisning til arbejdssteder"]')!;
+    const links = panel.querySelectorAll("a");
+    expect(links).toHaveLength(1);
+    expect(new URL(links[0].href).searchParams.get("destination")).toBe("55.2,9.5");
+    expect(panel.textContent).toContain("Eng med flade · Vejvisning er ikke tilgængelig");
+    expect(panel.textContent).toContain("Sted uden adgang · Vejvisning er ikke tilgængelig");
+  });
+
   it("groups loaded orders by lifecycle and returns to the refreshed board after opening one", async () => {
     m.load.mockResolvedValue({
       items: [

@@ -7,8 +7,8 @@ import type { ProjectMediaItem } from "@/lib/platform/media-types";
 import { MEDIA_CATEGORY_LABELS } from "@/lib/platform/media-types";
 import type { DroneUploadMapPoint } from "@/services/monitoring/drone-upload-map-service";
 import type { BufferZonesGeoJSON } from "@/services/geo-service";
-import type { IoTSensor } from "@/services/iot-simulation-service";
-import { SENSOR_TYPE_LABELS } from "@/services/iot-simulation-service";
+import type { MapDevice } from "@/services/monitoring/map-devices-service";
+import { mapDevicePopup } from "./map-device-popup";
 import { MapPin, AlertTriangle, Thermometer, Wind, CloudRain, Leaf } from "lucide-react";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -51,7 +51,8 @@ export interface LiveProjectMapProps {
   height?: number;
   mediaItems?: ProjectMediaItem[];
   droneUploadPoints?: DroneUploadMapPoint[];
-  sensors?: IoTSensor[];
+  sensors?: MapDevice[];
+  showDeviceLayer?: boolean;
   dmiData?: DmiData;
   miljoeportalData?: MiljoeportalData;
   copernicusData?: CopernicusData;
@@ -71,15 +72,17 @@ const BUFFER_STYLES: Record<Exclude<ActiveBuffer, "none">, PathOptions> = {
   "1000m": { color: "#8B5CF6", weight: 1.5, fillOpacity: 0.04, dashArray: "4 4" },
 };
 
-const STATUS_COLORS: Record<IoTSensor["status"], string> = {
+const STATUS_COLORS: Record<MapDevice["status"], string> = {
   online: "#2BC48A",
-  warning: "#F59E0B",
+  partial: "#F59E0B",
+  attention: "#F59E0B",
   offline: "#EF4444",
+  not_activated: "#64748b",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function sensorDivIconHtml(status: IoTSensor["status"]): string {
+function sensorDivIconHtml(status: MapDevice["status"]): string {
   const color = STATUS_COLORS[status];
   return `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.35);"></div>`;
 }
@@ -199,6 +202,7 @@ export function LiveProjectMap({
   mediaItems,
   droneUploadPoints,
   sensors,
+  showDeviceLayer,
   dmiData,
   miljoeportalData: _miljoeportalData,
   copernicusData,
@@ -223,11 +227,13 @@ export function LiveProjectMap({
   const [showDmi, setShowDmi] = useState(true);
   // Async Leaflet-init: natur-lags-effekten må først køre når kortet findes.
   const [mapReady, setMapReady] = useState(false);
+  const firstPosition = sensors?.find((sensor) => sensor.coordinates)?.coordinates ?? null;
+  const canShowMap = geometry.hasValidGeometry || !!geometry.centroid || !!firstPosition;
 
   // ── Initial map setup ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
-    if (!geometry.hasValidGeometry && !geometry.centroid) return;
+    if (!canShowMap) return;
 
     let cancelled = false;
 
@@ -269,42 +275,20 @@ export function LiveProjectMap({
 
         map.fitBounds(poly.getBounds(), { padding: [32, 32] });
         mapInstance.current = map;
-      } else if (geometry.centroid) {
+      } else if (geometry.centroid || firstPosition) {
+        const center = geometry.centroid ?? firstPosition!;
         const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false });
         L.tileLayer(tileUrl, { attribution: tileAttrib }).addTo(map);
-        map.setView([geometry.centroid.lat, geometry.centroid.lng], 14);
-        L.marker([geometry.centroid.lat, geometry.centroid.lng])
-          .addTo(map)
-          .bindPopup(popupContent(projectName, ["Estimeret position"]))
-          .openPopup();
+        map.setView([center.lat, center.lng], 16);
+        if (geometry.centroid)
+          L.marker([geometry.centroid.lat, geometry.centroid.lng])
+            .addTo(map)
+            .bindPopup(popupContent(projectName, ["Projektets registrerede centroid"]));
         mapInstance.current = map;
       }
 
       if (!mapInstance.current || cancelled) return;
       const map = mapInstance.current;
-
-      // ── IoT sensor markers ────────────────────────────────────────────────
-      if (sensors && sensors.length > 0) {
-        const group = L.layerGroup().addTo(map);
-        sensorGroupRef.current = group;
-        for (const sensor of sensors) {
-          const icon = L.divIcon({
-            html: sensorDivIconHtml(sensor.status),
-            className: "",
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
-          });
-          L.marker([sensor.coordinates.lat, sensor.coordinates.lng], { icon })
-            .addTo(group)
-            .bindPopup(
-              popupContent(sensor.label, [
-                `${SENSOR_TYPE_LABELS[sensor.type]}: ${sensor.latestValue} ${sensor.unit}`,
-                `🔋 ${sensor.batteryPercent}%`,
-                `📡 Sidst set: ${formatLastSeen(sensor.lastSeen)}`,
-              ]),
-            );
-        }
-      }
 
       // ── Buffer zones pre-calculation ─────────────────────────────────────
       const { buildBufferZonesGeoJSON } = await import("@/services/geo-service");
@@ -323,7 +307,7 @@ export function LiveProjectMap({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geometry, projectName, projectId]);
+  }, [geometry, projectName, projectId, canShowMap]);
 
   // ── Buffer zone toggle ────────────────────────────────────────────────────
   useEffect(() => {
@@ -484,19 +468,45 @@ export function LiveProjectMap({
     };
   }, [mapReady, paragraph3GeoJSON, watercoursesGeoJSON]);
 
-  // ── Show/hide sensor layer ────────────────────────────────────────────────
+  // Replace markers when the scoped query changes; initialization can precede data.
   useEffect(() => {
-    if (!mapInstance.current || !sensorGroupRef.current) return;
+    if (!mapReady || !mapInstance.current) return;
     const map = mapInstance.current;
-    if (showSensors) {
-      map.addLayer(sensorGroupRef.current);
-    } else {
-      map.removeLayer(sensorGroupRef.current);
-    }
-  }, [showSensors]);
+    let cancelled = false;
+    let group: import("leaflet").LayerGroup | null = null;
+    if (sensorGroupRef.current) map.removeLayer(sensorGroupRef.current);
+    sensorGroupRef.current = null;
+    if (showSensors && showDeviceLayer !== false)
+      void import("leaflet").then((L) => {
+        if (cancelled || mapInstance.current !== map) return;
+        group = L.layerGroup().addTo(map);
+        sensorGroupRef.current = group;
+        for (const sensor of sensors ?? []) {
+          if (!sensor.coordinates) continue;
+          const icon = L.divIcon({
+            html: sensorDivIconHtml(sensor.status),
+            className: "",
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+          });
+          L.marker([sensor.coordinates.lat, sensor.coordinates.lng], { icon, title: sensor.label })
+            .addTo(group)
+            .bindPopup(mapDevicePopup(sensor), {
+              maxWidth: 250,
+              autoPanPaddingTopLeft: [45, 65],
+              autoPanPaddingBottomRight: [15, 75],
+            });
+        }
+      });
+    return () => {
+      cancelled = true;
+      if (group && mapInstance.current === map && map.hasLayer(group)) map.removeLayer(group);
+      if (sensorGroupRef.current === group) sensorGroupRef.current = null;
+    };
+  }, [showSensors, showDeviceLayer, sensors, mapReady]);
 
   // ─── No geometry fallback ─────────────────────────────────────────────────
-  if (!geometry.hasValidGeometry && !geometry.centroid) {
+  if (!canShowMap) {
     return (
       <div
         style={{ height }}
@@ -531,7 +541,9 @@ export function LiveProjectMap({
           <MapPin className="h-3 w-3" />
           {geometry.hasValidGeometry
             ? `Polygon · ${geometry.areaHa != null ? `${geometry.areaHa} ha` : "areal ukendt"}`
-            : "Kun centroid"}
+            : geometry.centroid
+              ? "Kun centroid"
+              : "Gemte enhedspositioner"}
         </span>
       </div>
 
@@ -581,9 +593,9 @@ export function LiveProjectMap({
         )}
 
         {/* IoT sensor toggle */}
-        {hasSensors && (
+        {hasSensors && showDeviceLayer === undefined && (
           <PillBtn active={showSensors} onClick={() => setShowSensors((v) => !v)}>
-            IoT-sensorer
+            Registrerede enheder
           </PillBtn>
         )}
 

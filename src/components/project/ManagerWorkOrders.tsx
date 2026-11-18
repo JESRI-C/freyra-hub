@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -6,12 +6,14 @@ import {
   ArrowUpRight,
   CalendarDays,
   CircleAlert,
+  Download,
   Filter,
   LayoutGrid,
   List,
   Map,
   MapPin,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   UserRound,
@@ -28,6 +30,18 @@ import { listManagerWorkOrders } from "@/lib/manager-work-orders.functions";
 import { WorkOrderObservationDraftDialog } from "./WorkOrderObservationDraftDialog";
 import { workOrderStatusLabels } from "@/lib/work-order-lifecycle";
 import { workOrderStatusDestination } from "@/lib/work-order-navigation";
+import {
+  readManagerWorkOrderExport,
+  WORK_ORDER_EXPORT_LIMIT,
+  WORK_ORDER_EXPORT_LIMIT_MESSAGE,
+} from "@/lib/manager-work-order-export";
+import { printableJobCard } from "@/lib/printable-job-card";
+import {
+  buildCsv,
+  downloadCsv,
+  downloadFile,
+  recordProjectExportRequests,
+} from "@/services/export-service";
 import { scheduleDate, scheduleLabel } from "@/lib/work-order-schedule-label";
 import {
   ManagerWorkOrderMap,
@@ -37,6 +51,16 @@ import {
 
 const button =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50";
+const exportColumns = [
+  "Arbejdsordre",
+  "Projekt",
+  "Status",
+  "Tildeling",
+  "Planlagt start",
+  "Planlagt slut",
+  "Frist",
+  "Sted",
+];
 const control =
   "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-base";
 const colors = {
@@ -146,7 +170,35 @@ function assignmentLabel(task: ManagerWorkOrder) {
   return (task.assignment_mode === "group" ? "Gruppe: " : "Tildelt: ") + people;
 }
 
-function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean }) {
+function OrderCard({
+  task,
+  compact,
+  printable = !compact,
+}: {
+  task: ManagerWorkOrder;
+  compact: boolean;
+  printable?: boolean;
+}) {
+  const [printError, setPrintError] = useState(false);
+  function downloadPrintCard() {
+    setPrintError(false);
+    try {
+      const html = printableJobCard(window.location.origin, {
+        projectId: task.project_id,
+        actionId: task.action_id,
+        title: task.title,
+        project: task.project_name,
+        location: task.site_name || task.location_note,
+        schedule: scheduleLabel({ start: task.planned_start, end: task.planned_end }),
+        status: task.task_status ? workOrderStatusLabels[task.task_status] : "Jobstatus mangler",
+        assignment: assignmentLabel(task),
+      });
+      downloadFile(html, "freyra-jobkort.html", "text/html;charset=utf-8");
+    } catch {
+      setPrintError(true);
+    }
+  }
+
   const destination = workOrderStatusDestination(task.task_status);
   const opensSubmission = destination?.view === "submission";
   const needsAssignment = task.assignment_mode === "unassigned" || !task.assignment_is_current;
@@ -246,6 +298,19 @@ function OrderCard({ task, compact }: { task: ManagerWorkOrder; compact: boolean
             Arbejdsgrundlag
           </Link>
         )}
+        {printable && (
+          <>
+            <button type="button" onClick={downloadPrintCard} className={button}>
+              <Printer className="size-4" aria-hidden="true" />
+              Hent printkort
+            </button>
+            {printError && (
+              <p role="alert" className="text-sm text-destructive">
+                Jobkortet kunne ikke hentes. Prøv igen.
+              </p>
+            )}
+          </>
+        )}
       </div>
     </article>
   );
@@ -307,6 +372,79 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
   });
   const conflict = tasks.isError && selectionConflict(tasks.error);
   const denied = tasks.isError && accessDenied(tasks.error);
+  const exportRequest = useRef<AbortController | null>(null);
+  const [selectedColumns, setSelectedColumns] = useState(exportColumns);
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState("");
+  useEffect(() => {
+    setExporting(false);
+    setExportMessage("");
+    return () => exportRequest.current?.abort();
+  }, [filters, denied]);
+  async function exportOrders(format: "csv" | "xlsx") {
+    if (!selectedColumns.length) return;
+    if (exportRequest.current && !exportRequest.current.signal.aborted) return;
+    const request = new AbortController();
+    exportRequest.current = request;
+    setExporting(true);
+    setExportMessage("");
+    try {
+      const orders = await readManagerWorkOrderExport(
+        load,
+        { organizationId, expectedActorId: actorId, filters },
+        request.signal,
+      );
+      if (!orders.length) {
+        setExportMessage("Der er ingen arbejdsordrer i det aktuelle udvalg.");
+        return;
+      }
+      const rows = orders.map((order) => ({
+        Arbejdsordre: order.title,
+        Projekt: order.project_name,
+        Status: order.task_status ? workOrderStatusLabels[order.task_status] : "Jobstatus mangler",
+        Tildeling: assignmentLabel(order),
+        "Planlagt start": order.planned_start,
+        "Planlagt slut": order.planned_end,
+        Frist: order.due_date,
+        Sted: order.site_name || order.location_note,
+      }));
+      await recordProjectExportRequests(
+        orders.map((order) => order.project_id),
+        `freyra-arbejdsordrer.${format}`,
+        format,
+        request.signal,
+      );
+      if (format === "xlsx") {
+        const { downloadWorkOrderWorkbook } = await import("@/lib/manager-work-order-workbook");
+        request.signal.throwIfAborted();
+        downloadWorkOrderWorkbook(selectedColumns, rows);
+      } else {
+        const protect = (value: string | null) => {
+          const normalized = value?.replace(/\r\n?/g, "\n") ?? null;
+          return normalized && /^\s*[=+\-@]/.test(normalized) ? "'" + normalized : normalized;
+        };
+        const csvRows = rows.map((row) =>
+          Object.fromEntries(
+            Object.entries(row).map(([column, value]) => [column, protect(value)]),
+          ),
+        );
+        downloadCsv(buildCsv(csvRows, selectedColumns), "freyra-arbejdsordrer.csv");
+      }
+      setExportMessage(`${orders.length} arbejdsordrer blev eksporteret.`);
+    } catch (error) {
+      if (request.signal.aborted) return;
+      setExportMessage(
+        error instanceof Error && error.message === WORK_ORDER_EXPORT_LIMIT_MESSAGE
+          ? WORK_ORDER_EXPORT_LIMIT_MESSAGE
+          : "Hele udvalget kunne ikke eksporteres. Opdatér arbejdsordrerne og prøv igen.",
+      );
+    } finally {
+      if (exportRequest.current === request && !request.signal.aborted) {
+        exportRequest.current = null;
+        setExporting(false);
+      }
+    }
+  }
   const items = useMemo(
     () =>
       conflict || denied || (tasks.isError && !tasks.isFetchNextPageError)
@@ -317,6 +455,9 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
   const totals = conflict || denied ? undefined : tasks.data?.pages[0]?.totals;
   const laneTotals = conflict || denied ? undefined : tasks.data?.pages[0]?.laneTotals;
   const visibleCatalog = denied ? { projects: [], assignees: [] } : catalog;
+  const calendarProject = visibleCatalog.projects.find(
+    (project) => project.id === filters.projectId,
+  );
   const hasMore = tasks.hasNextPage && !denied;
   useEffect(() => {
     if (denied) {
@@ -347,6 +488,30 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
       // The overview remains usable when browser storage is unavailable.
     }
   }, [actorId, organizationId, filters, view, selection]);
+  function showThisWeek() {
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const formatDate = (date: Date) =>
+      [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+      ].join("-");
+    applyDeadlineFilter(formatDate(monday), formatDate(sunday));
+  }
+
+  function applyDeadlineFilter(dueFrom: string | null, dueThrough: string | null) {
+    const dates = { dueFrom, dueThrough };
+    setDraft({ ...filters, ...dates });
+    setFilters({ ...filters, ...dates });
+    setFilterError("");
+    setSelectionNotice("");
+    setMapViewport(null);
+  }
+
   const dateInvalid = !!draft.dueFrom && !!draft.dueThrough && draft.dueFrom > draft.dueThrough;
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(emptyManagerWorkOrderFilters());
   return (
@@ -379,6 +544,18 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          {calendarProject && (
+            <Link
+              to="/app/projects/$slug"
+              params={{ slug: calendarProject.id }}
+              search={{ tab: "handlinger", taskList: "calendar" }}
+              aria-label={`Åbn kalender for ${calendarProject.name}`}
+              className={button}
+            >
+              <CalendarDays className="size-4" aria-hidden="true" />
+              Projektets kalender
+            </Link>
+          )}
           <WorkOrderObservationDraftDialog
             organizationId={organizationId}
             projects={visibleCatalog.projects}
@@ -535,6 +712,25 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             {filterError}
           </p>
         )}
+        <button type="button" className={button} onClick={showThisWeek}>
+          <CalendarDays className="size-4" aria-hidden="true" />
+          Frist i denne uge
+        </button>
+        {(filters.dueFrom || filters.dueThrough) && (
+          <div className="flex flex-wrap items-center gap-x-3 text-sm">
+            <span>
+              Valgt frist: {filters.dueFrom ?? "Alle tidligere datoer"} –{" "}
+              {filters.dueThrough ?? "Alle senere datoer"}
+            </span>
+            <button
+              type="button"
+              className="min-h-11 font-medium underline underline-offset-4"
+              onClick={() => applyDeadlineFilter(null, null)}
+            >
+              Fjern fristfilter
+            </button>
+          </div>
+        )}
         {filtersActive && (
           <button
             type="button"
@@ -581,6 +777,52 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
+          <details className="min-w-0">
+            <summary className="min-h-11 cursor-pointer rounded-xl border px-4 py-3 text-sm font-medium">
+              Vælg eksportkolonner
+            </summary>
+            <fieldset className="grid gap-2 p-3 sm:grid-cols-2" disabled={exporting}>
+              <legend className="sr-only">Kolonner i CSV og Excel</legend>
+              {exportColumns.map((column) => (
+                <label key={column} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedColumns.includes(column)}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setSelectedColumns((current) =>
+                        exportColumns.filter((item) =>
+                          item === column ? checked : current.includes(item),
+                        ),
+                      );
+                    }}
+                  />
+                  {column}
+                </label>
+              ))}
+            </fieldset>
+            {!selectedColumns.length && (
+              <p className="px-3 text-sm">Vælg mindst én kolonne for at eksportere.</p>
+            )}
+          </details>
+          {(["csv", "xlsx"] as const).map((format) => (
+            <button
+              key={format}
+              type="button"
+              className={button}
+              disabled={
+                exporting ||
+                tasks.isFetching ||
+                !selectedColumns.length ||
+                !totals?.matchingJobs ||
+                totals.matchingJobs > WORK_ORDER_EXPORT_LIMIT
+              }
+              onClick={() => void exportOrders(format)}
+            >
+              <Download className="size-4" aria-hidden="true" />
+              {format === "csv" ? "Eksportér udvalg (CSV)" : "Eksportér udvalg (Excel)"}
+            </button>
+          ))}
           {hasMore && (
             <button
               type="button"
@@ -602,6 +844,20 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
           </button>
         </div>
       </div>
+
+      {totals && totals.matchingJobs > WORK_ORDER_EXPORT_LIMIT && (
+        <p className="text-sm text-muted-foreground">{WORK_ORDER_EXPORT_LIMIT_MESSAGE}</p>
+      )}
+      {exporting && (
+        <p role="status" className="text-sm">
+          Henter til eksport…
+        </p>
+      )}
+      {exportMessage && (
+        <p role="status" className="text-sm">
+          {exportMessage}
+        </p>
+      )}
 
       {selectionNotice && (
         <p role="status" className="rounded-xl border bg-muted/30 p-3 text-sm">
@@ -643,7 +899,7 @@ function ManagerOrders({ actorId, organizationId }: { actorId: string; organizat
             onSelect={setSelection}
             viewport={mapViewport}
             onViewport={setMapViewport}
-            renderOrder={(task) => <OrderCard task={task} compact />}
+            renderOrder={(task) => <OrderCard task={task} compact printable />}
           />
         ) : view === "list" ? (
           <div aria-label="Arbejdsordreliste" className="space-y-3">

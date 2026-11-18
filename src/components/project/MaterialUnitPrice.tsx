@@ -98,7 +98,9 @@ export function MaterialUnitPrice({
         receipt.data.unit_price_ore !== ore
       )
         throw new Error(
-          result.error?.code === "40001" || result.error?.code === "23505"
+          result.error?.code === "PT409" ||
+            result.error?.code === "40001" ||
+            result.error?.code === "23505"
             ? "Prisen er ændret. Fortryd for at hente den nyeste version."
             : "Prisen kunne ikke bekræftes. Prøv igen.",
         );

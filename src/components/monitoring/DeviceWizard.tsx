@@ -17,6 +17,7 @@ const STEPS = ["Type", "Identifikation", "Placering", "Parametre", "Interval", "
 const DEVICE_TYPES = [
   { key: "sensor", label: "Sensor" },
   { key: "gateway", label: "Gateway" },
+  { key: "gps_tracker", label: "GPS-tracker" },
   { key: "camera", label: "Kamera" },
   { key: "weather_station", label: "Vejrstation" },
   { key: "acoustic", label: "Akustisk monitor" },

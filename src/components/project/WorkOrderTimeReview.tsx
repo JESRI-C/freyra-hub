@@ -81,7 +81,7 @@ export function WorkOrderTimeReview({
         : result;
       if (receipt.data?.time_id !== row.time_id)
         setError(
-          result.error?.code === "40001"
+          result.error?.code === "PT409" || result.error?.code === "40001"
             ? "Tidsregistreringen er rettet. Gennemgå den nye version."
             : "Godkendelsen kunne ikke bekræftes. Prøv igen.",
         );

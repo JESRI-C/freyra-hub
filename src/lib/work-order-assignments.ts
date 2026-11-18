@@ -258,6 +258,7 @@ export const MyWorkOrdersInputSchema = z
     pageSize: z.number().int().min(1).max(20),
   })
   .strict();
+export const MyWorkOrderLinkInputSchema = z.object({ expectedActorId: uuid, actionId }).strict();
 export const MyWorkOrderSchema = z
   .object({
     user_id: uuid,

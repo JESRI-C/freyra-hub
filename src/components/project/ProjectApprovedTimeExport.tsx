@@ -14,7 +14,7 @@ import { CalendarDate } from "@/lib/action-execution";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import { formatWorkOrderHours } from "@/lib/work-order-plan";
 import { billedLineOre, billingDecimal, parseHourlyRateOre } from "@/lib/work-time-billing";
-import { buildCsv, downloadCsv } from "@/services/export-service";
+import { buildCsv, downloadProjectCsv } from "@/services/export-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
 
 const uuid = z.string().uuid();
@@ -209,7 +209,7 @@ export function ProjectApprovedTimeExport({
           JSON.stringify(materialRefs ?? [])
       ) {
         throw new Error(
-          result.error?.code === "40001"
+          result.error?.code === "PT409" || result.error?.code === "40001"
             ? "Timer eller materialer er ændret. Beregn udtrækket igen før gemning."
             : "Grundlaget kunne ikke bekræftes. Prøv igen.",
         );
@@ -266,67 +266,90 @@ export function ProjectApprovedTimeExport({
       setBusy(false);
     }
   }
-  function download() {
-    if (!active || !rows?.length || rateInvalid) return;
-    const columns = [
-      "projekt_id",
-      "opgave_id",
-      "opgave",
-      "udfoerer_id",
-      "dato",
-      "minutter",
-      "tidsversion",
-      "tidsversion_id",
-      "godkendt_af",
-      "godkendt_tidspunkt",
-      ...(hourlyRateOre === null ? [] : ["timesats_dkk", "belob_dkk"]),
-    ];
-    const timeRows = rows.map((row) => {
-      const title = row.title.replace(/[\r\n]/g, " ");
-      return {
-        projekt_id: scope.projectId,
-        opgave_id: row.action_id,
-        opgave: /^\s*[=+\-@]/.test(title) ? "'" + title : title,
-        udfoerer_id: row.actor_id,
-        dato: row.work_date,
-        minutter: row.minutes,
-        tidsversion: row.version,
-        tidsversion_id: row.time_id,
-        godkendt_af: row.approved_by,
-        godkendt_tidspunkt: row.approved_at,
-        ...(hourlyRateOre === null
-          ? {}
-          : {
-              timesats_dkk: billingDecimal(hourlyRateOre),
-              belob_dkk: billingDecimal(billedLineOre(row.minutes, hourlyRateOre)),
-            }),
+  async function download() {
+    if (!active || !rows?.length || rateInvalid || inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const auditContext = {
+        projectId: scope.projectId,
+        entityType: savedId ? "project_approved_time_draft" : undefined,
+        entityId: savedId,
       };
-    });
-    if (materials) {
-      const combinedColumns = [
-        "linjetype",
-        ...new Set([
-          ...columns.filter((column) => column !== "belob_dkk"),
-          ...materialBillingColumns,
-        ]),
+      const columns = [
+        "projekt_id",
+        "opgave_id",
+        "opgave",
+        "udfoerer_id",
+        "dato",
+        "minutter",
+        "tidsversion",
+        "tidsversion_id",
+        "godkendt_af",
+        "godkendt_tidspunkt",
+        ...(hourlyRateOre === null ? [] : ["timesats_dkk", "belob_dkk"]),
       ];
-      const csv = buildCsv(
-        [
-          ...timeRows.map(({ belob_dkk, ...row }) => ({
-            ...row,
-            linjetype: "Timer",
-            beloeb_dkk: belob_dkk,
-          })),
-          ...materials.map((row) => ({
-            ...materialBillingCsvRow(scope.projectId, row),
-            linjetype: "Materialer",
-          })),
-        ],
-        combinedColumns,
-      );
-      downloadCsv(csv, `freyra-faktureringsgrundlag-${from}-${through}.csv`);
-    } else {
-      downloadCsv(buildCsv(timeRows, columns), `freyra-godkendte-timer-${from}-${through}.csv`);
+      const timeRows = rows.map((row) => {
+        const title = row.title.replace(/[\r\n]/g, " ");
+        return {
+          projekt_id: scope.projectId,
+          opgave_id: row.action_id,
+          opgave: /^\s*[=+\-@]/.test(title) ? "'" + title : title,
+          udfoerer_id: row.actor_id,
+          dato: row.work_date,
+          minutter: row.minutes,
+          tidsversion: row.version,
+          tidsversion_id: row.time_id,
+          godkendt_af: row.approved_by,
+          godkendt_tidspunkt: row.approved_at,
+          ...(hourlyRateOre === null
+            ? {}
+            : {
+                timesats_dkk: billingDecimal(hourlyRateOre),
+                belob_dkk: billingDecimal(billedLineOre(row.minutes, hourlyRateOre)),
+              }),
+        };
+      });
+      if (materials) {
+        const combinedColumns = [
+          "linjetype",
+          ...new Set([
+            ...columns.filter((column) => column !== "belob_dkk"),
+            ...materialBillingColumns,
+          ]),
+        ];
+        const csv = buildCsv(
+          [
+            ...timeRows.map(({ belob_dkk, ...row }) => ({
+              ...row,
+              linjetype: "Timer",
+              beloeb_dkk: belob_dkk,
+            })),
+            ...materials.map((row) => ({
+              ...materialBillingCsvRow(scope.projectId, row),
+              linjetype: "Materialer",
+            })),
+          ],
+          combinedColumns,
+        );
+        await downloadProjectCsv(
+          csv,
+          `freyra-faktureringsgrundlag-${from}-${through}.csv`,
+          auditContext,
+        );
+      } else {
+        await downloadProjectCsv(
+          buildCsv(timeRows, columns),
+          `freyra-godkendte-timer-${from}-${through}.csv`,
+          auditContext,
+        );
+      }
+    } catch {
+      setError("CSV-udtrækket kunne ikke registreres og hentes. Prøv igen.");
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
     }
   }
 
@@ -449,7 +472,7 @@ export function ProjectApprovedTimeExport({
           {rateInvalid && <p role="alert">Angiv en sats med højst seks cifre og to decimaler.</p>}
           {totalOre !== null && totalOre !== undefined && (
             <p role="status" className="font-medium">
-              Samlet beløb uden moms · {billingDecimal(totalOre)} DKK
+              Timebeløb uden moms · {billingDecimal(totalOre)} DKK
             </p>
           )}
         </div>
@@ -558,7 +581,7 @@ export function ProjectApprovedTimeExport({
             onClick={() => void openDraft(draft.id)}
           >
             Åbn grundlag · {draft.date_from} til {draft.date_through} ·{" "}
-            {billingDecimal(draft.total_ore)} DKK ·{" "}
+            {billingDecimal(draft.total_ore)} DKK for timer ·{" "}
             {new Date(draft.created_at).toLocaleString("da-DK")}
           </button>
         ))}

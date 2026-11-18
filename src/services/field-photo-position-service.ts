@@ -20,7 +20,7 @@ async function db(scope: ProjectScope) {
 }
 function check(error: { code?: string } | null) {
   if (!error) return;
-  if (error.code === "40001" || error.code === "23505")
+  if (error.code === "PT409" || error.code === "40001" || error.code === "23505")
     throw new Error("Placering eller afstandsregel er ændret. Genindlæs før du gemmer.");
   if (["42P01", "PGRST202", "PGRST205"].includes(error.code ?? ""))
     throw new Error("Fotoets positionshistorik er endnu ikke installeret i dette miljø.");

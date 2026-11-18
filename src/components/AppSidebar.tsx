@@ -23,10 +23,16 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { programPageGuide } from "@/lib/program-map";
+import { canViewDevelopment } from "@/lib/development-access";
 import logoMark from "@/assets/gofreyra-logo.png";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
-type SidebarItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
+type SidebarItem = {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  development?: boolean;
+};
 type SidebarGroup = { label: string; items: SidebarItem[] };
 
 const GROUPS: SidebarGroup[] = [
@@ -72,6 +78,7 @@ const GROUPS: SidebarGroup[] = [
       { to: "/app/settings", label: "Indstillinger", icon: Settings },
       { to: "/app/settings/users", label: "Brugere & roller", icon: Users },
       { to: "/app/system-test", label: "Systemtest", icon: FlaskConical },
+      { to: "/app/development", label: "Produktudvikling", icon: Columns3, development: true },
     ],
   },
 ];
@@ -119,29 +126,31 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
               {group.label}
             </div>
             <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const active = item === activeItem;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    activeOptions={{ exact: !active, includeSearch: false }}
-                    aria-current={active ? "page" : undefined}
-                    onClick={onNavigate}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${
-                      active
-                        ? "bg-leaf text-leaf-foreground font-medium shadow-soft"
-                        : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">
-                      {programPageGuide(item.to)?.title ?? item.label}
-                    </span>
-                  </Link>
-                );
-              })}
+              {group.items
+                .filter((item) => !item.development || canViewDevelopment(org?.role))
+                .map((item) => {
+                  const active = item === activeItem;
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      activeOptions={{ exact: !active, includeSearch: false }}
+                      aria-current={active ? "page" : undefined}
+                      onClick={onNavigate}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition ${
+                        active
+                          ? "bg-leaf text-leaf-foreground font-medium shadow-soft"
+                          : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">
+                        {programPageGuide(item.to)?.title ?? item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
             </div>
           </div>
         ))}

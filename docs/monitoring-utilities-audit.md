@@ -5,27 +5,27 @@ Upload center, Datakvalitet, Alerts og Tilføj datakilde.
 
 ## Eksisterende komponenter
 
-| Område              | Fil                                                    | Status                                                                              |
-| ------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| Upload UI           | `src/routes/app.connect.upload.tsx` (229 l)            | Prototype-UI. Dropzone er dekorativ, ingen backend-behandling.                      |
-| Datakvalitet UI     | `src/routes/app.connect.quality.tsx` (323 l)           | Læser `computeDataQualityScore`, men mangler regler, issues og godkendelsesflow.    |
-| Alerts UI           | `src/routes/app.connect.alerts.tsx` (238 l)            | Læser `monitoring_alerts`, men mangler regel-editor, kommentarer og handlings-flow. |
-| Tilføj datakilde UI | `src/routes/app.connect.add.tsx` (368 l)               | Enkelt formular. Ikke en wizard, ingen test/validering, ingen mapping.              |
-| Devices wizard      | `src/components/monitoring/DeviceWizard.tsx`           | 6-trin, virker — bruges i D4 som mønster.                                           |
-| Species flow        | `src/components/monitoring/SpeciesRecognitionFlow.tsx` | Genbruges i upload-flow for billeder.                                               |
-| Notification center | `src/components/monitoring/NotificationCenter.tsx`     | Genbruges til in-app alert-notifikationer.                                          |
+| Område | Fil | Status |
+| --- | --- | --- |
+| Upload UI | `src/routes/app.connect.upload.tsx` (229 l) | Prototype-UI. Dropzone er dekorativ, ingen backend-behandling. |
+| Datakvalitet UI | `src/routes/app.connect.quality.tsx` (323 l) | Læser `computeDataQualityScore`, men mangler regler, issues og godkendelsesflow. |
+| Alerts UI | `src/routes/app.connect.alerts.tsx` (238 l) | Læser `monitoring_alerts`, men mangler regel-editor, kommentarer og handlings-flow. |
+| Tilføj datakilde UI | `src/routes/app.connect.add.tsx` (368 l) | Enkelt formular. Ikke en wizard, ingen test/validering, ingen mapping. |
+| Devices wizard | `src/components/monitoring/DeviceWizard.tsx` | 6-trin, virker — bruges i D4 som mønster. |
+| Species flow | `src/components/monitoring/SpeciesRecognitionFlow.tsx` | Genbruges i upload-flow for billeder. |
+| Notification center | `src/components/monitoring/NotificationCenter.tsx` | Genbruges til in-app alert-notifikationer. |
 
 ## Eksisterende services
 
-| Fil                                                  | Formål            | Mangler                                                                            |
-| ---------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------- |
-| `services/monitoring/alerts-service.ts` (54 l)       | List/ack/resolve  | Regler, kommentarer, assign, resolution_data, oprettelse via regelmotor.           |
-| `services/monitoring/data-quality-service.ts` (92 l) | 7-dim score       | Issue-CRUD, regeltabel, `godkend/afvis/korrigér`-mutationer, indikator-konsekvens. |
-| `services/monitoring/devices-service.ts` (81 l)      | CRUD + KPI        | OK.                                                                                |
-| `services/monitoring/measurements-service.ts` (33 l) | Series + anomaly  | OK.                                                                                |
-| `services/monitoring/integrations-service.ts` (30 l) | List integrations | Test-connection, credentials via server-fn.                                        |
-| `services/monitoring/observations-service.ts` (46 l) | List field obs    | OK.                                                                                |
-| `services/monitoring/export-service.ts` (76 l)       | CSV/JSON export   | OK.                                                                                |
+| Fil | Formål | Mangler |
+| --- | --- | --- |
+| `services/monitoring/alerts-service.ts` (54 l) | List/ack/resolve | Regler, kommentarer, assign, resolution_data, oprettelse via regelmotor. |
+| `services/monitoring/data-quality-service.ts` (92 l) | 7-dim score | Issue-CRUD, regeltabel, `godkend/afvis/korrigér`-mutationer, indikator-konsekvens. |
+| `services/monitoring/devices-service.ts` (81 l) | CRUD + KPI | OK. |
+| `services/monitoring/measurements-service.ts` (33 l) | Series + anomaly | OK. |
+| `services/monitoring/integrations-service.ts` (30 l) | List integrations | Test-connection, credentials via server-fn. |
+| `services/monitoring/observations-service.ts` (46 l) | List field obs | OK. |
+| `services/monitoring/export-service.ts` (76 l) | CSV/JSON export | OK. |
 
 ## Eksisterende tabeller
 

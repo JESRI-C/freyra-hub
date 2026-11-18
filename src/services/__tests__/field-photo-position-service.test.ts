@@ -104,11 +104,14 @@ describe("photo position persistence", () => {
       await expect(saveFieldPhotoPosition(scope, { ...input, ...patch })).rejects.toThrow();
     expect(state.rpc).not.toHaveBeenCalled();
   });
-  it("surfaces policy conflicts instead of silently retrying a new write", async () => {
-    state.rpc.mockResolvedValue({ data: null, error: { code: "40001" } });
-    await expect(saveFieldPhotoPosition(scope, input)).rejects.toThrow("Genindlæs");
-    expect(state.rpc).toHaveBeenCalledTimes(1);
-  });
+  it.each(["PT409", "40001"])(
+    "surfaces policy conflict %s instead of silently retrying a new write",
+    async (code) => {
+      state.rpc.mockResolvedValue({ data: null, error: { code } });
+      await expect(saveFieldPhotoPosition(scope, input)).rejects.toThrow("Genindlæs");
+      expect(state.rpc).toHaveBeenCalledTimes(1);
+    },
+  );
   it("requires a bounded whole-metre policy and version", async () => {
     await expect(
       saveFieldPhotoPolicy(scope, {

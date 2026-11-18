@@ -94,18 +94,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "twitter:description",
         content: "Verificeret natur- og klimadata for ansvarlige organisationer.",
       },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ff3aa25f-a816-4998-9836-df5a9093fe16/id-preview-0d0458ed--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app-1778271929770.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ff3aa25f-a816-4998-9836-df5a9093fe16/id-preview-0d0458ed--7ec0fad1-a130-4304-819c-d085c76dc4bd.lovable.app-1778271929770.png",
-      },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600&display=swap",
+      },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
     ],

@@ -30,6 +30,18 @@ const booking = z.object({
   organization_work_equipment: z.object({ name: z.string(), kind: workEquipmentKind }),
 });
 const pageSchema = z.array(booking).max(pageSize + 1);
+const reminderPageSize = 20;
+const reminderPage = z
+  .array(
+    z.object({
+      equipment_id: uuid,
+      equipment_name: z.string(),
+      action_id: uuid,
+      next_service_on: CalendarDate,
+      days_until_service: z.number().int(),
+    }),
+  )
+  .max(reminderPageSize + 1);
 const control = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border bg-background px-3 text-base";
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
 
@@ -57,6 +69,27 @@ export function ProjectEquipmentBookings({
     CalendarDate.safeParse(from).success &&
     CalendarDate.safeParse(through).success &&
     from <= through;
+  const reminders = useInfiniteQuery({
+    queryKey: ["project-equipment-service-reminders", actorId, scope],
+    enabled: active,
+    retry: false,
+    initialPageParam: null as { next_service_on: string; equipment_id: string } | null,
+    queryFn: async ({ pageParam, signal }) => {
+      const client = createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
+      const response = await client
+        .rpc("list_project_equipment_service_reminders", {
+          p_organization_id: scope.organizationId,
+          p_project_id: scope.projectId,
+          p_after_due: pageParam?.next_service_on ?? null,
+          p_after_equipment_id: pageParam?.equipment_id ?? null,
+        })
+        .abortSignal(signal);
+      if (response.error) throw response.error;
+      return reminderPage.parse(response.data);
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.length > reminderPageSize ? lastPage[reminderPageSize - 1] : undefined,
+  });
   const bookings = useInfiniteQuery({
     queryKey: [
       "project-equipment-bookings",
@@ -99,6 +132,9 @@ export function ProjectEquipmentBookings({
       lastPage.length > pageSize ? lastPage[pageSize - 1] : undefined,
   });
   const rows = bookings.data?.pages.flatMap((page) => page.slice(0, pageSize));
+  const serviceRows = reminders.isSuccess
+    ? reminders.data.pages.flatMap((page) => page.slice(0, reminderPageSize))
+    : [];
   const names = new Map(tasks.map((task) => [task.id, task.title]));
   const selectedTask = names.has(bookingActionId) ? bookingActionId : "";
   return (
@@ -111,6 +147,67 @@ export function ProjectEquipmentBookings({
         Se reservationer, der overlapper perioden. Åbn en reservation for at gå til opgavens
         udstyrsbooking.
       </p>
+      {active && (
+        <section aria-label="Servicepåmindelser" className="space-y-2 rounded-xl border p-3">
+          <h4 className="font-semibold">Servicepåmindelser</h4>
+          {reminders.isPending && <p role="status">Henter servicefrister…</p>}
+          {reminders.isError && (
+            <div className="space-y-2">
+              <p role="alert">Servicefristerne kunne ikke hentes.</p>
+              <button type="button" className={button} onClick={() => void reminders.refetch()}>
+                Prøv igen
+              </button>
+            </div>
+          )}
+          {reminders.isSuccess && serviceRows.length === 0 && (
+            <p>Ingen servicefrister inden for de næste 7 dage.</p>
+          )}
+          {!!serviceRows.length && (
+            <ul className="divide-y">
+              {serviceRows.map((row) => (
+                <li
+                  key={row.equipment_id}
+                  className="flex flex-wrap items-center justify-between gap-2 py-2"
+                >
+                  <div>
+                    <p className="font-medium">{row.equipment_name}</p>
+                    <p className={row.days_until_service < 0 ? "font-semibold" : undefined}>
+                      {row.days_until_service < 0
+                        ? "Overskredet"
+                        : row.days_until_service === 0
+                          ? "Forfalder i dag"
+                          : "Forfalder snart"}
+                      {" · "}
+                      {row.next_service_on}
+                    </p>
+                  </div>
+                  {names.has(row.action_id) && (
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={locked}
+                      aria-label={"Åbn booking for " + row.equipment_name}
+                      onClick={() => onOpen(row.action_id)}
+                    >
+                      Åbn booking
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {reminders.hasNextPage && (
+            <button
+              type="button"
+              className={button}
+              disabled={reminders.isFetching}
+              onClick={() => void reminders.fetchNextPage()}
+            >
+              Vis flere servicefrister
+            </button>
+          )}
+        </section>
+      )}
       {tasks.length > 0 ? (
         <form
           className="grid items-end gap-2 rounded-xl border bg-muted/30 p-3 sm:grid-cols-[1fr_auto]"

@@ -1,13 +1,19 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ArrowLeft, Images, MapPin, ShieldAlert } from "lucide-react";
 import { getProjectBySlug } from "@/services/projects-service";
 import { resolveProjectGeometry } from "@/services/geo-service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { getProjectSensors } from "@/services/iot-simulation-service";
+import { useProjectMapDevices } from "@/hooks/useProjectMapDevices";
+import { withMapDevices } from "@/services/map-export-service";
 import { buildProjectEnvironmentalContext } from "@/services/connector-service";
-import { getMapLayers, getProjectGeoJSON, getProjectMetrics } from "@/services/geospatial-service";
+import {
+  getMapLayers,
+  getProjectGeoJSON,
+  getProjectMetrics,
+  type MapLayer,
+} from "@/services/geospatial-service";
 import { fetchAndIngestNatureGeo } from "@/lib/nature-geo.functions";
 import { PublicNatureCandidatesStatus } from "@/components/maps/PublicNatureCandidatesStatus";
 import { getDroneUploadMapOverview } from "@/services/monitoring/drone-upload-map-service";
@@ -20,7 +26,7 @@ import { FieldSensorPanel } from "@/components/project-workspace/FieldSensorPane
 import { NdviCard } from "@/components/project/NdviCard";
 import { EnvironmentalCard } from "@/components/project/EnvironmentalCard";
 import { BiodiversityCard } from "@/components/project/BiodiversityCard";
-import type { ConnectorStatusItem } from "@/components/maps/ConnectorStatusPanel";
+import { projectMapConnectorStatus } from "@/services/map-connector-status";
 
 export const Route = createFileRoute("/app/projects/map/$slug")({
   head: () => ({ meta: [{ title: "Geodata-kort — Freyra" }] }),
@@ -41,44 +47,6 @@ export const Route = createFileRoute("/app/projects/map/$slug")({
   ),
 });
 
-// ─── Static connector status list ─────────────────────────────────────────────
-const CONNECTOR_STATUS: ConnectorStatusItem[] = [
-  {
-    name: "Copernicus Sentinel-2",
-    slug: "sentinel",
-    status: "preview",
-    provider: "ESA / Copernicus",
-    note: "NDVI via open STAC — kræver token for download",
-  },
-  {
-    name: "Danmarks Miljøportal",
-    slug: "miljodata",
-    status: "preview",
-    provider: "Miljøministeriet",
-    note: "§3 natur og vandløbsdata via åbent WFS",
-  },
-  {
-    name: "Dataforsyningen",
-    slug: "dataforsyningen",
-    status: "live",
-    provider: "Styrelsen for Dataforsyning",
-    note: "Reverse geocoding — ingen nøgle krævet",
-  },
-  {
-    name: "DMI Vejrdata",
-    slug: "dmi",
-    status: "live",
-    provider: "DMI Open Data",
-    note: "Temperatur og nedbør via åbent API",
-  },
-  {
-    name: "IoT Feltsensorer",
-    slug: "iot",
-    status: "preview",
-    provider: "Freyra IoT (simuleret)",
-  },
-];
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function GeoMapPage() {
@@ -91,14 +59,18 @@ function GeoMapPage() {
 
   const projectId = project?.id ?? "";
   // DB-tegnet polygon vinder over seed-geometri; seed er kun fallback.
-  const geometry = resolveProjectGeometry(project, {
-    allowSeedFallback: !isSupabaseConfigured,
-  });
-  const sensors = geometry.centroid ? getProjectSensors(projectId, geometry.centroid) : [];
+  const geometry = useMemo(
+    () =>
+      resolveProjectGeometry(project, {
+        allowSeedFallback: !isSupabaseConfigured,
+      }),
+    [project],
+  );
+  const mapDevices = useProjectMapDevices(projectId);
 
   // Environmental context for DMI overlay
-  const { data: envCtx } = useQuery({
-    queryKey: ["environmental-context", slug],
+  const environmentalQuery = useQuery({
+    queryKey: ["map-environmental-context", projectId, geometry],
     queryFn: () =>
       buildProjectEnvironmentalContext(
         projectId,
@@ -108,6 +80,18 @@ function GeoMapPage() {
         geometry,
       ),
     enabled: !!projectId,
+  });
+  const envCtx =
+    !environmentalQuery.isError &&
+    !environmentalQuery.isFetching &&
+    environmentalQuery.data?.projectId === projectId
+      ? environmentalQuery.data
+      : undefined;
+  const connectorStatuses = projectMapConnectorStatus({
+    projectId,
+    context: environmentalQuery.data,
+    fetching: environmentalQuery.isPending || environmentalQuery.isFetching,
+    failed: environmentalQuery.isError,
   });
 
   // Current public catalogue candidates use the server's saved canonical area.
@@ -129,6 +113,16 @@ function GeoMapPage() {
     queryKey: ["map-layers"],
     queryFn: getMapLayers,
   });
+  const deviceAwareLayers = mapLayers.map<MapLayer>((layer) =>
+    layer.slug === "sensors"
+      ? {
+          ...layer,
+          name: "Registrerede enheder",
+          provider: "Projektets gemte data",
+          status: mapDevices.devices ? "stored" : "unavailable",
+        }
+      : layer,
+  );
 
   const geoJSONQuery = useQuery({
     queryKey: ["project-geojson", projectId, project?.geometry_polygon],
@@ -160,7 +154,12 @@ function GeoMapPage() {
 
   // Layer visibility state
   const [visibleSlugs, setVisibleSlugs] = useState<Set<string>>(
-    () => new Set(mapLayers.filter((l) => l.isActive).map((l) => l.slug)),
+    () =>
+      new Set(
+        mapLayers.length
+          ? mapLayers.filter((l) => l.isActive).map((l) => l.slug)
+          : ["project_area", "sensors"],
+      ),
   );
 
   const toggleLayer = (slug: string) => {
@@ -174,6 +173,27 @@ function GeoMapPage() {
       return next;
     });
   };
+  const exportPreparation = useMemo(() => {
+    if (geoJSONQuery.isError)
+      return { data: null, reason: "Kortdata kunne ikke hentes. Eksport er deaktiveret." };
+    if (!geoJSON) return { data: null, reason: "Henter kortdata til eksport…" };
+    if (visibleSlugs.has("sensors") && mapDevices.devices === null)
+      return { data: null, reason: mapDevices.status };
+    try {
+      return {
+        data: withMapDevices(
+          geoJSON,
+          visibleSlugs.has("sensors") ? (mapDevices.devices ?? []) : [],
+        ),
+        reason: null,
+      };
+    } catch {
+      return {
+        data: null,
+        reason: "Kortets enhedsdata kunne ikke afstemmes med sagen. Hent data igen.",
+      };
+    }
+  }, [geoJSON, geoJSONQuery.isError, visibleSlugs, mapDevices.devices, mapDevices.status]);
 
   if (!project) return null;
 
@@ -221,7 +241,8 @@ function GeoMapPage() {
               projectId={projectId}
               height={540}
               droneUploadPoints={droneUploadOverview?.points ?? []}
-              sensors={visibleSlugs.has("sensors") ? sensors : []}
+              sensors={mapDevices.points}
+              showDeviceLayer={visibleSlugs.has("sensors")}
               paragraph3GeoJSON={
                 visibleSlugs.has("protected_nature") ? (natureGeo?.paragraph3 ?? null) : null
               }
@@ -304,8 +325,13 @@ function GeoMapPage() {
           <EnvironmentalCard project={project} />
 
           {/* Sensor panel */}
-          {sensors.length > 0 && visibleSlugs.has("sensors") && (
-            <FieldSensorPanel sensors={sensors} />
+          {visibleSlugs.has("sensors") && (
+            <FieldSensorPanel
+              sensors={mapDevices.devices}
+              status={mapDevices.status}
+              refreshing={mapDevices.refreshing}
+              onRefresh={mapDevices.refresh}
+            />
           )}
         </div>
 
@@ -313,8 +339,8 @@ function GeoMapPage() {
         <div className="space-y-4">
           <LayerControlPanel
             layers={
-              mapLayers.length > 0
-                ? mapLayers
+              deviceAwareLayers.length > 0
+                ? deviceAwareLayers
                 : [
                     {
                       id: "l1",
@@ -378,15 +404,15 @@ function GeoMapPage() {
                     },
                     {
                       id: "l6",
-                      name: "IoT Feltsensorer",
+                      name: "Registrerede enheder",
                       slug: "sensors",
                       category: "sensors",
-                      provider: "Freyra IoT",
+                      provider: "Projektets gemte data",
                       layerType: "sensor",
                       isActive: true,
                       requiresApiKey: false,
-                      refreshInterval: "realtime",
-                      status: "preview",
+                      refreshInterval: "30s",
+                      status: mapDevices.devices ? "stored" : "unavailable",
                     },
                   ]
             }
@@ -394,7 +420,22 @@ function GeoMapPage() {
             onToggle={toggleLayer}
           />
 
-          <ConnectorStatusPanel connectors={CONNECTOR_STATUS} />
+          <ConnectorStatusPanel
+            connectors={[
+              ...connectorStatuses,
+              {
+                name: "Registrerede enheder",
+                slug: "iot",
+                provider: "Projektets gemte data",
+                status: mapDevices.devices
+                  ? "stored"
+                  : mapDevices.refreshing
+                    ? "preview"
+                    : "unavailable",
+                note: mapDevices.status,
+              },
+            ]}
+          />
 
           {geoJSONQuery.isError && (
             <div
@@ -405,7 +446,12 @@ function GeoMapPage() {
             </div>
           )}
 
-          <MapExportPanel geoJSON={geoJSON} projectName={project.name} />
+          <MapExportPanel
+            geoJSON={exportPreparation.data}
+            projectId={projectId}
+            projectName={project.name}
+            disabledReason={exportPreparation.reason}
+          />
         </div>
       </div>
     </main>

@@ -123,4 +123,59 @@ describe("mounted workspace across auth events", () => {
     expect(unmounted).toHaveBeenCalledTimes(1);
     expect(client.getQueryData(["private-report"])).toBeUndefined();
   });
+
+  it.each([
+    [{ userId: "user-a", orgId: "org-b", projectId: "project-b" }, "org-b/project-b"],
+    [{ orgId: "org-b", projectId: "project-b" }, "org-b/project-b"],
+    [{ userId: "user-b", orgId: "org-b", projectId: "project-b" }, "org-a/none"],
+    [{ userId: "user-a", orgId: "org-b", projectId: "project-a" }, "org-b/none"],
+    [{ userId: "user-a", orgId: "removed", projectId: "removed" }, "org-a/none"],
+  ])("restores only an authorized saved context on reload (%j)", async (stored, expected) => {
+    await act(async () => root.unmount());
+    localStorage.setItem("freyra-auth-selection-v1", JSON.stringify(stored));
+    mocks.from.mockImplementation((table: string) => {
+      const result = {
+        data:
+          table === "profiles"
+            ? null
+            : table === "organization_memberships"
+              ? ["a", "b"].map((name) => ({
+                  role: "editor",
+                  organization: { id: "org-" + name, name, type: null, country: null },
+                }))
+              : ["a", "b"].map((name) => ({
+                  id: "project-" + name,
+                  name,
+                  organization_id: "org-" + name,
+                })),
+        error: null,
+      };
+      return {
+        select: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue(result),
+        eq: vi.fn().mockReturnValue({
+          ...result,
+          maybeSingle: vi.fn().mockResolvedValue(result),
+        }),
+      };
+    });
+    function Context() {
+      const auth = useAuth();
+      return auth.loading ? "loading" : auth.orgId + "/" + (auth.projectId ?? "none");
+    }
+    root = createRoot(host);
+    await act(async () =>
+      root.render(
+        createElement(
+          QueryClientProvider,
+          { client },
+          createElement(AuthProvider, null, createElement(Context)),
+        ),
+      ),
+    );
+    expect(JSON.parse(localStorage.getItem("freyra-auth-selection-v1")!)).toEqual(stored);
+    await emit("INITIAL_SESSION", sessionFor("user-a"));
+    expect(host.textContent).toBe(expected);
+    expect(JSON.parse(localStorage.getItem("freyra-auth-selection-v1")!).userId).toBe("user-a");
+  });
 });

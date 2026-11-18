@@ -11,7 +11,13 @@ import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
 import type { ProjectScope } from "@/services/project-workspace-service";
 import { useWorkOrderEditorLock } from "./useWorkOrderEditorLock";
 
+import { BookingCustodyDetails } from "./EquipmentCustodyActions";
+import { EquipmentRentalRate } from "./EquipmentRentalRate";
+import { printableEquipmentLabel, printableEquipmentReservation } from "@/lib/printable-job-card";
+import { downloadFile } from "@/services/export-service";
+
 const uuid = z.string().uuid();
+
 const equipmentSchema = z.object({ id: uuid, name: z.string(), kind: kinds });
 const bookingSchema = z.object({
   id: uuid,
@@ -59,12 +65,16 @@ export function WorkOrderEquipmentBooking({
       : undefined,
   );
   const [cancelId, setCancelId] = useState<string>();
+  const [rateEditingId, setRateEditingId] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const inFlight = useRef(false);
   const attempt = useRef<{ signature: string; id: string } | undefined>(undefined);
-  useWorkOrderEditorLock(!preview && (!!newEquipment || !!draft || !!cancelId || busy), onEditing);
+  useWorkOrderEditorLock(
+    !preview && (!!newEquipment || !!draft || !!cancelId || !!rateEditingId || busy),
+    onEditing,
+  );
   const db = () => createActorBoundSupabaseClient(actorId) as unknown as SupabaseClient;
   const bookingsQuery = () =>
     db()
@@ -250,7 +260,7 @@ export function WorkOrderEquipmentBooking({
     setMessage("");
     attempt.current = undefined;
   }
-  const editing = !!draft || !!newEquipment || !!cancelId;
+  const editing = !!draft || !!newEquipment || !!cancelId || !!rateEditingId;
   return (
     <details
       className="space-y-3 rounded-xl border px-3 pb-3 text-sm"
@@ -285,6 +295,78 @@ export function WorkOrderEquipmentBooking({
               <p>
                 {row.starts_on} til {row.ends_on} · {row.cancelled_at ? "Aflyst" : "Reserveret"}
               </p>
+              <BookingCustodyDetails
+                bookingId={row.id}
+                actionId={actionId}
+                actorId={actorId}
+                scope={scope}
+                disabled={editing || busy || disabled}
+              />
+              <EquipmentRentalRate
+                actorId={actorId}
+                organizationId={scope.organizationId}
+                equipmentId={row.organization_work_equipment.id}
+                disabled={
+                  disabled ||
+                  busy ||
+                  !!draft ||
+                  !!newEquipment ||
+                  !!cancelId ||
+                  (!!rateEditingId && rateEditingId !== row.id)
+                }
+                onEditing={(value) =>
+                  setRateEditingId((current) =>
+                    value ? row.id : current === row.id ? undefined : current,
+                  )
+                }
+              />
+              {!row.cancelled_at && (
+                <button
+                  type="button"
+                  className={button}
+                  disabled={editing || busy || disabled}
+                  onClick={() => {
+                    try {
+                      const html = printableEquipmentReservation(window.location.origin, {
+                        bookingId: row.id,
+                        actionId,
+                        name: row.organization_work_equipment.name,
+                        startsOn: row.starts_on,
+                        endsOn: row.ends_on,
+                      });
+                      downloadFile(
+                        html,
+                        "freyra-materielreservation.html",
+                        "text/html;charset=utf-8",
+                      );
+                    } catch {
+                      setError("QR-kortet kunne ikke hentes. Prøv igen.");
+                    }
+                  }}
+                >
+                  Hent QR-kort til reservation
+                </button>
+              )}
+              <button
+                type="button"
+                className={button}
+                disabled={editing || busy || disabled}
+                onClick={() => {
+                  try {
+                    const equipment = row.organization_work_equipment;
+                    const html = printableEquipmentLabel(window.location.origin, {
+                      equipmentId: equipment.id,
+                      name: equipment.name,
+                      kind: kindLabel[equipment.kind],
+                    });
+                    downloadFile(html, "freyra-materielmaerke.html", "text/html;charset=utf-8");
+                  } catch {
+                    setError("Materielmærket kunne ikke hentes. Prøv igen.");
+                  }
+                }}
+              >
+                Hent fast QR-mærke til udstyr
+              </button>
               {!row.cancelled_at && cancelId !== row.id && (
                 <button
                   type="button"

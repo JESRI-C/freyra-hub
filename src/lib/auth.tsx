@@ -100,31 +100,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const activeUserIdRef = useRef<AuthUserId>(undefined);
   const authRevisionRef = useRef(0);
   const refreshGenerationRef = useRef(0);
-
-  // Restore selected org/project from localStorage
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) {
-        const s = JSON.parse(raw);
-        setOrgId(s.orgId ?? null);
-        setProjectId(s.projectId ?? null);
-      }
-    } catch {
-      // Ignore malformed legacy selections; memberships are loaded from Supabase below.
-    }
-  }, []);
+  const selectionRestoredFor = useRef<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(KEY, JSON.stringify({ orgId, projectId }));
-  }, [orgId, projectId]);
+    if (typeof window === "undefined" || loading || !user) return;
+    localStorage.setItem(KEY, JSON.stringify({ userId: user.id, orgId, projectId }));
+  }, [orgId, projectId, user, loading]);
 
   const resetTenantState = useCallback(() => {
     setUser(null);
     setOrganizations([]);
     setOrgId(null);
     setProjectId(null);
+    selectionRestoredFor.current = null;
   }, []);
 
   const loadUserData = useCallback(
@@ -234,6 +222,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar_url: profile?.avatar_url ?? null,
       });
       setOrganizations(orgs);
+      const restoreSelection = selectionRestoredFor.current !== uid;
+      selectionRestoredFor.current = uid;
 
       const requestedSelection = options?.selectProjectId
         ? findAuthorizedProjectSelection(orgs, options.selectProjectId)
@@ -248,6 +238,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Never retain another project's context when a requested project was not
       // present in the freshly RLS-filtered tenant data.
       if (options?.selectProjectId) setProjectId(null);
+
+      if (restoreSelection && !options?.selectProjectId && typeof window !== "undefined") {
+        try {
+          const stored = JSON.parse(localStorage.getItem(KEY) ?? "null");
+          const organization = orgs.find((candidate) => candidate.id === stored?.orgId);
+          if (organization && (!stored.userId || stored.userId === uid)) {
+            const project = organization.projects.find(
+              (candidate) => candidate.id === stored.projectId,
+            );
+            setOrgId(organization.id);
+            setProjectId(project?.id ?? null);
+            return { projectSelected: !!project };
+          }
+        } catch {
+          // Malformed selections are discarded after current memberships are known.
+        }
+      }
 
       // Auto-select first org if none set / stale
       setOrgId((prev) => {

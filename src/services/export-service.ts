@@ -12,7 +12,7 @@ import type { Zone } from "@/services/zones-service";
 import { ZONE_TYPE_LABELS, type ZoneType } from "@/services/zones-service";
 import type { AnalysisSummary } from "@/services/analysis-orchestrator";
 import { getIndicatorsByProject } from "@/services/indicators-service";
-import { logAuditEvent } from "@/services/audit-service";
+import { logAuditEvent, logProjectExportRequest } from "@/services/audit-service";
 
 // ─── CSV-udtræk ───────────────────────────────────────────────────────────────
 
@@ -117,29 +117,63 @@ export function downloadFile(content: string, filename: string, mimeType: string
   URL.revokeObjectURL(url);
 }
 
-export function downloadGeoJSON(
+export async function downloadGeoJSON(
   geojson: { type: "FeatureCollection"; features: readonly unknown[] },
   projectSlug: string,
-): void {
+  context: { projectId: string; entityType?: "watercourse_version"; entityId?: string },
+): Promise<void> {
+  await logProjectExportRequest({
+    ...context,
+    format: "geojson",
+    filename: `${projectSlug}-geodata.geojson`,
+  });
   downloadFile(
     JSON.stringify(geojson, null, 2),
     `${projectSlug}-geodata.geojson`,
     "application/geo+json",
   );
-  void logAuditEvent({
-    event_type: "data_export",
-    title: `GeoJSON eksporteret: ${projectSlug} (${geojson.features.length} features)`,
-    actor: "Bruger",
-    source: "manual",
-  });
+}
+
+/** Log each actual data scope before releasing a file containing several projects. */
+export async function recordProjectExportRequests(
+  projectIds: readonly string[],
+  filename: string,
+  format: "csv" | "xlsx",
+  signal?: AbortSignal,
+): Promise<void> {
+  const projects = [...new Set(projectIds)];
+  if (!projects.length || projects.some((id) => !id.trim()))
+    throw new Error("Eksportens projekter mangler.");
+  for (const projectId of projects) {
+    signal?.throwIfAborted();
+    await logProjectExportRequest({
+      projectId,
+      format,
+      filename,
+      entityType: "work_orders",
+    });
+  }
+  signal?.throwIfAborted();
 }
 
 export function downloadCsv(csv: string, filename: string): void {
   downloadFile(csv, filename, "text/csv;charset=utf-8");
-  void logAuditEvent({
+}
+
+/** Project exports record the request before downloading; unscoped CSV helpers cannot create a project audit event. */
+export async function downloadProjectCsv(
+  csv: string,
+  filename: string,
+  context: { projectId: string; entityType?: string; entityId?: string },
+): Promise<void> {
+  await logAuditEvent({
+    project_id: context.projectId,
     event_type: "data_export",
-    title: `CSV eksporteret: ${filename}`,
+    title: `CSV-udtræk anmodet: ${filename}`,
     actor: "Bruger",
     source: "manual",
+    entity_type: context.entityType,
+    entity_id: context.entityId,
   });
+  downloadFile(csv, filename, "text/csv;charset=utf-8");
 }

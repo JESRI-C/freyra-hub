@@ -15,6 +15,7 @@ import {
   claimWorkOrderPool,
   getWorkOrderAssignmentHistory,
   listMyWorkOrders,
+  getMyWorkOrderFromLink,
   getWorkOrderAssignmentState,
 } from "../work-order-assignments-service";
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -383,6 +384,27 @@ describe("groups and pool request boundary", () => {
       cancelled: false,
     };
     rpc.mockResolvedValue({ data: [taskRow], error: null });
+    const link = { expectedActorId: actor, actionId: taskRow.action_id };
+    expect(await getMyWorkOrderFromLink(client, actor, link)).toEqual(taskRow);
+    expect(rpc).toHaveBeenLastCalledWith("list_my_work_orders_with_filter", {
+      p_after_action_id: "11111111-1111-c111-5111-111111111110",
+      p_page_size: 1,
+      p_filter: "all",
+    });
+    await expect(
+      getMyWorkOrderFromLink(client, actor, {
+        ...link,
+        actionId: "00000000-0000-0000-0000-000000000000",
+      }),
+    ).resolves.toBeNull();
+    expect(rpc).toHaveBeenLastCalledWith("list_my_work_orders_with_filter", {
+      p_after_action_id: null,
+      p_page_size: 1,
+      p_filter: "all",
+    });
+    await expect(
+      getMyWorkOrderFromLink(client, actor, { ...link, expectedActorId: member }),
+    ).rejects.toMatchObject({ statusCode: 403 });
     expect(
       await listMyWorkOrders(client, actor, {
         expectedActorId: actor,

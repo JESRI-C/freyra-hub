@@ -10,7 +10,7 @@ import {
 import { MaterialBillingPreview } from "./MaterialBillingPreview";
 import { CalendarDate } from "@/lib/action-execution";
 import { createActorBoundSupabaseClient } from "@/lib/supabase/client";
-import { buildCsv, downloadCsv } from "@/services/export-service";
+import { buildCsv, downloadProjectCsv } from "@/services/export-service";
 import type { ProjectScope } from "@/services/project-workspace-service";
 
 const button = "min-h-11 rounded-xl border px-3 text-sm disabled:opacity-50";
@@ -73,13 +73,25 @@ export function ProjectMaterialBillingExport({
     }
   }
 
-  function download() {
-    if (!active || !rows?.length) return;
-    const csv = buildCsv(
-      rows.map((row) => materialBillingCsvRow(scope.projectId, row)),
-      materialBillingColumns,
-    );
-    downloadCsv(csv, `freyra-materialegrundlag-${from}-${through}.csv`);
+  async function download() {
+    if (!active || !rows?.length || inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const csv = buildCsv(
+        rows.map((row) => materialBillingCsvRow(scope.projectId, row)),
+        materialBillingColumns,
+      );
+      await downloadProjectCsv(csv, `freyra-materialegrundlag-${from}-${through}.csv`, {
+        projectId: scope.projectId,
+      });
+    } catch {
+      setError("CSV-udtrækket kunne ikke registreres og hentes. Prøv igen.");
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
   }
 
   return (

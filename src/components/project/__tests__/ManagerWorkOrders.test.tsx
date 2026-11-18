@@ -8,10 +8,16 @@ import {
   MANAGER_SELECTION_CHANGED_MESSAGE,
   type ManagerWorkOrder,
 } from "@/lib/manager-work-orders";
+import { read, write, utils } from "xlsx";
+import { createWorkOrderWorkbook } from "@/lib/manager-work-order-workbook";
 import { WorkOrderRequestError } from "@/lib/work-order-access";
 
 const m = vi.hoisted(() => ({
   load: vi.fn(),
+  download: vi.fn(),
+  exportAudit: vi.fn().mockResolvedValue(undefined),
+  downloadPrint: vi.fn(),
+  downloadWorkbook: vi.fn(),
   actor: "00000000-0000-4000-8000-000000000001" as string | null,
   org: "00000000-0000-4000-8000-000000000002" as string | null,
   loading: false,
@@ -27,6 +33,16 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: unknown) => fn }));
 vi.mock("@/lib/manager-work-orders.functions", () => ({ listManagerWorkOrders: m.load }));
+vi.mock("@/services/export-service", async (original) => ({
+  ...(await original<typeof import("@/services/export-service")>()),
+  downloadCsv: m.download,
+  downloadFile: m.downloadPrint,
+  recordProjectExportRequests: m.exportAudit,
+}));
+vi.mock("@/lib/manager-work-order-workbook", async (original) => ({
+  ...(await original<typeof import("@/lib/manager-work-order-workbook")>()),
+  downloadWorkOrderWorkbook: m.downloadWorkbook,
+}));
 vi.mock("../WorkOrderObservationDraftDialog", () => ({
   WorkOrderObservationDraftDialog: () => null,
 }));
@@ -236,6 +252,7 @@ async function submit() {
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
+  m.exportAudit.mockReset().mockResolvedValue(undefined);
   sessionStorage.clear();
   m.actor = id(1);
   m.org = id(2);
@@ -408,7 +425,11 @@ describe("manager work orders across projects", () => {
           });
         }
         expect(primary.textContent?.trim()).toBe(label);
-        expect(card.querySelector("button")).toBeNull();
+        expect(
+          [...card.querySelectorAll("button")].every(
+            (item) => item.textContent?.trim() === "Hent printkort",
+          ),
+        ).toBe(true);
         if (work === "submission") {
           const plan = card.querySelector(
             'a[aria-label="Åbn arbejdsgrundlag for Pleje langs åen"]',
@@ -468,6 +489,168 @@ describe("manager work orders across projects", () => {
     await click("Nulstil filtre");
     expect(field("Find arbejdsordre").value).toBe("");
     expect(field("Projekt").value).toBe("");
+  });
+
+  it("exports the complete authorized selection and keeps text cells literal", async () => {
+    const second = {
+      ...task,
+      action_id: id(30),
+      project_id: projects[1].id,
+      project_name: projects[1].name,
+      title: "  =1+1",
+      location_note: "Nordkant\rSydkant",
+      site_name: null,
+    };
+    m.load.mockResolvedValue(page([task], task.action_id, [task, second]));
+    await render();
+    m.load
+      .mockResolvedValueOnce(page([task], task.action_id, [task, second]))
+      .mockResolvedValueOnce(page([second], null, [task, second]));
+    await click("Eksportér udvalg (CSV)");
+    expect(m.load).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({
+        cursor: task.action_id,
+        selectionToken: token,
+        expectedActorId: id(1),
+        organizationId: id(2),
+      }),
+    });
+    expect(m.download).toHaveBeenCalledOnce();
+    expect(m.exportAudit).toHaveBeenCalledWith(
+      [task.project_id, second.project_id],
+      "freyra-arbejdsordrer.csv",
+      "csv",
+      expect.any(AbortSignal),
+    );
+    const [csv, filename] = m.download.mock.calls[0];
+    expect(filename).toBe("freyra-arbejdsordrer.csv");
+    expect(csv).toContain(task.title);
+    expect(csv).toContain("'  =1+1");
+    expect(csv).toContain('"Nordkant\nSydkant"');
+    expect(host.textContent).toContain("2 arbejdsordrer blev eksporteret");
+  });
+
+  it.each(["CSV", "Excel"])(
+    "keeps the file private when the %s export audit is denied",
+    async (format) => {
+      m.exportAudit.mockRejectedValue(new Error("Denied"));
+      await render();
+      await click(`Eksportér udvalg (${format})`);
+      expect(m.download).not.toHaveBeenCalled();
+      expect(m.downloadWorkbook).not.toHaveBeenCalled();
+      expect(host.textContent).toContain("Hele udvalget kunne ikke eksporteres");
+    },
+  );
+  it("downloads a printable QR job card linked to the exact protected work order", async () => {
+    m.load.mockResolvedValue(page([{ ...task, title: "<img src=x onerror=alert(1)>" }]));
+    await render();
+    await click("Liste");
+    await click("Hent printkort");
+    expect(m.downloadPrint).toHaveBeenCalledOnce();
+    const [html, filename, mime] = m.downloadPrint.mock.calls[0];
+    expect(filename).toBe("freyra-jobkort.html");
+    expect(mime).toContain("text/html");
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    expect(doc.querySelector("h1")?.textContent).toBe("<img src=x onerror=alert(1)>");
+    expect(doc.querySelector("[onerror]")).toBeNull();
+    expect(doc.images).toHaveLength(1);
+    expect(doc.images[0].src).toMatch(/^data:image\/svg\+xml/);
+    const link = new URL(doc.links[0].href);
+    expect(link.origin).toBe(window.location.origin);
+    expect(link.pathname).toBe("/login");
+    const mobile = new URL(link.searchParams.get("next")!, link.origin);
+    expect(mobile.pathname).toBe("/opgaver");
+    expect(mobile.searchParams.get("job")).toBe(task.action_id);
+    expect(mobile.searchParams.get("mode")).toBe("finish");
+    const manager = new URL(doc.links[1].href);
+    const workOrder = new URL(manager.searchParams.get("next")!, manager.origin);
+    expect(workOrder.pathname).toBe("/app/projects/" + task.project_id);
+    expect(Object.fromEntries(workOrder.searchParams)).toEqual({
+      tab: "handlinger",
+      task: task.action_id,
+      work: "plan",
+    });
+  });
+
+  it("uses the chosen columns in a real Excel workbook and preserves literal cell data", async () => {
+    m.load.mockResolvedValue(page([{ ...task, title: "=1+1" }]));
+    await render();
+    const project = [...host.querySelectorAll("fieldset label")]
+      .find((label) => label.textContent?.trim() === "Projekt")
+      ?.querySelector("input");
+    expect(project).toBeTruthy();
+    await act(async () => project!.click());
+    await click("Eksportér udvalg (Excel)");
+    expect(m.downloadWorkbook).toHaveBeenCalledOnce();
+    const [columns, rows] = m.downloadWorkbook.mock.calls[0];
+    expect(columns).not.toContain("Projekt");
+    const bytes = write(createWorkOrderWorkbook(columns, rows), {
+      type: "array",
+      bookType: "xlsx",
+    });
+    const saved = read(bytes, { type: "array" }).Sheets.Arbejdsordrer;
+    expect(utils.sheet_to_json(saved, { header: 1 })[0]).toEqual(columns);
+    expect(saved.A2).toMatchObject({ t: "s", v: "=1+1" });
+    expect(saved.A2.f).toBeUndefined();
+  });
+
+  it("does not download a partial export if the authorized selection changes", async () => {
+    const second = { ...task, action_id: id(30) };
+    m.load.mockResolvedValue(page([task], task.action_id, [task, second]));
+    await render();
+    m.load
+      .mockResolvedValueOnce(page([task], task.action_id, [task, second]))
+      .mockResolvedValueOnce({
+        ...page([second], null, [task, second]),
+        selectionToken: "b".repeat(64),
+      });
+    await click("Eksportér udvalg (CSV)");
+    expect(m.download).not.toHaveBeenCalled();
+    expect(host.textContent).toContain("Hele udvalget kunne ikke eksporteres");
+  });
+
+  it("opens the calendar of the applied project even when it has no matching jobs", async () => {
+    await render();
+    const link = () => host.querySelector('a[aria-label="Åbn kalender for Mosen uden opgaver"]');
+    expect(link()).toBeNull();
+    await change("Projekt", id(4));
+    expect(link()).toBeNull();
+    m.load.mockResolvedValue(page([]));
+    await submit();
+    expect(link()?.getAttribute("data-params")).toBe(JSON.stringify({ slug: id(4) }));
+    expect(link()?.getAttribute("data-search")).toBe(
+      JSON.stringify({ tab: "handlinger", taskList: "calendar" }),
+    );
+    await click("Nulstil filtre");
+    expect(link()).toBeNull();
+  });
+
+  it("applies the current week and clears just the deadline without dropping the project", async () => {
+    vi.setSystemTime(new Date(2027, 0, 1, 12));
+    try {
+      await render();
+      await change("Projekt", id(4));
+      await submit();
+      await click("Frist i denne uge");
+      expect(m.load).toHaveBeenLastCalledWith({
+        data: expect.objectContaining({
+          cursor: null,
+          filters: expect.objectContaining({
+            projectId: id(4),
+            dueFrom: "2026-12-28",
+            dueThrough: "2027-01-03",
+          }),
+        }),
+      });
+      expect(host.textContent).toContain("Valgt frist: 2026-12-28");
+      await click("Fjern fristfilter");
+      expect(field("Projekt").value).toBe(id(4));
+      expect(field("Frist fra").value).toBe("");
+      expect(field("Frist til").value).toBe("");
+      expect(host.textContent).not.toContain("Valgt frist:");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("rejects a reversed date interval before making a request", async () => {
@@ -657,6 +840,7 @@ describe("manager work orders across projects", () => {
           source: "plan_visit_stop" as const,
           sequence: 1,
           name: "Andet stop",
+          coordinate_source: "site_stored_centroid" as const,
         },
       ],
     };
@@ -682,6 +866,16 @@ describe("manager work orders across projects", () => {
     expect(selected.textContent).toContain(
       "2 tilknyttede lokaliteter mangler en brugbar kortposition",
     );
+    const directions = selected.querySelector(
+      'a[aria-label="Få vejvisning til Engen i Google Maps"]',
+    );
+    expect(directions).toBeTruthy();
+    const destination = new URL(directions!.getAttribute("href")!);
+    expect(destination.searchParams.get("destination")).toBe("55,9");
+    expect(destination.searchParams.get("origin")).toBeNull();
+    expect(
+      selected.querySelector('a[aria-label="Få vejvisning til Andet stop i Google Maps"]'),
+    ).toBeNull();
     const link = selected.querySelector('a[aria-label="Åbn aflevering for Pleje langs åen"]')!;
     expect(JSON.parse(link.getAttribute("data-search")!)).toEqual({
       tab: "handlinger",
