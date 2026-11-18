@@ -12,6 +12,7 @@ export default tseslint.config(
       ".output",
       ".vinxi",
       "tmp/**",
+      "vendor/picomatch-hardened/**",
       "types/worker-configuration.d.ts",
       "types/field-photo-worker.d.ts",
     ],

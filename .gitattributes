@@ -1,2 +1,3 @@
 # Preserve Wrangler output verbatim and collapse generated runtime definitions in review.
 types/field-photo-worker.d.ts linguist-generated=true -whitespace
+vendor/picomatch-hardened/** text eol=lf

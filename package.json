@@ -16,7 +16,8 @@
     "@modelcontextprotocol/sdk": "1.32.2",
     "sharp": "0.35.5",
     "undici": "7.30.1",
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "picomatch": "$picomatch"
   },
   "scripts": {
     "dev": "vite dev",
@@ -39,7 +40,7 @@
     "test:e2e": "playwright test",
     "seed:haderslev": "node scripts/seed-haderslev-demo.mjs",
     "access:haderslev": "node scripts/provision-municipal-reader.mjs",
-    "audit:runtime": "npm audit --omit=dev --audit-level=low"
+    "audit:runtime": "node scripts/verify-picomatch-hardening.mjs && npm audit --omit=dev --audit-level=low"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.48",
@@ -113,7 +114,8 @@
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
     "xlsx": "file:vendor/xlsx-0.20.3.tgz",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "picomatch": "file:vendor/picomatch-hardened"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
